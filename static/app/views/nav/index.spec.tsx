@@ -33,7 +33,6 @@ const ALL_AVAILABLE_FEATURES = [
   'performance-view',
   'performance-trace-explorer',
   'profiling',
-  'chonk-ui',
 ];
 
 const mockUsingCustomerDomain = jest.fn();
@@ -82,7 +81,9 @@ describe('Nav', function () {
   function renderNav({
     initialPathname = '/organizations/org-slug/issues/',
     route,
+    features = ALL_AVAILABLE_FEATURES,
   }: {
+    features?: string[];
     initialPathname?: string;
     route?: string;
   } = {}) {
@@ -92,7 +93,7 @@ describe('Nav', function () {
         <div id="main" />
       </NavContextProvider>,
       {
-        organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
+        organization: OrganizationFixture({features}),
         enableRouterMocks: false,
         initialRouterConfig: {
           route,
@@ -381,9 +382,16 @@ describe('Nav', function () {
   });
 
   describe('chonk-ui', function () {
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/prompts-activity/',
+        body: {data: {dismissed_ts: null}},
+      });
+    });
+
     describe('enabled', function () {
       it('shows the chonk-ui toggle in the help menu', async function () {
-        renderNav();
+        renderNav({features: ALL_AVAILABLE_FEATURES.concat('chonk-ui')});
         const helpMenu = screen.getByRole('button', {name: 'Help'});
         await userEvent.click(helpMenu);
 
@@ -399,7 +407,7 @@ describe('Nav', function () {
           },
         });
 
-        renderNav();
+        renderNav({features: ALL_AVAILABLE_FEATURES.concat('chonk-ui')});
         const helpMenu = screen.getByRole('button', {name: 'Help'});
         await userEvent.click(helpMenu);
 
@@ -409,7 +417,7 @@ describe('Nav', function () {
 
     describe('disabled', function () {
       it('does not show the chonk-ui toggle in the help menu', async function () {
-        renderNav();
+        renderNav({features: ALL_AVAILABLE_FEATURES});
         const helpMenu = screen.getByRole('button', {name: 'Help'});
         await userEvent.click(helpMenu);
 

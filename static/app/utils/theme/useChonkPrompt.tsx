@@ -6,18 +6,18 @@ function noop() {}
 
 export function useChonkPrompt() {
   const user = useUser();
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
   const hasChonkUI = organization?.features.includes('chonk-ui');
 
-  const tooltipPrompt = usePrompt({
+  const bannerPrompt = usePrompt({
     organization,
-    feature: 'chonk-ui-tooltip',
+    feature: 'chonk_ui_banner',
     options: {enabled: hasChonkUI},
   });
 
   const dotIndicatorPrompt = usePrompt({
     organization,
-    feature: 'chonk-ui-dot-indicator',
+    feature: 'chonk_ui_dot_indicator',
     options: {enabled: hasChonkUI},
   });
 
@@ -25,20 +25,30 @@ export function useChonkPrompt() {
   // and I have little trust in its type safety.
   if (!hasChonkUI || user?.options?.prefersChonkUI) {
     return {
-      showTooltipPrompt: false,
+      showbannerPrompt: false,
       showDotIndicatorPrompt: false,
-      dismissTooltipPrompt: noop,
+      dismissBannerPrompt: noop,
       dismissDotIndicatorPrompt: noop,
     };
   }
 
+  // The dot indicator is only visible after the tooltip is dismissed
+  const showDotIndicatorPrompt = Boolean(
+    bannerPrompt.isPromptDismissed && !dotIndicatorPrompt.isPromptDismissed
+  );
+
   return {
-    showTooltipPrompt: !tooltipPrompt.isPromptDismissed,
-    // The dot indicator is visible after the tooltip is dismissed
-    showDotIndicatorPrompt: Boolean(
-      tooltipPrompt.isPromptDismissed && !dotIndicatorPrompt.isPromptDismissed
-    ),
-    dismissTooltipPrompt: tooltipPrompt.dismissPrompt,
-    dismissDotIndicatorPrompt: dotIndicatorPrompt.dismissPrompt,
+    showbannerPrompt: !bannerPrompt.isPromptDismissed,
+    showDotIndicatorPrompt,
+    dismissBannerPrompt: () => {
+      if (!bannerPrompt.isPromptDismissed) {
+        bannerPrompt.dismissPrompt();
+      }
+    },
+    dismissDotIndicatorPrompt: () => {
+      if (showDotIndicatorPrompt) {
+        dotIndicatorPrompt.dismissPrompt();
+      }
+    },
   };
 }

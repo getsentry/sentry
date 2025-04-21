@@ -5,6 +5,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useChonkPrompt} from 'sentry/utils/theme/useChonkPrompt';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -55,10 +56,12 @@ export function PrimaryNavigationHelp() {
   const contactSupportItem = getContactSupportItem({organization});
   const openForm = useFeedbackForm();
   const {startTour} = useStackedNavigationTour();
+  const chonkPrompt = useChonkPrompt();
 
   return (
     <StackedNavigationTourReminder>
       <SidebarMenu
+        onClick={chonkPrompt.dismissDotIndicatorPrompt}
         items={[
           {
             key: 'search',

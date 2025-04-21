@@ -33,7 +33,7 @@ describe('useChonkPrompt', () => {
       wrapper: makeWrapper(OrganizationFixture({features: []})),
     });
 
-    expect(result.current.showTooltipPrompt).toBe(false);
+    expect(result.current.showbannerPrompt).toBe(false);
     expect(result.current.showDotIndicatorPrompt).toBe(false);
   });
 
@@ -47,7 +47,7 @@ describe('useChonkPrompt', () => {
       wrapper: makeWrapper(OrganizationFixture({features: ['chonk-ui']})),
     });
 
-    expect(result.current.showTooltipPrompt).toBe(true);
+    expect(result.current.showbannerPrompt).toBe(true);
     expect(result.current.showDotIndicatorPrompt).toBe(false);
   });
 
@@ -66,22 +66,22 @@ describe('useChonkPrompt', () => {
       wrapper: makeWrapper(OrganizationFixture({features: ['chonk-ui']})),
     });
 
-    expect(result.current.showTooltipPrompt).toBe(true);
+    expect(result.current.showbannerPrompt).toBe(true);
     expect(result.current.showDotIndicatorPrompt).toBe(false);
 
-    result.current.dismissTooltipPrompt();
+    result.current.dismissBannerPrompt();
 
     expect(dismissMock).toHaveBeenCalledWith(
       '/organizations/org-slug/prompts-activity/',
       expect.objectContaining({
         data: expect.objectContaining({
-          feature: 'chonk-ui-tooltip',
+          feature: 'chonk_ui_banner',
           status: 'dismissed',
         }),
       })
     );
 
-    await waitFor(() => expect(result.current.showTooltipPrompt).toBe(false));
+    await waitFor(() => expect(result.current.showbannerPrompt).toBe(false));
     await waitFor(() => expect(result.current.showDotIndicatorPrompt).toBe(true));
   });
 
@@ -100,7 +100,7 @@ describe('useChonkPrompt', () => {
       wrapper: makeWrapper(OrganizationFixture({features: ['chonk-ui']})),
     });
 
-    expect(result.current.showTooltipPrompt).toBe(false);
+    expect(result.current.showbannerPrompt).toBe(false);
     expect(result.current.showDotIndicatorPrompt).toBe(true);
 
     result.current.dismissDotIndicatorPrompt();
@@ -109,13 +109,13 @@ describe('useChonkPrompt', () => {
       '/organizations/org-slug/prompts-activity/',
       expect.objectContaining({
         data: expect.objectContaining({
-          feature: 'chonk-ui-dot-indicator',
+          feature: 'chonk_ui_dot_indicator',
           status: 'dismissed',
         }),
       })
     );
 
-    await waitFor(() => expect(result.current.showTooltipPrompt).toBe(false));
+    await waitFor(() => expect(result.current.showbannerPrompt).toBe(false));
     await waitFor(() => expect(result.current.showDotIndicatorPrompt).toBe(false));
   });
 
@@ -139,7 +139,7 @@ describe('useChonkPrompt', () => {
       wrapper: makeWrapper(OrganizationFixture({features: ['chonk-ui']})),
     });
 
-    expect(result.current.showTooltipPrompt).toBe(false);
+    expect(result.current.showbannerPrompt).toBe(false);
     expect(result.current.showDotIndicatorPrompt).toBe(false);
   });
 });

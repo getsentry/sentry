@@ -36,6 +36,7 @@ interface SidebarItemDropdownProps {
   label: string;
   children?: React.ReactNode;
   forceLabel?: boolean;
+  onClick?: MouseEventHandler<HTMLButtonElement>;
 }
 
 interface SidebarButtonProps {
@@ -76,6 +77,7 @@ export function SidebarMenu({
   analyticsKey,
   label,
   forceLabel,
+  onClick,
 }: SidebarItemDropdownProps) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -96,6 +98,7 @@ export function SidebarMenu({
               onClick={event => {
                 recordPrimaryItemClick(analyticsKey, organization);
                 props.onClick?.(event);
+                onClick?.(event);
               }}
               isMobile={layout === NavLayout.MOBILE}
             >
