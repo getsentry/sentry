@@ -6,7 +6,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {SeerLoadingIcon} from 'sentry/components/ai/SeerIcon';
 import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
+import {TextArea} from 'sentry/components/core/textarea';
 import {FlyingLinesEffect} from 'sentry/components/events/autofix/FlyingLinesEffect';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import {useTypingAnimation} from 'sentry/components/events/autofix/useTypingAnimation';
@@ -139,7 +139,7 @@ export function AutofixOutputStream({
     };
   }, [stream, displayedText]);
 
-  const handleSend = (e: FormEvent<HTMLFormElement>) => {
+  const handleSend = (e: FormEvent) => {
     e.preventDefault();
     if (isInitializingRun) {
       // don't send message during loading state
@@ -200,13 +200,21 @@ export function AutofixOutputStream({
             )}
             <InputWrapper onSubmit={handleSend}>
               <StyledInput
-                type="text"
+                autosize
                 value={message}
                 onChange={e => setMessage(e.target.value)}
                 maxLength={4096}
                 placeholder={
                   responseRequired ? 'Please answer to continue...' : 'Interrupt me...'
                 }
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend(e);
+                  }
+                }}
+                maxRows={5}
+                size="sm"
               />
               <StyledButton
                 type="submit"
@@ -307,12 +315,13 @@ const InputWrapper = styled('form')`
   position: relative;
 `;
 
-const StyledInput = styled(Input)`
+const StyledInput = styled(TextArea)`
   flex-grow: 1;
   background: ${p => p.theme.background}
     linear-gradient(to left, ${p => p.theme.background}, ${p => p.theme.pink400}20);
   border-color: ${p => p.theme.innerBorder};
   padding-right: ${space(4)};
+  resize: none;
 
   &:hover {
     border-color: ${p => p.theme.border};

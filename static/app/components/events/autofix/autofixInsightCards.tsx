@@ -5,7 +5,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Input} from 'sentry/components/core/input';
+import {TextArea} from 'sentry/components/core/textarea';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
@@ -123,6 +123,19 @@ function AutofixInsightCard({
 
   const insightCardAboveIndex = index - 1 >= 0 ? index - 1 : null;
 
+  let truncatedTitle = displayedInsightTitle;
+  const newlineIndex = displayedInsightTitle.indexOf('\n');
+  if (newlineIndex !== -1 && newlineIndex < displayedInsightTitle.length - 1) {
+    truncatedTitle = displayedInsightTitle.substring(0, newlineIndex) + '...';
+  }
+
+  let fullJustification = isUserMessage ? '' : insight.justification;
+  if (newlineIndex !== -1) {
+    const excludedText = displayedInsightTitle.substring(newlineIndex + 1);
+    const excludedTextWithEllipsis = excludedText ? '...' + excludedText : '';
+    fullJustification = excludedTextWithEllipsis + '\n\n' + fullJustification;
+  }
+
   return (
     <ContentWrapper>
       <AnimatePresence initial={isNewInsight}>
@@ -141,12 +154,20 @@ function AutofixInsightCard({
                 <form onSubmit={handleSubmit}>
                   <EditFormRow>
                     <EditInput
-                      type="text"
+                      autosize
                       value={editText}
                       maxLength={4096}
                       onChange={e => setEditText(e.target.value)}
                       placeholder={t('Share your own insight here...')}
                       autoFocus
+                      maxRows={5}
+                      size="sm"
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSubmit(e);
+                        }
+                      }}
                     />
                     <ButtonBar merged>
                       <Button
@@ -172,10 +193,7 @@ function AutofixInsightCard({
                 </form>
               </EditContainer>
             ) : (
-              <InsightCardRow
-                onClick={isUserMessage ? undefined : toggleExpand}
-                isUserMessage={isUserMessage}
-              >
+              <InsightCardRow onClick={toggleExpand}>
                 <AutofixHighlightWrapper
                   groupId={groupId}
                   runId={runId}
@@ -184,26 +202,24 @@ function AutofixInsightCard({
                 >
                   <MiniHeader
                     dangerouslySetInnerHTML={{
-                      __html: singleLineRenderer(displayedInsightTitle),
+                      __html: singleLineRenderer(truncatedTitle),
                     }}
                   />
                 </AutofixHighlightWrapper>
 
                 <RightSection>
-                  {!isUserMessage && (
-                    <Button
-                      size="zero"
-                      borderless
-                      title={expanded ? t('Hide evidence') : t('Show evidence')}
-                      icon={
-                        <StyledIconChevron
-                          direction={expanded ? 'down' : 'right'}
-                          size="sm"
-                        />
-                      }
-                      aria-label={expanded ? t('Hide evidence') : t('Show evidence')}
-                    />
-                  )}
+                  <Button
+                    size="zero"
+                    borderless
+                    title={expanded ? t('Hide evidence') : t('Show evidence')}
+                    icon={
+                      <StyledIconChevron
+                        direction={expanded ? 'down' : 'right'}
+                        size="sm"
+                      />
+                    }
+                    aria-label={expanded ? t('Hide evidence') : t('Show evidence')}
+                  />
                   <EditButton
                     size="zero"
                     borderless
@@ -217,7 +233,7 @@ function AutofixInsightCard({
             )}
 
             <AnimatePresence>
-              {expanded && !isUserMessage && (
+              {expanded && (
                 <motion.div
                   initial={{height: 0, opacity: 0}}
                   animate={{height: 'auto', opacity: 1}}
@@ -235,12 +251,12 @@ function AutofixInsightCard({
                     retainInsightCardIndex={insightCardAboveIndex}
                   >
                     <ContextBody>
-                      {insight.justification || !insight.change_diff ? (
+                      {fullJustification || !insight.change_diff ? (
                         <p
                           dangerouslySetInnerHTML={{
                             __html: marked(
                               replaceHeadersWithBold(
-                                insight.justification || t('No details here.')
+                                fullJustification || t('No details here.')
                               )
                             ),
                           }}
@@ -436,7 +452,7 @@ export function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: 
           run_id: runId,
           payload: {
             type: 'restart_from_point_with_feedback',
-            message: params.message,
+            message: params.message.trim(),
             step_index: params.step_index,
             retain_insight_card_index: params.retain_insight_card_index,
           },
@@ -548,9 +564,9 @@ const InsightCardRow = styled('div')<{isUserMessage?: boolean}>`
   display: flex;
   justify-content: space-between;
   align-items: stretch;
-  cursor: ${p => (p.isUserMessage ? 'default' : 'pointer')};
+  cursor: pointer;
   &:hover {
-    background-color: ${p => (p.isUserMessage ? 'inherit' : p.theme.backgroundSecondary)};
+    background-color: ${p => p.theme.backgroundSecondary};
   }
 `;
 
@@ -731,8 +747,9 @@ const EditFormRow = styled('div')`
   width: 100%;
 `;
 
-const EditInput = styled(Input)`
+const EditInput = styled(TextArea)`
   flex: 1;
+  resize: none;
 `;
 
 const EditButton = styled(Button)`
