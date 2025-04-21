@@ -295,9 +295,7 @@ export function AutofixChanges({
                 </ButtonBar>
               )}
               {prsMade &&
-                (step.changes.length === 1 &&
-                step.changes[0] &&
-                step.changes[0].pull_request?.pr_url ? (
+                (step.changes.length === 1 && step.changes[0]?.pull_request?.pr_url ? (
                   <LinkButton
                     size="xs"
                     priority="primary"
@@ -451,11 +449,6 @@ const HeaderIconWrapper = styled('div')`
   justify-content: center;
 `;
 
-const StyledLoadingIndicator = styled(LoadingIndicator)`
-  right: ${space(1)};
-  top: 5px;
-`;
-
 function CreatePRsButton({
   changes,
   groupId,
@@ -517,7 +510,7 @@ function CreatePRsButton({
     <Button
       priority="primary"
       onClick={createPRs}
-      icon={hasClicked && <StyledLoadingIndicator size={14} mini />}
+      icon={hasClicked && <LoadingIndicator size={14} />}
       size="sm"
       busy={isBusy || hasClicked}
       disabled={isBusy || hasClicked}
@@ -589,7 +582,7 @@ function CreateBranchButton({
   return (
     <Button
       onClick={pushToBranch}
-      icon={hasClicked && <StyledLoadingIndicator size={14} mini />}
+      icon={hasClicked && <LoadingIndicator size={14} />}
       size="sm"
       busy={isBusy || hasClicked}
       disabled={isBusy || hasClicked}

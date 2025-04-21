@@ -1,5 +1,6 @@
 import {useCallback} from 'react';
 
+import {defined} from 'sentry/utils';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeFetchStarredGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
@@ -15,7 +16,13 @@ export function useStarredIssueViews() {
     {notifyOnChangeProps: ['data'], staleTime: 0}
   );
 
-  const starredViews = groupSearchViews?.map(convertGSVtoIssueView) ?? [];
+  const starredViews =
+    groupSearchViews
+      // XXX (malwilley): Issue views without the nav require at least one issue view,
+      // so they respond with "fake" issue views that do not have an ID.
+      // We should remove this from the backend and here once we remove the tab-based views.
+      ?.filter(view => defined(view.id))
+      .map(convertGSVtoIssueView) ?? [];
 
   const setStarredIssueViews = useCallback(
     (newViews: NavIssueView[]) => {
@@ -41,6 +48,8 @@ export const convertGSVtoIssueView = (gsv: StarredGroupSearchView): NavIssueView
     timeFilters: gsv.timeFilters,
     projects: gsv.projects,
     lastVisited: gsv.lastVisited,
+    stars: gsv.stars,
+    createdBy: gsv.createdBy,
   };
 };
 
@@ -54,5 +63,7 @@ export const convertIssueViewToGSV = (view: NavIssueView): StarredGroupSearchVie
     environments: view.environments,
     timeFilters: view.timeFilters,
     lastVisited: view.lastVisited,
+    createdBy: view.createdBy,
+    stars: view.stars,
   };
 };

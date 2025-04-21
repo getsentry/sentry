@@ -438,7 +438,7 @@ export function ProjectPageFilter({
 function shouldCloseOnInteractOutside(target: Element) {
   // Don't close select menu when clicking on power hovercard ("Requires Business Plan")
   const powerHovercard = document.querySelector("[data-test-id='power-hovercard']");
-  return !powerHovercard || !powerHovercard.contains(target);
+  return !powerHovercard?.contains(target);
 }
 
 function checkboxWrapper(

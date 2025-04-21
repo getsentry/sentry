@@ -3,11 +3,11 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Duration from 'sentry/components/duration';
 import GridEditable, {type GridColumnOrder} from 'sentry/components/gridEditable';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

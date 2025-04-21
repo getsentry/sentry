@@ -61,6 +61,9 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
         if tags := kwargs.get("tags", {}):
             data["tags"] = [[key, val] for key, val in tags.items()]
 
+        if environment := kwargs.pop("environment", None):
+            data["environment"] = environment
+
         self.store_event(
             data=data,
             project_id=project.id,
@@ -75,6 +78,7 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
             duration=duration,
             organization_id=project.organization.id,
             is_eap=self.is_eap,
+            environment=data.get("environment"),
             **kwargs,
         )
 
@@ -809,6 +813,80 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                         ],
                     },
                 ]
+
+    def test_environment_filter(self):
+        trace_id = uuid4().hex
+        span_id = "1" + uuid4().hex[:15]
+        timestamp = before_now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(
+            days=3
+        )
+
+        self.double_write_segment(
+            project=self.project,
+            trace_id=trace_id,
+            transaction_id=uuid4().hex,
+            span_id=span_id,
+            timestamp=timestamp,
+            transaction="foo",
+            duration=60_100,
+            exclusive_time=60_100,
+            sdk_name="sentry.javascript.node",
+            environment="prod",
+        )
+
+        self.double_write_segment(
+            project=self.project,
+            trace_id=uuid4().hex,
+            transaction_id=uuid4().hex,
+            span_id=uuid4().hex[:16],
+            timestamp=timestamp,
+            transaction="bar",
+            duration=60_100,
+            exclusive_time=60_100,
+            sdk_name="sentry.javascript.node",
+            environment="test",
+        )
+
+        query = {
+            # only query for project_2 but expect traces to start from project_1
+            "project": [self.project.id],
+            "field": ["id", "parent_span", "span.duration"],
+            "environment": "prod",
+        }
+
+        ts = timestamp.timestamp() * 1000
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+        assert response.data["data"] == [
+            {
+                "breakdowns": [
+                    {
+                        "duration": 60_100,
+                        "start": ts,
+                        "end": ts + 60_100,
+                        "isRoot": True,
+                        "kind": "project",
+                        "project": self.project.slug,
+                        "sdkName": "sentry.javascript.node",
+                        "sliceEnd": 40,
+                        "sliceStart": 0,
+                        "sliceWidth": 40,
+                    },
+                ],
+                "duration": 60_100,
+                "start": ts,
+                "end": ts + 60_100,
+                "matchingSpans": 1,
+                "name": "foo",
+                "numErrors": 0,
+                "numOccurrences": 0,
+                "numSpans": 1,
+                "project": self.project.slug,
+                "rootDuration": 60_100,
+                "trace": trace_id,
+            },
+        ]
 
 
 class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):

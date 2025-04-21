@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react';
 
 import {switchOrganization} from 'sentry/actionCreators/organizations';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
+import {isProjectsCacheEnabled} from 'sentry/appQueryClient';
 import {
   useBootstrapOrganizationQuery,
   useBootstrapProjectsQuery,
@@ -51,7 +52,6 @@ function setRecentBootstrapTag(orgSlug: string) {
  */
 export function OrganizationContextProvider({children}: Props) {
   const configStore = useLegacyStore(ConfigStore);
-
   const {organizations} = useLegacyStore(OrganizationsStore);
   const {organization, error} = useLegacyStore(OrganizationStore);
   const lastOrganizationSlug: string | null =
@@ -65,11 +65,10 @@ export function OrganizationContextProvider({children}: Props) {
     ? lastOrganizationSlug
     : params.orgId || lastOrganizationSlug;
 
-  const {isFetching: isOrganizationFetching} = useBootstrapOrganizationQuery(orgSlug);
-  const {isFetching: isTeamsFetching} = useBootstrapTeamsQuery(orgSlug);
-  const {isFetching: isProjectsFetching} = useBootstrapProjectsQuery(orgSlug);
-  const bootstrapIsPending =
-    isOrganizationFetching || isTeamsFetching || isProjectsFetching;
+  const {isPending: isOrganizationPending} = useBootstrapOrganizationQuery(orgSlug);
+  const {isPending: isTeamsPending} = useBootstrapTeamsQuery(orgSlug);
+  const {isPending: isProjectsPending} = useBootstrapProjectsQuery(orgSlug);
+  const bootstrapIsPending = isOrganizationPending || isTeamsPending || isProjectsPending;
 
   useEffect(() => {
     // Clear stores when the org slug changes
@@ -94,6 +93,9 @@ export function OrganizationContextProvider({children}: Props) {
         name: 'ui.bootstrap',
         op: 'ui.render',
         forceTransaction: true,
+        attributes: {
+          cacheEnabled: isProjectsCacheEnabled,
+        },
       });
     }
 

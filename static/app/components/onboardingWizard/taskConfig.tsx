@@ -2,11 +2,11 @@ import styled from '@emotion/styled';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {filterSupportedTasks} from 'sentry/components/onboardingWizard/filterSupportedTasks';
 import {taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
-import {Tooltip} from 'sentry/components/tooltip';
 import {sourceMaps} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
@@ -46,7 +46,7 @@ type Options = {
 };
 
 function getIssueAlertUrl({projects, organization}: Options) {
-  if (!projects || !projects.length) {
+  if (!projects?.length) {
     return makeAlertsPathname({
       path: '/rules/',
       organization,
@@ -65,7 +65,7 @@ function getOnboardingInstructionsUrl({projects, organization}: Options) {
   // This shall never be the case, since this is step is locked until a project is created,
   // but if the user falls into this case for some reason,
   // he needs to select the platform again since it is not available as a parameter here
-  if (!projects || !projects.length) {
+  if (!projects?.length) {
     return `/${organization.slug}/:projectId/getting-started/`;
   }
 
@@ -193,9 +193,6 @@ export function getOnboardingTasks({
       action: () => openInviteMembersModal({source: 'onboarding_widget'}),
       display: true,
       group: OnboardingTaskGroup.GETTING_STARTED,
-      pendingTitle: t(
-        'You’ve invited members, and their acceptance is pending. Keep an eye out for updates!'
-      ),
     },
     {
       task: OnboardingTaskKey.REAL_TIME_NOTIFICATIONS,
@@ -233,7 +230,6 @@ export function getOnboardingTasks({
       actionType: 'app',
       location: makeProjectsPathname({path: '/new/', orgSlug: organization.slug}),
       display: true,
-      pendingTitle: t('Awaiting an error for this project.'),
     },
     {
       task: OnboardingTaskKey.FIRST_TRANSACTION,

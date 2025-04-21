@@ -209,7 +209,7 @@ describe('groupEvents', () => {
         '/organizations/org-slug/events/',
         expect.objectContaining({
           query: expect.objectContaining({
-            query: 'performance.issue_ids:1 event.type:transaction ',
+            query: 'issue.id:1 ',
           }),
         })
       );

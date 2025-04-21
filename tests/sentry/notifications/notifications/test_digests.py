@@ -137,6 +137,8 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
                 "team_ids": ANY,
                 "user_ids": ANY,
                 "notification_uuid": ANY,
+                "number_of_rules": ANY,
+                "group_count": ANY,
             },
         )
 

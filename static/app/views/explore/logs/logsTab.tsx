@@ -15,23 +15,22 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {ExploreCharts} from 'sentry/views/explore/charts';
 import SchemaHintsList, {
   SchemaHintsSection,
-} from 'sentry/views/explore/components/schemaHintsList';
-import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
+} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {
   TraceItemSearchQueryBuilder,
   useSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {
-  type LogPageParamsUpdate,
   useLogsFields,
   useLogsSearch,
   useSetLogsFields,
   useSetLogsPageParams,
-  useSetLogsQuery,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
@@ -58,7 +57,6 @@ export function LogsTabContent({
   maxPickableDays,
   relativeOptions,
 }: LogsTabProps) {
-  const setLogsQuery = useSetLogsQuery();
   const logsSearch = useLogsSearch();
   const fields = useLogsFields();
   const setFields = useSetLogsFields();
@@ -97,7 +95,16 @@ export function LogsTabContent({
   const tracesItemSearchQueryBuilderProps = {
     initialQuery: logsSearch.formatString(),
     searchSource: 'ourlogs',
-    onSearch: setLogsQuery,
+    onSearch: (newQuery: string) => {
+      const newFields = new MutableSearch(newQuery)
+        .getFilterKeys()
+        .map(key => (key.startsWith('!') ? key.slice(1) : key));
+      const mutableQuery = new MutableSearch(newQuery);
+      setLogsPageParams({
+        search: mutableQuery,
+        fields: [...new Set([...fields, ...newFields])],
+      });
+    },
     numberAttributes,
     stringAttributes,
     itemType: TraceItemDataset.LOGS as TraceItemDataset.LOGS,
@@ -158,10 +165,6 @@ export function LogsTabContent({
                 isLoading={numberAttributesLoading || stringAttributesLoading}
                 exploreQuery={logsSearch.formatString()}
                 source={SchemaHintsSources.LOGS}
-                setPageParams={pageParams =>
-                  setLogsPageParams(pageParams as LogPageParamsUpdate)
-                }
-                tableColumns={fields}
               />
             </SchemaHintsSection>
           </Feature>
@@ -176,6 +179,7 @@ export function LogsTabContent({
                 setVisualizes={setVisualizes}
                 // TODO: we do not support log alerts nor adding to dashboards yet
                 hideContextMenu
+                dataset={DiscoverDatasets.OURLOGS}
               />
             </LogsItemContainer>
           </Feature>

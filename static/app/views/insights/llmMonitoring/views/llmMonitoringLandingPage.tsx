@@ -1,30 +1,19 @@
 import * as Layout from 'sentry/components/layouts/thirds';
-import useOrganization from 'sentry/utils/useOrganization';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {
-  EAPNumberOfPipelinesChart,
-  EAPPipelineDurationChart,
-  EAPTotalTokensUsedChart,
   NumberOfPipelinesChart,
   PipelineDurationChart,
   TotalTokensUsedChart,
 } from 'sentry/views/insights/llmMonitoring/components/charts/llmMonitoringCharts';
-import {
-  EAPPipelinesTable,
-  PipelinesTable,
-} from 'sentry/views/insights/llmMonitoring/components/tables/pipelinesTable';
+import {PipelinesTable} from 'sentry/views/insights/llmMonitoring/components/tables/pipelinesTable';
 import {AiHeader} from 'sentry/views/insights/pages/ai/aiPageHeader';
 import {ModuleName} from 'sentry/views/insights/types';
 
 export function LLMMonitoringPage() {
-  const organization = useOrganization();
-
-  const useEAP = organization.features.includes('insights-use-eap');
-
   return (
     <Layout.Page>
       <AiHeader module={ModuleName.AI} />
@@ -37,16 +26,16 @@ export function LLMMonitoringPage() {
               </ModuleLayout.Full>
               <ModulesOnboarding moduleName={ModuleName.AI}>
                 <ModuleLayout.Third>
-                  {useEAP ? <EAPTotalTokensUsedChart /> : <TotalTokensUsedChart />}
+                  <TotalTokensUsedChart />
                 </ModuleLayout.Third>
                 <ModuleLayout.Third>
-                  {useEAP ? <EAPNumberOfPipelinesChart /> : <NumberOfPipelinesChart />}
+                  <NumberOfPipelinesChart />
                 </ModuleLayout.Third>
                 <ModuleLayout.Third>
-                  {useEAP ? <EAPPipelineDurationChart /> : <PipelineDurationChart />}
+                  <PipelineDurationChart />
                 </ModuleLayout.Third>
                 <ModuleLayout.Full>
-                  {useEAP ? <EAPPipelinesTable /> : <PipelinesTable />}
+                  <PipelinesTable />
                 </ModuleLayout.Full>
               </ModulesOnboarding>
             </ModuleLayout.Layout>

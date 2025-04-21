@@ -38,7 +38,11 @@ import {OccurrenceSummary} from 'sentry/views/issueDetails/streamline/occurrence
 import {getDetectorDetails} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
 import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggleSidebar';
 import {useGroupDefaultStatsPeriod} from 'sentry/views/issueDetails/useGroupDefaultStatsPeriod';
-import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
+import {
+  getGroupReprocessingStatus,
+  ReprocessingStatus,
+  useEnvironmentsFromUrl,
+} from 'sentry/views/issueDetails/utils';
 
 interface EventDetailsHeaderProps {
   group: Group;
@@ -54,6 +58,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
   const searchQuery = useEventQuery({groupId: group.id});
   const issueTypeConfig = getConfigForIssueType(group, project);
   const {dispatch} = useIssueDetails();
+  const groupReprocessingStatus = getGroupReprocessingStatus(group);
 
   const hasSetStatsPeriod =
     location.query.statsPeriod || location.query.start || location.query.end;
@@ -86,6 +91,10 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
     'Filter %s\u2026',
     issueTypeConfig.customCopy.eventUnits.toLocaleLowerCase()
   );
+
+  if (groupReprocessingStatus === ReprocessingStatus.REPROCESSING) {
+    return null;
+  }
 
   return (
     <PageErrorBoundary mini message={t('There was an error loading the event filters')}>

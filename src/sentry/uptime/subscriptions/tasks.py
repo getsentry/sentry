@@ -13,13 +13,12 @@ from sentry.taskworker.retry import Retry
 from sentry.uptime.config_producer import produce_config, produce_config_removal
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
-    ProjectUptimeSubscriptionMode,
     UptimeRegionScheduleMode,
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
 )
-from sentry.uptime.types import CheckConfig
+from sentry.uptime.types import CheckConfig, ProjectUptimeSubscriptionMode
 from sentry.utils import metrics
 from sentry.utils.query import RangeQuerySetWrapper
 

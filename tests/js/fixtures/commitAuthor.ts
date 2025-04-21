@@ -40,6 +40,7 @@ export function CommitAuthorFixture(params: Partial<User> = {}): User {
       theme: 'light',
       prefersIssueDetailsStreamlinedUI: false,
       prefersStackedNavigation: false,
+      prefersNextjsInsightsOverview: false,
       prefersChonkUI: false,
       quickStartDisplay: {},
     },
