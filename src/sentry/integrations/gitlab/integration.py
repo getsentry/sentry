@@ -160,6 +160,11 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
         _, _, source_path = url.partition("/")
         return source_path
 
+    # CommitContextIntegration methods
+
+    def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
+        raise NotImplementedError
+
     # Gitlab only functions
 
     def get_group_id(self):
