@@ -77,6 +77,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("uptime", "0032_stats_on_subscription"),
+        ("workflow_engine", "0045_add_unique_constraint_alert_rule_detector"),
     ]
 
     operations = [
