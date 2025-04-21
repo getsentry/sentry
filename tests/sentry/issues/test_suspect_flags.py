@@ -11,7 +11,14 @@ from sentry.testutils.cases import SnubaTestCase, TestCase
 
 
 class SnubaTest(TestCase, SnubaTestCase):
-    def mock_event(self, ts, hash="a" * 32, group_id=None, project_id=1, flags=None):
+    def mock_event(
+        self,
+        ts: datetime.datetime,
+        hash: str = "a" * 32,
+        group_id: int | None = None,
+        project_id: int = 1,
+        flags: list[dict[str, object]] | None = None,
+    ) -> None:
         self.snuba_insert(
             (
                 2,
@@ -33,7 +40,7 @@ class SnubaTest(TestCase, SnubaTestCase):
             )
         )
 
-    def test_query_baseline_set(self):
+    def test_query_baseline_set(self) -> None:
         before = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(hours=1)
         today = before + datetime.timedelta(hours=1)
         later = today + datetime.timedelta(hours=1)
@@ -60,7 +67,7 @@ class SnubaTest(TestCase, SnubaTestCase):
         )
         assert results == [("key", "false", 1), ("key", "true", 1), ("other", "false", 2)]
 
-    def test_query_selection_set(self):
+    def test_query_selection_set(self) -> None:
         before = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(hours=1)
         today = before + datetime.timedelta(hours=1)
         later = today + datetime.timedelta(hours=1)
@@ -87,7 +94,7 @@ class SnubaTest(TestCase, SnubaTestCase):
         results = query_selection_set(1, 1, before, later, environments=[], group_id=1)
         assert results == [("key", "true", 1), ("other", "false", 1)]
 
-    def test_get_suspect_flag_scores(self):
+    def test_get_suspect_flag_scores(self) -> None:
         before = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(hours=1)
         today = before + datetime.timedelta(hours=1)
         later = today + datetime.timedelta(hours=1)
