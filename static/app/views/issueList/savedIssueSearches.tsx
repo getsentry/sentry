@@ -5,7 +5,7 @@ import orderBy from 'lodash/orderBy';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button, ButtonLabel} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import LoadingError from 'sentry/components/loadingError';
@@ -319,18 +319,14 @@ const SearchesContainer = styled('ul')`
 `;
 
 const StyledItemButton = styled(Button)`
-  display: block;
   width: 100%;
-  text-align: left;
+  display: flex;
+  justify-content: start;
   height: auto;
   font-weight: ${p => p.theme.fontWeightNormal};
   line-height: ${p => p.theme.text.lineHeightBody};
 
   padding: ${space(1)} ${space(2)};
-
-  ${ButtonLabel} {
-    justify-content: start;
-  }
 `;
 
 const OverflowMenu = styled(DropdownMenu)`
