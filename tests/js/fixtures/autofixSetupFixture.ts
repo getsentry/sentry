@@ -2,9 +2,6 @@ import { AutofixSetupResponse } from "sentry/components/events/autofix/useAutofi
 
 export function AutofixSetupFixture(params: Partial<AutofixSetupResponse>): AutofixSetupResponse {
   return {
-    genAIConsent: {
-      ok: true,
-    },
     integration: {
       ok: true,
       reason: null,
