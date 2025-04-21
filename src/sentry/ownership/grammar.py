@@ -142,11 +142,13 @@ class Matcher(namedtuple("Matcher", "type pattern")):
 
         return frames, keys
 
-    def sanitize_path_for_codeowners(self, frames):
+    def sanitize_path_for_codeowners(
+        self, frames: Sequence[Mapping[str, Any]]
+    ) -> Sequence[Mapping[str, Any]]:
         """Remove ./ prefix from frame paths for consistent matching in codeowners rules"""
         sanitized_frames = []
         for frame in frames:
-            sanitized_frame = frame.copy()
+            sanitized_frame = dict(frame)
             for key in ["munged_filename", "filename", "abs_path"]:
                 if key in sanitized_frame and sanitized_frame[key].startswith("./"):
                     sanitized_frame[key] = sanitized_frame[key][2:]
