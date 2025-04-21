@@ -54,7 +54,10 @@ describe('StreamlinedSidebar', function () {
     MockApiClient.addMockResponse({
       url: '/issues/1/autofix/setup/',
       body: AutofixSetupFixture({
-        genAIConsent: {ok: false},
+        setupAcknowledgement: {
+          orgHasAcknowledged: false,
+          userHasAcknowledged: false,
+        },
         integration: {ok: true, reason: null},
         githubWriteIntegration: {ok: true, repos: []},
       }),

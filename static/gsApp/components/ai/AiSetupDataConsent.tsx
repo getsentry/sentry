@@ -1,8 +1,10 @@
 import styled from '@emotion/styled';
 
 import {promptsUpdate} from 'sentry/actionCreators/prompts';
+import {SeerIcon} from 'sentry/components/ai/SeerIcon';
+import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
-import type {AutofixSetupResponse} from 'sentry/components/events/autofix/useAutofixSetup';
+import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
@@ -13,13 +15,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 type AiSetupDataConsentProps = {
   groupId: string;
-  setupAcknowledgement: AutofixSetupResponse['setupAcknowledgement'];
 };
 
-function AiSetupDataConsent({groupId, setupAcknowledgement}: AiSetupDataConsentProps) {
+function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const queryClient = useQueryClient();
+  const {data: autofixSetupData} = useAutofixSetup({groupId});
 
   const genAiConsentMutation = useMutation({
     mutationFn: () => {
@@ -37,6 +39,10 @@ function AiSetupDataConsent({groupId, setupAcknowledgement}: AiSetupDataConsentP
 
   return (
     <ConsentItemsContainer>
+      <Flex align="center" gap={space(1)}>
+        <SeerIcon size="xl" />
+        <SayHelloHeader>{t('Say Hello to Seer')}</SayHelloHeader>
+      </Flex>
       <HeaderItem>
         <Title>{t('With Seer you get:')}</Title>
       </HeaderItem>
@@ -71,17 +77,17 @@ function AiSetupDataConsent({groupId, setupAcknowledgement}: AiSetupDataConsentP
         >
           {genAiConsentMutation.isPending ? (
             <StyledLoadingIndicator size={14} />
-          ) : setupAcknowledgement?.orgHasAcknowledged ? (
-            t('Enable Seer')
-          ) : (
+          ) : autofixSetupData?.setupAcknowledgement.orgHasAcknowledged ? (
             t('Try Seer')
+          ) : (
+            t('Enable Seer')
           )}
         </Button>
         {genAiConsentMutation.isError && (
           <ErrorText>{t('Something went wrong.')}</ErrorText>
         )}
       </ButtonWrapper>
-      {!setupAcknowledgement?.orgHasAcknowledged && (
+      {!autofixSetupData?.setupAcknowledgement.orgHasAcknowledged && (
         <Paragraph>
           {tct(
             'Seer models are powered by generative Al. Per our [dataLink:data usage policies]. Sentry does not use your data to train Seer models or share your data with other customers without your express consent.',
@@ -121,7 +127,11 @@ const ConsentItem = styled('div')`
   border: 1px solid ${p => p.theme.border};
 `;
 
-const Title = styled('h3')`
+const SayHelloHeader = styled('h3')`
+  margin: 0;
+`;
+
+const Title = styled('h5')`
   margin: 0;
   font-size: ${p => p.theme.fontSizeMedium};
 `;

@@ -13,9 +13,6 @@ interface AiConfigResult {
   hasResources: boolean;
   hasSummary: boolean;
   isAutofixSetupLoading: boolean;
-  /**
-   * Nobody in the org has acknowledged seer for the first time.
-   */
   needsGenAiAcknowledgement: boolean;
 }
 

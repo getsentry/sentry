@@ -39,7 +39,10 @@ describe('SeerSection', () => {
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
-        genAIConsent: {ok: true},
+        setupAcknowledgement: {
+          orgHasAcknowledged: true,
+          userHasAcknowledged: true,
+        },
         integration: {ok: true, reason: null},
         githubWriteIntegration: {ok: true, repos: []},
       }),
@@ -109,7 +112,10 @@ describe('SeerSection', () => {
       MockApiClient.addMockResponse({
         url: `/issues/${mockGroup.id}/autofix/setup/`,
         body: AutofixSetupFixture({
-          genAIConsent: {ok: false},
+          setupAcknowledgement: {
+            orgHasAcknowledged: false,
+            userHasAcknowledged: false,
+          },
           integration: {ok: false, reason: null},
           githubWriteIntegration: {ok: false, repos: []},
         }),
@@ -134,7 +140,10 @@ describe('SeerSection', () => {
       MockApiClient.addMockResponse({
         url: `/issues/${mockGroup.id}/autofix/setup/`,
         body: AutofixSetupFixture({
-          genAIConsent: {ok: true},
+          setupAcknowledgement: {
+            orgHasAcknowledged: true,
+            userHasAcknowledged: true,
+          },
           integration: {ok: false, reason: null},
           githubWriteIntegration: {ok: false, repos: []},
         }),
@@ -161,7 +170,10 @@ describe('SeerSection', () => {
       MockApiClient.addMockResponse({
         url: `/issues/${mockGroup.id}/autofix/setup/`,
         body: AutofixSetupFixture({
-          genAIConsent: {ok: true},
+          setupAcknowledgement: {
+            orgHasAcknowledged: true,
+            userHasAcknowledged: true,
+          },
           integration: {ok: true, reason: null},
           githubWriteIntegration: {ok: true, repos: []},
         }),
@@ -196,7 +208,10 @@ describe('SeerSection', () => {
       MockApiClient.addMockResponse({
         url: `/issues/${mockGroup.id}/autofix/setup/`,
         body: AutofixSetupFixture({
-          genAIConsent: {ok: true},
+          setupAcknowledgement: {
+            orgHasAcknowledged: true,
+            userHasAcknowledged: true,
+          },
           integration: {ok: true, reason: null},
           githubWriteIntegration: {ok: true, repos: []},
         }),
@@ -227,7 +242,10 @@ describe('SeerSection', () => {
       MockApiClient.addMockResponse({
         url: `/issues/${mockGroup.id}/autofix/setup/`,
         body: AutofixSetupFixture({
-          genAIConsent: {ok: true},
+          setupAcknowledgement: {
+            orgHasAcknowledged: true,
+            userHasAcknowledged: true,
+          },
           integration: {ok: true, reason: null},
           githubWriteIntegration: {ok: true, repos: []},
         }),
