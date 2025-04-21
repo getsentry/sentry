@@ -1,5 +1,6 @@
 import logging
 from datetime import timedelta
+from typing import TypedDict
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -13,6 +14,16 @@ from sentry.api.utils import get_date_range_from_params
 from sentry.issues.suspect_flags import get_suspect_flag_scores
 from sentry.models.group import Group
 from sentry.utils import metrics
+
+
+class ResponseDataItem(TypedDict):
+    flag: str
+    score: float
+    baseline_percent: float
+
+
+class ResponseData(TypedDict):
+    data: list[ResponseDataItem]
 
 
 @region_silo_endpoint
@@ -42,7 +53,7 @@ class OrganizationGroupSuspectFlagsEndpoint(GroupEndpoint):
             start = start.replace(minute=(start.minute // 5) * 5, second=0, microsecond=0)
             end = end.replace(minute=(end.minute // 5) * 5, second=0, microsecond=0)
 
-        response_data = {
+        response_data: ResponseData = {
             "data": [
                 {"flag": flag, "score": score, "baseline_percent": baseline_percent}
                 for flag, score, baseline_percent in get_suspect_flag_scores(
