@@ -47,7 +47,13 @@ function createOrganizationMenuItem(): MenuItemProps {
   };
 }
 
-export function OrgDropdown({className}: {className?: string}) {
+export function OrgDropdown({
+  className,
+  hideOrgLinks,
+}: {
+  className?: string;
+  hideOrgLinks?: boolean;
+}) {
   const api = useApi();
   const theme = useTheme();
 
@@ -108,43 +114,48 @@ export function OrgDropdown({className}: {className?: string}) {
               key: 'organization-settings',
               label: t('Organization Settings'),
               to: `/organizations/${organization.slug}/settings/`,
-              hidden: !hasOrgRead,
+              hidden: !hasOrgRead || hideOrgLinks,
             },
             {
               key: 'members',
               label: t('Members'),
               to: `/organizations/${organization.slug}/settings/members/`,
-              hidden: !hasMemberRead,
+              hidden: !hasMemberRead || hideOrgLinks,
             },
             {
               key: 'teams',
               label: t('Teams'),
               to: `/organizations/${organization.slug}/settings/teams/`,
-              hidden: !hasTeamRead,
+              hidden: !hasTeamRead || hideOrgLinks,
             },
             {
               key: 'billing',
               label: t('Usage & Billing'),
               to: `/organizations/${organization.slug}/settings/billing/`,
-              hidden: !hasBillingAccess,
+              hidden: !hasBillingAccess || hideOrgLinks,
             },
             {
               key: 'switch-organization',
               label: t('Switch Organization'),
               isSubmenu: true,
-              disabled: !organizations?.length,
               hidden: config.singleOrganization || isDemoModeActive(),
               children: [
-                ...orderBy(organizations, ['status.id', 'name']).map(switchOrg => ({
-                  key: switchOrg.id,
-                  label: <OrganizationBadge organization={switchOrg} />,
-                  textValue: switchOrg.name,
-                  to: resolveRoute(
-                    `/organizations/${switchOrg.slug}/issues/`,
-                    organization,
-                    switchOrg
-                  ),
-                })),
+                ...orderBy(organizations, ['status.id', 'name']).map(switchOrg => {
+                  const pendingDeletion = switchOrg.status.id === 'pending_deletion';
+
+                  return {
+                    key: switchOrg.id,
+                    label: <OrganizationBadge organization={switchOrg} />,
+                    textValue: switchOrg.name,
+                    to: resolveRoute(
+                      `/organizations/${switchOrg.slug}/issues/`,
+                      organization,
+                      switchOrg
+                    ),
+                    priority: pendingDeletion ? ('danger' as const) : undefined,
+                    tooltip: pendingDeletion ? t('Pending deletion') : undefined,
+                  };
+                }),
                 createOrganizationMenuItem(),
               ],
             },

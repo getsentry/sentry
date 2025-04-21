@@ -1,15 +1,19 @@
 import uuid
 from collections.abc import Mapping
 from dataclasses import asdict
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any
 from unittest import mock
 
 import pytest
 from django.utils import timezone
 
-from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
-from sentry.incidents.models.incident import IncidentStatus
+from sentry.incidents.models.alert_rule import (
+    AlertRuleDetectionType,
+    AlertRuleSensitivity,
+    AlertRuleThresholdType,
+)
+from sentry.incidents.models.incident import IncidentStatus, TriggerStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
     MetricIssueContext,
@@ -18,14 +22,14 @@ from sentry.incidents.typings.metric_detector import (
 )
 from sentry.issues.grouptype import MetricIssuePOC
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.types import BaseMetricAlertHandler
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
-from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import WorkflowEventData
@@ -40,16 +44,17 @@ class TestHandler(BaseMetricAlertHandler):
         alert_context: AlertContext,
         metric_issue_context: MetricIssueContext,
         open_period_context: OpenPeriodContext,
-        organization: Organization,
+        trigger_status: TriggerStatus,
         notification_uuid: str,
+        organization: Organization,
+        project: Project,
     ) -> None:
         pass
 
 
 @apply_feature_flag_on_cls("organizations:issue-open-periods")
 class MetricAlertHandlerBase(BaseWorkflowTest):
-    def setUp(self):
-        super().setUp()
+    def create_models(self):
         self.project = self.create_project()
         self.detector = self.create_detector(project=self.project)
         self.workflow = self.create_workflow(environment=self.environment)
@@ -66,20 +71,19 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
                 },
             ),
         )
-
-        self.save_group_with_open_period(self.group)
-        self.event_data = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
-
-    def save_group_with_open_period(self, group: Group) -> None:
-        # test a new group has an open period
-        group.type = MetricIssuePOC.type_id
-        group.save()
-        Activity.objects.create(
-            group=group,
-            project=group.project,
-            type=ActivityType.SET_RESOLVED.value,
-            datetime=timezone.now() + timedelta(days=1),
+        self.group.priority = PriorityLevel.HIGH.value
+        self.group.save()
+        self.open_period, _ = GroupOpenPeriod.objects.get_or_create(
+            group=self.group,
+            project=self.project,
+            date_started=self.group_event.group.first_seen,
         )
+        self.event_data = WorkflowEventData(
+            event=self.group_event, workflow_env=self.workflow.environment
+        )
+
+    def setUp(self):
+        self.create_models()
 
     def create_issue_occurrence(
         self,
@@ -116,6 +120,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         target_display: str | None = None,
         sentry_app_config: list[dict[str, Any]] | dict[str, Any] | None = None,
         sentry_app_id: str | None = None,
+        target_type: ActionTarget | None = None,
     ):
         assert asdict(notification_context) == {
             "id": notification_context.id,
@@ -124,6 +129,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
             "target_display": target_display,
             "sentry_app_config": sentry_app_config,
             "sentry_app_id": sentry_app_id,
+            "target_type": target_type,
         }
 
     def assert_alert_context(
@@ -134,6 +140,9 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         threshold_type: AlertRuleThresholdType | None = None,
         detection_type: AlertRuleDetectionType | None = None,
         comparison_delta: int | None = None,
+        sensitivity: AlertRuleSensitivity | None = None,
+        resolve_threshold: float | None = None,
+        alert_threshold: float | None = None,
     ):
         assert asdict(alert_context) == {
             "name": name,
@@ -141,6 +150,9 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
             "threshold_type": threshold_type,
             "detection_type": detection_type,
             "comparison_delta": comparison_delta,
+            "sensitivity": sensitivity,
+            "resolve_threshold": resolve_threshold,
+            "alert_threshold": alert_threshold,
         }
 
     def assert_metric_issue_context(
@@ -149,6 +161,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         open_period_identifier: int,
         snuba_query: SnubaQuery,
         new_status: IncidentStatus,
+        title: str,
         metric_value: float | None = None,
         subscription: QuerySubscription | None = None,
         group: Group | None = None,
@@ -160,16 +173,19 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
             "subscription": subscription,
             "new_status": new_status,
             "metric_value": metric_value,
+            "title": title,
             "group": group,
         }
 
     def assert_open_period_context(
         self,
         open_period_context: OpenPeriodContext,
+        id: int,
         date_started: datetime,
         date_closed: datetime | None,
     ):
         assert asdict(open_period_context) == {
+            "id": id,
             "date_started": date_started,
             "date_closed": date_closed,
         }
@@ -358,6 +374,9 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             threshold_type=None,
             detection_type=None,
             comparison_delta=None,
+            sensitivity=None,
+            resolve_threshold=None,
+            alert_threshold=1.0,
         )
         self.assert_metric_issue_context(
             metric_issue_context,
@@ -365,6 +384,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             snuba_query=self.snuba_query,
             new_status=IncidentStatus.CRITICAL,
             metric_value=123.45,
+            title=self.group_event.group.title,
             group=self.group_event.group,
         )
         assert organization == self.detector.project.organization
@@ -377,6 +397,8 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
                 alert_context=mock.MagicMock(),
                 metric_issue_context=mock.MagicMock(),
                 open_period_context=mock.MagicMock(),
+                trigger_status=TriggerStatus.ACTIVE,
                 organization=mock.MagicMock(),
+                project=mock.MagicMock(),
                 notification_uuid="test-uuid",
             )

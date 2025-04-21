@@ -135,6 +135,7 @@ module = [
     "sentry.integrations.slack.webhooks.event",
     "sentry.integrations.utils.sync",
     "sentry.issues.search",
+    "sentry.middleware.auth",
     "sentry.middleware.ratelimit",
     "sentry.net.http",
     "sentry.net.socket",

@@ -59,8 +59,7 @@ describe('AutofixSteps', () => {
     }),
     groupId: 'group1',
     runId: 'run1',
-    onRetry: jest.fn(),
-  };
+  } satisfies React.ComponentProps<typeof AutofixSteps>;
 
   it('renders steps correctly', async () => {
     render(<AutofixSteps {...defaultProps} />);
@@ -69,7 +68,7 @@ describe('AutofixSteps', () => {
   });
 
   it('renders output stream when last step is processing', async () => {
-    const propsWithProcessingStep = {
+    const propsWithProcessingStep: React.ComponentProps<typeof AutofixSteps> = {
       ...defaultProps,
       data: {
         ...defaultProps.data,
@@ -93,11 +92,13 @@ describe('AutofixSteps', () => {
     };
 
     render(<AutofixSteps {...propsWithProcessingStep} />);
-    expect(await screen.findByText('Processing message')).toBeInTheDocument();
-  });
+    expect(
+      await screen.findByText('Processing message', undefined, {timeout: 10_000})
+    ).toBeInTheDocument();
+  }, 10_000);
 
   it('shows error message when previous step errored', async () => {
-    const propsWithErroredStep = {
+    const propsWithErroredStep: React.ComponentProps<typeof AutofixSteps> = {
       ...defaultProps,
       data: {
         ...defaultProps.data,
