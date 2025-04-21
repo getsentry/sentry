@@ -33,7 +33,7 @@ export function useGenAiConsentButtonAccess({
 
   const conditions = [
     {
-      check: regionData?.name && !['us', 'sentry4sentry'].includes(regionData.name),
+      check: !regionData?.name || !['us', 'sentry4sentry'].includes(regionData.name),
       message: t('This feature is not available in your region.'),
     },
     {
