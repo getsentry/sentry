@@ -22,12 +22,29 @@ def _mock_event(project_id: int, environment: str):
 
 
 #################################
-# should_filter_user_report tests
+# validator tests
 #################################
 
 
 @django_db_all
-def test_should_filter_unreal_unattended_message_with_option(set_sentry_option):
+@pytest.mark.parametrize("field", ["name", "email", "comments", "event_id"])
+def test_validator_should_filter_missing_required_field(field):
+    report = {
+        "name": "andrew",
+        "email": "andrew@example.com",
+        "comments": "hello",
+        "event_id": "a49558bf9bd94e2da4c9c3dc1b5b95f7",
+    }
+    del report[field]
+
+    should_filter, tag, reason = validate_user_report(report, 1)
+    assert should_filter is True
+    assert tag is not None
+    assert reason is not None
+
+
+@django_db_all
+def test_validator_should_filter_unreal_unattended_message_with_option(set_sentry_option):
     with set_sentry_option("feedback.filter_garbage_messages", True):
         should_filter, tag, reason = validate_user_report(
             {
@@ -44,7 +61,7 @@ def test_should_filter_unreal_unattended_message_with_option(set_sentry_option):
 
 
 @django_db_all
-def test_should_not_filter_unreal_unattended_message_without_option(set_sentry_option):
+def test_validator_should_not_filter_unreal_unattended_message_without_option(set_sentry_option):
     with set_sentry_option("feedback.filter_garbage_messages", False):
         should_filter, tag, reason = validate_user_report(
             {
@@ -61,7 +78,7 @@ def test_should_not_filter_unreal_unattended_message_without_option(set_sentry_o
 
 
 @django_db_all
-def test_should_filter_empty_message_with_option(set_sentry_option):
+def test_validator_should_filter_empty_message_with_option(set_sentry_option):
     with set_sentry_option("feedback.filter_garbage_messages", True):
         should_filter, tag, reason = validate_user_report(
             {
@@ -78,7 +95,7 @@ def test_should_filter_empty_message_with_option(set_sentry_option):
 
 
 @django_db_all
-def test_should_not_filter_empty_message_without_option(set_sentry_option):
+def test_validator_should_not_filter_empty_message_without_option(set_sentry_option):
     with set_sentry_option("feedback.filter_garbage_messages", False):
         should_filter, tag, reason = validate_user_report(
             {
@@ -94,7 +111,81 @@ def test_should_not_filter_empty_message_without_option(set_sentry_option):
         assert reason is None
 
 
-# Required field and too large filters are tested below
+@django_db_all
+def test_validator_should_filter_invalid_email():
+    should_filter, tag, reason = validate_user_report(
+        {
+            "name": "",
+            "email": "invalid-email",
+            "comments": "hello",
+            "event_id": "a49558bf9bd94e2da4c9c3dc1b5b95f7",
+        },
+        1,
+    )
+    assert should_filter is True
+    assert tag is not None
+    assert reason is not None
+
+
+@django_db_all
+def test_validator_should_not_filter_empty_email():
+    should_filter, tag, reason = validate_user_report(
+        {
+            "name": "",
+            "email": "",
+            "comments": "hello",
+            "event_id": "a49558bf9bd94e2da4c9c3dc1b5b95f7",
+        },
+        1,
+    )
+    assert should_filter is False
+    assert tag is None
+    assert reason is None
+
+
+@django_db_all
+def test_validator_should_filter_invalid_event_id():
+    should_filter, tag, reason = validate_user_report(
+        {
+            "name": "",
+            "email": "andrew@example.com",
+            "comments": "hello",
+            "event_id": "invalid",
+        },
+        1,
+    )
+    assert should_filter is True
+    assert tag is not None
+    assert reason is not None
+
+
+@django_db_all
+def test_validator_strips_event_id_dashes():
+    report = {
+        "name": "",
+        "email": "andrew@example.com",
+        "comments": "hello",
+        "event_id": "a49558bf-9bd9-4e2d-a4c9-c3dc1b5b95f7",
+    }
+    should_filter, _, _ = validate_user_report(report, 1)
+    assert should_filter is False
+    assert report["event_id"] == "a49558bf9bd94e2da4c9c3dc1b5b95f7"
+
+
+@django_db_all
+def test_validator_strips_comments_whitespace():
+    report = {
+        "name": "",
+        "email": "andrew@example.com",
+        "comments": "                     hello  \n\t      ",
+        "event_id": "a49558bf9bd94e2da4c9c3dc1b5b95f7",
+    }
+    should_filter, _, _ = validate_user_report(report, 1)
+    assert should_filter is False
+    assert report["comments"] == "hello"
+
+
+# Too large filters are tested below
 
 #######################
 # save_userreport tests
@@ -106,7 +197,7 @@ def test_save_user_report_returns_instance(default_project, monkeypatch):
     # Mocking dependencies and setting up test data
     monkeypatch.setattr("sentry.ingest.userreport.is_in_feedback_denylist", lambda org: False)
     monkeypatch.setattr(
-        "sentry.ingest.userreport.should_filter_user_report", Mock(return_value=(False, None, None))
+        "sentry.ingest.userreport.validate_user_report", Mock(return_value=(False, None, None))
     )
     monkeypatch.setattr(
         "sentry.eventstore.backend.get_event_by_id", lambda project_id, event_id: None
@@ -198,7 +289,7 @@ def test_save_user_report_filters_large_fields(default_project, monkeypatch, fie
 def test_save_user_report_shims_if_event_found(default_project, monkeypatch):
     monkeypatch.setattr("sentry.ingest.userreport.is_in_feedback_denylist", lambda org: False)
     monkeypatch.setattr(
-        "sentry.ingest.userreport.should_filter_user_report",
+        "sentry.ingest.userreport.validate_user_report",
         Mock(return_value=(False, None, None)),
     )
 
@@ -230,7 +321,7 @@ def test_save_user_report_does_not_shim_if_event_found_but_source_is_new_feedbac
     # Exact same setup as test_save_user_report_shims_if_event_found
     monkeypatch.setattr("sentry.ingest.userreport.is_in_feedback_denylist", lambda org: False)
     monkeypatch.setattr(
-        "sentry.ingest.userreport.should_filter_user_report",
+        "sentry.ingest.userreport.validate_user_report",
         Mock(return_value=(False, None, None)),
     )
 
