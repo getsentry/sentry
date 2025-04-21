@@ -1,20 +1,17 @@
-import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import starImage from 'sentry-images/spot/banner-star.svg';
-
 import Feature from 'sentry/components/acl/feature';
-import {SeerWaitingIcon} from 'sentry/components/ai/SeerIcon';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {Flex} from 'sentry/components/container/flex';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Input} from 'sentry/components/core/input';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixProgressBar} from 'sentry/components/events/autofix/autofixProgressBar';
+import {AutofixStartBox} from 'sentry/components/events/autofix/autofixStartBox';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import AutofixPreferenceDropdown from 'sentry/components/events/autofix/preferences/autofixPreferenceDropdown';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
@@ -26,7 +23,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -38,92 +34,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import {SeerNotices} from 'sentry/views/issueDetails/streamline/sidebar/seerNotices';
-
-interface AutofixStartBoxProps {
-  groupId: string;
-  onSend: (message: string) => void;
-}
-
-function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
-  const [message, setMessage] = useState('');
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSend(message);
-  };
-
-  return (
-    <Wrapper>
-      <ScaleContainer>
-        <StyledArrow direction="down" size="sm" />
-        <Container>
-          <AutofixStartText>
-            <BackgroundStar
-              src={starImage}
-              style={{
-                width: '20px',
-                height: '20px',
-                right: '5%',
-                top: '20%',
-                transform: 'rotate(15deg)',
-              }}
-            />
-            <BackgroundStar
-              src={starImage}
-              style={{
-                width: '16px',
-                height: '16px',
-                right: '35%',
-                top: '40%',
-                transform: 'rotate(45deg)',
-              }}
-            />
-            <BackgroundStar
-              src={starImage}
-              style={{
-                width: '14px',
-                height: '14px',
-                right: '25%',
-                top: '60%',
-                transform: 'rotate(30deg)',
-              }}
-            />
-            <StartTextRow>
-              <StyledSeerWaitingIcon size="lg" />
-              <Fragment>Need help digging deeper?</Fragment>
-            </StartTextRow>
-          </AutofixStartText>
-          <InputWrapper onSubmit={handleSubmit}>
-            <StyledInput
-              type="text"
-              value={message}
-              onChange={e => setMessage(e.target.value)}
-              placeholder="(Optional) Share helpful context here..."
-              maxLength={4096}
-            />
-            <StyledButton
-              type="submit"
-              priority="primary"
-              analyticsEventKey={
-                message
-                  ? 'autofix.give_instructions_clicked'
-                  : 'autofix.start_fix_clicked'
-              }
-              analyticsEventName={
-                message
-                  ? 'Autofix: Give Instructions Clicked'
-                  : 'Autofix: Start Fix Clicked'
-              }
-              analyticsParams={{group_id: groupId}}
-            >
-              {t('Start Autofix')}
-            </StyledButton>
-          </InputWrapper>
-        </Container>
-      </ScaleContainer>
-    </Wrapper>
-  );
-}
 
 interface SeerDrawerProps {
   event: Event;
@@ -370,85 +280,6 @@ export const useOpenSeerDrawer = (
     });
   }, [openDrawer, buttonRef, event, group, project]);
 };
-
-const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin: ${space(1)} ${space(4)};
-  gap: ${space(1)};
-`;
-
-const ScaleContainer = styled('div')`
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
-const Container = styled('div')`
-  position: relative;
-  width: 100%;
-  border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.background}
-    linear-gradient(135deg, ${p => p.theme.pink400}08, ${p => p.theme.pink400}20);
-  overflow: hidden;
-  padding: ${space(0.5)};
-  border: 1px solid ${p => p.theme.border};
-`;
-
-const AutofixStartText = styled('div')`
-  margin: 0;
-  padding: ${space(1)};
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-size: ${p => p.theme.fontSizeLarge};
-  position: relative;
-`;
-
-const StartTextRow = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
-const StyledSeerWaitingIcon = styled(SeerWaitingIcon)`
-  color: ${p => p.theme.textColor};
-`;
-
-const BackgroundStar = styled('img')`
-  position: absolute;
-  filter: sepia(1) saturate(3) hue-rotate(290deg);
-  opacity: 0.7;
-  pointer-events: none;
-  z-index: 0;
-`;
-
-const StyledArrow = styled(IconArrow)`
-  color: ${p => p.theme.subText};
-  opacity: 0.5;
-`;
-
-const InputWrapper = styled('form')`
-  display: flex;
-  gap: ${space(0.5)};
-  padding: ${space(0.25)} ${space(0.25)};
-`;
-
-const StyledInput = styled(Input)`
-  flex-grow: 1;
-  background: ${p => p.theme.background};
-  border-color: ${p => p.theme.innerBorder};
-
-  &:hover {
-    border-color: ${p => p.theme.border};
-  }
-`;
-
-const StyledButton = styled(Button)`
-  flex-shrink: 0;
-`;
 
 const StyledCard = styled('div')`
   background: ${p => p.theme.backgroundElevated};
