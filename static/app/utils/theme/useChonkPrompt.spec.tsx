@@ -1,7 +1,10 @@
+import {ConfigFixture} from 'sentry-fixture/config';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -21,6 +24,7 @@ function makeWrapper(organization: Organization) {
 
 describe('useChonkPrompt', () => {
   beforeEach(() => {
+    ConfigStore.loadInitialData(ConfigFixture());
     MockApiClient.clearMockResponses();
   });
 
@@ -113,5 +117,29 @@ describe('useChonkPrompt', () => {
 
     await waitFor(() => expect(result.current.showTooltipPrompt).toBe(false));
     await waitFor(() => expect(result.current.showDotIndicatorPrompt).toBe(false));
+  });
+
+  it('user prefers chonk-ui does not show prompts', () => {
+    ConfigStore.set(
+      'user',
+      UserFixture({
+        options: {
+          ...UserFixture().options,
+          prefersChonkUI: true,
+        },
+      })
+    );
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prompts-activity/',
+      body: {data: {dismissed_ts: null}},
+    });
+
+    const {result} = renderHook(() => useChonkPrompt(), {
+      wrapper: makeWrapper(OrganizationFixture({features: ['chonk-ui']})),
+    });
+
+    expect(result.current.showTooltipPrompt).toBe(false);
+    expect(result.current.showDotIndicatorPrompt).toBe(false);
   });
 });

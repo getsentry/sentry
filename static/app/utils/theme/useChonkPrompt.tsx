@@ -1,9 +1,11 @@
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 
 function noop() {}
 
 export function useChonkPrompt() {
+  const user = useUser();
   const organization = useOrganization();
   const hasChonkUI = organization?.features.includes('chonk-ui');
 
@@ -19,7 +21,9 @@ export function useChonkPrompt() {
     options: {enabled: hasChonkUI},
   });
 
-  if (!hasChonkUI) {
+  // User is optional because we useUser hooks reads the value from ConfigStore,
+  // and I have little trust in its type safety.
+  if (!hasChonkUI || user?.options?.prefersChonkUI) {
     return {
       showTooltipPrompt: false,
       showDotIndicatorPrompt: false,
