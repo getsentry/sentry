@@ -112,6 +112,7 @@ const TagHeader = styled('h5')`
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightBold};
+  margin: 0;
   ${p => p.theme.overflowEllipsis}
 `;
 
