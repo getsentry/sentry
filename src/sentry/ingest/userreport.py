@@ -94,11 +94,6 @@ def save_userreport(
             project.id, report["event_id"]
         )
 
-        euser = find_event_user(event)
-
-        if euser and not euser.name and report.get("name"):
-            euser.name = report["name"]
-
         if event:
             # if the event is more than 30 minutes old, we don't allow updates
             # as it might be abusive
