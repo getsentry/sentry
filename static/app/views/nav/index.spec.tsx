@@ -388,7 +388,6 @@ describe('Nav', function () {
         body: {data: {dismissed_ts: null}},
       });
     });
-
     describe('enabled', function () {
       it('shows the chonk-ui toggle in the help menu', async function () {
         renderNav({features: ALL_AVAILABLE_FEATURES.concat('chonk-ui')});
