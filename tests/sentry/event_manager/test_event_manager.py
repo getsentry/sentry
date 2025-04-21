@@ -1186,7 +1186,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.group is not None
 
         def query(model: TSDBModel, key: int, **kwargs: Any) -> int:
-            return tsdb.backend.get_sums(
+            return tsdb.backend.get_timeseries_sums(
                 model,
                 [key],
                 event.datetime,
@@ -2251,7 +2251,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         assert event.group is None
         assert (
-            tsdb.backend.get_sums(
+            tsdb.backend.get_timeseries_sums(
                 TSDBModel.project,
                 [self.project.id],
                 event.datetime,
