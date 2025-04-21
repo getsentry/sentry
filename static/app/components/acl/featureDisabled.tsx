@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import type {AlertProps} from 'sentry/components/core/alert';
 import {Alert} from 'sentry/components/core/alert';
-import {Button, ButtonLabel} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {CONFIG_DOCS_URL} from 'sentry/constants';
 import {IconChevron, IconCopy} from 'sentry/icons';
@@ -150,18 +150,16 @@ const HelpText = styled('p')`
 `;
 
 const ToggleButton = styled(Button)`
+  display: grid;
+  grid-auto-flow: column;
+  gap: ${space(1)};
+
   color: ${p => p.theme.active};
   height: ${p => p.theme.text.lineHeightBody}em;
   min-height: ${p => p.theme.text.lineHeightBody}em;
 
   &:hover {
     color: ${p => p.theme.activeHover};
-  }
-
-  ${ButtonLabel} {
-    display: grid;
-    grid-auto-flow: column;
-    gap: ${space(1)};
   }
 `;
 
