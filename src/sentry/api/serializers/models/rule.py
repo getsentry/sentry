@@ -363,12 +363,12 @@ class WorkflowEngineRuleSerializer(Serializer):
         if workflow.created_by_id is None:
             creator = None
         else:
-            u = users.get(workflow.created_by_id)
-            if u:
+            user = users.get(workflow.created_by_id)
+            if user:
                 creator = {
-                    "id": u.id,
-                    "name": u.get_display_name(),
-                    "email": u.email,
+                    "id": user.id,
+                    "name": user.get_display_name(),
+                    "email": user.email,
                 }
             else:
                 creator = None
