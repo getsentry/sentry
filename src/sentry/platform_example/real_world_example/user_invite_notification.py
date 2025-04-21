@@ -45,6 +45,13 @@ class OrganizationInviteNotificationData(TemplateData):
         )
 
 
+# Maybe default to Jinja?
+
+
+# class ExampleTemplate(BaseTemplate[OrganizationInviteNotificationData]):
+#     type: TemplateType.DJANGO
+
+
 OrganizationInviteNotificationTemplate = DjangoNotificationTemplate[
     OrganizationInviteNotificationData
 ](
