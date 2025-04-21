@@ -205,6 +205,13 @@ def validate_user_report(
         report["comments"],
     )
 
+    if options.get("feedback.filter_garbage_messages"):  # Message-based filter kill-switch.
+        if not comments:
+            return True, "empty", "Empty Feedback Messsage"
+
+        if comments == UNREAL_FEEDBACK_UNATTENDED_MESSAGE:
+            return True, "unreal.unattended", "Sent in Unreal Unattended Mode"
+
     max_comment_length = UserReport._meta.get_field("comments").max_length
     if max_comment_length and len(comments) > max_comment_length:
         metrics.distribution(
@@ -247,12 +254,5 @@ def validate_user_report(
         report["event_id"] = uuid.UUID(report["event_id"].lower()).hex
     except ValueError:
         return True, "invalid_event_id", "Invalid Event ID"
-
-    if options.get("feedback.filter_garbage_messages"):  # Message-based filter kill-switch.
-        if not comments:
-            return True, "empty", "Empty Feedback Messsage"
-
-        if comments == UNREAL_FEEDBACK_UNATTENDED_MESSAGE:
-            return True, "unreal.unattended", "Sent in Unreal Unattended Mode"
 
     return False, None, None
