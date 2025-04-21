@@ -1,8 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -19,7 +18,6 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {CreateIssueViewModal} from 'sentry/views/issueList/issueViews/createIssueViewModal';
 import {IssueViewsTable} from 'sentry/views/issueList/issueViews/issueViewsList/issueViewsTable';
 import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
 import type {GroupSearchViewBackendSortOption} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
@@ -233,19 +231,19 @@ export default function IssueViewsList() {
                 {t('Give Feedback')}
               </Button>
             ) : null}
-            <Button
+            <LinkButton
+              to={`/organizations/${organization.slug}/issues/views/new/`}
               priority="primary"
               icon={<IconAdd />}
               size="sm"
               onClick={() => {
-                trackAnalytics('issue_views.create_view_clicked', {
+                trackAnalytics('issue_views.table.create_view_clicked', {
                   organization,
                 });
-                openModal(props => <CreateIssueViewModal {...props} />);
               }}
             >
               {t('Create View')}
-            </Button>
+            </LinkButton>
           </ButtonBar>
         </Layout.HeaderActions>
       </Layout.Header>

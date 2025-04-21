@@ -10,6 +10,7 @@ from django.utils import timezone
 from sentry import eventstore, options
 from sentry.constants import DataCategory
 from sentry.eventstore.models import Event, GroupEvent
+from sentry.feedback.lib.types import UserReportDict
 from sentry.feedback.usecases.create_feedback import (
     UNREAL_FEEDBACK_UNATTENDED_MESSAGE,
     FeedbackCreationSource,
@@ -34,7 +35,7 @@ class Conflict(Exception):
 
 def save_userreport(
     project: Project,
-    report,
+    report: UserReportDict,
     source: FeedbackCreationSource,
     start_time: datetime | None = None,
 ) -> UserReport | None:
@@ -88,11 +89,6 @@ def save_userreport(
             project.id, report["event_id"]
         )
 
-        euser = find_event_user(event)
-
-        if euser and not euser.name and report.get("name"):
-            euser.name = report["name"]
-
         if event:
             # if the event is more than 30 minutes old, we don't allow updates
             # as it might be abusive
@@ -100,7 +96,8 @@ def save_userreport(
                 raise Conflict("Feedback for this event cannot be modified.")
 
             report["environment_id"] = event.get_environment().id
-            report["group_id"] = event.group_id
+            if event.group_id:
+                report["group_id"] = event.group_id
 
         # Save the report.
         try:
@@ -126,7 +123,7 @@ def save_userreport(
 
             existing_report.update(
                 name=report.get("name", ""),
-                email=report["email"],
+                email=report.get("email", ""),
                 comments=report["comments"],
             )
             report_instance = existing_report

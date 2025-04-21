@@ -246,7 +246,7 @@ function TagFacetsDistributionMeter({
     <TagSummary>
       <details open aria-expanded={expanded} onClick={e => e.preventDefault()}>
         <StyledSummary>
-          <TagHeader clickable onClick={() => setExpanded(!expanded)}>
+          <TagHeader onClick={() => setExpanded(!expanded)}>
             {renderTitle()}
             {renderSegments()}
           </TagHeader>
@@ -263,8 +263,8 @@ const TagSummary = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const TagHeader = styled('span')<{clickable?: boolean}>`
-  ${p => (p.clickable ? 'cursor: pointer' : null)};
+const TagHeader = styled('span')`
+  cursor: pointer;
 `;
 
 const SegmentBar = styled('div')`
