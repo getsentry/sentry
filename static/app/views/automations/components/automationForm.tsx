@@ -38,45 +38,6 @@ export default function AutomationForm() {
   const title = useDocumentTitle();
   const {state, actions} = useAutomationBuilderReducer();
   const [model] = useState(() => new FormModel());
-  const [monitor1Connected, setMonitor1Connected] = useState(true);
-  const [monitor2Connected, setMonitor2Connected] = useState(true);
-
-  const data: MonitorsData[] = [
-    {
-      name: {
-        name: 'Error Grouping',
-        project: {
-          slug: 'javascript',
-          platform: 'javascript',
-        },
-        link: '/issues/1',
-      },
-      lastIssue: {shortId: 'JAVASCRIPT-SHGH', platform: 'javascript'},
-      type: 'errors',
-      createdBy: 'sentry',
-      connect: {connected: monitor1Connected, toggleConnected: setMonitor1Connected},
-    },
-    {
-      name: {
-        name: 'Error Grouping',
-        project: {
-          slug: 'javascript',
-          platform: 'javascript',
-        },
-        link: '/issues/1',
-      },
-      lastIssue: {shortId: 'JAVASCRIPT-SHGH', platform: 'javascript'},
-      type: 'metric',
-      createdBy: {
-        email: 'miahsu@sentry.io',
-        name: 'Mia Hsu',
-        username: 'f4ea91ef8dc34fe8a54b3732030fbf7b',
-        id: '3286015',
-        ip_address: '1.1.1.1',
-      },
-      connect: {connected: monitor2Connected, toggleConnected: setMonitor2Connected},
-    },
-  ];
 
   useEffect(() => {
     model.setValue('name', title);
