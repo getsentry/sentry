@@ -37,7 +37,10 @@ export function ChonkOptInBanner(props: {collapsed: boolean | 'never'}) {
           size="xs"
           analyticsEventKey="navigation.banner_opt_in_chonk_ui_clicked"
           analyticsEventName="Navigation: Chonk UI Banner Opt In Clicked"
-          onClick={() => mutateUserOptions({prefersChonkUI: true})}
+          onClick={() => {
+            mutateUserOptions({prefersChonkUI: true});
+            chonkPrompt.dismiss();
+          }}
         >
           {t('Try It Out')}
         </OptInButton>
