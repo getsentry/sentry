@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
+
 import {promptsUpdate} from 'sentry/actionCreators/prompts';
 import {SeerIcon} from 'sentry/components/ai/SeerIcon';
 import {Flex} from 'sentry/components/container/flex';
@@ -42,6 +44,9 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
       <Flex align="center" gap={space(1)}>
         <SeerIcon size="xl" />
         <SayHelloHeader>{t('Say Hello to Seer')}</SayHelloHeader>
+      </Flex>
+      <Flex align="center" gap={space(1)}>
+        <img src={autofixSetupImg} alt="Seer looking at a root cause for a solution" />
       </Flex>
       <HeaderItem>
         <Title>{t('With Seer you get:')}</Title>
@@ -115,6 +120,7 @@ const HeaderItem = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
+  margin-top: ${space(2)};
 `;
 
 const ConsentItem = styled('div')`
