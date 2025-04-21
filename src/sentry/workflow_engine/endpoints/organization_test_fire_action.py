@@ -93,50 +93,53 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
                 status=HTTP_400_BAD_REQUEST,
             )
 
-        action_exceptions = []
-
-        test_event = get_test_notification_event_data(project)
-        if test_event is None:
-            # This can happen if the user is rate limited
-            return Response(
-                {"detail": "No test event was generated"},
-                status=HTTP_400_BAD_REQUEST,
-            )
-
-        workflow_id = -1
-        workflow_event_data = WorkflowEventData(
-            event=test_event,
-            workflow_id=workflow_id,
-        )
-
-        detector = Detector(
-            id=-1,
-            project=project,
-            name="Test Detector",
-            enabled=True,
-            type="error",
-        )
-
-        for action_data in data.get("actions", []):
-            # Create a temporary Action object (not saved to database)
-            action = Action(
-                id=-1,
-                type=action_data["type"],
-                integration_id=action_data.get("integration_id"),
-                data=action_data.get("data", {}),
-                config=action_data.get("config", {}),
-            )
-
-            # Test fire the action and collect any exceptions
-            exceptions = test_fire_action(action, workflow_event_data, detector)
-            if exceptions:
-                action_exceptions.extend(exceptions)
-
-        # Return any exceptions that occurred
-        status = None
-        response_data = None
-        if len(action_exceptions) > 0:
-            status = HTTP_400_BAD_REQUEST
-            response_data = {"actions": action_exceptions}
+        status, response_data = test_fire_actions(data.get("actions", []), project)
 
         return Response(status=status, data=response_data)
+
+
+def test_fire_actions(actions: list[Action], project: Project):
+    action_exceptions = []
+
+    test_event = get_test_notification_event_data(project)
+    if test_event is None:
+        # This can happen if the user is rate limited
+        return HTTP_400_BAD_REQUEST, {"detail": "No test event was generated"}
+
+    workflow_id = -1
+    workflow_event_data = WorkflowEventData(
+        event=test_event,
+        workflow_id=workflow_id,
+    )
+
+    detector = Detector(
+        id=-1,
+        project=project,
+        name="Test Detector",
+        enabled=True,
+        type="error",
+    )
+
+    for action_data in actions:
+        # Create a temporary Action object (not saved to database)
+        action = Action(
+            id=-1,
+            type=action_data["type"],
+            integration_id=action_data.get("integration_id"),
+            data=action_data.get("data", {}),
+            config=action_data.get("config", {}),
+        )
+
+        # Test fire the action and collect any exceptions
+        exceptions = test_fire_action(action, workflow_event_data, detector)
+        if exceptions:
+            action_exceptions.extend(exceptions)
+
+    # Return any exceptions that occurred
+    status = None
+    response_data = None
+    if len(action_exceptions) > 0:
+        status = HTTP_400_BAD_REQUEST
+        response_data = {"actions": action_exceptions}
+
+    return status, response_data
