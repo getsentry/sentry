@@ -1,5 +1,5 @@
 import logging
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
@@ -98,7 +98,7 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
         return Response(status=status, data=response_data)
 
 
-def test_fire_actions(actions: list[Action], project: Project):
+def test_fire_actions(actions: list[dict[str, Any]], project: Project):
     action_exceptions = []
 
     test_event = get_test_notification_event_data(project)
