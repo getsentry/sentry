@@ -61,8 +61,6 @@ def save_userreport(
             )
             return None
 
-        report["comments"] = report["comments"].strip()
-
         should_filter, reason_tag, filter_reason = should_filter_user_report(
             report, project.id, source=source
         )
@@ -194,6 +192,8 @@ def should_filter_user_report(
         if field not in report:
             return True, "missing_required_field", "Missing required field"
 
+    report["comments"] = report["comments"].strip()
+
     name, email, comments = (
         report["name"],
         report["email"],
@@ -227,14 +227,15 @@ def should_filter_user_report(
     if max_name_length and len(name) > max_name_length:
         return True, "too_large.name", "Name Too Large"
 
-    try:
-        validate_email(email)
-    except ValidationError:
-        return True, "invalid_email", "Invalid Email"
-
     max_email_length = UserReport._meta.get_field("email").max_length
     if max_email_length and len(email) > max_email_length:
         return True, "too_large.email", "Email Too Large"
+
+    try:
+        if email:
+            validate_email(email)
+    except ValidationError:
+        return True, "invalid_email", "Invalid Email"
 
     try:
         # Validates UUID and strips dashes.

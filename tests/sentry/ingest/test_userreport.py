@@ -1,5 +1,6 @@
 from unittest.mock import Mock
 
+import pytest
 from django.utils import timezone
 
 from sentry.feedback.lib.types import UserReportDict
@@ -144,24 +145,49 @@ def test_save_user_report_denylist(default_project, monkeypatch):
 
 
 @django_db_all
-def test_save_user_report_filters_large_message(default_project, monkeypatch):
+@pytest.mark.parametrize("field", ["name", "email", "comments", "event_id"])
+def test_save_user_report_filters_missing_fields(default_project, monkeypatch, field):
     # Mocking dependencies and setting up test data
     monkeypatch.setattr("sentry.ingest.userreport.is_in_feedback_denylist", lambda org: False)
     monkeypatch.setattr(
         "sentry.eventstore.backend.get_event_by_id", lambda project_id, event_id: None
     )
 
-    max_length = UserReport._meta.get_field("comments").max_length
+    report: UserReportDict = {
+        "event_id": "123456",
+        "name": "Test User",
+        "email": "test@example.com",
+        "comments": "hello",
+        "project_id": default_project.id,
+    }
+    del report[field]
+
+    result = save_userreport(default_project, report, FeedbackCreationSource.USER_REPORT_ENVELOPE)
+    assert result is None
+    assert UserReport.objects.count() == 0
+
+
+@django_db_all
+@pytest.mark.parametrize("field", ["name", "email", "comments"])
+def test_save_user_report_filters_large_fields(default_project, monkeypatch, field):
+    # Mocking dependencies and setting up test data
+    monkeypatch.setattr("sentry.ingest.userreport.is_in_feedback_denylist", lambda org: False)
+    monkeypatch.setattr(
+        "sentry.eventstore.backend.get_event_by_id", lambda project_id, event_id: None
+    )
+
+    max_length = UserReport._meta.get_field(field).max_length
     if not max_length:
-        assert False, "Missing max_length for UserReport comments field!"
+        assert False, f"Missing max_length for UserReport {field} field!"
 
     report: UserReportDict = {
         "event_id": "123456",
         "name": "Test User",
         "email": "test@example.com",
-        "comments": "a" * (max_length + 3001),
+        "comments": "hello",
         "project_id": default_project.id,
     }
+    report[field] = "a" * (max_length + 31)
 
     result = save_userreport(default_project, report, FeedbackCreationSource.USER_REPORT_ENVELOPE)
     assert result is None
