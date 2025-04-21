@@ -61,20 +61,20 @@ def save_userreport(
             )
             return None
 
-        should_filter, reason_tag, filter_reason = validate_user_report(
+        should_filter, metrics_reason, outcomes_reason = validate_user_report(
             report, project.id, source=source
         )
         if should_filter:
             metrics.incr(
                 "user_report.create_user_report.filtered",
-                tags={"reason": reason_tag, "referrer": source.value},
+                tags={"reason": metrics_reason, "referrer": source.value},
             )
             track_outcome(
                 org_id=project.organization_id,
                 project_id=project.id,
                 key_id=None,
                 outcome=Outcome.INVALID,
-                reason=filter_reason,
+                reason=outcomes_reason,
                 timestamp=start_time or timezone.now(),
                 event_id=None,  # Note report["event_id"] is id of the associated event, not the report itself.
                 category=DataCategory.USER_REPORT_V2,
