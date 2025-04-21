@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import random
+import uuid
 from datetime import datetime, timedelta
 
 from django.db import IntegrityError, router
@@ -191,16 +192,12 @@ def should_filter_user_report(
         if field not in report:
             return True, "missing_required_field", "Missing required field"
 
-    comments = report["comments"]
+    name, email, comments = (
+        report["name"],
+        report["email"],
+        report["comments"],
+    )
 
-    if options.get("feedback.filter_garbage_messages"):  # Filter kill-switch.
-        if not comments:
-            return True, "empty", "Empty Feedback Messsage"
-
-        if comments == UNREAL_FEEDBACK_UNATTENDED_MESSAGE:
-            return True, "unreal.unattended", "Sent in Unreal Unattended Mode"
-
-    # Always filter large messages (attempting to save will raise Postgres error).
     max_comment_length = UserReport._meta.get_field("comments").max_length
     if max_comment_length and len(comments) > max_comment_length:
         metrics.distribution(
@@ -223,5 +220,26 @@ def should_filter_user_report(
                 },
             )
         return True, "too_large.message", "Message Too Large"
+
+    max_name_length = UserReport._meta.get_field("name").max_length
+    if max_name_length and len(name) > max_name_length:
+        return True, "too_large.name", "Name Too Large"
+
+    max_email_length = UserReport._meta.get_field("email").max_length
+    if max_email_length and len(email) > max_email_length:
+        return True, "too_large.email", "Email Too Large"
+
+    try:
+        # Validates UUID and strips dashes.
+        report["event_id"] = uuid.UUID(report["event_id"].lower()).hex
+    except ValueError:
+        return True, "invalid_event_id", "Invalid Event ID"
+
+    if options.get("feedback.filter_garbage_messages"):  # Message-based filter kill-switch.
+        if not comments:
+            return True, "empty", "Empty Feedback Messsage"
+
+        if comments == UNREAL_FEEDBACK_UNATTENDED_MESSAGE:
+            return True, "unreal.unattended", "Sent in Unreal Unattended Mode"
 
     return False, None, None

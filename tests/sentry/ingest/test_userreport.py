@@ -93,6 +93,8 @@ def test_should_not_filter_empty_message_without_option(set_sentry_option):
         assert reason is None
 
 
+# Required field and too large filters are tested below
+
 #######################
 # save_userreport tests
 #######################
