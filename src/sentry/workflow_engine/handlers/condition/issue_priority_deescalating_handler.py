@@ -1,5 +1,7 @@
 from typing import Any
 
+from sentry.models.group import GroupStatus
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
@@ -12,11 +14,14 @@ class IssuePriorityDeescalatingConditionHandler(DataConditionHandler[WorkflowEve
 
     @staticmethod
     def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
-        occurrence = event_data.event.occurrence
-        if occurrence is None:
-            raise Exception("Metric issue missing occurrence")
-        previous_status = occurrence.evidence_data["previous_status"]
-
         group = event_data.event.group
-        current_status = group.priority
-        return current_status < previous_status
+        if group.status == GroupStatus.RESOLVED:
+            return True
+
+        current_priority = group.priority
+        open_period = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()
+        if open_period is None:
+            raise Exception("No open period found")
+        highest_seen_priority = open_period.data.get("highest_seen_priority", current_priority)
+
+        return current_priority < highest_seen_priority

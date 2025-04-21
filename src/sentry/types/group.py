@@ -61,7 +61,6 @@ GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS = {
 
 
 class PriorityLevel(IntEnum):
-    OK = 0
     LOW = 25
     MEDIUM = 50
     HIGH = 75
