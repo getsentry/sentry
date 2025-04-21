@@ -180,7 +180,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
       getDaysSinceDate(
         subscription?.onDemandPeriodEnd ?? moment().utc().toDate().toDateString()
       ),
-    isDismissedOverride: isSnoozedForCurrentPeriod,
+    isDismissed: isSnoozedForCurrentPeriod,
     options: {
       enabled: promptsToCheck.length > 0,
     },

@@ -144,12 +144,12 @@ export function usePrompts({
   projectId,
   daysToSnooze,
   options,
-  isDismissedOverride = null, // if not provided, use the default promptIsDismissed function
+  isDismissed = promptIsDismissed,
 }: {
   features: string[];
   organization: Organization | null;
   daysToSnooze?: number;
-  isDismissedOverride?: ((prompt: PromptData) => boolean) | null;
+  isDismissed?: (prompt: PromptData, daysToSnooze?: number) => boolean;
   options?: Partial<UseApiQueryOptions<PromptResponse>>;
   projectId?: string;
 }) {
@@ -161,28 +161,17 @@ export function usePrompts({
       return features.reduce(
         (acc, feature) => {
           const prompt = prompts.data.features?.[feature];
-          acc[feature] = isDismissedOverride
-            ? isDismissedOverride({
-                dismissedTime: prompt?.dismissed_ts,
-                snoozedTime: prompt?.snoozed_ts,
-              })
-            : promptIsDismissed(
-                {dismissedTime: prompt?.dismissed_ts, snoozedTime: prompt?.snoozed_ts},
-                daysToSnooze
-              );
+          acc[feature] = isDismissed(
+            {dismissedTime: prompt?.dismissed_ts, snoozedTime: prompt?.snoozed_ts},
+            daysToSnooze
+          );
           return acc;
         },
         {} as Record<string, boolean>
       );
     }
     return {};
-  }, [
-    prompts.isSuccess,
-    prompts.data?.features,
-    features,
-    daysToSnooze,
-    isDismissedOverride,
-  ]);
+  }, [prompts.isSuccess, prompts.data?.features, features, daysToSnooze, isDismissed]);
 
   const dismissPrompt = useCallback(
     (feature: string) => {
