@@ -45,7 +45,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
         <SeerWaitingIcon size="xl" />
         <SayHelloHeader>{t('Say Hello to Seer')}</SayHelloHeader>
       </Flex>
-      <Flex align="center" gap={space(1)}>
+      <Flex align="center" justify="center" gap={space(1)}>
         <img src={autofixSetupImg} alt="Seer looking at a root cause for a solution" />
       </Flex>
       <HeaderItem>
