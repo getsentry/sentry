@@ -4,11 +4,10 @@ import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
 import {defineColumns, SimpleTable} from 'sentry/components/workflowEngine/simpleTable';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import type {AvatarProject} from 'sentry/types/project';
 
 interface MonitorsData {
   lastIssue: Group;
-  name: {link: string; name: string; project: AvatarProject};
+  name: {link: string; name: string; projectId: string};
   openIssues: number;
 }
 
@@ -20,7 +19,7 @@ const columns = defineColumns<MonitorsData>({
   name: {
     Header: () => t('Name'),
     Cell: ({value}) => (
-      <TitleCell name={value.name} project={value.project} link={value.link} />
+      <TitleCell name={value.name} projectId={value.projectId} link={value.link} />
     ),
     width: '3fr',
   },
