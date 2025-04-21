@@ -29,13 +29,13 @@ def _mock_event(project_id: int, environment: str):
 @django_db_all
 @pytest.mark.parametrize("field", ["name", "email", "comments", "event_id"])
 def test_validator_should_filter_missing_required_field(field):
-    report = {
+    report: UserReportDict = {
         "name": "andrew",
         "email": "andrew@example.com",
         "comments": "hello",
         "event_id": "a49558bf9bd94e2da4c9c3dc1b5b95f7",
     }
-    del report[field]
+    del report[field]  # type: ignore[misc]
 
     should_filter, tag, reason = validate_user_report(report, 1)
     assert should_filter is True
@@ -161,7 +161,7 @@ def test_validator_should_filter_invalid_event_id():
 
 @django_db_all
 def test_validator_strips_event_id_dashes():
-    report = {
+    report: UserReportDict = {
         "name": "",
         "email": "andrew@example.com",
         "comments": "hello",
@@ -174,7 +174,7 @@ def test_validator_strips_event_id_dashes():
 
 @django_db_all
 def test_validator_strips_comments_whitespace():
-    report = {
+    report: UserReportDict = {
         "name": "",
         "email": "andrew@example.com",
         "comments": "                     hello  \n\t      ",
@@ -251,7 +251,7 @@ def test_save_user_report_filters_missing_fields(default_project, monkeypatch, f
         "comments": "hello",
         "project_id": default_project.id,
     }
-    del report[field]
+    del report[field]  # type: ignore[misc]
 
     result = save_userreport(default_project, report, FeedbackCreationSource.USER_REPORT_ENVELOPE)
     assert result is None
@@ -267,7 +267,7 @@ def test_save_user_report_filters_too_large_fields(default_project, monkeypatch,
         "sentry.eventstore.backend.get_event_by_id", lambda project_id, event_id: None
     )
 
-    max_length = UserReport._meta.get_field(field).max_length
+    max_length = UserReport._meta.get_field(field).max_length  # type: ignore[union-attr]
     if not max_length:
         assert False, f"Missing max_length for UserReport {field} field!"
 
@@ -278,7 +278,7 @@ def test_save_user_report_filters_too_large_fields(default_project, monkeypatch,
         "comments": "hello",
         "project_id": default_project.id,
     }
-    report[field] = "a" * (max_length + 1)
+    report[field] = "a" * (max_length + 1)  # type: ignore[literal-required]
 
     result = save_userreport(default_project, report, FeedbackCreationSource.USER_REPORT_ENVELOPE)
     assert result is None
