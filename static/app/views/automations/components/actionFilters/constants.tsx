@@ -15,6 +15,7 @@ export const FILTER_DATA_CONDITION_TYPES = [
   DataConditionType.ISSUE_OCCURRENCES,
   DataConditionType.ASSIGNED_TO,
   DataConditionType.ISSUE_PRIORITY_EQUALS,
+  DataConditionType.ISSUE_PRIORITY_GREATER_OR_EQUAL,
   DataConditionType.LATEST_ADOPTED_RELEASE,
   DataConditionType.LATEST_RELEASE,
   DataConditionType.EVENT_ATTRIBUTE,
