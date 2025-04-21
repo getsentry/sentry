@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {motion, type MotionProps} from 'framer-motion';
 import moment from 'moment-timezone';
 
+import type {PromptData} from 'sentry/actionCreators/prompts';
 import {usePrompts} from 'sentry/actionCreators/prompts';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {IconWarning} from 'sentry/icons';
@@ -153,6 +154,24 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
     })
     .filter(Boolean);
 
+  /**
+   * Check if the prompt is snoozed for the current on-demand period.
+   * Valid snoozed prompts are those that were snoozed on or after the start of the current on-demand period
+   * and before the start of the next on-demand period.
+   */
+  const isSnoozedForCurrentPeriod = (prompt: PromptData) => {
+    const snoozedTime = prompt?.snoozedTime ?? prompt?.dismissedTime;
+    if (typeof snoozedTime !== 'number') {
+      return false;
+    }
+    const onDemandPeriodStart = moment(subscription?.onDemandPeriodStart).utc();
+    const nextPeriodStart = moment(subscription?.onDemandPeriodEnd).utc().add(1, 'day');
+    const snoozedOn = moment.unix(snoozedTime).utc();
+    return (
+      snoozedOn.isSameOrAfter(onDemandPeriodStart) && snoozedOn.isBefore(nextPeriodStart)
+    );
+  };
+
   const {isLoading, isError, isPromptDismissed, snoozePrompt, showPrompt} = usePrompts({
     features: promptsToCheck,
     organization,
@@ -161,6 +180,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
       getDaysSinceDate(
         subscription?.onDemandPeriodEnd ?? moment().utc().toDate().toDateString()
       ),
+    isDismissedOverride: isSnoozedForCurrentPeriod,
     options: {
       enabled: promptsToCheck.length > 0,
     },
