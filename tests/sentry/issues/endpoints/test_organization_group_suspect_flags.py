@@ -1,8 +1,14 @@
 import datetime
 import time
 import uuid
+from typing import TypedDict
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase
+
+
+class _FlagResult(TypedDict):
+    flag: str
+    result: bool
 
 
 class OrganizationGroupSuspectFlagsTestCase(APITestCase, SnubaTestCase):
@@ -73,7 +79,7 @@ class OrganizationGroupSuspectFlagsTestCase(APITestCase, SnubaTestCase):
         hash: str = "a" * 32,
         group_id: int | None = None,
         project_id: int = 1,
-        flags: list[dict[str, object]] | None = None,
+        flags: list[_FlagResult] | None = None,
     ) -> None:
         self.snuba_insert(
             (

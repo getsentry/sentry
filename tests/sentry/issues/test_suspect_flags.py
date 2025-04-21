@@ -1,6 +1,7 @@
 import datetime
 import time
 import uuid
+from typing import TypedDict
 
 from sentry.issues.suspect_flags import (
     get_suspect_flag_scores,
@@ -10,6 +11,11 @@ from sentry.issues.suspect_flags import (
 from sentry.testutils.cases import SnubaTestCase, TestCase
 
 
+class _FlagResult(TypedDict):
+    flag: str
+    result: bool
+
+
 class SnubaTest(TestCase, SnubaTestCase):
     def mock_event(
         self,
@@ -17,7 +23,7 @@ class SnubaTest(TestCase, SnubaTestCase):
         hash: str = "a" * 32,
         group_id: int | None = None,
         project_id: int = 1,
-        flags: list[dict[str, object]] | None = None,
+        flags: list[_FlagResult] | None = None,
     ) -> None:
         self.snuba_insert(
             (
