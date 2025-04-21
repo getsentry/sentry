@@ -1,5 +1,4 @@
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.userpermission import UserPermission
 
@@ -19,7 +18,6 @@ class UserListTest(APITestCase):
         self.login_as(self.normal_user)
         self.get_error_response(status_code=403)
 
-    @override_options({"staff.ga-rollout": True})
     def test_staff_simple(self):
         self.staff_user = self.create_user(is_staff=True)
         self.login_as(self.staff_user, staff=True)

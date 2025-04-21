@@ -130,9 +130,7 @@ class RetryRelocationTest(APITestCase):
             uuid=response.data["uuid"],
         )
 
-    @override_options(
-        {"relocation.enabled": False, "relocation.daily-limit.small": 2, "staff.ga-rollout": True}
-    )
+    @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 2})
     @patch("sentry.relocation.tasks.process.uploading_start.delay")
     def test_good_staff_when_feature_disabled(
         self, uploading_start_mock: Mock, analytics_record_mock: Mock
@@ -296,9 +294,7 @@ class RetryRelocationTest(APITestCase):
         assert response.data.get("detail") == ERR_FILE_NO_LONGER_EXISTS
         assert uploading_start_mock.call_count == 0
 
-    @override_options(
-        {"relocation.enabled": True, "relocation.daily-limit.small": 2, "staff.ga-rollout": True}
-    )
+    @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 2})
     @patch("sentry.relocation.tasks.process.uploading_start.delay")
     def test_bad_staff_owner_not_found(
         self, uploading_start_mock: Mock, analytics_record_mock: Mock

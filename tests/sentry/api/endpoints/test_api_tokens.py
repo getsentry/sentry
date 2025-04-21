@@ -1,10 +1,8 @@
 from django.urls import reverse
-from pytest import fixture
 from rest_framework import status
 
 from sentry.models.apitoken import ApiToken
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 
 
@@ -227,11 +225,6 @@ class ApiTokensSuperuserTest(APITestCase):
 @control_silo_test
 class ApiTokensStaffTest(APITestCase):
     url = reverse("sentry-api-0-api-tokens")
-
-    @fixture(autouse=True)
-    def _set_staff_option(self):
-        with override_options({"staff.ga-rollout": True}):
-            yield
 
     def setUp(self):
         self.staff_user = self.create_user(is_staff=True)

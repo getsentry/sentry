@@ -107,7 +107,6 @@ class GetRelocationsTest(APITestCase):
 
         self.success_uuid = Relocation.objects.get(status=Relocation.Status.SUCCESS.value)
 
-    @override_options({"staff.ga-rollout": True})
     def test_good_staff_simple(self):
         self.login_as(user=self.staff_user, staff=True)
         response = self.get_success_response(status_code=200)

@@ -12,7 +12,6 @@ from sentry.relocation.api.endpoints.pause import (
 from sentry.relocation.models.relocation import Relocation
 from sentry.relocation.utils import OrderedTask
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.options import override_options
 
 TEST_DATE_ADDED = datetime(2023, 1, 23, 1, 23, 45, tzinfo=timezone.utc)
 
@@ -42,7 +41,6 @@ class PauseRelocationTest(APITestCase):
             latest_task_attempts=1,
         )
 
-    @override_options({"staff.ga-rollout": True})
     def test_good_staff_pause_asap(self):
         self.login_as(user=self.staff_user, staff=True)
         response = self.get_success_response(self.relocation.uuid, status_code=200)

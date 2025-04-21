@@ -10,7 +10,6 @@ from sentry.relocation.api.endpoints.cancel import (
 from sentry.relocation.models.relocation import Relocation
 from sentry.relocation.utils import OrderedTask
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.options import override_options
 
 TEST_DATE_ADDED = datetime(2023, 1, 23, 1, 23, 45, tzinfo=timezone.utc)
 
@@ -39,7 +38,6 @@ class CancelRelocationTest(APITestCase):
             latest_task_attempts=1,
         )
 
-    @override_options({"staff.ga-rollout": True})
     def test_good_staff_cancel_in_progress_at_next_step(self):
         staff_user = self.create_user(is_staff=True)
         self.login_as(user=staff_user, staff=True)

@@ -393,7 +393,6 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
 
             assert not Authenticator.objects.filter(id=auth.id).exists()
 
-    @override_options({"staff.ga-rollout": True})
     def test_require_2fa__can_delete_last_auth_staff(self):
         self._require_2fa_for_organization()
 

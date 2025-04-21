@@ -15,7 +15,6 @@ from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
 from sentry.utils import json
 
@@ -283,11 +282,9 @@ class ClientConfigViewTest(TestCase):
     def test_superuser(self):
         self._run_test_with_privileges(is_superuser=True, is_staff=False)
 
-    @override_options({"staff.ga-rollout": True})
     def test_staff(self):
         self._run_test_with_privileges(is_superuser=False, is_staff=True)
 
-    @override_options({"staff.ga-rollout": True})
     def test_superuser_and_staff(self):
         self._run_test_with_privileges(is_superuser=True, is_staff=True)
 

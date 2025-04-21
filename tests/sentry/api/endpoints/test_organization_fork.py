@@ -207,9 +207,7 @@ class OrganizationForkTest(APITestCase):
             replying_region_name=EXPORTING_TEST_REGION,
         )
 
-    @override_options(
-        {"relocation.enabled": False, "relocation.daily-limit.small": 1, "staff.ga-rollout": True}
-    )
+    @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 1})
     @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
     def test_good_staff_when_feature_disabled(
         self,
@@ -512,9 +510,7 @@ class OrganizationForkTest(APITestCase):
             assert uploading_start_mock.call_count == 0
             assert analytics_record_mock.call_count == 0
 
-    @override_options(
-        {"relocation.enabled": True, "relocation.daily-limit.small": 1, "staff.ga-rollout": True}
-    )
+    @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
     @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
     def test_good_no_throttle_for_staff(
         self,

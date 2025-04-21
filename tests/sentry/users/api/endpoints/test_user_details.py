@@ -1,5 +1,4 @@
 from django.test import override_settings
-from pytest import fixture
 
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.models.deletedorganization import DeletedOrganization
@@ -59,7 +58,6 @@ class UserDetailsGetTest(UserDetailsTest):
         assert "identities" in resp.data
         assert len(resp.data["identities"]) == 0
 
-    @override_options({"staff.ga-rollout": True})
     def test_staff_simple(self):
         self.login_as(user=self.staff_user, staff=True)
 
@@ -425,11 +423,6 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
 class UserDetailsStaffUpdateTest(UserDetailsTest):
     method = "put"
 
-    @fixture(autouse=True)
-    def _activate_staff_mode(self):
-        with override_options({"staff.ga-rollout": True}):
-            yield
-
     def test_staff_can_change_is_active(self):
         self.user.update(is_active=True)
         self.login_as(user=self.staff_user, staff=True)
@@ -657,7 +650,6 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         assert response.data["detail"] == "Missing required permission to hard delete account."
         assert User.objects.filter(id=user2.id).exists()
 
-    @override_options({"staff.ga-rollout": True})
     def test_staff_hard_delete_account_without_permission(self):
         self.login_as(user=self.staff_user, staff=True)
         user2 = self.create_user(email="user2@example.com")
@@ -680,7 +672,6 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         self.get_success_response(user2.id, hardDelete=True, organizations=[], status_code=204)
         assert not User.objects.filter(id=user2.id).exists()
 
-    @override_options({"staff.ga-rollout": True})
     def test_staff_hard_delete_account_with_permission(self):
         self.login_as(user=self.staff_user, staff=True)
         user2 = self.create_user(email="user2@example.com")
@@ -691,7 +682,6 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         self.get_success_response(user2.id, hardDelete=True, organizations=[], status_code=204)
         assert not User.objects.filter(id=user2.id).exists()
 
-    @override_options({"staff.ga-rollout": True})
     def test_superuser_cannot_hard_delete_with_active_option(self):
         self.login_as(user=self.superuser, superuser=True)
         user2 = self.create_user(email="user2@example.com")

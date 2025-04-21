@@ -21,7 +21,6 @@ from sentry.relocation.models.relocation import Relocation
 from sentry.relocation.utils import OrderedTask
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.backups import generate_rsa_key_pair
-from sentry.testutils.helpers.options import override_options
 
 TEST_DATE_ADDED = datetime(2023, 1, 23, 1, 23, 45, tzinfo=timezone.utc)
 RELOCATION_ADMIN_PERMISSION = "relocation.admin"
@@ -118,7 +117,6 @@ class GetRelocationArtifactDetailsGoodTest(GetRelocationArtifactDetailsTest):
         assert fake_kms_client.return_value.asymmetric_decrypt.call_count == 1
         assert str(response.data["contents"]) == f'"runs/{self.relocation.uuid}/encrypted/file.tar"'
 
-    @override_options({"staff.ga-rollout": True})
     @patch("sentry.backup.crypto.KeyManagementServiceClient")
     def test_good_unencrypted_with_staff(self, fake_kms_client: mock.Mock) -> None:
         self.mock_kms_client(fake_kms_client)
@@ -131,7 +129,6 @@ class GetRelocationArtifactDetailsGoodTest(GetRelocationArtifactDetailsTest):
             response.data["contents"] == f'"runs/{self.relocation.uuid}/somedir/file.json"'.encode()
         )
 
-    @override_options({"staff.ga-rollout": True})
     @patch("sentry.backup.crypto.KeyManagementServiceClient")
     def test_good_encrypted_with_staff(self, fake_kms_client: mock.Mock) -> None:
         self.mock_kms_client(fake_kms_client)
@@ -155,7 +152,6 @@ class GetRelocationArtifactDetailsBadTest(GetRelocationArtifactDetailsTest):
             f"{dir}/somedir/file.json", StringIO(f'"{dir}/somedir/file.json"')
         )
 
-    @override_options({"staff.ga-rollout": True})
     def test_bad_unprivileged_user(self):
         self.login_as(user=self.owner, superuser=False, staff=False)
 
@@ -171,7 +167,6 @@ class GetRelocationArtifactDetailsBadTest(GetRelocationArtifactDetailsTest):
         does_not_exist_uuid = uuid4().hex
         self.get_error_response(str(does_not_exist_uuid), "somedir", "file.json", status_code=403)
 
-    @override_options({"staff.ga-rollout": True})
     def test_bad_staff_disabled(self):
         self.add_user_permission(self.staff_user, RELOCATION_ADMIN_PERMISSION)
         self.login_as(user=self.staff_user, staff=False)
@@ -191,7 +186,6 @@ class GetRelocationArtifactDetailsBadTest(GetRelocationArtifactDetailsTest):
 
         assert response.data.get("detail") == ERR_NEED_RELOCATION_ADMIN
 
-    @override_options({"staff.ga-rollout": True})
     def test_bad_has_staff_but_no_relocation_admin_permission(self):
         self.login_as(user=self.staff_user, staff=True)
 
@@ -203,14 +197,12 @@ class GetRelocationArtifactDetailsBadTest(GetRelocationArtifactDetailsTest):
 
         assert response.data.get("detail") == ERR_NEED_RELOCATION_ADMIN
 
-    @override_options({"staff.ga-rollout": True})
     def test_bad_relocation_not_found(self):
         self.add_user_permission(self.staff_user, RELOCATION_ADMIN_PERMISSION)
         self.login_as(user=self.staff_user, staff=True)
         does_not_exist_uuid = uuid4().hex
         self.get_error_response(str(does_not_exist_uuid), "somedir", "file.json", status_code=404)
 
-    @override_options({"staff.ga-rollout": True})
     def test_bad_file_not_found(self):
         self.add_user_permission(self.staff_user, RELOCATION_ADMIN_PERMISSION)
         self.login_as(user=self.staff_user, staff=True)

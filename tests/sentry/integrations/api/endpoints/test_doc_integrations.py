@@ -9,7 +9,6 @@ from sentry.api.serializers.base import serialize
 from sentry.integrations.models.doc_integration import DocIntegration
 from sentry.integrations.models.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 
 
@@ -37,7 +36,6 @@ class DocIntegrationsTest(APITestCase):
 class GetDocIntegrationsTest(DocIntegrationsTest):
     method = "GET"
 
-    @override_options({"staff.ga-rollout": True})
     def test_staff_read_docs(self):
         """
         Tests that all DocIntegrations are returned for staff users,

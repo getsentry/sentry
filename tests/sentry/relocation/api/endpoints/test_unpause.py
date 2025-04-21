@@ -10,7 +10,6 @@ from sentry.relocation.api.endpoints.unpause import ERR_NOT_UNPAUSABLE_STATUS
 from sentry.relocation.models.relocation import Relocation
 from sentry.relocation.utils import OrderedTask
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.options import override_options
 
 TEST_DATE_ADDED = datetime(2023, 1, 23, 1, 23, 45, tzinfo=timezone.utc)
 
@@ -40,7 +39,6 @@ class UnpauseRelocationTest(APITestCase):
             latest_task_attempts=1,
         )
 
-    @override_options({"staff.ga-rollout": True})
     @patch("sentry.relocation.tasks.process.preprocessing_scan.delay")
     def test_good_staff_unpause_until_validating(self, async_task_scheduled: Mock):
         self.login_as(user=self.staff_user, staff=True)

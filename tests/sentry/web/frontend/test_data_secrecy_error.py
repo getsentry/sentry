@@ -2,7 +2,6 @@ from django.urls import reverse
 
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
@@ -27,7 +26,6 @@ class DataSecrecyErrorTest(TestCase):
         assert resp.status_code == 200
         self.assertTemplateUsed("sentry/data-secrecy.html")
 
-    @override_options({"staff.ga-rollout": True})
     def test_data_secrecy_does_not_render_for_staff_access(self):
         user = self.create_user(is_superuser=True, is_staff=True)
         self.create_identity_provider(type="dummy", external_id="1234")

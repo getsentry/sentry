@@ -1,5 +1,4 @@
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.features import with_feature
 
 
@@ -44,7 +43,6 @@ class DataSecrecyTestCase(APITestCase):
             self.get_success_response(self.organization.slug)
 
     @with_feature("organizations:data-secrecy")
-    @override_options({"staff.ga-rollout": True})
     def test_admin_access_when_superuser_no_access(self):
         # When the superuser has no access, the admin should also still work
         superuser = self.create_user(is_superuser=True)

@@ -7,7 +7,6 @@ from sentry.relocation.api.endpoints.artifacts.index import ERR_NEED_RELOCATION_
 from sentry.relocation.models.relocation import Relocation
 from sentry.relocation.utils import OrderedTask
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.options import override_options
 
 TEST_DATE_ADDED = datetime(2023, 1, 23, 1, 23, 45, tzinfo=timezone.utc)
 RELOCATION_ADMIN_PERMISSION = "relocation.admin"
@@ -84,7 +83,6 @@ class GetRelocationArtifactsGoodTest(GetRelocationArtifactsTest):
             file_size = file_info["bytes"]
             assert self.relocation_storage.size(file_name) == file_size
 
-    @override_options({"staff.ga-rollout": True})
     def test_good_with_staff(self):
         self.add_user_permission(self.staff_user, RELOCATION_ADMIN_PERMISSION)
         self.login_as(user=self.staff_user, staff=True)
@@ -99,7 +97,7 @@ class GetRelocationArtifactsGoodTest(GetRelocationArtifactsTest):
 
 
 class GetRelocationArtifactsBadTest(GetRelocationArtifactsTest):
-    @override_options({"staff.ga-rollout": True})
+
     def test_bad_unprivileged_user(self):
         self.login_as(user=self.owner, superuser=False, staff=False)
 
@@ -117,7 +115,6 @@ class GetRelocationArtifactsBadTest(GetRelocationArtifactsTest):
         self.get_error_response(str(does_not_exist_uuid), status_code=403)
         self.get_error_response(str(self.relocation.uuid), status_code=403)
 
-    @override_options({"staff.ga-rollout": True})
     def test_bad_staff_disabled(self):
         self.add_user_permission(self.staff_user, RELOCATION_ADMIN_PERMISSION)
         self.login_as(user=self.staff_user, staff=False)
@@ -140,7 +137,6 @@ class GetRelocationArtifactsBadTest(GetRelocationArtifactsTest):
 
         assert response.data.get("detail") == ERR_NEED_RELOCATION_ADMIN
 
-    @override_options({"staff.ga-rollout": True})
     def test_bad_has_staff_but_no_relocation_admin_permission(self):
         self.login_as(user=self.staff_user, staff=True)
 
@@ -154,7 +150,6 @@ class GetRelocationArtifactsBadTest(GetRelocationArtifactsTest):
 
         assert response.data.get("detail") == ERR_NEED_RELOCATION_ADMIN
 
-    @override_options({"staff.ga-rollout": True})
     def test_bad_relocation_not_found(self):
         self.add_user_permission(self.staff_user, RELOCATION_ADMIN_PERMISSION)
         self.login_as(user=self.staff_user, staff=True)

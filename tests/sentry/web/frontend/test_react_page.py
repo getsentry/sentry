@@ -4,7 +4,6 @@ from django.urls import URLResolver, get_resolver, reverse
 
 from sentry.models.organization import OrganizationStatus
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
@@ -314,11 +313,9 @@ class ReactPageViewTest(TestCase):
     def test_customer_domain_non_member_org_superuser(self):
         self._run_customer_domain_elevated_privileges(is_superuser=True, is_staff=False)
 
-    @override_options({"staff.ga-rollout": True})
     def test_customer_domain_non_member_org_staff(self):
         self._run_customer_domain_elevated_privileges(is_superuser=False, is_staff=True)
 
-    @override_options({"staff.ga-rollout": True})
     def test_customer_domain_non_member_org_superuser_and_staff(self):
         self._run_customer_domain_elevated_privileges(is_superuser=True, is_staff=True)
 
