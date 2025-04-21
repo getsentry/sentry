@@ -5,6 +5,7 @@ from typing import Any
 
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
 from sentry.ingest.userreport import save_userreport
+from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.utils import metrics
 
@@ -35,6 +36,10 @@ def save_feedback_event(event_data: Mapping[str, Any], project_id: int):
 
         if associated_event_id:
             project = Project.objects.get_from_cache(id=project_id)
+            environment = Environment.objects.get(
+                organization_id=project.organization_id,
+                name=fixed_event_data.get("environment", "production"),
+            )
             timestamp = fixed_event_data["timestamp"]
             start_time = (
                 datetime.fromtimestamp(timestamp, tz=UTC)
@@ -48,7 +53,7 @@ def save_feedback_event(event_data: Mapping[str, Any], project_id: int):
                     "project_id": project_id,
                     # XXX(aliu): including environment ensures the update_user_reports task
                     # will not shim the report back to feedback.
-                    "environment_id": fixed_event_data.get("environment", "production"),
+                    "environment_id": environment.id,
                     "name": feedback_context.get("name", ""),
                     "email": feedback_context.get("contact_email", ""),
                     "comments": feedback_context["message"],
