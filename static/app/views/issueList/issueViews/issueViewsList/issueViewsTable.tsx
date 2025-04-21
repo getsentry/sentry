@@ -34,6 +34,7 @@ export function IssueViewsTable({
 
   return (
     <SavedEntityTableWithColumns
+      hideCreatedBy={hideCreatedBy}
       data-test-id={`table-${type}`}
       header={
         <SavedEntityTable.Header>
@@ -146,5 +147,5 @@ export function IssueViewsTable({
 const SavedEntityTableWithColumns = styled(SavedEntityTable)<{hideCreatedBy?: boolean}>`
   grid-template-columns:
     40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(0, 1fr)
-    auto auto auto 48px;
+    auto ${p => (p.hideCreatedBy ? '' : 'auto')} auto 48px;
 `;
