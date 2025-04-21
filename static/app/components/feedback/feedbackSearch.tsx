@@ -39,8 +39,7 @@ const EXCLUDED_TAGS: string[] = [
   'has_linked_error',
 ];
 
-// Skip suggestions for these fields since their values are well-known.
-const PREDEFINED_FIELDS: string[] = [
+const NON_TAG_FIELDS: string[] = [
   FieldKey.ASSIGNED,
   FieldKey.HAS,
   FieldKey.IS,
@@ -56,7 +55,7 @@ function getHasFieldValues(supportedTags: TagCollection): string[] {
 
   // Ensure suggested fields are included.
   const feedbackFieldKeys = FEEDBACK_FIELDS.map(String).filter(
-    key => !PREDEFINED_FIELDS.includes(key)
+    key => !NON_TAG_FIELDS.includes(key)
   );
 
   return union(customTagKeys, feedbackFieldKeys).sort();
