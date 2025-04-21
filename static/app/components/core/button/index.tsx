@@ -312,14 +312,13 @@ function BaseButton({
             higherOpacity={priority && ['primary', 'danger'].includes(priority)}
           />
         )}
-        <ButtonLabel size={size} borderless={borderless}>
-          {icon && (
-            <Icon size={size} hasChildren={hasChildren}>
-              <IconDefaultsProvider size={ICON_SIZES[size]}>{icon}</IconDefaultsProvider>
-            </Icon>
-          )}
-          {children}
-        </ButtonLabel>
+
+        {icon && (
+          <Icon size={size} hasChildren={hasChildren}>
+            <IconDefaultsProvider size={ICON_SIZES[size]}>{icon}</IconDefaultsProvider>
+          </Icon>
+        )}
+        {children}
       </StyledButton>
     </Tooltip>
   );
@@ -359,7 +358,7 @@ export const StyledButton = styled(
     disabled,
     ref: forwardRefAlt,
     ...props
-  }: ButtonProps & {ref?: React.Ref<HTMLButtonElement | HTMLAnchorElement>}) => {
+  }: ButtonProps) => {
     // XXX: There may be two forwarded refs here, one potentially passed from a
     // wrapped Tooltip, another from callers of Button.
     const ref = mergeRefs(forwardRef, forwardRefAlt);
@@ -549,12 +548,16 @@ const getSizeStyles = ({
 function getButtonStyles(p: StyledButtonProps & {theme: Theme}): SerializedStyles {
   return css`
     position: relative;
-    display: inline-block;
     border-radius: ${p.theme.borderRadius};
     text-transform: none;
     font-weight: ${p.theme.fontWeightBold};
     cursor: ${p.disabled ? 'not-allowed' : 'pointer'};
     opacity: ${(p.busy || p.disabled) && '0.65'};
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
 
     ${getColors(p)}
     ${getSizeStyles(p)}
@@ -585,19 +588,6 @@ function getButtonStyles(p: StyledButtonProps & {theme: Theme}): SerializedStyle
     }
   `;
 }
-
-export const ButtonLabel = styled('span', {
-  shouldForwardProp: prop =>
-    typeof prop === 'string' &&
-    isPropValid(prop) &&
-    !['size', 'borderless'].includes(prop),
-})<Pick<ButtonProps, 'size' | 'borderless'>>`
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  white-space: nowrap;
-`;
 
 const Icon = styled('span')<{hasChildren?: boolean; size?: ButtonProps['size']}>`
   display: flex;

@@ -60,7 +60,6 @@ export function getChonkButtonStyles(
 
   return {
     position: 'relative',
-    display: 'inline-block',
     fontWeight: p.theme.fontWeightBold,
 
     cursor: p.disabled ? 'not-allowed' : 'pointer',
@@ -73,6 +72,11 @@ export function getChonkButtonStyles(
     border: '1px solid transparent',
     borderTopWidth: `3px`,
     background: 'none',
+
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    whiteSpace: 'nowrap',
 
     height:
       size === 'large'
