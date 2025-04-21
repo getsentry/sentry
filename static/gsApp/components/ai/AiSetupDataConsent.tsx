@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
 
 import {promptsUpdate} from 'sentry/actionCreators/prompts';
-import {SeerIcon} from 'sentry/components/ai/SeerIcon';
+import {SeerWaitingIcon} from 'sentry/components/ai/SeerIcon';
 import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
@@ -25,7 +25,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   const queryClient = useQueryClient();
   const {data: autofixSetupData} = useAutofixSetup({groupId});
 
-  const genAiConsentMutation = useMutation({
+  const autofixAcknowledgeMutation = useMutation({
     mutationFn: () => {
       return promptsUpdate(api, {
         organization,
@@ -42,7 +42,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   return (
     <ConsentItemsContainer>
       <Flex align="center" gap={space(1)}>
-        <SeerIcon size="xl" />
+        <SeerWaitingIcon size="xl" />
         <SayHelloHeader>{t('Say Hello to Seer')}</SayHelloHeader>
       </Flex>
       <Flex align="center" gap={space(1)}>
@@ -74,13 +74,13 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
       <ButtonWrapper>
         <Button
           priority="primary"
-          onClick={() => genAiConsentMutation.mutate()}
-          disabled={genAiConsentMutation.isPending}
+          onClick={() => autofixAcknowledgeMutation.mutate()}
+          disabled={autofixAcknowledgeMutation.isPending}
           analyticsEventKey="gen_ai_consent.in_drawer_clicked"
           analyticsEventName="Gen AI Consent: Clicked In Drawer"
           size="sm"
         >
-          {genAiConsentMutation.isPending ? (
+          {autofixAcknowledgeMutation.isPending ? (
             <StyledLoadingIndicator size={14} />
           ) : autofixSetupData?.setupAcknowledgement.orgHasAcknowledged ? (
             t('Try Seer')
@@ -88,7 +88,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
             t('Enable Seer')
           )}
         </Button>
-        {genAiConsentMutation.isError && (
+        {autofixAcknowledgeMutation.isError && (
           <ErrorText>{t('Something went wrong.')}</ErrorText>
         )}
       </ButtonWrapper>
