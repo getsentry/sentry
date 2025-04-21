@@ -26,6 +26,7 @@ import {
 } from 'sentry/utils/fields';
 import useAssignedSearchValues from 'sentry/utils/membersAndTeams/useAssignedSearchValues';
 import useMemberUsernames from 'sentry/utils/membersAndTeams/useMemberUsernames';
+import useOrganization from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import useFetchOrganizationFeatureFlags from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
 
@@ -91,6 +92,8 @@ export const useFetchIssueTags = ({
   includeFeatureFlags = false,
   ...statsPeriodParams
 }: UseFetchIssueTagsParams) => {
+  const organization = useOrganization();
+
   const eventsTagsQuery = useFetchOrganizationTags(
     {
       orgSlug: org.slug,
@@ -177,10 +180,12 @@ export const useFetchIssueTags = ({
 
     const renamedTags = renameConflictingTags(allTagsCollection);
 
-    const additionalTags = builtInIssuesFields(renamedTags, assignedValues, [
-      'me',
-      ...usernames,
-    ]);
+    const additionalTags = builtInIssuesFields({
+      currentTags: renamedTags,
+      assigneeFieldValues: assignedValues,
+      bookmarksValues: usernames,
+      organization,
+    });
 
     return {
       ...renamedTags,
@@ -192,6 +197,7 @@ export const useFetchIssueTags = ({
     featureFlagTagsQuery.data,
     usernames,
     assignedValues,
+    organization,
   ]);
 
   return {
@@ -207,11 +213,17 @@ export const useFetchIssueTags = ({
   };
 };
 
-function builtInIssuesFields(
-  currentTags: TagCollection,
-  assigneeFieldValues: SearchGroup[] | string[] = [],
-  bookmarksValues: string[] = []
-): TagCollection {
+function builtInIssuesFields({
+  organization,
+  currentTags,
+  assigneeFieldValues = [],
+  bookmarksValues = [],
+}: {
+  assigneeFieldValues: SearchGroup[] | string[];
+  bookmarksValues: string[];
+  currentTags: TagCollection;
+  organization: Organization;
+}): TagCollection {
   const semverFields: TagCollection = Object.values(SEMVER_TAGS).reduce<TagCollection>(
     (acc, tag) => {
       return {
@@ -269,13 +281,23 @@ function builtInIssuesFields(
     [FieldKey.ISSUE_CATEGORY]: {
       ...PREDEFINED_FIELDS[FieldKey.ISSUE_CATEGORY]!,
       name: 'Issue Category',
-      values: [
-        IssueCategory.ERROR,
-        IssueCategory.PERFORMANCE,
-        IssueCategory.REPLAY,
-        IssueCategory.CRON,
-        IssueCategory.UPTIME,
-      ],
+      values: organization.features.includes('issue-taxonomy')
+        ? [
+            IssueCategory.ERROR,
+            IssueCategory.OUTAGE,
+            IssueCategory.PERFORMANCE_BEST_PRACTICE,
+            IssueCategory.PERFORMANCE_REGRESSION,
+            IssueCategory.RESPONSIVENESS,
+            IssueCategory.USER_EXPERIENCE,
+            IssueCategory.FEEDBACK,
+          ]
+        : [
+            IssueCategory.ERROR,
+            IssueCategory.PERFORMANCE,
+            IssueCategory.REPLAY,
+            IssueCategory.CRON,
+            IssueCategory.UPTIME,
+          ],
       predefined: true,
     },
     [FieldKey.ISSUE_TYPE]: {
