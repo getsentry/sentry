@@ -232,6 +232,11 @@ class GitHubEnterpriseIntegration(
         # TODO: define this, used to migrate repositories
         return False
 
+    # CommitContextIntegration methods
+
+    def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
+        raise NotImplementedError
+
 
 class InstallationForm(forms.Form):
     url = forms.CharField(
