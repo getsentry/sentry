@@ -446,7 +446,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
     @patch(
         "sentry.integrations.github.integration.GitHubPRCommentWorkflow.get_top_5_issues_by_count"
     )
-    @patch("sentry.integrations.source_code_management.commit_context.metrics")
+    @patch("sentry.integrations.source_code_management.tasks.metrics")
     @patch("sentry.integrations.github.integration.metrics")
     @responses.activate
     def test_comment_workflow_api_error(self, mock_integration_metrics, mock_metrics, mock_issues):
@@ -514,7 +514,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
     @patch(
         "sentry.integrations.github.integration.GitHubPRCommentWorkflow.get_top_5_issues_by_count"
     )
-    @patch("sentry.integrations.source_code_management.commit_context.metrics")
+    @patch("sentry.integrations.source_code_management.tasks.metrics")
     @patch("sentry.models.Organization.objects")
     def test_comment_workflow_missing_org(
         self, mock_repository, mock_metrics, mock_issues, mock_issue_query
@@ -529,7 +529,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         assert not mock_issues.called
         assert cache.get(self.cache_key) is None
         mock_metrics.incr.assert_called_with(
-            "github.pr_comment.error", tags={"type": "missing_org"}
+            "source_code_management.pr_comment.error", tags={"type": "missing_org"}
         )
 
     @patch(
@@ -547,7 +547,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         "sentry.integrations.github.integration.GitHubPRCommentWorkflow.get_top_5_issues_by_count"
     )
     @patch("sentry.models.Project.objects.get_from_cache")
-    @patch("sentry.integrations.source_code_management.commit_context.metrics")
+    @patch("sentry.integrations.source_code_management.tasks.metrics")
     def test_comment_workflow_missing_project(self, mock_metrics, mock_project, mock_issues):
         # Project.DoesNotExist should trigger the cache to release the key
         cache.set(self.cache_key, True, timedelta(minutes=5).total_seconds())
@@ -567,7 +567,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
     )
     @patch("sentry.models.Repository.objects")
     @patch("sentry.integrations.github.integration.GitHubPRCommentWorkflow.get_comment_body")
-    @patch("sentry.integrations.source_code_management.commit_context.metrics")
+    @patch("sentry.integrations.source_code_management.tasks.metrics")
     def test_comment_workflow_missing_repo(
         self, mock_metrics, mock_get_comment_body, mock_repository, mock_issues
     ):
@@ -585,14 +585,14 @@ class TestCommentWorkflow(GithubCommentTestCase):
         assert not mock_get_comment_body.called
         assert cache.get(self.cache_key) is None
         mock_metrics.incr.assert_called_with(
-            "github.pr_comment.error", tags={"type": "missing_repo"}
+            "source_code_management.pr_comment.error", tags={"type": "missing_repo"}
         )
 
     @patch(
         "sentry.integrations.github.integration.GitHubPRCommentWorkflow.get_top_5_issues_by_count"
     )
     @patch("sentry.integrations.github.integration.GitHubPRCommentWorkflow.get_comment_body")
-    @patch("sentry.integrations.source_code_management.commit_context.metrics")
+    @patch("sentry.integrations.source_code_management.tasks.metrics")
     def test_comment_workflow_missing_integration(
         self, mock_metrics, mock_get_comment_body, mock_issues
     ):
@@ -613,7 +613,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         assert not mock_get_comment_body.called
         assert cache.get(self.cache_key) is None
         mock_metrics.incr.assert_called_with(
-            "github.pr_comment.error", tags={"type": "missing_integration"}
+            "source_code_management.pr_comment.error", tags={"type": "missing_integration"}
         )
 
     @patch(
