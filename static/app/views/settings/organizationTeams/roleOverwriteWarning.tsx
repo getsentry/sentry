@@ -1,5 +1,5 @@
+import {Tooltip} from 'sentry/components/core/tooltip';
 import PanelAlert from 'sentry/components/panels/panelAlert';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconInfo} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import type {OrgRole, TeamRole} from 'sentry/types/organization';

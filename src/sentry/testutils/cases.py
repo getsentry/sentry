@@ -1283,6 +1283,7 @@ class BaseSpansTestCase(SnubaTestCase):
         sdk_name: str | None = None,
         op: str | None = None,
         status: str | None = None,
+        environment: str | None = None,
         organization_id: int = 1,
         is_eap: bool = False,
     ):
@@ -1329,6 +1330,8 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["sentry_tags"]["op"] = op
         if status is not None:
             payload["sentry_tags"]["status"] = status
+        if environment is not None:
+            payload["sentry_tags"]["environment"] = environment  # type: ignore[typeddict-unknown-key]  # needs extra_items support
 
         self.store_span(payload, is_eap=is_eap)
 
@@ -3483,6 +3486,8 @@ class TraceTestCase(SpanTestCase):
 
         if "sentry_tags" not in span_data:
             span_data["sentry_tags"] = {}
+
+        span_data["measurements"] = event.data["measurements"]
 
         span_data["sentry_tags"]["op"] = event.data["contexts"]["trace"]["op"]
         span_data["sentry_tags"]["transaction"] = event.data["transaction"]

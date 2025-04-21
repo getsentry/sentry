@@ -1,3 +1,5 @@
+import {UserFixture} from 'sentry-fixture/user';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -25,6 +27,8 @@ describe('IssueViewNavEllipsisMenu', () => {
     key: 'test-view',
     label: 'Test View',
     lastVisited: null,
+    createdBy: UserFixture(),
+    stars: 1,
   };
 
   const defaultProps: IssueViewNavEllipsisMenuProps = {

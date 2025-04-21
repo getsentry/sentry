@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';
-import {Tooltip} from 'sentry/components/tooltip';
 import {defined} from 'sentry/utils';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import {

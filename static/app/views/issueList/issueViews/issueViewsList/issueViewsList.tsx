@@ -1,31 +1,34 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {openModal} from 'sentry/actionCreators/modal';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
 import Redirect from 'sentry/components/redirect';
 import SearchBar from 'sentry/components/searchBar';
-import {IconSort} from 'sentry/icons';
+import {IconAdd, IconMegaphone, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {CreateIssueViewModal} from 'sentry/views/issueList/issueViews/createIssueViewModal';
 import {IssueViewsTable} from 'sentry/views/issueList/issueViews/issueViewsList/issueViewsTable';
 import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
 import {
   makeFetchGroupSearchViewsKey,
   useFetchGroupSearchViews,
 } from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
-import {makeFetchStarredGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
 import {
   type GroupSearchView,
   GroupSearchViewCreatedBy,
   GroupSearchViewSort,
-  type StarredGroupSearchView,
 } from 'sentry/views/issueList/types';
 
 type IssueViewSectionProps = {
@@ -36,7 +39,7 @@ type IssueViewSectionProps = {
 
 function useIssueViewSort(): GroupSearchViewSort {
   const location = useLocation();
-  const sort = location.query.sort ?? GroupSearchViewSort.VISITED_DESC;
+  const sort = location.query.sort ?? GroupSearchViewSort.POPULARITY_DESC;
 
   return sort as GroupSearchViewSort;
 }
@@ -46,6 +49,7 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
   const navigate = useNavigate();
   const location = useLocation();
   const sort = useIssueViewSort();
+  const query = typeof location.query.query === 'string' ? location.query.query : '';
   const cursor =
     typeof location.query[cursorQueryParam] === 'string'
       ? location.query[cursorQueryParam]
@@ -57,13 +61,17 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
     isPending,
     isError,
     getResponseHeader,
-  } = useFetchGroupSearchViews({
-    orgSlug: organization.slug,
-    createdBy,
-    limit,
-    sort,
-    cursor,
-  });
+  } = useFetchGroupSearchViews(
+    {
+      orgSlug: organization.slug,
+      createdBy,
+      limit,
+      sort,
+      cursor,
+      query,
+    },
+    {staleTime: 0}
+  );
 
   const tableQueryKey = makeFetchGroupSearchViewsKey({
     orgSlug: organization.slug,
@@ -71,6 +79,7 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
     limit,
     cursor,
     sort,
+    query,
   });
 
   const {mutate: mutateViewStarred} = useUpdateGroupSearchViewStarred({
@@ -80,19 +89,6 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
           view.id === variables.id ? {...view, starred: variables.starred} : view
         );
       });
-      if (variables.starred) {
-        setApiQueryData<StarredGroupSearchView[]>(
-          queryClient,
-          makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug}),
-          data => [...(data ?? []), variables.view]
-        );
-      } else {
-        setApiQueryData<StarredGroupSearchView[]>(
-          queryClient,
-          makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug}),
-          data => data?.filter(view => view.id !== variables.id)
-        );
-      }
     },
     onError: (_error, variables) => {
       setApiQueryData<GroupSearchView[]>(queryClient, tableQueryKey, data => {
@@ -100,13 +96,6 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
           view.id === variables.id ? {...view, starred: !variables.starred} : view
         );
       });
-      if (variables.starred) {
-        setApiQueryData<StarredGroupSearchView[]>(
-          queryClient,
-          makeFetchStarredGroupSearchViewsKey({orgSlug: organization.slug}),
-          data => data?.filter(view => view.id !== variables.id)
-        );
-      }
     },
   });
 
@@ -122,6 +111,7 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
         handleStarView={view => {
           mutateViewStarred({id: view.id, starred: !view.starred, view});
         }}
+        hideCreatedBy={createdBy === GroupSearchViewCreatedBy.ME}
       />
       <Pagination
         pageLinks={pageLinks}
@@ -188,6 +178,7 @@ export default function IssueViewsList() {
   const navigate = useNavigate();
   const location = useLocation();
   const query = typeof location.query.query === 'string' ? location.query.query : '';
+  const openFeedbackForm = useFeedbackForm();
 
   if (!organization.features.includes('issue-view-sharing')) {
     return <Redirect to={`/organizations/${organization.slug}/issues/`} />;
@@ -196,7 +187,44 @@ export default function IssueViewsList() {
   return (
     <Layout.Page>
       <Layout.Header unified>
-        <Layout.Title>{t('All Views')}</Layout.Title>
+        <Layout.HeaderContent>
+          <Layout.Title>{t('All Views')}</Layout.Title>
+        </Layout.HeaderContent>
+        <Layout.HeaderActions>
+          <ButtonBar gap={1}>
+            {openFeedbackForm ? (
+              <Button
+                icon={<IconMegaphone />}
+                size="sm"
+                onClick={() => {
+                  openFeedbackForm({
+                    formTitle: t('Give Feedback'),
+                    messagePlaceholder: t('How can we make issue views better for you?'),
+                    tags: {
+                      ['feedback.source']: 'custom_views',
+                      ['feedback.owner']: 'issues',
+                    },
+                  });
+                }}
+              >
+                {t('Give Feedback')}
+              </Button>
+            ) : null}
+            <Button
+              priority="primary"
+              icon={<IconAdd />}
+              size="sm"
+              onClick={() => {
+                trackAnalytics('issue_views.create_view_clicked', {
+                  organization,
+                });
+                openModal(props => <CreateIssueViewModal {...props} />);
+              }}
+            >
+              {t('Create View')}
+            </Button>
+          </ButtonBar>
+        </Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>
         <Layout.Main fullWidth>
@@ -206,7 +234,7 @@ export default function IssueViewsList() {
               onSearch={newQuery => {
                 navigate({
                   pathname: location.pathname,
-                  query: {query: newQuery},
+                  query: {...location.query, query: newQuery},
                 });
               }}
               placeholder=""

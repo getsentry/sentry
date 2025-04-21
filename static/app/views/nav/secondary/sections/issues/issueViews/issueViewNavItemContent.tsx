@@ -1,17 +1,16 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion, Reorder, useDragControls} from 'framer-motion';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useIssueViewUnsavedChanges';
@@ -70,26 +69,15 @@ export function IssueViewNavItemContent({
   setIsDragging,
 }: IssueViewNavItemContentProps) {
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const {projects} = useProjects();
+
+  const hasIssueViewSharing = organization.features.includes('issue-view-sharing');
 
   const controls = useDragControls();
 
   const baseUrl = `/organizations/${organization.slug}/issues`;
   const [isEditing, setIsEditing] = useState(false);
   const {hasUnsavedChanges, changedParams} = useIssueViewUnsavedChanges();
-
-  const {projects} = useProjects();
-
-  useEffect(() => {
-    if (isActive) {
-      if (Object.keys(location.query).length === 0) {
-        navigate(constructViewLink(baseUrl, view), {replace: true});
-        return;
-      }
-    }
-    return;
-  }, [view, isActive, location.query, navigate, baseUrl]);
 
   const projectPlatforms = projects
     .filter(p => view.projects.map(String).includes(p.id))
@@ -144,10 +132,8 @@ export function IssueViewNavItemContent({
                 e.preventDefault();
               }}
               onClick={e => {
-                if (isDragging) {
-                  e.stopPropagation();
-                  e.preventDefault();
-                }
+                e.stopPropagation();
+                e.preventDefault();
               }}
             >
               <StyledInteractionStateLayer isPressed={isDragging === view.id} />
@@ -159,16 +145,20 @@ export function IssueViewNavItemContent({
         trailingItems={
           <TrailingItemsWrapper
             onClickCapture={e => {
-              e.preventDefault();
+              if (!hasIssueViewSharing) {
+                e.preventDefault();
+              }
             }}
           >
             <IssueViewNavQueryCount view={view} isActive={isActive} />
-            <IssueViewNavEllipsisMenu
-              isLastView={isLastView}
-              setIsEditing={setIsEditing}
-              view={view}
-              sectionRef={sectionRef}
-            />
+            {!hasIssueViewSharing && (
+              <IssueViewNavEllipsisMenu
+                isLastView={isLastView}
+                setIsEditing={setIsEditing}
+                view={view}
+                sectionRef={sectionRef}
+              />
+            )}
           </TrailingItemsWrapper>
         }
         onPointerDown={e => {
@@ -185,14 +175,19 @@ export function IssueViewNavItemContent({
           }
         }}
         analyticsItemName="issues_view_starred"
+        hasIssueViewSharing={hasIssueViewSharing}
       >
-        <IssueViewNavEditableTitle
-          view={view}
-          isEditing={isEditing}
-          setIsEditing={setIsEditing}
-          isDragging={!!isDragging}
-          isActive={isActive}
-        />
+        {hasIssueViewSharing ? (
+          view.label
+        ) : (
+          <IssueViewNavEditableTitle
+            view={view}
+            isEditing={isEditing}
+            setIsEditing={setIsEditing}
+            isDragging={!!isDragging}
+            isActive={isActive}
+          />
+        )}
         {isActive && hasUnsavedChanges && changedParams && (
           <Tooltip
             title={constructUnsavedTooltipTitle(changedParams)}
@@ -261,15 +256,19 @@ const TrailingItemsWrapper = styled('div')`
   margin-right: ${space(0.25)};
 `;
 
-const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
+const StyledSecondaryNavItem = styled(SecondaryNav.Item)<{hasIssueViewSharing: boolean}>`
   position: relative;
   padding-right: ${space(0.5)};
 
   /* Hide the ellipsis menu if the item is not hovered */
   :not(:hover) {
-    [data-ellipsis-menu-trigger]:not([aria-expanded='true']) {
-      ${p => p.theme.visuallyHidden}
-    }
+    ${p =>
+      !p.hasIssueViewSharing &&
+      css`
+        [data-ellipsis-menu-trigger]:not([aria-expanded='true']) {
+          ${p.theme.visuallyHidden}
+        }
+      `}
 
     [data-drag-icon] {
       ${p => p.theme.visuallyHidden}
@@ -278,9 +277,14 @@ const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
 
   /* Hide the query count if the ellipsis menu is not expanded */
   :hover {
-    [data-issue-view-query-count] {
-      ${p => p.theme.visuallyHidden}
-    }
+    ${p =>
+      !p.hasIssueViewSharing &&
+      css`
+        [data-issue-view-query-count] {
+          ${p.theme.visuallyHidden}
+        }
+      `}
+
     [data-project-icon] {
       ${p => p.theme.visuallyHidden}
     }
@@ -321,7 +325,7 @@ const LeadingItemsWrapper = styled('div')`
   margin-right: ${space(0.75)};
 `;
 
-const GrabHandleWrapper = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
+const GrabHandleWrapper = styled(motion.div)`
   display: flex;
   align-items: center;
   justify-content: center;

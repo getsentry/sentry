@@ -176,6 +176,7 @@ export interface EAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderPr
   numberTags: TagCollection;
   stringTags: TagCollection;
   getFilterTokenWarning?: (key: string) => React.ReactNode;
+  onChange?: (query: string, state: CallbackSearchState) => void;
   portalTarget?: HTMLElement | null;
   supportedAggregates?: AggregationKey[];
 }
@@ -192,6 +193,7 @@ export function useEAPSpanSearchQueryBuilderProps({
   supportedAggregates = [],
   projects,
   portalTarget,
+  onChange,
 }: EAPSpanSearchQueryBuilderProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -269,6 +271,7 @@ export function useEAPSpanSearchQueryBuilderProps({
     recentSearches: SavedSearchType.SPAN,
     showUnsubmittedIndicator: true,
     portalTarget,
+    onChange,
   };
 }
 
@@ -284,6 +287,7 @@ export function EAPSpanSearchQueryBuilder({
   supportedAggregates = [],
   projects,
   portalTarget,
+  onChange,
 }: EAPSpanSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useEAPSpanSearchQueryBuilderProps({
     initialQuery,
@@ -297,6 +301,7 @@ export function EAPSpanSearchQueryBuilder({
     supportedAggregates,
     projects,
     portalTarget,
+    onChange,
   });
 
   return <SearchQueryBuilder {...searchQueryBuilderProps} />;

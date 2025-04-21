@@ -10,6 +10,7 @@ from django.utils import timezone
 from sentry import eventstore, options
 from sentry.constants import DataCategory
 from sentry.eventstore.models import Event, GroupEvent
+from sentry.feedback.lib.types import UserReportDict
 from sentry.feedback.usecases.create_feedback import (
     UNREAL_FEEDBACK_UNATTENDED_MESSAGE,
     FeedbackCreationSource,
@@ -34,7 +35,7 @@ class Conflict(Exception):
 
 def save_userreport(
     project: Project,
-    report,
+    report: UserReportDict,
     source: FeedbackCreationSource,
     start_time: datetime | None = None,
 ) -> UserReport | None:
@@ -83,7 +84,10 @@ def save_userreport(
         report["event_id"] = report["event_id"].lower()
         report["project_id"] = project.id
 
-        event = eventstore.backend.get_event_by_id(project.id, report["event_id"])
+        # Use the associated event to validate and update the report.
+        event: Event | GroupEvent | None = eventstore.backend.get_event_by_id(
+            project.id, report["event_id"]
+        )
 
         euser = find_event_user(event)
 
@@ -97,8 +101,10 @@ def save_userreport(
                 raise Conflict("Feedback for this event cannot be modified.")
 
             report["environment_id"] = event.get_environment().id
-            report["group_id"] = event.group_id
+            if event.group_id:
+                report["group_id"] = event.group_id
 
+        # Save the report.
         try:
             with atomic_transaction(using=router.db_for_write(UserReport)):
                 report_instance = UserReport.objects.create(**report)
@@ -122,7 +128,7 @@ def save_userreport(
 
             existing_report.update(
                 name=report.get("name", ""),
-                email=report["email"],
+                email=report.get("email", ""),
                 comments=report["comments"],
             )
             report_instance = existing_report
@@ -136,6 +142,7 @@ def save_userreport(
             if report_instance.group_id:
                 report_instance.notify()
 
+        # Additionally processing if save is successful.
         user_feedback_received.send_robust(project=project, sender=save_userreport)
 
         logger.info(
@@ -150,12 +157,13 @@ def save_userreport(
             "user_report.create_user_report.saved",
             tags={"has_event": bool(event), "referrer": source.value},
         )
-        if event:
+        if event and source.value in FeedbackCreationSource.old_feedback_category_values():
             logger.info(
                 "ingest.user_report.shim_to_feedback",
                 extra={"project_id": project.id, "event_id": report["event_id"]},
             )
             shim_to_feedback(report, event, project, source)
+            # XXX(aliu): the update_user_reports task will still try to shim the report after a period, unless group_id or environment is set.
 
         return report_instance
 
