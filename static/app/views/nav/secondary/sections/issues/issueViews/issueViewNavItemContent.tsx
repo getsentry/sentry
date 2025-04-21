@@ -176,7 +176,9 @@ export function IssueViewNavItemContent({
         hasIssueViewSharing={hasIssueViewSharing}
       >
         {hasIssueViewSharing ? (
-          view.label
+          <Tooltip title={view.label} position="top" showOnlyOnOverflow skipWrapper>
+            <TruncatedTitle>{view.label}</TruncatedTitle>
+          </Tooltip>
         ) : (
           <IssueViewNavEditableTitle
             view={view}
@@ -251,7 +253,7 @@ const StyledInteractionStateLayer = styled(InteractionStateLayer)`
 const TrailingItemsWrapper = styled('div')`
   display: flex;
   align-items: center;
-  margin-right: ${space(0.25)};
+  margin-left: ${space(0.5)};
 `;
 
 const StyledSecondaryNavItem = styled(SecondaryNav.Item)<{hasIssueViewSharing: boolean}>`
@@ -335,4 +337,8 @@ const GrabHandleWrapper = styled(motion.div)`
   &:active {
     cursor: grabbing;
   }
+`;
+
+const TruncatedTitle = styled('div')`
+  ${p => p.theme.overflowEllipsis}
 `;
