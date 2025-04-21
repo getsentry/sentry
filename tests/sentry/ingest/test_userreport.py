@@ -59,7 +59,7 @@ def skip_eventstore(monkeypatch):
 @django_db_all
 @pytest.mark.parametrize("field", ["comments", "event_id"])
 def test_validator_should_filter_missing_required_field(field, mock_report_dict):
-    del mock_report_dict[field]  # type: ignore[misc]
+    del mock_report_dict[field]
 
     should_filter, tag, reason = validate_user_report(mock_report_dict, 1)
     assert should_filter is True
@@ -235,7 +235,9 @@ def test_save_user_report_basic(
 
 
 @django_db_all
-def test_save_user_report_filters_denylist(default_project, skip_filters, monkeypatch):
+def test_save_user_report_filters_denylist(
+    default_project, monkeypatch, skip_filters, mock_report_dict
+):
     monkeypatch.setattr("sentry.ingest.userreport.is_in_feedback_denylist", lambda org: True)
     result = save_userreport(
         default_project, mock_report_dict, FeedbackCreationSource.USER_REPORT_ENVELOPE
@@ -249,7 +251,7 @@ def test_save_user_report_filters_denylist(default_project, skip_filters, monkey
 def test_save_user_report_filters_missing_required_field(
     default_project, skip_denylist, skip_eventstore, mock_report_dict, field
 ):
-    del mock_report_dict[field]  # type: ignore[misc]
+    del mock_report_dict[field]
 
     result = save_userreport(
         default_project, mock_report_dict, FeedbackCreationSource.USER_REPORT_ENVELOPE
@@ -283,7 +285,7 @@ def test_save_user_report_filters_too_large_fields(
     if not max_length:
         assert False, f"Missing max_length for UserReport {field} field!"
 
-    mock_report_dict[field] = "a" * (max_length + 1)  # type: ignore[literal-required]
+    mock_report_dict[field] = "a" * (max_length + 1)
 
     result = save_userreport(
         default_project, mock_report_dict, FeedbackCreationSource.USER_REPORT_ENVELOPE
@@ -305,12 +307,9 @@ def test_save_user_report_shims_if_event_found(
     mock_shim_to_feedback = Mock()
     monkeypatch.setattr("sentry.ingest.userreport.shim_to_feedback", mock_shim_to_feedback)
 
-    report: UserReportDict = {
-        **mock_report_dict,
-        "event_id": event.event_id,
-    }
+    mock_report_dict["event_id"] = event.event_id
 
-    save_userreport(default_project, report, FeedbackCreationSource.USER_REPORT_ENVELOPE)
+    save_userreport(default_project, mock_report_dict, FeedbackCreationSource.USER_REPORT_ENVELOPE)
     mock_shim_to_feedback.assert_called_once()
 
 

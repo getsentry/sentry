@@ -189,9 +189,9 @@ def validate_user_report(
     At the moment we do not raise validation errors.
     """
     if "comments" not in report:
-        return True, "missing_comments", "Missing comments"
+        return True, "missing_comments", "Missing comments"  # type: ignore[unreachable]
     if "event_id" not in report:
-        return True, "missing_event_id", "Missing event_id"
+        return True, "missing_event_id", "Missing event_id"  # type: ignore[unreachable]
 
     report["comments"] = report["comments"].strip()
 
