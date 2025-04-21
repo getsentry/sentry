@@ -596,7 +596,7 @@ const InsightContainer = styled(motion.div)`
       from {
         background-color: ${p => p.theme.purple400};
         border-color: ${p => p.theme.purple400};
-        transform: scaleY(0.2);
+        transform: scaleY(0);
         height: 0;
         opacity: 0;
       }
