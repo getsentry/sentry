@@ -1,12 +1,9 @@
 from datetime import timedelta
 
 from django.utils import timezone
+
 from sentry.testutils.cases import TestMigrations
-from sentry.uptime.models import (
-    ProjectUptimeSubscription,
-    UptimeStatus,
-    UptimeSubscription,
-)
+from sentry.uptime.models import ProjectUptimeSubscription, UptimeStatus, UptimeSubscription
 
 DATA_SOURCE_UPTIME_SUBSCRIPTION = "uptime_subscription"
 
