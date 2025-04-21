@@ -229,7 +229,33 @@ function getChartColorPalette<Length extends ValidLengthArgument>(
   return CHART_PALETTE[index] as Exclude<ChartColorPalette[Next<Length>], undefined>;
 }
 
-export const generateThemeAliases = (colors: Colors) => ({
+const generateTokens = (colors: Colors) => ({
+  content: {
+    primary: colors.gray400, // theme.textColor
+    muted: colors.gray300, // theme.subText
+    accent: colors.blue400, // new
+    promotion: colors.pink400, // new
+    danger: colors.red400, // theme.errorText
+    warning: colors.yellow400, // theme.warningText
+    success: colors.green400, // theme.successText
+  },
+  background: {
+    primary: colors.surface300, // theme.background
+    secondary: colors.surface200, // theme.backgroundSecondary
+    tertiary: colors.surface100, // theme.backgroundTertiary
+  },
+  border: {
+    primary: colors.gray200, // theme.border
+    muted: colors.gray100, // theme.innerBorder
+    accent: colors.purple300, // theme.focusBorder
+    promotion: colors.pink400, // new
+    danger: colors.red200, // theme.errorFocus
+    warning: colors.yellow200, // theme.warningFocus
+    success: colors.green200, // theme.successFocus
+  },
+});
+
+const generateThemeAliases = (colors: Colors) => ({
   /**
    * Heading text color
    */
@@ -1266,6 +1292,9 @@ const commonTheme = {
 // Redeclare as we dont want to use the deprecation
 const getColorPalette = getChartColorPalette;
 
+const lightTokens = generateTokens(lightColors);
+const darkTokens = generateTokens(darkColors);
+
 // Light and dark theme definitions
 const lightAliases = generateThemeAliases(lightColors);
 const darkAliases = generateThemeAliases(darkColors);
@@ -1280,9 +1309,11 @@ export const lightTheme = {
   ...lightColors,
   ...lightAliases,
   ...lightShadows,
+  tokens: lightTokens,
   inverted: {
     ...darkColors,
     ...darkAliases,
+    tokens: darkTokens,
   },
   ...generateThemeUtils(lightColors, lightAliases),
   alert: generateAlertTheme(lightColors, lightAliases),
@@ -1332,9 +1363,11 @@ export const darkTheme: typeof lightTheme = {
   ...darkColors,
   ...darkAliases,
   ...darkShadows,
+  tokens: darkTokens,
   inverted: {
     ...lightColors,
     ...lightAliases,
+    tokens: lightTokens,
   },
   ...generateThemeUtils(darkColors, darkAliases),
   alert: generateAlertTheme(darkColors, darkAliases),

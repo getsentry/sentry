@@ -1,14 +1,12 @@
-from unittest.mock import patch
-
 import pytest
 
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.locks import locks
 from sentry.models.rule import Rule
 from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.actor import Actor
-from sentry.utils.locking import UnableToAcquireLock
 from sentry.workflow_engine.migration_helpers.issue_alert_migration import (
     UnableToAcquireLockApiError,
 )
@@ -150,9 +148,14 @@ class TestProjectRuleCreator(TestCase):
         assert action.type == Action.Type.PLUGIN
 
     @with_feature("organizations:workflow-engine-issue-alert-dual-write")
-    @patch("sentry.projects.project_rules.creator.IssueAlertMigrator.run")
-    def test_dual_create_workflow_engine__cant_acquire_lock(self, mock_run):
-        mock_run.side_effect = UnableToAcquireLock
+    def test_dual_create_workflow_engine__cant_acquire_lock(self):
+        lock = locks.get(
+            f"workflow-engine-project-error-detector:{self.project.id}",
+            duration=10,
+            name="workflow_engine_issue_alert",
+        )
+        lock.acquire()
+
         conditions = [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",

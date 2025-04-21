@@ -169,6 +169,25 @@ trace root
 "
 `;
 
+exports[`TraceTree printTraceTreeNode adds prefetch prefix to spans with http.request.prefetch attribute 1`] = `
+"
+trace root
+  transaction - transaction.op
+    http - (prefetch) GET /api/users
+    http - GET /api/users
+    transaction - transaction.op
+"
+`;
+
+exports[`TraceTree printTraceTreeNode handles falsy prefetch attribute 1`] = `
+"
+trace root
+  transaction - transaction.op
+    http - GET /api/users
+    transaction - transaction.op
+"
+`;
+
 exports[`TraceTree zoom maintains the span tree when parent is zoomed in 1`] = `
 "
 trace root

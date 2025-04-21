@@ -69,7 +69,7 @@ export class FlamegraphChart {
     this.series = new Array<Series>();
     this.timelineFormatter = makeTimelineFormatter(options.timelineUnit ?? 'nanoseconds');
 
-    if (!measurements || !measurements.length) {
+    if (!measurements?.length) {
       this.formatter = makeFormatter('percent');
       this.tooltipFormatter = makeFormatter('percent');
       this.unit = 'percent';

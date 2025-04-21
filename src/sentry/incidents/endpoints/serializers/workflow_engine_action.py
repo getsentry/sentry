@@ -37,7 +37,7 @@ class WorkflowEngineActionSerializer(Serializer):
             condition_group__in=Subquery(
                 DataConditionGroupAction.objects.filter(action=action).values("condition_group")
             ),
-            type=Condition.ISSUE_PRIORITY_EQUALS,
+            type=Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL,
             condition_result=True,
         )
         detector_dcg = DetectorWorkflow.objects.filter(
