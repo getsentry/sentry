@@ -26,6 +26,7 @@ from sentry.issues.grouptype import FeedbackGroup, should_create_group
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphash import GroupHash
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.release import Release
 from sentry.ratelimits.sliding_windows import RedisSlidingWindowRateLimiter, RequestedQuota
 from sentry.utils import json, metrics, redis
@@ -224,6 +225,17 @@ def save_issue_from_occurrence(
         ):
             group, is_new, primary_grouphash = save_grouphash_and_group(
                 project, event, primary_hash, **issue_kwargs
+            )
+            open_period = (
+                GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()
+            )
+            highest_seen_severity = open_period.data.get("highest_seen_severity", None)
+            if highest_seen_severity is None:
+                highest_seen_severity = group.priority
+            else:
+                highest_seen_severity = max(highest_seen_severity, group.priority)
+            open_period.update(
+                data={**open_period.data, "highest_seen_severity": highest_seen_severity}
             )
             is_regression = False
             span.set_tag("save_issue_from_occurrence.outcome", "new_group")
