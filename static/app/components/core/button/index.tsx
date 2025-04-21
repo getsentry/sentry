@@ -358,7 +358,7 @@ export const StyledButton = styled(
     disabled,
     ref: forwardRefAlt,
     ...props
-  }: ButtonProps) => {
+  }: ButtonProps & {ref?: React.Ref<HTMLButtonElement | HTMLAnchorElement>}) => {
     // XXX: There may be two forwarded refs here, one potentially passed from a
     // wrapped Tooltip, another from callers of Button.
     const ref = mergeRefs(forwardRef, forwardRefAlt);
