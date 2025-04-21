@@ -368,18 +368,16 @@ class WorkflowEngineRuleSerializer(Serializer):
         self, workflow: Workflow, users: dict[int, RpcUser]
     ) -> dict[str, Any] | None:
         if workflow.created_by_id is None:
-            creator = None
-        else:
-            user = users.get(workflow.created_by_id)
-            if user:
-                creator = {
-                    "id": user.id,
-                    "name": user.get_display_name(),
-                    "email": user.email,
-                }
-            else:
-                creator = None
-        return creator
+            return None
+
+        user = users.get(workflow.created_by_id)
+        if user:
+            return {
+                "id": user.id,
+                "name": user.get_display_name(),
+                "email": user.email,
+            }
+        return None
 
     def _fetch_workflow_owner(self, workflow: Workflow) -> str | None:
         actor = workflow.owner
@@ -500,7 +498,7 @@ class WorkflowEngineRuleSerializer(Serializer):
             "actions": [],  # TODO: reverse translate actions
             "actionMatch": action_match,
             "filterMatch": filter_match,
-            "frequency": obj.config.get("frequency") or 0,
+            "frequency": obj.config.get("frequency", 0),
             "name": obj.name,
             "dateCreated": obj.date_added,
             "owner": attrs.get("owner", None),
