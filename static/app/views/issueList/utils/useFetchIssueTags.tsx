@@ -24,7 +24,7 @@ import {
   ISSUE_FIELDS,
   ISSUE_PROPERTY_FIELDS,
 } from 'sentry/utils/fields';
-import useAssignedValues from 'sentry/utils/membersAndTeams/useAssignedValues';
+import useAssignedSearchValues from 'sentry/utils/membersAndTeams/useAssignedSearchValues';
 import useMemberUsernames from 'sentry/utils/membersAndTeams/useMemberUsernames';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import useFetchOrganizationFeatureFlags from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
@@ -131,7 +131,7 @@ export const useFetchIssueTags = ({
     {}
   );
 
-  const assignedValues = useAssignedValues();
+  const assignedValues = useAssignedSearchValues();
   const usernames = useMemberUsernames();
 
   const allTags = useMemo(() => {

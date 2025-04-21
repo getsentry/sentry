@@ -12,7 +12,7 @@ import TeamStore from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {getUsername} from 'sentry/utils/membersAndTeams/userUtils';
 
-export default function useAssignedValues(): SearchGroup[] {
+export default function useAssignedSearchValues(): SearchGroup[] {
   const {teams} = useLegacyStore(TeamStore);
   const {members} = useLegacyStore(MemberListStore);
 

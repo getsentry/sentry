@@ -18,7 +18,7 @@ import {
   getFieldDefinition,
   IsFieldValues,
 } from 'sentry/utils/fields';
-import useAssignedValues from 'sentry/utils/membersAndTeams/useAssignedValues';
+import useAssignedSearchValues from 'sentry/utils/membersAndTeams/useAssignedSearchValues';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -219,7 +219,7 @@ export default function FeedbackSearch() {
     }, {});
   }, [tagQuery]);
 
-  const assignedValues = useAssignedValues();
+  const assignedValues = useAssignedSearchValues();
 
   const filterKeys = useMemo(
     () => getFeedbackFilterKeys(issuePlatformTags, assignedValues),
