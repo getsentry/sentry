@@ -121,25 +121,20 @@ class OpsgenieClient(ApiClient):
         return resp
 
     # TODO(iamrajjoshi): We need to delete this method during notification platform
-    def send_metric_alert_notification(
-        self,
-        data,
-    ):
+    def send_metric_alert_notification(self, data):
         headers = self._get_auth_headers()
-        interaction_type = OnCallInteractionType.CREATE
-        # if we're closing the alert—meaning that the Sentry alert was resolved
+
+        # If closing an alert (when Sentry alert was resolved)
         if data.get("identifier"):
-            interaction_type = OnCallInteractionType.RESOLVE
             alias = data["identifier"]
-            resp = self.post(
-                f"/alerts/{alias}/close",
-                data={},
-                params={"identifierType": "alias"},
-                headers=headers,
-            )
-            return resp
-        # this is a metric alert
-        payload = data
-        with record_event(interaction_type).capture():
-            resp = self.post("/alerts", data=payload, headers=headers)
-        return resp
+            with record_event(OnCallInteractionType.RESOLVE).capture():
+                return self.post(
+                    f"/alerts/{alias}/close",
+                    data={},
+                    params={"identifierType": "alias"},
+                    headers=headers,
+                )
+
+        # Creating a metric alert
+        with record_event(OnCallInteractionType.CREATE).capture():
+            return self.post("/alerts", data=data, headers=headers)
