@@ -9,6 +9,7 @@ from sentry.workflow_engine.models import DataConditionGroup
 
 
 class BaseDataConditionGroupValidator(CamelSnakeSerializer):
+    id = serializers.CharField(required=False)
     logic_type = serializers.ChoiceField([(t.value, t.value) for t in DataConditionGroup.Type])
     conditions = serializers.ListField(required=False)
 
@@ -22,7 +23,8 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer):
         return conditions
 
     def update(
-        self, instance: DataConditionGroup,
+        self,
+        instance: DataConditionGroup,
         validated_data: dict[str, Any],
     ) -> DataConditionGroup:
         pass

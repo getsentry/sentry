@@ -24,6 +24,7 @@ ActionData = list[dict[str, Any]]
 
 
 class WorkflowValidator(CamelSnakeSerializer):
+    id = serializers.CharField(required=False)
     name = serializers.CharField(required=True, max_length=256)
     enabled = serializers.BooleanField(required=False, default=True)
     config = serializers.JSONField(required=False)
@@ -71,10 +72,17 @@ class WorkflowValidator(CamelSnakeSerializer):
         return actions
 
     def update_or_create_data_condition_group(
-        self, condition_group_data: dict[str, Any]
+        self,
+        condition_group_data: dict[str, Any],
+        instance: DataConditionGroup | None = None,
     ) -> DataConditionGroup:
         validator = BaseDataConditionGroupValidator(context=self.context)
         actions: list = []
+
+        if instance and condition_group_data.get("id") != str(instance.id):
+            raise serializers.ValidationError(
+                f"Invalid Condition Group ID {condition_group_data.get('id')}"
+            )
 
         if condition_group_data.get("actions") is not None:
             actions, condition_group_data = self._split_action_and_condition_group(
@@ -99,11 +107,20 @@ class WorkflowValidator(CamelSnakeSerializer):
             if triggers:
                 # Ensure any conditions that were removed in the UI are removed from the DB
                 if triggers.get("id") is not None:
-                    condition_ids = [condition.get("id") for condition in triggers]
-                    print(condition_ids)
-                    # instance.when_condition_group.conditions.exclude(id__in=condition_ids).delete()
+                    condition_ids = [
+                        condition.get("id")
+                        for condition in triggers.get("conditions", [])
+                        if condition.get("id") is not None
+                    ]
+                    if (
+                        instance.when_condition_group
+                        and instance.when_condition_group.conditions.exists()
+                    ):
+                        instance.when_condition_group.conditions.exclude(
+                            id__in=condition_ids
+                        ).delete()
 
-                self.update_or_create_data_condition_group(triggers)
+                self.update_or_create_data_condition_group(triggers, instance.when_condition_group)
 
             # Update the actions & dcg
             action_filters = validated_data.pop("action_filters", None)

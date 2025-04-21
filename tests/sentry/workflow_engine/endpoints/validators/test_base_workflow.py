@@ -1,9 +1,17 @@
 from unittest import mock
 
+import pytest
+from rest_framework.serializers import ValidationError
+
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.serializers import WorkflowSerializer
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
-from sentry.workflow_engine.models import Action, Condition, DataConditionGroupAction
+from sentry.workflow_engine.models import (
+    Action,
+    Condition,
+    DataConditionGroup,
+    DataConditionGroupAction,
+)
 from tests.sentry.workflow_engine.test_base import MockActionHandler
 
 
@@ -282,6 +290,10 @@ class TestWorkflowValidatorUpdate(TestCase):
         validator.is_valid(raise_exception=True)
         self.workflow = validator.create(validator.validated_data)
 
+        serializer = WorkflowSerializer()
+        attrs = serializer.get_attrs([self.workflow], self.user)
+        self.valid_saved_data = serializer.serialize(self.workflow, attrs[self.workflow], self.user)
+
     def test_update_property(self):
         self.valid_data["name"] = "Update Test"
         validator = WorkflowValidator(data=self.valid_data, context=self.context)
@@ -292,16 +304,38 @@ class TestWorkflowValidatorUpdate(TestCase):
         assert workflow.id == self.workflow.id
         assert workflow.name == "Update Test"
 
-    def test_update_triggers(self):
-        serializer = WorkflowSerializer()
-        attrs = serializer.get_attrs([self.workflow], self.user)
-        self.valid_data = serializer.serialize(self.workflow, attrs[self.workflow], self.user)
+    def test_update__remove_triggers(self):
+        assert self.workflow.when_condition_group
 
-        # Fix broken serializers
-        self.valid_data["name"] = "Update Test"
+        self.valid_saved_data["triggers"] = {
+            "id": self.workflow.when_condition_group.id,
+            "logicType": "any",
+            "conditions": [],
+        }
 
-        import pdb
-        pdb.set_trace()
-
-        validator = WorkflowValidator(data=self.valid_data, context=self.context)
+        validator = WorkflowValidator(data=self.valid_saved_data, context=self.context)
         assert validator.is_valid() is True
+
+        validator.update(self.workflow, validator.validated_data)
+        self.workflow.refresh_from_db()
+
+        assert self.workflow.when_condition_group is not None
+        assert self.workflow.when_condition_group.conditions.count() == 0
+
+    def test_update__hax_to_replace_group(self):
+        fake_dcg = DataConditionGroup.objects.create(
+            organization=self.organization,
+            logic_type="any",
+        )
+
+        self.valid_saved_data["triggers"] = {
+            "id": fake_dcg.id,
+            "logicType": "any",
+            "conditions": [],
+        }
+
+        validator = WorkflowValidator(data=self.valid_saved_data, context=self.context)
+        assert validator.is_valid() is True
+
+        with pytest.raises(ValidationError):
+            validator.update(self.workflow, validator.validated_data)
