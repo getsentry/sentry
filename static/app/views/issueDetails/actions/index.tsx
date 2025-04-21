@@ -20,9 +20,9 @@ import {renderResolutionReason} from 'sentry/components/resolutionBox';
 import {
   IconCheckmark,
   IconEllipsis,
-  IconLink,
   IconSubscribed,
   IconUnsubscribed,
+  IconUpload,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
@@ -469,7 +469,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
         <Button
           size="sm"
           onClick={openShareModal}
-          icon={<IconLink />}
+          icon={<IconUpload />}
           aria-label={t('Share')}
           title={t('Share Issue')}
           analyticsEventKey="issue_details.share_action_clicked"
