@@ -139,30 +139,6 @@ export function AutofixOutputStream({
     };
   }, [stream, displayedText]);
 
-  // Animation for active log
-  useEffect(() => {
-    const newActiveLog = activeLog;
-
-    if (!newActiveLog.startsWith(displayedActiveLog)) {
-      previousActiveLog.current = newActiveLog;
-      activeLogIndexRef.current = 0;
-      setDisplayedActiveLog('');
-    }
-
-    const interval = window.setInterval(() => {
-      if (activeLogIndexRef.current < newActiveLog.length) {
-        setDisplayedActiveLog(newActiveLog.slice(0, activeLogIndexRef.current + 1));
-        activeLogIndexRef.current++;
-      } else {
-        window.clearInterval(interval);
-      }
-    }, 10);
-
-    return () => {
-      window.clearInterval(interval);
-    };
-  }, [displayedActiveLog, activeLog]);
-
   const handleSend = (e: FormEvent) => {
     e.preventDefault();
     if (isInitializingRun) {
