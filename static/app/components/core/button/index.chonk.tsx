@@ -1,7 +1,6 @@
 import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 
 import type {ButtonProps} from 'sentry/components/core/button';
-import {space} from 'sentry/styles/space';
 import type {StrictCSSObject} from 'sentry/utils/theme';
 
 // @TODO: remove Link type in the future
@@ -97,85 +96,68 @@ export function getChonkButtonStyles(
       ...p.theme.focusRing,
     },
 
-    ...(p.size === 'zero'
-      ? {
-          height: 'auto',
-          minHeight: 'auto',
-          padding: space(0.25),
+    '> span:last-child': {
+      position: 'relative',
+      zIndex: 1,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      whiteSpace: 'nowrap',
+      transform: 'translateY(-2px)',
+      transition: 'transform 0.06s ease-in-out',
+    },
 
-          '&:before': {
-            display: 'none',
-          },
+    '&:hover': {
+      color: p.disabled || p.busy ? undefined : getChonkButtonTheme(type, p.theme).color,
 
-          '&:after': {
-            display: 'none',
-          },
-        }
-      : {
-          '> span:last-child': {
-            position: 'relative',
-            zIndex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            whiteSpace: 'nowrap',
-            transform: 'translateY(-2px)',
-            transition: 'transform 0.06s ease-in-out',
-          },
+      '&::after': {
+        transform: `translateY(-3px)`,
+      },
+      '> span:last-child': {
+        transform: `translateY(-3px)`,
+      },
+    },
 
-          '&:hover': {
-            color:
-              p.disabled || p.busy ? undefined : getChonkButtonTheme(type, p.theme).color,
+    '&:active, &[aria-expanded="true"], &[aria-checked="true"]': {
+      '&::after': {
+        transform: 'translateY(0px)',
+      },
+      '> span:last-child': {
+        transform: 'translateY(0px)',
+      },
+    },
 
-            '&::after': {
-              transform: `translateY(-3px)`,
-            },
-            '> span:last-child': {
-              transform: `translateY(-3px)`,
-            },
-          },
+    '&:disabled, &[aria-disabled="true"]': {
+      '&::after': {
+        transform: 'translateY(0px)',
+      },
+      '&::before': {
+        transform: 'translateY(0px)',
+      },
+      '> span:last-child': {
+        transform: 'translateY(0px)',
+      },
+    },
 
-          '&:active, &[aria-expanded="true"], &[aria-checked="true"]': {
-            '&::after': {
-              transform: 'translateY(0px)',
-            },
-            '> span:last-child': {
-              transform: 'translateY(0px)',
-            },
-          },
+    // Hides the interaction state layer
+    '> span:first-child': {
+      display: 'none',
+    },
 
-          '&:disabled, &[aria-disabled="true"]': {
-            '&::after': {
-              transform: 'translateY(0px)',
-            },
-            '&::before': {
-              transform: 'translateY(0px)',
-            },
-            '> span:last-child': {
-              transform: 'translateY(0px)',
-            },
-          },
+    // Link buttons do not have interaction state layer
+    ...(p.priority === 'link' && {
+      '> span:first-child': {
+        transform: 'translateY(0px)',
+      },
 
-          // Hides the interaction state layer
-          '> span:first-child': {
-            display: 'none',
-          },
+      '&::before': {
+        display: 'none',
+      },
 
-          // Link buttons do not have interaction state layer
-          ...(p.priority === 'link' && {
-            '> span:first-child': {
-              transform: 'translateY(0px)',
-            },
-
-            '&::before': {
-              display: 'none',
-            },
-
-            '&::after': {
-              display: 'none',
-            },
-          }),
-        }),
+      '&::after': {
+        display: 'none',
+      },
+    }),
 
     // Borderless buttons are not chonky
     ...((p.borderless || type === 'transparent' || type === 'link') && {
