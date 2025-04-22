@@ -63,7 +63,9 @@ type LogsRowProps = {
 const ALLOWED_CELL_ACTIONS: Actions[] = [Actions.ADD, Actions.EXCLUDE];
 
 function isInsideButton(element: Element | null): boolean {
-  while (element) {
+  let i = 10;
+  while (element && i > 0) {
+    i -= 1;
     if (
       element instanceof HTMLButtonElement ||
       element.getAttribute('role') === 'button'
