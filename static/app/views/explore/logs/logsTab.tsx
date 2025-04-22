@@ -32,7 +32,7 @@ import {
   useSetLogsFields,
   useSetLogsPageParams,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
-import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useLogAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
@@ -43,7 +43,6 @@ import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {DefaultPeriod, MaxPickableDays} from 'sentry/views/explore/utils';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 type LogsTabProps = {
@@ -75,11 +74,7 @@ export function LogsTabContent({
     DiscoverDatasets.OURLOGS
   );
   const [visualizes, setVisualizes] = useState<Visualize[]>([
-    {
-      chartType: ChartType.BAR,
-      yAxes: [`count(${OurLogKnownFieldKey.MESSAGE})`],
-      label: 'A',
-    },
+    new Visualize([`count(${OurLogKnownFieldKey.MESSAGE})`], 'A'),
   ]);
 
   const {attributes: stringAttributes, isLoading: stringAttributesLoading} =

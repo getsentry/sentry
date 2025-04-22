@@ -18,15 +18,14 @@ import {
   useExploreVisualizes,
   useSetExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
-import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
   DEFAULT_VISUALIZATION,
   DEFAULT_VISUALIZATION_FIELD,
   MAX_VISUALIZES,
   updateVisualizeAggregate,
+  Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 import {
   ToolbarFooter,
@@ -48,15 +47,21 @@ export function ToolbarVisualize({equationSupport}: ToolbarVisualizeProps) {
 
   const addChart = useCallback(() => {
     setVisualizes(
-      [...visualizes, {yAxes: [DEFAULT_VISUALIZATION], chartType: ChartType.BAR}],
+      [...visualizes, new Visualize([DEFAULT_VISUALIZATION])],
       [DEFAULT_VISUALIZATION_FIELD]
     );
   }, [setVisualizes, visualizes]);
 
   const addOverlay = useCallback(
     (group: number) => {
-      const newVisualizes = visualizes.slice();
-      newVisualizes[group]!.yAxes.push(DEFAULT_VISUALIZATION);
+      const newVisualizes = visualizes.map((visualize, i) => {
+        if (i !== group) {
+          return visualize;
+        }
+        const yAxes = [...visualize.yAxes];
+        yAxes.push(DEFAULT_VISUALIZATION);
+        return visualize.replace({yAxes});
+      });
       setVisualizes(newVisualizes, [DEFAULT_VISUALIZATION_FIELD]);
     },
     [setVisualizes, visualizes]
@@ -70,10 +75,9 @@ export function ToolbarVisualize({equationSupport}: ToolbarVisualizeProps) {
             return visualize;
           }
 
-          return {
-            ...visualize,
+          return visualize.replace({
             yAxes: visualize.yAxes.filter((_, orgIndex) => index !== orgIndex),
-          };
+          });
         })
         .filter(visualize => visualize.yAxes.length > 0);
       setVisualizes(newVisualizes);
@@ -219,8 +223,14 @@ function VisualizeDropdown({
 
   const setChartField = useCallback(
     ({value}: SelectOption<SelectKey>) => {
-      const newVisualizes = visualizes.slice();
-      newVisualizes[group]!.yAxes[index] = `${parsedVisualize.name}(${value})`;
+      const newVisualizes = visualizes.map((visualize, i) => {
+        if (i !== group) {
+          return visualize;
+        }
+        const newYAxes = [...visualize.yAxes];
+        newYAxes[index] = `${parsedVisualize.name}(${value})`;
+        return visualize.replace({yAxes: newYAxes});
+      });
       setVisualizes(newVisualizes, [String(value)]);
     },
     [group, index, parsedVisualize, setVisualizes, visualizes]
@@ -228,11 +238,17 @@ function VisualizeDropdown({
 
   const setChartAggregate = useCallback(
     ({value}: SelectOption<SelectKey>) => {
-      const newVisualizes = visualizes.slice();
-      newVisualizes[group]!.yAxes[index] = updateVisualizeAggregate({
-        newAggregate: value as string,
-        oldAggregate: parsedVisualize.name,
-        oldArgument: parsedVisualize.arguments[0]!,
+      const newVisualizes = visualizes.map((visualize, i) => {
+        if (i !== group) {
+          return visualize;
+        }
+        const newYAxes = [...visualize.yAxes];
+        newYAxes[index] = updateVisualizeAggregate({
+          newAggregate: value as string,
+          oldAggregate: parsedVisualize.name,
+          oldArgument: parsedVisualize.arguments[0]!,
+        });
+        return visualize.replace({yAxes: newYAxes});
       });
       setVisualizes(newVisualizes);
     },
@@ -291,8 +307,14 @@ function VisualizeEquation({
     (expression: Expression) => {
       if (expression.isValid) {
         const functions = expression.tokens.filter(isTokenFunction);
-        const newVisualizes = visualizes.slice();
-        newVisualizes[group]!.yAxes[index] = expression.text;
+        const newVisualizes = visualizes.map((visualize, i) => {
+          if (i !== group) {
+            return visualize;
+          }
+          const yAxes = [...visualize.yAxes];
+          yAxes[index] = expression.text;
+          return visualize.replace({yAxes});
+        });
         setVisualizes(
           newVisualizes,
           functions.flatMap(func => func.attributes.map(attr => attr.format()))

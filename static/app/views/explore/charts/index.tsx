@@ -164,8 +164,12 @@ export function ExploreCharts({
 
   const handleChartTypeChange = useCallback(
     (chartType: ChartType, index: number) => {
-      const newVisualizes = visualizes.slice();
-      newVisualizes[index] = {...newVisualizes[index]!, chartType};
+      const newVisualizes = visualizes.map((visualize, i) => {
+        if (i === index) {
+          return visualize.replace({chartType});
+        }
+        return visualize.clone();
+      });
       setVisualizes(newVisualizes);
     },
     [visualizes, setVisualizes]
