@@ -656,11 +656,6 @@ export type Aggregation = {
 
 export const DEPRECATED_FIELDS: string[] = [FieldKey.CULPRIT];
 
-export type FieldTag = {
-  key: FieldKey;
-  name: FieldKey;
-};
-
 export const FIELD_TAGS = Object.freeze(
   Object.fromEntries(DISCOVER_FIELDS.map(item => [item, {key: item, name: item}]))
 );

@@ -46,33 +46,12 @@ interface BreadcrumbTypeBase {
   timestamp?: string;
 }
 
-export interface BreadcrumbTypeSystem extends BreadcrumbTypeBase {
-  action: string;
-  extras: Record<string, any>;
-  type: BreadcrumbType.SYSTEM;
-}
-
-export interface BreadcrumbTypeSession extends BreadcrumbTypeBase {
-  action: string;
-  extras: Record<string, any>;
-  type: BreadcrumbType.SESSION;
-}
-
 export interface BreadcrumbTypeNavigation extends BreadcrumbTypeBase {
   type: BreadcrumbType.NAVIGATION;
   data?: null | {
     from?: string;
     to?: string;
   };
-}
-
-export interface BreadcrumbTypeInit extends BreadcrumbTypeBase {
-  data: {
-    action: 'replay-init';
-    label: string;
-    url: string;
-  };
-  type: BreadcrumbType.INIT;
 }
 
 export interface BreadcrumbTypeHTTP extends BreadcrumbTypeBase {
