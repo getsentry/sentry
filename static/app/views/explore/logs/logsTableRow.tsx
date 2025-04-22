@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, SyntheticEvent, useCallback, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
@@ -62,6 +62,19 @@ type LogsRowProps = {
 
 const ALLOWED_CELL_ACTIONS: Actions[] = [Actions.ADD, Actions.EXCLUDE];
 
+function isInsideButton(element: Element | null): boolean {
+  while (element) {
+    if (
+      element instanceof HTMLButtonElement ||
+      element.getAttribute('role') === 'button'
+    ) {
+      return true;
+    }
+    element = element.parentElement;
+  }
+  return false;
+}
+
 export function LogRowContent({
   dataRow,
   highlightTerms,
@@ -74,7 +87,11 @@ export function LogRowContent({
   const search = useLogsSearch();
   const setLogsSearch = useSetLogsSearch();
 
-  function onPointerUp() {
+  function onPointerUp(event: SyntheticEvent) {
+    if (event.target instanceof Element && isInsideButton(event.target)) {
+      // do not expand the context menu if you clicked a button
+      return;
+    }
     if (window.getSelection()?.toString() === '') {
       setExpanded(e => !e);
       trackAnalytics('logs.table.row_expanded', {
