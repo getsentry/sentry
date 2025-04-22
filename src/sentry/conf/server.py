@@ -1439,6 +1439,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.auto_enable_codecov",
     "sentry.tasks.digests",
     "sentry.tasks.email",
+    "sentry.tasks.process_buffer",
     "sentry.tasks.release_registry",
     "sentry.tempest.tasks",
     "sentry.tasks.beacon",
