@@ -45,11 +45,9 @@ export function InsightsSecondaryNav() {
   const location = useLocation();
   const baseUrl = `/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}`;
   const isLaravelInsightsAvailable = useIsLaravelInsightsAvailable();
-  useReleasesDrawer();
-
-  useReleasesDrawer();
-
   const {projects} = useProjects();
+
+  useReleasesDrawer();
 
   const [starredProjects, nonStarredProjects] = useMemo(() => {
     return partition(projects, project => project.isBookmarked);
