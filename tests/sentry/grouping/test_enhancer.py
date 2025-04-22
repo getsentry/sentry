@@ -46,7 +46,7 @@ def dump_obj(obj):
 
 @pytest.mark.parametrize("version", [2])
 def test_basic_parsing(insta_snapshot, version):
-    enhancement = Enhancements.from_rules_text(
+    enhancements = Enhancements.from_rules_text(
         """
 # This is a config
 path:*/code/game/whatever/*                     +app
@@ -64,25 +64,25 @@ error.value:"*something*"                       max-frames=12
 """,
         bases=["common:v1"],
     )
-    enhancement.version = version
+    enhancements.version = version
 
-    insta_snapshot(dump_obj(enhancement))
+    insta_snapshot(dump_obj(enhancements))
 
-    enhancements_str = enhancement.base64_string
+    enhancements_str = enhancements.base64_string
     assert Enhancements.loads(enhancements_str).base64_string == enhancements_str
     assert (
         Enhancements.loads(enhancements_str)._to_config_structure()
-        == enhancement._to_config_structure()
+        == enhancements._to_config_structure()
     )
     assert isinstance(enhancements_str, str)
 
 
 def test_parse_empty_with_base():
-    enhancement = Enhancements.from_rules_text(
+    enhancements = Enhancements.from_rules_text(
         "",
         bases=["newstyle:2023-01-11"],
     )
-    assert enhancement
+    assert enhancements
 
 
 def test_parsing_errors():
@@ -103,7 +103,7 @@ def test_callee_recursion():
 
 
 def test_flipflop_inapp():
-    enhancement = Enhancements.from_rules_text(
+    enhancements = Enhancements.from_rules_text(
         """
         family:all +app
         family:all -app
@@ -111,19 +111,19 @@ def test_flipflop_inapp():
     )
 
     frames: list[dict[str, Any]] = [{}]
-    enhancement.apply_category_and_updated_in_app_to_frames(frames, "javascript", {})
+    enhancements.apply_category_and_updated_in_app_to_frames(frames, "javascript", {})
 
     assert frames[0]["data"]["orig_in_app"] == -1  # == None
     assert frames[0]["in_app"] is False
 
     frames = [{"in_app": False}]
-    enhancement.apply_category_and_updated_in_app_to_frames(frames, "javascript", {})
+    enhancements.apply_category_and_updated_in_app_to_frames(frames, "javascript", {})
 
     assert "data" not in frames[0]  # no changes were made
     assert frames[0]["in_app"] is False
 
     frames = [{"in_app": True}]
-    enhancement.apply_category_and_updated_in_app_to_frames(frames, "javascript", {})
+    enhancements.apply_category_and_updated_in_app_to_frames(frames, "javascript", {})
 
     assert frames[0]["data"]["orig_in_app"] == 1  # == True
     assert frames[0]["in_app"] is False
@@ -140,12 +140,12 @@ def _get_matching_frame_actions(rule, frames, platform, exception_data=None, cac
 
 
 def test_basic_path_matching():
-    enhancement = Enhancements.from_rules_text(
+    enhancements = Enhancements.from_rules_text(
         """
         path:**/test.js              +app
     """
     )
-    js_rule = enhancement.rules[0]
+    js_rule = enhancements.rules[0]
 
     assert bool(
         _get_matching_frame_actions(
@@ -187,13 +187,13 @@ def test_basic_path_matching():
 
 
 def test_family_matching():
-    enhancement = Enhancements.from_rules_text(
+    enhancements = Enhancements.from_rules_text(
         """
         family:javascript path:**/test.js              +app
         family:native function:std::*                  -app
     """
     )
-    js_rule, native_rule = enhancement.rules
+    js_rule, native_rule = enhancements.rules
 
     assert bool(
         _get_matching_frame_actions(
@@ -219,13 +219,13 @@ def test_family_matching():
 
 
 def test_app_matching():
-    enhancement = Enhancements.from_rules_text(
+    enhancements = Enhancements.from_rules_text(
         """
         family:javascript path:**/test.js app:yes       +app
         family:native path:**/test.c app:no            -group
     """
     )
-    app_yes_rule, app_no_rule = enhancement.rules
+    app_yes_rule, app_no_rule = enhancements.rules
 
     assert bool(
         _get_matching_frame_actions(
@@ -266,7 +266,7 @@ def test_invalid_app_matcher():
 def test_package_matching():
     # This tests a bunch of different rules from the default in-app logic that
     # was ported from the former native plugin.
-    enhancement = Enhancements.from_rules_text(
+    enhancements = Enhancements.from_rules_text(
         """
         family:native package:/var/**/Frameworks/**                  -app
         family:native package:**/*.app/Contents/**                   +app
@@ -275,7 +275,7 @@ def test_package_matching():
     """
     )
 
-    bundled_rule, macos_rule, linux_rule, windows_rule = enhancement.rules
+    bundled_rule, macos_rule, linux_rule, windows_rule = enhancements.rules
 
     assert bool(
         _get_matching_frame_actions(
@@ -321,14 +321,14 @@ def test_package_matching():
 
 
 def test_type_matching():
-    enhancement = Enhancements.from_rules_text(
+    enhancements = Enhancements.from_rules_text(
         """
         family:other error.type:ZeroDivisionError -app
         family:other error.type:*Error -app
     """
     )
 
-    zero_rule, error_rule = enhancement.rules
+    zero_rule, error_rule = enhancements.rules
 
     assert not _get_matching_frame_actions(zero_rule, [{"function": "foo"}], "python")
     assert not _get_matching_frame_actions(zero_rule, [{"function": "foo"}], "python", None)
@@ -353,14 +353,14 @@ def test_type_matching():
 
 
 def test_value_matching():
-    enhancement = Enhancements.from_rules_text(
+    enhancements = Enhancements.from_rules_text(
         """
         family:other error.value:foo -app
         family:other error.value:Failed* -app
     """
     )
 
-    foo_rule, failed_rule = enhancement.rules
+    foo_rule, failed_rule = enhancements.rules
 
     assert not _get_matching_frame_actions(foo_rule, [{"function": "foo"}], "python")
     assert not _get_matching_frame_actions(foo_rule, [{"function": "foo"}], "python", None)
@@ -383,13 +383,13 @@ def test_value_matching():
 
 
 def test_mechanism_matching():
-    enhancement = Enhancements.from_rules_text(
+    enhancements = Enhancements.from_rules_text(
         """
         family:other error.mechanism:NSError -app
     """
     )
 
-    (rule,) = enhancement.rules
+    (rule,) = enhancements.rules
 
     assert not _get_matching_frame_actions(rule, [{"function": "foo"}], "python")
     assert not _get_matching_frame_actions(rule, [{"function": "foo"}], "python", None)
@@ -408,12 +408,12 @@ def test_mechanism_matching():
 
 
 def test_mechanism_matching_no_frames():
-    enhancement = Enhancements.from_rules_text(
+    enhancements = Enhancements.from_rules_text(
         """
         error.mechanism:NSError -app
     """
     )
-    (rule,) = enhancement.rules
+    (rule,) = enhancements.rules
     exception_data = {"mechanism": {"type": "NSError"}}
 
     # Does not crash:
@@ -425,13 +425,13 @@ def test_mechanism_matching_no_frames():
 
 
 def test_range_matching():
-    enhancement = Enhancements.from_rules_text(
+    enhancements = Enhancements.from_rules_text(
         """
         [ function:foo ] | function:* | [ function:baz ] category=bar
     """
     )
 
-    (rule,) = enhancement.rules
+    (rule,) = enhancements.rules
 
     assert sorted(
         dict(
@@ -451,13 +451,13 @@ def test_range_matching():
 
 
 def test_range_matching_direct():
-    enhancement = Enhancements.from_rules_text(
+    enhancements = Enhancements.from_rules_text(
         """
         function:bar | [ function:baz ] -group
     """
     )
 
-    (rule,) = enhancement.rules
+    (rule,) = enhancements.rules
 
     assert sorted(
         dict(
