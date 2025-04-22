@@ -959,6 +959,12 @@ class ProjectUpdateTest(APITestCase):
         resp = self.get_error_response(
             self.org_slug,
             self.proj_slug,
+            highlightContext={"! {} #$%$?": ["empty", "context", "type"]},
+        )
+        assert "Key '! {} #$%$?' is invalid" in resp.data["highlightContext"][0]
+        resp = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
             highlightContext={"bird-words": ["invalid", 123, "integer"]},
         )
         assert "must be a list of strings" in resp.data["highlightContext"][0]
