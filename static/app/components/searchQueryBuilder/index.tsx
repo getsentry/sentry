@@ -176,7 +176,7 @@ function ActionButtons({
   );
 }
 
-export function SearchQueryBuilderUI({
+function SearchQueryBuilderUI({
   className,
   disabled = false,
   label,

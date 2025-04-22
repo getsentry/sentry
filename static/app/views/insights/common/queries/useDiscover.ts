@@ -173,7 +173,7 @@ export const useDiscover = <
   };
 };
 
-export function getEventView(
+function getEventView(
   search: MutableSearch | string | undefined,
   fields: string[] = [],
   sorts: Sort[] = [],

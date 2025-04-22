@@ -8,7 +8,7 @@ import {
 } from 'sentry/views/insights/mobile/ui/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
-export function ResponsivenessModule() {
+function ResponsivenessModule() {
   return (
     <ScreensTemplate
       content={<UIScreens />}
