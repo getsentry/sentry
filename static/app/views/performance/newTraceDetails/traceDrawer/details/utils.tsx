@@ -5,7 +5,7 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 export function getProfileMeta(event: EventTransaction | null) {
