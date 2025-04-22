@@ -51,7 +51,7 @@ export function EventUserFeedback({
                 to={{
                   pathname: `/organizations/${orgSlug}/issues/feedback/`,
                   query: {
-                    project: '-1', // TODO:
+                    project: selection.projects.length ? selection.projects[0] : -1,
                     query: `associated_event_id:${report.eventID}`,
                     referrer: 'feedback_list_page',
                     statsPeriod: selection.datetime.period,
