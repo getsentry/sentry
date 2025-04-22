@@ -5,25 +5,37 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
 
 import PrimaryNavigationQuotaExceeded from 'getsentry/components/navBillingStatus';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {OnDemandBudgetMode} from 'getsentry/types';
+
+// Jun 06 2022 - with milliseconds
+const MOCK_TODAY = 1654492173000;
+
+//  prompts activity timestamps do not include milliseconds
+const MOCK_PERIOD_START = 1652140800; // May 10 2022
+const MOCK_BEFORE_PERIOD_START = 1652054400; // May 09 2022
 
 describe('PrimaryNavigationQuotaExceeded', function () {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({
     organization,
     plan: 'am3_business',
+    onDemandPeriodStart: '2022-05-10',
+    onDemandPeriodEnd: '2022-06-09',
   });
   let promptMock: jest.Mock;
   let requestUpgradeMock: jest.Mock;
   let customerPutMock: jest.Mock;
 
   beforeEach(() => {
+    setMockDate(MOCK_TODAY);
+    localStorage.clear();
     organization.access = [];
-    MockApiClient.clearMockResponses();
     subscription.categories.errors!.usageExceeded = true;
     subscription.categories.replays!.usageExceeded = true;
     subscription.categories.spans!.usageExceeded = true;
@@ -39,6 +51,7 @@ describe('PrimaryNavigationQuotaExceeded', function () {
         },
       })
     );
+    MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -57,23 +70,12 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/subscriptions/${organization.slug}/`,
-      body: subscription,
-    });
-    MockApiClient.addMockResponse({
-      method: 'GET',
       url: `/organizations/${organization.slug}/prompts-activity/`,
       body: {},
     });
-    MockApiClient.addMockResponse({
-      method: 'PUT',
-      url: `/organizations/${organization.slug}/prompts-activity/`,
-    });
-
     promptMock = MockApiClient.addMockResponse({
       method: 'PUT',
       url: `/organizations/${organization.slug}/prompts-activity/`,
-      body: {},
     });
     requestUpgradeMock = MockApiClient.addMockResponse({
       method: 'POST',
@@ -85,7 +87,30 @@ describe('PrimaryNavigationQuotaExceeded', function () {
       url: `/customers/${organization.slug}/`,
       body: SubscriptionFixture({organization}),
     });
+
+    // set localStorage to prevent auto-popup
+    localStorage.setItem(
+      `billing-status-last-shown-categories-${organization.id}`,
+      'errors-replays-spans' // exceeded categories
+    );
+    localStorage.setItem(
+      `billing-status-last-shown-date-${organization.id}`,
+      'Mon Jun 06 2022' // MOCK_TODAY
+    );
   });
+
+  afterEach(() => {
+    resetMockDate();
+  });
+
+  function assertLocalStorageStateAfterAutoOpen() {
+    expect(
+      localStorage.getItem(`billing-status-last-shown-categories-${organization.id}`)
+    ).toBe('errors-replays-spans');
+    expect(
+      localStorage.getItem(`billing-status-last-shown-date-${organization.id}`)
+    ).toBe('Mon Jun 06 2022');
+  }
 
   it('should render', async function () {
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
@@ -104,7 +129,11 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     expect(screen.getByRole('checkbox')).not.toBeChecked();
   });
 
-  it('should render PAYG categories when there is PAYG', async function () {
+  it('should render PAYG categories when there is shared PAYG', async function () {
+    localStorage.setItem(
+      `billing-status-last-shown-categories-${organization.id}`,
+      'errors-replays-spans-monitorSeats-profileDuration' // exceeded categories
+    );
     subscription.onDemandMaxSpend = 100;
     SubscriptionStore.set(organization.slug, subscription);
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
@@ -121,6 +150,44 @@ describe('PrimaryNavigationQuotaExceeded', function () {
 
     // reset
     subscription.onDemandMaxSpend = 0;
+  });
+
+  it('should render PAYG categories with per category PAYG', async function () {
+    localStorage.setItem(
+      `billing-status-last-shown-categories-${organization.id}`,
+      'errors-replays-spans-monitorSeats' // exceeded categories
+    );
+    subscription.onDemandBudgets = {
+      budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+      budgets: {
+        monitorSeats: 100,
+      },
+      usedSpends: {},
+      enabled: true,
+      attachmentsBudget: 0,
+      errorsBudget: 0,
+      replaysBudget: 0,
+      transactionsBudget: 0,
+      attachmentSpendUsed: 0,
+      errorSpendUsed: 0,
+      transactionSpendUsed: 0,
+    };
+    SubscriptionStore.set(organization.slug, subscription);
+    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+
+    // open the alert
+    await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
+    expect(await screen.findByText('Quota Exceeded')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /You’ve run out of errors, replays, spans, and cron monitors for this billing cycle./
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('checkbox')).not.toBeChecked();
+
+    // reset
+    subscription.onDemandMaxSpend = 0;
+    subscription.onDemandBudgets = undefined;
   });
 
   it('should not render for managed orgs', function () {
@@ -145,29 +212,7 @@ describe('PrimaryNavigationQuotaExceeded', function () {
 
     // stop the alert from animating
     await userEvent.click(screen.getByRole('checkbox'));
-    expect(promptMock).toHaveBeenCalled();
-
-    // overlay is still visible, need to click out to close
-    expect(screen.getByText('Quota Exceeded')).toBeInTheDocument();
-    await userEvent.click(document.body);
-    expect(screen.queryByText('Quota Exceeded')).not.toBeInTheDocument();
-
-    // open again
-    await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
-    expect(await screen.findByText('Quota Exceeded')).toBeInTheDocument();
-    expect(screen.getByRole('checkbox')).toBeChecked();
-
-    // uncheck the checkbox
-    await userEvent.click(screen.getByRole('checkbox'));
-    expect(promptMock).toHaveBeenCalled();
-
-    // close and open again
-    expect(screen.getByText('Quota Exceeded')).toBeInTheDocument();
-    await userEvent.click(document.body);
-    expect(screen.queryByText('Quota Exceeded')).not.toBeInTheDocument();
-    await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
-    expect(await screen.findByText('Quota Exceeded')).toBeInTheDocument();
-    expect(screen.getByRole('checkbox')).not.toBeChecked();
+    expect(promptMock).toHaveBeenCalledTimes(3); // one for each category
   });
 
   it('should update prompts when non-billing user takes action', async function () {
@@ -180,9 +225,8 @@ describe('PrimaryNavigationQuotaExceeded', function () {
 
     // click the button
     await userEvent.click(screen.getByText('Request Additional Quota'));
-    expect(promptMock).toHaveBeenCalled();
+    expect(promptMock).toHaveBeenCalledTimes(3);
     expect(requestUpgradeMock).toHaveBeenCalled();
-    expect(screen.getByRole('checkbox')).toBeChecked();
   });
 
   it('should update prompts when billing user on free plan takes action', async function () {
@@ -193,6 +237,16 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     });
     freeSub.categories.replays!.usageExceeded = true;
     SubscriptionStore.set(organization.slug, freeSub);
+    localStorage.setItem(
+      `billing-status-last-shown-categories-${organization.id}`,
+      'replays'
+    );
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/subscriptions/${organization.slug}/`,
+      body: freeSub,
+    });
+
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
 
     // open the alert
@@ -202,7 +256,113 @@ describe('PrimaryNavigationQuotaExceeded', function () {
 
     // click the button
     await userEvent.click(screen.getByText('Start Trial'));
-    expect(promptMock).toHaveBeenCalled();
+    expect(promptMock).toHaveBeenCalledTimes(1);
     expect(customerPutMock).toHaveBeenCalled();
+  });
+
+  it('should auto open based on localStorage', async function () {
+    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    expect(
+      await screen.findByRole('button', {name: 'Billing Status'})
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Quota Exceeded')).not.toBeInTheDocument();
+
+    localStorage.clear();
+    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    expect(
+      await screen.findByRole('button', {name: 'Billing Status'})
+    ).toBeInTheDocument();
+    expect(await screen.findByText('Quota Exceeded')).toBeInTheDocument();
+    assertLocalStorageStateAfterAutoOpen();
+  });
+
+  it('should not auto open if explicitly dismissed', async function () {
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+      body: {
+        features: {
+          errors_overage_alert: {
+            snoozed_ts: MOCK_PERIOD_START,
+          },
+          replays_overage_alert: {
+            snoozed_ts: MOCK_PERIOD_START,
+          },
+          spans_overage_alert: {
+            snoozed_ts: MOCK_PERIOD_START,
+          },
+        },
+      }, // dismissed at beginning of billing cycle
+    });
+    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    expect(
+      await screen.findByRole('button', {name: 'Billing Status'})
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Quota Exceeded')).not.toBeInTheDocument();
+
+    // even when localStorage is cleared, the alert should not show
+    localStorage.clear();
+    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    expect(
+      await screen.findByRole('button', {name: 'Billing Status'})
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Quota Exceeded')).not.toBeInTheDocument();
+    expect(localStorage).toHaveLength(0);
+  });
+
+  it('should auto open if explicitly dismissed before current billing cycle', async function () {
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+      body: {
+        features: {
+          errors_overage_alert: {
+            snoozed_ts: MOCK_BEFORE_PERIOD_START,
+          },
+          replays_overage_alert: {
+            snoozed_ts: MOCK_BEFORE_PERIOD_START,
+          },
+          spans_overage_alert: {
+            snoozed_ts: MOCK_BEFORE_PERIOD_START,
+          },
+        },
+      }, // dismissed on last day before current billing cycle
+    });
+    localStorage.clear();
+    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    expect(await screen.findByText('Quota Exceeded')).toBeInTheDocument();
+  });
+
+  it('should auto open the alert when categories have changed', async function () {
+    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    expect(screen.queryByText('Quota Exceeded')).not.toBeInTheDocument();
+
+    localStorage.setItem(
+      `billing-status-last-shown-categories-${organization.id}`,
+      'errors-replays'
+    ); // spans not included, so alert should show even though last opened "today"
+    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    expect(await screen.findByText('Quota Exceeded')).toBeInTheDocument();
+    assertLocalStorageStateAfterAutoOpen();
+  });
+
+  it('should auto open the alert when more than a day has passed', async function () {
+    localStorage.setItem(
+      `billing-status-last-shown-date-${organization.id}`,
+      'Sun Jun 05 2022'
+    ); // more than a day, so alert should show even though categories haven't changed
+    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    expect(await screen.findByText('Quota Exceeded')).toBeInTheDocument();
+    assertLocalStorageStateAfterAutoOpen();
+  });
+
+  it('should auto open the alert when the last shown date is before the current usage cycle started', async function () {
+    localStorage.setItem(
+      `billing-status-last-shown-date-${organization.id}`,
+      'Sun May 29 2022'
+    ); // last seen before current usage cycle started, so alert should show even though categories haven't changed
+    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+    expect(await screen.findByText('Quota Exceeded')).toBeInTheDocument();
+    assertLocalStorageStateAfterAutoOpen();
   });
 });
