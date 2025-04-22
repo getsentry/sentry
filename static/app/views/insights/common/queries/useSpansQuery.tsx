@@ -276,7 +276,7 @@ function useWrappedDiscoverQueryBase<T>({
     cursor,
     limit,
     options: {
-      enabled: enabled === false ? false : pageFiltersReady,
+      enabled: enabled && pageFiltersReady, // TODO this has a bug: if enabled is undefined, this short-circuits to undefined, which becomes true, regardless of pageFiltersReady
       refetchOnWindowFocus: false,
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
@@ -286,6 +286,8 @@ function useWrappedDiscoverQueryBase<T>({
     noPagination,
   });
 
+  // TODO: useDiscoverQuery incorrectly states that it returns MetaType, but it
+  // does not!
   const meta = result.data?.meta as EventsMetaType | undefined;
 
   const data =
