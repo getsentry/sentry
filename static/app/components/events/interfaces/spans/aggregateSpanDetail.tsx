@@ -107,7 +107,7 @@ function AggregateSpanDetail({span, organization}: Props) {
 
 export default AggregateSpanDetail;
 
-export function Row({
+function Row({
   title,
   keep,
   children,
@@ -144,7 +144,7 @@ export function Row({
   );
 }
 
-export const SpanDetailContainer = styled('div')`
+const SpanDetailContainer = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
   cursor: auto;
 `;
@@ -177,7 +177,7 @@ const ButtonContainer = styled('div')`
   padding: 8px 10px;
 `;
 
-export const SpanDetails = styled('div')`
+const SpanDetails = styled('div')`
   padding: ${space(2)};
 
   table.table.key-value td.key {

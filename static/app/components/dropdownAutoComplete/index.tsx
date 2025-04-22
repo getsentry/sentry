@@ -42,10 +42,6 @@ interface StaticDropdownAutoCompleteProps extends BaseProps {
   lazyItems?: never;
 }
 
-export type DropdownAutoCompleteProps =
-  | LazyDropdownAutoCompleteProps
-  | StaticDropdownAutoCompleteProps;
-
 /**
  * @deprecated prefer using CompactSelect
  */

@@ -60,7 +60,7 @@ type TagColumn = GridColumnOrder<ColumnKeys> & {
   field: string;
   canSort?: boolean;
 };
-export const TAG_EXPLORER_COLUMN_ORDER: TagColumn[] = [
+const TAG_EXPLORER_COLUMN_ORDER: TagColumn[] = [
   {
     key: 'key',
     field: 'key',
