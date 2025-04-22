@@ -446,7 +446,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     }, []);
 
     const samplesPlottable = useMemo(() => {
-      return new Samples(shiftTabularDataToNow(spanSamplesWithDurations), {
+      return new Samples(shiftedSpanSamples, {
         alias: 'Span Samples',
         attributeName: 'p99(span.duration)',
         baselineValue: 175,

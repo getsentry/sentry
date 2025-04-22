@@ -263,7 +263,8 @@ export class Samples implements Plottable {
       name: this.name,
       data: samples.data.filter(isValidSampleRow).map(sample => {
         const value = sample[config.attributeName];
-        return [sample.timestamp, value ?? ECHARTS_MISSING_DATA_VALUE, sample.id];
+        const timestamp = new Date(sample.timestamp).getTime();
+        return [timestamp, value ?? ECHARTS_MISSING_DATA_VALUE, sample.id];
       }),
       symbol: (value: ScatterPlotDatum) => {
         const {symbol} = config.baselineValue
@@ -301,7 +302,10 @@ export class Samples implements Plottable {
 }
 
 function isValidSampleRow(row: TabularRow): row is ValidSampleRow {
-  if (typeof row.id === 'string' && typeof row.timestamp === 'number') {
+  // Even though `TimeSeries` objects expect `timestamp` to be milliseconds
+  // since the Unix epoch, tabular data doesn't follow that convention. Instead
+  // we're looking for an ISO8601 string.
+  if (typeof row.id === 'string' && typeof row.timestamp === 'string') {
     return true;
   }
 
