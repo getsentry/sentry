@@ -30,14 +30,15 @@ void Verify()
     SentrySubsystem->CaptureMessage(TEXT("Capture message"));
 }`;
 
-const getSettingsConfigureSnippet = () => `#include "SentrySubsystem.h"
+const getSettingsConfigureSnippet = (params: Params) => `
+#include "SentrySubsystem.h"
 
 FConfigureSettingsDelegate OnConfigureSettings;
 OnConfigureSettings.BindDynamic(this, &UMyGameInstance::ConfigureSentrySettings);
 
 void UMyGameInstance::ConfigureSentrySettings(USentrySettings* Settings)
 {
-    Settings->Dsn = TEXT("DSN");
+    Settings->Dsn = TEXT("${params.dsn.public}");
 
     // Add data like request headers, user ip address, device name, etc.
     Settings->SendDefaultPii = true;
@@ -117,7 +118,7 @@ const onboarding: OnboardingConfig = {
             </p>
           ),
           language: 'cpp',
-          code: getSettingsConfigureSnippet(),
+          code: getSettingsConfigureSnippet(params),
         },
       ],
     },
