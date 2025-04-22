@@ -278,7 +278,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("workflow_engine", "0044_rm_detector_name_unique_constraint"),
+        ("workflow_engine", "0046_drop_metric_alert_fire_detectors"),
     ]
 
     operations = [
