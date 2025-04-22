@@ -618,8 +618,8 @@ describe('ExploreToolbar', function () {
     await userEvent.click(within(section).getByLabelText('Remove Column'));
     expect(groupBys).toEqual(['']);
 
-    // last one and it's empty
-    expect(within(section).getByLabelText('Remove Column')).toBeDisabled();
+    // last one so remove column button is hidden
+    expect(within(section).queryByLabelText('Remove Column')).not.toBeInTheDocument();
   });
 
   it('switches to aggregates mode when modifying group bys', async function () {
