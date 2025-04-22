@@ -126,5 +126,8 @@ const TraceLinksNavigationContainer = styled('div')`
   display: flex;
   justify-content: space-between;
   flex-direction: row;
-  margin: ${space(1)} 0;
+
+  &:not(:empty) {
+    margin-top: ${space(1)};
+  }
 `;
