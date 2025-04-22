@@ -765,7 +765,7 @@ const generateAliases = (
    */
   active: colors.chonk.blue200,
   activeHover: colors.chonk.blue300,
-  activeText: colors.chonk.blue400,
+  activeText: tokens.content.accent,
 
   /**
    * Indicates that something has "focus", which is different than "active" state as it is more temporal
