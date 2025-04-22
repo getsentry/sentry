@@ -1,6 +1,5 @@
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
@@ -13,8 +12,6 @@ export function useGenAiConsentButtonAccess({
 }) {
   const user = useUser();
   const organization = useOrganization();
-
-  const regionData = getRegionDataFromOrganization(organization);
 
   const isTouchCustomer = subscription.type === BillingType.INVOICED;
   const hasMsaUpdated =
@@ -33,7 +30,7 @@ export function useGenAiConsentButtonAccess({
 
   const conditions = [
     {
-      check: !regionData?.name || !['us', 'sentry4sentry'].includes(regionData.name),
+      check: !organization.features.includes('gen-ai-consent'),
       message: t('This feature is not available in your region.'),
     },
     {
