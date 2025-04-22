@@ -23,10 +23,7 @@ export function useChonkPrompt() {
 
   // UsePrompt returns undefined if the prompt is loading or has failed to load
   // so we need to check for that before rendering the component
-  if (
-    typeof bannerPrompt.isPromptDismissed !== 'boolean' ||
-    typeof dotIndicatorPrompt.isPromptDismissed !== 'boolean'
-  ) {
+  if (bannerPrompt.isLoading || dotIndicatorPrompt.isLoading) {
     return {
       showbannerPrompt: false,
       showDotIndicatorPrompt: false,
@@ -37,7 +34,11 @@ export function useChonkPrompt() {
   }
 
   // User is optional because we useUser hooks reads the value from ConfigStore,
-  if (!hasChonkUI || user?.options?.prefersChonkUI) {
+  if (
+    (bannerPrompt.isPromptDismissed && dotIndicatorPrompt.isPromptDismissed) ||
+    !hasChonkUI ||
+    user?.options?.prefersChonkUI
+  ) {
     return {
       showbannerPrompt: false,
       showDotIndicatorPrompt: false,
