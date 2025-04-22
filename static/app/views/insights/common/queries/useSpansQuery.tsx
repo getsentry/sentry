@@ -30,17 +30,7 @@ const FOURTEEN_DAYS = 14 * 24 * 60 * 60 * 1000;
 const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
 const SIXTY_DAYS = 60 * 24 * 60 * 60 * 1000;
 
-export function useSpansQuery<T = any[]>({
-  eventView,
-  initialData,
-  limit,
-  enabled,
-  referrer = 'use-spans-query',
-  allowAggregateConditions,
-  cursor,
-  trackResponseAnalytics = true,
-  queryExtras,
-}: {
+type SpansQueryProps<T = any[]> = {
   allowAggregateConditions?: boolean;
   cursor?: string;
   enabled?: boolean;
@@ -50,47 +40,84 @@ export function useSpansQuery<T = any[]>({
   queryExtras?: SpansRPCQueryExtras;
   referrer?: string;
   trackResponseAnalytics?: boolean;
-}) {
-  const isTimeseriesQuery = (eventView?.yAxis?.length ?? 0) > 0;
-  const queryFunction = isTimeseriesQuery
-    ? useWrappedDiscoverTimeseriesQuery
-    : useWrappedDiscoverQuery;
+};
 
+export function useSpansQuery<T = any[]>({
+  referrer = 'use-spans-query',
+  trackResponseAnalytics = true,
+  ...props
+}: SpansQueryProps<T>) {
   const {isReady: pageFiltersReady} = usePageFilters();
-
-  if (eventView) {
-    const newEventView = eventView.clone();
-    const response = queryFunction<T>({
-      eventView: newEventView,
-      initialData,
-      limit,
-      // We always want to wait until the pageFilters are ready to prevent clobbering requests
-      enabled: (enabled || enabled === undefined) && pageFiltersReady,
-      referrer,
-      cursor,
-      allowAggregateConditions,
-      samplingMode: queryExtras?.samplingMode,
-    });
-
-    if (trackResponseAnalytics) {
-      TrackResponse(eventView, response);
-    }
-
-    return response;
-  }
-
-  throw new Error('eventView argument must be defined when Starfish useDiscover is true');
+  return useSpansQueryBase({
+    ...props,
+    enabled: (props.enabled || props.enabled === undefined) && pageFiltersReady,
+    referrer,
+    trackResponseAnalytics,
+    withPageFilters: true,
+  });
 }
 
-export function useWrappedDiscoverTimeseriesQuery<T>({
+export function useSpansQueryWithoutPageFilters<T = any[]>({
+  referrer = 'use-spans-query',
+  trackResponseAnalytics = true,
+  ...props
+}: SpansQueryProps<T>) {
+  return useSpansQueryBase({
+    ...props,
+    enabled: props.enabled || props.enabled === undefined,
+    referrer,
+    trackResponseAnalytics,
+    withPageFilters: false,
+  });
+}
+
+function useSpansQueryBase<T>({
   eventView,
-  enabled,
   initialData,
+  limit,
+  enabled,
   referrer,
+  allowAggregateConditions,
   cursor,
-  overriddenRoute,
-  samplingMode,
-}: {
+  trackResponseAnalytics,
+  queryExtras,
+  withPageFilters,
+}: SpansQueryProps<T> & {withPageFilters: boolean}) {
+  if (!eventView) {
+    throw new Error(
+      'eventView argument must be defined when Starfish useDiscover is true'
+    );
+  }
+
+  const isTimeseriesQuery = (eventView.yAxis?.length ?? 0) > 0;
+  const queryFunction = isTimeseriesQuery
+    ? withPageFilters
+      ? useWrappedDiscoverTimeseriesQuery
+      : useWrappedDiscoverTimeseriesQueryWithoutPageFilters
+    : withPageFilters
+      ? useWrappedDiscoverQuery
+      : useWrappedDiscoverQueryWithoutPageFilters;
+
+  const newEventView = eventView.clone();
+  const response = queryFunction<T>({
+    eventView: newEventView,
+    initialData,
+    limit,
+    enabled,
+    referrer,
+    cursor,
+    allowAggregateConditions,
+    samplingMode: queryExtras?.samplingMode,
+  });
+
+  if (trackResponseAnalytics) {
+    TrackResponse(eventView, response);
+  }
+
+  return response;
+}
+
+type WrappedDiscoverTimeseriesQueryProps = {
   eventView: EventView;
   cursor?: string;
   enabled?: boolean;
@@ -98,10 +125,19 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
   overriddenRoute?: string;
   referrer?: string;
   samplingMode?: SamplingMode;
-}) {
+};
+
+function useWrappedDiscoverTimeseriesQueryBase<T>({
+  eventView,
+  enabled,
+  initialData,
+  referrer,
+  cursor,
+  overriddenRoute,
+  samplingMode,
+}: WrappedDiscoverTimeseriesQueryProps) {
   const location = useLocation();
   const organization = useOrganization();
-  const {isReady: pageFiltersReady} = usePageFilters();
 
   const usesRelativeDateRange =
     !defined(eventView.start) &&
@@ -138,7 +174,7 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
           : undefined,
     }),
     options: {
-      enabled: enabled && pageFiltersReady,
+      enabled,
       refetchOnWindowFocus: false,
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
@@ -169,17 +205,23 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
   };
 }
 
-export function useWrappedDiscoverQuery<T>({
-  eventView,
-  initialData,
-  enabled,
-  referrer,
-  limit,
-  cursor,
-  noPagination,
-  allowAggregateConditions,
-  samplingMode,
-}: {
+export function useWrappedDiscoverTimeseriesQuery<T>(
+  props: WrappedDiscoverTimeseriesQueryProps
+) {
+  const {isReady} = usePageFilters();
+  return useWrappedDiscoverTimeseriesQueryBase<T>({
+    ...props,
+    enabled: props.enabled && isReady,
+  });
+}
+
+export function useWrappedDiscoverTimeseriesQueryWithoutPageFilters<T>(
+  props: WrappedDiscoverTimeseriesQueryProps
+) {
+  return useWrappedDiscoverTimeseriesQueryBase<T>(props);
+}
+
+type WrappedDiscoverQueryProps<T> = {
   eventView: EventView;
   allowAggregateConditions?: boolean;
   cursor?: string;
@@ -189,10 +231,24 @@ export function useWrappedDiscoverQuery<T>({
   noPagination?: boolean;
   referrer?: string;
   samplingMode?: SamplingMode;
+};
+
+function useWrappedDiscoverQueryBase<T>({
+  eventView,
+  initialData,
+  enabled,
+  referrer,
+  limit,
+  cursor,
+  noPagination,
+  allowAggregateConditions,
+  samplingMode,
+  pageFiltersReady,
+}: WrappedDiscoverQueryProps<T> & {
+  pageFiltersReady: boolean;
 }) {
   const location = useLocation();
   const organization = useOrganization();
-  const {isReady: pageFiltersReady} = usePageFilters();
 
   const queryExtras: Record<string, string> = {};
   if (eventView.dataset === DiscoverDatasets.SPANS_EAP_RPC && samplingMode) {
@@ -220,7 +276,7 @@ export function useWrappedDiscoverQuery<T>({
     cursor,
     limit,
     options: {
-      enabled: enabled && pageFiltersReady, // TODO this has a bug: if enabled is undefined, this short-circuits to undefined, which becomes true, regardless of pageFiltersReady
+      enabled: enabled === false ? false : pageFiltersReady,
       refetchOnWindowFocus: false,
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
@@ -230,8 +286,6 @@ export function useWrappedDiscoverQuery<T>({
     noPagination,
   });
 
-  // TODO: useDiscoverQuery incorrectly states that it returns MetaType, but it
-  // does not!
   const meta = result.data?.meta as EventsMetaType | undefined;
 
   const data =
@@ -242,6 +296,17 @@ export function useWrappedDiscoverQuery<T>({
     data,
     meta,
   };
+}
+
+export function useWrappedDiscoverQuery<T>(props: WrappedDiscoverQueryProps<T>) {
+  const {isReady: pageFiltersReady} = usePageFilters();
+  return useWrappedDiscoverQueryBase({...props, pageFiltersReady});
+}
+
+export function useWrappedDiscoverQueryWithoutPageFilters<T>(
+  props: WrappedDiscoverQueryProps<T>
+) {
+  return useWrappedDiscoverQueryBase({...props, pageFiltersReady: true});
 }
 
 type Interval = {interval: string; group?: string};

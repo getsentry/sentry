@@ -4,8 +4,6 @@ import type {Location} from 'history';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {LinkButton} from 'sentry/components/core/button';
-import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LinkHint from 'sentry/components/structuredEventData/linkHint';
@@ -17,6 +15,7 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import ResourceSize from 'sentry/views/insights/browser/resources/components/resourceSize';
 import {
   DisabledImages,
@@ -38,12 +37,12 @@ import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnal
 import SpanSummaryLink from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/components/spanSummaryLink';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
+  findSpanAttributeValue,
   getSearchInExploreTarget,
   TraceDrawerActionKind,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
-import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
 
@@ -72,60 +71,43 @@ export function SpanDescription({
   organization,
   location,
   project,
+  attributes,
+  avgSpanDuration,
 }: {
+  attributes: TraceItemResponseAttribute[];
+  avgSpanDuration: number | undefined;
   location: Location;
-  node: TraceTreeNode<TraceTree.Span>;
+  node: TraceTreeNode<TraceTree.EAPSpan>;
   organization: Organization;
   project: Project | undefined;
 }) {
-  const hasTraceNewUi = useHasTraceNewUi();
   const span = node.value;
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
-  const resolvedModule: ModuleName = resolveSpanModule(
-    span.sentry_tags?.op,
-    span.sentry_tags?.category
-  );
 
-  const system = span?.data?.['db.system'];
+  const category = findSpanAttributeValue(attributes, 'span.category');
+  const dbSystem = findSpanAttributeValue(attributes, 'db.system');
+  const description = findSpanAttributeValue(attributes, 'raw_description');
+  const group = findSpanAttributeValue(attributes, 'span.group');
+
+  const resolvedModule: ModuleName = resolveSpanModule(span.op, category);
+
   const formattedDescription = useMemo(() => {
     if (resolvedModule !== ModuleName.DB) {
-      return span.description ?? '';
+      return description ?? '';
     }
 
     if (
-      system === SupportedDatabaseSystem.MONGODB &&
-      span?.sentry_tags?.description &&
-      isValidJson(span.sentry_tags.description)
+      dbSystem === SupportedDatabaseSystem.MONGODB &&
+      description &&
+      isValidJson(description)
     ) {
-      return prettyPrintJsonString(span.sentry_tags.description).prettifiedQuery;
+      return prettyPrintJsonString(description).prettifiedQuery;
     }
 
     return formatter.toString(span.description ?? '');
-  }, [span.description, resolvedModule, span.sentry_tags?.description, system]);
+  }, [span.description, resolvedModule, description, dbSystem]);
 
-  if (!hasTraceNewUi) {
-    return (
-      <LegacySpanDescription
-        node={node}
-        organization={organization}
-        location={location}
-      />
-    );
-  }
-
-  const hasNewSpansUIFlag =
-    organization.features.includes('performance-spans-new-ui') &&
-    organization.features.includes('insights-initial-modules');
-
-  // The new spans UI relies on the group hash assigned by Relay, which is different from the hash available on the span itself
-  const groupHash = hasNewSpansUIFlag
-    ? (span.sentry_tags?.group ?? '')
-    : (span.hash ?? '');
-  const showAction = hasExploreEnabled ? !!span.description : !!span.op && !!span.hash;
-  const averageSpanDuration: number | undefined =
-    span['span.averageResults']?.['avg(span.duration)'];
-
-  const actions = showAction ? (
+  const actions = description ? (
     <BodyContentWrapper
       padding={
         resolvedModule === ModuleName.DB ? `${space(1)} ${space(2)}` : `${space(1)}`
@@ -133,9 +115,9 @@ export function SpanDescription({
     >
       <SpanSummaryLink
         op={span.op}
-        category={span.sentry_tags?.category}
-        group={groupHash}
-        project_id={node.event?.projectID}
+        category={category}
+        group={group}
+        project_id={span.project_id.toString()}
         organization={organization}
       />
       <Link
@@ -153,7 +135,7 @@ export function SpanDescription({
                 organization,
                 transaction: node.event?.title ?? '',
                 query: location.query,
-                spanSlug: {op: span.op!, group: groupHash},
+                spanSlug: {op: span.op!, group: group ?? ''},
                 projectID: node.event?.projectID,
               })
         }
@@ -166,55 +148,53 @@ export function SpanDescription({
               TraceDrawerActionKind.INCLUDE,
               'drawer'
             );
-          } else if (hasNewSpansUIFlag) {
+          } else {
             trackAnalytics('trace.trace_layout.view_span_summary', {
               organization,
               module: resolvedModule,
-            });
-          } else {
-            trackAnalytics('trace.trace_layout.view_similar_spans', {
-              organization,
-              module: resolvedModule,
-              source: 'span_description',
             });
           }
         }}
       >
         <StyledIconGraph type="scatter" size="xs" />
-        {hasNewSpansUIFlag || hasExploreEnabled
-          ? t('More Samples')
-          : t('View Similar Spans')}
+        {hasExploreEnabled ? t('More Samples') : t('View Similar Spans')}
       </Link>
     </BodyContentWrapper>
   ) : null;
+
+  const codeFilepath = findSpanAttributeValue(attributes, 'code.filepath');
+  const codeLineNumber = findSpanAttributeValue(attributes, 'code.lineno');
+  const codeFunction = findSpanAttributeValue(attributes, 'code.function');
 
   const value =
     resolvedModule === ModuleName.DB ? (
       <CodeSnippetWrapper>
         <StyledCodeSnippet
-          language={system === 'mongodb' ? 'json' : 'sql'}
+          language={dbSystem === 'mongodb' ? 'json' : 'sql'}
           isRounded={false}
         >
           {formattedDescription}
         </StyledCodeSnippet>
-        {span?.data?.['code.filepath'] ? (
+        {codeFilepath ? (
           <StackTraceMiniFrame
             projectId={node.event?.projectID}
             eventId={node.event?.eventID}
             frame={{
-              filename: span?.data?.['code.filepath'],
-              lineNo: span?.data?.['code.lineno'],
-              function: span?.data?.['code.function'],
+              filename: codeFilepath,
+              lineNo: codeLineNumber ? Number(codeLineNumber) : null,
+              function: codeFunction,
             }}
           />
         ) : (
           <MissingFrame />
         )}
       </CodeSnippetWrapper>
-    ) : hasNewSpansUIFlag &&
-      resolvedModule === ModuleName.RESOURCE &&
-      span.op === 'resource.img' ? (
-      <ResourceImageDescription formattedDescription={formattedDescription} node={node} />
+    ) : resolvedModule === ModuleName.RESOURCE && span.op === 'resource.img' ? (
+      <ResourceImageDescription
+        formattedDescription={formattedDescription}
+        node={node}
+        attributes={attributes}
+      />
     ) : (
       <DescriptionWrapper>
         {formattedDescription ? (
@@ -242,20 +222,20 @@ export function SpanDescription({
       node={node}
       transaction={undefined}
       project={project}
-      avgDuration={averageSpanDuration ? averageSpanDuration / 1000 : undefined}
+      avgDuration={avgSpanDuration ? avgSpanDuration / 1000 : undefined}
       headerContent={value}
       bodyContent={actions}
     />
   );
 }
 
-function getImageSrc(span: TraceTree.Span) {
+function getImageSrc(span: TraceTree.EAPSpan, attributes: TraceItemResponseAttribute[]) {
   let src = span.description ?? '';
 
   // Account for relative URLs
   if (src.startsWith('/')) {
-    const urlScheme = span.data?.['url.scheme'];
-    const serverAddress = span.data?.['server.address'];
+    const urlScheme = findSpanAttributeValue(attributes, 'url.scheme');
+    const serverAddress = findSpanAttributeValue(attributes, 'server.address');
 
     if (urlScheme && serverAddress) {
       src = `${urlScheme}://${serverAddress}${src}`;
@@ -267,20 +247,22 @@ function getImageSrc(span: TraceTree.Span) {
 
 function ResourceImageDescription({
   formattedDescription,
+  attributes,
   node,
 }: {
+  attributes: TraceItemResponseAttribute[];
   formattedDescription: string;
-  node: TraceTreeNode<TraceTree.Span>;
+  node: TraceTreeNode<TraceTree.EAPSpan>;
 }) {
-  const projectID = node.event?.projectID ? Number(node.event?.projectID) : undefined;
   const span = node.value;
 
   const {data: settings, isPending: isSettingsLoading} =
-    usePerformanceGeneralProjectSettings(Number(projectID));
+    usePerformanceGeneralProjectSettings(span.project_id);
   const isImagesEnabled = settings?.enable_images ?? false;
 
   const [showLinks, setShowLinks] = useLocalStorageState(LOCAL_STORAGE_SHOW_LINKS, false);
-  const size = span?.data?.['http.decoded_response_content_length'];
+
+  const size = findSpanAttributeValue(attributes, 'http.decoded_response_content_length');
 
   return (
     <StyledDescriptionWrapper>
@@ -290,8 +272,8 @@ function ResourceImageDescription({
         <ResourceImage
           fileName={formattedDescription}
           showImage={!showLinks}
-          size={size}
-          src={getImageSrc(span)}
+          size={size ? Number(size) : 0}
+          src={getImageSrc(span, attributes)}
         />
       ) : (
         <DisabledImages
@@ -378,139 +360,6 @@ const CodeSnippetWrapper = styled('div')`
 
 const StyledIconGraph = styled(IconGraph)`
   margin-right: ${space(0.5)};
-`;
-
-function LegacySpanDescription({
-  node,
-  organization,
-  location,
-}: {
-  location: Location;
-  node: TraceTreeNode<TraceTree.Span>;
-  organization: Organization;
-}) {
-  const span = node.value;
-
-  const resolvedModule: ModuleName = resolveSpanModule(
-    span.sentry_tags?.op,
-    span.sentry_tags?.category
-  );
-
-  const formattedDescription = useMemo(() => {
-    if (resolvedModule !== ModuleName.DB) {
-      return span.description ?? '';
-    }
-
-    return formatter.toString(span.description ?? '');
-  }, [span.description, resolvedModule]);
-
-  if (!hasFormattedSpanDescription(node)) {
-    return null;
-  }
-
-  const hasNewSpansUIFlag =
-    organization.features.includes('performance-spans-new-ui') &&
-    organization.features.includes('insights-initial-modules');
-
-  // The new spans UI relies on the group hash assigned by Relay, which is different from the hash available on the span itself
-  const groupHash = hasNewSpansUIFlag
-    ? (span.sentry_tags?.group ?? '')
-    : (span.hash ?? '');
-
-  const actions =
-    !span.op || !span.hash ? null : (
-      <ButtonGroup>
-        <SpanSummaryButton event={node.event!} organization={organization} span={span} />
-        <LinkButton
-          size="xs"
-          to={spanDetailsRouteWithQuery({
-            organization,
-            transaction: node.event?.title ?? '',
-            query: location.query,
-            spanSlug: {op: span.op, group: groupHash},
-            projectID: node.event?.projectID,
-          })}
-          onClick={() => {
-            if (hasNewSpansUIFlag) {
-              trackAnalytics('trace.trace_layout.view_span_summary', {
-                organization,
-                module: resolvedModule,
-              });
-            } else {
-              trackAnalytics('trace.trace_layout.view_similar_spans', {
-                organization,
-                module: resolvedModule,
-                source: 'span_description',
-              });
-            }
-          }}
-        >
-          {hasNewSpansUIFlag ? t('More Samples') : t('View Similar Spans')}
-        </LinkButton>
-      </ButtonGroup>
-    );
-
-  const value =
-    resolvedModule === ModuleName.DB ? (
-      <Fragment>
-        <StyledCodeSnippet language="sql" isRounded={false}>
-          {formattedDescription}
-        </StyledCodeSnippet>
-        {span?.data?.['code.filepath'] ? (
-          <StackTraceMiniFrame
-            projectId={node.event?.projectID}
-            eventId={node.event?.eventID}
-            frame={{
-              filename: span?.data?.['code.filepath'],
-              lineNo: span?.data?.['code.lineno'],
-              function: span?.data?.['code.function'],
-            }}
-          />
-        ) : (
-          <MissingFrame />
-        )}
-      </Fragment>
-    ) : (
-      formattedDescription
-    );
-
-  const title =
-    resolvedModule === ModuleName.DB && span.op?.startsWith('db')
-      ? t('Database Query')
-      : t('Asset');
-
-  return (
-    <TraceDrawerComponents.SectionCard
-      items={[
-        {
-          key: 'description',
-          subject: t('Description'),
-          subjectNode: null,
-          value,
-        },
-      ]}
-      title={
-        <TitleContainer>
-          {title}
-          {actions}
-        </TitleContainer>
-      }
-    />
-  );
-}
-
-const TitleContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  margin-bottom: ${space(0.5)};
-  justify-content: space-between;
-`;
-
-const ButtonGroup = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
-  flex-wrap: wrap;
-  justify-content: flex-end;
 `;
 
 const BodyContentWrapper = styled('div')<{padding: string}>`

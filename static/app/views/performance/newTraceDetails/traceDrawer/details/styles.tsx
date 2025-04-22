@@ -68,6 +68,7 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/traceProfilingLink';
 import {
   isAutogroupedNode,
+  isEAPSpanNode,
   isMissingInstrumentationNode,
   isRootNode,
   isSpanNode,
@@ -434,7 +435,7 @@ function Highlights({
   headerContent,
   bodyContent,
 }: HighlightProps) {
-  if (!isTransactionNode(node) && !isSpanNode(node)) {
+  if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
     return null;
   }
 
