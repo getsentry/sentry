@@ -28,7 +28,7 @@ function CreditCardEditModal({
   const referrer = decodeScalar(location?.query?.referrer);
   return (
     <Fragment>
-      <Header>{t('Update Credit Card Billing Details')}</Header>
+      <Header>{t('Update Credit Card')}</Header>
       <Body>
         <CreditCardSetup
           isModal
