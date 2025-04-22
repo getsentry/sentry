@@ -31,7 +31,6 @@ from sentry.conf.types.sentry_config import SentryMode
 from sentry.conf.types.service_options import ServiceOptions
 from sentry.conf.types.taskworker import ScheduleConfigMap
 from sentry.conf.types.uptime import UptimeRegionConfig
-from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import make_split_task_queues
 
 
@@ -1437,6 +1436,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.snuba.tasks",
     "sentry.tasks.auth.auth",
     "sentry.tasks.auth.check_auth",
+    "sentry.tasks.autofix",
     "sentry.tasks.auto_enable_codecov",
     "sentry.tasks.auto_ongoing_issues",
     "sentry.tasks.auto_remove_inbox",
@@ -1453,7 +1453,9 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.collect_project_platforms",
     "sentry.tasks.commit_context",
     "sentry.tasks.commits",
+    "sentry.tasks.delete_seer_grouping_records",
     "sentry.tasks.digests",
+    "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
     "sentry.tasks.email",
     "sentry.tasks.groupowner",
     "sentry.tasks.merge",

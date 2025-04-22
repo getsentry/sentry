@@ -93,7 +93,7 @@ import {
   unwrapTreeDepth,
 } from './utils';
 
-export const MARGIN_LEFT = 0;
+const MARGIN_LEFT = 0;
 const SPAN_BAR_HEIGHT = 24;
 
 type NewTraceDetailsSpanBarProps = SpanBarProps & {

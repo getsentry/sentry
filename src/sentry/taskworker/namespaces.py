@@ -48,6 +48,8 @@ sdk_tasks = taskregistry.create_namespace("sdk")
 
 sdk_control_tasks = taskregistry.create_namespace("sdk.control")
 
+seer_tasks = taskregistry.create_namespace("seer")
+
 selfhosted_tasks = taskregistry.create_namespace("selfhosted")
 
 tempest_tasks = taskregistry.create_namespace("tempest")
