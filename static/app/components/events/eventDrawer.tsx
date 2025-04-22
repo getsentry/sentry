@@ -69,6 +69,10 @@ export const EventDrawerBody = styled(DrawerBody)`
   overscroll-behavior: contain;
   /* Move the scrollbar to the left edge */
   scroll-margin: 0 ${space(2)};
+  display: flex;
+  gap: ${space(2)};
+  flex-direction: column;
+  height: fit-content; /* makes drawer resize work better with flex */
   direction: rtl;
   * {
     direction: ltr;
