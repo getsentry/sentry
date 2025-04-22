@@ -1,4 +1,5 @@
-import {Fragment, SyntheticEvent, useCallback, useState} from 'react';
+import type {SyntheticEvent} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
