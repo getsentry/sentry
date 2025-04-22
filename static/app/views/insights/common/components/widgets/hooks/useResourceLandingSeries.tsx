@@ -2,16 +2,13 @@ import type {PageFilters} from 'sentry/types/core';
 import {EMPTY_OPTION_VALUE, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getResourceTypeFilter} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
 import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/insights/browser/resources/settings';
-import {
-  BrowserStarfishFields,
-  useResourceModuleFilters,
-} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
+import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import type {ModuleFilters} from 'sentry/views/insights/common/views/spans/types';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
-const {SPAN_SELF_TIME, NORMALIZED_DESCRIPTION, SPAN_DOMAIN} = SpanMetricsField;
-const {SPAN_DOMAIN: STARFISH_SPAN_DOMAIN, USER_GEO_SUBREGION} = BrowserStarfishFields;
+const {NORMALIZED_DESCRIPTION, SPAN_DOMAIN, SPAN_SELF_TIME, USER_GEO_SUBREGION} =
+  SpanMetricsField;
 
 const SPAN_FILTER_KEYS = ['span_operation', SPAN_DOMAIN, 'action'];
 
@@ -43,9 +40,7 @@ export function useResourceLandingSeries(props: Props = {}) {
 
   const spanTimeChartsFilters: ModuleFilters = {
     'span.op': `[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
-    ...(filters[STARFISH_SPAN_DOMAIN]
-      ? {[STARFISH_SPAN_DOMAIN]: filters[STARFISH_SPAN_DOMAIN]}
-      : {}),
+    ...(filters[SPAN_DOMAIN] ? {[SPAN_DOMAIN]: filters[SPAN_DOMAIN]} : {}),
   };
 
   const extraQuery = [
