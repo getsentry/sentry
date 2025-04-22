@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
@@ -27,9 +28,11 @@ function SeerFeedbackButton({hidden}: {hidden: boolean}) {
   if (hidden) {
     return null;
   }
+  const title = t('Give feedback on Seer');
   return (
     <Button
-      aria-label={t('Give feedback on Seer')}
+      title={title}
+      aria-label={title}
       icon={<IconMegaphone />}
       size="xs"
       onClick={() =>
@@ -126,12 +129,22 @@ export default function SeerSection({
     <HeaderContainer>
       {onlyHasResources ? t('Resources') : t('Seer')}
       {aiConfig.hasSummary && (
-        <StyledFeatureBadge
+        <FeatureBadge
           type="beta"
           tooltipProps={{
             title: tct(
               'This feature is in beta. Try it out and let us know your feedback at [email:autofix@sentry.io].',
-              {email: <a href="mailto:autofix@sentry.io" />}
+              {
+                email: (
+                  <a
+                    href="mailto:autofix@sentry.io"
+                    onClick={clickEvent => {
+                      // Prevent header from collapsing
+                      clickEvent.stopPropagation();
+                    }}
+                  />
+                ),
+              }
             ),
             isHoverable: true,
           }}
@@ -207,17 +220,17 @@ const ResourcesContent = styled('div')<{isExpanded: boolean}>`
 
   ${p =>
     !p.isExpanded &&
-    `
-    &::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 40px;
-      background: linear-gradient(transparent, ${p.theme.background});
-    }
-  `}
+    css`
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 40px;
+        background: linear-gradient(transparent, ${p.theme.background});
+      }
+    `}
 `;
 
 const ExpandButton = styled(Button)`
@@ -238,9 +251,5 @@ const HeaderContainer = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   display: flex;
   align-items: center;
-  gap: ${space(0.25)};
-`;
-
-const StyledFeatureBadge = styled(FeatureBadge)`
-  margin-bottom: 3px;
+  gap: ${space(0.5)};
 `;
