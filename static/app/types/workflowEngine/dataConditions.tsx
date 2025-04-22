@@ -43,6 +43,7 @@ export enum DataConditionType {
   REAPPEARED_EVENT = 'reappeared_event',
   TAGGED_EVENT = 'tagged_event',
   ISSUE_PRIORITY_EQUALS = 'issue_priority_equals',
+  ISSUE_PRIORITY_GREATER_OR_EQUAL = 'issue_priority_greater_or_equal',
 
   // frequency
   EVENT_FREQUENCY_COUNT = 'event_frequency_count',
@@ -62,17 +63,20 @@ export enum DataConditionGroupLogicType {
   NONE = 'none',
 }
 
-export interface DataCondition {
+export interface NewDataCondition {
   comparison: any;
   comparison_type: DataConditionType;
-  condition_group: DataConditionGroup;
-  condition_result: any;
-  id: string;
+  condition_group?: DataConditionGroup;
+  condition_result?: any;
+}
+
+export interface DataCondition extends Readonly<NewDataCondition> {
+  readonly id: string;
   type: DataConditionGroupLogicType;
 }
 
 export interface DataConditionGroup {
-  conditions: Array<Omit<DataCondition, 'condition_group' | 'type' | 'id'>>;
+  conditions: NewDataCondition[];
   id: string;
   logicType: DataConditionGroupLogicType;
   actions?: Action[];

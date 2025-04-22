@@ -6,8 +6,9 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import {type Group, IssueCategory} from 'sentry/types/group';
+import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -133,7 +134,9 @@ interface EventTraceViewProps {
 export function EventTraceView({group, event, organization}: EventTraceViewProps) {
   const traceId = event.contexts.trace?.trace_id;
   const location = useLocation();
+  const issueTypeConfig = getConfigForIssueType(group, group.project);
 
+  // Span Evidence section contains the trace view already
   const preferences = useMemo(
     () =>
       loadTraceViewPreferences('issue-details-trace-view-preferences') ||
@@ -142,7 +145,7 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
   );
 
   // Performance issues have a Span Evidence section that contains the trace view
-  if (!traceId || group.issueCategory === IssueCategory.PERFORMANCE) {
+  if (!traceId || issueTypeConfig.spanEvidence.enabled) {
     return null;
   }
 
