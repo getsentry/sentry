@@ -16,6 +16,7 @@ import {
   type LogsAnalyticsEventParameters,
 } from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {navigationAnalyticsEventMap} from 'sentry/utils/analytics/navigationAnalyticsEvents';
+import {nextJsInsightsEventMap} from 'sentry/utils/analytics/nextJsInsightsAnalyticsEvents';
 import {
   quickStartEventMap,
   type QuickStartEventParameters,
@@ -122,6 +123,7 @@ const allEventMap: Record<string, string | null> = {
   ...issueEventMap,
   ...laravelInsightsEventMap,
   ...monitorsEventMap,
+  ...nextJsInsightsEventMap,
   ...performanceEventMap,
   ...tracingEventMap,
   ...profilingEventMap,
