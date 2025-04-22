@@ -916,18 +916,19 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
     @responses.activate
     @patch("sentry.integrations.jira_server.integration.JiraServerClient.search_users_for_issue")
     def test_get_user_by_external_actor_multiple_actors(self, mock_search_users_for_issue):
+        rpc_user = serialize_rpc_user(self.create_user(email="bob@example.com"))
         ExternalActor.objects.create(
             organization_id=self.organization.id,
             integration_id=self.integration.id,
             provider=ExternalProviders.JIRA_SERVER.value,
-            user_id=self.user.id,
+            user_id=rpc_user.id,
             external_name="jira_user_1",
         )
         ExternalActor.objects.create(
             organization_id=self.organization.id,
             integration_id=self.integration.id,
             provider=ExternalProviders.JIRA_SERVER.value,
-            user_id=self.user.id,
+            user_id=rpc_user.id,
             external_name="jira_user_2",
         )
 
@@ -937,7 +938,7 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
             result = self.installation._get_user_by_external_actor(
                 client=self.installation.get_client(),
                 external_issue_key="APP-123",
-                user=self.user,
+                user=rpc_user,
                 logging_context={"integration_id": self.integration.id},
             )
 
@@ -947,10 +948,11 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
     @responses.activate
     @patch("sentry.integrations.jira_server.integration.JiraServerClient.search_users_for_issue")
     def test_get_user_by_external_actor_no_actor(self, mock_search_users_for_issue):
+        rpc_user = serialize_rpc_user(self.create_user(email="bob@example.com"))
         result = self.installation._get_user_by_external_actor(
             client=self.installation.get_client(),
             external_issue_key="APP-123",
-            user=self.user,
+            user=rpc_user,
             logging_context={"integration_id": self.integration.id},
         )
 
@@ -967,11 +969,12 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
     @responses.activate
     @patch("sentry.integrations.jira_server.integration.JiraServerClient.search_users_for_issue")
     def test_get_user_by_external_actor_no_matching_jira_user(self, mock_search_users_for_issue):
+        rpc_user = serialize_rpc_user(self.create_user(email="bob@example.com"))
         ExternalActor.objects.create(
             organization_id=self.organization.id,
             integration_id=self.integration.id,
             provider=ExternalProviders.JIRA_SERVER.value,
-            user_id=self.user.id,
+            user_id=rpc_user.id,
             external_name="nonexistent_user",
         )
 
@@ -980,7 +983,7 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
         result = self.installation._get_user_by_external_actor(
             client=self.installation.get_client(),
             external_issue_key="APP-123",
-            user=self.user,
+            user=rpc_user,
             logging_context={"integration_id": self.integration.id},
         )
 
@@ -990,11 +993,12 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
     @responses.activate
     @patch("sentry.integrations.jira_server.integration.JiraServerClient.search_users_for_issue")
     def test_get_user_by_external_actor_matching_user(self, mock_search_users_for_issue):
+        rpc_user = serialize_rpc_user(self.create_user(email="bob@example.com"))
         ExternalActor.objects.create(
             organization_id=self.organization.id,
             integration_id=self.integration.id,
             provider=ExternalProviders.JIRA_SERVER.value,
-            user_id=self.user.id,
+            user_id=rpc_user.id,
             external_name="JiraUser",
         )
 
@@ -1015,7 +1019,7 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
         result = self.installation._get_user_by_external_actor(
             client=self.installation.get_client(),
             external_issue_key="APP-123",
-            user=self.user,
+            user=rpc_user,
             logging_context={"integration_id": self.integration.id},
         )
 
