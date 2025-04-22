@@ -833,6 +833,19 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             expected_new_in_app_stack_trace_rules=["stack.module:x.y.** +app"],
         )
 
+    def test_prevent_creating_duplicate_rules(self) -> None:
+        # Rules set by the customer prevent configuration changes
+        self.project.update_option("sentry:grouping_enhancements", "stack.module:foo.bar.** +app")
+        # Manually created code mapping
+        self.create_repo_and_code_mapping(REPO1, "foo/bar/", "src/foo/")
+        # We do not expect code mappings or in-app rules to be created since
+        # the developer already created the code mapping and in-app rule
+        self._process_and_assert_configuration_changes(
+            repo_trees={REPO1: ["src/foo/bar/Baz.java"]},
+            frames=[self.frame_from_module("foo.bar.Baz", "Baz.java")],
+            platform=self.platform,
+        )
+
     def test_basic_case(self) -> None:
         repo_trees = {REPO1: ["src/com/example/foo/Bar.kt"]}
         frames = [
