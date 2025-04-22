@@ -92,7 +92,7 @@ def make_rust_exception_data(
 ) -> RustExceptionData:
     exception_data = exception_data or {}
     e = {
-        "ty": exception_data.get("type"),
+        "type": exception_data.get("type"),
         "value": exception_data.get("value"),
         "mechanism": get_path(exception_data, "mechanism", "type"),
     }
@@ -101,7 +101,7 @@ def make_rust_exception_data(
             e[key] = value.encode("utf-8")
 
     return RustExceptionData(
-        ty=e["ty"],
+        ty=e["type"],
         value=e["value"],
         mechanism=e["mechanism"],
     )
