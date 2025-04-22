@@ -21,7 +21,7 @@ export type PageFiltersState = {
   environment: string[] | null;
   period: string | null;
   project: number[] | null;
+  repository: string | null;
   start: Date | null;
   utc: boolean | null;
-  repository?: string | null;
 };

@@ -17,9 +17,9 @@ type StoredObject = {
   period: string | null;
   pinnedFilters: PinnedPageFilter[];
   projects: number[];
+  repository: string | null;
   start: string | null;
   utc: 'true' | null;
-  repository?: string | null;
 };
 
 /**
@@ -52,9 +52,10 @@ export function setPageFiltersStorage(
     ? selection.environments
     : (currentStoredState?.environment ?? []);
 
-  const repository = updateFilters.has('repository')
-    ? selection.repository
-    : (currentStoredState?.repository ?? null);
+  const repository =
+    updateFilters.has('repository') && selection.repository
+      ? selection.repository
+      : (currentStoredState?.repository ?? null);
 
   const shouldUpdateDatetime = updateFilters.has('datetime');
 
