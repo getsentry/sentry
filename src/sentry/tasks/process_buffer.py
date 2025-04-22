@@ -6,6 +6,8 @@ from django.apps import apps
 from django.conf import settings
 
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import buffer_tasks
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.lock import Lock
 
@@ -19,7 +21,11 @@ def get_process_lock(lock_name: str) -> Lock:
 
 
 @instrumented_task(
-    name="sentry.tasks.process_buffer.process_pending", queue="buffers.process_pending"
+    name="sentry.tasks.process_buffer.process_pending",
+    queue="buffers.process_pending",
+    taskworker_config=TaskworkerConfig(
+        namespace=buffer_tasks,
+    ),
 )
 def process_pending() -> None:
     """
@@ -37,7 +43,11 @@ def process_pending() -> None:
 
 
 @instrumented_task(
-    name="sentry.tasks.process_buffer.process_pending_batch", queue="buffers.process_pending_batch"
+    name="sentry.tasks.process_buffer.process_pending_batch",
+    queue="buffers.process_pending_batch",
+    taskworker_config=TaskworkerConfig(
+        namespace=buffer_tasks,
+    ),
 )
 def process_pending_batch() -> None:
     """
@@ -54,7 +64,13 @@ def process_pending_batch() -> None:
         logger.warning("process_pending_batch.fail", extra={"error": error})
 
 
-@instrumented_task(name="sentry.tasks.process_buffer.process_incr", queue="counters-0")
+@instrumented_task(
+    name="sentry.tasks.process_buffer.process_incr",
+    queue="counters-0",
+    taskworker_config=TaskworkerConfig(
+        namespace=buffer_tasks,
+    ),
+)
 def process_incr(
     columns: dict[str, int] | None = None,
     filters: dict[str, Any] | None = None,
@@ -101,6 +117,9 @@ def buffer_incr(model, *args, **kwargs):
 @instrumented_task(
     name="sentry.tasks.process_buffer.buffer_incr_task",
     queue="buffers.incr",
+    taskworker_config=TaskworkerConfig(
+        namespace=buffer_tasks,
+    ),
 )
 def buffer_incr_task(app_label: str, model_name: str, args: Any, kwargs: Any):
     """
