@@ -172,7 +172,9 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
                   </RequestStateMessageContainer>
                 ) : null}
               </ProfileVisualizationContainer>
-              {showSidePanel && <AggregateFlamegraphSidePanel scheduler={scheduler} />}
+              <div style={showSidePanel ? {} : {display: 'none'}}>
+                <AggregateFlamegraphSidePanel scheduler={scheduler} />
+              </div>
             </TransactionProfilesContentContainer>
           </FlamegraphProvider>
         </FlamegraphThemeProvider>
