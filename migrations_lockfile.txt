@@ -29,4 +29,4 @@ tempest: 0002_make_message_type_nullable
 
 uptime: 0033_uptime_backfill_to_detectors
 
-workflow_engine: 0045_add_unique_constraint_alert_rule_detector
+workflow_engine: 0046_drop_metric_alert_fire_detectors

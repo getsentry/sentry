@@ -106,7 +106,7 @@ export function LogRowContent({
   const theme = useTheme();
 
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
-  const severityText = dataRow[OurLogKnownFieldKey.SEVERITY_TEXT];
+  const severityText = dataRow[OurLogKnownFieldKey.SEVERITY];
 
   const level = getLogSeverityLevel(
     typeof severityNumber === 'number' ? severityNumber : null,
@@ -148,7 +148,7 @@ export function LogRowContent({
             />
           </LogFirstCellContent>
         </LogsTableBodyFirstCell>
-        {fields.map(field => {
+        {fields?.map(field => {
           const value = dataRow[field];
 
           if (!defined(value)) {
@@ -191,7 +191,7 @@ export function LogRowContent({
                   }
                 }}
                 allowActions={
-                  field === OurLogKnownFieldKey.MESSAGE ? ALLOWED_CELL_ACTIONS : []
+                  field === OurLogKnownFieldKey.TIMESTAMP ? [] : ALLOWED_CELL_ACTIONS
                 }
               >
                 <LogFieldRenderer
@@ -225,7 +225,7 @@ function LogRowDetails({
   const organization = useOrganization();
   const fields = useLogsFields();
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
-  const severityText = dataRow[OurLogKnownFieldKey.SEVERITY_TEXT];
+  const severityText = dataRow[OurLogKnownFieldKey.SEVERITY];
 
   const level = getLogSeverityLevel(
     typeof severityNumber === 'number' ? severityNumber : null,

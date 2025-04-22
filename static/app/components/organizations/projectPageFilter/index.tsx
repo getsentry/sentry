@@ -35,7 +35,7 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {ProjectPageFilterMenuFooter} from './menuFooter';
 import {ProjectPageFilterTrigger} from './trigger';
 
-export interface ProjectPageFilterProps
+interface ProjectPageFilterProps
   extends Partial<
     Omit<
       HybridFilterProps<number>,

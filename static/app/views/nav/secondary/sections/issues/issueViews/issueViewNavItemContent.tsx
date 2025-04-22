@@ -25,7 +25,7 @@ import {
 } from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavItems';
 import {IssueViewNavQueryCount} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavQueryCount';
 
-export interface IssueViewNavItemContentProps {
+interface IssueViewNavItemContentProps {
   /**
    * Whether the item is active.
    */

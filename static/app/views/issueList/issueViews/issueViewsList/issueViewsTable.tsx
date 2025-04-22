@@ -46,7 +46,7 @@ export function IssueViewsTable({
             {t('Project')}
           </SavedEntityTable.HeaderCell>
           <SavedEntityTable.HeaderCell key="envs">
-            {t('Envs')}
+            {t('Environments')}
           </SavedEntityTable.HeaderCell>
           <SavedEntityTable.HeaderCell key="query">
             {t('Query')}

@@ -1,6 +1,6 @@
 import type {Action} from './actions';
 
-export interface SnubaQuery {
+interface SnubaQuery {
   aggregate: string;
   dataset: string;
   id: string;
@@ -43,6 +43,7 @@ export enum DataConditionType {
   REAPPEARED_EVENT = 'reappeared_event',
   TAGGED_EVENT = 'tagged_event',
   ISSUE_PRIORITY_EQUALS = 'issue_priority_equals',
+  ISSUE_PRIORITY_GREATER_OR_EQUAL = 'issue_priority_greater_or_equal',
 
   // frequency
   EVENT_FREQUENCY_COUNT = 'event_frequency_count',
@@ -67,11 +68,6 @@ export interface NewDataCondition {
   comparison_type: DataConditionType;
   condition_group?: DataConditionGroup;
   condition_result?: any;
-}
-
-export interface DataCondition extends Readonly<NewDataCondition> {
-  readonly id: string;
-  type: DataConditionGroupLogicType;
 }
 
 export interface DataConditionGroup {

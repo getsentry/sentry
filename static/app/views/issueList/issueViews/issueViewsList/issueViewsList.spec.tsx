@@ -86,6 +86,56 @@ describe('IssueViewsList', function () {
     expect(screen.getByText('7')).toBeInTheDocument();
   });
 
+  it('can sort views', async function () {
+    const mockViewsEndpoint = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/group-search-views/',
+      match: [MockApiClient.matchQuery({createdBy: 'me'})],
+      body: [
+        GroupSearchViewFixture({
+          id: '1',
+          name: 'Foo',
+          projects: [1],
+          environments: ['env1'],
+          query: 'foo:bar',
+          timeFilters: {
+            period: '7d',
+            start: null,
+            end: null,
+            utc: null,
+          },
+          starred: true,
+        }),
+      ],
+    });
+
+    render(<IssueViewsList />, {organization, enableRouterMocks: false});
+
+    // By default, sorts by popularity (desc) then visited (desc) then created (desc)
+    await waitFor(() => {
+      expect(mockViewsEndpoint).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({sort: ['-popularity', '-visited', '-created']}),
+        })
+      );
+    });
+
+    // Can sort by last visited
+    await userEvent.click(screen.getByRole('button', {name: 'Most Starred'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Recently Viewed'}));
+
+    await waitFor(() => {
+      expect(mockViewsEndpoint).toHaveBeenCalledTimes(2);
+    });
+
+    expect(mockViewsEndpoint).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({sort: ['-visited', '-popularity', '-created']}),
+      })
+    );
+  });
+
   it('can unstar views', async function () {
     const mockStarredEndpoint = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/group-search-views/1/starred/',

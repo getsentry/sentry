@@ -277,7 +277,9 @@ export function LandingAggregateFlamegraph(): React.ReactNode {
                   />
                 )}
               </AggregateFlamegraphContainer>
-              {showSidePanel && <AggregateFlamegraphSidePanel scheduler={scheduler} />}
+              <div style={showSidePanel ? {} : {display: 'none'}}>
+                <AggregateFlamegraphSidePanel scheduler={scheduler} />
+              </div>
             </AggregateFlamegraphLayout>
           </FlamegraphProvider>
         </FlamegraphThemeProvider>

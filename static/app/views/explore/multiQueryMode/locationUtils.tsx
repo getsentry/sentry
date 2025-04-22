@@ -121,7 +121,7 @@ export function useReadQueriesFromLocation(): ReadableExploreQueryParts[] {
 
 // Write utils begin
 
-export type WritableExploreQueryParts = {
+type WritableExploreQueryParts = {
   chartType?: ChartType;
   fields?: string[];
   groupBys?: string[];

@@ -6,10 +6,10 @@ class UserReportDict(TypedDict):
 
     event_id: str
     comments: str
+    name: NotRequired[str]  # defaults to ""
+    email: NotRequired[str]  # defaults to ""
     # required for the model, but functions usually infer this from an explicit Project argument.
     project_id: NotRequired[int]
-    name: NotRequired[str]
-    email: NotRequired[str]
     environment_id: NotRequired[int]  # defaults to "production".
     group_id: NotRequired[int]
     level: NotRequired[str]  # defaults to "info".
