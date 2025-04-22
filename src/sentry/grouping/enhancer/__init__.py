@@ -96,6 +96,8 @@ def make_rust_exception_data(
         "value": exception_data.get("value"),
         "mechanism": get_path(exception_data, "mechanism", "type"),
     }
+
+    # Convert string values to bytes
     for key, value in rust_data.items():
         if isinstance(value, str):
             rust_data[key] = value.encode("utf-8")
