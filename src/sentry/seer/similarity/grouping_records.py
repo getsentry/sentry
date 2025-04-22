@@ -128,12 +128,13 @@ def delete_grouping_records_by_hash(project_id: int, hashes: list[str]) -> bool:
     extra = {"project_id": project_id, "hashes": hashes}
     try:
         body = {"project_id": project_id, "hash_list": hashes}
-        response = seer_grouping_connection_pool.urlopen(
-            "POST",
+        body_bytes = json.dumps(body).encode("utf-8")
+        response = make_signed_seer_api_request(
+            seer_grouping_connection_pool,
             SEER_HASH_GROUPING_RECORDS_DELETE_URL,
-            body=json.dumps(body),
-            headers={"Content-Type": "application/json;charset=utf-8"},
+            body=body_bytes,
             timeout=POST_BULK_GROUPING_RECORDS_TIMEOUT,
+            metric_tags={"operation": "delete_by_hash"}
         )
     except ReadTimeoutError:
         extra.update({"reason": "ReadTimeoutError", "timeout": POST_BULK_GROUPING_RECORDS_TIMEOUT})
