@@ -336,6 +336,7 @@ class Enhancements:
 
     @classmethod
     def from_base64_string(cls, base64_string: str | bytes) -> Enhancements:
+        """Convert a base64 string into an `Enhancements` object"""
         if isinstance(base64_string, str):
             base64_string = base64_string.encode("ascii", "ignore")
         padded_bytes = base64_string + b"=" * (4 - (len(base64_string) % 4))
