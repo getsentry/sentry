@@ -6,8 +6,6 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {INGESTION_DELAY} from 'sentry/views/explore/settings';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
-const CHART_HEIGHT = 175;
-
 export interface LogsGraphProps {
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
 }
@@ -28,7 +26,6 @@ export function LogsGraph({timeseriesResult}: LogsGraphProps) {
   if (isPending) {
     return (
       <Widget
-        height={CHART_HEIGHT}
         Title={Title}
         Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
       />
@@ -36,28 +33,17 @@ export function LogsGraph({timeseriesResult}: LogsGraphProps) {
   }
 
   if (error) {
-    return (
-      <Widget
-        height={CHART_HEIGHT}
-        Title={Title}
-        Visualization={<Widget.WidgetError error={error} />}
-      />
-    );
+    return <Widget Title={Title} Visualization={<Widget.WidgetError error={error} />} />;
   }
 
   if (!data || data?.length === 0) {
     return (
-      <Widget
-        height={CHART_HEIGHT}
-        Title={Title}
-        Visualization={<Widget.WidgetError error={t('No data')} />}
-      />
+      <Widget Title={Title} Visualization={<Widget.WidgetError error={t('No data')} />} />
     );
   }
 
   return (
     <Widget
-      height={CHART_HEIGHT}
       Title={Title}
       Visualization={
         <TimeSeriesWidgetVisualization

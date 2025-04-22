@@ -163,9 +163,9 @@ export function LogsTabContent({
             </SchemaHintsSection>
           </Feature>
           <Feature features="organizations:ourlogs-graph">
-            <LogsItemContainer>
+            <LogsGraphContainer>
               <LogsGraph timeseriesResult={timeseriesResult} />
-            </LogsItemContainer>
+            </LogsGraphContainer>
           </Feature>
           <LogsItemContainer>
             <LogsTable
@@ -189,4 +189,8 @@ const FilterBarContainer = styled('div')`
 const LogsItemContainer = styled('div')`
   flex: 1 1 auto;
   margin-top: ${space(2)};
+`;
+
+const LogsGraphContainer = styled(LogsItemContainer)`
+  height: 175px;
 `;
