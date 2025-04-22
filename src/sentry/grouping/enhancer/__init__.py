@@ -222,7 +222,7 @@ class Enhancements:
         frame_counts: Counter[str] = Counter()
 
         # Update frame components with results from rust
-        for py_component, rust_component in zip(frame_components, rust_frames):
+        for py_component, rust_frame in zip(frame_components, rust_frames):
             # TODO: Remove the first condition once we get rid of the legacy config
             if (
                 not (self.bases and self.bases[0].startswith("legacy"))
@@ -240,8 +240,8 @@ class Enhancements:
                 # order of stacktrace rules and the order of the actions within a stacktrace rule.
                 # Ideally we'd get both hints back.
                 hint = (
-                    rust_component.hint
-                    if rust_component.hint and rust_component.hint.startswith("marked out of app")
+                    rust_frame.hint
+                    if rust_frame.hint and rust_frame.hint.startswith("marked out of app")
                     else py_component.hint
                 )
                 py_component.update(contributes=False, hint=hint)
@@ -249,17 +249,15 @@ class Enhancements:
                 # We don't need hints about marking frames in or out of app in the system stacktrace
                 # because such changes don't actually have an effect there
                 hint = (
-                    rust_component.hint
-                    if rust_component.hint
-                    and not rust_component.hint.startswith("marked in-app")
-                    and not rust_component.hint.startswith("marked out of app")
+                    rust_frame.hint
+                    if rust_frame.hint
+                    and not rust_frame.hint.startswith("marked in-app")
+                    and not rust_frame.hint.startswith("marked out of app")
                     else py_component.hint
                 )
-                py_component.update(contributes=rust_component.contributes, hint=hint)
+                py_component.update(contributes=rust_frame.contributes, hint=hint)
             else:
-                py_component.update(
-                    contributes=rust_component.contributes, hint=rust_component.hint
-                )
+                py_component.update(contributes=rust_frame.contributes, hint=rust_frame.hint)
 
             # Add this frame to our tally
             key = f"{"in_app" if py_component.in_app else "system"}_{"contributing" if py_component.contributes else "non_contributing"}_frames"
