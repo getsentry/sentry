@@ -305,7 +305,7 @@ class StrategyConfiguration:
         if enhancements is None:
             enhancements_instance = Enhancements.from_rules_text("")
         else:
-            enhancements_instance = Enhancements.loads(enhancements)
+            enhancements_instance = Enhancements.from_base64_string(enhancements)
         self.enhancements = enhancements_instance
 
     def __repr__(self) -> str:
