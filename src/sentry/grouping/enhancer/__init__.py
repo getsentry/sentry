@@ -340,9 +340,9 @@ class Enhancements:
     def loads(cls, base64_string: str | bytes) -> Enhancements:
         if isinstance(base64_string, str):
             base64_string = base64_string.encode("ascii", "ignore")
-        padded = base64_string + b"=" * (4 - (len(base64_string) % 4))
+        padded_bytes = base64_string + b"=" * (4 - (len(base64_string) % 4))
         try:
-            compressed = base64.urlsafe_b64decode(padded)
+            compressed = base64.urlsafe_b64decode(padded_bytes)
 
             if compressed.startswith(b"\x28\xb5\x2f\xfd"):
                 encoded = zstandard.decompress(compressed)
