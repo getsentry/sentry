@@ -5,7 +5,7 @@ import type {DateString} from 'sentry/types/core';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 
-export type DoReleaseHealthRequestOptions = {
+type DoReleaseHealthRequestOptions = {
   field: string[];
   orgSlug: Organization['slug'];
   cursor?: string;

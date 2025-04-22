@@ -2,6 +2,7 @@ import {Fragment, memo, useCallback, useMemo, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
@@ -10,7 +11,6 @@ import GridEditable, {
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

@@ -186,7 +186,7 @@ function VitalChart({
 
 export default VitalChart;
 
-export type VitalChartInnerProps = {
+type VitalChartInnerProps = {
   field: string;
   grid: LineChartProps['grid'];
   loading: boolean;

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
+from sentry.uptime.types import ProjectUptimeSubscriptionMode
 from sentry.workflow_engine.types import DetectorSettings
 
 
@@ -27,10 +28,9 @@ class UptimeDomainCheckFailure(GroupType):
             "properties": {
                 "mode": {
                     "type": ["integer"],
-                    # TODO: Enable this when we can move this grouptype out of this file
-                    # "enum": [mode.value for mode in ProjectUptimeSubscriptionMode],
+                    "enum": [mode.value for mode in ProjectUptimeSubscriptionMode],
                 },
-                "environment": {"type": ["string"]},
+                "environment": {"type": ["string", "null"]},
             },
             "additionalProperties": False,
         },

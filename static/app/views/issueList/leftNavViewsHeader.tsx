@@ -10,13 +10,14 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {EditableIssueViewHeader} from 'sentry/views/issueList/editableIssueViewHeader';
 import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
-import {canEditIssueView} from 'sentry/views/issueList/issueViews/utils';
+import {canEditIssueView, isNewViewPage} from 'sentry/views/issueList/issueViews/utils';
 import {useDeleteGroupSearchView} from 'sentry/views/issueList/mutations/useDeleteGroupSearchView';
 import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
 import {makeFetchGroupSearchViewKey} from 'sentry/views/issueList/queries/useFetchGroupSearchView';
@@ -29,15 +30,25 @@ type LeftNavViewsHeaderProps = {
 
 function PageTitle() {
   const organization = useOrganization();
+  const location = useLocation();
   const {data: groupSearchView} = useSelectedGroupSearchView();
+  const user = useUser();
   const hasIssueViewSharing = organization.features.includes('issue-view-sharing');
 
-  if (hasIssueViewSharing && groupSearchView) {
+  if (
+    hasIssueViewSharing &&
+    groupSearchView &&
+    canEditIssueView({groupSearchView, user})
+  ) {
     return <EditableIssueViewHeader view={groupSearchView} />;
   }
 
   if (groupSearchView) {
     return <Layout.Title>{groupSearchView?.name ?? t('Issues')}</Layout.Title>;
+  }
+
+  if (isNewViewPage(location.pathname)) {
+    return <Layout.Title>{t('New View')}</Layout.Title>;
   }
 
   return <Layout.Title>{t('Issues')}</Layout.Title>;

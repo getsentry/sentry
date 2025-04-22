@@ -1,16 +1,19 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
 import Redirect from 'sentry/components/redirect';
 import SearchBar from 'sentry/components/searchBar';
-import {IconSort} from 'sentry/icons';
+import {IconAdd, IconMegaphone, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -56,14 +59,17 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
     isPending,
     isError,
     getResponseHeader,
-  } = useFetchGroupSearchViews({
-    orgSlug: organization.slug,
-    createdBy,
-    limit,
-    sort,
-    cursor,
-    query,
-  });
+  } = useFetchGroupSearchViews(
+    {
+      orgSlug: organization.slug,
+      createdBy,
+      limit,
+      sort,
+      cursor,
+      query,
+    },
+    {staleTime: 0}
+  );
 
   const tableQueryKey = makeFetchGroupSearchViewsKey({
     orgSlug: organization.slug,
@@ -170,6 +176,7 @@ export default function IssueViewsList() {
   const navigate = useNavigate();
   const location = useLocation();
   const query = typeof location.query.query === 'string' ? location.query.query : '';
+  const openFeedbackForm = useFeedbackForm();
 
   if (!organization.features.includes('issue-view-sharing')) {
     return <Redirect to={`/organizations/${organization.slug}/issues/`} />;
@@ -178,7 +185,44 @@ export default function IssueViewsList() {
   return (
     <Layout.Page>
       <Layout.Header unified>
-        <Layout.Title>{t('All Views')}</Layout.Title>
+        <Layout.HeaderContent>
+          <Layout.Title>{t('All Views')}</Layout.Title>
+        </Layout.HeaderContent>
+        <Layout.HeaderActions>
+          <ButtonBar gap={1}>
+            {openFeedbackForm ? (
+              <Button
+                icon={<IconMegaphone />}
+                size="sm"
+                onClick={() => {
+                  openFeedbackForm({
+                    formTitle: t('Give Feedback'),
+                    messagePlaceholder: t('How can we make issue views better for you?'),
+                    tags: {
+                      ['feedback.source']: 'custom_views',
+                      ['feedback.owner']: 'issues',
+                    },
+                  });
+                }}
+              >
+                {t('Give Feedback')}
+              </Button>
+            ) : null}
+            <LinkButton
+              to={`/organizations/${organization.slug}/issues/views/new/`}
+              priority="primary"
+              icon={<IconAdd />}
+              size="sm"
+              onClick={() => {
+                trackAnalytics('issue_views.table.create_view_clicked', {
+                  organization,
+                });
+              }}
+            >
+              {t('Create View')}
+            </LinkButton>
+          </ButtonBar>
+        </Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>
         <Layout.Main fullWidth>

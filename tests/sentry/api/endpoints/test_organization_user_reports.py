@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
+from sentry.feedback.lib.types import UserReportDict
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.ingest.userreport import save_userreport
 from sentry.models.group import GroupStatus
@@ -132,11 +133,12 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
         )
 
         # Simulate how ingest saves reports to get event_user connections
-        report_data = {
+        report_data: UserReportDict = {
             "event_id": event.event_id,
             "name": "",
             "email": "",
             "comments": "It broke",
+            "project_id": self.project_1.id,
         }
         save_userreport(
             self.project_1, report_data, FeedbackCreationSource.USER_REPORT_DJANGO_ENDPOINT
