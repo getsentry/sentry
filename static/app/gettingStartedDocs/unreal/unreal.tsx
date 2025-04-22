@@ -30,8 +30,7 @@ void Verify()
     SentrySubsystem->CaptureMessage(TEXT("Capture message"));
 }`;
 
-const getSettingsConfigureSnippet = () => `
-#include "SentrySubsystem.h"
+const getSettingsConfigureSnippet = () => `#include "SentrySubsystem.h"
 
 FConfigureSettingsDelegate OnConfigureSettings;
 OnConfigureSettings.BindDynamic(this, &UMyGameInstance::ConfigureSentrySettings);
