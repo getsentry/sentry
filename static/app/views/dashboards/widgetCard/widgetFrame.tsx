@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {Badge} from 'sentry/components/core/badge';
 import {Button, LinkButton} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {StateProps} from 'sentry/views/dashboards/widgets/common/types';
@@ -14,7 +14,7 @@ import type {WidgetDescriptionProps} from 'sentry/views/dashboards/widgets/widge
 import {TooltipIconTrigger} from './tooltipIconTrigger';
 import {WarningsList} from './warningsList';
 
-export interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
+interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
   actions?: MenuItemProps[];
   actionsDisabled?: boolean;
   actionsMessage?: string;

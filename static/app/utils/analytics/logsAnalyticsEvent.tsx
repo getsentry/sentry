@@ -28,7 +28,7 @@ export type LogsAnalyticsEventParameters = {
   };
 };
 
-export type LogsAnalyticsEventKey = keyof LogsAnalyticsEventParameters;
+type LogsAnalyticsEventKey = keyof LogsAnalyticsEventParameters;
 
 export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null> = {
   'logs.explorer.metadata': 'Log Explorer Pageload Metadata',

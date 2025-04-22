@@ -2,7 +2,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import color from 'color';
 
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

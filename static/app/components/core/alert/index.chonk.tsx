@@ -22,7 +22,13 @@ interface ChonkAlertProps extends Omit<AlertProps, 'type'> {
 }
 
 export const AlertPanel = chonkStyled('div')<ChonkAlertProps>`
-  ${p => ({...makeChonkAlertTheme(p.type, p.theme)})};
+  background-color: ${p => makeChonkAlertTheme(p.type, p.theme).background};
+  border: ${p => makeChonkAlertTheme(p.type, p.theme).border};
+
+  /* We dont want to override the color of any elements inside buttons */
+  :not(button *) {
+    color: ${p => makeChonkAlertTheme(p.type, p.theme).color};
+  }
 
   position: relative;
   display: grid;
@@ -35,18 +41,6 @@ export const AlertPanel = chonkStyled('div')<ChonkAlertProps>`
   gap: ${p => p.theme.space.lg};
   row-gap: 0;
   overflow: hidden;
-
-  a,
-  button,
-  code {
-    color: inherit;
-  }
-
-  a:hover,
-  button:hover,
-  code:hover {
-    color: inherit;
-  }
 
   a {
     text-decoration: underline;

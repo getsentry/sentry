@@ -46,7 +46,7 @@ import type {DefaultPeriod, MaxPickableDays} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
-export type LogsTabProps = {
+type LogsTabProps = {
   defaultPeriod: DefaultPeriod;
   maxPickableDays: MaxPickableDays;
   relativeOptions: Record<string, React.ReactNode>;
@@ -179,6 +179,7 @@ export function LogsTabContent({
                 setVisualizes={setVisualizes}
                 // TODO: we do not support log alerts nor adding to dashboards yet
                 hideContextMenu
+                dataset={DiscoverDatasets.OURLOGS}
               />
             </LogsItemContainer>
           </Feature>

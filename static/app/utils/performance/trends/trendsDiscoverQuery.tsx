@@ -20,7 +20,7 @@ import {
 } from 'sentry/views/performance/trends/utils';
 import generateTrendFunctionAsString from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
 
-export type TrendsRequest = {
+type TrendsRequest = {
   eventView: Partial<TrendView>;
   projects: Project[];
   trendChangeType?: TrendChangeType;

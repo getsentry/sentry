@@ -108,7 +108,7 @@ function BackendOverviewPage() {
     return <LaravelOverviewPage />;
   }
   if (isNextJsPageAvailable) {
-    <NextJsOverviewPage headerTitle={BACKEND_LANDING_TITLE} />;
+    return <NextJsOverviewPage headerTitle={BACKEND_LANDING_TITLE} />;
   }
   if (useEap) {
     return <EAPBackendOverviewPage />;

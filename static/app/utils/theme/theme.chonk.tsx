@@ -944,7 +944,7 @@ const generateAliases = (
    */
   active: colors.chonk.blue200,
   activeHover: colors.chonk.blue300,
-  activeText: colors.chonk.blue400,
+  activeText: tokens.content.accent,
 
   /**
    * Indicates that something has "focus", which is different than "active" state as it is more temporal
@@ -1252,7 +1252,7 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
     scrollbarThumbColor: '#A0A0A0',
     scrollbarColorTrack: 'rgba(45,26,50,92.42)', // end of the gradient which is used for background
     gradient: lightAliases.background,
-    border: 'transparent',
+    border: lightAliases.border,
     superuser: '#880808',
   },
 };
@@ -1322,11 +1322,11 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   },
 
   sidebar: {
-    background: lightAliases.background,
+    background: darkAliases.background,
     scrollbarThumbColor: '#A0A0A0',
     scrollbarColorTrack: 'rgba(45,26,50,92.42)', // end of the gradient which is used for background
-    gradient: `none`,
-    border: 'transparent',
+    gradient: darkAliases.background,
+    border: darkAliases.border,
     superuser: '#880808',
   },
 };

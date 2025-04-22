@@ -54,7 +54,6 @@ describe('useGenAiConsentButtonAccess', function () {
         expect.objectContaining({
           isDisabled: true,
           message: 'This feature is not available in your region.',
-          isUsRegion: false,
         })
       );
     });
@@ -83,7 +82,6 @@ describe('useGenAiConsentButtonAccess', function () {
         expect.objectContaining({
           isDisabled: false,
           message: null,
-          isUsRegion: true,
         })
       );
     });
@@ -182,7 +180,7 @@ describe('useGenAiConsentButtonAccess', function () {
   });
 
   describe('Combined Conditions', function () {
-    it('shows region restriction for non-US regions', function () {
+    it('shows region restriction for EU region', function () {
       const organization = OrganizationFixture({
         access: ['org:billing'],
       });
@@ -207,7 +205,36 @@ describe('useGenAiConsentButtonAccess', function () {
         expect.objectContaining({
           isDisabled: true,
           message: 'This feature is not available in your region.',
-          isUsRegion: false,
+          isTouchCustomerAndNeedsMsaUpdate: true,
+        })
+      );
+    });
+
+    it('shows region restriction for other ST region', function () {
+      const organization = OrganizationFixture({
+        access: ['org:billing'],
+      });
+      const subscription = SubscriptionFixture({
+        organization,
+        type: BillingType.INVOICED,
+        msaUpdatedForDataConsent: false,
+      });
+
+      mockGetRegionData.mockReturnValue({
+        name: 'customer1',
+        displayName: 'Customer 1',
+        url: 'https://sentry.io',
+      });
+      mockUseUser.mockReturnValue(UserFixture({isSuperuser: false}));
+
+      const {result} = renderHook(() => useGenAiConsentButtonAccess({subscription}), {
+        wrapper: contextWrapper(organization),
+      });
+
+      expect(result.current).toEqual(
+        expect.objectContaining({
+          isDisabled: true,
+          message: 'This feature is not available in your region.',
           isTouchCustomerAndNeedsMsaUpdate: true,
         })
       );

@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   SearchQueryBuilderContext,
   SearchQueryBuilderProvider,
@@ -18,7 +19,6 @@ import {
 } from 'sentry/components/searchQueryBuilder/types';
 import {queryIsValid} from 'sentry/components/searchQueryBuilder/utils';
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

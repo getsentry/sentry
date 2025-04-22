@@ -16,7 +16,12 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
 from sentry_sdk.crons import MonitorStatus
 
 from sentry.taskworker.state import current_task
-from sentry.taskworker.worker import ProcessingResult, TaskWorker, child_worker
+from sentry.taskworker.worker import TaskWorker
+from sentry.taskworker.workerchild import (
+    ProcessingDeadlineExceeded,
+    ProcessingResult,
+    child_process,
+)
 from sentry.testutils.cases import TestCase
 from sentry.utils.redis import redis_clusters
 
@@ -269,14 +274,14 @@ class TestTaskWorker(TestCase):
 
 
 @pytest.mark.django_db
-@mock.patch("sentry.taskworker.worker.capture_checkin")
-def test_child_worker_complete(mock_capture_checkin) -> None:
+@mock.patch("sentry.taskworker.workerchild.capture_checkin")
+def test_child_process_complete(mock_capture_checkin) -> None:
     todo: queue.Queue[TaskActivation] = queue.Queue()
     processed: queue.Queue[ProcessingResult] = queue.Queue()
     shutdown = Event()
 
     todo.put(SIMPLE_TASK)
-    child_worker(
+    child_process(
         todo,
         processed,
         shutdown,
@@ -293,13 +298,13 @@ def test_child_worker_complete(mock_capture_checkin) -> None:
 
 
 @pytest.mark.django_db
-def test_child_worker_retry_task() -> None:
+def test_child_process_retry_task() -> None:
     todo: queue.Queue[TaskActivation] = queue.Queue()
     processed: queue.Queue[ProcessingResult] = queue.Queue()
     shutdown = Event()
 
     todo.put(RETRY_TASK)
-    child_worker(
+    child_process(
         todo,
         processed,
         shutdown,
@@ -315,13 +320,13 @@ def test_child_worker_retry_task() -> None:
 
 
 @pytest.mark.django_db
-def test_child_worker_failure_task() -> None:
+def test_child_process_failure_task() -> None:
     todo: queue.Queue[TaskActivation] = queue.Queue()
     processed: queue.Queue[ProcessingResult] = queue.Queue()
     shutdown = Event()
 
     todo.put(FAIL_TASK)
-    child_worker(
+    child_process(
         todo,
         processed,
         shutdown,
@@ -337,14 +342,14 @@ def test_child_worker_failure_task() -> None:
 
 
 @pytest.mark.django_db
-def test_child_worker_shutdown() -> None:
+def test_child_process_shutdown() -> None:
     todo: queue.Queue[TaskActivation] = queue.Queue()
     processed: queue.Queue[ProcessingResult] = queue.Queue()
     shutdown = Event()
     shutdown.set()
 
     todo.put(SIMPLE_TASK)
-    child_worker(
+    child_process(
         todo,
         processed,
         shutdown,
@@ -359,14 +364,14 @@ def test_child_worker_shutdown() -> None:
 
 
 @pytest.mark.django_db
-def test_child_worker_unknown_task() -> None:
+def test_child_process_unknown_task() -> None:
     todo: queue.Queue[TaskActivation] = queue.Queue()
     processed: queue.Queue[ProcessingResult] = queue.Queue()
     shutdown = Event()
 
     todo.put(UNDEFINED_TASK)
     todo.put(SIMPLE_TASK)
-    child_worker(
+    child_process(
         todo,
         processed,
         shutdown,
@@ -385,7 +390,7 @@ def test_child_worker_unknown_task() -> None:
 
 
 @pytest.mark.django_db
-def test_child_worker_at_most_once() -> None:
+def test_child_process_at_most_once() -> None:
     todo: queue.Queue[TaskActivation] = queue.Queue()
     processed: queue.Queue[ProcessingResult] = queue.Queue()
     shutdown = Event()
@@ -393,7 +398,7 @@ def test_child_worker_at_most_once() -> None:
     todo.put(AT_MOST_ONCE_TASK)
     todo.put(AT_MOST_ONCE_TASK)
     todo.put(SIMPLE_TASK)
-    child_worker(
+    child_process(
         todo,
         processed,
         shutdown,
@@ -413,14 +418,14 @@ def test_child_worker_at_most_once() -> None:
 
 
 @pytest.mark.django_db
-@mock.patch("sentry.taskworker.worker.capture_checkin")
-def test_child_worker_record_checkin(mock_capture_checkin: mock.Mock) -> None:
+@mock.patch("sentry.taskworker.workerchild.capture_checkin")
+def test_child_process_record_checkin(mock_capture_checkin: mock.Mock) -> None:
     todo: queue.Queue[TaskActivation] = queue.Queue()
     processed: queue.Queue[ProcessingResult] = queue.Queue()
     shutdown = Event()
 
     todo.put(SCHEDULED_TASK)
-    child_worker(
+    child_process(
         todo,
         processed,
         shutdown,
@@ -444,8 +449,8 @@ def test_child_worker_record_checkin(mock_capture_checkin: mock.Mock) -> None:
 
 
 @pytest.mark.django_db
-@mock.patch("sentry.taskworker.worker.sentry_sdk.capture_exception")
-def test_child_worker_terminate_task(mock_capture: mock.Mock) -> None:
+@mock.patch("sentry.taskworker.workerchild.sentry_sdk.capture_exception")
+def test_child_process_terminate_task(mock_capture: mock.Mock) -> None:
     todo: queue.Queue[TaskActivation] = queue.Queue()
     processed: queue.Queue[ProcessingResult] = queue.Queue()
     shutdown = Event()
@@ -459,18 +464,18 @@ def test_child_worker_terminate_task(mock_capture: mock.Mock) -> None:
     )
 
     todo.put(sleepy)
-    with pytest.raises(SystemExit):
-        child_worker(
-            todo,
-            processed,
-            shutdown,
-            max_task_count=1,
-            processing_pool_name="test",
-            process_type="fork",
-        )
+    child_process(
+        todo,
+        processed,
+        shutdown,
+        max_task_count=1,
+        processing_pool_name="test",
+        process_type="fork",
+    )
 
     assert todo.empty()
     result = processed.get(block=False)
     assert result.task_id == sleepy.id
     assert result.status == TASK_ACTIVATION_STATUS_FAILURE
     assert mock_capture.call_count == 1
+    assert type(mock_capture.call_args.args[0]) is ProcessingDeadlineExceeded

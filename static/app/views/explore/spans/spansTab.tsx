@@ -24,6 +24,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   type AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
@@ -75,7 +76,7 @@ import {Onboarding} from 'sentry/views/performance/onboarding';
 // eslint-disable-next-line no-restricted-imports
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
-export type SpanTabProps = {
+type SpanTabProps = {
   defaultPeriod: DefaultPeriod;
   maxPickableDays: MaxPickableDays;
   relativeOptions: Record<string, React.ReactNode>;
@@ -320,6 +321,7 @@ export function SpansTabContentImpl({
                 visualizes={visualizes}
                 setVisualizes={setVisualizes}
                 samplingMode={timeseriesSamplingMode}
+                dataset={DiscoverDatasets.SPANS_EAP}
               />
               <ExploreTables
                 aggregatesTableResult={aggregatesTableResult}

@@ -37,7 +37,7 @@ type ColumnKeys =
   | SpanIndexedField.CACHE_ITEM_SIZE
   | 'transaction.duration';
 
-export type DataRow = Pick<SpanIndexedResponse, DataRowKeys> & {
+type DataRow = Pick<SpanIndexedResponse, DataRowKeys> & {
   'transaction.duration': number;
 };
 

@@ -119,9 +119,16 @@ export function ToolbarSaveAs() {
     key: 'save-query',
     label: <span>{t('A New Query')}</span>,
     onAction: () => {
+      trackAnalytics('trace_explorer.save_query_modal', {
+        action: 'open',
+        save_type: 'save_new_query',
+        ui_source: 'toolbar',
+        organization,
+      });
       openSaveQueryModal({
         organization,
         saveQuery,
+        source: 'toolbar',
       });
     },
   });
