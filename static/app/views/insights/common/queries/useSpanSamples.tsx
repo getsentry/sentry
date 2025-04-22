@@ -33,7 +33,7 @@ type Options<Fields extends NonDefaultSpanSampleFields[]> = {
 export type SpanSample = Pick<
   SpanIndexedFieldTypes,
   | SpanIndexedField.SPAN_SELF_TIME
-  | SpanIndexedField.TRANSACTION_ID
+  | SpanIndexedField.TRANSACTION_SPAN_ID
   | SpanIndexedField.PROJECT
   | SpanIndexedField.TIMESTAMP
   | SpanIndexedField.SPAN_ID
@@ -44,7 +44,7 @@ export type SpanSample = Pick<
 
 export type DefaultSpanSampleFields =
   | SpanIndexedField.PROJECT
-  | SpanIndexedField.TRANSACTION_ID
+  | SpanIndexedField.TRANSACTION_SPAN_ID
   | SpanIndexedField.TIMESTAMP
   | SpanIndexedField.SPAN_ID
   | SpanIndexedField.PROFILE_ID
@@ -115,8 +115,13 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
     groupId && transactionName && !isLoadingSeries && pageFilter.isReady
   );
 
+  type DataRow = Pick<
+    SpanIndexedResponse,
+    Fields[number] | DefaultSpanSampleFields // These fields are returned by default
+  >;
+
   return useApiQuery<{
-    data: Array<Pick<SpanIndexedResponse, Fields[number] | DefaultSpanSampleFields>>;
+    data: DataRow[];
     meta: EventsMetaType;
   }>(
     [
@@ -132,7 +137,11 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
           firstBound: max * (1 / 3),
           secondBound: max * (2 / 3),
           upperBound: max,
-          additionalFields: [SpanIndexedField.ID, ...additionalFields],
+          additionalFields: [
+            SpanIndexedField.ID,
+            SpanIndexedField.TRANSACTION_SPAN_ID, // TODO: transaction.span_id should be a default from the backend
+            ...additionalFields,
+          ],
           sort: `-${SPAN_SELF_TIME}`,
           useRpc: useInsightsEap() ? '1' : undefined,
         },

@@ -30,7 +30,7 @@ export enum OurLogKnownFieldKey {
 
 export type OurLogFieldKey = OurLogCustomFieldKey | OurLogKnownFieldKey;
 
-export type OurLogsKnownFieldResponseMap = {
+type OurLogsKnownFieldResponseMap = {
   [OurLogKnownFieldKey.MESSAGE]: string;
   [OurLogKnownFieldKey.SEVERITY_NUMBER]: number;
   [OurLogKnownFieldKey.SEVERITY_TEXT]: string;

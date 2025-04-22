@@ -11,9 +11,9 @@ import type {Node} from '@react-types/shared';
 import type {CollectionChildren} from '@react-types/shared/src/collections';
 import {LayoutGroup, motion} from 'framer-motion';
 
+import type {TooltipProps} from 'sentry/components/core/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import type {TooltipProps} from 'sentry/components/tooltip';
-import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import type {FormSize} from 'sentry/utils/theme';
@@ -26,7 +26,7 @@ import {
   type Priority,
 } from './index.chonk';
 
-export interface SegmentedControlItemProps<Value extends string> {
+interface SegmentedControlItemProps<Value extends string> {
   key: Value;
   children?: React.ReactNode;
   disabled?: boolean;
@@ -51,7 +51,7 @@ export interface SegmentedControlItemProps<Value extends string> {
   tooltipOptions?: Omit<TooltipProps, 'children' | 'title' | 'className'>;
 }
 
-export interface SegmentedControlProps<Value extends string>
+interface SegmentedControlProps<Value extends string>
   extends Omit<RadioGroupProps, 'value' | 'defaultValue' | 'onChange' | 'isDisabled'> {
   children: CollectionChildren<Value>;
   onChange: (value: Value) => void;
