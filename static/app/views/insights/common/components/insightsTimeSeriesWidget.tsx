@@ -37,7 +37,8 @@ import {INGESTION_DELAY} from 'sentry/views/insights/settings';
 
 export interface InsightsTimeSeriesWidgetProps
   extends WidgetTitleProps,
-    LoadableChartWidgetProps {
+    Omit<LoadableChartWidgetProps, 'chartProperties'>,
+    Partial<Pick<LoadableChartWidgetProps, 'chartProperties'>> {
   error: Error | null;
   isLoading: boolean;
   series: DiscoverSeries[];
