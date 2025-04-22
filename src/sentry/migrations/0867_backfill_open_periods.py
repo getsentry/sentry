@@ -205,7 +205,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "0865_file_offsets"),
+        ("sentry", "0866_grouptype_index"),
     ]
 
     operations = [
