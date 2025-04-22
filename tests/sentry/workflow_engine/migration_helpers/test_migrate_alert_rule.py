@@ -42,7 +42,7 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_alert_rule,
     migrate_metric_action,
     migrate_metric_data_conditions,
-    migrate_resolve_threshold_data_conditions,
+    migrate_resolve_threshold_data_condition,
 )
 from sentry.workflow_engine.migration_helpers.utils import get_workflow_name
 from sentry.workflow_engine.models import (
@@ -120,21 +120,6 @@ def assert_alert_rule_resolve_trigger_migrated(alert_rule):
     assert detector_trigger.type == Condition.LESS_OR_EQUAL
     assert detector_trigger.condition_result == DetectorPriorityLevel.OK
     assert detector_trigger.condition_group == detector.workflow_condition_group
-
-    alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=alert_rule.id)
-    workflow = alert_rule_workflow.workflow
-    workflow_dcgs = DataConditionGroup.objects.filter(workflowdataconditiongroup__workflow=workflow)
-
-    data_condition = DataCondition.objects.get(
-        comparison=DetectorPriorityLevel.OK, condition_group__in=workflow_dcgs
-    )
-
-    assert data_condition.type == Condition.ISSUE_PRIORITY_EQUALS
-    assert data_condition.comparison == DetectorPriorityLevel.OK
-    assert data_condition.condition_result is True
-    assert WorkflowDataConditionGroup.objects.filter(
-        condition_group=data_condition.condition_group
-    ).exists()
 
 
 def assert_dual_written_resolution_threshold_equals(alert_rule, threshold):
@@ -679,7 +664,7 @@ class DualWriteAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
         """
         migrate_metric_data_conditions(self.alert_rule_trigger_warning)
         migrate_metric_data_conditions(self.alert_rule_trigger_critical)
-        migrate_resolve_threshold_data_conditions(self.metric_alert)
+        migrate_resolve_threshold_data_condition(self.metric_alert)
 
         assert_alert_rule_trigger_migrated(self.alert_rule_trigger_warning)
         assert_alert_rule_trigger_migrated(self.alert_rule_trigger_critical)
@@ -694,7 +679,7 @@ class DualWriteAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
         )
 
         migrate_metric_data_conditions(critical_trigger)
-        migrate_resolve_threshold_data_conditions(self.metric_alert_no_resolve)
+        migrate_resolve_threshold_data_condition(self.metric_alert_no_resolve)
 
         detector = AlertRuleDetector.objects.get(
             alert_rule_id=self.metric_alert_no_resolve.id
@@ -709,15 +694,6 @@ class DualWriteAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
         assert resolve_detector_trigger.condition_result == DetectorPriorityLevel.OK
         assert resolve_detector_trigger.condition_group == detector.workflow_condition_group
 
-        resolve_data_condition = DataCondition.objects.get(comparison=DetectorPriorityLevel.OK)
-
-        assert resolve_data_condition.type == Condition.ISSUE_PRIORITY_EQUALS
-        assert resolve_data_condition.condition_result is True
-        assert resolve_data_condition.condition_group == resolve_data_condition.condition_group
-        assert WorkflowDataConditionGroup.objects.filter(
-            condition_group=resolve_data_condition.condition_group
-        ).exists()
-
     def test_create_metric_alert_trigger_auto_resolve_less_than(self):
         """
         Test that we assign the resolve detector trigger the correct type if the threshold type is BELOW
@@ -728,7 +704,7 @@ class DualWriteAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
         )
 
         migrate_metric_data_conditions(critical_trigger)
-        migrate_resolve_threshold_data_conditions(self.metric_alert_no_resolve)
+        migrate_resolve_threshold_data_condition(self.metric_alert_no_resolve)
 
         detector = AlertRuleDetector.objects.get(
             alert_rule_id=self.metric_alert_no_resolve.id

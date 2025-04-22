@@ -341,9 +341,9 @@ def get_resolve_threshold(detector_data_condition_group: DataConditionGroup) -> 
     return resolve_threshold
 
 
-def migrate_resolve_threshold_data_conditions(
+def migrate_resolve_threshold_data_condition(
     alert_rule: AlertRule,
-) -> tuple[DataCondition, DataCondition]:
+) -> DataCondition:
     """
     Create data conditions for the old world's "resolve" threshold. If a resolve threshold
     has been explicitly set on the alert rule, then use this as our comparison value. Otherwise,
@@ -382,22 +382,7 @@ def migrate_resolve_threshold_data_conditions(
         condition_group=detector_data_condition_group,
     )
 
-    data_condition_group = DataConditionGroup.objects.create(
-        organization_id=alert_rule.organization_id
-    )
-    alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=alert_rule.id)
-    WorkflowDataConditionGroup.objects.create(
-        condition_group=data_condition_group,
-        workflow=alert_rule_workflow.workflow,
-    )
-
-    action_filter = DataCondition.objects.create(
-        comparison=DetectorPriorityLevel.OK,
-        condition_result=True,
-        type=Condition.ISSUE_PRIORITY_EQUALS,
-        condition_group=data_condition_group,
-    )
-    return detector_trigger, action_filter
+    return detector_trigger
 
 
 def create_metric_alert_lookup_tables(
@@ -586,7 +571,7 @@ def dual_write_alert_rule(alert_rule: AlertRule, user: RpcUser | None = None) ->
             for trigger_action in trigger_actions:
                 migrate_metric_action(trigger_action)
         # step 4: migrate alert rule resolution
-        migrate_resolve_threshold_data_conditions(alert_rule)
+        migrate_resolve_threshold_data_condition(alert_rule)
 
 
 def dual_update_alert_rule(alert_rule: AlertRule) -> None:
