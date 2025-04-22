@@ -148,7 +148,7 @@ export function LogRowContent({
             />
           </LogFirstCellContent>
         </LogsTableBodyFirstCell>
-        {fields.map(field => {
+        {fields?.map(field => {
           const value = dataRow[field];
 
           if (!defined(value)) {
@@ -191,7 +191,7 @@ export function LogRowContent({
                   }
                 }}
                 allowActions={
-                  field === OurLogKnownFieldKey.MESSAGE ? ALLOWED_CELL_ACTIONS : []
+                  field === OurLogKnownFieldKey.TIMESTAMP ? [] : ALLOWED_CELL_ACTIONS
                 }
               >
                 <LogFieldRenderer
