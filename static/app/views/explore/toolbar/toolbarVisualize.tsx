@@ -254,14 +254,15 @@ function VisualizeDropdown({
         onChange={setChartField}
         disabled={lockOptions}
       />
-      <Button
-        borderless
-        icon={<IconDelete />}
-        size="zero"
-        disabled={!canDelete}
-        onClick={() => deleteOverlay(group, index)}
-        aria-label={t('Remove Overlay')}
-      />
+      {canDelete ? (
+        <Button
+          borderless
+          icon={<IconDelete />}
+          size="zero"
+          onClick={() => deleteOverlay(group, index)}
+          aria-label={t('Remove Overlay')}
+        />
+      ) : null}
     </ToolbarRow>
   );
 }
