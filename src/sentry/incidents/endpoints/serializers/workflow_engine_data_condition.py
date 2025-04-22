@@ -46,17 +46,16 @@ class WorkflowEngineDataConditionSerializer(Serializer):
                 ]
             ).values_list("id", flat=True)
         )
-        workflow_ids = Subquery(
-            DetectorWorkflow.objects.filter(detector__in=detector_ids).values_list(
-                "workflow_id", flat=True
+        workflow_dcg_ids = DataConditionGroup.objects.filter(
+            workflowdataconditiongroup__workflow__in=Subquery(
+                DetectorWorkflow.objects.filter(detector__in=detector_ids).values_list(
+                    "workflow_id", flat=True
+                )
             )
-        )
-        workflow_dcgs = DataConditionGroup.objects.filter(
-            workflowdataconditiongroup__workflow__in=workflow_ids
-        )
+        ).values_list("id", flat=True)
         action_filter_data_condition_groups = DataCondition.objects.filter(
             comparison__in=[item.condition_result for item in item_list],
-            condition_group__in=workflow_dcgs,
+            condition_group__in=Subquery(workflow_dcg_ids),
         ).values_list("condition_group", flat=True)
 
         action_filter_data_condition_group_action_ids = DataConditionGroupAction.objects.filter(
