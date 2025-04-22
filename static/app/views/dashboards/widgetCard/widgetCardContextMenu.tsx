@@ -6,10 +6,10 @@ import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconExpand, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

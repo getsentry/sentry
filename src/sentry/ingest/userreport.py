@@ -2,14 +2,18 @@ from __future__ import annotations
 
 import logging
 import random
+import uuid
 from datetime import datetime, timedelta
 
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.db import IntegrityError, router
 from django.utils import timezone
 
 from sentry import eventstore, options
 from sentry.constants import DataCategory
 from sentry.eventstore.models import Event, GroupEvent
+from sentry.feedback.lib.types import UserReportDict
 from sentry.feedback.usecases.create_feedback import (
     UNREAL_FEEDBACK_UNATTENDED_MESSAGE,
     FeedbackCreationSource,
@@ -34,7 +38,7 @@ class Conflict(Exception):
 
 def save_userreport(
     project: Project,
-    report,
+    report: UserReportDict,
     source: FeedbackCreationSource,
     start_time: datetime | None = None,
 ) -> UserReport | None:
@@ -57,18 +61,20 @@ def save_userreport(
             )
             return None
 
-        report["comments"] = report["comments"].strip()
-
-        should_filter, filter_reason = should_filter_user_report(
-            report["comments"], project.id, source=source
+        should_filter, metrics_reason, outcomes_reason = validate_user_report(
+            report, project.id, source=source
         )
         if should_filter:
+            metrics.incr(
+                "user_report.create_user_report.filtered",
+                tags={"reason": metrics_reason, "referrer": source.value},
+            )
             track_outcome(
                 org_id=project.organization_id,
                 project_id=project.id,
                 key_id=None,
                 outcome=Outcome.INVALID,
-                reason=filter_reason,
+                reason=outcomes_reason,
                 timestamp=start_time or timezone.now(),
                 event_id=None,  # Note report["event_id"] is id of the associated event, not the report itself.
                 category=DataCategory.USER_REPORT_V2,
@@ -83,12 +89,10 @@ def save_userreport(
         report["event_id"] = report["event_id"].lower()
         report["project_id"] = project.id
 
-        event = eventstore.backend.get_event_by_id(project.id, report["event_id"])
-
-        euser = find_event_user(event)
-
-        if euser and not euser.name and report.get("name"):
-            euser.name = report["name"]
+        # Use the associated event to validate and update the report.
+        event: Event | GroupEvent | None = eventstore.backend.get_event_by_id(
+            project.id, report["event_id"]
+        )
 
         if event:
             # if the event is more than 30 minutes old, we don't allow updates
@@ -97,8 +101,10 @@ def save_userreport(
                 raise Conflict("Feedback for this event cannot be modified.")
 
             report["environment_id"] = event.get_environment().id
-            report["group_id"] = event.group_id
+            if event.group_id:
+                report["group_id"] = event.group_id
 
+        # Save the report.
         try:
             with atomic_transaction(using=router.db_for_write(UserReport)):
                 report_instance = UserReport.objects.create(**report)
@@ -122,7 +128,7 @@ def save_userreport(
 
             existing_report.update(
                 name=report.get("name", ""),
-                email=report["email"],
+                email=report.get("email", ""),
                 comments=report["comments"],
             )
             report_instance = existing_report
@@ -136,6 +142,7 @@ def save_userreport(
             if report_instance.group_id:
                 report_instance.notify()
 
+        # Additionally processing if save is successful.
         user_feedback_received.send_robust(project=project, sender=save_userreport)
 
         logger.info(
@@ -150,12 +157,13 @@ def save_userreport(
             "user_report.create_user_report.saved",
             tags={"has_event": bool(event), "referrer": source.value},
         )
-        if event:
+        if event and source.value in FeedbackCreationSource.old_feedback_category_values():
             logger.info(
                 "ingest.user_report.shim_to_feedback",
                 extra={"project_id": project.id, "event_id": report["event_id"]},
             )
             shim_to_feedback(report, event, project, source)
+            # XXX(aliu): the update_user_reports task will still try to shim the report after a period, unless group_id or environment is set.
 
         return report_instance
 
@@ -166,31 +174,40 @@ def find_event_user(event: Event | GroupEvent | None) -> EventUser | None:
     return EventUser.from_event(event)
 
 
-def should_filter_user_report(
-    comments: str,
+def validate_user_report(
+    report: UserReportDict,
     project_id: int,
     source: FeedbackCreationSource = FeedbackCreationSource.USER_REPORT_ENVELOPE,
-) -> tuple[bool, str | None]:
+) -> tuple[bool, str | None, str | None]:
     """
-    We don't care about empty user reports, or ones that
-    the unreal SDKs send.
+    Validates required fields, field lengths, and garbage messages. Also checks email format and that event_id is a UUID.
+
+    Reformatting: strips whitespace from comments and dashes from event_id.
+
+    Returns a tuple of (should_filter, metrics_reason, outcomes_reason). XXX: ensure metrics and outcome reasons have bounded cardinality.
+
+    At the moment we do not raise validation errors.
     """
-    if options.get("feedback.filter_garbage_messages"):  # Filter kill-switch.
+    if "comments" not in report:
+        return True, "missing_comments", "Missing comments"  # type: ignore[unreachable]
+    if "event_id" not in report:
+        return True, "missing_event_id", "Missing event_id"  # type: ignore[unreachable]
+
+    report["comments"] = report["comments"].strip()
+
+    name, email, comments = (
+        report.get("name", ""),
+        report.get("email", ""),
+        report["comments"],
+    )
+
+    if options.get("feedback.filter_garbage_messages"):  # Message-based filter kill-switch.
         if not comments:
-            metrics.incr(
-                "user_report.create_user_report.filtered",
-                tags={"reason": "empty", "referrer": source.value},
-            )
-            return True, "Empty Feedback Messsage"
+            return True, "empty", "Empty Feedback Messsage"
 
         if comments == UNREAL_FEEDBACK_UNATTENDED_MESSAGE:
-            metrics.incr(
-                "user_report.create_user_report.filtered",
-                tags={"reason": "unreal.unattended", "referrer": source.value},
-            )
-            return True, "Sent in Unreal Unattended Mode"
+            return True, "unreal.unattended", "Sent in Unreal Unattended Mode"
 
-    # Always filter large messages (attempting to save will raise Postgres error).
     max_comment_length = UserReport._meta.get_field("comments").max_length
     if max_comment_length and len(comments) > max_comment_length:
         metrics.distribution(
@@ -212,6 +229,26 @@ def should_filter_user_report(
                     "feedback_message": comments[:100],
                 },
             )
-        return True, "Too Large"
+        return True, "too_large.message", "Message Too Large"
 
-    return False, None
+    max_name_length = UserReport._meta.get_field("name").max_length
+    if max_name_length and len(name) > max_name_length:
+        return True, "too_large.name", "Name Too Large"
+
+    max_email_length = UserReport._meta.get_field("email").max_length
+    if max_email_length and len(email) > max_email_length:
+        return True, "too_large.email", "Email Too Large"
+
+    try:
+        if email:
+            validate_email(email)
+    except ValidationError:
+        return True, "invalid_email", "Invalid Email"
+
+    try:
+        # Validates UUID and strips dashes.
+        report["event_id"] = uuid.UUID(report["event_id"].lower()).hex
+    except ValueError:
+        return True, "invalid_event_id", "Invalid Event ID"
+
+    return False, None, None

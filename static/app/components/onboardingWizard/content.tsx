@@ -97,32 +97,26 @@ function TaskCard({
 
 interface TaskStatusIconProps {
   progress?: number;
-  status?: 'complete' | 'inProgress' | 'skipped';
+  status?: 'complete' | 'skipped';
   tooltipText?: string;
 }
 
 function TaskStatusIcon({status, tooltipText}: TaskStatusIconProps) {
   const theme = useTheme();
+  const commonStyle = css`
+    opacity: 50%;
+    color: ${theme.tokens.content.accent};
+  `;
   return (
     <Tooltip title={tooltipText} disabled={!tooltipText} containerDisplayMode="flex">
       {status === 'complete' ? (
         <IconCheckmark
           data-test-id="task-status-icon-complete"
-          css={css`
-            opacity: 50%;
-            color: ${theme.tokens.content.accent};
-          `}
+          css={commonStyle}
           size="sm"
         />
       ) : (
-        <IconNot
-          data-test-id="task-status-icon-skipped"
-          css={css`
-            opacity: 50%;
-            color: ${theme.tokens.content.accent};
-          `}
-          size="sm"
-        />
+        <IconNot data-test-id="task-status-icon-skipped" css={commonStyle} size="sm" />
       )}
     </Tooltip>
   );

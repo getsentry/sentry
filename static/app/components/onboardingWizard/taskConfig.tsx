@@ -1,5 +1,6 @@
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {filterSupportedTasks} from 'sentry/components/onboardingWizard/filterSupportedTasks';
 import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
