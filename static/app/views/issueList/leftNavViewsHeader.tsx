@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
@@ -17,7 +16,11 @@ import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {EditableIssueViewHeader} from 'sentry/views/issueList/editableIssueViewHeader';
 import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
-import {canEditIssueView, isNewViewPage} from 'sentry/views/issueList/issueViews/utils';
+import {
+  canEditIssueView,
+  confirmDeleteIssueView,
+  isNewViewPage,
+} from 'sentry/views/issueList/issueViews/utils';
 import {useDeleteGroupSearchView} from 'sentry/views/issueList/mutations/useDeleteGroupSearchView';
 import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
 import {makeFetchGroupSearchViewKey} from 'sentry/views/issueList/queries/useFetchGroupSearchView';
@@ -137,19 +140,10 @@ function IssueViewEditMenu() {
             ? undefined
             : t('You do not have permission to delete this view.'),
           onAction: () => {
-            openConfirmModal({
-              message: t(
-                'Are you sure you want to delete the view "%s"?',
-                groupSearchView.name
-              ),
-              isDangerous: true,
-              confirmText: t('Delete View'),
-              priority: 'danger',
-              onConfirm: () => {
+            confirmDeleteIssueView({
+              handleDelete: () =>
                 deleteIssueView(
-                  {
-                    id: groupSearchView.id,
-                  },
+                  {id: groupSearchView.id},
                   {
                     onSuccess: () => {
                       navigate(
@@ -157,8 +151,8 @@ function IssueViewEditMenu() {
                       );
                     },
                   }
-                );
-              },
+                ),
+              groupSearchView,
             });
           },
         },
