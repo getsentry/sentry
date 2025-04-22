@@ -28,7 +28,7 @@ class EnhancementRule:
         self.has_contributes_actions = any(action.sets_contributes for action in actions)
 
     @property
-    def matcher_description(self) -> str:
+    def text(self) -> str:
         matchers = " ".join(matcher.description for matcher in self.matchers)
         actions = " ".join(str(action) for action in self.actions)
         return f"{matchers} {actions}"
