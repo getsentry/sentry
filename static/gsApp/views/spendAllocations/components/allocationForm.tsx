@@ -19,7 +19,7 @@ import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DataCategoryExact} from 'sentry/types/core';
+import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -29,7 +29,7 @@ import {
   AllocationTargetTypes,
 } from 'getsentry/constants';
 import type {Subscription} from 'getsentry/types';
-import {SINGULAR_DATA_CATEGORY} from 'getsentry/utils/dataCategory';
+import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
 import {bigNumFormatter, BigNumUnits} from 'getsentry/views/spendAllocations/utils';
@@ -42,7 +42,7 @@ type AllocationFormProps = {
   fetchSpendAllocations: () => Promise<void>;
   organization: Organization;
   rootAllocation: SpendAllocation | undefined;
-  selectedMetric: string;
+  selectedMetric: DataCategory;
   spendAllocations: SpendAllocation[];
   subscription: Subscription;
   initializedData?: SpendAllocation;
@@ -64,15 +64,13 @@ function AllocationForm({
   const [allocationVolume, setAllocationVolume] = useState<number>(0);
   const [errorFields, setErrorFields] = useState<string[]>([]);
   const [showPrice, setShowPrice] = useState<boolean>(false);
-  const [selectedMetric, setSelectedMetric] = useState<string>(
+  const [selectedMetric, setSelectedMetric] = useState<DataCategory | null>(
     initializedData
-      ? initializedData.billingMetric
-      : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        ALLOCATION_SUPPORTED_CATEGORIES.includes(SINGULAR_DATA_CATEGORY[initialMetric])
-        ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          SINGULAR_DATA_CATEGORY[initialMetric]
-        : ALLOCATION_SUPPORTED_CATEGORIES[0]
-  ); // NOTE: singular lowercase datacategories ex. error
+      ? (initializedData.billingMetric as DataCategory)
+      : initialMetric && ALLOCATION_SUPPORTED_CATEGORIES.includes(initialMetric)
+        ? initialMetric
+        : (ALLOCATION_SUPPORTED_CATEGORIES[0] ?? null)
+  );
   const [targetId, setTargetId] = useState<string | undefined>(
     initializedData && String(initializedData.targetId)
   );
@@ -103,7 +101,7 @@ function AllocationForm({
   }, [initializedData, allocationVolume]);
 
   const incrementSize = useMemo(() => {
-    return selectedMetric === DataCategoryExact.ATTACHMENT ? 1000 : 1;
+    return selectedMetric === DataCategory.ATTACHMENTS ? 1000 : 1;
   }, [selectedMetric]);
 
   const exhaustedEvents = useMemo(() => {
@@ -135,7 +133,7 @@ function AllocationForm({
   }, [allocationVolume, costPerItem]);
 
   const metricUnit = useMemo(() => {
-    return selectedMetric === DataCategoryExact.ATTACHMENT
+    return selectedMetric === DataCategory.ATTACHMENTS
       ? BigNumUnits.KILO_BYTES
       : BigNumUnits.NUMBERS;
   }, [selectedMetric]);
@@ -272,12 +270,14 @@ function AllocationForm({
             <Select
               name="category"
               options={ALLOCATION_SUPPORTED_CATEGORIES.filter(category =>
-                subscription.planDetails.categories.includes(
-                  DATA_CATEGORY_INFO[category].plural
-                )
+                subscription.planDetails.categories.includes(category)
               ).map(category => ({
                 value: category,
-                label: capitalize(DATA_CATEGORY_INFO[category].plural),
+                label: getPlanCategoryName({
+                  plan: subscription.planDetails,
+                  category,
+                  title: true,
+                }),
               }))}
               value={selectedMetric}
               onChange={(val: any) => setSelectedMetric(val)}
