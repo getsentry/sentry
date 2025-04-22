@@ -12,7 +12,6 @@ type ChonkButtonType =
   | 'warning'
   | 'danger'
   | 'link';
-type ChonkButtonSize = 'mini' | 'small' | 'medium' | 'large';
 
 function chonkPriorityToType(priority: ButtonProps['priority']): ChonkButtonType {
   switch (priority) {
@@ -35,28 +34,12 @@ function chonkPriorityToType(priority: ButtonProps['priority']): ChonkButtonType
   }
 }
 
-function chonkSizeMapping(size: ButtonProps['size']): ChonkButtonSize {
-  switch (size) {
-    case 'zero':
-      return 'mini';
-    case 'xs':
-      return 'small';
-    case 'sm':
-      return 'medium';
-    case 'md':
-      return 'large';
-    default:
-      return 'medium';
-  }
-}
-
 export function getChonkButtonStyles(
   p: Pick<ButtonProps, 'size' | 'priority' | 'busy' | 'disabled' | 'borderless'> & {
     theme: DO_NOT_USE_ChonkTheme;
   }
 ): StrictCSSObject {
   const type = chonkPriorityToType(p.priority);
-  const size = chonkSizeMapping(p.size);
 
   return {
     position: 'relative',
@@ -66,8 +49,8 @@ export function getChonkButtonStyles(
     cursor: p.disabled ? 'not-allowed' : 'pointer',
     opacity: p.busy || p.disabled ? 0.6 : undefined,
 
-    padding: getChonkButtonSizeTheme(size, p.theme).padding,
-    borderRadius: getChonkButtonSizeTheme(size, p.theme).borderRadius,
+    padding: getChonkButtonSizeTheme(p.size, p.theme).padding,
+    borderRadius: getChonkButtonSizeTheme(p.size, p.theme).borderRadius,
     color: getChonkButtonTheme(type, p.theme).color,
 
     border: '1px solid transparent',
@@ -75,15 +58,15 @@ export function getChonkButtonStyles(
     background: 'none',
 
     height:
-      size === 'large'
-        ? '37px'
-        : size === 'medium'
-          ? '30px'
-          : size === 'small'
-            ? '25px'
-            : '20px',
+      p.size === 'md'
+        ? '39px'
+        : p.size === 'sm'
+          ? '34px'
+          : p.size === 'xs'
+            ? '28px'
+            : '26px',
 
-    fontSize: size === 'small' || size === 'mini' ? '12px' : '14px',
+    fontSize: p.size === 'xs' || p.size === 'zero' ? '12px' : '14px',
 
     '&::before': {
       content: '""',
@@ -288,29 +271,29 @@ function getChonkButtonTheme(type: ChonkButtonType, theme: DO_NOT_USE_ChonkTheme
 }
 
 function getChonkButtonSizeTheme(
-  size: ChonkButtonSize,
+  size: ButtonProps['size'],
   theme: DO_NOT_USE_ChonkTheme
 ): StrictCSSObject {
   switch (size) {
-    case 'mini':
+    case 'md':
       return {
-        borderRadius: theme.radius.mini,
-        padding: `${theme.space.micro} ${theme.space.mini}`,
+        borderRadius: theme.radius.xl,
+        padding: `${theme.space.md} ${theme.space.xl}`,
       };
-    case 'small':
+    case 'sm':
       return {
-        borderRadius: theme.radius.sm,
-        padding: `${theme.space.mini} ${theme.space.sm}`,
+        borderRadius: theme.radius.lg,
+        padding: `${theme.space.md} ${theme.space.lg}`,
       };
-    case 'medium':
+    case 'xs':
       return {
         borderRadius: theme.radius.md,
         padding: `${theme.space.sm} ${theme.space.md}`,
       };
-    case 'large':
+    case 'zero':
       return {
-        borderRadius: theme.radius.lg,
-        padding: `${theme.space.md} ${theme.space.lg}`,
+        borderRadius: theme.radius.sm,
+        padding: `${theme.space.mini} ${theme.space.sm}`,
       };
     default:
       return {};
