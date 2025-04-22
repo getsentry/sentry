@@ -127,7 +127,7 @@ function ResourceTypeSelector({value}: {value?: string}) {
   );
 }
 
-export const SpanTimeChartsContainer = styled('div')`
+const SpanTimeChartsContainer = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
