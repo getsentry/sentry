@@ -14,6 +14,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import CreditCardSetup from 'getsentry/components/creditCardSetup';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {FTCConsentLocation} from 'getsentry/types';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 
@@ -46,6 +47,7 @@ function AddPaymentMethod({
         organization={organization}
         onSuccess={onPaymentAccepted}
         buttonText="Continue"
+        location={FTCConsentLocation.CHECKOUT}
       />
     );
 
