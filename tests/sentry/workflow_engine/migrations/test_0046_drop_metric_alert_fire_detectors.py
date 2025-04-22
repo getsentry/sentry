@@ -1,8 +1,11 @@
+import pytest
+
 from sentry.models.organization import Organization
 from sentry.testutils.cases import TestMigrations
 from sentry.workflow_engine.models.detector import Detector
 
 
+@pytest.mark.skip("Migration is no longer runnable. Retain until migration is removed.")
 class DropMetricAlertFireDetectors(TestMigrations):
     app = "workflow_engine"
     migrate_from = "0045_add_unique_constraint_alert_rule_detector"
