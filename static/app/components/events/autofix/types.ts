@@ -39,12 +39,6 @@ type AutofixOptions = {
   iterative_feedback?: boolean;
 };
 
-export type AutofixUpdateEndpointResponse = {
-  run_id: number;
-  message?: string;
-  status?: 'success' | 'error';
-};
-
 type CodebaseState = {
   is_readable: boolean | null;
   is_writeable: boolean | null;
