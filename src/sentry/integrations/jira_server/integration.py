@@ -30,9 +30,11 @@ from sentry.integrations.jira.tasks import migrate_issues
 from sentry.integrations.jira_server.utils.choice import build_user_choice
 from sentry.integrations.mixins import ResolveSyncAction
 from sentry.integrations.mixins.issues import IssueSyncIntegration
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import ExternalProviders
 from sentry.models.group import Group
 from sentry.organizations.services.organization.service import organization_service
 from sentry.pipeline import Pipeline, PipelineView
@@ -1097,6 +1099,127 @@ class JiraServerIntegration(IssueSyncIntegration):
         # Immediately fetch and return the created issue.
         return self.get_issue(issue_key)
 
+    def _get_user_by_external_actor(
+        self,
+        client: JiraServerClient,
+        external_issue_key: str,
+        user: RpcUser,
+        logging_context: dict[str, Any],
+    ) -> list[Any] | None:
+        external_actors = ExternalActor.objects.filter(
+            organization_id=self.organization.id,
+            integration_id=self.model.id,
+            provider=ExternalProviders.JIRA_SERVER.value,
+            user_id=user.id,
+        )
+
+        if len(external_actors) > 1:
+            logger.warning(
+                "jira_server.user_external_actor.multiple_actors",
+                extra={
+                    **logging_context,
+                    "user_id": user.id,
+                },
+            )
+            return None
+
+        external_actor: ExternalActor | None = external_actors.first()
+        if external_actor is None:
+            return None
+
+        possible_users = client.search_users_for_issue(
+            external_issue_key, external_actor.external_name
+        )
+
+        for possible_user in possible_users:
+            if possible_user.get("name").lower() == external_actor.external_name.lower():
+                return possible_user
+
+        return None
+
+    def _get_matching_users_by_email(
+        self,
+        external_issue_key: str,
+        client: JiraServerClient,
+        user: RpcUser,
+        logging_context: dict[str, Any],
+    ):
+        local_logging_context = {**logging_context}
+        local_logging_context["user_id"] = user.id
+        local_logging_context["user_email_count"] = len(user.emails)
+
+        jira_user = None
+        for ue in user.emails:
+            assert ue, "Expected a valid user email, received falsy value"
+            try:
+                possible_users = client.search_users_for_issue(external_issue_key, ue)
+            except ApiUnauthorized:
+                logger.info(
+                    "jira.user-search-unauthorized",
+                    extra={
+                        **local_logging_context,
+                    },
+                )
+                continue
+            except ApiError as e:
+                logger.info(
+                    "jira.user-search-request-error",
+                    extra={
+                        **logging_context,
+                        "error": str(e),
+                    },
+                )
+                continue
+
+            for possible_user in possible_users:
+                # Continue matching on email address, since we can't guarantee
+                # a clean match.
+                email = possible_user.get("emailAddress")
+
+                if not email:
+                    continue
+
+                # match on lowercase email
+                if email.lower() == ue.lower():
+                    jira_user = possible_user
+                    break
+
+        if jira_user is None:
+            # TODO(jess): do we want to email people about these types of failures?
+            logger.info(
+                "jira.assignee-not-found",
+                extra=local_logging_context,
+            )
+            raise IntegrationError("Failed to assign user to Jira Server issue")
+
+        return jira_user
+
+    def _get_possible_users(
+        self,
+        client: JiraServerClient,
+        external_issue_key: str,
+        user: RpcUser,
+        logging_context: dict[str, Any],
+    ):
+        possible_user = self._get_user_by_external_actor(
+            client=client,
+            external_issue_key=external_issue_key,
+            user=user,
+            logging_context=logging_context,
+        )
+
+        if possible_user is not None:
+            return possible_user
+
+        possible_users = self._get_matching_users_by_email(
+            client=client,
+            external_issue_key=external_issue_key,
+            user=user,
+            logging_context=logging_context,
+        )
+
+        return possible_users
+
     def sync_assignee_outbound(
         self,
         external_issue: ExternalIssue,
@@ -1110,6 +1233,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         client = self.get_client()
         logging_context = {
             "integration_id": external_issue.integration_id,
+            "organization_id": self.organization_id,
             "issue_key": external_issue.key,
         }
 
@@ -1118,66 +1242,12 @@ class JiraServerIntegration(IssueSyncIntegration):
             logging_context["user_id"] = user.id
             logging_context["user_email_count"] = len(user.emails)
 
-            total_queried_jira_users = 0
-            total_available_jira_emails = 0
-            for ue in user.emails:
-                assert ue, "Expected a valid user email, received falsy value"
-                try:
-                    possible_users = client.search_users_for_issue(external_issue.key, ue)
-                except ApiUnauthorized:
-                    logger.info(
-                        "jira.user-search-unauthorized",
-                        extra={
-                            **logging_context,
-                        },
-                    )
-                    continue
-                except ApiError as e:
-                    logger.info(
-                        "jira.user-search-request-error",
-                        extra={
-                            **logging_context,
-                            "error": str(e),
-                        },
-                    )
-                    continue
-
-                total_queried_jira_users += len(possible_users)
-
-                if len(possible_users) == 1:
-                    # Assume the only user returned is a full match for the email,
-                    # as we search by username. This addresses visibility issues
-                    # in some cases where Jira server does not populate `emailAddress`
-                    # fields on user responses.
-                    jira_user = possible_users[0]
-                    break
-
-                for possible_user in possible_users:
-                    # Continue matching on email address, since we can't guarantee
-                    # a clean match.
-                    email = possible_user.get("emailAddress")
-
-                    if not email:
-                        continue
-
-                    total_available_jira_emails += 1
-                    # match on lowercase email
-                    if email.lower() == ue.lower():
-                        jira_user = possible_user
-                        break
-
-            if jira_user is None:
-                # TODO(jess): do we want to email people about these types of failures?
-                logger.info(
-                    "jira.assignee-not-found",
-                    extra={
-                        **logging_context,
-                        "jira_user_count_match": total_queried_jira_users,
-                        "total_available_jira_emails": total_available_jira_emails,
-                    },
-                )
-                raise IntegrationError("Failed to assign user to Jira Server issue")
-
+            jira_user = self._get_possible_users(
+                external_issue_key=external_issue.key,
+                client=client,
+                user=user,
+                logging_context=logging_context,
+            )
         try:
             id_field = client.user_id_field()
             client.assign_issue(external_issue.key, jira_user and jira_user.get(id_field))

@@ -855,30 +855,6 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
 
     @responses.activate
     @patch("sentry.integrations.jira_server.integration.JiraServerClient.assign_issue")
-    def test_sync_assignee_outbound_no_email(self, mock_assign_issue):
-        user = serialize_rpc_user(self.create_user(email="bob@example.com"))
-        issue_id = "APP-123"
-        fake_jira_user = {"accountId": "deadbeef123", "displayName": "Dead Beef", "name": "Beef"}
-        external_issue = ExternalIssue.objects.create(
-            organization_id=self.organization.id,
-            integration_id=self.installation.model.id,
-            key=issue_id,
-        )
-        responses.add(
-            responses.GET,
-            "https://jira.example.org/rest/api/2/user/assignable/search",
-            json=[fake_jira_user],
-        )
-
-        self.installation.sync_assignee_outbound(external_issue, user)
-
-        mock_assign_issue.assert_called_with(
-            issue_id,
-            "Beef",
-        )
-
-    @responses.activate
-    @patch("sentry.integrations.jira_server.integration.JiraServerClient.assign_issue")
     def test_sync_assignee_outbound_unauthorized(self, mock_assign_issue):
         mock_assign_issue.side_effect = ApiUnauthorized("Oops, unauthorized")
         user = serialize_rpc_user(self.create_user(email="bob@example.com"))
@@ -895,7 +871,7 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
                 {
                     "accountId": "deadbeef123",
                     "displayName": "Dead Beef",
-                    "username": "bob@example.com",
+                    "email": "bob@example.com",
                 }
             ],
         )
