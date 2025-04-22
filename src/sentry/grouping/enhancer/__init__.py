@@ -345,13 +345,13 @@ class Enhancements:
             compressed_pickle = base64.urlsafe_b64decode(padded_bytes)
 
             if compressed_pickle.startswith(b"\x28\xb5\x2f\xfd"):
-                encoded = zstandard.decompress(compressed_pickle)
+                pickled = zstandard.decompress(compressed_pickle)
             else:
-                encoded = zlib.decompress(compressed_pickle)
+                pickled = zlib.decompress(compressed_pickle)
 
-            rust_enhancements = parse_rust_enhancements("config_structure", encoded)
+            rust_enhancements = parse_rust_enhancements("config_structure", pickled)
 
-            return cls._from_config_structure(msgpack.loads(encoded, raw=False), rust_enhancements)
+            return cls._from_config_structure(msgpack.loads(pickled, raw=False), rust_enhancements)
         except (LookupError, AttributeError, TypeError, ValueError) as e:
             raise ValueError("invalid stack trace rule config: %s" % e)
 
