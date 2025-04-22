@@ -230,13 +230,9 @@ def save_issue_from_occurrence(
                 GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()
             )
             if open_period is not None:
-                highest_seen_severity = open_period.data.get("highest_seen_severity", None)
-                if highest_seen_severity is None:
-                    highest_seen_severity = group.priority
-                else:
-                    highest_seen_severity = max(highest_seen_severity, group.priority)
+                highest_seen_priority = group.priority
                 open_period.update(
-                    data={**open_period.data, "highest_seen_severity": highest_seen_severity}
+                    data={**open_period.data, "highest_seen_priority": highest_seen_priority}
                 )
             is_regression = False
             span.set_tag("save_issue_from_occurrence.outcome", "new_group")
@@ -291,6 +287,18 @@ def save_issue_from_occurrence(
         group_event.occurrence = occurrence
         is_regression = _process_existing_aggregate(group, group_event, issue_kwargs, release)
         group_info = GroupInfo(group=group, is_new=False, is_regression=is_regression)
+
+        # TODO: this function does not update the group priority if the group already exists—so this doesn't work yet
+        open_period = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()
+        if open_period is not None:
+            highest_seen_priority = open_period.data.get("highest_seen_priority", None)
+            if highest_seen_priority is None:
+                highest_seen_priority = group.priority
+            else:
+                highest_seen_priority = max(highest_seen_priority, group.priority)
+            open_period.update(
+                data={**open_period.data, "highest_seen_priority": highest_seen_priority}
+            )
 
     additional_hashes = [f for f in occurrence.fingerprint if f != primary_grouphash.hash]
     for fingerprint_hash in additional_hashes:
