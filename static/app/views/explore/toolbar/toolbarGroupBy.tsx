@@ -158,14 +158,16 @@ function ColumnEditorRow({
       style={{transform: CSS.Transform.toString(transform), transition}}
       {...attributes}
     >
-      <Button
-        aria-label={t('Drag to reorder')}
-        borderless
-        size="zero"
-        disabled={disabled}
-        icon={<IconGrabbable size="sm" />}
-        {...listeners}
-      />
+      {canDelete ? (
+        <Button
+          aria-label={t('Drag to reorder')}
+          borderless
+          size="zero"
+          disabled={disabled}
+          icon={<IconGrabbable size="sm" />}
+          {...listeners}
+        />
+      ) : null}
       <StyledCompactSelect
         data-test-id="editor-column"
         options={options}
