@@ -207,7 +207,7 @@ export enum SpanOpBreakdown {
   SPANS_UI = 'spans.ui',
 }
 
-export enum SpanHttpField {
+enum SpanHttpField {
   HTTP_DECODED_RESPONSE_CONTENT_LENGTH = 'http.decoded_response_content_length',
   HTTP_RESPONSE_CONTENT_LENGTH = 'http.response_content_length',
   HTTP_RESPONSE_TRANSFER_SIZE = 'http.response_transfer_size',
@@ -256,7 +256,7 @@ export enum IsFieldValues {
   UNLINKED = 'unlinked',
 }
 
-export type AggregateColumnParameter = {
+type AggregateColumnParameter = {
   /**
    * The types of columns that are valid for this parameter.
    * Can pass a list of FieldValueTypes or a predicate function.
@@ -270,7 +270,7 @@ export type AggregateColumnParameter = {
   defaultValue?: string;
 };
 
-export type AggregateValueParameter = {
+type AggregateValueParameter = {
   dataType: FieldValueType;
   kind: 'value';
   name: string;

@@ -434,7 +434,7 @@ export type MemoryFrame = HydratedSpan<'memory'>;
 export type NavigationFrame = HydratedSpan<
   'navigation.navigate' | 'navigation.reload' | 'navigation.back_forward'
 >;
-export type PaintFrame = HydratedSpan<'paint'>;
+type PaintFrame = HydratedSpan<'paint'>;
 export type RequestFrame = HydratedSpan<
   'resource.fetch' | 'resource.xhr' | 'resource.http'
 >;
@@ -515,7 +515,7 @@ interface VideoFrame {
   width: number;
 }
 
-export interface VideoFrameEvent {
+interface VideoFrameEvent {
   data: {
     payload: VideoFrame;
     tag: 'video';

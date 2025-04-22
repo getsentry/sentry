@@ -2,14 +2,14 @@ type NavigationItemClicked = {
   item: string;
 };
 
-export type NavigationEventParameters = {
+type NavigationEventParameters = {
   'navigation.help_menu_opt_in_stacked_navigation_clicked': Record<string, unknown>;
   'navigation.help_menu_opt_out_stacked_navigation_clicked': Record<string, unknown>;
   'navigation.primary_item_clicked': NavigationItemClicked;
   'navigation.secondary_item_clicked': NavigationItemClicked;
 };
 
-export type NavigationEventKey = keyof NavigationEventParameters;
+type NavigationEventKey = keyof NavigationEventParameters;
 
 export const navigationAnalyticsEventMap: Record<NavigationEventKey, string | null> = {
   'navigation.help_menu_opt_in_stacked_navigation_clicked':

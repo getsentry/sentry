@@ -300,7 +300,7 @@ export type EventsStatsData = Array<
   [number, Array<{count: number; comparisonCount?: number}>]
 >;
 
-export type ConfidenceStatsData = Array<[number, Array<{count: Confidence}>]>;
+type ConfidenceStatsData = Array<[number, Array<{count: Confidence}>]>;
 
 type AccuracyStatsItem<T> = {
   timestamp: number;

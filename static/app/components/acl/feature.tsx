@@ -95,7 +95,7 @@ interface RenderDisabledProps extends FeatureRenderProps {
   renderDisabled?: (props: FeatureRenderProps) => React.ReactNode;
 }
 
-export type RenderDisabledFn = (props: RenderDisabledProps) => React.ReactNode;
+type RenderDisabledFn = (props: RenderDisabledProps) => React.ReactNode;
 
 interface ChildRenderProps extends FeatureRenderProps {
   renderDisabled?: boolean | ((props: any) => React.ReactNode);

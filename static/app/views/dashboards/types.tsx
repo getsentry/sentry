@@ -34,8 +34,8 @@ export enum WidgetType {
 
 // These only pertain to on-demand warnings at this point in time
 // Since they are the only soft-validation we do.
-export type WidgetWarning = Record<string, OnDemandExtractionState>;
-export type WidgetQueryWarning = null | OnDemandExtractionState;
+type WidgetWarning = Record<string, OnDemandExtractionState>;
+type WidgetQueryWarning = null | OnDemandExtractionState;
 
 export interface ValidateWidgetResponse {
   warnings: {
