@@ -1,7 +1,7 @@
 from datetime import timedelta
 from typing import Any
 from unittest import mock
-from unittest.mock import MagicMock
+from unittest.mock import ANY, MagicMock
 
 from django.utils import timezone
 from urllib3.exceptions import MaxRetryError, TimeoutError
@@ -405,3 +405,94 @@ class GetSimilarityDataFromSeerTest(TestCase):
 
         # Call count has increased to 2, because we know the grouphash is old by its lack of metadata
         assert mock_seer_deletion_request.delay.call_count == 2
+
+    @mock.patch("src.sentry.seer.similarity.types.GroupHash.objects.filter")
+    @mock.patch("sentry.seer.similarity.similar_issues.logger")
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
+    def test_retry_if_parent_hash_not_found_retry_success(
+        self,
+        mock_seer_similarity_request: MagicMock,
+        mock_logger: MagicMock,
+        mock_grouphash_objects_filter: MagicMock,
+    ):
+        existing_grouphash_no_group = GroupHash.objects.create(
+            hash="dogs are great", project=self.project
+        )
+        GroupHashMetadata.objects.create(grouphash=existing_grouphash_no_group)
+        assert existing_grouphash_no_group.group_id is None
+        existing_grouphash_with_group = GroupHash.objects.create(
+            hash="adopt, don't shop", project=self.project, group=self.group
+        )
+
+        mock_seer_similarity_request.return_value = self._make_response(
+            {
+                "responses": [
+                    {
+                        "parent_hash": "dogs are great",
+                        "should_group": True,
+                        "stacktrace_distance": 0.01,
+                    }
+                ]
+            }
+        )
+
+        # Make it so that the first time we look for the parent grouphash, it doesn't have a group,
+        # but the second time we look for it, it does
+        mock_queryset = MagicMock()
+        mock_grouphash_objects_filter.return_value = mock_queryset
+        mock_queryset.exclude.return_value = mock_queryset
+        mock_queryset.first.side_effect = [
+            existing_grouphash_no_group,
+            existing_grouphash_with_group,
+        ]
+
+        results = get_similarity_data_from_seer(self.request_params)
+
+        mock_logger.warning.assert_any_call(
+            "get_similarity_data_from_seer.parent_hash_missing_group", extra=ANY
+        )
+        mock_logger.info.assert_any_call(
+            "get_similarity_data_from_seer.parent_hash_missing_group.retry_success", extra=ANY
+        )
+        assert results == [
+            SeerSimilarIssueData(
+                parent_group_id=self.group.id,
+                parent_hash="dogs are great",
+                should_group=True,
+                stacktrace_distance=0.01,
+            )
+        ]
+
+    @mock.patch("sentry.seer.similarity.similar_issues.logger")
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
+    def test_retry_if_parent_hash_not_found_retry_failure(
+        self,
+        mock_seer_similarity_request: MagicMock,
+        mock_logger: MagicMock,
+        # mock_grouphash_objects_filter: MagicMock,
+    ):
+        existing_grouphash = GroupHash.objects.create(hash="dogs are great", project=self.project)
+        GroupHashMetadata.objects.create(grouphash=existing_grouphash)
+        assert existing_grouphash.group_id is None
+
+        mock_seer_similarity_request.return_value = self._make_response(
+            {
+                "responses": [
+                    {
+                        "parent_hash": "dogs are great",
+                        "should_group": True,
+                        "stacktrace_distance": 0.01,
+                    }
+                ]
+            }
+        )
+
+        results = get_similarity_data_from_seer(self.request_params)
+
+        mock_logger.warning.assert_any_call(
+            "get_similarity_data_from_seer.parent_hash_missing_group", extra=ANY
+        )
+        mock_logger.info.assert_any_call(
+            "get_similarity_data_from_seer.parent_hash_missing_group.retry_failure", extra=ANY
+        )
+        assert results == []
