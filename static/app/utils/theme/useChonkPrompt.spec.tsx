@@ -8,8 +8,8 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {useChonkPrompt} from './useChonkPrompt';
 
-const queryClient = new QueryClient();
 function makeWrapper(organization: Organization) {
+  const queryClient = new QueryClient();
   return function ({children}: {children: React.ReactNode}) {
     return (
       <QueryClientProvider client={queryClient}>
