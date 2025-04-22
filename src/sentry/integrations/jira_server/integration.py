@@ -334,18 +334,11 @@ class JiraServerIntegration(IssueSyncIntegration):
     issues_ignored_fields_key = "issues_ignored_fields"
     resolution_strategy_key = "resolution_strategy"
 
-    default_identity = None
-
     def get_client(self):
         try:
-            self.default_identity = self.get_default_identity()
+            return JiraServerClient(integration=self.model, identity=self.default_identity)
         except Identity.DoesNotExist:
             raise IntegrationError("Identity not found.")
-
-        return JiraServerClient(
-            integration=self.model,
-            identity=self.default_identity,
-        )
 
     def get_organization_config(self):
         configuration: list[_Config] = [
@@ -781,7 +774,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         return jira_projects
 
     @all_silo_function
-    def get_create_issue_config(self, group: Group | None, user: User, **kwargs):
+    def get_create_issue_config(self, group: Group | None, user: User | RpcUser, **kwargs):
         """
         We use the `group` to get three things: organization_slug, project
         defaults, and default title and description. In the case where we're

@@ -10,7 +10,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 
 import type {EventsResults, Sort} from './types';
 
-export interface UseProfileEventsOptions<F extends string = ProfilingFieldType> {
+interface UseProfileEventsOptions<F extends string = ProfilingFieldType> {
   fields: readonly F[];
   referrer: string;
   sort: Sort<F>;

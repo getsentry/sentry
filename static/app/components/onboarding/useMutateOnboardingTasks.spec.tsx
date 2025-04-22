@@ -17,7 +17,6 @@ describe('useMutateOnboardingTasks', function () {
       onboardingTasks: [
         {
           task: OnboardingTaskKey.FIRST_EVENT,
-          status: 'pending',
         },
       ],
     });

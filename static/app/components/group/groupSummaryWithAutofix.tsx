@@ -283,7 +283,7 @@ const Content = styled('div')`
   position: relative;
 `;
 
-const InsightCardButton = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
+const InsightCardButton = styled(motion.div)`
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
   width: 100%;

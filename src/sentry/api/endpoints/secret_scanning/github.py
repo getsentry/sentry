@@ -1,8 +1,11 @@
 import hashlib
 import logging
+from typing import Any
 
 import sentry_sdk
 from django.http import HttpResponse
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -38,7 +41,7 @@ REVOKE_URLS = {
 @control_silo_view
 class SecretScanningGitHubEndpoint(View):
     @method_decorator(csrf_exempt)
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponseBase:
         if request.method != "POST":
             return HttpResponse(status=405)
 
@@ -51,27 +54,26 @@ class SecretScanningGitHubEndpoint(View):
         )
         return response
 
-    def post(self, request):
+    def post(self, request: HttpRequest) -> HttpResponseBase:
         if request.headers.get("Content-Type") != "application/json":
             return HttpResponse(
                 json.dumps({"details": "invalid content type specified"}), status=400
             )
 
-        payload = request.body.decode("utf-8")
-        signature = request.headers.get("Github-Public-Key-Signature")
-        key_id = request.headers.get("Github-Public-Key-Identifier")
-
-        try:
-            if options.get("secret-scanning.github.enable-signature-verification"):
+        payload = request.body
+        if options.get("secret-scanning.github.enable-signature-verification"):
+            try:
+                signature = request.headers["Github-Public-Key-Signature"]
+                key_id = request.headers["Github-Public-Key-Identifier"]
                 verify_signature(
                     payload,
                     signature,
                     key_id,
                     "secret_scanning",
                 )
-        except ValueError as e:
-            sentry_sdk.capture_exception(e)
-            return HttpResponse(json.dumps({"details": "invalid signature"}), status=400)
+            except (KeyError, ValueError) as e:
+                sentry_sdk.capture_exception(e)
+                return HttpResponse(json.dumps({"details": "invalid signature"}), status=400)
 
         secret_alerts = json.loads(payload)
         response = []

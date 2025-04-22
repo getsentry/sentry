@@ -1,37 +1,31 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion, Reorder, useDragControls} from 'framer-motion';
-import type {Location} from 'history';
-import isEqual from 'lodash/isEqual';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import type {
-  IssueView,
-  IssueViewParams,
-} from 'sentry/views/issueList/issueViews/issueViews';
-import {normalizeProjectsEnvironments} from 'sentry/views/issueList/issueViewsHeader';
-import {IssueSortOptions} from 'sentry/views/issueList/utils';
+import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useIssueViewUnsavedChanges';
 import {useNavContext} from 'sentry/views/nav/context';
 import ProjectIcon from 'sentry/views/nav/projectIcon';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import IssueViewNavEditableTitle from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavEditableTitle';
 import {IssueViewNavEllipsisMenu} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavEllipsisMenu';
-import {constructViewLink} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavItems';
+import {
+  constructViewLink,
+  type NavIssueView,
+} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavItems';
 import {IssueViewNavQueryCount} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavQueryCount';
 
-export interface IssueViewNavItemContentProps {
+interface IssueViewNavItemContentProps {
   /**
    * Whether the item is active.
    */
@@ -46,21 +40,9 @@ export interface IssueViewNavItemContentProps {
    */
   isLastView: boolean;
   /**
-   * A callback function that's fired when the user clicks "Delete" on the view.
-   */
-  onDeleteView: () => void;
-  /**
-   * A callback function that's fired when the user clicks "Duplicate" on the view.
-   */
-  onDuplicateView: () => void;
-  /**
    * A callback function that is called when the user has completed a reorder.
    */
   onReorderComplete: () => void;
-  /**
-   * A callback function that updates the view with new params.
-   */
-  onUpdateView: (updatedView: IssueView) => void;
   /**
    * A callback function that updates the isDragging state.
    */
@@ -68,7 +50,7 @@ export interface IssueViewNavItemContentProps {
   /**
    * The issue view to display
    */
-  view: IssueView;
+  view: NavIssueView;
   /**
    * Ref to the body of the section that contains the reorderable items.
    * This is used as the portal container for the ellipsis menu, and as
@@ -81,47 +63,21 @@ export function IssueViewNavItemContent({
   view,
   sectionRef,
   isActive,
-  onUpdateView,
-  onDeleteView,
-  onDuplicateView,
   onReorderComplete,
   isLastView,
   isDragging,
   setIsDragging,
 }: IssueViewNavItemContentProps) {
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const {projects} = useProjects();
+
+  const hasIssueViewSharing = organization.features.includes('issue-view-sharing');
 
   const controls = useDragControls();
 
   const baseUrl = `/organizations/${organization.slug}/issues`;
   const [isEditing, setIsEditing] = useState(false);
-
-  const {projects} = useProjects();
-
-  useEffect(() => {
-    if (isActive) {
-      if (Object.keys(location.query).length === 0) {
-        navigate(constructViewLink(baseUrl, view), {replace: true});
-        return;
-      }
-      const unsavedChanges = hasUnsavedChanges(view, location.query);
-
-      if (unsavedChanges && !isEqual(unsavedChanges, view.unsavedChanges)) {
-        onUpdateView({
-          ...view,
-          unsavedChanges,
-        });
-      } else if (!unsavedChanges && view.unsavedChanges) {
-        onUpdateView({
-          ...view,
-          unsavedChanges: undefined,
-        });
-      }
-    }
-    return;
-  }, [view, isActive, location.query, navigate, baseUrl, onUpdateView]);
+  const {hasUnsavedChanges, changedParams} = useIssueViewUnsavedChanges();
 
   const projectPlatforms = projects
     .filter(p => view.projects.map(String).includes(p.id))
@@ -176,10 +132,8 @@ export function IssueViewNavItemContent({
                 e.preventDefault();
               }}
               onClick={e => {
-                if (isDragging) {
-                  e.stopPropagation();
-                  e.preventDefault();
-                }
+                e.stopPropagation();
+                e.preventDefault();
               }}
             >
               <StyledInteractionStateLayer isPressed={isDragging === view.id} />
@@ -191,20 +145,20 @@ export function IssueViewNavItemContent({
         trailingItems={
           <TrailingItemsWrapper
             onClickCapture={e => {
-              e.preventDefault();
+              if (!hasIssueViewSharing) {
+                e.preventDefault();
+              }
             }}
           >
-            <IssueViewNavQueryCount view={view} />
-            <IssueViewNavEllipsisMenu
-              isLastView={isLastView}
-              setIsEditing={setIsEditing}
-              view={view}
-              onUpdateView={onUpdateView}
-              onDeleteView={onDeleteView}
-              onDuplicateView={onDuplicateView}
-              baseUrl={baseUrl}
-              sectionRef={sectionRef}
-            />
+            <IssueViewNavQueryCount view={view} isActive={isActive} />
+            {!hasIssueViewSharing && (
+              <IssueViewNavEllipsisMenu
+                isLastView={isLastView}
+                setIsEditing={setIsEditing}
+                view={view}
+                sectionRef={sectionRef}
+              />
+            )}
           </TrailingItemsWrapper>
         }
         onPointerDown={e => {
@@ -221,24 +175,22 @@ export function IssueViewNavItemContent({
           }
         }}
         analyticsItemName="issues_view_starred"
+        hasIssueViewSharing={hasIssueViewSharing}
       >
-        <IssueViewNavEditableTitle
-          label={view.label}
-          isEditing={isEditing}
-          isSelected={isActive}
-          onChange={value => {
-            onUpdateView({...view, label: value});
-            trackAnalytics('issue_views.renamed_view', {
-              leftNav: true,
-              organization: organization.slug,
-            });
-          }}
-          setIsEditing={setIsEditing}
-          isDragging={!!isDragging}
-        />
-        {view.unsavedChanges && (
+        {hasIssueViewSharing ? (
+          view.label
+        ) : (
+          <IssueViewNavEditableTitle
+            view={view}
+            isEditing={isEditing}
+            setIsEditing={setIsEditing}
+            isDragging={!!isDragging}
+            isActive={isActive}
+          />
+        )}
+        {isActive && hasUnsavedChanges && changedParams && (
           <Tooltip
-            title={constructUnsavedTooltipTitle(view.unsavedChanges)}
+            title={constructUnsavedTooltipTitle(changedParams)}
             position="top"
             skipWrapper
           >
@@ -262,98 +214,25 @@ const READABLE_PARAM_MAPPING = {
   timeFilters: t('time range'),
 };
 
-const constructUnsavedTooltipTitle = (unsavedChanges: Partial<IssueViewParams>) => {
-  const changedParams = Object.keys(unsavedChanges)
-    .filter(k => unsavedChanges[k as keyof IssueViewParams] !== undefined)
-    .map(k => READABLE_PARAM_MAPPING[k as keyof IssueViewParams]);
+const constructUnsavedTooltipTitle = (changedParams: {
+  environments: boolean;
+  projects: boolean;
+  query: boolean;
+  querySort: boolean;
+  timeFilters: boolean;
+}) => {
+  const changedParamsArray = Object.keys(changedParams)
+    .filter(k => changedParams[k as keyof typeof changedParams])
+    .map(k => READABLE_PARAM_MAPPING[k as keyof typeof READABLE_PARAM_MAPPING]);
 
   return (
     <Fragment>
       {t(
         "This view's %s filters are not saved.",
-        <BoldTooltipText>{oxfordizeArray(changedParams)}</BoldTooltipText>
+        <BoldTooltipText>{oxfordizeArray(changedParamsArray)}</BoldTooltipText>
       )}
     </Fragment>
   );
-};
-
-// TODO(msun): Once nuqs supports native array query params, we can use that here and replace this absurd function
-const hasUnsavedChanges = (
-  view: IssueView,
-  queryParams: Location['query']
-): false | Partial<IssueViewParams> => {
-  const {
-    query: originalQuery,
-    querySort: originalSort,
-    projects: originalProjects,
-    environments: originalEnvironments,
-    timeFilters: originalTimeFilters,
-  } = view;
-  const {
-    query: queryQuery,
-    sort: querySort,
-    project,
-    environment,
-    start,
-    end,
-    statsPeriod,
-    utc,
-  } = queryParams;
-
-  const queryTimeFilters =
-    start || end || statsPeriod || utc
-      ? {
-          start: statsPeriod ? null : (start?.toString() ?? null),
-          end: statsPeriod ? null : (end?.toString() ?? null),
-          period: statsPeriod?.toString() ?? null,
-          utc: statsPeriod ? null : utc?.toString() === 'true',
-        }
-      : undefined;
-
-  const {queryEnvs, queryProjects} = normalizeProjectsEnvironments(
-    project ?? [],
-    environment ?? []
-  );
-
-  const issueSortOption = Object.values(IssueSortOptions).includes(
-    querySort?.toString() as IssueSortOptions
-  )
-    ? (querySort as IssueSortOptions)
-    : undefined;
-
-  const newUnsavedChanges: Partial<IssueViewParams> = {
-    query:
-      queryQuery !== null &&
-      queryQuery !== undefined &&
-      queryQuery.toString() !== originalQuery
-        ? queryQuery.toString()
-        : undefined,
-    querySort:
-      querySort && issueSortOption !== originalSort ? issueSortOption : undefined,
-    projects: isEqual(queryProjects?.sort(), originalProjects.sort())
-      ? undefined
-      : queryProjects,
-    environments: isEqual(queryEnvs?.sort(), originalEnvironments.sort())
-      ? undefined
-      : queryEnvs,
-    timeFilters:
-      queryTimeFilters &&
-      !isEqual(
-        normalizeDateTimeParams(originalTimeFilters),
-        normalizeDateTimeParams(queryTimeFilters)
-      )
-        ? queryTimeFilters
-        : undefined,
-  };
-
-  const hasNoChanges = Object.values(newUnsavedChanges).every(
-    value => value === undefined
-  );
-  if (hasNoChanges) {
-    return false;
-  }
-
-  return newUnsavedChanges;
 };
 
 // Reorder.Item does handle lifting an item being dragged above other items out of the box,
@@ -377,15 +256,19 @@ const TrailingItemsWrapper = styled('div')`
   margin-right: ${space(0.25)};
 `;
 
-const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
+const StyledSecondaryNavItem = styled(SecondaryNav.Item)<{hasIssueViewSharing: boolean}>`
   position: relative;
   padding-right: ${space(0.5)};
 
   /* Hide the ellipsis menu if the item is not hovered */
   :not(:hover) {
-    [data-ellipsis-menu-trigger]:not([aria-expanded='true']) {
-      ${p => p.theme.visuallyHidden}
-    }
+    ${p =>
+      !p.hasIssueViewSharing &&
+      css`
+        [data-ellipsis-menu-trigger]:not([aria-expanded='true']) {
+          ${p.theme.visuallyHidden}
+        }
+      `}
 
     [data-drag-icon] {
       ${p => p.theme.visuallyHidden}
@@ -394,9 +277,14 @@ const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
 
   /* Hide the query count if the ellipsis menu is not expanded */
   :hover {
-    [data-issue-view-query-count] {
-      ${p => p.theme.visuallyHidden}
-    }
+    ${p =>
+      !p.hasIssueViewSharing &&
+      css`
+        [data-issue-view-query-count] {
+          ${p.theme.visuallyHidden}
+        }
+      `}
+
     [data-project-icon] {
       ${p => p.theme.visuallyHidden}
     }
@@ -437,7 +325,7 @@ const LeadingItemsWrapper = styled('div')`
   margin-right: ${space(0.75)};
 `;
 
-const GrabHandleWrapper = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
+const GrabHandleWrapper = styled(motion.div)`
   display: flex;
   align-items: center;
   justify-content: center;

@@ -7,17 +7,10 @@ import {
   decodeList,
   decodeScalar,
 } from 'sentry/utils/queryString';
-import type {GroupSearchView} from 'sentry/views/issueList/types';
+import type {IssueViewParams} from 'sentry/views/issueList/issueViews/issueViews';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-export function createIssueViewFromUrl({
-  query,
-}: {
-  query: Query;
-}): Pick<
-  GroupSearchView,
-  'query' | 'querySort' | 'projects' | 'environments' | 'timeFilters'
-> {
+export function createIssueViewFromUrl({query}: {query: Query}): IssueViewParams {
   return {
     query: typeof query.query === 'string' ? query.query : '',
     querySort:

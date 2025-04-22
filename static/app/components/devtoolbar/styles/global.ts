@@ -199,6 +199,7 @@ export const loadingIndicatorCss = css`
     margin: 4px 0;
     font-size: 13px;
     height: var(--loader-size-mini);
+    width: var(--loader-size-mini);
 
     .loading-indicator {
       margin: 0;

@@ -103,6 +103,7 @@ export function IntegrationReposAddRepository({
     return repositoryOptions.map(repo => ({
       value: repo.identifier,
       label: <RepoName>{repo.name}</RepoName>,
+      textValue: repo.name,
     }));
   }, [currentRepositories, searchResult]);
 
