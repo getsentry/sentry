@@ -22,7 +22,8 @@ export default function LlmPipelineDurationChartWidget(
       search: new MutableSearch(query),
       transformAliasToInputFormat: true,
     },
-    'api.ai-pipelines.view'
+    'api.ai-pipelines.view',
+    props.pageFilters
   );
 
   const colors = theme.chart.getColorPalette(2);

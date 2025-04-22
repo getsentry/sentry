@@ -22,14 +22,15 @@ export default function LlmTotalTokensUsedChartWidget(
       search: new MutableSearch(query),
       transformAliasToInputFormat: true,
     },
-    'api.ai-pipelines.view'
+    'api.ai-pipelines.view',
+    props.pageFilters
   );
 
   const colors = theme.chart.getColorPalette(2);
   return (
     <InsightsLineChartWidget
       {...props}
-      id="llmTotalTokensUsedChart"
+      id="llmTotalTokensUsedChartWidget"
       title={t('Total tokens used')}
       series={[{...data[aggregate], color: colors[0]}]}
       isLoading={isPending}

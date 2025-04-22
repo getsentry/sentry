@@ -144,6 +144,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
             {...enableReleaseBubblesProps}
             legendSelection={props.legendSelection}
             onLegendSelectionChange={props.onLegendSelectionChange}
+            chartProperties={props.chartProperties}
             {...visualizationProps}
           />
         }
@@ -170,6 +171,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
                         legendSelection={props.legendSelection}
                         onLegendSelectionChange={props.onLegendSelectionChange}
                         releases={releases ?? []}
+                        chartProperties={props.chartProperties}
                       />
                     </ModalChartContainer>
                   ),
