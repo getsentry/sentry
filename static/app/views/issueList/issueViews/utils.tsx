@@ -23,7 +23,7 @@ export function canEditIssueView({
   organization: Organization;
   user: User;
 }) {
-  if (user.isSuperuser || organization.access.includes('org:write')) {
+  if (organization.access.includes('org:write')) {
     return true;
   }
 
