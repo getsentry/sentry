@@ -214,6 +214,13 @@ def run_auto_transition_issues_new_to_ongoing(
     default_retry_delay=60,
     acks_late=True,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        processing_deadline_duration=25 * 60,
+        retry=Retry(
+            times=3,
+        ),
+    ),
 )
 @log_error_if_queue_has_items
 def schedule_auto_transition_issues_regressed_to_ongoing(
