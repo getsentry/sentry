@@ -24,6 +24,8 @@ demomode_tasks = taskregistry.create_namespace("demomode")
 
 digests_tasks = taskregistry.create_namespace("digests")
 
+export_tasks = taskregistry.create_namespace("export")
+
 hybridcloud_tasks = taskregistry.create_namespace("hybridcloud")
 
 hybridcloud_control_tasks = taskregistry.create_namespace("hybridcloud.control")
