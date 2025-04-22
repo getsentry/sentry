@@ -11,10 +11,12 @@ from django.urls import reverse
 from fixtures.integrations.jira.stub_client import StubJiraApiClient
 from fixtures.integrations.stub_service import StubService
 from sentry.integrations.jira_server.integration import JiraServerIntegration
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import ExternalProviders
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupmeta import GroupMeta
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
@@ -871,7 +873,7 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
                 {
                     "accountId": "deadbeef123",
                     "displayName": "Dead Beef",
-                    "email": "bob@example.com",
+                    "emailAddress": "bob@example.com",
                 }
             ],
         )
@@ -910,6 +912,115 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
             )
 
         assert str(exc_info.value) == "Failed to assign user to Jira Server issue"
+
+    @responses.activate
+    @patch("sentry.integrations.jira_server.integration.JiraServerClient.search_users_for_issue")
+    def test_get_user_by_external_actor_multiple_actors(self, mock_search_users_for_issue):
+        ExternalActor.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            provider=ExternalProviders.JIRA_SERVER.value,
+            user_id=self.user.id,
+            external_name="jira_user_1",
+        )
+        ExternalActor.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            provider=ExternalProviders.JIRA_SERVER.value,
+            user_id=self.user.id,
+            external_name="jira_user_2",
+        )
+
+        with self.assertLogs(
+            logger="sentry.integrations.jira_server", level="WARNING"
+        ) as log_context:
+            result = self.installation._get_user_by_external_actor(
+                client=self.installation.get_client(),
+                external_issue_key="APP-123",
+                user=self.user,
+                logging_context={"integration_id": self.integration.id},
+            )
+
+        assert result is None
+        assert "jira_server.user_external_actor.multiple_actors" in log_context.output[0]
+
+    @responses.activate
+    @patch("sentry.integrations.jira_server.integration.JiraServerClient.search_users_for_issue")
+    def test_get_user_by_external_actor_no_actor(self, mock_search_users_for_issue):
+        result = self.installation._get_user_by_external_actor(
+            client=self.installation.get_client(),
+            external_issue_key="APP-123",
+            user=self.user,
+            logging_context={"integration_id": self.integration.id},
+        )
+
+        mock_search_users_for_issue.return_value = [
+            {
+                "name": "jirauser",
+                "displayName": "Jira User",
+                "emailAddress": "some_email@example.com",
+            }
+        ]
+
+        assert result is None
+
+    @responses.activate
+    @patch("sentry.integrations.jira_server.integration.JiraServerClient.search_users_for_issue")
+    def test_get_user_by_external_actor_no_matching_jira_user(self, mock_search_users_for_issue):
+        ExternalActor.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            provider=ExternalProviders.JIRA_SERVER.value,
+            user_id=self.user.id,
+            external_name="nonexistent_user",
+        )
+
+        mock_search_users_for_issue.return_value = []
+
+        result = self.installation._get_user_by_external_actor(
+            client=self.installation.get_client(),
+            external_issue_key="APP-123",
+            user=self.user,
+            logging_context={"integration_id": self.integration.id},
+        )
+
+        assert result is None
+        mock_search_users_for_issue.assert_called_once_with("APP-123", "nonexistent_user")
+
+    @responses.activate
+    @patch("sentry.integrations.jira_server.integration.JiraServerClient.search_users_for_issue")
+    def test_get_user_by_external_actor_matching_user(self, mock_search_users_for_issue):
+        ExternalActor.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            provider=ExternalProviders.JIRA_SERVER.value,
+            user_id=self.user.id,
+            external_name="JiraUser",
+        )
+
+        mock_jira_user = {
+            "name": "jirauser",
+            "displayName": "Jira User",
+            "emailAddress": "some_other_email@example.com",
+        }
+
+        # Tests case where a username query matches multiple users,
+        # we expect an exact match on the name
+        mock_search_users_for_issue.return_value = [
+            {"name": "other_user", "displayName": "Other User"},
+            mock_jira_user,
+            {"name": "another_user", "displayName": "Another User"},
+        ]
+
+        result = self.installation._get_user_by_external_actor(
+            client=self.installation.get_client(),
+            external_issue_key="APP-123",
+            user=self.user,
+            logging_context={"integration_id": self.integration.id},
+        )
+
+        assert result == mock_jira_user
+        mock_search_users_for_issue.assert_called_once_with("APP-123", "JiraUser")
 
     def test_get_config_data(self):
         integration = self.create_integration(
