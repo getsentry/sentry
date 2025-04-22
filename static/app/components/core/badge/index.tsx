@@ -47,7 +47,7 @@ function makeBadgeTheme(
   }
 }
 
-export type BadgeType =
+type BadgeType =
   | 'alpha'
   | 'beta'
   | 'new'

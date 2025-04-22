@@ -76,7 +76,7 @@ import {Onboarding} from 'sentry/views/performance/onboarding';
 // eslint-disable-next-line no-restricted-imports
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
-export type SpanTabProps = {
+type SpanTabProps = {
   defaultPeriod: DefaultPeriod;
   maxPickableDays: MaxPickableDays;
   relativeOptions: Record<string, React.ReactNode>;

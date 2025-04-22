@@ -1,4 +1,4 @@
-export type StarfishEventParameters = {
+type StarfishEventParameters = {
   'starfish.chart.zoom': {
     end: number;
     start: number;

@@ -147,7 +147,7 @@ type SyncViewsToBackendAction = {
   type: 'SYNC_VIEWS_TO_BACKEND';
 };
 
-export type IssueViewsActions =
+type IssueViewsActions =
   | ReorderTabsAction
   | SaveChangesAction
   | DiscardChangesAction
@@ -175,12 +175,12 @@ const ACTION_ANALYTICS_MAP: Partial<Record<IssueViewsActions['type'], string>> =
   CREATE_NEW_VIEW: 'issue_views.add_view.clicked',
 };
 
-export interface IssueViewsState {
+interface IssueViewsState {
   views: IssueView[];
   tempView?: IssueView;
 }
 
-export interface IssueViewsContextType extends TabContext {
+interface IssueViewsContextType extends TabContext {
   defaultProject: number[];
   dispatch: Dispatch<IssueViewsActions>;
   state: IssueViewsState;
