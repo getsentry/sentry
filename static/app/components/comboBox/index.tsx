@@ -436,7 +436,7 @@ const StyledOverlay = styled(Overlay)<{width?: string}>`
   width: ${p => p.width ?? 'auto'};
 `;
 
-export const EmptyMessage = styled('p')`
+const EmptyMessage = styled('p')`
   text-align: center;
   color: ${p => p.theme.subText};
   padding: ${space(1)} ${space(1.5)} ${space(1)};
