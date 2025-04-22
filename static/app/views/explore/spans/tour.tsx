@@ -46,7 +46,7 @@ interface ExploreSpansTourModalProps {
   handleStartTour: () => void;
 }
 
-export function ExploreSpansTourModal({
+function ExploreSpansTourModal({
   closeModal,
   handleDismissTour,
   handleStartTour,

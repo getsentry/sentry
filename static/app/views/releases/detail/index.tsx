@@ -348,5 +348,5 @@ function ReleasesDetailContainer(props: ReleasesDetailContainerProps) {
     </PageFiltersContainer>
   );
 }
-export {ReleaseContext, ReleasesDetailContainer};
+export {ReleaseContext};
 export default ReleasesDetailContainer;

@@ -14,7 +14,7 @@ interface MetricAnomaliesParams {
   };
 }
 
-export function makeMetricAnomaliesQueryKey(params: MetricAnomaliesParams): ApiQueryKey {
+function makeMetricAnomaliesQueryKey(params: MetricAnomaliesParams): ApiQueryKey {
   const {orgSlug, ruleId, query} = params;
   return [`/organizations/${orgSlug}/alert-rules/${ruleId}/anomalies/`, {query}];
 }

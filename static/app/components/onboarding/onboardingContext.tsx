@@ -11,7 +11,7 @@ type OnboardingContextProps = {
 /**
  * Prefer using `useOnboardingContext` hook instead of directly using this context.
  */
-export const OnboardingContext = createContext<OnboardingContextProps>({
+const OnboardingContext = createContext<OnboardingContextProps>({
   selectedPlatform: undefined,
   setSelectedPlatform: () => {},
 });

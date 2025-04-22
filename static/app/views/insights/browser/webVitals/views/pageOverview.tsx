@@ -56,7 +56,7 @@ function getCurrentTabSelection(selectedTab: any) {
   return LandingDisplayField.OVERVIEW;
 }
 
-export function PageOverview() {
+function PageOverview() {
   const navigate = useNavigate();
   const moduleURL = useModuleURL('vital');
   const organization = useOrganization();

@@ -412,7 +412,7 @@ const StyledNavLink = styled(Link, {
     `}
 `;
 
-export const NavLink = withChonk(StyledNavLink, ChonkNavLink);
+const NavLink = withChonk(StyledNavLink, ChonkNavLink);
 
 const ChonkNavButton = styled(Button, {
   shouldForwardProp: prop => prop !== 'isMobile',
