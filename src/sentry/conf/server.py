@@ -31,7 +31,6 @@ from sentry.conf.types.sentry_config import SentryMode
 from sentry.conf.types.service_options import ServiceOptions
 from sentry.conf.types.taskworker import ScheduleConfigMap
 from sentry.conf.types.uptime import UptimeRegionConfig
-from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import make_split_task_queues
 
 
@@ -1400,6 +1399,8 @@ TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 # Like celery, taskworkers need to import task modules to make tasks
 # accessible to the worker.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
+    "sentry.tasks.assemble",
+    "sentry.debug_files.tasks",
     "sentry.deletions.tasks.hybrid_cloud",
     "sentry.deletions.tasks.scheduled",
     "sentry.demo_mode.tasks",
