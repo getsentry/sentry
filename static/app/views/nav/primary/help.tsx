@@ -61,7 +61,7 @@ export function PrimaryNavigationHelp() {
   return (
     <StackedNavigationTourReminder>
       <SidebarMenu
-        onClick={chonkPrompt.dismissDotIndicatorPrompt}
+        onOpen={chonkPrompt.dismissDotIndicatorPrompt}
         items={[
           {
             key: 'search',
