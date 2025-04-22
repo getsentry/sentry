@@ -1,7 +1,6 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import capitalize from 'lodash/capitalize';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -15,7 +14,6 @@ import NewBooleanField from 'sentry/components/forms/fields/booleanField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -64,12 +62,12 @@ function AllocationForm({
   const [allocationVolume, setAllocationVolume] = useState<number>(0);
   const [errorFields, setErrorFields] = useState<string[]>([]);
   const [showPrice, setShowPrice] = useState<boolean>(false);
-  const [selectedMetric, setSelectedMetric] = useState<DataCategory | null>(
+  const [selectedMetric, setSelectedMetric] = useState<DataCategory>(
     initializedData
       ? (initializedData.billingMetric as DataCategory)
       : initialMetric && ALLOCATION_SUPPORTED_CATEGORIES.includes(initialMetric)
         ? initialMetric
-        : (ALLOCATION_SUPPORTED_CATEGORIES[0] ?? null)
+        : ALLOCATION_SUPPORTED_CATEGORIES[0]!
   );
   const [targetId, setTargetId] = useState<string | undefined>(
     initializedData && String(initializedData.targetId)
@@ -232,8 +230,11 @@ function AllocationForm({
         <Title>
           <span>
             {tct('Allocate [category] by [displayType]', {
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              category: capitalize(DATA_CATEGORY_INFO[selectedMetric].plural),
+              category: getPlanCategoryName({
+                plan: subscription.planDetails,
+                category: selectedMetric,
+                title: true,
+              }),
               displayType: showPrice ? t('Spend') : t('Volume'),
             })}
           </span>
