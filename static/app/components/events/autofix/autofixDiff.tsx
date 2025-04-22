@@ -825,7 +825,6 @@ const ButtonGroup = styled('div')`
   top: 0;
   right: ${space(0.5)};
   display: flex;
-  z-index: 1;
 `;
 
 const ActionButton = styled(Button)<{isHovered: boolean}>`
