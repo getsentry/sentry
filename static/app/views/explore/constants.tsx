@@ -48,11 +48,7 @@ export const SENTRY_LOG_STRING_TAGS: string[] = [
   OurLogKnownFieldKey.TRACE_ID,
   OurLogKnownFieldKey.ID,
   OurLogKnownFieldKey.MESSAGE,
-  OurLogKnownFieldKey.SEVERITY_TEXT,
-  OurLogKnownFieldKey.ORGANIZATION_ID,
-  OurLogKnownFieldKey.PROJECT_ID,
-  OurLogKnownFieldKey.TIMESTAMP,
-  OurLogKnownFieldKey.ITEM_TYPE,
+  OurLogKnownFieldKey.SEVERITY,
 ];
 
 export const SENTRY_LOG_NUMBER_TAGS: string[] = [OurLogKnownFieldKey.SEVERITY_NUMBER];
