@@ -256,7 +256,9 @@ const TrailingItemsWrapper = styled('div')`
   margin-left: ${space(0.5)};
 `;
 
-const StyledSecondaryNavItem = styled(SecondaryNav.Item)<{hasIssueViewSharing: boolean}>`
+const StyledSecondaryNavItem = styled(SecondaryNav.Item, {
+  shouldForwardProp: prop => prop !== 'hasIssueViewSharing',
+})<{hasIssueViewSharing: boolean}>`
   position: relative;
   padding-right: ${space(0.5)};
 
