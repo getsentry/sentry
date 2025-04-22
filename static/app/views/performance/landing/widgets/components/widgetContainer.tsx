@@ -221,7 +221,7 @@ function WidgetContainerInner(props: Props) {
   }
 }
 
-export function WidgetInteractiveTitle({
+function WidgetInteractiveTitle({
   chartSetting,
   eventView,
   setChartSetting,
@@ -287,7 +287,7 @@ const StyledCompactSelect = styled(CompactSelect)`
   }
 `;
 
-export function WidgetContainerActions({
+function WidgetContainerActions({
   chartSetting,
   eventView,
   setChartSetting,

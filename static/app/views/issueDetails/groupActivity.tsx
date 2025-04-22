@@ -41,7 +41,7 @@ interface GroupActivityProps {
   group: Group;
 }
 
-export function GroupActivity({group}: GroupActivityProps) {
+function GroupActivity({group}: GroupActivityProps) {
   const organization = useOrganization();
   const {activity: activities, count, id: groupId} = group;
   const groupCount = Number(count);

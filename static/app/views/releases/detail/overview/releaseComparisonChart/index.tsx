@@ -1032,7 +1032,7 @@ const DescriptionCell = styled(Cell)`
   overflow: visible;
 `;
 
-export const Change = styled('div')<{color?: Color}>`
+const Change = styled('div')<{color?: Color}>`
   font-size: ${p => p.theme.fontSizeMedium};
   ${p => p.color && `color: ${p.theme[p.color]}`}
 `;

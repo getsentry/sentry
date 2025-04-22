@@ -115,7 +115,7 @@ type ChartProps = {
   disableChartPadding?: boolean;
 };
 
-export function Chart(props: ChartProps) {
+function Chart(props: ChartProps) {
   const theme = useTheme();
   const {chartData, zoomProps, spanSlug} = props;
 

@@ -246,7 +246,7 @@ type FetchEventAttachmentParameters = {
 
 type FetchEventAttachmentResponse = IssueAttachment[];
 
-export const makeFetchEventAttachmentsQueryKey = ({
+const makeFetchEventAttachmentsQueryKey = ({
   orgSlug,
   projectSlug,
   eventId,

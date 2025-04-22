@@ -309,7 +309,7 @@ function getSeriesRequest(
 }
 
 // Filters the primary options in the sort by selector
-export function filterSeriesSortOptions(columns: Set<string>) {
+function filterSeriesSortOptions(columns: Set<string>) {
   return (option: FieldValueOption) => {
     if (option.value.kind === FieldValueKind.FUNCTION) {
       return true;

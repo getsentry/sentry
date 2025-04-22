@@ -93,7 +93,7 @@ type RemoveParams = {
   successMessage?: string;
 };
 
-export function remove(api: Client, {successMessage, errorMessage, orgId}: RemoveParams) {
+function remove(api: Client, {successMessage, errorMessage, orgId}: RemoveParams) {
   const endpoint = `/organizations/${orgId}/`;
   return api
     .requestPromise(endpoint, {

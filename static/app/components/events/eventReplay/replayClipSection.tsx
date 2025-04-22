@@ -129,7 +129,7 @@ const ReplaySectionMinHeight = styled(InterimSection)`
   min-height: 557px;
 `;
 
-export const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
+const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
   height: ${REPLAY_LOADING_HEIGHT}px;
   margin-bottom: ${space(2)};
 `;

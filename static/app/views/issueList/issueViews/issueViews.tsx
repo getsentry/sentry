@@ -406,7 +406,7 @@ interface IssueViewsStateProviderProps extends Omit<TabsProps<any>, 'children'> 
   router: InjectedRouter;
 }
 
-export function IssueViewsStateProvider({
+function IssueViewsStateProvider({
   children,
   initialViews,
   router,

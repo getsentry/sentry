@@ -503,7 +503,7 @@ const OMITTED_SPAN_STATUS = ['unknown'];
 /**
  * This display a tag for the status (not to be confused with 'status_code' which has values like '200', '429').
  */
-export function StatusTag({status, onClick}: {status: string; onClick?: () => void}) {
+function StatusTag({status, onClick}: {status: string; onClick?: () => void}) {
   const tagType = statusToTagType(status);
 
   if (!tagType) {

@@ -840,7 +840,7 @@ export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
   AggregationKey.MAX,
 ];
 
-export const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
+const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   ...AGGREGATION_FIELDS,
   [AggregationKey.COUNT]: {
     ...AGGREGATION_FIELDS[AggregationKey.COUNT],
@@ -1135,7 +1135,7 @@ export const MEASUREMENT_FIELDS: Record<WebVital | MobileVital, FieldDefinition>
   },
 };
 
-export const SPAN_OP_FIELDS: Record<SpanOpBreakdown, FieldDefinition> = {
+const SPAN_OP_FIELDS: Record<SpanOpBreakdown, FieldDefinition> = {
   [SpanOpBreakdown.SPANS_BROWSER]: {
     desc: t('Cumulative time based on the browser operation'),
     kind: FieldKind.METRICS,
@@ -1179,7 +1179,7 @@ type TraceFields =
   | SpanIndexedField.RESPONSE_CODE
   | SpanIndexedField.CACHE_HIT;
 
-export const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
+const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
   /** Indexed Fields */
   [SpanIndexedField.SPAN_ACTION]: {
     desc: t(

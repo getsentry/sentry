@@ -37,7 +37,7 @@ import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 
-export const SCHEMA_HINTS_DRAWER_WIDTH = '350px';
+const SCHEMA_HINTS_DRAWER_WIDTH = '350px';
 
 interface SchemaHintsListProps extends SchemaHintsPageParams {
   numberTags: TagCollection;

@@ -57,7 +57,7 @@ function isProgressLog(
   return 'message' in item && 'timestamp' in item;
 }
 
-export function Step({
+function Step({
   step,
   groupId,
   runId,

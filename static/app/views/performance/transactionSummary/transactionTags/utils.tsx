@@ -6,7 +6,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
-export function generateTagsRoute({
+function generateTagsRoute({
   organization,
   view,
 }: {

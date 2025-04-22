@@ -68,7 +68,7 @@ type ComponentData = React.ComponentProps<
   GenericPerformanceWidgetProps<DataType>['Visualizations'][0]['component']
 >;
 
-export function transformEventsChartRequest<T extends WidgetDataConstraint>(
+function transformEventsChartRequest<T extends WidgetDataConstraint>(
   widgetProps: WidgetPropUnion<T>,
   results: RenderProps,
   _: QueryDefinitionWithKey<T>

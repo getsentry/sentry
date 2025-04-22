@@ -71,7 +71,7 @@ const APDEX_TOOLTIP = tct(
   }
 );
 
-export const BACKEND_COLUMN_TITLES = [
+const BACKEND_COLUMN_TITLES = [
   {title: 'http method'},
   {title: 'transaction'},
   {title: 'operation'},

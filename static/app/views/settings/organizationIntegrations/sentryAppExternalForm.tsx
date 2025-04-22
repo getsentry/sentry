@@ -88,7 +88,7 @@ type Props = {
  *
  *  See (#28465) for more details.
  */
-export class SentryAppExternalForm extends Component<Props, State> {
+class SentryAppExternalForm extends Component<Props, State> {
   state: State = {optionsByField: new Map(), selectedOptions: {}};
 
   componentDidMount() {

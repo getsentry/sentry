@@ -143,12 +143,12 @@ const Title = styled('h4')`
   gap: ${space(1)};
 `;
 
-export const Before = styled('span')`
+const Before = styled('span')`
   color: ${p => p.theme.red300};
   font-weight: bold;
 `;
 
-export const After = styled('span')`
+const After = styled('span')`
   color: ${p => p.theme.green300};
   font-weight: bold;
 `;

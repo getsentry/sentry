@@ -347,8 +347,6 @@ class GroupList extends Component<Props, State> {
   }
 }
 
-export {GroupList};
-
 export default withOrganization(withApi(withSentryRouter(GroupList)));
 
 const GroupPlaceholder = styled('div')`

@@ -42,7 +42,7 @@ type Query = {
   'span.description'?: string;
 };
 
-export function LLMMonitoringPage({params}: Props) {
+function LLMMonitoringPage({params}: Props) {
   const location = useLocation<Query>();
 
   const organization = useOrganization();

@@ -191,7 +191,7 @@ export const Subtitle = styled('span')`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-export const HighlightNumber = styled('div')<{color?: string}>`
+const HighlightNumber = styled('div')<{color?: string}>`
   color: ${p => p.color};
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;

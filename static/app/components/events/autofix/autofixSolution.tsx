@@ -48,7 +48,7 @@ import {Divider} from 'sentry/views/issueDetails/divider';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
 
-export function useSelectSolution({groupId, runId}: {groupId: string; runId: string}) {
+function useSelectSolution({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi();
   const queryClient = useQueryClient();
 

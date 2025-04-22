@@ -510,9 +510,7 @@ function SpanDetailsBody({
   );
 }
 
-export function isEventDetail(
-  detail: EventDetail | SpanDetailProps
-): detail is EventDetail {
+function isEventDetail(detail: EventDetail | SpanDetailProps): detail is EventDetail {
   return !('span' in detail);
 }
 

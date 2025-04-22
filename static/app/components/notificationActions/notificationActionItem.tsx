@@ -375,14 +375,14 @@ const NotificationActionContainer = styled('div')`
   width: 100%;
 `;
 
-export const NotificationActionCell = styled('div')`
+const NotificationActionCell = styled('div')`
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: ${space(0.5)};
 `;
 
-export const NotificationActionFormContainer = styled('div')`
+const NotificationActionFormContainer = styled('div')`
   display: flex;
   justify-content: space-between;
   width: 100%;

@@ -29,7 +29,7 @@ export const enum StackedNavigationTour {
   SETTINGS = 'settings',
 }
 
-export const ORDERED_STACKED_NAVIGATION_TOUR = [
+const ORDERED_STACKED_NAVIGATION_TOUR = [
   StackedNavigationTour.ISSUES,
   StackedNavigationTour.EXPLORE,
   StackedNavigationTour.DASHBOARDS,
@@ -70,9 +70,9 @@ export const STACKED_NAVIGATION_TOUR_CONTENT = {
   },
 };
 
-export const STACKED_NAVIGATION_TOUR_GUIDE_KEY = 'tour.stacked_navigation';
+const STACKED_NAVIGATION_TOUR_GUIDE_KEY = 'tour.stacked_navigation';
 
-export const StackedNavigationTourContext =
+const StackedNavigationTourContext =
   createContext<TourContextType<StackedNavigationTour> | null>(null);
 
 export function useStackedNavigationTour(): TourContextType<StackedNavigationTour> {
@@ -291,7 +291,7 @@ export function useTourModal() {
   }, [shouldShowTourModal, startTour, mutateAssistant, endTour]);
 }
 
-export const NAV_REFERRER = 'nav-tour';
+const NAV_REFERRER = 'nav-tour';
 
 export function useIsNavTourActive() {
   const location = useLocation();

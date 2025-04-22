@@ -90,7 +90,7 @@ export function getFormatUsageOptions(
  * If you are not displaying usage numbers, it might be better to use
  * `formatAbbreviatedNumber` in 'sentry/utils/formatters'
  */
-export function abbreviateUsageNumber(n: number) {
+function abbreviateUsageNumber(n: number) {
   if (n >= BILLION) {
     return (n / BILLION).toLocaleString(undefined, {maximumFractionDigits: 2}) + 'B';
   }

@@ -66,7 +66,7 @@ const DURATION_TOOLTIP = tct(
   }
 );
 
-export const FRONTEND_COLUMN_TITLES = [
+const FRONTEND_COLUMN_TITLES = [
   {title: 'transaction'},
   {title: 'operation'},
   {title: 'project'},

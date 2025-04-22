@@ -22,7 +22,7 @@ interface Props {
   monitorEnv: MonitorEnvironment;
 }
 
-export const statusIconColorMap: Record<MonitorStatus, StatusNotice> = {
+const statusIconColorMap: Record<MonitorStatus, StatusNotice> = {
   ok: {
     icon: <IconCheckmark color="successText" />,
     color: 'successText',

@@ -134,7 +134,7 @@ const StyledIconBuisness = styled(IconBusiness)`
   margin-left: auto;
 `;
 
-export const UpsellFooterHook = HookOrDefault({
+const UpsellFooterHook = HookOrDefault({
   hookName: 'component:insights-date-range-query-limit-footer',
   defaultComponent: () => undefined,
 });

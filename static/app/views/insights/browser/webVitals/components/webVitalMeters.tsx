@@ -117,7 +117,7 @@ type VitalMeterProps = {
   onClick?: (webVital: WebVitals) => void;
 };
 
-export function VitalMeter({
+function VitalMeter({
   webVital,
   showTooltip,
   score,

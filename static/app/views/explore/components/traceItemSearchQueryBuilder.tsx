@@ -18,7 +18,7 @@ type TraceItemSearchQueryBuilderProps = {
   stringAttributes: TagCollection;
 } & Omit<EAPSpanSearchQueryBuilderProps, 'numberTags' | 'stringTags'>;
 
-export const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
+const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
   if (!supportedAggregates?.length) {
     return {};
   }

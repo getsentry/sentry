@@ -106,7 +106,7 @@ export function getFieldTypeFromUnit(unit: any) {
   return 'number';
 }
 
-export function EventCustomPerformanceMetric({
+function EventCustomPerformanceMetric({
   event,
   name,
   location,

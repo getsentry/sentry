@@ -313,7 +313,7 @@ const StyledNavItem = styled(Link)<ItemProps>`
     `}
 `;
 
-export const Item = withChonk(StyledNavItem, ChonkItem);
+const Item = withChonk(StyledNavItem, ChonkItem);
 
 const ItemText = styled('span')`
   ${p => p.theme.overflowEllipsis}

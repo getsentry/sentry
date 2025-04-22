@@ -56,7 +56,7 @@ type Props = {
   webVital?: WebVital;
 };
 
-export const TRANSACTIONS_LIST_TITLES: readonly string[] = [
+const TRANSACTIONS_LIST_TITLES: readonly string[] = [
   t('event id'),
   t('user'),
   t('operation duration'),

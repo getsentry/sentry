@@ -144,7 +144,7 @@ export function getLocalToSystem(dateObj: moment.MomentInput): Date {
 /**
  * Get the beginning of day (e.g. midnight)
  */
-export function getStartOfDay(date: moment.MomentInput): Date {
+function getStartOfDay(date: moment.MomentInput): Date {
   return moment(date)
     .startOf('day')
     .startOf('hour')
@@ -197,7 +197,7 @@ export function shouldUse24Hours() {
 /**
  * Get a common date format
  */
-export function getDateFormat({year}: {year?: boolean}) {
+function getDateFormat({year}: {year?: boolean}) {
   // "Jan 1, 2022" or "Jan 1"
   return year ? 'MMM D, YYYY' : 'MMM D';
 }

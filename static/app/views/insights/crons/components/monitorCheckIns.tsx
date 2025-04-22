@@ -34,7 +34,7 @@ type Props = {
   monitorEnvs: MonitorEnvironment[];
 };
 
-export const checkStatusToIndicatorStatus: Record<
+const checkStatusToIndicatorStatus: Record<
   CheckInStatus,
   StatusIndicatorProps['status']
 > = {

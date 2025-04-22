@@ -12,13 +12,7 @@ import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
-export function useUpdateAutofixFeedback({
-  groupId,
-  runId,
-}: {
-  groupId: string;
-  runId: string;
-}) {
+function useUpdateAutofixFeedback({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi();
   const queryClient = useQueryClient();
 

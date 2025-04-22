@@ -190,7 +190,7 @@ const StyledTransparentLoadingMask = styled((props: any) => (
   align-items: center;
 `;
 
-export function LoadingScreen({loading}: {loading: boolean}) {
+function LoadingScreen({loading}: {loading: boolean}) {
   if (!loading) {
     return null;
   }

@@ -491,4 +491,4 @@ const timezoneOptions: Array<SelectValue<string>> = groupedTimezones.map(
   })
 );
 
-export {timezones, timezoneOptions};
+export {timezoneOptions};

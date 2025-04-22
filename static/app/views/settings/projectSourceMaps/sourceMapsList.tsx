@@ -205,7 +205,7 @@ interface SourceMapUploadsListProps {
   sourceMapUploads?: SourceMapUpload[];
 }
 
-export function SourceMapUploadsList({
+function SourceMapUploadsList({
   isLoading,
   sourceMapUploads,
   emptyMessage,
@@ -258,11 +258,7 @@ export function SourceMapUploadsList({
   );
 }
 
-export function SourceMapUploadDetails({
-  sourceMapUpload,
-}: {
-  sourceMapUpload: SourceMapUpload;
-}) {
+function SourceMapUploadDetails({sourceMapUpload}: {sourceMapUpload: SourceMapUpload}) {
   const [showAll, setShowAll] = useState(false);
   const detailsData = useMemo<KeyValueListData>(() => {
     const rows = sourceMapUpload.associations;
@@ -317,9 +313,7 @@ interface SourceMapUploadDeleteButtonProps {
   size?: ButtonProps['size'];
 }
 
-export function SourceMapUploadDeleteButton({
-  onDelete,
-}: SourceMapUploadDeleteButtonProps) {
+function SourceMapUploadDeleteButton({onDelete}: SourceMapUploadDeleteButtonProps) {
   const tooltipTitle = useCallback((hasAccess: boolean, canDelete: boolean) => {
     if (hasAccess) {
       if (canDelete) {

@@ -42,7 +42,7 @@ export function searchFrameFzf(
   return match;
 }
 
-export function searchSpanFzf(
+function searchSpanFzf(
   span: SpanChartNode,
   matches: FlamegraphSearchResults['results']['spans'],
   query: string
@@ -86,7 +86,7 @@ export function searchFrameRegExp(
   return match;
 }
 
-export function searchSpanRegExp(
+function searchSpanRegExp(
   span: SpanChartNode,
   matches: FlamegraphSearchResults['results']['spans'],
   query: string,

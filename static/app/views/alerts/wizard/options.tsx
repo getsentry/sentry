@@ -328,7 +328,7 @@ function transactionSupportedTags(org: Organization) {
 
 // Some data sets support all tags except some. For these cases, define the
 // omissions only
-export function datasetOmittedTags(
+function datasetOmittedTags(
   dataset: Dataset,
   org: Organization
 ):

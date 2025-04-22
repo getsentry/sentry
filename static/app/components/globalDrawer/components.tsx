@@ -45,7 +45,7 @@ interface DrawerPanelProps {
   transitionProps?: AnimationProps['transition'];
 }
 
-export function DrawerPanel({
+function DrawerPanel({
   ref,
   ariaLabel,
   children,

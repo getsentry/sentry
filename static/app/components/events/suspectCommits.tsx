@@ -151,7 +151,7 @@ export function SuspectCommits({
   );
 }
 
-export const StyledPanel = styled(Panel)`
+const StyledPanel = styled(Panel)`
   margin: 0;
 `;
 

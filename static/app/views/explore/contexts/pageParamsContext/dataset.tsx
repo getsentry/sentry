@@ -13,7 +13,7 @@ export function getDatasetFromLocation(location: Location): DiscoverDatasets | u
   return parseDataset(rawDataset);
 }
 
-export function parseDataset(rawDataset: string | undefined) {
+function parseDataset(rawDataset: string | undefined) {
   if (rawDataset === 'spansIndexed') {
     return DiscoverDatasets.SPANS_INDEXED;
   }

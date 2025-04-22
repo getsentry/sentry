@@ -17,7 +17,7 @@ export default function Section({children, title}: SectionProps) {
   );
 }
 
-export const SectionHeading = styled('h4')`
+const SectionHeading = styled('h4')`
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;
 `;

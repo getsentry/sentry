@@ -12,7 +12,7 @@ export enum ThreadStates {
 
 type ThreadStatesMap = Record<string, ThreadStates>;
 
-export const javaThreadStatesMap: ThreadStatesMap = {
+const javaThreadStatesMap: ThreadStatesMap = {
   RUNNABLE: ThreadStates.RUNNABLE,
   TIMED_WAITING: ThreadStates.TIMED_WAITING,
   BLOCKED: ThreadStates.BLOCKED,

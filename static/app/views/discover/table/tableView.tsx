@@ -747,7 +747,7 @@ const StyledTooltip = styled(Tooltip)`
   max-width: max-content;
 `;
 
-export const StyledLink = styled(Link)`
+const StyledLink = styled(Link)`
   & div {
     display: inline;
   }

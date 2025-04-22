@@ -26,7 +26,7 @@ import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader'
 import {ModuleName} from 'sentry/views/insights/types';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 
-export function PageloadModule() {
+function PageloadModule() {
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
   const {isProjectCrossPlatform} = useCrossPlatformProject();

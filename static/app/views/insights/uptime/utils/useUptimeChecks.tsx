@@ -16,7 +16,7 @@ interface UptimeChecksParameters {
   statsPeriod?: string;
 }
 
-export function makeUptimeChecksQueryKey({
+function makeUptimeChecksQueryKey({
   orgSlug,
   projectSlug,
   uptimeAlertId,

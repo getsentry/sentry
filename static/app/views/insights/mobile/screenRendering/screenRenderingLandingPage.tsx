@@ -16,7 +16,7 @@ import {MODULE_TITLE} from 'sentry/views/insights/mobile/screenRendering/setting
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {ModuleName} from 'sentry/views/insights/types';
 
-export function ScreenRenderingModule() {
+function ScreenRenderingModule() {
   const {isProjectCrossPlatform} = useCrossPlatformProject();
 
   return (

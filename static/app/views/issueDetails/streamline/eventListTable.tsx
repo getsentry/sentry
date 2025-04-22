@@ -156,7 +156,7 @@ export const HeaderItem = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-export const StreamlineGridEditable = styled('div')`
+const StreamlineGridEditable = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
 

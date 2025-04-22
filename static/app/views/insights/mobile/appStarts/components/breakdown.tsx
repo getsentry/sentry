@@ -14,7 +14,7 @@ interface BreakdownGroup {
   name: string;
 }
 
-export function TooltipContents({
+function TooltipContents({
   row,
   total,
   breakdownGroups,

@@ -59,7 +59,7 @@ function getSpanFieldDefinitionFunction(tags: TagCollection) {
   };
 }
 
-export function useSpanSearchQueryBuilderProps({
+function useSpanSearchQueryBuilderProps({
   initialQuery,
   searchSource,
   datetime,

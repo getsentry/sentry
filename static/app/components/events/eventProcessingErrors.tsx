@@ -23,7 +23,7 @@ const keyMapping = {
   image_path: 'File Path',
 };
 
-export default function EventErrorCard({
+function EventErrorCard({
   title,
   data,
 }: {

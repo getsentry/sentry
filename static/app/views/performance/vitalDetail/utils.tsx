@@ -15,7 +15,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import type {Color} from 'sentry/utils/theme';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 
-export function generateVitalDetailRoute({orgSlug}: {orgSlug: string}): string {
+function generateVitalDetailRoute({orgSlug}: {orgSlug: string}): string {
   return `/organizations/${orgSlug}/performance/vitaldetail/`;
 }
 

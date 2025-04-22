@@ -39,7 +39,7 @@ class Term {
   }
 }
 
-export class TokenConverter {
+class TokenConverter {
   numOperations: number;
   errors: string[];
   fields: Term[];

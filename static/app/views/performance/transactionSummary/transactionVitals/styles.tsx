@@ -10,7 +10,7 @@ export const Card = styled(PanelItem)`
   padding: 0;
 `;
 
-export const CardSection = styled('div')`
+const CardSection = styled('div')`
   padding: ${space(3)};
 `;
 

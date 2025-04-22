@@ -28,7 +28,7 @@ interface UncontrolledProps extends BaseProps {
 
 export type SliderProps = ControlledProps | UncontrolledProps;
 
-export function LegacySlider({ref, ...props}: SliderProps) {
+function LegacySlider({ref, ...props}: SliderProps) {
   return (
     <StyledSlider
       ref={ref}

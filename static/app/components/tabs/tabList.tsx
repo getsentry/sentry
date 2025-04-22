@@ -26,7 +26,7 @@ import {tabsShouldForwardProp} from './utils';
  * Uses IntersectionObserver API to detect overflowing tabs. Returns an array
  * containing of keys of overflowing tabs.
  */
-export function useOverflowTabs({
+function useOverflowTabs({
   tabListRef,
   tabItemsRef,
   tabItems,
@@ -95,7 +95,7 @@ export function useOverflowTabs({
   return overflowTabs.filter(tabKey => !tabItemKeyToHiddenMap[tabKey]);
 }
 
-export function OverflowMenu({state, overflowMenuItems, disabled}: any) {
+function OverflowMenu({state, overflowMenuItems, disabled}: any) {
   return (
     <TabListOverflowWrap>
       <CompactSelect

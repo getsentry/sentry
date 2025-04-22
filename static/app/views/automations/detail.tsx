@@ -116,7 +116,7 @@ function Actions() {
   );
 }
 
-export const SectionHeading = styled('h4')`
+const SectionHeading = styled('h4')`
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;
 `;

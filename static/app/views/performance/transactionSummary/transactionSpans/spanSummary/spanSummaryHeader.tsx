@@ -101,7 +101,7 @@ const SectionSubtext = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-export const SpanLabelContainer = styled('div')`
+const SpanLabelContainer = styled('div')`
   ${p => p.theme.overflowEllipsis};
 `;
 

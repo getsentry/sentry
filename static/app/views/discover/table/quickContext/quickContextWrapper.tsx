@@ -22,7 +22,7 @@ export function NoContext({isLoading}: NoContextProps) {
   );
 }
 
-export const HoverWrapper = styled('div')`
+const HoverWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.75)};
