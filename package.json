@@ -93,6 +93,7 @@
     "@types/reflux": "0.4.1",
     "@types/scroll-to-element": "^2.0.2",
     "@types/stripe-v3": "^3.1.20",
+    "@types/webpack-env": "1.18.8",
     "ansi-to-react": "^6.1.6",
     "babel-loader": "^10.0.0",
     "browserslist": "^4.22.2",
