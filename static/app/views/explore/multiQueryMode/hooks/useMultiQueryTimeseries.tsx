@@ -23,7 +23,7 @@ interface UseMultiQueryTimeseriesOptions {
   queryExtras?: SpansRPCQueryExtras;
 }
 
-export interface UseMultiQueryTimeseriesResults {
+interface UseMultiQueryTimeseriesResults {
   canUsePreviousResults: boolean;
   result: ReturnType<typeof useSortedTimeSeries>;
 }

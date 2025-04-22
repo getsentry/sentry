@@ -7,6 +7,8 @@ auth_tasks = taskregistry.create_namespace("auth")
 
 auth_control_tasks = taskregistry.create_namespace("auth.control")
 
+buffer_tasks = taskregistry.create_namespace("buffer")
+
 crons_tasks = taskregistry.create_namespace("crons")
 
 deletion_tasks = taskregistry.create_namespace(
@@ -23,6 +25,8 @@ deletion_control_tasks = taskregistry.create_namespace(
 demomode_tasks = taskregistry.create_namespace("demomode")
 
 digests_tasks = taskregistry.create_namespace("digests")
+
+export_tasks = taskregistry.create_namespace(name="export", processing_deadline_duration=15)
 
 hybridcloud_tasks = taskregistry.create_namespace("hybridcloud")
 
@@ -45,6 +49,8 @@ replays_tasks = taskregistry.create_namespace("replays")
 sdk_tasks = taskregistry.create_namespace("sdk")
 
 sdk_control_tasks = taskregistry.create_namespace("sdk.control")
+
+seer_tasks = taskregistry.create_namespace("seer")
 
 selfhosted_tasks = taskregistry.create_namespace("selfhosted")
 

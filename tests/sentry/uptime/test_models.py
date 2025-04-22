@@ -3,14 +3,13 @@ from unittest import mock
 from sentry.testutils.cases import UptimeTestCase
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import (
-    ProjectUptimeSubscriptionMode,
     UptimeSubscriptionDataSourceHandler,
     create_detector_from_project_subscription,
     get_active_auto_monitor_count_for_org,
     get_detector,
     get_top_hosting_provider_names,
 )
-from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION
+from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION, ProjectUptimeSubscriptionMode
 from sentry.workflow_engine.models.data_source_detector import DataSourceDetector
 
 

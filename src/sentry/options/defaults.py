@@ -613,12 +613,6 @@ register("github-app.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DIS
 
 # Github Enterprise Integration
 register(
-    "github-enterprise-app.alert-rule-action",
-    type=Bool,
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "github-enterprise-app.allowed-hosts-legacy-webhooks",
     type=Sequence,
     default=[],
@@ -2970,10 +2964,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "ecosystem:enable_integration_form_error_raise", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
 
 # Restrict uptime issue creation for specific host provider identifiers. Items
 # in this list map to the `host_provider_id` column in the UptimeSubscription
@@ -3320,6 +3310,21 @@ register(
 )
 register(
     "taskworker.integrations.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.seer.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.export.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.buffer.rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

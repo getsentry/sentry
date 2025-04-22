@@ -50,7 +50,7 @@ interface UseTrackAnalyticsProps {
   tracesTableResult?: TracesTableResult;
 }
 
-export function useTrackAnalytics({
+function useTrackAnalytics({
   queryType,
   aggregatesTableResult,
   spansTableResult,
@@ -467,7 +467,7 @@ function computeConfidence(
   });
 }
 
-export function computeEmptyBucketsForSeries(series: Pick<TimeSeries, 'data'>): number {
+function computeEmptyBucketsForSeries(series: Pick<TimeSeries, 'data'>): number {
   let emptyBucketsForSeries = 0;
   for (const item of series.data) {
     if (item.value === 0 || item.value === null) {

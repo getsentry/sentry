@@ -13,6 +13,7 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -43,7 +44,7 @@ import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/use
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 const CHART_HEIGHT = 260;
-export interface MultiQueryChartProps {
+interface MultiQueryChartProps {
   canUsePreviousResults: boolean;
   index: number;
   mode: Mode;
@@ -183,6 +184,7 @@ export function MultiQueryModeChart({
               confidence={undefined}
               topEvents={undefined}
               dataScanned={undefined}
+              dataset={DiscoverDatasets.SPANS_EAP}
             />
           )
         }
@@ -344,6 +346,7 @@ export function MultiQueryModeChart({
           topEvents={isTopN ? numSeries : undefined}
           dataScanned={dataScanned}
           samplingMode={samplingMode}
+          dataset={DiscoverDatasets.SPANS_EAP}
         />
       }
     />

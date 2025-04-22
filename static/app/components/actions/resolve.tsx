@@ -50,7 +50,7 @@ function SetupReleasesPrompt() {
   );
 }
 
-export interface ResolveActionsProps {
+interface ResolveActionsProps {
   hasRelease: boolean;
   onUpdate: (data: GroupStatusResolution) => void;
   confirmLabel?: string;

@@ -648,7 +648,6 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
                   orgId,
                   subscription: data,
                   billingConfig,
-                  canProvisionDsPlan: true,
                   onSuccess: () => this.reloadData(),
                 }),
             },
