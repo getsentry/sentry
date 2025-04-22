@@ -51,7 +51,7 @@ interface ReadablePageParams {
   title?: string;
 }
 
-export interface WritablePageParams {
+interface WritablePageParams {
   dataset?: DiscoverDatasets | null;
   fields?: string[] | null;
   groupBys?: string[] | null;

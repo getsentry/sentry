@@ -28,7 +28,7 @@ import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
-export type TimeSeriesData = {
+type TimeSeriesData = {
   allTimeseriesData?: EventsStatsData;
   comparisonTimeseriesData?: Series[];
   originalPreviousTimeseriesData?: EventsStatsData | null;

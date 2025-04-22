@@ -15,7 +15,7 @@ export enum TokenType {
   FREE_TEXT = 2,
 }
 
-export type Token = {
+type Token = {
   type: TokenType;
   value: string;
   key?: string;

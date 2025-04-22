@@ -57,7 +57,7 @@ export function FieldRenderer({data, meta, unit, column}: FieldProps) {
   );
 }
 
-export interface MultiQueryFieldProps extends FieldProps {
+interface MultiQueryFieldProps extends FieldProps {
   index: number;
 }
 

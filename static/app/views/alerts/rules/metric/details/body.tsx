@@ -45,7 +45,7 @@ import RelatedTransactions from './relatedTransactions';
 import {MetricDetailsSidebar} from './sidebar';
 import {getFilter, getPeriodInterval} from './utils';
 
-export interface MetricDetailsBodyProps {
+interface MetricDetailsBodyProps {
   timePeriod: TimePeriodType;
   anomalies?: Anomaly[];
   incidents?: Incident[];

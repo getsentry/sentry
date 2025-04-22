@@ -86,7 +86,7 @@ export interface DocsParams<
   };
 }
 
-export interface NextStep {
+interface NextStep {
   description: string;
   link: string;
   name: string;

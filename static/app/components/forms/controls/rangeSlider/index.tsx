@@ -229,5 +229,3 @@ const StyledInput = styled(Input)<{hasLabel: boolean}>`
 `;
 
 export default RangeSlider;
-
-export type {SliderProps};

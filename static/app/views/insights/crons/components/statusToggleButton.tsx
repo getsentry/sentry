@@ -7,7 +7,7 @@ import type {ObjectStatus} from 'sentry/types/core';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {Monitor} from 'sentry/views/insights/crons/types';
 
-export interface StatusToggleButtonProps extends Omit<BaseButtonProps, 'onClick'> {
+interface StatusToggleButtonProps extends Omit<BaseButtonProps, 'onClick'> {
   monitor: Monitor;
   onToggleStatus: (status: ObjectStatus) => Promise<void>;
 }

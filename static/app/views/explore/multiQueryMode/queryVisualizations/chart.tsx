@@ -44,7 +44,7 @@ import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/use
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 const CHART_HEIGHT = 260;
-export interface MultiQueryChartProps {
+interface MultiQueryChartProps {
   canUsePreviousResults: boolean;
   index: number;
   mode: Mode;

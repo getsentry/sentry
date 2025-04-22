@@ -17,7 +17,7 @@ import {
 
 const DEFAULT_HOVER_TIMEOUT = 200;
 
-export interface UseTraceItemDetailsProps {
+interface UseTraceItemDetailsProps {
   /**
    * Every trace item belongs to a project.
    */

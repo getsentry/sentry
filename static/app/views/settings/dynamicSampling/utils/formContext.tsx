@@ -50,7 +50,7 @@ interface PlainObject {
 interface PlainArray extends Array<PlainValue> {}
 type AtomicValue = string | number | boolean | null | undefined;
 
-export type FormValidators<
+type FormValidators<
   FormFields extends Record<string, PlainValue>,
   FieldErrors extends Record<keyof FormFields, any>,
 > = {

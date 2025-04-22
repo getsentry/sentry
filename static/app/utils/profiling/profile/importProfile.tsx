@@ -29,7 +29,7 @@ import {
   wrapWithSpan,
 } from './utils';
 
-export interface ImportOptions {
+interface ImportOptions {
   span: Span | undefined;
   type: 'flamegraph' | 'flamechart';
   activeThreadId?: string | null;

@@ -26,7 +26,7 @@ export type Trace = {
   trace_annotations?: readonly Annotation[];
 };
 
-export type Span = {
+type Span = {
   duration_ms: number;
   id: string | number;
   name: string;

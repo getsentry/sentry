@@ -16,6 +16,6 @@ export const FIELDS = [
 
 export type Field = (typeof FIELDS)[number];
 
-export type Sort = Field | `-${Field}`;
+type Sort = Field | `-${Field}`;
 
 export const SORTS: Sort[] = ['-is_transaction', '-span.self_time'];

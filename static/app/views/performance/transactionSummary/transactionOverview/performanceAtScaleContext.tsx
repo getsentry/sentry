@@ -11,7 +11,7 @@ type TransactionListTableData =
     }
   | undefined;
 
-export type PerformanceAtScaleContextProps = {
+type PerformanceAtScaleContextProps = {
   metricsSeriesDataEmpty: boolean | undefined;
   setMetricsSeriesDataEmpty: (data: boolean | undefined) => void;
   setTransactionListTableData: (data: TransactionListTableData) => void;

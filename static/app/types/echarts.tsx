@@ -49,7 +49,7 @@ export type EChartChartReadyHandler = (instance: ECharts) => void;
  * from a combination of the ECharts documentation page, and data seen in running code
  * in handlers attached to line charts and pie charts.
  */
-export interface EChartsHighlightEventParam {
+interface EChartsHighlightEventParam {
   type: 'highlight';
   batch?: Array<{
     dataIndex: number;

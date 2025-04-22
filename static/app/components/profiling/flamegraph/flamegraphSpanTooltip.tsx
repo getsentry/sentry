@@ -23,7 +23,7 @@ export function formatWeightToTransactionDuration(
   return `(${Math.round((span.duration / spanChart.root.duration) * 100)}%)`;
 }
 
-export interface FlamegraphSpanTooltipProps {
+interface FlamegraphSpanTooltipProps {
   configSpaceCursor: vec2;
   hoveredNode: SpanChartNode;
   spanChart: SpanChart;

@@ -20,7 +20,7 @@ export type TempestEventParameters = {
   };
 };
 
-export type TempestEventKey = keyof TempestEventParameters;
+type TempestEventKey = keyof TempestEventParameters;
 
 export const tempestEventMap: Record<TempestEventKey, string | null> = {
   'tempest.credentials.add_modal_opened': 'Tempest: Credentials Add Modal Opened',

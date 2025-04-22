@@ -36,7 +36,7 @@ export type FeatureFlagEventParameters = {
   };
 };
 
-export type FeatureFlagEventKey = keyof FeatureFlagEventParameters;
+type FeatureFlagEventKey = keyof FeatureFlagEventParameters;
 
 export const featureFlagEventMap: Record<FeatureFlagEventKey, string | null> = {
   'flags.cta_dismissed': 'Flag CTA Dismissed',

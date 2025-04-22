@@ -19,7 +19,7 @@ type SelectFunc = (params: {
   toEnd?: boolean;
 }) => void;
 
-export interface KeyboardSelectionData {
+interface KeyboardSelectionData {
   selectInDirection: SelectFunc;
 }
 

@@ -35,7 +35,7 @@ import {
   useHasStreamlinedUI,
 } from 'sentry/views/issueDetails/utils';
 
-export type MutateActivityOptions = MutateOptions<TData, TError, TVariables, TContext>;
+type MutateActivityOptions = MutateOptions<TData, TError, TVariables, TContext>;
 
 interface GroupActivityProps {
   group: Group;

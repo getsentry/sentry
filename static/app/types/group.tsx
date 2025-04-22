@@ -356,12 +356,12 @@ export type TagWithTopValues = {
 /**
  * Inbox, issue owners and Activity
  */
-export type Annotation = {
+type Annotation = {
   displayName: string;
   url: string;
 };
 
-export type InboxReasonDetails = {
+type InboxReasonDetails = {
   count?: number | null;
   until?: string | null;
   user_count?: number | null;
@@ -369,7 +369,7 @@ export type InboxReasonDetails = {
   window?: number | null;
 };
 
-export const enum GroupInboxReason {
+const enum GroupInboxReason {
   NEW = 0,
   UNIGNORED = 1,
   REGRESSION = 2,
@@ -393,7 +393,7 @@ export type SuggestedOwnerReason =
   | 'codeowners';
 
 // Received from the backend to denote suggested owners of an issue
-export type SuggestedOwner = {
+type SuggestedOwner = {
   date_added: string;
   owner: string;
   type: SuggestedOwnerReason;
@@ -561,7 +561,7 @@ interface GroupActivityRegression extends GroupActivityBase {
   type: GroupActivityType.SET_REGRESSION;
 }
 
-export interface GroupActivitySetByResolvedInNextSemverRelease extends GroupActivityBase {
+interface GroupActivitySetByResolvedInNextSemverRelease extends GroupActivityBase {
   data: {
     // Set for semver releases
     current_release_version: string;
@@ -569,7 +569,7 @@ export interface GroupActivitySetByResolvedInNextSemverRelease extends GroupActi
   type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
 }
 
-export interface GroupActivitySetByResolvedInRelease extends GroupActivityBase {
+interface GroupActivitySetByResolvedInRelease extends GroupActivityBase {
   data: {
     version?: string;
   };
@@ -897,12 +897,12 @@ export interface GroupReprocessing extends BaseGroup, GroupStats {
   statusDetails: ReprocessingStatusDetails;
 }
 
-export interface GroupResolved extends BaseGroup, GroupStats {
+interface GroupResolved extends BaseGroup, GroupStats {
   status: GroupStatus.RESOLVED;
   statusDetails: ResolvedStatusDetails;
 }
 
-export interface GroupIgnored extends BaseGroup, GroupStats {
+interface GroupIgnored extends BaseGroup, GroupStats {
   status: GroupStatus.IGNORED;
   statusDetails: IgnoredStatusDetails;
 }
@@ -938,7 +938,7 @@ export type Meta = {
 };
 
 export type MetaError = string | [string, any];
-export type MetaRemark = Array<string | number>;
+type MetaRemark = Array<string | number>;
 
 export type ChunkType = {
   rule_id: string | number;

@@ -80,7 +80,7 @@ export enum PerformanceTerm {
   HIGHEST_CACHE_MISS_RATE_TRANSACTIONS = 'highestCacheMissRateTransactions',
 }
 
-export type TooltipOption = SelectValue<string> & {
+type TooltipOption = SelectValue<string> & {
   tooltip: string;
 };
 

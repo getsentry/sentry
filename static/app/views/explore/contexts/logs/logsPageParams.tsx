@@ -47,7 +47,7 @@ interface LogsPageParams {
   readonly projectIds?: number[];
 }
 
-export type LogPageParamsUpdate = Partial<LogsPageParams>;
+type LogPageParamsUpdate = Partial<LogsPageParams>;
 
 const [_LogsPageParamsProvider, _useLogsPageParams, LogsPageParamsContext] =
   createDefinedContext<LogsPageParams>({

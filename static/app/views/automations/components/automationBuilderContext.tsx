@@ -90,7 +90,7 @@ export function useAutomationBuilderReducer() {
   return {state, actions};
 }
 
-export interface AutomationBuilderState {
+interface AutomationBuilderState {
   actionFilters: DataConditionGroup[];
   triggers: DataConditionGroup;
 }
@@ -99,7 +99,7 @@ export interface AutomationBuilderState {
 // Any changes to action types must be reflected in both:
 // 1. The individual action type definitions
 // 2. The AutomationActions interface
-export interface AutomationActions {
+interface AutomationActions {
   addIf: () => void;
   addIfCondition: (groupIndex: number, conditionType: DataConditionType) => void;
   addWhenCondition: (conditionType: DataConditionType) => void;
@@ -201,7 +201,7 @@ type UpdateIfLogicTypeAction = {
   type: 'UPDATE_IF_LOGIC_TYPE';
 };
 
-export type AutomationBuilderAction =
+type AutomationBuilderAction =
   | AddWhenConditionAction
   | RemoveWhenConditionAction
   | UpdateWhenConditionAction

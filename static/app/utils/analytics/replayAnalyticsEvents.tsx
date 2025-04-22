@@ -130,7 +130,7 @@ export type ReplayEventParameters = {
   };
 };
 
-export type ReplayEventKey = keyof ReplayEventParameters;
+type ReplayEventKey = keyof ReplayEventParameters;
 
 export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.canvas-detected-banner-clicked': 'Clicked Canvas Detected in Replay Banner',

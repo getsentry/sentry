@@ -7,7 +7,7 @@ import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOption
 import {t} from 'sentry/locale';
 import useRouter from 'sentry/utils/useRouter';
 
-export type OptionControlProps = {
+type OptionControlProps = {
   /**
    * The platform options for which the control is rendered
    */

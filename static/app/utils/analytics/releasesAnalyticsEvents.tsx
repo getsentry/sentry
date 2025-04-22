@@ -13,7 +13,7 @@ export type ReleasesEventParameters = {
   'releases.quickstart_viewed': {project_id: string};
 };
 
-export type ReleasesEventKey = keyof ReleasesEventParameters;
+type ReleasesEventKey = keyof ReleasesEventParameters;
 
 export const releasesEventMap: Record<ReleasesEventKey, string | null> = {
   'releases.bubbles_legend': 'Releases: Toggle Legend for Bubble',

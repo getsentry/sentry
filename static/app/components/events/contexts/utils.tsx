@@ -130,7 +130,7 @@ export function getRelativeTimeFromEventDateCreated(
   );
 }
 
-export type KnownDataDetails = Omit<KeyValueListDataItem, 'key'> | undefined;
+type KnownDataDetails = Omit<KeyValueListDataItem, 'key'> | undefined;
 
 export function getKnownData<Data, DataType>({
   data,

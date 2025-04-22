@@ -6,7 +6,7 @@ import useMedia from 'sentry/utils/useMedia';
 import {NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/nav/constants';
 import {NavLayout} from 'sentry/views/nav/types';
 
-export interface NavContext {
+interface NavContext {
   endInteraction: () => void;
   isCollapsed: boolean;
   isInteractingRef: React.RefObject<boolean | null>;

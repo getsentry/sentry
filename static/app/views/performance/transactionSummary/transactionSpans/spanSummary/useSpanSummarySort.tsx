@@ -13,7 +13,7 @@ const SORTABLE_FIELDS = [
   SpanIndexedField.SPAN_DURATION,
 ] as const;
 
-export type ValidSort = Sort & {
+type ValidSort = Sort & {
   field: (typeof SORTABLE_FIELDS)[number];
 };
 

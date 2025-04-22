@@ -13,7 +13,7 @@ enum RegionFlagIndicator {
   DE = '🇪🇺',
 }
 
-export interface RegionData {
+interface RegionData {
   displayName: string;
   name: string;
   url: string;

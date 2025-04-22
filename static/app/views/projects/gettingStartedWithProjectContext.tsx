@@ -11,7 +11,7 @@ type GettingStartedWithProject = Pick<Project, 'name' | 'id'> & {
   teamSlug?: Project['team']['slug'];
 };
 
-export type ProjectsContextProps = {
+type ProjectsContextProps = {
   setProject: (project: GettingStartedWithProject) => void;
   project?: GettingStartedWithProject;
 };

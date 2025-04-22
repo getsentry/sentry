@@ -63,7 +63,7 @@ export enum ChartType {
   AREA = 2,
 }
 
-export interface ChartRenderingProps {
+interface ChartRenderingProps {
   height: number;
   isFullscreen: boolean;
 }

@@ -104,7 +104,7 @@ interface BaseField {
 // TODO(ts): These are field specific props. May not be needed as we convert
 // the fields as we can grab the props from them
 
-export interface CustomType {
+interface CustomType {
   Component: (arg: BaseField) => React.ReactElement;
   type: 'custom';
 }
@@ -179,22 +179,22 @@ export type ProjectMapperType = {
   type: 'project_mapper';
 };
 
-export type ChoiceMapperType = {
+type ChoiceMapperType = {
   type: 'choice_mapper';
 } & ChoiceMapperProps;
 
 // selects a sentry project with avatars
-export type SentryProjectSelectorType = {
+type SentryProjectSelectorType = {
   projects: Project[];
   type: 'sentry_project_selector';
   avatarSize?: number;
 };
 
-export type SentryOrganizationRoleSelectorType = {
+type SentryOrganizationRoleSelectorType = {
   type: 'sentry_organization_role_selector';
 };
 
-export type SelectAsyncType = {
+type SelectAsyncType = {
   type: 'select_async';
 } & SelectAsyncFieldProps;
 

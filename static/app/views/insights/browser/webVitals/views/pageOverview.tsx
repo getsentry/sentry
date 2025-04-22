@@ -43,7 +43,7 @@ import {
 } from 'sentry/views/insights/types';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-export enum LandingDisplayField {
+enum LandingDisplayField {
   OVERVIEW = 'overview',
   SPANS = 'spans',
 }

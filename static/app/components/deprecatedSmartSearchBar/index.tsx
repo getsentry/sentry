@@ -165,7 +165,7 @@ const pickParserOptions = (props: Props) => {
   } satisfies Partial<SearchConfig>;
 };
 
-export type ActionProps = {
+type ActionProps = {
   api: Client;
   /**
    * The organization
@@ -181,7 +181,7 @@ export type ActionProps = {
   savedSearchType?: SavedSearchType;
 };
 
-export type ActionBarItem = {
+type ActionBarItem = {
   /**
    * Name of the action
    */

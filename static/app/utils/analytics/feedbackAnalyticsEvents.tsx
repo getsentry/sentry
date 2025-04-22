@@ -15,7 +15,7 @@ export type FeedbackEventParameters = {
   'feedback.whats-new-banner-viewed': Record<string, unknown>;
 };
 
-export type FeedbackEventKey = keyof FeedbackEventParameters;
+type FeedbackEventKey = keyof FeedbackEventParameters;
 
 export const feedbackEventMap: Record<FeedbackEventKey, string | null> = {
   'feedback.feedback-item-not-found': 'Feedback item not found',

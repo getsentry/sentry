@@ -69,7 +69,7 @@ export const useMEPDataContext = _useMEPDataContext;
 
 // A provider for handling all metas on the page, should be used if your queries and components aren't
 // co-located since a local provider doesn't work in that case.
-export interface PerformanceDataMultipleMetaContext {
+interface PerformanceDataMultipleMetaContext {
   metricsExtractedDataMap: ExtractedDataMap;
   setIsMetricsExtractedData: (mapKey: MetricsResultsMetaMapKey, value?: boolean) => void;
 }

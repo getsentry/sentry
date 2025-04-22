@@ -18,7 +18,7 @@ import TimeRangeItemLabel from './timeRangeItemLabel';
 type PeriodUnit = 's' | 'm' | 'h' | 'd' | 'w';
 type RelativePeriodUnit = Exclude<PeriodUnit, 's'>;
 
-export type RelativeUnitsMapping = Record<
+type RelativeUnitsMapping = Record<
   string,
   {
     convertToDaysMultiplier: number;

@@ -31,7 +31,7 @@ export type ConfirmMessageRenderProps = {
   setConfirmCallback: (cb: () => void) => void;
 };
 
-export type ConfirmButtonsRenderProps = {
+type ConfirmButtonsRenderProps = {
   /**
    * Applications can call this function to manually close the modal.
    */

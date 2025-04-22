@@ -39,7 +39,7 @@ interface SpanFieldEntry {
   key: string;
   name: string;
 }
-export type SpanFieldsResponse = SpanFieldEntry[];
+type SpanFieldsResponse = SpanFieldEntry[];
 
 const getDynamicSpanFieldsEndpoint = (
   orgSlug: string,

@@ -14,7 +14,7 @@ interface Props {
   defaultTab?: DiffType;
 }
 
-export const enum DiffType {
+const enum DiffType {
   HTML = 'html',
   SLIDER = 'slider',
   VISUAL = 'visual',

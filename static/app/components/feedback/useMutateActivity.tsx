@@ -14,19 +14,19 @@ export type TError = RequestError;
 export type TVariables = [TPayload, TMethod];
 export type TContext = unknown;
 
-export type DeleteCommentCallback = (
+type DeleteCommentCallback = (
   noteId: string,
   activity: GroupActivity[],
   options?: MutateOptions<TData, TError, TVariables, TContext>
 ) => void;
 
-export type CreateCommentCallback = (
+type CreateCommentCallback = (
   note: NoteType,
   activity: GroupActivity[],
   options?: MutateOptions<TData, TError, TVariables, TContext>
 ) => void;
 
-export type UpdateCommentCallback = (
+type UpdateCommentCallback = (
   note: NoteType,
   noteId: string,
   activity: GroupActivity[],
