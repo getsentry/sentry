@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -42,6 +42,7 @@ import {
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -208,11 +209,12 @@ export default function IntegrationListDirectory() {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
-  const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('');
   const {appInstalls, anyPending, integrations, list, anyError, publishedApps, plugins} =
     useIntegrationList();
   const fuzzy = useFuzzySearch<AppOrProviderOrPlugin>(list, fuseOptions);
+
+  const category = decodeScalar(location.query.category) ?? '';
+  const search = decodeScalar(location.query.search) ?? '';
 
   const displayList = useMemo(() => {
     let listToDisplay = [...list];
@@ -241,7 +243,6 @@ export default function IntegrationListDirectory() {
 
   const onCategoryChange = useCallback(
     ({value: newCategory}: SelectOption<string>) => {
-      setCategory(newCategory);
       navigate(
         {
           ...location,
@@ -262,7 +263,6 @@ export default function IntegrationListDirectory() {
 
   const onSearchChange = useCallback(
     (newSearch: string) => {
-      setSearch(newSearch);
       navigate(
         {
           ...location,
@@ -508,8 +508,8 @@ function IntegrationSettingsHeader({
           />
           <SearchBar
             query={search}
-            onChange={onChangeSearch}
-            placeholder={t('Filter Integrations...')}
+            onSearch={onChangeSearch}
+            placeholder={t('Filter Integrations\u2026')}
             aria-label={t('Filter')}
             width="100%"
             data-test-id="search-bar"
