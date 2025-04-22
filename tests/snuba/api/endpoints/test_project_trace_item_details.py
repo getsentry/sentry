@@ -105,7 +105,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
                 "value": str(timestamp_nanos),
             },
             {"name": "message", "type": "str", "value": "foo"},
-            {"name": "severity_text", "type": "str", "value": "INFO"},
+            {"name": "severity", "type": "str", "value": "INFO"},
             {"name": "str_attr", "type": "str", "value": "1"},
             {"name": "trace", "type": "str", "value": self.trace_uuid},
         ]
@@ -186,7 +186,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
                     "value": str(timestamp_nanos),
                 },
                 {"name": "message", "type": "str", "value": "foo"},
-                {"name": "severity_text", "type": "str", "value": "INFO"},
+                {"name": "severity", "type": "str", "value": "INFO"},
                 {"name": "str_attr", "type": "str", "value": "1"},
                 {"name": "trace", "type": "str", "value": self.trace_uuid},
             ],

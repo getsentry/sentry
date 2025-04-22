@@ -180,7 +180,7 @@ class SearchResolverQueryTest(TestCase):
 
     def test_query_with_or_and_brackets(self):
         where, having, _ = self.resolver.resolve_query(
-            "(message:123 and severity_text:345) or (message:foo and severity_text:bar)"
+            "(message:123 and severity_text:345) or (message:foo and severity:bar)"
         )
         assert where == TraceItemFilter(
             or_filter=OrFilter(
