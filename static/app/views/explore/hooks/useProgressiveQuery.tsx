@@ -1,6 +1,6 @@
 import useOrganization from 'sentry/utils/useOrganization';
 import {useExploreVisualizes} from 'sentry/views/explore/contexts/pageParamsContext';
-import {computeTotals} from 'sentry/views/explore/hooks/useAnalytics';
+import {computeSampleCountTotals} from 'sentry/views/explore/utils/computeSampleCountTotals';
 
 export const SAMPLING_MODE = {
   PREFLIGHT: 'PREFLIGHT',
@@ -110,12 +110,12 @@ export function useProgressiveQuery<
 
   if (bestEffortRequest.result.isFetched) {
     if (queryOptions?.isTimeseries) {
-      const bestEffortSampleCount = computeTotals(
+      const bestEffortSampleCount = computeSampleCountTotals(
         visualizes,
         bestEffortRequest.result.data,
         queryOptions?.isTopN ?? false
       ).reduce((sum, count) => sum + count, 0);
-      const preflightSampleCount = computeTotals(
+      const preflightSampleCount = computeSampleCountTotals(
         visualizes,
         preflightRequest.result.data,
         queryOptions?.isTopN ?? false
