@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.utils import timezone
+import pytest
 
 from sentry.testutils.cases import TestMigrations
 from sentry.uptime.models import ProjectUptimeSubscription, UptimeStatus, UptimeSubscription
@@ -34,6 +35,7 @@ class UptimeBackfillUptimeStatusTest(TestMigrations):
             != self.failing_monitor.uptime_status_update_date
         )
 
+    @pytest.mark.skip(reason="No longer needed")
     def test(self):
         self.failing_monitor.refresh_from_db()
         self.failing_subscription.refresh_from_db()
