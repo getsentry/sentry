@@ -4,19 +4,19 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 import partition from 'lodash/partition';
 
-import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/container/flex';
+import {Alert} from 'sentry/components/core/alert';
+import {Button, LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useMutateOnboardingTasks} from 'sentry/components/onboarding/useMutateOnboardingTasks';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
 import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import ProgressRing from 'sentry/components/progressRing';
-import {IconCheckmark, IconChevron, IconClose, IconNot, IconSupport} from 'sentry/icons';
+import {IconCheckmark, IconChevron, IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import {space} from 'sentry/styles/space';
 import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
@@ -97,32 +97,26 @@ function TaskCard({
 
 interface TaskStatusIconProps {
   progress?: number;
-  status?: 'complete' | 'inProgress' | 'skipped';
+  status?: 'complete' | 'skipped';
   tooltipText?: string;
 }
 
 function TaskStatusIcon({status, tooltipText}: TaskStatusIconProps) {
   const theme = useTheme();
+  const commonStyle = css`
+    opacity: 50%;
+    color: ${theme.tokens.content.accent};
+  `;
   return (
     <Tooltip title={tooltipText} disabled={!tooltipText} containerDisplayMode="flex">
       {status === 'complete' ? (
         <IconCheckmark
           data-test-id="task-status-icon-complete"
-          css={css`
-            opacity: 50%;
-            color: ${theme.tokens.content.accent};
-          `}
+          css={commonStyle}
           size="sm"
         />
       ) : (
-        <IconNot
-          data-test-id="task-status-icon-skipped"
-          css={css`
-            opacity: 50%;
-            color: ${theme.tokens.content.accent};
-          `}
-          size="sm"
-        />
+        <IconNot data-test-id="task-status-icon-skipped" css={commonStyle} size="sm" />
       )}
     </Tooltip>
   );
@@ -134,87 +128,38 @@ interface SkipConfirmationProps {
 }
 
 function SkipConfirmation({onConfirm, onDismiss}: SkipConfirmationProps) {
-  const organization = useOrganization();
-  const theme = useTheme();
-
   return (
-    <SkipConfirmationWrapper>
-      <TaskCard
-        title={t('Not sure what to do? We’re here for you!')}
-        icon={
-          <IconChevron
-            direction="up"
-            css={css`
-              color: ${theme.disabled};
-              height: ${theme.fontSizeLarge};
-              width: ${theme.fontSizeLarge};
-            `}
-          />
-        }
-        actions={
-          <Fragment>
+    <Alert type="info" showIcon>
+      <Flex column gap={space(1)}>
+        {t("Not sure what to do? We're here for you!")}
+        <Flex justify="space-between" gap={0.5} flex={1}>
+          <LinkButton external href="https://sentry.io/support/" size="xs">
+            {t('Contact Support')}
+          </LinkButton>
+          <ButtonBar gap={0.5}>
             <Button
-              borderless
-              size="zero"
-              aria-label={t('Just Skip')}
-              title={t('Just Skip')}
-              icon={<IconClose color="subText" />}
-              onClick={event => {
-                event.stopPropagation();
-                onConfirm();
-              }}
-            />
-            <DropdownMenu
-              position="top-start"
-              triggerProps={{
-                'aria-label': t('Help'),
-                title: t('Help'),
-                icon: <IconSupport color="subText" />,
-                showChevron: false,
-                size: 'zero',
-                borderless: true,
-              }}
-              items={[
-                {
-                  key: 'search',
-                  label: t('Search Support, Docs and More'),
-                  onAction() {
-                    openHelpSearchModal({organization});
-                  },
-                },
-                {
-                  key: 'help',
-                  label: t('Visit Help Center'),
-                  // TODO(Telemetry): Make it open in a new tab
-                  to: 'https://sentry.zendesk.com/hc/en-us',
-                },
-                {
-                  key: 'discord',
-                  label: t('Join our Discord'),
-                  to: 'https://discord.com/invite/sentry',
-                },
-                {
-                  key: 'support',
-                  label: t('Contact Support'),
-                  to: `mailto:${ConfigStore.get('supportEmail')}`,
-                },
-              ]}
-            />
-            <Button
-              borderless
-              size="zero"
-              aria-label={t('Dismiss Skip')}
-              title={t('Dismiss Skip')}
-              icon={<IconClose color="subText" />}
               onClick={event => {
                 event.stopPropagation();
                 onDismiss();
               }}
-            />
-          </Fragment>
-        }
-      />
-    </SkipConfirmationWrapper>
+              size="xs"
+            >
+              {t('Cancel')}
+            </Button>
+            <Button
+              priority="primary"
+              onClick={event => {
+                event.stopPropagation();
+                onConfirm();
+              }}
+              size="xs"
+            >
+              {t('Just Skip')}
+            </Button>
+          </ButtonBar>
+        </Flex>
+      </Flex>
+    </Alert>
   );
 }
 
@@ -704,10 +649,4 @@ const TaskCardActions = styled('div')`
   grid-auto-columns: 20px;
   gap: ${space(1)};
   align-items: flex-start;
-`;
-
-const SkipConfirmationWrapper = styled('div')`
-  margin: ${space(1)} 0;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
 `;
