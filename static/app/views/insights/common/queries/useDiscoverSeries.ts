@@ -1,5 +1,4 @@
-import moment from 'moment-timezone';
-
+import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
@@ -11,7 +10,9 @@ import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
+import {DEFAULT_SAMPLING_MODE} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   getRetryDelay,
   shouldRetryHandler,
@@ -24,12 +25,7 @@ import type {
   SpanMetricsProperty,
 } from 'sentry/views/insights/types';
 
-import {DATE_FORMAT} from './useSpansQuery';
-
-export interface MetricTimeseriesRow {
-  [key: string]: number;
-  interval: number;
-}
+import {convertDiscoverTimeseriesResponse} from './convertDiscoverTimeseriesResponse';
 
 export type DiscoverSeries = Series & {
   meta: EventsMetaType;
@@ -40,20 +36,24 @@ interface UseMetricsSeriesOptions<Fields> {
   interval?: string;
   overriddenRoute?: string;
   referrer?: string;
-  search?: MutableSearch | string; // TODO: Remove string type and always require MutableSearch
+  samplingMode?: SamplingMode | 'NONE';
+  search?: MutableSearch | string;
+  // TODO: Remove string type and always require MutableSearch
   transformAliasToInputFormat?: boolean;
   yAxis?: Fields;
 }
 
 export const useSpanMetricsSeries = <Fields extends SpanMetricsProperty[]>(
   options: UseMetricsSeriesOptions<Fields> = {},
-  referrer: string
+  referrer: string,
+  pageFilters?: PageFilters
 ) => {
   const useEap = useInsightsEap();
   return useDiscoverSeries<Fields>(
     options,
     useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_METRICS,
-    referrer
+    referrer,
+    pageFilters
   );
 };
 
@@ -73,13 +73,15 @@ export const useEAPSeries = <
 
 export const useMetricsSeries = <Fields extends MetricsProperty[]>(
   options: UseMetricsSeriesOptions<Fields> = {},
-  referrer: string
+  referrer: string,
+  pageFilters?: PageFilters
 ) => {
   const useEap = useInsightsEap();
   return useDiscoverSeries<Fields>(
     options,
     useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.METRICS,
-    referrer
+    referrer,
+    pageFilters
   );
 };
 
@@ -104,18 +106,27 @@ export const useSpanIndexedSeries = <
 const useDiscoverSeries = <T extends string[]>(
   options: UseMetricsSeriesOptions<T> = {},
   dataset: DiscoverDatasets,
-  referrer: string
+  referrer: string,
+  pageFilters?: PageFilters
 ) => {
-  const {search = undefined, yAxis = [], interval = undefined} = options;
+  const {
+    search = undefined,
+    yAxis = [],
+    interval = undefined,
+    samplingMode = DEFAULT_SAMPLING_MODE,
+  } = options;
 
-  const pageFilters = usePageFilters();
+  const defaultPageFilters = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();
+
+  // TODO: remove this check with eap
+  const shouldSetSamplingMode = dataset === DiscoverDatasets.SPANS_EAP_RPC;
 
   const eventView = getSeriesEventView(
     search,
     undefined,
-    pageFilters.selection,
+    pageFilters || defaultPageFilters.selection,
     yAxis,
     undefined,
     dataset
@@ -145,9 +156,11 @@ const useDiscoverSeries = <T extends string[]>(
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
       interval: eventView.interval,
       transformAliasToInputFormat: options.transformAliasToInputFormat ? '1' : '0',
+      sampling:
+        samplingMode === 'NONE' || !shouldSetSamplingMode ? undefined : samplingMode,
     }),
     options: {
-      enabled: options.enabled && pageFilters.isReady,
+      enabled: options.enabled && defaultPageFilters.isReady,
       refetchOnWindowFocus: false,
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
@@ -172,12 +185,3 @@ const useDiscoverSeries = <T extends string[]>(
 
   return {...result, data: parsedData as Record<T[number], DiscoverSeries>};
 };
-
-function convertDiscoverTimeseriesResponse(data: any[]): DiscoverSeries['data'] {
-  return data.map(([timestamp, [{count: value}]]) => {
-    return {
-      name: moment(parseInt(timestamp, 10) * 1000).format(DATE_FORMAT),
-      value,
-    };
-  });
-}

@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';
 import TransactionsList from 'sentry/components/discover/transactionsList';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -13,7 +14,6 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -42,6 +42,12 @@ import Tags from 'sentry/views/discover/tags';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 import {ServiceEntrySpansTable} from 'sentry/views/performance/otlp/serviceEntrySpansTable';
+import Filter, {
+  decodeFilterFromLocation,
+  filterToField,
+  filterToSearchConditions,
+  SpanOperationBreakdownFilter,
+} from 'sentry/views/performance/transactionSummary/filter';
 import {SpanCategoryFilter} from 'sentry/views/performance/transactionSummary/spanCategoryFilter';
 import {EAPChartsWidget} from 'sentry/views/performance/transactionSummary/transactionOverview/eapChartsWidget';
 import {EAPSidebarCharts} from 'sentry/views/performance/transactionSummary/transactionOverview/eapSidebarCharts';
@@ -50,14 +56,6 @@ import {
   makeVitalGroups,
   PERCENTILE as VITAL_PERCENTILE,
 } from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
-
-import {isSummaryViewFrontend, isSummaryViewFrontendPageLoad} from '../../utils';
-import Filter, {
-  decodeFilterFromLocation,
-  filterToField,
-  filterToSearchConditions,
-  SpanOperationBreakdownFilter,
-} from '../filter';
 import {
   generateProfileLink,
   generateReplayLink,
@@ -66,7 +64,11 @@ import {
   normalizeSearchConditions,
   SidebarSpacer,
   TransactionFilterOptions,
-} from '../utils';
+} from 'sentry/views/performance/transactionSummary/utils';
+import {
+  isSummaryViewFrontend,
+  isSummaryViewFrontendPageLoad,
+} from 'sentry/views/performance/utils';
 
 import TransactionSummaryCharts from './charts';
 import {PerformanceAtScaleContextProvider} from './performanceAtScaleContext';
@@ -90,6 +92,8 @@ type Props = {
   totalValues: Record<string, number> | null;
   transactionName: string;
 };
+
+export const SERVICE_ENTRY_SPANS_CURSOR_NAME = 'serviceEntrySpansCursor';
 
 function OTelSummaryContentInner({
   eventView,
@@ -127,7 +131,11 @@ function OTelSummaryContentInner({
   function handleTransactionsListSortChange(value: string) {
     const target = {
       pathname: location.pathname,
-      query: {...location.query, showTransactions: value, transactionCursor: undefined},
+      query: {
+        ...location.query,
+        showTransactions: value,
+        [SERVICE_ENTRY_SPANS_CURSOR_NAME]: undefined,
+      },
     };
 
     navigate(target);
@@ -249,7 +257,7 @@ function OTelSummaryContentInner({
           <StyledSearchBarWrapper>{renderSearchBar()}</StyledSearchBarWrapper>
         </FilterActions>
         <EAPChartsWidgetContainer>
-          <EAPChartsWidget transactionName={transactionName} />
+          <EAPChartsWidget transactionName={transactionName} query={query} />
         </EAPChartsWidgetContainer>
 
         <PerformanceAtScaleContextProvider>

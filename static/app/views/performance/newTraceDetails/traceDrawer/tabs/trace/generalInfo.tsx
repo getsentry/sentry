@@ -1,8 +1,8 @@
 import {Fragment, useMemo} from 'react';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tn} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
@@ -10,13 +10,15 @@ import getDuration from 'sentry/utils/duration/getDuration';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useParams} from 'sentry/utils/useParams';
+import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
+import {
+  type SectionCardKeyValueList,
+  TraceDrawerComponents,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {isTraceNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {SpanTimeRenderer} from 'sentry/views/traces/fieldRenderers';
-
-import type {TraceMetaQueryResults} from '../../../traceApi/useTraceMeta';
-import {isTraceNode} from '../../../traceGuards';
-import type {TraceTree} from '../../../traceModels/traceTree';
-import type {TraceTreeNode} from '../../../traceModels/traceTreeNode';
-import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../details/styles';
 
 type GeneralInfoProps = {
   meta: TraceMetaQueryResults;
@@ -56,10 +58,10 @@ export function GeneralInfo(props: GeneralInfoProps) {
       return [];
     }
 
-    const unique: TraceTree.TraceOccurence[] = [];
+    const unique: TraceTree.TraceOccurrence[] = [];
     const seenIssues: Set<number> = new Set();
 
-    for (const issue of traceNode.occurences) {
+    for (const issue of traceNode.occurrences) {
       if (seenIssues.has(issue.issue_id)) {
         continue;
       }

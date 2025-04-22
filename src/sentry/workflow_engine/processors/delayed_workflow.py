@@ -31,6 +31,7 @@ from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import safe_execute
 from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
     BaseEventFrequencyQueryHandler,
+    QueryResult,
     slow_condition_query_handler_registry,
 )
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, Workflow
@@ -47,7 +48,6 @@ from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
     create_workflow_fire_histories,
     evaluate_workflows_action_filters,
-    log_fired_workflows,
 )
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 
@@ -232,7 +232,7 @@ def get_condition_query_groups(
 
 def get_condition_group_results(
     queries_to_groups: dict[UniqueConditionQuery, set[int]],
-) -> dict[UniqueConditionQuery, dict[int, int]]:
+) -> dict[UniqueConditionQuery, QueryResult]:
     condition_group_results = {}
     current_time = timezone.now()
 
@@ -266,7 +266,7 @@ def get_groups_to_fire(
     workflows_to_envs: WorkflowEnvMapping,
     dcg_to_workflow: dict[int, int],
     dcg_to_groups: DataConditionGroupGroups,
-    condition_group_results: dict[UniqueConditionQuery, dict[int, int]],
+    condition_group_results: dict[UniqueConditionQuery, QueryResult],
 ) -> dict[int, set[DataConditionGroup]]:
     groups_to_fire: dict[int, set[DataConditionGroup]] = defaultdict(set)
     for dcg in data_condition_groups:
@@ -276,7 +276,7 @@ def get_groups_to_fire(
         workflow_env = workflows_to_envs[workflow_id] if workflow_id else None
 
         for group_id in dcg_to_groups[dcg.id]:
-            conditions_to_evaluate: list[tuple[DataCondition, list[int]]] = []
+            conditions_to_evaluate: list[tuple[DataCondition, list[int | float]]] = []
             for condition in slow_conditions:
                 unique_queries = generate_unique_queries(condition, workflow_env)
                 query_values = [
@@ -425,25 +425,20 @@ def fire_actions_for_groups(
         # temporary fetching of organization, so not passing in as parameter
         organization = group.project.organization
 
-        if features.has(
-            "organizations:workflow-engine-process-workflows",
-            organization,
-        ):
-            metrics.incr(
-                "workflow_engine.delayed_workflow.triggered_actions",
-                amount=len(filtered_actions),
-                tags={"event_type": group_event.group.type},
-            )
+        metrics.incr(
+            "workflow_engine.delayed_workflow.triggered_actions",
+            amount=len(filtered_actions),
+            tags={"event_type": group_event.group.type},
+        )
 
-        if features.has(
-            "organizations:workflow-engine-process-workflows-logs",
-            organization,
-        ):
-            log_fired_workflows(
-                log_name="workflow_engine.delayed_workflow.fired_workflow",
-                actions=list(filtered_actions),
-                event_data=event_data,
-            )
+        logger.info(
+            "workflow_engine.delayed_workflow.triggered_actions",
+            extra={
+                "workflow_ids": [workflow.id for workflow in workflows],
+                "actions": filtered_actions,
+                "event_data": event_data,
+            },
+        )
 
         if features.has(
             "organizations:workflow-engine-trigger-actions",

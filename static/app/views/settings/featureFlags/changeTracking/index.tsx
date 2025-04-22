@@ -3,13 +3,14 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import {Flex} from 'sentry/components/container/flex';
 import {LinkButton} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
@@ -200,7 +201,13 @@ function OrganizationFeatureFlagsChangeTracking() {
   );
 }
 
-export default OrganizationFeatureFlagsChangeTracking;
+export default function OrganizationFeatureFlagsChangeTrackingRoute() {
+  return (
+    <AnalyticsArea name="feature_flag_org_settings">
+      <OrganizationFeatureFlagsChangeTracking />
+    </AnalyticsArea>
+  );
+}
 
 const ResponsivePanelTable = styled(PanelTable)`
   @media (max-width: ${p => p.theme.breakpoints.small}) {

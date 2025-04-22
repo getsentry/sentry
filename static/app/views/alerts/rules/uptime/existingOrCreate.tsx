@@ -5,8 +5,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-
-import {CombinedAlertType, type UptimeAlert} from '../../types';
+import {CombinedAlertType, type UptimeAlert} from 'sentry/views/alerts/types';
 
 /**
  * When no uptime alert rules exist, takes the user to create a new alert. If

@@ -9,6 +9,7 @@ import GoodStackTraceExample from 'sentry-images/issue_details/good-stack-trace-
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Flex} from 'sentry/components/container/flex';
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {Alert} from 'sentry/components/core/alert';
 import {sourceMapSdkDocsMap} from 'sentry/components/events/interfaces/crashContent/exception/utils';
@@ -520,15 +521,21 @@ export function SourceMapsDebuggerModal({
               'An image says more than a thousand words. Below you can see a comparison of how a bad and a good stack trace look like:'
             )}
           </p>
-          <ContentSliderDiff
-            beforeContent={
-              <img src={BadStackTraceExample} alt={t('Bad Stack Trace Example')} />
-            }
-            afterContent={
-              <img src={GoodStackTraceExample} alt={t('Good Stack Trace Example')} />
-            }
-            minHeight="300px"
-          />
+          <div>
+            <ContentSliderDiff.Header>
+              <Flex align="center">{t('Without Source Maps')}</Flex>
+              <Flex align="center">{t('With Source Maps')}</Flex>
+            </ContentSliderDiff.Header>
+            <ContentSliderDiff.Body
+              before={
+                <img src={BadStackTraceExample} alt={t('Bad Stack Trace Example')} />
+              }
+              after={
+                <img src={GoodStackTraceExample} alt={t('Good Stack Trace Example')} />
+              }
+              minHeight="300px"
+            />
+          </div>
         </DebuggerSection>
         <DebuggerSection title={t('Troubleshooting Your Source Maps')}>
           {metaFrameworksWithSentryWizardInOnboarding.includes(platform) ? (
@@ -1900,7 +1907,7 @@ const MonoBlock = styled('code')`
   padding: ${space(0.25)} ${space(0.5)};
   color: ${p => p.theme.gray400};
   background: ${p => p.theme.gray100};
-  border: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.border};
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   font-weight: ${p => p.theme.fontWeightNormal};

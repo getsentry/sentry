@@ -9,22 +9,17 @@ import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {PerformanceScoreBreakdownChart} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreBreakdownChart';
 import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
-import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import type {SubregionCode} from 'sentry/views/insights/types';
+import {PerformanceScoreBreakdownChartWidget} from 'sentry/views/insights/common/components/widgets/performanceScoreBreakdownChartWidget';
 
 type Props = {
-  browserTypes?: BrowserType[];
   isProjectScoreLoading?: boolean;
   projectScore?: ProjectScore;
-  subregions?: SubregionCode[];
-  transaction?: string;
   webVital?: WebVitals | null;
 };
 
@@ -33,10 +28,7 @@ export const ORDER: WebVitals[] = ['lcp', 'fcp', 'inp', 'cls', 'ttfb'];
 export function PerformanceScoreChart({
   projectScore,
   webVital,
-  transaction,
   isProjectScoreLoading,
-  browserTypes,
-  subregions,
 }: Props) {
   const theme = useTheme();
   const pageFilters = usePageFilters();
@@ -101,14 +93,16 @@ export function PerformanceScoreChart({
           </EmptyStateWarning>
         )}
       </PerformanceScoreLabelContainer>
-      <PerformanceScoreBreakdownChart
-        transaction={transaction}
-        browserTypes={browserTypes}
-        subregions={subregions}
-      />
+      <ChartContainer>
+        <PerformanceScoreBreakdownChartWidget />
+      </ChartContainer>
     </Flex>
   );
 }
+
+const ChartContainer = styled('div')`
+  flex: 1 1 0%;
+`;
 
 const Flex = styled('div')`
   display: flex;
@@ -123,7 +117,7 @@ const Flex = styled('div')`
 const PerformanceScoreLabelContainer = styled('div')`
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
   min-width: 320px;
-  border: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   display: flex;
   align-items: center;

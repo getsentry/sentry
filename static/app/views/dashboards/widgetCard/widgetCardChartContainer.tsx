@@ -16,11 +16,10 @@ import type {Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/types';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
-
-import type {DashboardFilters, Widget} from '../types';
-import {WidgetType} from '../types';
-import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
+import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 
 import WidgetCardChart from './chart';
 import {IssueWidgetCard} from './issueWidgetCard';
@@ -114,6 +113,7 @@ export function WidgetCardChartContainer({
         timeseriesResultsTypes,
         confidence,
         sampleCount,
+        isSampled,
       }) => {
         if (widget.widgetType === WidgetType.ISSUE) {
           return (
@@ -173,6 +173,7 @@ export function WidgetCardChartContainer({
               confidence={confidence}
               sampleCount={sampleCount}
               minTableColumnWidth={minTableColumnWidth}
+              isSampled={isSampled}
             />
           </Fragment>
         );
@@ -189,7 +190,7 @@ const StyledTransparentLoadingMask = styled((props: any) => (
   align-items: center;
 `;
 
-export function LoadingScreen({loading}: {loading: boolean}) {
+function LoadingScreen({loading}: {loading: boolean}) {
   if (!loading) {
     return null;
   }

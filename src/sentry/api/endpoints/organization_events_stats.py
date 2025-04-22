@@ -280,10 +280,11 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             return Response({"detail": f"Metric type must be one of: {metric_types}"}, status=400)
 
         force_metrics_layer = request.GET.get("forceMetricsLayer") == "true"
-        use_rpc = request.GET.get("useRpc", "0") == "1" and dataset == spans_eap
-        sampling_mode = request.GET.get("sampling")
+        use_rpc = (
+            request.GET.get("useRpc", "0") == "1" and dataset == spans_eap
+        ) or dataset == ourlogs
         transform_alias_to_input_format = (
-            request.GET.get("transformAliasToInputFormat") == "1" or use_rpc or dataset == ourlogs
+            request.GET.get("transformAliasToInputFormat") == "1" or use_rpc
         )
         sentry_sdk.set_tag("performance.use_rpc", use_rpc)
 
@@ -298,6 +299,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
         ) -> SnubaTSResult | dict[str, SnubaTSResult]:
             if top_events > 0:
                 if use_rpc:
+                    if scoped_dataset == ourlogs:
+                        raise NotImplementedError("You can not use top_events with logs for now.")
                     return spans_rpc.run_top_events_timeseries_query(
                         params=snuba_params,
                         query_string=query,
@@ -310,7 +313,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                             auto_fields=False,
                             use_aggregate_conditions=True,
                         ),
-                        sampling_mode=sampling_mode,
+                        sampling_mode=snuba_params.sampling_mode,
                     )
                 return scoped_dataset.top_events_timeseries(
                     timeseries_columns=query_columns,
@@ -338,7 +341,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 )
 
             if use_rpc:
-                return spans_rpc.run_timeseries_query(
+                if scoped_dataset == spans_eap:
+                    scoped_dataset = spans_rpc
+                return scoped_dataset.run_timeseries_query(
                     params=snuba_params,
                     query_string=query,
                     y_axes=query_columns,
@@ -347,7 +352,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         auto_fields=False,
                         use_aggregate_conditions=True,
                     ),
-                    sampling_mode=sampling_mode,
+                    sampling_mode=snuba_params.sampling_mode,
                     comparison_delta=comparison_delta,
                 )
 

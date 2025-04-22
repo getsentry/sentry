@@ -12,13 +12,15 @@ import type {
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import type {TraceMetaQueryResults} from '../../../traceApi/useTraceMeta';
-import {isTraceNode} from '../../../traceGuards';
-import type {TraceShape, TraceTree} from '../../../traceModels/traceTree';
-import type {TraceTreeNode} from '../../../traceModels/traceTreeNode';
-import {IssueList} from '../../details/issues/issues';
-import {TraceDrawerComponents} from '../../details/styles';
+import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
+import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
+import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {isTraceNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {
+  TraceShape,
+  TraceTree,
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
 import {GeneralInfo} from './generalInfo';
 import {TagsSummary} from './tagsSummary';
@@ -44,10 +46,10 @@ export function TraceDetails(props: TraceDetailsProps) {
       return [];
     }
 
-    return [...props.node.errors, ...props.node.occurences];
+    return [...props.node.errors, ...props.node.occurrences];
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.node, props.node?.errors.size, props.node?.occurences.size]);
+  }, [props.node, props.node?.errors.size, props.node?.occurrences.size]);
 
   if (!props.node) {
     return null;

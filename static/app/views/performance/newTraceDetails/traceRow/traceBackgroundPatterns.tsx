@@ -1,9 +1,9 @@
 import {Fragment, useMemo} from 'react';
 import clamp from 'lodash/clamp';
 
-import type {TraceTree} from '../traceModels/traceTree';
-import type {TraceTreeNode} from '../traceModels/traceTreeNode';
-import type {VirtualizedViewManager} from '../traceRenderers/virtualizedViewManager';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 
 function getMaxErrorSeverity(errors: TraceTree.TraceErrorIssue[]) {
   return errors.reduce((acc, error) => {
@@ -24,17 +24,17 @@ interface BackgroundPatternsProps {
   errors: TraceTreeNode<TraceTree.Transaction>['errors'];
   manager: VirtualizedViewManager;
   node_space: [number, number] | null;
-  occurences: TraceTreeNode<TraceTree.Transaction>['occurences'];
+  occurrences: TraceTreeNode<TraceTree.Transaction>['occurrences'];
 }
 
 export function TraceBackgroundPatterns(props: BackgroundPatternsProps) {
   const occurences = useMemo(() => {
-    if (!props.occurences.size) {
+    if (!props.occurrences.size) {
       return [];
     }
 
-    return [...props.occurences];
-  }, [props.occurences]);
+    return [...props.occurrences];
+  }, [props.occurrences]);
 
   const errors = useMemo(() => {
     if (!props.errors.size) {
@@ -47,7 +47,7 @@ export function TraceBackgroundPatterns(props: BackgroundPatternsProps) {
     return getMaxErrorSeverity(errors);
   }, [errors]);
 
-  if (!props.occurences.size && !props.errors.size) {
+  if (!props.occurrences.size && !props.errors.size) {
     return null;
   }
 
@@ -69,8 +69,11 @@ export function TraceBackgroundPatterns(props: BackgroundPatternsProps) {
         </div>
       ) : occurences.length > 0 ? (
         <Fragment>
-          {occurences.map((issue, i) => {
-            const timestamp = issue.start * 1e3;
+          {occurences.map((occurence, i) => {
+            const timestamp =
+              'start_timestamp' in occurence
+                ? occurence.start_timestamp * 1e3
+                : occurence.start * 1e3;
             // Clamp the issue timestamp to the span's timestamp
             const left = props.manager.computeRelativeLeftPositionFromOrigin(
               clamp(

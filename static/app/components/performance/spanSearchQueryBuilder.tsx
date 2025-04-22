@@ -59,7 +59,7 @@ function getSpanFieldDefinitionFunction(tags: TagCollection) {
   };
 }
 
-export function SpanSearchQueryBuilder({
+function useSpanSearchQueryBuilderProps({
   initialQuery,
   searchSource,
   datetime,
@@ -134,33 +134,54 @@ export function SpanSearchQueryBuilder({
     [api, organization, datetime, projects, selection.datetime, selection.projects]
   );
 
-  return (
-    <SearchQueryBuilder
-      placeholder={placeholderText}
-      filterKeys={filterTags}
-      initialQuery={initialQuery}
-      fieldDefinitionGetter={getSpanFieldDefinitionFunction(filterTags)}
-      onSearch={onSearch}
-      onBlur={onBlur}
-      searchSource={searchSource}
-      filterKeySections={filterKeySections}
-      getTagValues={getSpanFilterTagValues}
-      disallowUnsupportedFilters
-      recentSearches={SavedSearchType.SPAN}
-      showUnsubmittedIndicator
-    />
-  );
+  return {
+    placeholder: placeholderText,
+    filterKeys: filterTags,
+    initialQuery,
+    fieldDefinitionGetter: getSpanFieldDefinitionFunction(filterTags),
+    onSearch,
+    onBlur,
+    searchSource,
+    filterKeySections,
+    getTagValues: getSpanFilterTagValues,
+    disallowUnsupportedFilters: true,
+    recentSearches: SavedSearchType.SPAN,
+    showUnsubmittedIndicator: true,
+  };
+}
+
+export function SpanSearchQueryBuilder({
+  initialQuery,
+  searchSource,
+  datetime,
+  onSearch,
+  onBlur,
+  placeholder,
+  projects,
+}: SpanSearchQueryBuilderProps) {
+  const searchQueryBuilderProps = useSpanSearchQueryBuilderProps({
+    initialQuery,
+    searchSource,
+    datetime,
+    onSearch,
+    onBlur,
+    placeholder,
+    projects,
+  });
+
+  return <SearchQueryBuilder {...searchQueryBuilderProps} />;
 }
 
 export interface EAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderProps {
   numberTags: TagCollection;
   stringTags: TagCollection;
   getFilterTokenWarning?: (key: string) => React.ReactNode;
+  onChange?: (query: string, state: CallbackSearchState) => void;
   portalTarget?: HTMLElement | null;
   supportedAggregates?: AggregationKey[];
 }
 
-export function EAPSpanSearchQueryBuilder({
+export function useEAPSpanSearchQueryBuilderProps({
   initialQuery,
   placeholder,
   onSearch,
@@ -172,6 +193,7 @@ export function EAPSpanSearchQueryBuilder({
   supportedAggregates = [],
   projects,
   portalTarget,
+  onChange,
 }: EAPSpanSearchQueryBuilderProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -234,22 +256,53 @@ export function EAPSpanSearchQueryBuilder({
     [api, organization.slug, selection.projects, projects, selection.datetime, numberTags]
   );
 
-  return (
-    <SearchQueryBuilder
-      placeholder={placeholderText}
-      filterKeys={filterTags}
-      initialQuery={initialQuery}
-      fieldDefinitionGetter={getSpanFieldDefinitionFunction(filterTags)}
-      onSearch={onSearch}
-      onBlur={onBlur}
-      getFilterTokenWarning={getFilterTokenWarning}
-      searchSource={searchSource}
-      filterKeySections={filterKeySections}
-      getTagValues={getSpanFilterTagValues}
-      disallowUnsupportedFilters
-      recentSearches={SavedSearchType.SPAN}
-      showUnsubmittedIndicator
-      portalTarget={portalTarget}
-    />
-  );
+  return {
+    placeholder: placeholderText,
+    filterKeys: filterTags,
+    initialQuery,
+    fieldDefinitionGetter: getSpanFieldDefinitionFunction(filterTags),
+    onSearch,
+    onBlur,
+    getFilterTokenWarning,
+    searchSource,
+    filterKeySections,
+    getTagValues: getSpanFilterTagValues,
+    disallowUnsupportedFilters: true,
+    recentSearches: SavedSearchType.SPAN,
+    showUnsubmittedIndicator: true,
+    portalTarget,
+    onChange,
+  };
+}
+
+export function EAPSpanSearchQueryBuilder({
+  initialQuery,
+  placeholder,
+  onSearch,
+  onBlur,
+  searchSource,
+  numberTags,
+  stringTags,
+  getFilterTokenWarning,
+  supportedAggregates = [],
+  projects,
+  portalTarget,
+  onChange,
+}: EAPSpanSearchQueryBuilderProps) {
+  const searchQueryBuilderProps = useEAPSpanSearchQueryBuilderProps({
+    initialQuery,
+    placeholder,
+    onSearch,
+    onBlur,
+    searchSource,
+    numberTags,
+    stringTags,
+    getFilterTokenWarning,
+    supportedAggregates,
+    projects,
+    portalTarget,
+    onChange,
+  });
+
+  return <SearchQueryBuilder {...searchQueryBuilderProps} />;
 }

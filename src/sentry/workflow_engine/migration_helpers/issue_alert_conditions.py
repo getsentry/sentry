@@ -2,6 +2,7 @@ from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from typing import Any
 
+from sentry.notifications.types import AssigneeTargetType
 from sentry.rules.age import AgeComparisonType
 from sentry.rules.conditions.event_frequency import ComparisonType
 from sentry.rules.match import MatchType
@@ -66,9 +67,10 @@ def create_event_attribute_data_condition(
 ) -> DataConditionKwargs:
     comparison = {
         "match": data["match"],
-        "value": data["value"],
         "attribute": data["attribute"],
     }
+    if comparison["match"] not in {MatchType.IS_SET, MatchType.NOT_SET}:
+        comparison["value"] = data["value"]
 
     return DataConditionKwargs(
         type=Condition.EVENT_ATTRIBUTE,
@@ -164,8 +166,10 @@ def create_assigned_to_data_condition(
 ) -> DataConditionKwargs:
     comparison = {
         "target_type": data["targetType"],
-        "target_identifier": data["targetIdentifier"],
     }
+
+    if data["targetType"] != AssigneeTargetType.UNASSIGNED:
+        comparison["target_identifier"] = data["targetIdentifier"]
 
     return DataConditionKwargs(
         type=Condition.ASSIGNED_TO,
@@ -233,14 +237,18 @@ def create_latest_adopted_release_data_condition(
 
 
 def create_base_event_frequency_data_condition(
-    data: dict[str, Any], dcg: DataConditionGroup, count_type: Condition, percent_type: Condition
+    value: int | float,
+    data: dict[str, Any],
+    dcg: DataConditionGroup,
+    count_type: Condition,
+    percent_type: Condition,
 ) -> DataConditionKwargs:
     comparison_type = data.get(
         "comparisonType", ComparisonType.COUNT
     )  # this is camelCase, age comparison is snake_case
     comparison_type = ComparisonType(comparison_type)
 
-    value = max(int(data["value"]), 0)  # force to 0 if negative
+    value = max(value, 0)  # force to 0 if negative
     comparison = {
         "interval": data["interval"],
         "value": value,
@@ -263,7 +271,9 @@ def create_base_event_frequency_data_condition(
 def create_event_frequency_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataConditionKwargs:
+    value = int(data["value"])
     return create_base_event_frequency_data_condition(
+        value=value,
         data=data,
         dcg=dcg,
         count_type=Condition.EVENT_FREQUENCY_COUNT,
@@ -274,7 +284,9 @@ def create_event_frequency_data_condition(
 def create_event_unique_user_frequency_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataConditionKwargs:
+    value = int(data["value"])
     return create_base_event_frequency_data_condition(
+        value=value,
         data=data,
         dcg=dcg,
         count_type=Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
@@ -285,7 +297,9 @@ def create_event_unique_user_frequency_data_condition(
 def create_percent_sessions_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataConditionKwargs:
+    value = float(data["value"])
     return create_base_event_frequency_data_condition(
+        value=value,
         data=data,
         dcg=dcg,
         count_type=Condition.PERCENT_SESSIONS_COUNT,

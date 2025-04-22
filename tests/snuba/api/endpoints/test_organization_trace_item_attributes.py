@@ -78,7 +78,7 @@ class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTest
         assert "test.attribute3" in keys
         assert "another.attribute" in keys
         assert "different.attr" in keys
-        assert "severity_text" in keys
+        assert "severity" in keys
 
         # With a prefix only match the attributes that start with "tes"
         response = self.do_request(query={"substring_match": "tes"})
@@ -111,7 +111,7 @@ class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTest
         assert len(keys) >= 3
         assert "test.attribute1" in keys
         assert "test.attribute2" in keys
-        assert "severity_text" in keys
+        assert "severity" in keys
 
     def test_body_attribute(self):
         logs = [
@@ -129,7 +129,27 @@ class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTest
 
         assert response.status_code == 200, response.content
         keys = {item["key"] for item in response.data}
-        assert keys == {"severity_text", "message", "project"}
+        assert keys == {"severity", "message", "project"}
+
+    def test_disallowed_attributes(self):
+        logs = [
+            self.create_ourlog(
+                organization=self.organization,
+                project=self.project,
+                attributes={
+                    "sentry.item_type": {"string_value": "value1"},  # Disallowed
+                    "sentry.item_type2": {"string_value": "value2"},  # Allowed
+                },
+            ),
+        ]
+
+        self.store_ourlogs(logs)
+
+        response = self.do_request()
+
+        assert response.status_code == 200, response.content
+        keys = {item["key"] for item in response.data}
+        assert keys == {"severity", "message", "project", "sentry.item_type2"}
 
 
 class OrganizationTraceItemAttributeValuesEndpointTest(OrganizationEventsEndpointTestBase):

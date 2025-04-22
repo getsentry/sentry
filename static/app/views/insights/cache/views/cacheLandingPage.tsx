@@ -26,6 +26,8 @@ import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modul
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
+import CacheMissRateChartWidget from 'sentry/views/insights/common/components/widgets/cacheMissRateChartWidget';
+import CacheThroughputChartWidget from 'sentry/views/insights/common/components/widgets/cacheThroughputChartWidget';
 import {
   useMetrics,
   useSpanMetrics,
@@ -34,6 +36,7 @@ import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDisc
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
+import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {
@@ -42,10 +45,6 @@ import {
   SpanFunction,
   SpanMetricsField,
 } from 'sentry/views/insights/types';
-
-import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
-import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
-import {DataTitles, getThroughputChartTitle} from '../../common/views/spans/types';
 
 const {CACHE_MISS_RATE} = SpanFunction;
 const {CACHE_ITEM_SIZE} = SpanMetricsField;
@@ -79,30 +78,13 @@ export function CacheLandingPage() {
     requiredParams: ['transaction'],
   });
 
-  const {
-    isPending: isCacheMissRateLoading,
-    data: cacheMissRateData,
-    error: cacheMissRateError,
-  } = useSpanMetricsSeries(
+  const {error: cacheMissRateError} = useSpanMetricsSeries(
     {
       yAxis: [`${CACHE_MISS_RATE}()`],
       search: MutableSearch.fromQueryObject(BASE_FILTERS),
       transformAliasToInputFormat: true,
     },
     Referrer.LANDING_CACHE_HIT_MISS_CHART
-  );
-
-  const {
-    isPending: isThroughputDataLoading,
-    data: throughputData,
-    error: throughputError,
-  } = useSpanMetricsSeries(
-    {
-      search: MutableSearch.fromQueryObject(BASE_FILTERS),
-      yAxis: ['epm()'],
-      transformAliasToInputFormat: true,
-    },
-    Referrer.LANDING_CACHE_THROUGHPUT_CHART
   );
 
   const {
@@ -158,6 +140,7 @@ export function CacheLandingPage() {
   const hasData = useHasFirstSpan(ModuleName.CACHE);
 
   useEffect(() => {
+    // TODO: EAP does not use an indexer, so these metrics indexer errors are not possible. When EAP is fully rolled out, remove this check.
     const hasMissingDataError =
       cacheMissRateError?.message === CACHE_ERROR_MESSAGE ||
       transactionsListError?.message === CACHE_ERROR_MESSAGE;
@@ -209,20 +192,10 @@ export function CacheLandingPage() {
               </ModuleLayout.Full>
               <ModulesOnboarding moduleName={ModuleName.CACHE}>
                 <ModuleLayout.Half>
-                  <InsightsLineChartWidget
-                    title={DataTitles[`cache_miss_rate()`]}
-                    series={[cacheMissRateData[`${CACHE_MISS_RATE}()`]]}
-                    isLoading={isCacheMissRateLoading}
-                    error={cacheMissRateError}
-                  />
+                  <CacheMissRateChartWidget />
                 </ModuleLayout.Half>
                 <ModuleLayout.Half>
-                  <InsightsLineChartWidget
-                    title={getThroughputChartTitle('cache.get_item')}
-                    series={[throughputData['epm()']]}
-                    isLoading={isThroughputDataLoading}
-                    error={throughputError}
-                  />
+                  <CacheThroughputChartWidget />
                 </ModuleLayout.Half>
                 <ModuleLayout.Full>
                   <TransactionsTable

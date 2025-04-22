@@ -3,11 +3,11 @@ import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button, ButtonLabel} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {linkStyles} from 'sentry/components/links/styles';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -36,6 +36,7 @@ interface SidebarItemDropdownProps {
   label: string;
   children?: React.ReactNode;
   forceLabel?: boolean;
+  onOpen?: MouseEventHandler<HTMLButtonElement>;
 }
 
 interface SidebarButtonProps {
@@ -62,7 +63,7 @@ interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
 export function SidebarItem({children, label, showLabel, ...props}: SidebarItemProps) {
   const {layout} = useNavContext();
   return (
-    <IconDefaultsProvider legacySize={layout === NavLayout.MOBILE ? '14px' : '19px'}>
+    <IconDefaultsProvider legacySize={layout === NavLayout.MOBILE ? '14px' : '21px'}>
       <Tooltip title={label} disabled={showLabel} position="right" skipWrapper delay={0}>
         <SidebarListItem {...props}>{children}</SidebarListItem>
       </Tooltip>
@@ -76,7 +77,9 @@ export function SidebarMenu({
   analyticsKey,
   label,
   forceLabel,
+  onOpen,
 }: SidebarItemDropdownProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const {layout} = useNavContext();
 
@@ -95,10 +98,13 @@ export function SidebarMenu({
               onClick={event => {
                 recordPrimaryItemClick(analyticsKey, organization);
                 props.onClick?.(event);
+                onOpen?.(event);
               }}
               isMobile={layout === NavLayout.MOBILE}
             >
-              <InteractionStateLayer hasSelectedBackground={isOpen} />
+              {theme.isChonk ? null : (
+                <InteractionStateLayer hasSelectedBackground={isOpen} />
+              )}
               {children}
               {showLabel ? label : null}
             </NavButton>
@@ -117,6 +123,7 @@ export function SidebarLink({
   analyticsKey,
   label,
 }: SidebarItemLinkProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
   const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
@@ -135,7 +142,7 @@ export function SidebarLink({
       >
         {layout === NavLayout.MOBILE ? (
           <Fragment>
-            <InteractionStateLayer />
+            {theme.isChonk ? null : <InteractionStateLayer />}
             {children}
             {label}
           </Fragment>
@@ -241,9 +248,9 @@ const baseNavItemStyles = (p: {isMobile: boolean; theme: Theme}) => css`
     border-radius: ${p.theme.borderRadius};
     margin-inline: 0 auto;
     gap: ${space(0.75)};
-    padding: ${space(1.5)} 0;
-    min-height: 40px;
-    width: 44px;
+    padding: ${space(1)} 0;
+    min-height: 42px;
+    width: 46px;
     letter-spacing: -0.02em;
     font-size: 10px;
   `}
@@ -263,8 +270,8 @@ const NavLinkIconContainer = withChonk(
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 32px;
+    width: 46px;
+    height: 42px;
     border-radius: ${p => p.theme.borderRadius};
     overflow: hidden;
 
@@ -408,7 +415,7 @@ const StyledNavLink = styled(Link, {
     `}
 `;
 
-export const NavLink = withChonk(StyledNavLink, ChonkNavLink);
+const NavLink = withChonk(StyledNavLink, ChonkNavLink);
 
 const ChonkNavButton = styled(Button, {
   shouldForwardProp: prop => prop !== 'isMobile',

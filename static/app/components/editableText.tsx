@@ -181,7 +181,7 @@ function EditableText({
 
 export default EditableText;
 
-export const Label = styled('div')<{isDisabled: boolean}>`
+const Label = styled('div')<{isDisabled: boolean}>`
   display: grid;
   grid-auto-flow: column;
   align-items: center;
@@ -191,13 +191,13 @@ export const Label = styled('div')<{isDisabled: boolean}>`
 
 const InnerLabel = styled(TextOverflow)`
   border-top: 1px solid transparent;
-  border-bottom: 1px dotted ${p => p.theme.gray200};
+  border-bottom: 1px dotted ${p => p.theme.border};
   line-height: 38px;
 `;
 
 const InputWrapper = styled('div')<{isEmpty: boolean}>`
   display: inline-block;
-  background: ${p => p.theme.gray100};
+  background: ${p => p.theme.surface200};
   border-radius: ${p => p.theme.borderRadius};
   margin: -${space(0.5)} -${space(1)};
   padding: ${space(0.5)} ${space(1)};

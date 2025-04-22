@@ -40,7 +40,9 @@ class OrganizationGroupSearchViewDetailsStarredEndpoint(OrganizationEndpoint):
         """
         Update the starred status of a group search view for the current organization member.
         """
-        if not features.has("organizations:issue-view-sharing", organization, actor=request.user):
+        if not features.has(
+            "organizations:issue-stream-custom-views", organization, actor=request.user
+        ):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         serializer = StarViewSerializer(data=request.data)

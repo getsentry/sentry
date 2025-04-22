@@ -1,4 +1,4 @@
-import {formatNumberWithDynamicDecimalPoints} from '../number/formatNumberWithDynamicDecimalPoints';
+import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
 
 /**
  * Note the difference between *a-bytes (base 10) vs *i-bytes (base 2), which

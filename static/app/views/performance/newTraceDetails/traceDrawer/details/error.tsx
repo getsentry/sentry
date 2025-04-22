@@ -12,15 +12,14 @@ import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
 import type {EventError} from 'sentry/types/event';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {isTraceErrorNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
-
-import type {TraceTreeNodeDetailsProps} from '../../traceDrawer/tabs/traceTreeNodeDetails';
-import {TraceIcons} from '../../traceIcons';
-import {TraceTree} from '../../traceModels/traceTree';
-import type {TraceTreeNode} from '../../traceModels/traceTreeNode';
-import {makeTraceNodeBarColor} from '../../traceRow/traceBar';
-import {getTraceTabTitle} from '../../traceState/traceTabs';
-import {useHasTraceNewUi} from '../../useHasTraceNewUi';
+import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import {makeTraceNodeBarColor} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
+import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
+import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 
 import {IssueList} from './issues/issues';
 import {type SectionCardKeyValueList, TraceDrawerComponents} from './styles';

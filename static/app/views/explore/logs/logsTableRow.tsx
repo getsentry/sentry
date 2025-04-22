@@ -15,7 +15,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import CellAction, {Actions} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
-import {TableRow} from 'sentry/views/explore/components/table';
 import {
   useLogsAnalyticsPageSource,
   useLogsFields,
@@ -107,7 +106,7 @@ export function LogRowContent({
   const theme = useTheme();
 
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
-  const severityText = dataRow[OurLogKnownFieldKey.SEVERITY_TEXT];
+  const severityText = dataRow[OurLogKnownFieldKey.SEVERITY];
 
   const level = getLogSeverityLevel(
     typeof severityNumber === 'number' ? severityNumber : null,
@@ -149,7 +148,7 @@ export function LogRowContent({
             />
           </LogFirstCellContent>
         </LogsTableBodyFirstCell>
-        {fields.map(field => {
+        {fields?.map(field => {
           const value = dataRow[field];
 
           if (!defined(value)) {
@@ -192,13 +191,14 @@ export function LogRowContent({
                   }
                 }}
                 allowActions={
-                  field === OurLogKnownFieldKey.MESSAGE ? ALLOWED_CELL_ACTIONS : []
+                  field === OurLogKnownFieldKey.TIMESTAMP ? [] : ALLOWED_CELL_ACTIONS
                 }
               >
                 <LogFieldRenderer
                   item={getLogRowItem(field, dataRow, meta)}
                   meta={meta}
                   extra={rendererExtra}
+                  tableResultLogRow={dataRow}
                 />
               </CellAction>
             </LogTableBodyCell>
@@ -225,7 +225,7 @@ function LogRowDetails({
   const organization = useOrganization();
   const fields = useLogsFields();
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
-  const severityText = dataRow[OurLogKnownFieldKey.SEVERITY_TEXT];
+  const severityText = dataRow[OurLogKnownFieldKey.SEVERITY];
 
   const level = getLogSeverityLevel(
     typeof severityNumber === 'number' ? severityNumber : null,
@@ -253,42 +253,41 @@ function LogRowDetails({
   }
   return (
     <DetailsWrapper>
-      <TableRow>
-        <LogDetailTableBodyCell colSpan={fields.length}>
-          {isPending && <LoadingIndicator />}
-          {!isPending && data && (
-            <Fragment>
-              <DetailsContent>
-                <DetailsBody>
-                  {LogBodyRenderer({
-                    item: getLogRowItem(OurLogKnownFieldKey.MESSAGE, dataRow, meta),
-                    extra: {
-                      highlightTerms,
-                      logColors,
-                      wrapBody: true,
-                      location,
-                      organization,
-                    },
-                  })}
-                </DetailsBody>
-                <LogDetailPanelItem>
-                  <LogFieldsTree
-                    attributes={data.attributes}
-                    hiddenAttributes={HiddenLogDetailFields}
-                    renderers={LogAttributesRendererMap}
-                    renderExtra={{
-                      highlightTerms,
-                      logColors,
-                      location,
-                      organization,
-                    }}
-                  />
-                </LogDetailPanelItem>
-              </DetailsContent>
-            </Fragment>
-          )}
-        </LogDetailTableBodyCell>
-      </TableRow>
+      <LogDetailTableBodyCell colSpan={fields.length}>
+        {isPending && <LoadingIndicator />}
+        {!isPending && data && (
+          <Fragment>
+            <DetailsContent>
+              <DetailsBody>
+                {LogBodyRenderer({
+                  item: getLogRowItem(OurLogKnownFieldKey.MESSAGE, dataRow, meta),
+                  extra: {
+                    highlightTerms,
+                    logColors,
+                    wrapBody: true,
+                    location,
+                    organization,
+                  },
+                })}
+              </DetailsBody>
+              <LogDetailPanelItem>
+                <LogFieldsTree
+                  attributes={data.attributes}
+                  hiddenAttributes={HiddenLogDetailFields}
+                  renderers={LogAttributesRendererMap}
+                  renderExtra={{
+                    highlightTerms,
+                    logColors,
+                    location,
+                    organization,
+                  }}
+                  tableResultLogRow={dataRow}
+                />
+              </LogDetailPanelItem>
+            </DetailsContent>
+          </Fragment>
+        )}
+      </LogDetailTableBodyCell>
     </DetailsWrapper>
   );
 }

@@ -1,9 +1,4 @@
-import {getDiffInMinutes} from 'sentry/components/charts/utils';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-
-// Bypass the preflight request if the time range is less than 7 days
-const SMALL_TIME_RANGE_THRESHOLD = getDiffInMinutes({period: '7d'});
 
 export const SAMPLING_MODE = {
   PREFLIGHT: 'PREFLIGHT',
@@ -23,7 +18,7 @@ const HIGH_SAMPLING_MODE_QUERY_EXTRAS = {
   samplingMode: SAMPLING_MODE.BEST_EFFORT,
 } as const;
 
-export type QueryMode = (typeof QUERY_MODE)[keyof typeof QUERY_MODE];
+type QueryMode = (typeof QUERY_MODE)[keyof typeof QUERY_MODE];
 export type SamplingMode = (typeof SAMPLING_MODE)[keyof typeof SAMPLING_MODE];
 export type SpansRPCQueryExtras = {
   samplingMode?: SamplingMode;
@@ -36,10 +31,16 @@ interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
   // progressive loading to surface the correct data.
   queryHookImplementation: (props: Parameters<TQueryFn>[0]) => ReturnType<TQueryFn> & {
     result: {
+      data: any;
       isFetched: boolean;
     };
   };
-  queryMode: QueryMode;
+  queryOptions?: QueryOptions;
+}
+
+interface QueryOptions {
+  queryMode?: QueryMode;
+  withholdBestEffort?: boolean;
 }
 
 /**
@@ -58,18 +59,16 @@ export function useProgressiveQuery<
 >({
   queryHookImplementation,
   queryHookArgs,
-  queryMode,
+  queryOptions,
 }: ProgressiveQueryOptions<TQueryFn>): ReturnType<TQueryFn> & {
   samplingMode?: SamplingMode;
 } {
   const organization = useOrganization();
-  const {selection} = usePageFilters();
   const canUseProgressiveLoading = organization.features.includes(
     'visibility-explore-progressive-loading'
   );
 
-  // If the time range is small enough, just go directly to the best effort request
-  const isSmallRange = getDiffInMinutes(selection.datetime) < SMALL_TIME_RANGE_THRESHOLD;
+  const queryMode = queryOptions?.queryMode ?? QUERY_MODE.SERIAL;
 
   const singleQueryResult = queryHookImplementation({
     ...queryHookArgs,
@@ -79,8 +78,15 @@ export function useProgressiveQuery<
   const preflightRequest = queryHookImplementation({
     ...queryHookArgs,
     queryExtras: LOW_SAMPLING_MODE_QUERY_EXTRAS,
-    enabled: queryHookArgs.enabled && canUseProgressiveLoading && !isSmallRange,
+    enabled: queryHookArgs.enabled && canUseProgressiveLoading,
   });
+
+  const triggerBestEffortAfterPreflight =
+    !queryOptions?.withholdBestEffort && preflightRequest.result.isFetched;
+  const triggerBestEffortRequestForEmptyPreflight =
+    preflightRequest.result.isFetched &&
+    queryOptions?.withholdBestEffort &&
+    preflightRequest.result.data?.length === 0;
 
   const bestEffortRequest = queryHookImplementation({
     ...queryHookArgs,
@@ -89,8 +95,8 @@ export function useProgressiveQuery<
       queryHookArgs.enabled &&
       canUseProgressiveLoading &&
       (queryMode === QUERY_MODE.PARALLEL ||
-        preflightRequest.result.isFetched ||
-        isSmallRange),
+        triggerBestEffortAfterPreflight ||
+        triggerBestEffortRequestForEmptyPreflight),
   });
 
   if (!canUseProgressiveLoading) {

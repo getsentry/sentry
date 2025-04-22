@@ -21,7 +21,7 @@ import {
   doDiscoverQuery,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import {AggregationKey, ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {
@@ -36,13 +36,12 @@ import {
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
 import SpansSearchBar from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
-
-import {transformEventsResponseToSeries} from '../utils/transformEventsResponseToSeries';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -178,15 +177,22 @@ function _isNotNumericTag(option: FieldValueOption) {
   return true;
 }
 
-function filterAggregateParams(option: FieldValueOption) {
+function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryFieldValue) {
   // Allow for unknown values to be used for aggregate functions
   // This supports showing the tag value even if it's not in the current
   // set of tags.
   if ('unknown' in option.value.meta && option.value.meta.unknown) {
     return true;
   }
+
+  const expectedDataType =
+    fieldValue?.kind === 'function' &&
+    fieldValue?.function[0] === AggregationKey.COUNT_UNIQUE
+      ? 'string'
+      : 'number';
+
   if ('dataType' in option.value.meta) {
-    return option.value.meta.dataType === 'number';
+    return option.value.meta.dataType === expectedDataType;
   }
   return true;
 }
@@ -303,7 +309,7 @@ function getSeriesRequest(
 }
 
 // Filters the primary options in the sort by selector
-export function filterSeriesSortOptions(columns: Set<string>) {
+function filterSeriesSortOptions(columns: Set<string>) {
   return (option: FieldValueOption) => {
     if (option.value.kind === FieldValueKind.FUNCTION) {
       return true;

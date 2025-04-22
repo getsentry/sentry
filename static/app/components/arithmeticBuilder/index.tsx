@@ -13,7 +13,7 @@ import type {
 import {Input} from 'sentry/components/core/input';
 import PanelProvider from 'sentry/utils/panelProvider';
 
-export interface ArithmeticBuilderProps {
+interface ArithmeticBuilderProps {
   aggregateFunctions: AggregateFunction[];
   expression: string;
   functionArguments: FunctionArgument[];

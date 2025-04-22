@@ -9,6 +9,7 @@ describe('SavedQueriesTable', () => {
   let deleteQueryMock: jest.Mock;
   let starQueryMock: jest.Mock;
   let unstarQueryMock: jest.Mock;
+  let saveQueryMock: jest.Mock;
 
   beforeEach(() => {
     getQueriesMock = MockApiClient.addMockResponse({
@@ -18,6 +19,7 @@ describe('SavedQueriesTable', () => {
           id: 1,
           name: 'Query Name',
           projects: [1],
+          environment: ['production'],
           createdBy: {
             name: 'Test User',
           },
@@ -42,6 +44,10 @@ describe('SavedQueriesTable', () => {
       url: `/organizations/${organization.slug}/explore/saved/2/starred/`,
       method: 'POST',
     });
+    saveQueryMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/saved/`,
+      method: 'POST',
+    });
   });
 
   afterEach(() => {
@@ -51,10 +57,9 @@ describe('SavedQueriesTable', () => {
   it('should render', async () => {
     render(<SavedQueriesTable mode="owned" />);
     expect(screen.getByText('Name')).toBeInTheDocument();
-    expect(screen.getByText('Projects')).toBeInTheDocument();
+    expect(screen.getByText('Project')).toBeInTheDocument();
     expect(screen.getByText('Query')).toBeInTheDocument();
-    expect(screen.getByText('Owner')).toBeInTheDocument();
-    expect(screen.getByText('Access')).toBeInTheDocument();
+    expect(screen.getByText('Creator')).toBeInTheDocument();
     expect(screen.getByText('Last Viewed')).toBeInTheDocument();
     await screen.findByText('Query Name');
   });
@@ -94,7 +99,7 @@ describe('SavedQueriesTable', () => {
   it('deletes a query', async () => {
     render(<SavedQueriesTable mode="owned" />);
     await screen.findByText('Query Name');
-    await userEvent.click(screen.getByLabelText('Query actions'));
+    await userEvent.click(screen.getByLabelText('More options'));
     await userEvent.click(screen.getByText('Delete'));
     await waitFor(() =>
       expect(deleteQueryMock).toHaveBeenCalledWith(
@@ -110,7 +115,7 @@ describe('SavedQueriesTable', () => {
     render(<SavedQueriesTable mode="owned" />);
     expect(await screen.findByText('Query Name')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/traces/?dataset=spansRpc&groupBy=&id=1&project=1&title=Query%20Name'
+      '/organizations/org-slug/traces/?dataset=spansRpc&environment=production&groupBy=&id=1&project=1&title=Query%20Name'
     );
   });
 
@@ -122,6 +127,7 @@ describe('SavedQueriesTable', () => {
           id: 1,
           name: 'Query Name',
           projects: [1],
+          environment: ['production'],
           createdBy: {
             name: 'Test User',
           },
@@ -141,7 +147,7 @@ describe('SavedQueriesTable', () => {
     render(<SavedQueriesTable mode="owned" />);
     expect(await screen.findByText('Query Name')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/traces/compare/?dataset=spansRpc&id=1&project=1&queries=%7B%22groupBys%22%3A%5B%5D%2C%22yAxes%22%3A%5B%5D%7D&queries=%7B%22groupBys%22%3A%5B%5D%2C%22yAxes%22%3A%5B%5D%7D&title=Query%20Name'
+      '/organizations/org-slug/explore/traces/compare/?dataset=spansRpc&environment=production&id=1&project=1&queries=%7B%22groupBys%22%3A%5B%5D%2C%22yAxes%22%3A%5B%5D%7D&queries=%7B%22groupBys%22%3A%5B%5D%2C%22yAxes%22%3A%5B%5D%7D&title=Query%20Name'
     );
   });
 
@@ -153,6 +159,7 @@ describe('SavedQueriesTable', () => {
           id: 1,
           name: 'Query Name',
           projects: [1],
+          environment: ['production'],
           createdBy: {
             name: 'Test User',
           },
@@ -168,6 +175,7 @@ describe('SavedQueriesTable', () => {
           id: 2,
           name: 'Starred Query',
           projects: [1],
+          environment: ['production'],
           createdBy: {
             name: 'Test User',
           },
@@ -198,7 +206,7 @@ describe('SavedQueriesTable', () => {
         })
       )
     );
-    await userEvent.click(screen.getByLabelText('Unstar'));
+    await userEvent.click(screen.getAllByLabelText('Unstar')[1]!);
     await waitFor(() =>
       expect(unstarQueryMock).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/explore/saved/2/starred/`,
@@ -231,6 +239,24 @@ describe('SavedQueriesTable', () => {
       expect.objectContaining({
         query: expect.objectContaining({query: 'Query Name'}),
       })
+    );
+  });
+
+  it('should duplicate a query', async () => {
+    render(<SavedQueriesTable mode="owned" />);
+    await screen.findByText('Query Name');
+    await userEvent.click(screen.getByLabelText('More options'));
+    await userEvent.click(screen.getByText('Duplicate'));
+    await waitFor(() =>
+      expect(saveQueryMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/explore/saved/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: expect.objectContaining({
+            name: 'Query Name (Copy)',
+          }),
+        })
+      )
     );
   });
 });

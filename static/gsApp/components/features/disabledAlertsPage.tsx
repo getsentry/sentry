@@ -7,10 +7,9 @@ import {IconBusiness} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
+import withSubscription from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {displayPlanName, hasPerformance} from 'getsentry/utils/billing';
-
-import withSubscription from '../withSubscription';
 
 import AlertsBackground from './illustrations/alertsBackground';
 import PageUpsellOverlay from './pageUpsellOverlay';

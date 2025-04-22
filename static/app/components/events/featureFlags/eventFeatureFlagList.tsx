@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -13,7 +14,9 @@ import FeatureFlagSettingsButton from 'sentry/components/events/featureFlags/fea
 import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
 import {
   FlagControlOptions,
+  ORDER_BY_OPTIONS,
   OrderBy,
+  SORT_BY_OPTIONS,
   SortBy,
   sortedFlags,
 } from 'sentry/components/events/featureFlags/utils';
@@ -36,15 +39,21 @@ import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-export function EventFeatureFlagList({
-  event,
-  group,
-  project,
-}: {
+export function EventFeatureFlagList(props: EventFeatureFlagListProps) {
+  return (
+    <AnalyticsArea name="event_feature_flag_list">
+      <BaseEventFeatureFlagList {...props} />
+    </AnalyticsArea>
+  );
+}
+
+type EventFeatureFlagListProps = {
   event: Event;
   group: Group;
   project: Project;
-}) {
+};
+
+function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagListProps) {
   const openForm = useFeedbackForm();
   const feedbackButton = openForm ? (
     <Button
@@ -222,7 +231,12 @@ export function EventFeatureFlagList({
     const showCTA =
       featureFlagOnboardingPlatforms.includes(project.platform ?? 'other') &&
       organization.features.includes('feature-flag-cta');
-    return showCTA ? <FeatureFlagInlineCTA projectId={event.projectID} /> : null;
+    return showCTA ? (
+      <FeatureFlagInlineCTA
+        projectId={event.projectID}
+        projectPlatform={project.platform}
+      />
+    ) : null;
   }
 
   const actions = (
@@ -239,10 +253,24 @@ export function EventFeatureFlagList({
             onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
           />
           <FeatureFlagSort
+            sortByOptions={SORT_BY_OPTIONS}
+            orderByOptions={ORDER_BY_OPTIONS}
             orderBy={orderBy}
+            setOrderBy={value => {
+              setOrderBy(value);
+              trackAnalytics('flags.sort_flags', {
+                organization,
+                sortMethod: value as string,
+              });
+            }}
+            setSortBy={value => {
+              setSortBy(value);
+              trackAnalytics('flags.sort_flags', {
+                organization,
+                sortMethod: value as string,
+              });
+            }}
             sortBy={sortBy}
-            setSortBy={setSortBy}
-            setOrderBy={setOrderBy}
           />
         </Fragment>
       )}

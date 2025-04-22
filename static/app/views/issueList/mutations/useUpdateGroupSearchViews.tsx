@@ -8,9 +8,10 @@ import {
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
-import {makeFetchGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
+import {makeFetchStarredGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
 import type {
   GroupSearchView,
+  StarredGroupSearchView,
   UpdateGroupSearchViewPayload,
 } from 'sentry/views/issueList/types';
 
@@ -36,9 +37,9 @@ export const useUpdateGroupSearchViews = (
         data: {views: groupSearchViews},
       }),
     onSuccess: (groupSearchViews, parameters, context) => {
-      setApiQueryData<GroupSearchView[]>(
+      setApiQueryData<StarredGroupSearchView[]>(
         queryClient,
-        makeFetchGroupSearchViewsKey({orgSlug: parameters.orgSlug}),
+        makeFetchStarredGroupSearchViewsKey({orgSlug: parameters.orgSlug}),
         groupSearchViews // Update the cache with the new groupSearchViews
       );
       options.onSuccess?.(groupSearchViews, parameters, context);

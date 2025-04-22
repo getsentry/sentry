@@ -1,4 +1,6 @@
 import {useCallback, useRef, useState} from 'react';
+import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
@@ -9,6 +11,7 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import AutofixThumbsUpDownButtons from 'sentry/components/events/autofix/autofixThumbsUpDownButtons';
 import {
@@ -23,7 +26,7 @@ import {
   makeAutofixQueryKey,
   useAutofixRepos,
 } from 'sentry/components/events/autofix/useAutofix';
-import {Timeline} from 'sentry/components/timeline';
+import {Timeline, type TimelineItemProps} from 'sentry/components/timeline';
 import {
   IconAdd,
   IconChevron,
@@ -39,13 +42,13 @@ import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
-import type {Color} from 'sentry/utils/theme';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 import useApi from 'sentry/utils/useApi';
 import {Divider} from 'sentry/views/issueDetails/divider';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
 
-export function useSelectSolution({groupId, runId}: {groupId: string; runId: string}) {
+function useSelectSolution({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi();
   const queryClient = useQueryClient();
 
@@ -71,7 +74,7 @@ export function useSelectSolution({groupId, runId}: {groupId: string; runId: str
         queryClient,
         makeAutofixQueryKey(groupId),
         data => {
-          if (!data || !data.autofix) {
+          if (!data?.autofix) {
             return data;
           }
 
@@ -222,6 +225,7 @@ function SolutionEventList({
   stepIndex = 0,
   retainInsightCardIndex = null,
 }: SolutionEventListProps) {
+  const theme = useTheme();
   // Track which events are expanded
   const [expandedItems, setExpandedItems] = useState<number[]>([]);
 
@@ -298,32 +302,40 @@ function SolutionEventList({
                     />
                   )}
                   <SelectionButtonWrapper>
-                    <SelectionButton
-                      onClick={e => {
-                        e.stopPropagation();
-                        if (isHumanAction) {
-                          onDeleteItem(index);
-                        } else {
-                          handleToggleActive(index);
-                        }
-                      }}
-                      aria-label={isSelected ? t('Deselect item') : t('Select item')}
+                    <Tooltip
+                      title={isSelected ? t('Remove from plan') : t('Add to plan')}
+                      disabled={isHumanAction}
                     >
-                      {isHumanAction ? (
-                        <IconDelete size="xs" color="red400" />
-                      ) : isSelected ? (
-                        <IconClose size="xs" color="red400" />
-                      ) : (
-                        <IconAdd size="xs" color="green400" />
-                      )}
-                    </SelectionButton>
+                      <SelectionButton
+                        onClick={e => {
+                          e.stopPropagation();
+                          if (isHumanAction) {
+                            onDeleteItem(index);
+                          } else {
+                            handleToggleActive(index);
+                          }
+                        }}
+                        aria-label={isSelected ? t('Remove from plan') : t('Add to plan')}
+                        actionType={
+                          isHumanAction ? 'delete' : isSelected ? 'close' : 'add'
+                        }
+                      >
+                        {isHumanAction ? (
+                          <IconDelete size="xs" />
+                        ) : isSelected ? (
+                          <IconClose size="xs" />
+                        ) : (
+                          <IconAdd size="xs" />
+                        )}
+                      </SelectionButton>
+                    </Tooltip>
                   </SelectionButtonWrapper>
                 </IconWrapper>
               </StyledTimelineHeader>
             }
             isActive={isActive}
             icon={getEventIcon(event.timeline_item_type)}
-            colorConfig={getEventColor(isActive, isSelected)}
+            colorConfig={getEventColor(theme, isActive, isSelected)}
           >
             {event.code_snippet_and_analysis && (
               <AnimatePresence>
@@ -378,17 +390,30 @@ function getEventIcon(eventType: string) {
   }
 }
 
-interface ColorConfig {
-  icon: Color;
-  iconBorder: Color;
-  title: Color;
-}
-
-function getEventColor(isActive?: boolean, isSelected?: boolean): ColorConfig {
+function getEventColor(
+  theme: Theme,
+  isActive?: boolean,
+  isSelected?: boolean
+): TimelineItemProps['colorConfig'] {
+  if (isChonkTheme(theme)) {
+    return {
+      title: theme.colors.content.primary,
+      icon: isSelected
+        ? isActive
+          ? theme.green400
+          : theme.colors.content.primary
+        : theme.colors.content.muted,
+      iconBorder: isSelected
+        ? isActive
+          ? theme.green400
+          : theme.colors.content.primary
+        : theme.colors.content.muted,
+    };
+  }
   return {
-    title: isActive && isSelected ? 'gray400' : 'gray400',
-    icon: isSelected ? (isActive ? 'green400' : 'gray400') : 'gray200',
-    iconBorder: isSelected ? (isActive ? 'green400' : 'gray400') : 'gray200',
+    title: theme.gray400,
+    icon: isSelected ? (isActive ? theme.green400 : theme.gray400) : theme.gray200,
+    iconBorder: isSelected ? (isActive ? theme.green400 : theme.gray400) : theme.gray200,
   };
 }
 
@@ -618,6 +643,7 @@ function AutofixSolutionDisplay({
                   : null
               }
               isAgentComment
+              blockName={t('Autofix is uncertain of the solution...')}
             />
           )}
         </AnimatePresence>
@@ -707,6 +733,7 @@ const HeaderWrapper = styled('div')`
   padding-left: ${space(0.5)};
   padding-bottom: ${space(1)};
   border-bottom: 1px solid ${p => p.theme.border};
+  flex-wrap: wrap;
   gap: ${space(1)};
 `;
 
@@ -774,25 +801,27 @@ const StyledTimelineHeader = styled('div')<{isSelected: boolean; isActive?: bool
 `;
 
 const IconWrapper = styled('div')`
-  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  gap: ${space(1)};
 `;
 
 const SelectionButtonWrapper = styled('div')`
-  position: absolute;
   background: none;
   border: none;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   height: 100%;
-  right: 0;
 `;
 
-const SelectionButton = styled('button')`
+type SelectionButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  actionType: 'delete' | 'close' | 'add';
+};
+
+const SelectionButton = styled('button')<SelectionButtonProps>`
   background: none;
   border: none;
   display: flex;
@@ -800,34 +829,23 @@ const SelectionButton = styled('button')`
   justify-content: center;
   cursor: pointer;
   color: ${p => p.theme.subText};
-  opacity: 0;
   transition:
-    opacity 0.2s ease,
     color 0.2s ease,
     background-color 0.2s ease;
   border-radius: 5px;
   padding: 4px;
 
-  ${StyledTimelineHeader}:hover & {
-    opacity: 1;
-  }
-
   &:hover {
-    color: ${p => p.theme.gray500};
-    background-color: ${p => p.theme.background};
+    color: ${p =>
+      p.actionType === 'delete' || p.actionType === 'close'
+        ? p.theme.red400
+        : p.theme.green400};
   }
 `;
 
 const StyledIconChevron = styled(IconChevron)`
   color: ${p => p.theme.subText};
   flex-shrink: 0;
-  opacity: 1;
-  transition: opacity 0.2s ease;
-  margin-right: ${space(0.25)};
-
-  ${StyledTimelineHeader}:hover & {
-    opacity: 0;
-  }
 `;
 
 const InstructionsInputWrapper = styled('form')`

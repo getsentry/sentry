@@ -1,11 +1,11 @@
 import {
   fixedContainerBottomRightCornderCss,
   fixedContainerRightEdgeCss,
-} from '../styles/fixedContainer';
+} from 'sentry/components/devtoolbar/styles/fixedContainer';
 import {
   navigationBottomRightCornerCss,
   navigationRightEdgeCss,
-} from '../styles/navigation';
+} from 'sentry/components/devtoolbar/styles/navigation';
 
 import useConfiguration from './useConfiguration';
 

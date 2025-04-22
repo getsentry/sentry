@@ -49,28 +49,20 @@ import {DISCOVER_FIELDS, FieldValueType, getFieldDefinition} from 'sentry/utils/
 import localStorage from 'sentry/utils/localStorage';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
-import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
-
 import {
   type DashboardWidgetSource,
   DisplayType,
   type Widget,
   type WidgetQuery,
   WidgetType,
-} from '../dashboards/types';
-import {transactionSummaryRouteWithQuery} from '../performance/transactionSummary/utils';
+} from 'sentry/views/dashboards/types';
+import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import {displayModeToDisplayType} from './savedQuery/utils';
 import type {FieldValue, TableColumn} from './table/types';
 import {FieldValueKind} from './table/types';
 import {getAllViews, getTransactionViews, getWebVitalsViews} from './data';
-
-export type QueryWithColumnState =
-  | Query
-  | {
-      field: string | string[] | null | undefined;
-      sort: string | string[] | null | undefined;
-    };
 
 const TEMPLATE_TABLE_COLUMN: TableColumn<string> = {
   key: '',

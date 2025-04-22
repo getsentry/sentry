@@ -1,8 +1,8 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -94,7 +94,7 @@ export function SamplesTables({transactionName}: any) {
             });
             setSampleType(value);
           }}
-          defaultValue={SPANS}
+          value={sampleType}
           aria-label={t('Sample Type Selection')}
         >
           <SegmentedControl.Item key={SPANS}>{t('By Spans')}</SegmentedControl.Item>

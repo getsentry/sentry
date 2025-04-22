@@ -2,10 +2,9 @@ import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
 import {defined} from 'sentry/utils';
+import type {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
-
-import type {CallTreeNode} from '../callTreeNode';
 
 type FrameIndex = Record<string | number, Frame>;
 

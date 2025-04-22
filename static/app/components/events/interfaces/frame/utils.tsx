@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/react';
 
+import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import {IconQuestion, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
@@ -10,8 +11,6 @@ import {defined} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {safeURL} from 'sentry/utils/url/safeURL';
-
-import {SymbolicatorStatus} from '../types';
 
 export function trimPackage(pkg: string) {
   const pieces = pkg.split(/^([a-z]:\\|\\\\)/i.test(pkg) ? '\\' : '/');

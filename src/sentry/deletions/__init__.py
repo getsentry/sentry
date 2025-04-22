@@ -88,49 +88,48 @@ if TYPE_CHECKING:
 
 from .manager import DeletionTaskManager
 
+# When models are moved, scheduled deletions will fail using the old model's
+# fully qualified name and will never be deleted. This mapping maps the old
+# names to the new name.
+RELOCATED_MODELS: dict[tuple[str, str], tuple[str, str]] = {
+    # Example, the Monitor model was moved from the `sentry` app to `monitors`:
+    # ("sentry", "Monitor"): ("monitors", "Monitor"),
+    #
+    # The changes inside of this mapping only need to be temporray to flush out
+    # old scheduled deletions, as new scheduled deletions will have the
+    # correctly qualified name.
+    ("sentry", "Monitor"): ("monitors", "Monitor"),
+    ("sentry", "MonitorEnvironment"): ("monitors", "MonitorEnvironment"),
+    ("sentry", "MonitorCheckIn"): ("monitors", "MonitorCheckIn"),
+    ("sentry", "MonitorIncident"): ("monitors", "MonitorIncident"),
+    ("sentry", "MonitorEnvBrokenDetection"): ("monitors", "MonitorEnvBrokenDetection"),
+}
+
 
 def load_defaults(manager: DeletionTaskManager) -> None:
     from sentry import models
-    from sentry.deletions.base import BulkModelDeletionTask
-    from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
-    from sentry.incidents.models.alert_rule import (
-        AlertRule,
-        AlertRuleTrigger,
-        AlertRuleTriggerAction,
-    )
-    from sentry.integrations.models.organization_integration import OrganizationIntegration
-    from sentry.integrations.models.repository_project_path_config import (
-        RepositoryProjectPathConfig,
-    )
-    from sentry.models.commitfilechange import CommitFileChange
-    from sentry.models.rulefirehistory import RuleFireHistory
-    from sentry.monitors import models as monitor_models
-    from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
-    from sentry.sentry_apps.models.sentry_app import SentryApp
-    from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
-    from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
-    from sentry.sentry_apps.models.servicehook import ServiceHook
-    from sentry.snuba import models as snuba_models
-    from sentry.workflow_engine.models import DataSource, Detector, Workflow
+    from sentry.discover import models as discover
+    from sentry.incidents import models as incidents
+    from sentry.integrations import models as integrations
+    from sentry.monitors import models as monitors
+    from sentry.sentry_apps import models as sentry_apps
+    from sentry.snuba import models as snuba
+    from sentry.workflow_engine import models as workflow_engine
 
     from . import defaults
+    from .base import BulkModelDeletionTask
 
+    # fmt: off
     manager.register(models.Activity, BulkModelDeletionTask)
-    manager.register(AlertRule, defaults.AlertRuleDeletionTask)
-    manager.register(AlertRuleTrigger, defaults.AlertRuleTriggerDeletionTask)
-    manager.register(AlertRuleTriggerAction, defaults.AlertRuleTriggerActionDeletionTask)
     manager.register(models.ApiApplication, defaults.ApiApplicationDeletionTask)
     manager.register(models.ApiGrant, BulkModelDeletionTask)
     manager.register(models.ApiKey, BulkModelDeletionTask)
     manager.register(models.ApiToken, BulkModelDeletionTask)
+    manager.register(models.ArtifactBundle, defaults.ArtifactBundleDeletionTask)
     manager.register(models.Commit, defaults.CommitDeletionTask)
     manager.register(models.CommitAuthor, defaults.CommitAuthorDeletionTask)
-    manager.register(CommitFileChange, BulkModelDeletionTask)
-    manager.register(Detector, defaults.DetectorDeletionTask)
-    manager.register(DataSource, defaults.DataSourceDeletionTask)
+    manager.register(models.CommitFileChange, BulkModelDeletionTask)
     manager.register(models.Deploy, BulkModelDeletionTask)
-    manager.register(DiscoverSavedQuery, defaults.DiscoverSavedQueryDeletionTask)
-    manager.register(DiscoverSavedQueryProject, BulkModelDeletionTask)
     manager.register(models.Distribution, BulkModelDeletionTask)
     manager.register(models.EnvironmentProject, BulkModelDeletionTask)
     manager.register(models.Group, defaults.GroupDeletionTask)
@@ -152,18 +151,13 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(models.GroupShare, BulkModelDeletionTask)
     manager.register(models.GroupSnooze, BulkModelDeletionTask)
     manager.register(models.GroupSubscription, BulkModelDeletionTask)
-    manager.register(monitor_models.Monitor, defaults.MonitorDeletionTask)
-    manager.register(monitor_models.MonitorEnvironment, defaults.MonitorEnvironmentDeletionTask)
     manager.register(models.Organization, defaults.OrganizationDeletionTask)
-    manager.register(OrganizationIntegration, defaults.OrganizationIntegrationDeletionTask)
     manager.register(models.OrganizationMember, defaults.OrganizationMemberDeletionTask)
     manager.register(models.OrganizationMemberTeam, BulkModelDeletionTask)
-    manager.register(PlatformExternalIssue, defaults.PlatformExternalIssueDeletionTask)
     manager.register(models.Project, defaults.ProjectDeletionTask)
     manager.register(models.ProjectBookmark, BulkModelDeletionTask)
     manager.register(models.ProjectKey, BulkModelDeletionTask)
     manager.register(models.PullRequest, defaults.PullRequestDeletionTask)
-    manager.register(snuba_models.QuerySubscription, defaults.QuerySubscriptionDeletionTask)
     manager.register(models.Release, defaults.ReleaseDeletionTask)
     manager.register(models.ReleaseCommit, BulkModelDeletionTask)
     manager.register(models.ReleaseEnvironment, BulkModelDeletionTask)
@@ -171,18 +165,32 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(models.ReleaseProject, BulkModelDeletionTask)
     manager.register(models.ReleaseProjectEnvironment, BulkModelDeletionTask)
     manager.register(models.Repository, defaults.RepositoryDeletionTask)
-    manager.register(RepositoryProjectPathConfig, defaults.RepositoryProjectPathConfigDeletionTask)
-    manager.register(SentryApp, defaults.SentryAppDeletionTask)
-    manager.register(SentryAppInstallation, defaults.SentryAppInstallationDeletionTask)
-    manager.register(SentryAppInstallationToken, defaults.SentryAppInstallationTokenDeletionTask)
-    manager.register(ServiceHook, defaults.ServiceHookDeletionTask)
+    manager.register(models.Rule, defaults.RuleDeletionTask)
+    manager.register(models.RuleFireHistory, defaults.RuleFireHistoryDeletionTask)
     manager.register(models.SavedSearch, BulkModelDeletionTask)
     manager.register(models.Team, defaults.TeamDeletionTask)
     manager.register(models.UserReport, BulkModelDeletionTask)
-    manager.register(models.ArtifactBundle, defaults.ArtifactBundleDeletionTask)
-    manager.register(models.Rule, defaults.RuleDeletionTask)
-    manager.register(RuleFireHistory, defaults.RuleFireHistoryDeletionTask)
-    manager.register(Workflow, defaults.WorkflowDeletionTask)
+
+    manager.register(discover.DiscoverSavedQuery, defaults.DiscoverSavedQueryDeletionTask)
+    manager.register(discover.DiscoverSavedQueryProject, BulkModelDeletionTask)
+    manager.register(incidents.AlertRule, defaults.AlertRuleDeletionTask)
+    manager.register(incidents.AlertRuleTrigger, defaults.AlertRuleTriggerDeletionTask)
+    manager.register(incidents.AlertRuleTriggerAction, defaults.AlertRuleTriggerActionDeletionTask)
+    manager.register(incidents.Incident, defaults.IncidentDeletionTask)
+    manager.register(integrations.OrganizationIntegration, defaults.OrganizationIntegrationDeletionTask)
+    manager.register(integrations.RepositoryProjectPathConfig, defaults.RepositoryProjectPathConfigDeletionTask)
+    manager.register(monitors.Monitor, defaults.MonitorDeletionTask)
+    manager.register(monitors.MonitorEnvironment, defaults.MonitorEnvironmentDeletionTask)
+    manager.register(sentry_apps.PlatformExternalIssue, defaults.PlatformExternalIssueDeletionTask)
+    manager.register(sentry_apps.SentryApp, defaults.SentryAppDeletionTask)
+    manager.register(sentry_apps.SentryAppInstallation, defaults.SentryAppInstallationDeletionTask)
+    manager.register(sentry_apps.SentryAppInstallationToken, defaults.SentryAppInstallationTokenDeletionTask)
+    manager.register(sentry_apps.ServiceHook, defaults.ServiceHookDeletionTask)
+    manager.register(snuba.QuerySubscription, defaults.QuerySubscriptionDeletionTask)
+    manager.register(workflow_engine.DataSource, defaults.DataSourceDeletionTask)
+    manager.register(workflow_engine.Detector, defaults.DetectorDeletionTask)
+    manager.register(workflow_engine.Workflow, defaults.WorkflowDeletionTask)
+    # fmt: on
 
 
 _default_manager = None

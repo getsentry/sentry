@@ -6,6 +6,7 @@ import partial from 'lodash/partial';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import {deviceNameMapper} from 'sentry/components/deviceName';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -19,7 +20,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
-import {Tooltip} from 'sentry/components/tooltip';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {IconDownload} from 'sentry/icons';
@@ -53,21 +53,21 @@ import {formatFloat} from 'sentry/utils/number/formatFloat';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import toPercent from 'sentry/utils/number/toPercent';
 import Projects from 'sentry/utils/projects';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
 import {ResponseStatusCodeCell} from 'sentry/views/insights/common/components/tableCells/responseStatusCodeCell';
+import {StarredSegmentCell} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields, SpanMetricsField} from 'sentry/views/insights/types';
 import {
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
   stringToFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
 import {ADOPTION_STAGE_LABELS} from 'sentry/views/releases/utils';
-
-import {decodeScalar} from '../queryString';
 
 import ArrayValue from './arrayValue';
 import {
@@ -128,8 +128,6 @@ type FieldFormatters = {
   size: FieldFormatter;
   string: FieldFormatter;
 };
-
-export type FieldTypes = keyof FieldFormatters;
 
 const EmptyValueContainer = styled('span')`
   color: ${p => p.theme.subText};
@@ -376,6 +374,7 @@ type SpecialFields = {
   device: SpecialField;
   'error.handled': SpecialField;
   id: SpecialField;
+  [SpanFields.IS_STARRED_TRANSACTION]: SpecialField;
   issue: SpecialField;
   'issue.id': SpecialField;
   minidump: SpecialField;
@@ -762,6 +761,16 @@ const SPECIAL_FIELDS: SpecialFields = {
         </Container>
       );
     },
+  },
+  [SpanFields.IS_STARRED_TRANSACTION]: {
+    sortField: null,
+    renderFunc: data => (
+      <StarredSegmentCell
+        projectSlug={data.project}
+        segmentName={data.transaction}
+        initialIsStarred={data.is_starred_transaction}
+      />
+    ),
   },
   team_key_transaction: {
     sortField: null,

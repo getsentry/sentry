@@ -155,11 +155,11 @@ from sentry.types.token import AuthTokenType
 from sentry.uptime.models import (
     IntervalSecondsLiteral,
     ProjectUptimeSubscription,
-    ProjectUptimeSubscriptionMode,
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
 )
+from sentry.uptime.types import ProjectUptimeSubscriptionMode
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.users.models.user import User
 from sentry.users.models.user_avatar import UserAvatar
@@ -1054,8 +1054,10 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_group(project, **kwargs):
+    def create_group(project, create_open_period=True, **kwargs):
         from sentry.models.group import GroupStatus
+        from sentry.models.groupopenperiod import GroupOpenPeriod
+        from sentry.testutils.helpers.datetime import before_now
         from sentry.types.group import GroupSubStatus
 
         kwargs.setdefault("message", "Hello world")
@@ -1071,7 +1073,19 @@ class Factories:
             kwargs["status"] = GroupStatus.UNRESOLVED
             kwargs["substatus"] = GroupSubStatus.NEW
 
-        return Group.objects.create(project=project, **kwargs)
+        group = Group.objects.create(project=project, **kwargs)
+        if create_open_period:
+            open_period = GroupOpenPeriod.objects.create(
+                group=group,
+                project=project,
+                date_started=group.first_seen or before_now(minutes=5),
+            )
+            if group.status == GroupStatus.RESOLVED:
+                open_period.update(
+                    date_ended=group.resolved_at if group.resolved_at else timezone.now()
+                )
+
+        return group
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -1373,7 +1387,13 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_service_hook(actor=None, org=None, project=None, events=None, url=None, **kwargs):
+    def create_service_hook(
+        actor=None, org=None, project=None, events=None, url=None, project_ids=None, **kwargs
+    ):
+        if project:
+            if project_ids is not None:
+                raise ValueError("Cannot provide both project and project_ids")
+            project_ids = [project.id]
         if not actor:
             actor = Factories.create_user()
         if not org:
@@ -1381,8 +1401,8 @@ class Factories:
                 org = project.organization
             else:
                 org = Factories.create_organization(owner=actor)
-        if not project:
-            project = Factories.create_project(organization=org)
+        if project_ids is None:  # empty list for project_ids is valid and means no project filter
+            project_ids = [Factories.create_project(organization=org).id]
         if events is None:
             events = ["event.created"]
         if not url:
@@ -1399,7 +1419,7 @@ class Factories:
             actor_id=actor.id,
             installation_id=installation_id,
             organization_id=org.id,
-            project_ids=[project.id],
+            project_ids=project_ids,
             events=events,
             url=url,
         ).id

@@ -42,8 +42,19 @@ describe('Visualize', () => {
         return {tags, isLoading: false};
       }
 
+      const tags: TagCollection = {
+        'span.op': {
+          key: 'span.op',
+          name: 'span.op',
+        },
+        'span.description': {
+          key: 'span.description',
+          name: 'span.description',
+        },
+      };
+
       return {
-        tags: {},
+        tags,
         isLoading: false,
       };
     });
@@ -1378,5 +1389,71 @@ describe('Visualize', () => {
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
       'spans'
     );
+  });
+
+  it('defaults count_unique argument to span.op', async function () {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.LINE,
+              yAxis: ['count(span.duration)'],
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toBeEnabled();
+
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toHaveTextContent('count');
+    expect(
+      await screen.findByRole('button', {name: 'Column Selection'})
+    ).toHaveTextContent('spans');
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    );
+    await userEvent.click(await screen.findByRole('option', {name: 'count_unique'}));
+
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toHaveTextContent('count_unique');
+    expect(
+      await screen.findByRole('button', {name: 'Column Selection'})
+    ).toHaveTextContent('span.op');
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    );
+    await userEvent.click(await screen.findByRole('option', {name: 'avg'}));
+
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toHaveTextContent('avg');
+    expect(
+      await screen.findByRole('button', {name: 'Column Selection'})
+    ).toHaveTextContent('span.duration');
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    );
+    await userEvent.click(await screen.findByRole('option', {name: 'count_unique'}));
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toHaveTextContent('count_unique');
+    expect(
+      await screen.findByRole('button', {name: 'Column Selection'})
+    ).toHaveTextContent('span.op');
   });
 });

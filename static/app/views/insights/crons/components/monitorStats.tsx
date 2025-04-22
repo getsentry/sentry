@@ -20,8 +20,11 @@ import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMillisecon
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-
-import type {Monitor, MonitorEnvironment, MonitorStat} from '../types';
+import type {
+  Monitor,
+  MonitorEnvironment,
+  MonitorStat,
+} from 'sentry/views/insights/crons/types';
 
 type Props = {
   monitor: Monitor;
@@ -160,7 +163,7 @@ export function MonitorStats({monitor, monitorEnvs}: Props) {
               useShortDate
               series={[duration]}
               height={height}
-              colors={[theme.chart.colors[theme.chart.colors.length - 1]![0]]}
+              colors={[theme.chart.getColorPalette(theme.chart.colors.length - 1)[0]]}
               yAxis={getYAxisOptions('duration')}
               grid={{
                 top: 6,

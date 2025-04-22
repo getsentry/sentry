@@ -10,7 +10,9 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
-export const profilingOnboarding = {
+export const getRubyProfilingOnboarding = ({
+  frameworkPackage,
+}: {frameworkPackage?: string} = {}) => ({
   install: () => [
     {
       type: StepType.INSTALL,
@@ -24,7 +26,7 @@ export const profilingOnboarding = {
       configurations: [
         {
           description: tct(
-            'First add [code:stackprof] to your [code:Gemfile] and make sure it is loaded before [code:sentry-ruby].',
+            'First add [code:stackprof] to your [code:Gemfile] and make sure it is loaded before the Sentry SDK.',
             {
               code: <code />,
             }
@@ -32,7 +34,12 @@ export const profilingOnboarding = {
           language: 'ruby',
           code: `
 gem 'stackprof'
-gem 'sentry-ruby'`,
+gem 'sentry-ruby'${
+            frameworkPackage
+              ? `
+gem '${frameworkPackage}'`
+              : ''
+          }`,
         },
       ],
     },
@@ -68,7 +75,7 @@ end
     },
   ],
   verify: () => [],
-};
+});
 
 const getInstallSnippet = (params: Params) =>
   `${params.isProfilingSelected ? 'gem "stackprof"\n' : ''}gem "sentry-ruby"`;
@@ -182,7 +189,7 @@ const onboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   crashReportOnboarding: CrashReportWebApiOnboarding,
-  profilingOnboarding,
+  profilingOnboarding: getRubyProfilingOnboarding(),
 };
 
 export default docs;

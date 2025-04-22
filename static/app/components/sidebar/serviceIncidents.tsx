@@ -1,10 +1,9 @@
 import {Fragment} from 'react';
 
+import {ServiceIncidentDetails} from 'sentry/components/serviceIncidentDetails';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useServiceIncidents} from 'sentry/utils/useServiceIncidents';
-
-import {ServiceIncidentDetails} from '../serviceIncidentDetails';
 
 import SidebarItem from './sidebarItem';
 import SidebarPanel from './sidebarPanel';

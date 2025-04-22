@@ -3,8 +3,7 @@ import {
   parseSearch,
   type SearchConfig,
 } from 'sentry/components/searchSyntax/parser';
-
-import type {TraceTree} from '../traceModels/traceTree';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 // Span keys
 type TransactionPrefix = 'Transaction';
@@ -119,7 +118,7 @@ const BOOLEAN_KEYS = new Set([
   ...withPrefixedPermutation('span', SPAN_BOOLEAN_KEYS),
 ]);
 
-export const TRACE_SEARCH_CONFIG: SearchConfig = {
+const TRACE_SEARCH_CONFIG: SearchConfig = {
   ...defaultConfig,
   textOperatorKeys: TEXT_KEYS,
   durationKeys: DURATION_KEYS,

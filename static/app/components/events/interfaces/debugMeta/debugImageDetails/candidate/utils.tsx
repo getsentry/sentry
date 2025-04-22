@@ -1,11 +1,10 @@
 import * as Sentry from '@sentry/react';
 
+import {INTERNAL_SOURCE} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/utils';
 import {t} from 'sentry/locale';
 import type {BuiltinSymbolSource} from 'sentry/types/debugFiles';
 import type {ImageCandidate} from 'sentry/types/debugImage';
 import {CandidateDownloadStatus, ImageFeature} from 'sentry/types/debugImage';
-
-import {INTERNAL_SOURCE} from '../utils';
 
 export function getImageFeatureDescription(type: ImageFeature) {
   switch (type) {

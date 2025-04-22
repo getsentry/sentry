@@ -110,7 +110,7 @@ const getMeasurementTags = (
   }, measurementsWithKind);
 };
 
-export const getHasTag = (tags: TagCollection) => ({
+const getHasTag = (tags: TagCollection) => ({
   key: FieldKey.HAS,
   name: 'Has property',
   values: Object.keys(tags).sort((a, b) => {
