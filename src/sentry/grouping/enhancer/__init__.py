@@ -316,8 +316,8 @@ class Enhancements:
     @cached_property
     def base64_string(self) -> str:
         """A base64 string representation of the enhancements object"""
-        encoded = msgpack.dumps(self._to_config_structure())
-        compressed = zstandard.compress(encoded)
+        pickled = msgpack.dumps(self._to_config_structure())
+        compressed = zstandard.compress(pickled)
         return base64.urlsafe_b64encode(compressed).decode("ascii").strip("=")
 
     @classmethod
