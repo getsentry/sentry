@@ -30,6 +30,17 @@ import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/lar
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 
+function renameMeta(meta: EventsMetaType, from: string, to: string): EventsMetaType {
+  return {
+    fields: {
+      [to]: meta.fields[from]!,
+    },
+    units: {
+      [to]: meta.units[from]!,
+    },
+  };
+}
+
 export function SlowSSRWidget({query}: {query?: string}) {
   const theme = useTheme();
   const {selection} = usePageFilters();
@@ -89,7 +100,7 @@ export function SlowSSRWidget({query}: {query?: string}) {
             value: value?.[0]?.count || 0,
           })),
           seriesName: key,
-          meta: seriesData.meta as EventsMetaType,
+          meta: renameMeta(seriesData.meta as EventsMetaType, 'avg(span.duration)', key),
         } satisfies DiscoverSeries;
       });
   }, [timeSeriesRequest.data]);
