@@ -46,7 +46,7 @@ def dump_obj(obj):
 
 @pytest.mark.parametrize("version", [2])
 def test_basic_parsing(insta_snapshot, version):
-    enhancement = Enhancements.from_config_string(
+    enhancement = Enhancements.from_rules_text(
         """
 # This is a config
 path:*/code/game/whatever/*                     +app
@@ -75,7 +75,7 @@ error.value:"*something*"                       max-frames=12
 
 
 def test_parse_empty_with_base():
-    enhancement = Enhancements.from_config_string(
+    enhancement = Enhancements.from_rules_text(
         "",
         bases=["newstyle:2023-01-11"],
     )
@@ -84,23 +84,23 @@ def test_parse_empty_with_base():
 
 def test_parsing_errors():
     with pytest.raises(InvalidEnhancerConfig):
-        Enhancements.from_config_string("invalid.message:foo -> bar")
+        Enhancements.from_rules_text("invalid.message:foo -> bar")
 
 
 def test_caller_recursion():
     # Remove this test when CallerMatch can be applied recursively
     with pytest.raises(InvalidEnhancerConfig):
-        Enhancements.from_config_string("[ category:foo ] | [ category:bar ] | category:baz +app")
+        Enhancements.from_rules_text("[ category:foo ] | [ category:bar ] | category:baz +app")
 
 
 def test_callee_recursion():
     # Remove this test when CalleeMatch can be applied recursively
     with pytest.raises(InvalidEnhancerConfig):
-        Enhancements.from_config_string(" category:foo | [ category:bar ] | [ category:baz ] +app")
+        Enhancements.from_rules_text(" category:foo | [ category:bar ] | [ category:baz ] +app")
 
 
 def test_flipflop_inapp():
-    enhancement = Enhancements.from_config_string(
+    enhancement = Enhancements.from_rules_text(
         """
         family:all +app
         family:all -app
@@ -137,7 +137,7 @@ def _get_matching_frame_actions(rule, frames, platform, exception_data=None, cac
 
 
 def test_basic_path_matching():
-    enhancement = Enhancements.from_config_string(
+    enhancement = Enhancements.from_rules_text(
         """
         path:**/test.js              +app
     """
@@ -184,7 +184,7 @@ def test_basic_path_matching():
 
 
 def test_family_matching():
-    enhancement = Enhancements.from_config_string(
+    enhancement = Enhancements.from_rules_text(
         """
         family:javascript path:**/test.js              +app
         family:native function:std::*                  -app
@@ -216,7 +216,7 @@ def test_family_matching():
 
 
 def test_app_matching():
-    enhancement = Enhancements.from_config_string(
+    enhancement = Enhancements.from_rules_text(
         """
         family:javascript path:**/test.js app:yes       +app
         family:native path:**/test.c app:no            -group
@@ -252,7 +252,7 @@ def test_app_matching():
 
 
 def test_invalid_app_matcher():
-    enhancements = Enhancements.from_config_string("app://../../src/some-file.ts -app")
+    enhancements = Enhancements.from_rules_text("app://../../src/some-file.ts -app")
     (rule,) = enhancements.rules
 
     assert not bool(_get_matching_frame_actions(rule, [{}], "javascript"))
@@ -263,7 +263,7 @@ def test_invalid_app_matcher():
 def test_package_matching():
     # This tests a bunch of different rules from the default in-app logic that
     # was ported from the former native plugin.
-    enhancement = Enhancements.from_config_string(
+    enhancement = Enhancements.from_rules_text(
         """
         family:native package:/var/**/Frameworks/**                  -app
         family:native package:**/*.app/Contents/**                   +app
@@ -318,7 +318,7 @@ def test_package_matching():
 
 
 def test_type_matching():
-    enhancement = Enhancements.from_config_string(
+    enhancement = Enhancements.from_rules_text(
         """
         family:other error.type:ZeroDivisionError -app
         family:other error.type:*Error -app
@@ -350,7 +350,7 @@ def test_type_matching():
 
 
 def test_value_matching():
-    enhancement = Enhancements.from_config_string(
+    enhancement = Enhancements.from_rules_text(
         """
         family:other error.value:foo -app
         family:other error.value:Failed* -app
@@ -380,7 +380,7 @@ def test_value_matching():
 
 
 def test_mechanism_matching():
-    enhancement = Enhancements.from_config_string(
+    enhancement = Enhancements.from_rules_text(
         """
         family:other error.mechanism:NSError -app
     """
@@ -405,7 +405,7 @@ def test_mechanism_matching():
 
 
 def test_mechanism_matching_no_frames():
-    enhancement = Enhancements.from_config_string(
+    enhancement = Enhancements.from_rules_text(
         """
         error.mechanism:NSError -app
     """
@@ -422,7 +422,7 @@ def test_mechanism_matching_no_frames():
 
 
 def test_range_matching():
-    enhancement = Enhancements.from_config_string(
+    enhancement = Enhancements.from_rules_text(
         """
         [ function:foo ] | function:* | [ function:baz ] category=bar
     """
@@ -448,7 +448,7 @@ def test_range_matching():
 
 
 def test_range_matching_direct():
-    enhancement = Enhancements.from_config_string(
+    enhancement = Enhancements.from_rules_text(
         """
         function:bar | [ function:baz ] -group
     """
@@ -493,7 +493,7 @@ def test_range_matching_direct():
     ],
 )
 def test_app_no_matches(frame):
-    enhancements = Enhancements.from_config_string("app:no +app")
+    enhancements = Enhancements.from_rules_text("app:no +app")
     enhancements.apply_category_and_updated_in_app_to_frames([frame], "native", {})
     assert frame.get("in_app")
 
@@ -795,7 +795,7 @@ class AssembleStacktraceComponentTest(TestCase):
             (True, None),
         ]
 
-        enhancements = Enhancements.from_config_string("")
+        enhancements = Enhancements.from_rules_text("")
         mock_rust_enhancements = MockRustEnhancements(
             frame_results=rust_frame_results,
             stacktrace_results=(True, "some stacktrace hint"),
@@ -869,11 +869,11 @@ class AssembleStacktraceComponentTest(TestCase):
             (False, "ignored by stacktrace rule (...)"),
         ]
 
-        enhancements1 = Enhancements.from_config_string("")
+        enhancements1 = Enhancements.from_rules_text("")
         mock_rust_enhancements1 = MockRustEnhancements(
             frame_results=rust_frame_results1, stacktrace_results=(True, None)
         )
-        enhancements2 = Enhancements.from_config_string("")
+        enhancements2 = Enhancements.from_rules_text("")
         mock_rust_enhancements2 = MockRustEnhancements(
             frame_results=rust_frame_results2, stacktrace_results=(True, None)
         )

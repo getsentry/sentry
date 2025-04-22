@@ -369,7 +369,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
             },
         }
 
-        enhancement = Enhancements.from_config_string(
+        enhancement = Enhancements.from_rules_text(
             """
             function:foo category=foo_like
             category:foo_like -group
