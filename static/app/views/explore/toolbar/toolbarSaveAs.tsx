@@ -94,39 +94,44 @@ export function ToolbarSaveAs() {
 
   const items: MenuItemProps[] = [];
 
-  if (organization.features.includes('performance-saved-queries')) {
-    if (defined(id)) {
-      items.push({
-        key: 'update-query',
-        label: <span>{t('Existing Query')}</span>,
-        onAction: async () => {
-          try {
-            addLoadingMessage(t('Updating query...'));
-            await updateQuery();
-            addSuccessMessage(t('Query updated successfully'));
-            trackAnalytics('trace_explorer.save_as', {
-              save_type: 'update_query',
-              ui_source: 'toolbar',
-              organization,
-            });
-          } catch (error) {
-            addErrorMessage(t('Failed to update query'));
-            Sentry.captureException(error);
-          }
-        },
-      });
-    }
+  if (defined(id)) {
     items.push({
-      key: 'save-query',
-      label: <span>{t('A New Query')}</span>,
-      onAction: () => {
-        openSaveQueryModal({
-          organization,
-          saveQuery,
-        });
+      key: 'update-query',
+      label: <span>{t('Existing Query')}</span>,
+      onAction: async () => {
+        try {
+          addLoadingMessage(t('Updating query...'));
+          await updateQuery();
+          addSuccessMessage(t('Query updated successfully'));
+          trackAnalytics('trace_explorer.save_as', {
+            save_type: 'update_query',
+            ui_source: 'toolbar',
+            organization,
+          });
+        } catch (error) {
+          addErrorMessage(t('Failed to update query'));
+          Sentry.captureException(error);
+        }
       },
     });
   }
+  items.push({
+    key: 'save-query',
+    label: <span>{t('A New Query')}</span>,
+    onAction: () => {
+      trackAnalytics('trace_explorer.save_query_modal', {
+        action: 'open',
+        save_type: 'save_new_query',
+        ui_source: 'toolbar',
+        organization,
+      });
+      openSaveQueryModal({
+        organization,
+        saveQuery,
+        source: 'toolbar',
+      });
+    },
+  });
 
   if (organization.features.includes('alerts-eap')) {
     items.push({
@@ -300,7 +305,7 @@ const DisabledText = styled('span')`
 
 const StyledToolbarSection = styled(ToolbarSection)`
   border-top: 1px solid ${p => p.theme.border};
-  padding-top: ${space(2)};
+  padding-top: ${space(3)};
 `;
 
 const SaveAsButton = styled(Button)`

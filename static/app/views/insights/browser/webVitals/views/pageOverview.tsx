@@ -18,7 +18,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import BrowserTypeSelector from 'sentry/views/insights/browser/webVitals/components/browserTypeSelector';
-import {PerformanceScoreBreakdownChart} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreBreakdownChart';
 import {PageOverviewSidebar} from 'sentry/views/insights/browser/webVitals/components/pageOverviewSidebar';
 import {PageOverviewWebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/components/pageOverviewWebVitalsDetailPanel';
 import {PageSamplePerformanceTable} from 'sentry/views/insights/browser/webVitals/components/tables/pageSamplePerformanceTable';
@@ -32,6 +31,7 @@ import {WebVitalMetersPlaceholder} from 'sentry/views/insights/browser/webVitals
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
+import {PerformanceScoreBreakdownChartWidget} from 'sentry/views/insights/common/components/widgets/performanceScoreBreakdownChartWidget';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useWebVitalsDrawer} from 'sentry/views/insights/common/utils/useWebVitalsDrawer';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
@@ -43,7 +43,7 @@ import {
 } from 'sentry/views/insights/types';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-export enum LandingDisplayField {
+enum LandingDisplayField {
   OVERVIEW = 'overview',
   SPANS = 'spans',
 }
@@ -196,11 +196,9 @@ export function PageOverview() {
                   <BrowserTypeSelector />
                 </TopMenuContainer>
                 <Flex>
-                  <PerformanceScoreBreakdownChart
-                    transaction={transaction}
-                    browserTypes={browserTypes}
-                    subregions={subregions}
-                  />
+                  <ChartContainer>
+                    <PerformanceScoreBreakdownChartWidget />
+                  </ChartContainer>
                 </Flex>
                 <WebVitalMetersContainer>
                   {(isPending || isProjectScoresLoading) && <WebVitalMetersPlaceholder />}
@@ -265,6 +263,10 @@ const Flex = styled('div')`
   justify-content: space-between;
   width: 100%;
   gap: ${space(1)};
+`;
+
+const ChartContainer = styled('div')`
+  flex: 1 1 0%;
 `;
 
 const PageSamplePerformanceTableContainer = styled('div')`

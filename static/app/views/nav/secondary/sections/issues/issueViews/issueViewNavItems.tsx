@@ -4,11 +4,13 @@ import debounce from 'lodash/debounce';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
+import type {AvatarUser} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {IssueViewParams} from 'sentry/views/issueList/issueViews/issueViews';
+import {isNewViewPage} from 'sentry/views/issueList/issueViews/utils';
 import {useUpdateGroupSearchViewStarredOrder} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarredOrder';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {IssueViewAddViewButton} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewAddViewButton';
@@ -21,9 +23,11 @@ interface IssueViewNavItemsProps {
 }
 
 export interface NavIssueView extends IssueViewParams {
+  createdBy: AvatarUser;
   id: string;
   label: string;
   lastVisited: string | null;
+  stars: number;
 }
 
 export function IssueViewNavItems({sectionRef, baseUrl}: IssueViewNavItemsProps) {
@@ -89,6 +93,11 @@ export function IssueViewNavItems({sectionRef, baseUrl}: IssueViewNavItemsProps)
           {t('All Views')}
         </SecondaryNav.Item>
       )}
+      {isNewViewPage(location.pathname) ? (
+        <SecondaryNav.Item to={`${baseUrl}/views/new/`} isActive>
+          {t('New View')}
+        </SecondaryNav.Item>
+      ) : null}
     </SecondaryNav.Section>
   );
 }

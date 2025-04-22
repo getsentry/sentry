@@ -1,6 +1,6 @@
 import Anchor from './anchor';
 
-export interface ExternalLinkProps
+interface ExternalLinkProps
   extends Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'target'> {
   disabled?: boolean;
   openInNewTab?: boolean;

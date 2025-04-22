@@ -1,18 +1,16 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion, Reorder, useDragControls} from 'framer-motion';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useIssueViewUnsavedChanges';
@@ -27,7 +25,7 @@ import {
 } from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavItems';
 import {IssueViewNavQueryCount} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavQueryCount';
 
-export interface IssueViewNavItemContentProps {
+interface IssueViewNavItemContentProps {
   /**
    * Whether the item is active.
    */
@@ -71,8 +69,6 @@ export function IssueViewNavItemContent({
   setIsDragging,
 }: IssueViewNavItemContentProps) {
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
   const {projects} = useProjects();
 
   const hasIssueViewSharing = organization.features.includes('issue-view-sharing');
@@ -82,16 +78,6 @@ export function IssueViewNavItemContent({
   const baseUrl = `/organizations/${organization.slug}/issues`;
   const [isEditing, setIsEditing] = useState(false);
   const {hasUnsavedChanges, changedParams} = useIssueViewUnsavedChanges();
-
-  useEffect(() => {
-    if (isActive) {
-      if (Object.keys(location.query).length === 0) {
-        navigate(constructViewLink(baseUrl, view), {replace: true});
-        return;
-      }
-    }
-    return;
-  }, [view, isActive, location.query, navigate, baseUrl]);
 
   const projectPlatforms = projects
     .filter(p => view.projects.map(String).includes(p.id))

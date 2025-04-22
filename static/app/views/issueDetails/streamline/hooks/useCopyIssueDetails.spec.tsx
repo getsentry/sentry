@@ -249,10 +249,12 @@ describe('useCopyIssueDetails', () => {
         {
           match: 'command+alt+c',
           callback: expect.any(Function),
+          skipPreventDefault: expect.any(Boolean),
         },
         {
           match: 'ctrl+alt+c',
           callback: expect.any(Function),
+          skipPreventDefault: expect.any(Boolean),
         },
       ]);
     });

@@ -31,11 +31,6 @@ export enum OnboardingTaskKey {
   PERFORMANCE_GUIDE = 'performance_guide',
 }
 
-export type OnboardingSupplementComponentProps = {
-  task: OnboardingTask;
-  onCompleteTask?: () => void;
-};
-
 export type OnboardingCustomComponentProps = {
   onboardingContext: OnboardingContextProps;
   organization: Organization;
@@ -56,14 +51,9 @@ interface OnboardingTaskDescriptorBase {
   task: OnboardingTaskKey;
   title: string;
   /**
-   * An extra component that may be rendered within the onboarding task item.
-   */
-  SupplementComponent?: React.ComponentType<OnboardingSupplementComponentProps>;
-  /**
    * The group that this task belongs to, e.g. basic and level up
    */
   group?: OnboardingTaskGroup;
-  pendingTitle?: string;
   /**
    * Joins with this task id for server-side onboarding state.
    * This allows you to create alias for exising onboarding tasks or create multiple
@@ -93,11 +83,11 @@ export type OnboardingTaskDescriptor =
   | OnboardingTypeDescriptorWithAppLink;
 
 export interface OnboardingTaskStatus {
-  status: 'skipped' | 'pending' | 'complete';
   task: OnboardingTaskKey;
   completionSeen?: string | boolean;
   data?: Record<string, string>;
   dateCompleted?: string;
+  status?: 'skipped' | 'complete';
 }
 
 interface OnboardingTaskWithAction

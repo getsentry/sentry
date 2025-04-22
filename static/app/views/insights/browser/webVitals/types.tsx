@@ -13,7 +13,7 @@ export type Row = {
   transaction: string;
 };
 
-export type TransactionSampleRow = {
+type TransactionSampleRow = {
   id: string;
   'profile.id': string;
   project: string;
@@ -40,7 +40,7 @@ export type Score = {
   ttfbScore: number;
 };
 
-export type SpanSampleRow = {
+type SpanSampleRow = {
   id: string;
   'profile.id': string;
   project: string;

@@ -33,6 +33,7 @@ export const FORTY_EIGHT_HOURS = 2880;
 export const TWENTY_FOUR_HOURS = 1440;
 export const SIX_HOURS = 360;
 export const ONE_HOUR = 60;
+export const FIVE_MINUTES = 5;
 
 /**
  * If there are more releases than this number we hide "Releases" series by default
@@ -84,7 +85,7 @@ export function useShortInterval(datetimeObj: DateTimeObject): boolean {
   return computeShortInterval(datetimeObj);
 }
 
-export type GranularityStep = [timeDiff: number, interval: string];
+type GranularityStep = [timeDiff: number, interval: string];
 
 export class GranularityLadder {
   steps: GranularityStep[];
@@ -354,7 +355,7 @@ const DEFAULT_GEO_DATA = {
   data: [],
 };
 export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
-  if (!tableResults || !tableResults.length) {
+  if (!tableResults?.length) {
     return DEFAULT_GEO_DATA;
   }
 
@@ -362,7 +363,7 @@ export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
 
   const {data} = tableResult;
 
-  if (!data || !data.length) {
+  if (!data?.length) {
     return DEFAULT_GEO_DATA;
   }
 

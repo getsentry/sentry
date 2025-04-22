@@ -16,7 +16,7 @@ import type {Item, ItemsBeforeFilter} from './types';
 type AutoCompleteChildrenArgs = Parameters<AutoComplete<Item>['props']['children']>[0];
 type Actions = AutoCompleteChildrenArgs['actions'];
 
-export type MenuFooterChildProps = {
+type MenuFooterChildProps = {
   actions: Actions;
 };
 

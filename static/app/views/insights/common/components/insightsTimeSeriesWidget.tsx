@@ -15,6 +15,7 @@ import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
+import type {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/samples';
 import {
   TimeSeriesWidgetVisualization,
   type TimeSeriesWidgetVisualizationProps,
@@ -48,6 +49,7 @@ export interface InsightsTimeSeriesWidgetProps
   legendSelection?: LegendSelection | undefined;
   onLegendSelectionChange?: ((selection: LegendSelection) => void) | undefined;
   pageFilters?: PageFilters;
+  samples?: Samples;
   showLegend?: TimeSeriesWidgetVisualizationProps['showLegend'];
   showReleaseAs?: 'line' | 'bubble';
   stacked?: boolean;
@@ -84,6 +86,10 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
       });
     }),
   };
+
+  if (props.samples) {
+    visualizationProps.plottables.push(props.samples);
+  }
 
   const Title = props.interactiveTitle ? (
     props.interactiveTitle()

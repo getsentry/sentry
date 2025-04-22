@@ -300,7 +300,7 @@ export type EventsStatsData = Array<
   [number, Array<{count: number; comparisonCount?: number}>]
 >;
 
-export type ConfidenceStatsData = Array<[number, Array<{count: Confidence}>]>;
+type ConfidenceStatsData = Array<[number, Array<{count: Confidence}>]>;
 
 type AccuracyStatsItem<T> = {
   timestamp: number;
@@ -328,6 +328,7 @@ export type EventsStats = {
       // 0 sample count can result in null sampling rate
       samplingRate?: AccuracyStats<number | null>;
     };
+    dataScanned?: 'full' | 'partial';
     dataset?: string;
     datasetReason?: string;
     discoverSplitDecision?: WidgetType;

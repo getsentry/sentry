@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Panel from 'sentry/components/panels/panel';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

@@ -2,6 +2,7 @@ import {Fragment, useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
@@ -13,7 +14,6 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import Pagination from 'sentry/components/pagination';
 import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHeaderCell';
 import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';

@@ -10,7 +10,7 @@ import type EventView from 'sentry/utils/discover/eventView';
 import type {PerformanceWidgetContainerTypes} from './components/performanceWidgetContainer';
 import type {ChartDefinition, PerformanceWidgetSetting} from './widgetDefinitions';
 
-export enum VisualizationDataState {
+enum VisualizationDataState {
   ERROR = 'error',
   LOADING = 'loading',
   EMPTY = 'empty',
@@ -59,10 +59,10 @@ export interface WidgetDataResult {
 }
 export type WidgetDataConstraint = Record<string, WidgetDataResult | undefined>;
 
-export type QueryChildren = {
+type QueryChildren = {
   children: (props: any) => React.ReactNode; // TODO(k-fish): Fix any type.
 };
-export type QueryFC<T extends WidgetDataConstraint> = React.ComponentType<
+type QueryFC<T extends WidgetDataConstraint> = React.ComponentType<
   QueryChildren & {
     eventView: EventView;
     orgSlug: string;
@@ -94,7 +94,7 @@ export type QueryDefinition<
   ) => S; // TODO(k-fish): Fix any type.
   enabled?: (data: T) => boolean;
 };
-export type Queries<T extends WidgetDataConstraint> = Record<
+type Queries<T extends WidgetDataConstraint> = Record<
   string,
   QueryDefinition<T, T[string]>
 >;
