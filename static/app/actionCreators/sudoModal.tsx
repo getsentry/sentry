@@ -15,8 +15,7 @@ export async function openSudo({
   closeEvents,
   ...args
 }: OpenSudoModalOptions = {}) {
-  const mod = await import('sentry/components/modals/sudoModal');
-  const {default: Modal} = mod;
+  const {default: Modal} = await import('sentry/components/modals/sudoModal');
 
   ModalStore.openModal(deps => <Modal {...deps} {...args} />, {onClose, closeEvents});
 }
