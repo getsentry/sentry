@@ -74,7 +74,7 @@ class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
         problems = self.find_problems(event)
         assert self.find_problems(event) == [
             PerformanceProblem(
-                fingerprint="1-1010-d750ce46bb1b13dd5780aac48098d5e20eea682c",
+                fingerprint=f"1-{PerformanceNPlusOneAPICallsExperimentalGroupType.type_id}-d750ce46bb1b13dd5780aac48098d5e20eea682c",
                 op="http.client",
                 type=PerformanceNPlusOneAPICallsExperimentalGroupType,
                 desc="GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A",
@@ -142,7 +142,7 @@ class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
                 evidence_display=[],
             )
         ]
-        assert problems[0].title == "N+1 API Call"
+        assert problems[0].title == "N+1 API Call (Experimental)"
 
     def test_does_not_detect_problems_with_low_total_duration_of_spans(self):
         event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")
@@ -200,7 +200,10 @@ class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
         event = self.create_event(lambda i: "GET /clients/11/info")
         [problem] = self.find_problems(event)
 
-        assert problem.fingerprint == "1-1010-e9daac10ea509a0bf84a8b8da45d36394868ad67"
+        assert (
+            problem.fingerprint
+            == f"1-{PerformanceNPlusOneAPICallsExperimentalGroupType.type_id}-e9daac10ea509a0bf84a8b8da45d36394868ad67"
+        )
 
     def test_fingerprints_identical_relative_urls_together(self):
         event1 = self.create_event(lambda i: "GET /clients/11/info")
