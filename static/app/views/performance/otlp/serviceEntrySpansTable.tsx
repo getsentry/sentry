@@ -5,15 +5,11 @@ import type {Location} from 'history';
 
 import {Button, LinkButton} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import type {DropdownOption} from 'sentry/components/discover/transactionsList';
 import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/investigationRule';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  type GridColumnHeader,
-} from 'sentry/components/gridEditable';
+import GridEditable from 'sentry/components/gridEditable';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {IconPlay, IconProfiling} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {parseCursor} from 'sentry/utils/cursor';
@@ -25,97 +21,31 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {
-  type EAPSpanResponse,
-  ModuleName,
-  SpanIndexedField,
-} from 'sentry/views/insights/types';
+import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {
+  SERVICE_ENTRY_SPANS_COLUMN_ORDER,
+  type ServiceEntrySpansColumn,
+  type ServiceEntrySpansRow,
+} from 'sentry/views/performance/otlp/types';
 import {useServiceEntrySpansQuery} from 'sentry/views/performance/otlp/useServiceEntrySpansQuery';
+import {
+  getOTelTransactionsListSort,
+  SERVICE_ENTRY_SPANS_CURSOR,
+} from 'sentry/views/performance/otlp/utils';
 import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
-// TODO: When supported, also add span operation breakdown as a field
-type Row = Pick<
-  EAPSpanResponse,
-  | 'span_id'
-  | 'user.display'
-  | 'user.id'
-  | 'user.email'
-  | 'user.username'
-  | 'user.ip'
-  | 'span.duration'
-  | 'trace'
-  | 'timestamp'
-  | 'replayId'
-  | 'profile.id'
-  | 'profiler.id'
-  | 'thread.id'
-  | 'precise.start_ts'
-  | 'precise.finish_ts'
->;
 
-type Column = GridColumnHeader<
-  | 'span_id'
-  | 'user.display'
-  | 'span.duration'
-  | 'trace'
-  | 'timestamp'
-  | 'replayId'
-  | 'profile.id'
->;
-
-const COLUMN_ORDER: Column[] = [
-  {
-    key: 'trace',
-    name: t('Trace ID'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'span_id',
-    name: t('Span ID'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'user.display',
-    name: t('User'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'span.duration',
-    name: t('Total Duration'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'timestamp',
-    name: t('Timestamp'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'replayId',
-    name: t('Replay'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'profile.id',
-    name: t('Profile'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-];
-
+const LIMIT = 5;
 const PAGINATION_CURSOR_SIZE = 'xs';
-const CURSOR_NAME = 'serviceEntrySpansCursor';
-const FULL_PAGE_MODE_LIMIT = 50;
 
 type Props = {
   eventView: EventView;
   handleDropdownChange: (k: string) => void;
   totalValues: Record<string, number> | null;
   transactionName: string;
-  fullPageMode?: boolean;
   showViewSampledEventsButton?: boolean;
   supportsInvestigationRule?: boolean;
 };
@@ -125,7 +55,6 @@ export function ServiceEntrySpansTable({
   handleDropdownChange,
   totalValues,
   transactionName,
-  fullPageMode,
   supportsInvestigationRule,
   showViewSampledEventsButton,
 }: Props) {
@@ -136,9 +65,8 @@ export function ServiceEntrySpansTable({
   const navigate = useNavigate();
 
   const projectSlug = projects.find(p => p.id === `${eventView.project}`)?.slug;
-  const cursor = decodeScalar(location.query?.[CURSOR_NAME]);
+  const cursor = decodeScalar(location.query?.[SERVICE_ENTRY_SPANS_CURSOR]);
   const spanCategory = decodeScalar(location.query?.[SpanIndexedField.SPAN_CATEGORY]);
-  const {selection} = usePageFilters();
   const {selected, options} = getOTelTransactionsListSort(location, spanCategory);
 
   const p95 = totalValues?.['p95()'] ?? 0;
@@ -159,29 +87,8 @@ export function ServiceEntrySpansTable({
     transactionName,
     p95,
     selected,
-    limit: fullPageMode ? FULL_PAGE_MODE_LIMIT : undefined,
+    limit: LIMIT,
   });
-
-  const countQuery = new MutableSearch(eventViewQuery.formatString());
-  countQuery.addFilterValue('is_transaction', '1');
-  countQuery.addFilterValue('transaction', transactionName);
-  const {data: numEvents, error: numEventsError} = useEAPSpans(
-    {
-      search: countQuery,
-      fields: ['count()'],
-      enabled: fullPageMode,
-      pageFilters: selection,
-    },
-    'api.performance.service-entry-spans-table-count'
-  );
-
-  const paginationCaption = tct(
-    'Showing [pageEventsCount] of [totalEventsCount] events',
-    {
-      pageEventsCount: FULL_PAGE_MODE_LIMIT.toLocaleString(),
-      totalEventsCount: numEvents[0]?.['count()']?.toLocaleString() ?? '...',
-    }
-  );
 
   const consolidatedData = tableData?.map(row => {
     const user =
@@ -195,7 +102,7 @@ export function ServiceEntrySpansTable({
   const handleCursor: CursorHandler = (_cursor, pathname, query) => {
     navigate({
       pathname,
-      query: {...query, [CURSOR_NAME]: _cursor},
+      query: {...query, [SERVICE_ENTRY_SPANS_CURSOR]: _cursor},
     });
   };
 
@@ -220,14 +127,12 @@ export function ServiceEntrySpansTable({
   return (
     <Fragment>
       <Header>
-        {!fullPageMode && (
-          <CompactSelect
-            triggerProps={{prefix: t('Filter'), size: 'xs'}}
-            value={selected.value}
-            options={options}
-            onChange={opt => handleDropdownChange(opt.value)}
-          />
-        )}
+        <CompactSelect
+          triggerProps={{prefix: t('Filter'), size: 'xs'}}
+          value={selected.value}
+          options={options}
+          onChange={opt => handleDropdownChange(opt.value)}
+        />
         <HeaderButtonWrapper>
           {supportsInvestigationRule && (
             <InvestigationRuleWrapper>
@@ -248,20 +153,18 @@ export function ServiceEntrySpansTable({
             </Button>
           )}
         </HeaderButtonWrapper>
-        {!fullPageMode && (
-          <CustomPagination
-            pageLinks={pageLinks}
-            onCursor={handleCursor}
-            isLoading={isLoading}
-          />
-        )}
+        <CustomPagination
+          pageLinks={pageLinks}
+          onCursor={handleCursor}
+          isLoading={isLoading}
+        />
       </Header>
 
       <GridEditable
         isLoading={isLoading}
         error={error}
         data={consolidatedData}
-        columnOrder={COLUMN_ORDER}
+        columnOrder={SERVICE_ENTRY_SPANS_COLUMN_ORDER}
         columnSortBy={[]}
         grid={{
           renderHeadCell: column =>
@@ -272,21 +175,13 @@ export function ServiceEntrySpansTable({
             renderBodyCell(column, row, meta, projectSlug, location, organization, theme),
         }}
       />
-      {fullPageMode && (
-        <Pagination
-          pageLinks={pageLinks}
-          onCursor={handleCursor}
-          size="md"
-          caption={numEventsError ? undefined : paginationCaption}
-        />
-      )}
     </Fragment>
   );
 }
 
 function renderBodyCell(
-  column: Column,
-  row: Row,
+  column: ServiceEntrySpansColumn,
+  row: ServiceEntrySpansRow,
   meta: EventsMetaType | undefined,
   projectSlug: string | undefined,
   location: Location,
@@ -390,54 +285,6 @@ function CustomPagination({
       size={PAGINATION_CURSOR_SIZE}
     />
   );
-}
-
-function getOTelFilterOptions(spanCategory?: string): DropdownOption[] {
-  return [
-    {
-      sort: {kind: 'asc', field: 'span.duration'},
-      value: TransactionFilterOptions.FASTEST,
-      label: spanCategory
-        ? t('Fastest %s Service Entry Spans', spanCategory)
-        : t('Fastest Service Entry Spans'),
-    },
-    {
-      sort: {kind: 'desc', field: 'span.duration'},
-      value: TransactionFilterOptions.SLOW,
-      label: spanCategory
-        ? t('Slow %s Service Entry Spans (p95)', spanCategory)
-        : t('Slow Service Entry Spans (p95)'),
-    },
-    {
-      sort: {kind: 'desc', field: 'span.duration'},
-      value: TransactionFilterOptions.OUTLIER,
-      label: spanCategory
-        ? t('Outlier %s Service Entry Spans (p100)', spanCategory)
-        : t('Outlier Service Entry Spans (p100)'),
-    },
-    {
-      sort: {kind: 'desc', field: 'timestamp'},
-      value: TransactionFilterOptions.RECENT,
-      // The category does not apply to this option
-      label: t('Recent Service Entry Spans'),
-    },
-  ];
-}
-
-function getOTelTransactionsListSort(
-  location: Location,
-  spanCategory?: string
-): {
-  options: DropdownOption[];
-  selected: DropdownOption;
-} {
-  const sortOptions = getOTelFilterOptions(spanCategory);
-  const urlParam = decodeScalar(
-    location.query.showTransactions,
-    TransactionFilterOptions.SLOW
-  );
-  const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0]!;
-  return {selected: selectedSort, options: sortOptions};
 }
 
 const Header = styled('div')`
