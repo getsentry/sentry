@@ -99,14 +99,32 @@ export default function SeerSection({
 
   const aiConfig = useAiConfig(group, project);
   const issueTypeConfig = getConfigForIssueType(group, project);
+
+  const issueTypeDoesntHaveSeer =
+    !issueTypeConfig.autofix && !issueTypeConfig.issueSummary;
+
+  if (
+    (!aiConfig.areAiFeaturesAllowed || issueTypeDoesntHaveSeer) &&
+    !aiConfig.hasResources
+  ) {
+    return null;
+  }
+
   const showCtaButton =
     aiConfig.needsGenAIConsent ||
     aiConfig.hasAutofix ||
     (aiConfig.hasSummary && aiConfig.hasResources);
 
+  const onlyHasResources =
+    issueTypeDoesntHaveSeer ||
+    (!aiConfig.needsGenAIConsent &&
+      !aiConfig.hasSummary &&
+      !aiConfig.hasAutofix &&
+      aiConfig.hasResources);
+
   const titleComponent = (
     <HeaderContainer>
-      {t('Seer')}
+      {onlyHasResources ? t('Resources') : t('Seer')}
       {aiConfig.hasSummary && (
         <StyledFeatureBadge
           type="beta"
