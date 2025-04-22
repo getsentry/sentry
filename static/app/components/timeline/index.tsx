@@ -41,6 +41,7 @@ export function Item({
 
   const iconBorder = theme[config.iconBorder as Color] ?? config.iconBorder;
   const iconColor = theme[config.icon as Color] ?? config.icon;
+  const titleColor = theme[config.title as Color] ?? config.title;
 
   return (
     <Row ref={ref} {...props}>
@@ -53,7 +54,7 @@ export function Item({
       >
         {icon}
       </IconWrapper>
-      <Title style={{color: config.title}}>{title}</Title>
+      <Title style={{color: titleColor}}>{title}</Title>
       {timestamp ?? <div />}
       <Spacer />
       <Content>{children}</Content>
