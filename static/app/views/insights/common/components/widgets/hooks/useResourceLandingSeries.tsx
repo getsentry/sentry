@@ -52,7 +52,7 @@ export function useResourceLandingSeries(props: Props = {}) {
 
   let query: string = buildDiscoverQueryConditions(spanTimeChartsFilters);
 
-  if (extraQuery) {
+  if (extraQuery.length) {
     query += ` ${extraQuery.join(' ')}`;
   }
 
