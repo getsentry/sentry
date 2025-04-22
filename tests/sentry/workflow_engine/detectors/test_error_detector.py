@@ -56,7 +56,7 @@ class TestErrorDetectorValidator(TestCase):
         )
 
     def test_invalid_detector_type(self):
-        data = {**self.valid_data, "detectorType": "metric_alert_fire"}
+        data = {**self.valid_data, "detectorType": "metric_issue"}
         validator = ErrorDetectorValidator(data=data, context=self.context)
         assert not validator.is_valid()
         assert validator.errors.get("detectorType") == [
