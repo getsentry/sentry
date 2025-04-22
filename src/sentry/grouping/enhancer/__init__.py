@@ -342,12 +342,12 @@ class Enhancements:
             base64_string = base64_string.encode("ascii", "ignore")
         padded_bytes = base64_string + b"=" * (4 - (len(base64_string) % 4))
         try:
-            compressed = base64.urlsafe_b64decode(padded_bytes)
+            compressed_pickle = base64.urlsafe_b64decode(padded_bytes)
 
-            if compressed.startswith(b"\x28\xb5\x2f\xfd"):
-                encoded = zstandard.decompress(compressed)
+            if compressed_pickle.startswith(b"\x28\xb5\x2f\xfd"):
+                encoded = zstandard.decompress(compressed_pickle)
             else:
-                encoded = zlib.decompress(compressed)
+                encoded = zlib.decompress(compressed_pickle)
 
             rust_enhancements = parse_rust_enhancements("config_structure", encoded)
 
