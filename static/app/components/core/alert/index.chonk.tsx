@@ -1,4 +1,5 @@
-import type React from 'react';
+import type {SerializedStyles} from '@emotion/react';
+import {css} from '@emotion/react';
 
 import type {AlertProps} from 'sentry/components/core/alert';
 import {IconCheckmark, IconInfo, IconNot, IconWarning} from 'sentry/icons';
@@ -23,7 +24,7 @@ interface ChonkAlertProps extends Omit<AlertProps, 'type'> {
 }
 
 export const AlertPanel = chonkStyled('div')<ChonkAlertProps>`
-  ${props => ({...makeChonkAlertTheme(props)})};
+  ${props => makeChonkAlertTheme(props)};
 
   position: relative;
   display: grid;
@@ -42,14 +43,13 @@ export const AlertPanel = chonkStyled('div')<ChonkAlertProps>`
   }
 `;
 
-function makeChonkAlertTheme(props: ChonkAlertProps): React.CSSProperties {
-  const {type, theme} = props;
-  const tokens = getChonkAlertTokens(type, theme!);
-  return {
-    color: theme!.tokens.content.primary,
-    background: generateAlertBackground(props, tokens),
-    border: `1px solid ${tokens.border}`,
-  };
+function makeChonkAlertTheme(props: ChonkAlertProps): SerializedStyles {
+  const tokens = getChonkAlertTokens(props.type, props.theme!);
+  return css`
+    ${generateAlertBackground(props, tokens)};
+    color: ${props.theme!.tokens.content.primary};
+    border: 1px solid ${tokens.border};
+  `;
 }
 
 function getChonkAlertTokens(
@@ -100,9 +100,22 @@ function generateAlertBackground(
 ) {
   const width = 44;
   if (props.showIcon) {
-    return `linear-gradient(to right, ${tokens.iconBackground}, ${tokens.iconBackground} ${width - 1}px, ${tokens.iconBackground} ${width - 1}px, ${tokens.border} ${width - 1}px, ${tokens.border} ${width}px, ${tokens.background} ${width}px, ${tokens.background} ${width + 1}px)`;
+    return css`
+      background: linear-gradient(
+        to right,
+        ${tokens.iconBackground},
+        ${tokens.iconBackground} ${width - 1}px,
+        ${tokens.iconBackground} ${width - 1}px,
+        ${tokens.border} ${width - 1}px,
+        ${tokens.border} ${width}px,
+        ${tokens.background} ${width}px,
+        ${tokens.background} ${width + 1}px
+      );
+    `;
   }
-  return tokens.background;
+  return css`
+    background: ${tokens.background};
+  `;
 }
 
 export const TrailingItems = chonkStyled('div')<ChonkAlertProps>`
