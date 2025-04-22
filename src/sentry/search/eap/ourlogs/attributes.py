@@ -28,7 +28,7 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
             search_type="integer",
         ),
         ResolvedAttribute(
-            public_alias="severity_text",
+            public_alias="severity",
             internal_name="sentry.severity_text",
             search_type="string",
         ),
