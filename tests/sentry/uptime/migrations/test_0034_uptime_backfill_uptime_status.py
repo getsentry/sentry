@@ -1,7 +1,7 @@
 from datetime import timedelta
 
-from django.utils import timezone
 import pytest
+from django.utils import timezone
 
 from sentry.testutils.cases import TestMigrations
 from sentry.uptime.models import ProjectUptimeSubscription, UptimeStatus, UptimeSubscription
