@@ -11,7 +11,9 @@ function makeLocalStorageKey(orgSlug: string) {
   return `global-selection:${orgSlug}`;
 }
 
-type StoredObject = {
+type StoredObject = SentryStoredObject & CodecovStoredObject;
+
+type SentryStoredObject = {
   end: string | null;
   environments: string[];
   period: string | null;
@@ -22,6 +24,9 @@ type StoredObject = {
   utc: 'true' | null;
 };
 
+type CodecovStoredObject = {
+  repository: string | null;
+};
 /**
  * Updates the localstorage page filters data for the specified filters.
  *
@@ -38,7 +43,7 @@ export function setPageFiltersStorage(
   updateFilters: Set<PinnedPageFilter>,
   storageNamespace = ''
 ) {
-  const {selection, pinnedFilters} = PageFiltersStore.getState();
+  const {selection, codecovSelection, pinnedFilters} = PageFiltersStore.getState();
 
   const {state: currentStoredState} = getPageFilterStorage(orgSlug, storageNamespace) ?? {
     state: null,
@@ -52,10 +57,9 @@ export function setPageFiltersStorage(
     ? selection.environments
     : (currentStoredState?.environment ?? []);
 
-  const repository =
-    updateFilters.has('repository') && selection.repository
-      ? selection.repository
-      : (currentStoredState?.repository ?? null);
+  const repository = updateFilters.has('repository')
+    ? codecovSelection.repository
+    : (currentStoredState?.repository ?? null);
 
   const shouldUpdateDatetime = updateFilters.has('datetime');
 

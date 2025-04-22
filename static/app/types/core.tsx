@@ -163,10 +163,13 @@ export type PageFilters = {
    * Currently selected Project IDs
    */
   projects: number[];
+};
+
+export type CodecovPageFilters = {
   /**
    * Currently selected repository
    */
-  repository?: string | null;
+  repository: string | null;
 };
 
 type InitialState = {type: 'initial'};

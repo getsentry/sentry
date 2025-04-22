@@ -14,7 +14,10 @@ import {
   setPageFiltersStorage,
 } from 'sentry/components/organizations/pageFilters/persistence';
 import type {PageFiltersStringified} from 'sentry/components/organizations/pageFilters/types';
-import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
+import {
+  getCodecovDefaultSelection,
+  getDefaultSelection,
+} from 'sentry/components/organizations/pageFilters/utils';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {
   ALL_ACCESS_PROJECTS,
@@ -23,7 +26,12 @@ import {
 } from 'sentry/constants/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import type {DateString, PageFilters, PinnedPageFilter} from 'sentry/types/core';
+import type {
+  CodecovPageFilters,
+  DateString,
+  PageFilters,
+  PinnedPageFilter,
+} from 'sentry/types/core';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Environment, MinimalProject, Project} from 'sentry/types/project';
@@ -58,17 +66,25 @@ type Options = {
 };
 
 /**
+ * Union type between Sentry and Codecov Page filters
+ */
+type PageFiltersUpdate = SentryPageFilterUpdate & CodecovPageFiltersUpdate;
+
+/**
  * This is the 'update' object used for updating the page filters. The types
  * here are a bit wider to allow for easy updates.
  */
-type PageFiltersUpdate = {
+type SentryPageFilterUpdate = {
   end?: DateString;
   environment?: string[] | null;
   period?: string | null;
   project?: number[] | null;
-  repository?: string | null;
   start?: DateString;
   utc?: boolean | null;
+};
+
+type CodecovPageFiltersUpdate = {
+  repository?: string | null;
 };
 
 /**
@@ -199,6 +215,9 @@ export function initializeUrlState({
   // Use period from default if we don't have a period set
   pageFilters.datetime.period ??= defaultDatetime.period;
 
+  const {...codecovDefaultFilters} = getCodecovDefaultSelection();
+  const codecovPageFilters: CodecovPageFilters = {...codecovDefaultFilters};
+
   // Do not set a period if we have absolute start and end
   if (pageFilters.datetime.start && pageFilters.datetime.end) {
     pageFilters.datetime.period = null;
@@ -260,7 +279,7 @@ export function initializeUrlState({
   // We want to update the pageFilter's object with a repository if it is in the URL
   // or in local storage, in that order.
   if (hasRepositoryInUrl) {
-    pageFilters.repository = parsed.repository ?? null;
+    codecovPageFilters.repository = parsed.repository ?? null;
   }
 
   const storedPageFilters = skipLoadLastUsed
@@ -304,11 +323,12 @@ export function initializeUrlState({
     }
 
     if (!hasRepositoryInUrl && pinnedFilters.has('repository')) {
-      pageFilters.repository = storedState.repository ?? null;
+      codecovPageFilters.repository = storedState.repository ?? null;
     }
   }
 
-  const {projects, environments: environment, datetime, repository} = pageFilters;
+  const {projects, environments: environment, datetime} = pageFilters;
+  const {repository} = codecovPageFilters;
 
   let newProject: number[] | null = null;
   let project = projects;
@@ -376,6 +396,11 @@ export function initializeUrlState({
     : (storedPageFilters?.pinnedFilters ?? new Set());
 
   PageFiltersStore.onInitializeUrlState(pageFilters, pinnedFilters, shouldPersist);
+  PageFiltersStore.onInitializeUrlStateWithCodecovData(
+    codecovPageFilters,
+    pinnedFilters,
+    shouldPersist
+  );
   if (shouldUpdateLocalStorage) {
     setPageFiltersStorage(organization.slug, new Set(['projects', 'environments']));
   }

@@ -1,7 +1,10 @@
 import {createStore} from 'reflux';
 
-import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
-import type {PageFilters, PinnedPageFilter} from 'sentry/types/core';
+import {
+  getCodecovDefaultSelection,
+  getDefaultSelection,
+} from 'sentry/components/organizations/pageFilters/utils';
+import type {CodecovPageFilters, PageFilters, PinnedPageFilter} from 'sentry/types/core';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 
 import type {StrictStoreDefinition} from './types';
@@ -42,6 +45,10 @@ export function datetimeHasSameValue(
 
 interface PageFiltersState {
   /**
+   * The current page filter selection
+   */
+  codecovSelection: CodecovPageFilters;
+  /**
    * The set of page filters which have been pinned but do not match the current
    * URL state.
    */
@@ -72,21 +79,27 @@ interface PageFiltersStoreDefinition extends StrictStoreDefinition<PageFiltersSt
     pinned: Set<PinnedPageFilter>,
     persist?: boolean
   ): void;
+  onInitializeUrlStateWithCodecovData(
+    newSelection: CodecovPageFilters,
+    pinned: Set<PinnedPageFilter>,
+    persist?: boolean
+  ): void;
   onReset(): void;
   pin(filter: PinnedPageFilter, pin: boolean): void;
-  reset(selection?: PageFilters): void;
+  reset(selection?: PageFilters, codecovSelection?: CodecovPageFilters): void;
   updateDateTime(datetime: PageFilters['datetime']): void;
   updateDesyncedFilters(filters: Set<PinnedPageFilter>): void;
   updateEnvironments(environments: string[] | null): void;
   updatePersistence(shouldPersist: boolean): void;
   updateProjects(projects: PageFilters['projects'], environments: null | string[]): void;
-  updateRepository(repository: PageFilters['repository']): void;
+  updateRepository(repository: CodecovPageFilters['repository']): void;
 }
 
 const storeConfig: PageFiltersStoreDefinition = {
   state: {
     isReady: false,
     selection: getDefaultSelection(),
+    codecovSelection: getCodecovDefaultSelection(),
     pinnedFilters: new Set(),
     desyncedFilters: new Set(),
     shouldPersist: true,
@@ -96,14 +109,15 @@ const storeConfig: PageFiltersStoreDefinition = {
     // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
     // listeners due to their leaky nature in tests.
 
-    this.reset(this.state.selection);
+    this.reset(this.state.selection, this.state.codecovSelection);
   },
 
-  reset(selection) {
+  reset(selection, codecovSelection) {
     this.state = {
       ...this.state,
       isReady: false,
       selection: selection || getDefaultSelection(),
+      codecovSelection: codecovSelection || getCodecovDefaultSelection(),
       pinnedFilters: new Set(),
     };
   },
@@ -116,6 +130,20 @@ const storeConfig: PageFiltersStoreDefinition = {
       ...this.state,
       isReady: true,
       selection: newSelection,
+      pinnedFilters: pinned,
+      shouldPersist: persist,
+    };
+    this.trigger(this.getState());
+  },
+
+  /**
+   * Initializes the Codecov page filters store data
+   */
+  onInitializeUrlStateWithCodecovData(newSelection, pinned, persist = true) {
+    this.state = {
+      ...this.state,
+      isReady: true,
+      codecovSelection: newSelection,
       pinnedFilters: pinned,
       shouldPersist: persist,
     };
@@ -142,14 +170,14 @@ const storeConfig: PageFiltersStoreDefinition = {
   },
 
   updateRepository(repository = '') {
-    if (!repository || valueIsEqual(this.state.selection.repository, repository)) {
+    if (!repository || valueIsEqual(this.state.codecovSelection.repository, repository)) {
       return;
     }
 
     this.state = {
       ...this.state,
-      selection: {
-        ...this.state.selection,
+      codecovSelection: {
+        ...this.state.codecovSelection,
         repository,
       },
     };

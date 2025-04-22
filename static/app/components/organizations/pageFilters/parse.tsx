@@ -8,7 +8,7 @@ import {defined} from 'sentry/utils';
 import toArray from 'sentry/utils/array/toArray';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 
-import type {PageFiltersState} from './types';
+import type {CodecovPageFiltersState, PageFiltersState} from './types';
 
 export type StatsPeriodType = 'h' | 'd' | 's' | 'm' | 'w';
 
@@ -326,10 +326,13 @@ export function getStateFromQuery(
     start: start || null,
     end: end || null,
     utc: typeof utc === 'undefined' ? null : utc === 'true',
+  };
+
+  const codecovState: CodecovPageFiltersState = {
     repository,
   };
 
-  return state;
+  return {...state, ...codecovState};
 }
 
 /**

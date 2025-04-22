@@ -6,7 +6,7 @@ import pickBy from 'lodash/pickBy';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
-import type {PageFilters} from 'sentry/types/core';
+import type {CodecovPageFilters, PageFilters} from 'sentry/types/core';
 
 /**
  * Make a default page filters object
@@ -23,6 +23,14 @@ export function getDefaultSelection(): PageFilters {
     projects: [],
     environments: [],
     datetime,
+  };
+}
+
+/**
+ * Make a default page filters object for Codecov
+ */
+export function getCodecovDefaultSelection(): CodecovPageFilters {
+  return {
     repository: null,
   };
 }
