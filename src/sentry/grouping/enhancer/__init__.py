@@ -13,7 +13,7 @@ import msgpack
 import sentry_sdk
 import zstandard
 from sentry_ophio.enhancers import Cache as RustCache
-from sentry_ophio.enhancers import Component as RustComponent
+from sentry_ophio.enhancers import Component as RustFrame
 from sentry_ophio.enhancers import Enhancements as RustEnhancements
 
 from sentry import projectoptions
@@ -206,7 +206,7 @@ class Enhancements:
         # TODO: Fix this type to list[MatchFrame] once it's fixed in ophio
         match_frames: list[Any] = [create_match_frame(frame, platform) for frame in frames]
 
-        rust_frame_components = [RustComponent(contributes=c.contributes) for c in frame_components]
+        rust_frame_components = [RustFrame(contributes=c.contributes) for c in frame_components]
 
         # Modify the rust components by applying +group/-group rules and getting hints for both
         # those changes and the `in_app` changes applied by earlier in the ingestion process by
