@@ -47,10 +47,10 @@ export interface InsightsTimeSeriesWidgetProps
   interactiveTitle?: () => React.ReactNode;
   legendSelection?: LegendSelection | undefined;
   onLegendSelectionChange?: ((selection: LegendSelection) => void) | undefined;
+  pageFilters?: PageFilters;
   showLegend?: TimeSeriesWidgetVisualizationProps['showLegend'];
   showReleaseAs?: 'line' | 'bubble';
   stacked?: boolean;
-  subPageFilters?: PageFilters;
 }
 
 export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
