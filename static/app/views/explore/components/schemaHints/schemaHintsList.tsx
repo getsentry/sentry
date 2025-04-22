@@ -102,8 +102,36 @@ function SchemaHintsList({
   const schemaHintsContainerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const organization = useOrganization();
-  const {openDrawer, isDrawerOpen} = useDrawer();
-  const {dispatch, query} = useSearchQueryBuilder();
+  const {openDrawer, isDrawerOpen, panelRef: schemaHintsDrawerRef} = useDrawer();
+  const {dispatch, query, focusOverride} = useSearchQueryBuilder();
+
+  // Control opacity of the schema hints drawer.
+  // When the search bar dropdown is open, the schema hints drawer should be transparent
+  // to allow users to see their search bar input.
+  useEffect(() => {
+    const observer = new MutationObserver(_mutations => {
+      const searchBarDropdown = document.querySelector(
+        '[aria-label="Edit filter value"]'
+      );
+      if (searchBarDropdown && schemaHintsDrawerRef.current) {
+        schemaHintsDrawerRef.current.style.opacity = '0.5';
+      } else if (
+        !searchBarDropdown &&
+        focusOverride === null &&
+        schemaHintsDrawerRef.current
+      ) {
+        schemaHintsDrawerRef.current.style.opacity = '1';
+      }
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+
+    // cleanup observer
+    return () => observer.disconnect();
+  }, [schemaHintsDrawerRef, focusOverride]);
 
   // Create a ref to hold the latest query for the drawer
   const queryRef = useRef(query);
