@@ -337,10 +337,10 @@ class Enhancements:
         )
 
     @classmethod
-    def loads(cls, data: str | bytes) -> Enhancements:
-        if isinstance(data, str):
-            data = data.encode("ascii", "ignore")
-        padded = data + b"=" * (4 - (len(data) % 4))
+    def loads(cls, base64_string: str | bytes) -> Enhancements:
+        if isinstance(base64_string, str):
+            base64_string = base64_string.encode("ascii", "ignore")
+        padded = base64_string + b"=" * (4 - (len(base64_string) % 4))
         try:
             compressed = base64.urlsafe_b64decode(padded)
 
