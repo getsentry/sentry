@@ -1165,7 +1165,7 @@ class JiraServerIntegration(IssueSyncIntegration):
                 logger.info(
                     "jira.user-search-request-error",
                     extra={
-                        **logging_context,
+                        **local_logging_context,
                         "error": str(e),
                     },
                 )
@@ -1183,14 +1183,6 @@ class JiraServerIntegration(IssueSyncIntegration):
                 if email.lower() == ue.lower():
                     jira_user = possible_user
                     break
-
-        if jira_user is None:
-            # TODO(jess): do we want to email people about these types of failures?
-            logger.info(
-                "jira.assignee-not-found",
-                extra=local_logging_context,
-            )
-            raise IntegrationError("Failed to assign user to Jira Server issue")
 
         return jira_user
 
@@ -1248,6 +1240,14 @@ class JiraServerIntegration(IssueSyncIntegration):
                 user=user,
                 logging_context=logging_context,
             )
+
+            if jira_user is None:
+                # TODO(jess): do we want to email people about these types of failures?
+                logger.info(
+                    "jira.assignee-not-found",
+                    extra=logging_context,
+                )
+                raise IntegrationError("Failed to assign user to Jira Server issue")
         try:
             id_field = client.user_id_field()
             client.assign_issue(external_issue.key, jira_user and jira_user.get(id_field))
