@@ -328,7 +328,7 @@ def child_process(
         execution_duration = completion_time - start_time
         execution_latency = completion_time - task_added_time
 
-        logger.info(
+        logger.debug(
             "taskworker.task_execution",
             extra={
                 "taskname": activation.taskname,
