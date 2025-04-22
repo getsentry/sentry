@@ -212,7 +212,7 @@ class Enhancements:
         # those changes and the `in_app` changes applied by earlier in the ingestion process by
         # `apply_category_and_updated_in_app_to_frames`. Also, get `hint` and `contributes` values
         # for the overall stacktrace (returned in `rust_results`).
-        rust_results = self.rust_enhancements.assemble_stacktrace_component(
+        rust_stacktrace_results = self.rust_enhancements.assemble_stacktrace_component(
             match_frames, make_rust_exception_data(exception_data), rust_frame_components
         )
 
@@ -280,8 +280,8 @@ class Enhancements:
             stacktrace_contributes = False
             stacktrace_hint = None
         else:
-            stacktrace_contributes = rust_results.contributes
-            stacktrace_hint = rust_results.hint
+            stacktrace_contributes = rust_stacktrace_results.contributes
+            stacktrace_hint = rust_stacktrace_results.hint
 
         stacktrace_component = StacktraceGroupingComponent(
             values=frame_components,
