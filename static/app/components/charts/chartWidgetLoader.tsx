@@ -3,6 +3,8 @@ import {useQuery} from '@tanstack/react-query';
 
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 
 interface Props extends LoadableChartWidgetProps {
@@ -28,6 +30,16 @@ export function ChartWidgetLoader(props: Props) {
     queryKey: [`widget-${props.id}`],
     queryFn: () => import(`sentry/views/insights/common/components/widgets/${props.id}`),
   });
+  const {rdChartPropertyKeys} = useLocationQuery({
+    fields: {
+      rdChartPropertyKeys: decodeList,
+    },
+  });
+
+  const chartPropertyFields = Object.fromEntries(
+    rdChartPropertyKeys.map(key => [key, decodeScalar])
+  );
+  const chartProperties = useLocationQuery({fields: chartPropertyFields});
 
   if (query.isPending) {
     return <Placeholder height="100%" />;
@@ -47,5 +59,5 @@ export function ChartWidgetLoader(props: Props) {
     return <Placeholder height="100%" error={t('Error loading widget')} />;
   }
 
-  return <Component {...props} />;
+  return <Component {...props} chartProperties={chartProperties} />;
 }

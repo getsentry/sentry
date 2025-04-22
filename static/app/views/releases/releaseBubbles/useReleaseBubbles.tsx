@@ -261,6 +261,7 @@ interface UseReleaseBubblesParams {
    * Unique ID for chart, used to load and render chart
    */
   chartId?: string;
+  chartProperties?: Record<string, string>;
   datetime?: Parameters<typeof normalizeDateTimeParams>[0];
   /**
    * Number of desired bubbles/buckets to create
@@ -293,6 +294,7 @@ export function useReleaseBubbles({
   environments,
   projects,
   legendSelected,
+  chartProperties,
   alignInMiddle = false,
   bubbleSize = 4,
   bubblePadding = 2,
@@ -437,6 +439,11 @@ export function useReleaseBubbles({
         // drawer.
         closeModal();
 
+        // Need to serialize the keys of `chartProperties` and add them to a
+        // known URL parameter so that the ChartWidgetLoader has a reference
+        // them
+        const chartPropertyKeys = chartProperties && Object.keys(chartProperties);
+
         navigate({
           query: {
             ...location.query,
@@ -446,6 +453,8 @@ export function useReleaseBubbles({
             rdEnd: new Date(data.end).toISOString(),
             rdProject: projects ?? selection.projects,
             rdEnv: environments ?? selection.environments,
+            rdChartPropertyKeys: chartPropertyKeys ?? [],
+            ...chartProperties,
           },
         });
       };
@@ -572,6 +581,7 @@ export function useReleaseBubbles({
     [
       location.query,
       chartId,
+      chartProperties,
       navigate,
       alignInMiddle,
       buckets,

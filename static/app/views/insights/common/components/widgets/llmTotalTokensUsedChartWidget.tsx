@@ -29,7 +29,7 @@ export default function LlmTotalTokensUsedChartWidget(
   return (
     <InsightsLineChartWidget
       {...props}
-      id="llmTotalTokensUsedChart"
+      id="llmTotalTokensUsedChartWidget"
       title={t('Total tokens used')}
       series={[{...data[aggregate], color: colors[0]}]}
       isLoading={isPending}

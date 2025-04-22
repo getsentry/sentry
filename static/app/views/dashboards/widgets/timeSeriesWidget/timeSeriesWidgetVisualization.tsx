@@ -133,10 +133,14 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     releaseBubbleGrid,
   } = useReleaseBubbles({
     chartId: props.id,
+    chartProperties: props.chartProperties,
     minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
     maxTime: latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined,
     releases: hasReleaseBubbles
-      ? props.releases?.map(({timestamp, version}) => ({date: timestamp, version}))
+      ? props.releases?.map(({timestamp, version}) => ({
+          date: timestamp,
+          version,
+        }))
       : [],
   });
 
@@ -369,7 +373,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     return getFormatter({
       isGroupedByDate: true,
       showTimeInTooltip: true,
-      nameFormatter: function (seriesName, nameFormatterParams) {
+      nameFormatter: (seriesName, nameFormatterParams) => {
         if (!nameFormatterParams) {
           return seriesName;
         }
@@ -385,7 +389,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
         return aliases[seriesName] ?? seriesName;
       },
-      valueFormatter: function (value, _field, valueFormatterParams) {
+      valueFormatter: (value, _field, valueFormatterParams) => {
         // Use the series to figure out the corresponding `Plottable`, and get the field type. From that, use whichever unit we chose for that field type.
 
         if (!valueFormatterParams || !defined(valueFormatterParams?.seriesIndex)) {
@@ -592,7 +596,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           padding: [0, 10, 0, 10],
           width: 60,
           formatter: (value: number) => {
-            const string = formatXAxisTimestamp(value, {utc: utc ?? undefined});
+            const string = formatXAxisTimestamp(value, {
+              utc: utc ?? undefined,
+            });
 
             // Adding whitespace around the label is equivalent to padding.
             // ECharts doesn't respect padding when calculating overlaps, but it
