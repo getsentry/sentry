@@ -20,7 +20,6 @@ import {SeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawe
 
 describe('SeerDrawer', () => {
   const organization = OrganizationFixture({
-    genAIConsent: true,
     hideAiFeatures: false,
     features: ['gen-ai-features'],
   });
