@@ -15,6 +15,7 @@ from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
@@ -48,7 +49,7 @@ class OrganizationDetectorWorkflowDetailsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationDetectorPermission,)
 
     @extend_schema(
-        operation_id="Fetch a DetectorWorkflow",
+        operation_id="Fetch a Detector-Workflow Connection",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             DetectorWorkflowParams.DETECTOR_WORKFLOW_ID,
@@ -74,6 +75,19 @@ class OrganizationDetectorWorkflowDetailsEndpoint(OrganizationEndpoint):
         )
         return Response(serialized_detector_workflow)
 
+    @extend_schema(
+        operation_id="Remove a Detector-Workflow Connection",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            DetectorWorkflowParams.DETECTOR_WORKFLOW_ID,
+        ],
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def delete(
         self, request: Request, organization: Organization, detector_workflow: DetectorWorkflow
     ):
