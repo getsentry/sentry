@@ -282,9 +282,7 @@ type AggregateValueParameter = {
 
 export type AggregateParameter = AggregateColumnParameter | AggregateValueParameter;
 
-export type ParameterDependentValueType = (
-  parameters: Array<string | null>
-) => FieldValueType;
+type ParameterDependentValueType = (parameters: Array<string | null>) => FieldValueType;
 
 export interface FieldDefinition {
   kind: FieldKind;
