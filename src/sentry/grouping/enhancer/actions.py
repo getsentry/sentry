@@ -141,7 +141,7 @@ class FlagAction(EnhancementAction):
     ) -> None:
         rule_hint = "stack trace rule"
         if rule:
-            rule_hint = f"{rule_hint} ({rule.matcher_description})"
+            rule_hint = f"{rule_hint} ({rule.text})"
 
         sliced_components = self._slice_to_range(components, idx)
         sliced_frames = self._slice_to_range(frames, idx)
