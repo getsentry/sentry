@@ -14,7 +14,7 @@ export const PAGE_URL_PARAM = {
   PAGE_PERIOD: 'pageStatsPeriod',
 };
 
-export const DATE_TIME = {
+const DATE_TIME = {
   START: 'start',
   END: 'end',
   PERIOD: 'period',

@@ -130,5 +130,3 @@ export type InternetProtocol = {
   lastSeen: string;
   regionCode: string | null;
 };
-
-export type SubscriptionDetails = {disabled?: boolean; reason?: string};

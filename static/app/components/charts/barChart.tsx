@@ -19,7 +19,7 @@ export interface BarChartProps extends BaseChartProps {
   stacked?: boolean;
 }
 
-export function transformToBarSeries({
+function transformToBarSeries({
   barOpacity = 1,
   series,
   stacked,

@@ -58,7 +58,7 @@ type AssignableTeam = {
   team: Team;
 };
 
-export interface AssigneeSelectorDropdownProps {
+interface AssigneeSelectorDropdownProps {
   /**
    * The group (issue) that the assignee selector is for
    * TODO: generalize this for alerts
@@ -112,7 +112,7 @@ export interface AssigneeSelectorDropdownProps {
   ) => React.ReactNode;
 }
 
-export function AssigneeAvatar({
+function AssigneeAvatar({
   assignedTo,
   suggestedActors = [],
 }: {
