@@ -98,6 +98,10 @@ def save_userreport(
             # if the event is more than 30 minutes old, we don't allow updates
             # as it might be abusive
             if event.datetime < start_time - timedelta(minutes=30):
+                metrics.incr(
+                    "user_report.create_user_report.filtered",
+                    tags={"reason": "event_too_old", "referrer": source.value},
+                )
                 raise Conflict("Feedback for this event cannot be modified.")
 
             report["environment_id"] = event.get_environment().id
@@ -124,6 +128,10 @@ def save_userreport(
             # if the existing report was submitted more than 5 minutes ago, we dont
             # allow updates as it might be abusive (replay attacks)
             if existing_report.date_added < timezone.now() - timedelta(minutes=5):
+                metrics.incr(
+                    "user_report.create_user_report.filtered",
+                    tags={"reason": "existing_report", "referrer": source.value},
+                )
                 raise Conflict("Feedback for this event cannot be modified.")
 
             existing_report.update(
