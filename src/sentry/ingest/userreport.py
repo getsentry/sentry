@@ -25,7 +25,6 @@ from sentry.models.userreport import UserReport
 from sentry.signals import user_feedback_received
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
-from sentry.utils.eventuser import EventUser
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.rollback_metrics import incr_rollback_metrics
 
@@ -166,12 +165,6 @@ def save_userreport(
             # XXX(aliu): the update_user_reports task will still try to shim the report after a period, unless group_id or environment is set.
 
         return report_instance
-
-
-def find_event_user(event: Event | GroupEvent | None) -> EventUser | None:
-    if not event:
-        return None
-    return EventUser.from_event(event)
 
 
 def validate_user_report(
