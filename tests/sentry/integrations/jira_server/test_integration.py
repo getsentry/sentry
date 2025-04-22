@@ -935,7 +935,7 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
         with self.assertLogs(
             logger="sentry.integrations.jira_server", level="WARNING"
         ) as log_context:
-            result = self.installation._get_user_by_external_actor(
+            result = self.installation._get_matching_jira_server_user_by_external_actor(
                 client=self.installation.get_client(),
                 external_issue_key="APP-123",
                 user=rpc_user,
@@ -949,7 +949,7 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
     @patch("sentry.integrations.jira_server.integration.JiraServerClient.search_users_for_issue")
     def test_get_user_by_external_actor_no_actor(self, mock_search_users_for_issue):
         rpc_user = serialize_rpc_user(self.create_user(email="bob@example.com"))
-        result = self.installation._get_user_by_external_actor(
+        result = self.installation._get_matching_jira_server_user_by_external_actor(
             client=self.installation.get_client(),
             external_issue_key="APP-123",
             user=rpc_user,
@@ -980,7 +980,7 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
 
         mock_search_users_for_issue.return_value = []
 
-        result = self.installation._get_user_by_external_actor(
+        result = self.installation._get_matching_jira_server_user_by_external_actor(
             client=self.installation.get_client(),
             external_issue_key="APP-123",
             user=rpc_user,
@@ -1016,7 +1016,7 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
             {"name": "another_user", "displayName": "Another User"},
         ]
 
-        result = self.installation._get_user_by_external_actor(
+        result = self.installation._get_matching_jira_server_user_by_external_actor(
             client=self.installation.get_client(),
             external_issue_key="APP-123",
             user=rpc_user,

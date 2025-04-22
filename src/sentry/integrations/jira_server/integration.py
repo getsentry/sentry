@@ -1099,13 +1099,13 @@ class JiraServerIntegration(IssueSyncIntegration):
         # Immediately fetch and return the created issue.
         return self.get_issue(issue_key)
 
-    def _get_user_by_external_actor(
+    def _get_matching_jira_server_user_by_external_actor(
         self,
         client: JiraServerClient,
         external_issue_key: str,
         user: RpcUser,
         logging_context: dict[str, Any],
-    ) -> list[Any] | None:
+    ) -> dict[str, Any] | None:
         external_actors = ExternalActor.objects.filter(
             organization_id=self.organization.id,
             integration_id=self.model.id,
@@ -1127,7 +1127,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         if external_actor is None:
             return None
 
-        possible_users = client.search_users_for_issue(
+        possible_users: list[dict[str, Any]] = client.search_users_for_issue(
             external_issue_key, external_actor.external_name
         )
 
@@ -1137,13 +1137,13 @@ class JiraServerIntegration(IssueSyncIntegration):
 
         return None
 
-    def _get_matching_users_by_email(
+    def _get_matching_jira_server_user_by_email(
         self,
         external_issue_key: str,
         client: JiraServerClient,
         user: RpcUser,
         logging_context: dict[str, Any],
-    ):
+    ) -> dict[str, Any] | None:
         local_logging_context = {**logging_context}
         local_logging_context["user_id"] = user.id
         local_logging_context["user_email_count"] = len(user.emails)
@@ -1194,14 +1194,14 @@ class JiraServerIntegration(IssueSyncIntegration):
 
         return jira_user
 
-    def _get_possible_users(
+    def _get_matching_jira_server_user(
         self,
         client: JiraServerClient,
         external_issue_key: str,
         user: RpcUser,
         logging_context: dict[str, Any],
-    ):
-        possible_user = self._get_user_by_external_actor(
+    ) -> dict[str, Any] | None:
+        possible_user = self._get_matching_jira_server_user_by_external_actor(
             client=client,
             external_issue_key=external_issue_key,
             user=user,
@@ -1211,14 +1211,14 @@ class JiraServerIntegration(IssueSyncIntegration):
         if possible_user is not None:
             return possible_user
 
-        possible_users = self._get_matching_users_by_email(
+        possible_user = self._get_matching_jira_server_user_by_email(
             client=client,
             external_issue_key=external_issue_key,
             user=user,
             logging_context=logging_context,
         )
 
-        return possible_users
+        return possible_user
 
     def sync_assignee_outbound(
         self,
@@ -1242,7 +1242,7 @@ class JiraServerIntegration(IssueSyncIntegration):
             logging_context["user_id"] = user.id
             logging_context["user_email_count"] = len(user.emails)
 
-            jira_user = self._get_possible_users(
+            jira_user = self._get_matching_jira_server_user(
                 external_issue_key=external_issue.key,
                 client=client,
                 user=user,
