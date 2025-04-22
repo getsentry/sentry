@@ -206,14 +206,14 @@ class Enhancements:
         # TODO: Fix this type to list[MatchFrame] once it's fixed in ophio
         match_frames: list[Any] = [create_match_frame(frame, platform) for frame in frames]
 
-        rust_frame_components = [RustFrame(contributes=c.contributes) for c in frame_components]
+        rust_frames = [RustFrame(contributes=c.contributes) for c in frame_components]
 
         # Modify the rust components by applying +group/-group rules and getting hints for both
         # those changes and the `in_app` changes applied by earlier in the ingestion process by
         # `apply_category_and_updated_in_app_to_frames`. Also, get `hint` and `contributes` values
         # for the overall stacktrace (returned in `rust_results`).
         rust_stacktrace_results = self.rust_enhancements.assemble_stacktrace_component(
-            match_frames, make_rust_exception_data(exception_data), rust_frame_components
+            match_frames, make_rust_exception_data(exception_data), rust_frames
         )
 
         # Tally the number of each type of frame in the stacktrace. Later on, this will allow us to
@@ -222,7 +222,7 @@ class Enhancements:
         frame_counts: Counter[str] = Counter()
 
         # Update frame components with results from rust
-        for py_component, rust_component in zip(frame_components, rust_frame_components):
+        for py_component, rust_component in zip(frame_components, rust_frames):
             # TODO: Remove the first condition once we get rid of the legacy config
             if (
                 not (self.bases and self.bases[0].startswith("legacy"))
