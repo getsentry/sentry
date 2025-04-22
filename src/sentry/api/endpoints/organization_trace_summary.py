@@ -36,6 +36,7 @@ class OrganizationTraceSummaryEndpoint(OrganizationEndpoint):
     }
 
     def post(self, request: Request, organization: Organization) -> Response:
+
         if not features.has(
             "organizations:single-trace-summary", organization, actor=request.user
         ) and not features.has(

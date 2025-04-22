@@ -23,14 +23,19 @@ import {TraceSummarySection} from 'sentry/views/performance/newTraceDetails/trac
 type Props = {
   onScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
+  traceSlug: string;
   tree: TraceTree;
 };
 
-export function TraceContextPanel({tree, rootEvent, onScrollToNode}: Props) {
+export function TraceContextPanel({traceSlug, tree, rootEvent, onScrollToNode}: Props) {
+  // console.log(tree);
+  // console.log(traceSlug);
+
   const renderTags = useCallback(() => {
     if (!rootEvent.data) {
       return null;
     }
+    // console.log(rootEvent.data);
 
     return (
       <EventTagsTree
@@ -90,12 +95,12 @@ export function TraceContextPanel({tree, rootEvent, onScrollToNode}: Props) {
           <TraceViewLogsSection />
         </ContextRow>
       </Feature>
-      {/* <Feature features={['single-trace-summary']}> */}
-      <ContextRow>
-        <TraceSummarySection />
-        {/* traceId={rootEvent.data?.contexts.trace?.trace_id} />  */}
-      </ContextRow>
-      {/* </Feature> */}
+      <Feature features={['single-trace-summary']}>
+        <ContextRow>
+          <TraceSummarySection traceSlug={traceSlug} />
+          {/* traceId={rootEvent.data?.contexts.trace?.trace_id} />  */}
+        </ContextRow>
+      </Feature>
     </Container>
   );
 }
