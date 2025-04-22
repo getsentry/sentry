@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, TypeVar
 
+import sentry_sdk
 from django.conf import settings
 from django.db import IntegrityError, router, transaction
 from django.db.models import Model
@@ -58,7 +59,9 @@ def save_with_snowflake_id(
             with enforce_constraints(transaction.atomic(using=router.db_for_write(type(instance)))):
                 save_callback()
             return
-        except IntegrityError:
+        except IntegrityError as e:
+            # xxx (vgrozdanic): temporary logging to debug the issue
+            sentry_sdk.capture_exception(e)
             instance.id = None  # type: ignore[assignment]  # see typeddjango/django-stubs#2014
     raise MaxSnowflakeRetryError
 

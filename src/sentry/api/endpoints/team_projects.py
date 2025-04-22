@@ -1,6 +1,7 @@
 import time
 from typing import TypedDict
 
+import sentry_sdk
 from django.db import IntegrityError, router, transaction
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
@@ -210,7 +211,8 @@ class TeamProjectsEndpoint(TeamEndpoint):
                         organization=team.organization,
                         platform=result.get("platform"),
                     )
-            except (IntegrityError, MaxSnowflakeRetryError):
+            except (IntegrityError, MaxSnowflakeRetryError) as e:
+                sentry_sdk.capture_exception(e)
                 return Response({"detail": "A project with this slug already exists."}, status=409)
             else:
                 project.add_team(team)
