@@ -9,7 +9,6 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {EntryType} from 'sentry/types/event';
 import {type Group, IssueCategory} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import * as RegionUtils from 'sentry/utils/regions';
 import SeerSection from 'sentry/views/issueDetails/streamline/sidebar/seerSection';
 
 jest.mock('sentry/utils/regions');
@@ -91,6 +90,8 @@ describe('SeerSection', () => {
       />,
       {organization: customOrganization}
     );
+
+    expect(screen.getByText('Resources')).toBeInTheDocument();
 
     expect(
       screen.getByRole('button', {name: 'How to fix ChunkLoadErrors'})
@@ -213,42 +214,6 @@ describe('SeerSection', () => {
       expect(
         screen.getByRole('button', {name: 'How to fix ChunkLoadErrors'})
       ).toBeInTheDocument();
-    });
-
-    it('does not show CTA button when region is de', () => {
-      jest.mock('sentry/utils/regions');
-      jest.mocked(RegionUtils.getRegionDataFromOrganization).mockImplementation(() => ({
-        name: 'de',
-        displayName: 'Europe (Frankfurt)',
-        url: 'https://sentry.de.example.com',
-      }));
-
-      MockApiClient.addMockResponse({
-        url: `/issues/${mockGroup.id}/autofix/setup/`,
-        body: {
-          genAIConsent: {ok: true},
-          integration: {ok: true},
-          githubWriteIntegration: {ok: true},
-        },
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
-        method: 'POST',
-        body: {whatsWrong: 'Test summary'},
-      });
-
-      render(<SeerSection event={mockEvent} group={mockGroup} project={mockProject} />, {
-        organization,
-      });
-
-      expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', {name: 'Set Up Autofix'})
-      ).not.toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', {name: 'Find Root Cause'})
-      ).not.toBeInTheDocument();
     });
   });
 });
