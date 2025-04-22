@@ -7,6 +7,8 @@ auth_tasks = taskregistry.create_namespace("auth")
 
 auth_control_tasks = taskregistry.create_namespace("auth.control")
 
+buffer_tasks = taskregistry.create_namespace("buffer")
+
 crons_tasks = taskregistry.create_namespace("crons")
 
 deletion_tasks = taskregistry.create_namespace(

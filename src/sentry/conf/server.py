@@ -1442,6 +1442,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.digests",
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
     "sentry.tasks.email",
+    "sentry.tasks.process_buffer",
     "sentry.tasks.release_registry",
     "sentry.tempest.tasks",
     "sentry.tasks.beacon",
