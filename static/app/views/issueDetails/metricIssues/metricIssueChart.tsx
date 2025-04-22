@@ -12,8 +12,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {useMetricRule} from 'sentry/views/alerts/rules/metric/utils/useMetricRule';
-import type {Anomaly, Incident} from 'sentry/views/alerts/types';
-import {useMetricAnomalies} from 'sentry/views/issueDetails/metricIssues/useMetricAnomalies';
+import type {Incident} from 'sentry/views/alerts/types';
 import {useMetricIncidents} from 'sentry/views/issueDetails/metricIssues/useMetricIncidents';
 import {useMetricStatsChart} from 'sentry/views/issueDetails/metricIssues/useMetricStatsChart';
 import {
@@ -49,20 +48,7 @@ export function MetricIssueChart({group, project}: MetricIssueChartProps) {
       enabled: !!ruleId,
     }
   );
-  const {data: anomalies = [], isLoading: isAnomaliesLoading} = useMetricAnomalies(
-    {
-      orgSlug: organization.slug,
-      ruleId: ruleId ?? '',
-      query: {
-        start: timePeriod.start,
-        end: timePeriod.end,
-      },
-    },
-    {
-      enabled:
-        !!ruleId && organization.features.includes('anomaly-detection-alerts-charts'),
-    }
-  );
+
   const {data: incidents = [], isLoading: isIncidentsLoading} = useMetricIncidents(
     {
       orgSlug: organization.slug,
@@ -78,7 +64,7 @@ export function MetricIssueChart({group, project}: MetricIssueChartProps) {
     }
   );
 
-  if (isRuleLoading || isAnomaliesLoading || isIncidentsLoading || !rule) {
+  if (isRuleLoading || isIncidentsLoading || !rule) {
     return (
       <MetricChartSection>
         <MetricIssuePlaceholder type="loading" />
@@ -96,7 +82,6 @@ export function MetricIssueChart({group, project}: MetricIssueChartProps) {
         rule={rule}
         timePeriod={timePeriod}
         project={project}
-        anomalies={anomalies}
         incidents={incidents}
       />
     </MetricChartSection>
@@ -110,13 +95,11 @@ function MetricIssueChartContent({
   rule,
   timePeriod,
   project,
-  anomalies,
   incidents,
 }: {
   project: Project;
   rule: MetricRule;
   timePeriod: TimePeriodType;
-  anomalies?: Anomaly[];
   incidents?: Incident[];
 }) {
   const chartZoomProps = useChartZoom({saveOnZoom: true});
@@ -124,7 +107,6 @@ function MetricIssueChartContent({
     project,
     rule,
     timePeriod,
-    anomalies,
     incidents,
     referrer: 'metric-issue-chart',
   });
