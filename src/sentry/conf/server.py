@@ -1435,7 +1435,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.snuba.tasks",
     "sentry.tasks.auth.auth",
     "sentry.tasks.auth.check_auth",
-    "sentry.tasks.autofix.trigger_autofix_from_issue_summary",
+    "sentry.tasks.autofix",
     "sentry.tasks.auto_enable_codecov",
     "sentry.tasks.delete_seer_grouping_records",
     "sentry.tasks.digests",
