@@ -310,6 +310,7 @@ export function usePrompt({
     if (!organization) {
       return;
     }
+
     promptsUpdate(api, {
       organization,
       projectId,

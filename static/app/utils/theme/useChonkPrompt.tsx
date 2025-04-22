@@ -29,6 +29,7 @@ export function useChonkPrompt() {
       showDotIndicatorPrompt: false,
       dismissBannerPrompt: noop,
       dismissDotIndicatorPrompt: noop,
+      dismiss: noop,
     };
   }
 
@@ -41,14 +42,22 @@ export function useChonkPrompt() {
     showbannerPrompt: !bannerPrompt.isPromptDismissed,
     showDotIndicatorPrompt,
     dismissBannerPrompt: () => {
-      if (!bannerPrompt.isPromptDismissed) {
-        bannerPrompt.dismissPrompt();
+      if (bannerPrompt.isPromptDismissed) {
+        return;
       }
+
+      bannerPrompt.dismissPrompt();
     },
     dismissDotIndicatorPrompt: () => {
-      if (showDotIndicatorPrompt) {
-        dotIndicatorPrompt.dismissPrompt();
+      if (!showDotIndicatorPrompt) {
+        return;
       }
+
+      dotIndicatorPrompt.dismissPrompt();
+    },
+    dismiss: () => {
+      bannerPrompt.dismissPrompt();
+      dotIndicatorPrompt.dismissPrompt();
     },
   };
 }
