@@ -3323,3 +3323,8 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "taskworker.buffer.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
