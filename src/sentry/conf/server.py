@@ -31,7 +31,6 @@ from sentry.conf.types.sentry_config import SentryMode
 from sentry.conf.types.service_options import ServiceOptions
 from sentry.conf.types.taskworker import ScheduleConfigMap
 from sentry.conf.types.uptime import UptimeRegionConfig
-from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import make_split_task_queues
 
 
@@ -1439,6 +1438,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.auto_enable_codecov",
     "sentry.tasks.digests",
     "sentry.tasks.email",
+    "sentry.tasks.relay",
     "sentry.tasks.release_registry",
     "sentry.tempest.tasks",
     "sentry.tasks.beacon",

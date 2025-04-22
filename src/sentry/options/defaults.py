@@ -3313,3 +3313,8 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "taskworker.relay.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
