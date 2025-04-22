@@ -37,7 +37,7 @@ describe('useChonkPrompt', () => {
     expect(result.current.showDotIndicatorPrompt).toBe(false);
   });
 
-  it('org with chonk-ui shows tooltip prompt', () => {
+  it('org with chonk-ui shows tooltip prompt', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
       body: {data: {dismissed_ts: null}},
@@ -47,7 +47,7 @@ describe('useChonkPrompt', () => {
       wrapper: makeWrapper(OrganizationFixture({features: ['chonk-ui']})),
     });
 
-    expect(result.current.showbannerPrompt).toBe(true);
+    await waitFor(() => expect(result.current.showbannerPrompt).toBe(true));
     expect(result.current.showDotIndicatorPrompt).toBe(false);
   });
 

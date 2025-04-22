@@ -21,8 +21,22 @@ export function useChonkPrompt() {
     options: {enabled: hasChonkUI},
   });
 
+  // UsePrompt returns undefined if the prompt is loading or has failed to load
+  // so we need to check for that before rendering the component
+  if (
+    typeof bannerPrompt.isPromptDismissed !== 'boolean' ||
+    typeof dotIndicatorPrompt.isPromptDismissed !== 'boolean'
+  ) {
+    return {
+      showbannerPrompt: false,
+      showDotIndicatorPrompt: false,
+      dismissBannerPrompt: noop,
+      dismissDotIndicatorPrompt: noop,
+      dismiss: noop,
+    };
+  }
+
   // User is optional because we useUser hooks reads the value from ConfigStore,
-  // and I have little trust in its type safety.
   if (!hasChonkUI || user?.options?.prefersChonkUI) {
     return {
       showbannerPrompt: false,
