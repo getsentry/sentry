@@ -498,3 +498,22 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         assert report.comments == "It broke!"
 
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
+
+    @patch("sentry.ingest.userreport.validate_user_report")
+    def test_validation_error(self, mock_save_userreport):
+        mock_save_userreport.return_value = (True, "data_invalid", "Data invalid")
+        self.login_as(user=self.user)
+        url = _make_url(self.project)
+
+        response = self.client.post(
+            url,
+            data={
+                "event_id": self.event.event_id,
+                "email": "foo@example.com",
+                "name": "Foo Bar",
+                "comments": "It broke!",
+            },
+        )
+
+        assert response.status_code == 400, response.content
+        assert UserReport.objects.count() == 0

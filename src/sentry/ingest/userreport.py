@@ -11,6 +11,7 @@ from django.db import IntegrityError, router
 from django.utils import timezone
 
 from sentry import eventstore, options
+from sentry.api.exceptions import BadRequest
 from sentry.constants import DataCategory
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.feedback.lib.types import UserReportDict
@@ -80,6 +81,8 @@ def save_userreport(
                 category=DataCategory.USER_REPORT_V2,
                 quantity=1,
             )
+            if source == FeedbackCreationSource.USER_REPORT_DJANGO_ENDPOINT:
+                raise BadRequest(outcomes_reason)
             return None
 
         if start_time is None:
