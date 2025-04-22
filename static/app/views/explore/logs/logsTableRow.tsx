@@ -106,7 +106,7 @@ export function LogRowContent({
   const theme = useTheme();
 
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
-  const severityText = dataRow[OurLogKnownFieldKey.SEVERITY_TEXT];
+  const severityText = dataRow[OurLogKnownFieldKey.SEVERITY];
 
   const level = getLogSeverityLevel(
     typeof severityNumber === 'number' ? severityNumber : null,
@@ -225,7 +225,7 @@ function LogRowDetails({
   const organization = useOrganization();
   const fields = useLogsFields();
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
-  const severityText = dataRow[OurLogKnownFieldKey.SEVERITY_TEXT];
+  const severityText = dataRow[OurLogKnownFieldKey.SEVERITY];
 
   const level = getLogSeverityLevel(
     typeof severityNumber === 'number' ? severityNumber : null,
