@@ -483,7 +483,11 @@ function Highlights({
             <StyledPanelHeader>{headerContent}</StyledPanelHeader>
             <PanelBody>{bodyContent}</PanelBody>
           </StyledPanel>
-          {event ? <HighLightsOpsBreakdown event={event} /> : null}
+          {event ? (
+            <HighLightsOpsBreakdown event={event} />
+          ) : isEAPSpanNode(node) ? (
+            <HighLightEAPOpsBreakdown node={node} />
+          ) : null}
         </HighlightsRightColumn>
       </HighlightsWrapper>
       <SectionDivider />
@@ -525,9 +529,59 @@ function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
   );
 }
 
+function HighLightEAPOpsBreakdown({node}: {node: TraceTreeNode<TraceTree.EAPSpan>}) {
+  const theme = useTheme();
+  const breakdown = node.eapSpanOpsBreakdown;
+
+  if (breakdown.length === 0) {
+    return null;
+  }
+
+  breakdown.sort((a, b) => b.count - a.count);
+  const totalCount = breakdown.reduce((acc, curr) => acc + curr.count, 0);
+
+  const TOP_N = 3;
+  const displayOps = breakdown.slice(0, TOP_N).map(op => ({
+    op: op.op,
+    percentage: (op.count / totalCount) * 100,
+  }));
+
+  if (breakdown.length > TOP_N) {
+    const topNPercentage = displayOps.reduce((acc, curr) => acc + curr.percentage, 0);
+    displayOps.push({
+      op: t('Other'),
+      percentage: 100 - topNPercentage,
+    });
+  }
+
+  return (
+    <HighlightsOpsBreakdownWrapper>
+      <HighlightsSpanCount>
+        {t('Most frequent embedded span ops are')}
+      </HighlightsSpanCount>
+      <TopOpsList>
+        {displayOps.map(currOp => {
+          const operationName = currOp.op;
+          const color = pickBarColor(operationName, theme);
+          const pctLabel = Math.round(currOp.percentage);
+
+          return (
+            <HighlightsOpRow key={operationName}>
+              <IconCircleFill size="xs" color={color as Color} />
+              {operationName}
+              <HighlightsOpPct>{pctLabel}%</HighlightsOpPct>
+            </HighlightsOpRow>
+          );
+        })}
+      </TopOpsList>
+    </HighlightsOpsBreakdownWrapper>
+  );
+}
+
 const TopOpsList = styled('div')`
   display: flex;
   flex-direction: row;
+  flex-wrap: wrap;
   gap: ${space(1)};
 `;
 
