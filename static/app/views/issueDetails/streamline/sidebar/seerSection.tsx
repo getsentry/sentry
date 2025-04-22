@@ -100,7 +100,13 @@ export default function SeerSection({
   const aiConfig = useAiConfig(group, project);
   const issueTypeConfig = getConfigForIssueType(group, project);
 
-  if (!aiConfig.areAiFeaturesAllowed && !aiConfig.hasResources) {
+  const issueTypeDoesntHaveSeer =
+    !issueTypeConfig.autofix && !issueTypeConfig.issueSummary;
+
+  if (
+    (!aiConfig.areAiFeaturesAllowed || issueTypeDoesntHaveSeer) &&
+    !aiConfig.hasResources
+  ) {
     return null;
   }
 
@@ -110,10 +116,11 @@ export default function SeerSection({
     (aiConfig.hasSummary && aiConfig.hasResources);
 
   const onlyHasResources =
-    !aiConfig.needsGenAIConsent &&
-    !aiConfig.hasSummary &&
-    !aiConfig.hasAutofix &&
-    aiConfig.hasResources;
+    issueTypeDoesntHaveSeer ||
+    (!aiConfig.needsGenAIConsent &&
+      !aiConfig.hasSummary &&
+      !aiConfig.hasAutofix &&
+      aiConfig.hasResources);
 
   const titleComponent = (
     <HeaderContainer>
