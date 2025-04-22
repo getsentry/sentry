@@ -140,8 +140,13 @@ export type TracingEventParameters = {
   };
   'trace_explorer.remove_span_condition': Record<string, unknown>;
   'trace_explorer.save_as': {
-    save_type: 'alert' | 'dashboard' | 'saved_query' | 'update_query';
+    save_type: 'alert' | 'dashboard' | 'update_query';
     ui_source: 'toolbar' | 'chart' | 'compare chart';
+  };
+  'trace_explorer.save_query_modal': {
+    action: 'open' | 'submit';
+    save_type: 'save_new_query' | 'rename_query';
+    ui_source: 'toolbar' | 'table';
   };
   'trace_explorer.search_failure': {
     error: string;
@@ -156,6 +161,10 @@ export type TracingEventParameters = {
     num_traces: number;
     project_platforms: string[];
     queries: string[];
+  };
+  'trace_explorer.star_query': {
+    save_type: 'star_query' | 'unstar_query';
+    ui_source: 'table' | 'explorer';
   };
   'trace_explorer.toggle_trace_details': {
     expanded: boolean;
@@ -226,4 +235,6 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
     'Changed Missing Instrumentation Preference',
   'trace_explorer.save_as': 'Trace Explorer: Save As',
   'trace_explorer.compare_queries': 'Trace Explorer: Compare',
+  'trace_explorer.save_query_modal': 'Trace Explorer: Save Query Modal',
+  'trace_explorer.star_query': 'Trace Explorer: Star Query',
 };
