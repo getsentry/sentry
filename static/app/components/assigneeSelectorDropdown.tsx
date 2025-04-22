@@ -10,13 +10,13 @@ import {
   type SelectOption,
   type SelectOptionOrSection,
 } from 'sentry/components/core/compactSelect';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SuggestedAvatarStack from 'sentry/components/suggestedAvatarStack';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconUser} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';

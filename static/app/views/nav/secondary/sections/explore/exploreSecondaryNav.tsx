@@ -76,8 +76,6 @@ export function ExploreSecondaryNav() {
             {starredQueries && starredQueries.length > 0 && (
               <ExploreSavedQueryNavItems queries={starredQueries} />
             )}
-          </SecondaryNav.Section>
-          <SecondaryNav.Section>
             <SecondaryNav.Item to={`${baseUrl}/saved-queries/`}>
               {t('All Queries')}
             </SecondaryNav.Item>

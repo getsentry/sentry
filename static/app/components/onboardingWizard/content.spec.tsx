@@ -50,50 +50,34 @@ describe('OnboardingSidebarContent', function () {
 
   it('should render the sidebar with the correct groups and tasks', async function () {
     render(<OnboardingSidebarContent onClose={jest.fn()} />, {organization});
-
-    // Group 1
     expect(await screen.findByText('Getting Started')).toBeInTheDocument();
     expect(screen.getByText('0 out of 6 tasks completed')).toBeInTheDocument();
-    // This means that the group is expanded
     expect(screen.getByRole('button', {name: 'Collapse'})).toBeInTheDocument();
-
     for (const task of DEFAULT_GETTING_STARTED_TASKS) {
       expect(
         screen.getByRole('button', {name: new RegExp(task.title)})
       ).toBeInTheDocument();
     }
-
-    // Displays descriptions
     expect(
       screen.getByText(/Select your platform and install the Sentry SDK/)
     ).toBeInTheDocument();
-
-    // Create first project is not skippable
     expect(
       within(screen.getByRole('button', {name: /Create your first project/})).queryByRole(
         'button',
         {name: 'Skip Task'}
       )
     ).not.toBeInTheDocument();
-
-    // Invite your team is skippable
     expect(
       within(screen.getByRole('button', {name: /Invite your team/})).getByRole('button', {
         name: 'Skip Task',
       })
     ).toBeInTheDocument();
-
-    // Group 2
     expect(screen.getByText('Beyond the Basics')).toBeInTheDocument();
     expect(screen.getByText('0 out of 3 tasks completed')).toBeInTheDocument();
-    // This means that the group is not expanded
     expect(
       screen.queryByText(DEFAULT_BEYOND_THE_BASICS_TASKS[0]!.title)
     ).not.toBeInTheDocument();
-
-    // Manually expand second group
     await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
-    // Tasks from the second group should be visible
     for (const task of DEFAULT_BEYOND_THE_BASICS_TASKS) {
       expect(await screen.findByText(task.title)).toBeInTheDocument();
     }

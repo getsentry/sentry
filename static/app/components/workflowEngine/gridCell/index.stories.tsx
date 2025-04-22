@@ -41,7 +41,7 @@ export default storyBook('Grid Cell Components', story => {
     {
       title: {
         name: 'Slack suggested assignees',
-        project: {slug: 'sentry', platform: 'python'},
+        projectId: '1',
         link: '/issues/monitors/1',
       },
       action: ['slack'],
@@ -51,27 +51,13 @@ export default storyBook('Grid Cell Components', story => {
         type: 'workflow',
       },
       openIssues: 3,
-      creator: {
-        id: '1',
-        name: 'John Doe',
-        email: 'john.doe@example.com',
-        avatar: {
-          avatarType: 'gravatar',
-          avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e',
-          avatarUrl: 'https://sentry.io/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/',
-        },
-        ip_address: '127.0.0.1',
-        username: 'john.doe',
-      },
+      creator: '1',
       type: 'trace',
     },
     {
       title: {
         name: 'Send Discord notification',
-        project: {
-          slug: 'javascript',
-          platform: 'javascript',
-        },
+        projectId: '1',
         details: ['transaction.duration', '2s warn, 2.5s critical threshold'],
         link: '/issues/monitors/2',
       },
@@ -82,24 +68,13 @@ export default storyBook('Grid Cell Components', story => {
         type: 'detector',
       },
       openIssues: 1,
-      creator: {
-        id: '1',
-        name: 'John Doe',
-        email: 'john.doe@example.com',
-        avatar: {
-          avatarType: 'gravatar',
-          avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e',
-          avatarUrl: 'https://sentry.io/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/',
-        },
-        ip_address: '127.0.0.1',
-        username: 'john.doe',
-      },
+      creator: '1',
       type: 'metric',
     },
     {
       title: {
         name: 'Email suggested assignees',
-        project: {slug: 'javascript', platform: 'javascript'},
+        projectId: '1',
         details: ['Every hour'],
         link: '/issues/monitors/3',
       },
@@ -110,13 +85,13 @@ export default storyBook('Grid Cell Components', story => {
         type: 'workflow',
       },
       creator: 'sentry',
-      type: 'metric',
+      type: 'uptime',
       openIssues: 0,
     },
     {
       title: {
         name: 'Send notification',
-        project: {slug: 'android', platform: 'android'},
+        projectId: '1',
         link: '/issues/monitors/4',
         disabled: true,
       },
@@ -172,7 +147,7 @@ export default storyBook('Grid Cell Components', story => {
           <TitleCell
             link={dataRow.title.link}
             name={dataRow.title.name}
-            project={dataRow.title.project}
+            projectId={dataRow.title.projectId}
             details={dataRow.title.details}
             disabled={dataRow.title.disabled}
           />

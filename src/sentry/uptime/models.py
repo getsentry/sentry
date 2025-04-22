@@ -24,10 +24,11 @@ from sentry.deletions.base import ModelRelation
 from sentry.models.organization import Organization
 from sentry.remote_subscriptions.models import BaseRemoteSubscription
 from sentry.types.actor import Actor
-from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
+from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION, ProjectUptimeSubscriptionMode
 from sentry.utils.function_cache import cache_func, cache_func_for_models
 from sentry.utils.json import JSONEncoder
-from sentry.workflow_engine.models.data_source import DataSource
+from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DataSourceTypeHandler
 
@@ -148,15 +149,6 @@ class UptimeSubscriptionRegion(DefaultFieldsModel):
                 name="uptime_uptimesubscription_region_slug_unique",
             ),
         ]
-
-
-class ProjectUptimeSubscriptionMode(enum.IntEnum):
-    # Manually created by a user
-    MANUAL = 1
-    # Auto-detected by our system and in the onboarding stage
-    AUTO_DETECTED_ONBOARDING = 2
-    # Auto-detected by our system and actively monitoring
-    AUTO_DETECTED_ACTIVE = 3
 
 
 @region_silo_model
@@ -325,3 +317,45 @@ class UptimeSubscriptionDataSourceHandler(DataSourceTypeHandler[UptimeSubscripti
     @staticmethod
     def related_model(instance) -> list[ModelRelation]:
         return [ModelRelation(UptimeSubscription, {"id": instance.source_id})]
+
+
+def get_detector(uptime_subscription: UptimeSubscription) -> Detector | None:
+    """
+    Fetches a workflow_engine Detector given an existing uptime_subscription.
+    This is used during the transition period moving uptime to detector.
+    """
+    try:
+        data_source = DataSource.objects.get(
+            type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
+            source_id=str(uptime_subscription.id),
+        )
+        return Detector.objects.get(data_sources=data_source)
+    except (DataSource.DoesNotExist, Detector.DoesNotExist):
+        return None
+
+
+def create_detector_from_project_subscription(project_sub: ProjectUptimeSubscription) -> Detector:
+    """
+    Creates a uptime detector and associated data-source given a
+    ProjectUptimeSubscription.
+    """
+    data_source = DataSource.objects.create(
+        type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
+        organization=project_sub.project.organization,
+        source_id=str(project_sub.uptime_subscription.id),
+    )
+    env = project_sub.environment.name if project_sub.environment else None
+    detector = Detector.objects.create(
+        type=UptimeDomainCheckFailure.slug,
+        project=project_sub.project,
+        name=project_sub.name,
+        owner_user_id=project_sub.owner_user_id,
+        owner_team_id=project_sub.owner_team_id,
+        config={
+            "environment": env,
+            "mode": project_sub.mode,
+        },
+    )
+    DataSourceDetector.objects.create(data_source=data_source, detector=detector)
+
+    return detector
