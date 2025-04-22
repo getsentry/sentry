@@ -33,26 +33,3 @@ PLATFORMS_CONFIG: dict[str, Mapping[str, Any]] = {
     "clojure": {"extensions": ["clj", "cljs", "cljc"]},
     "groovy": {"extensions": ["groovy"]},
 }
-
-
-# This list needs to be updated when new packages are added to the list
-UNINTENDED_RULES = [
-    "stack.module:akka.** +app",
-    "stack.module:com.fasterxml.** +app",
-    "stack.module:com.microsoft.** +app",
-    "stack.module:com.sun.** +app",
-    "stack.module:feign.** +app",
-    "stack.module:io.opentelemetry.** +app",
-    "stack.module:jdk.** +app",
-    "stack.module:oauth.** +app",
-    "stack.module:org.apache.** +app",
-    "stack.module:org.glassfish.** +app",
-    "stack.module:org.jboss.** +app",
-    "stack.module:org.jdesktop.** +app",
-    "stack.module:org.postgresql.** +app",
-    "stack.module:org.springframework.** +app",
-    "stack.module:org.web3j.** +app",
-    "stack.module:reactor.core.** +app",
-    "stack.module:scala.** +app",
-    "stack.module:sun.** +app",
-]

@@ -15,6 +15,7 @@ from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import Action, Detector
@@ -27,15 +28,23 @@ class AlertContext:
     threshold_type: AlertRuleThresholdType | None
     detection_type: AlertRuleDetectionType
     comparison_delta: int | None
+    sensitivity: str | None
+    resolve_threshold: float | None
+    alert_threshold: float | None
 
     @classmethod
-    def from_alert_rule_incident(cls, alert_rule: AlertRule) -> AlertContext:
+    def from_alert_rule_incident(
+        cls, alert_rule: AlertRule, alert_rule_threshold: float | None = None
+    ) -> AlertContext:
         return cls(
             name=alert_rule.name,
             action_identifier_id=alert_rule.id,
             threshold_type=AlertRuleThresholdType(alert_rule.threshold_type),
             detection_type=AlertRuleDetectionType(alert_rule.detection_type),
             comparison_delta=alert_rule.comparison_delta,
+            sensitivity=alert_rule.sensitivity,
+            alert_threshold=alert_rule_threshold,
+            resolve_threshold=alert_rule.resolve_threshold,
         )
 
     @classmethod
@@ -52,6 +61,12 @@ class AlertContext:
             threshold_type=threshold_type,
             detection_type=detector.config.get("detection_type"),
             comparison_delta=detector.config.get("comparison_delta"),
+            # TODO(iamrajjoshi): Add sensitivity, alert_threshold, resolve_threshold
+            sensitivity=None,
+            resolve_threshold=None,
+            # Currently, i am hacking this so we don't have to fetch the alert_threshold, but we should
+            # remove this once we have the evidence_data contract
+            alert_threshold=1.0,
         )
 
 
@@ -65,6 +80,7 @@ class NotificationContext:
     integration_id: int | None = None
     target_identifier: str | None = None
     target_display: str | None = None
+    target_type: ActionTarget | None = None
     sentry_app_config: list[dict[str, Any]] | dict[str, Any] | None = None
     sentry_app_id: str | None = None
 
@@ -77,6 +93,7 @@ class NotificationContext:
             target_display=action.target_display,
             sentry_app_config=action.sentry_app_config,
             sentry_app_id=str(action.sentry_app_id) if action.sentry_app_id else None,
+            target_type=ActionTarget(action.target_type),
         )
 
     @classmethod
@@ -99,8 +116,14 @@ class NotificationContext:
                 target_display=action.config.get("target_display"),
                 sentry_app_config=action.data,
             )
-        # TODO(iamrajjoshi): Add support for email here
-
+        elif action.type == Action.Type.EMAIL:
+            return cls(
+                id=action.id,
+                integration_id=None,
+                target_identifier=action.config.get("target_identifier"),
+                target_display=None,
+                target_type=ActionTarget(action.config.get("target_type")),
+            )
         return cls(
             id=action.id,
             integration_id=action.integration_id,
@@ -113,6 +136,7 @@ class NotificationContext:
 class MetricIssueContext:
     id: int
     open_period_identifier: int  # Used for link building
+    title: str
     snuba_query: SnubaQuery
     new_status: IncidentStatus
     subscription: QuerySubscription | None
@@ -167,6 +191,7 @@ class MetricIssueContext:
             new_status=cls._get_new_status(group, occurrence),
             metric_value=cls._get_metric_value(occurrence),
             group=group,
+            title=group.title,
         )
 
     @classmethod
@@ -184,6 +209,7 @@ class MetricIssueContext:
             new_status=new_status,
             metric_value=metric_value,
             group=None,
+            title=incident.title,
         )
 
 
