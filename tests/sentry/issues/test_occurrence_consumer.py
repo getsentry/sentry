@@ -216,6 +216,27 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         assert group.priority == PriorityLevel.HIGH
         assert "severity" not in group.data["metadata"]
 
+    @with_feature("organizations:profile-file-io-main-thread-ingest")
+    def test_issue_platform_updates_priority(self) -> None:
+        # test explicitly set priority of HIGH
+        message = get_test_message(self.project.id)
+        message["priority"] = PriorityLevel.HIGH.value
+        result = _process_message(message)
+        assert result is not None
+        occurrence = result[0]
+        assert occurrence is not None
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).get()
+        assert group.priority == PriorityLevel.HIGH
+
+        # test that the priority is updated
+        message["priority"] = PriorityLevel.MEDIUM.value
+        result = _process_message(message)
+        assert result is not None
+        occurrence = result[0]
+        assert occurrence is not None
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).get()
+        assert group.priority == PriorityLevel.MEDIUM
+
     def test_new_group_with_user_assignee(self) -> None:
         message = get_test_message(self.project.id, assignee=f"user:{self.user.id}")
         with self.feature("organizations:profile-file-io-main-thread-ingest"):

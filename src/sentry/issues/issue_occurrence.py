@@ -136,6 +136,12 @@ class IssueOccurrence:
         if not culprit:
             culprit = ""
 
+        # When getting the priority, we fallback to the deprecated initial_issue_priority if specified.
+        # This ensures we don't break existing uses of the `initial_issue_priority` field.
+        priority = data.get("priority")
+        if not priority:
+            priority = data.get("initial_issue_priority")
+
         assignee = None
         try:
             # Note that this can cause IO, but in practice this will happen only the first time that
@@ -165,9 +171,7 @@ class IssueOccurrence:
             cast(datetime, parse_timestamp(data["detection_time"])),
             level,
             culprit,
-            # When getting the priority, we fallback to the deprecated initial_issue_priority if specified.
-            # This ensures we don't break existing uses of the `initial_issue_priority` field.
-            data.get("priority", data.get("initial_issue_priority")),
+            priority,
             assignee,
         )
 

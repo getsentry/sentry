@@ -164,6 +164,32 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         assignee = GroupAssignee.objects.get(group=group_info.group)
         assert assignee.team_id == self.team.id
 
+    def test_issue_platform_handles_deprecated_initial_priority(self) -> None:
+        # test initial_issue_priority is handled
+        event = self.store_event(data={}, project_id=self.project.id)
+        occurrence = self.build_occurrence(
+            event_id=event.event_id,
+            assignee=f"team:{self.team.id}",
+            initial_issue_priority=PriorityLevel.MEDIUM,
+        )
+        _, group_info = save_issue_occurrence(occurrence.to_dict(), event)
+        assert group_info is not None
+        group = group_info.group
+        assert group.priority == PriorityLevel.MEDIUM
+
+        # test that the priority overrides the initial_issue_priority
+        Group.objects.all().delete()
+        occurrence = self.build_occurrence(
+            event_id=event.event_id,
+            assignee=f"team:{self.team.id}",
+            initial_issue_priority=PriorityLevel.MEDIUM,
+            priority=PriorityLevel.HIGH,
+        )
+        _, group_info = save_issue_occurrence(occurrence.to_dict(), event)
+        assert group_info is not None
+        group = group_info.group
+        assert group.priority == PriorityLevel.HIGH
+
 
 class ProcessOccurrenceDataTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:

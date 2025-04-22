@@ -1,3 +1,4 @@
+from sentry.issues.grouptype import PriorityLevel
 from sentry.issues.issue_occurrence import DEFAULT_LEVEL, IssueEvidence, IssueOccurrence
 from sentry.testutils.cases import TestCase
 from sentry.types.actor import Actor, ActorType
@@ -45,6 +46,20 @@ class IssueOccurrenceSerializeTest(OccurrenceTestMixin, TestCase):
         occurrence_data["assignee"] = ""
         occurrence = IssueOccurrence.from_dict(occurrence_data)
         assert occurrence.assignee is None
+
+    def test_priority(self) -> None:
+        occurrence_data = self.build_occurrence_data()
+        occurrence_data["priority"] = PriorityLevel.HIGH.value
+        occurrence = IssueOccurrence.from_dict(occurrence_data)
+        assert occurrence.priority == PriorityLevel.HIGH
+
+        occurrence_data["initial_issue_priority"] = PriorityLevel.MEDIUM.value
+        occurrence = IssueOccurrence.from_dict(occurrence_data)
+        assert occurrence.priority == PriorityLevel.HIGH
+
+        occurrence_data["priority"] = None
+        occurrence = IssueOccurrence.from_dict(occurrence_data)
+        assert occurrence.priority == PriorityLevel.MEDIUM
 
 
 class IssueOccurrenceSaveAndFetchTest(OccurrenceTestMixin, TestCase):

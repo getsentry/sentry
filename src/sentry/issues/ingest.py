@@ -260,6 +260,9 @@ def save_issue_from_occurrence(
     elif primary_grouphash.group is None:
         return None
     else:
+        group = primary_grouphash.group
+        group.update(priority=issue_kwargs["priority"])
+
         if group.issue_category.value != occurrence.type.category:
             logger.error(
                 "save_issue_from_occurrence.category_mismatch",
