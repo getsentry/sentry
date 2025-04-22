@@ -355,11 +355,12 @@ function UsageTotals({
 }: UsageProps) {
   const [state, setState] = useState<State>({expanded: false, trialButtonBusy: false});
   const theme = useTheme();
+  const colors = theme.chart.getColorPalette(5);
 
   const COLORS = {
-    reserved: theme.chart.colors[5][0],
-    ondemand: theme.chart.colors[5][1],
-    secondary_reserved: theme.chart.colors[5][2],
+    reserved: colors[0],
+    ondemand: colors[1],
+    secondary_reserved: colors[2],
   } as const;
 
   const usageOptions = {useUnitScaling: true};
