@@ -3313,3 +3313,6 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Orgs for which compression should be disabled in the chunk upload endpoint.
+register("chunk-upload.no-compression", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
