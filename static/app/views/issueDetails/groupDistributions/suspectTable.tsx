@@ -83,7 +83,11 @@ export default function SuspectTable({debugSuspectScores, environments, group}: 
         {susFlags.map(flag => {
           const topValue = flag.topValues[0];
 
-          const projPercentage = Math.round((flag.suspect.baselinePercent ?? 0) * 100);
+          const pct =
+            topValue?.value === 'true'
+              ? (flag.suspect.baselinePercent ?? 0)
+              : 100 - (flag.suspect.baselinePercent ?? 0);
+          const projPercentage = Math.round(pct * 100);
           const displayProjPercent =
             projPercentage < 1 ? '<1%' : `${projPercentage.toFixed(0)}%`;
 
