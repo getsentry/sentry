@@ -1,4 +1,5 @@
-import type React from 'react';
+import type {SerializedStyles} from '@emotion/react';
+import {css} from '@emotion/react';
 
 import type {AlertProps} from 'sentry/components/core/alert';
 import {IconCheckmark, IconInfo, IconNot, IconWarning} from 'sentry/icons';
@@ -19,16 +20,11 @@ export const chonkAlertPropMapping: ChonkPropMapping<
 
 interface ChonkAlertProps extends Omit<AlertProps, 'type'> {
   type: 'subtle' | 'info' | 'warning' | 'success' | 'danger';
+  theme?: ReturnType<typeof useChonkTheme>;
 }
 
 export const AlertPanel = chonkStyled('div')<ChonkAlertProps>`
-  background-color: ${p => makeChonkAlertTheme(p.type, p.theme).background};
-  border: ${p => makeChonkAlertTheme(p.type, p.theme).border};
-
-  /* We dont want to override the color of any elements inside buttons */
-  :not(button *) {
-    color: ${p => makeChonkAlertTheme(p.type, p.theme).color};
-  }
+  ${props => makeChonkAlertTheme(props)};
 
   position: relative;
   display: grid;
@@ -47,46 +43,83 @@ export const AlertPanel = chonkStyled('div')<ChonkAlertProps>`
   }
 `;
 
-function makeChonkAlertTheme(
+function makeChonkAlertTheme(props: ChonkAlertProps): SerializedStyles {
+  const tokens = getChonkAlertTokens(props.type, props.theme!);
+  return css`
+    ${generateAlertBackground(props, tokens)};
+    border: 1px solid ${tokens.border};
+
+    /* We dont want to override the color of any elements inside buttons */
+    :not(button *) {
+      color: ${props.theme!.tokens.content.primary};
+    }
+  `;
+}
+
+function getChonkAlertTokens(
   type: ChonkAlertProps['type'],
   theme: ReturnType<typeof useChonkTheme>
-): React.CSSProperties {
+) {
   switch (type) {
     case 'info':
       return {
-        color: theme.tokens.content.primary,
         background: theme.colors.blue100,
-        border: `1px solid ${theme.tokens.border.accent}`,
+        iconBackground: theme.colors.chonk.blue400,
+        border: theme.tokens.border.accent,
       };
     case 'danger':
       return {
-        color: theme.tokens.content.primary,
         background: theme.colors.red100,
-        border: `1px solid ${theme.tokens.border.danger}`,
+        iconBackground: theme.colors.chonk.red400,
+        border: theme.tokens.border.danger,
       };
     case 'warning':
       return {
-        color: theme.tokens.content.primary,
         background: theme.colors.yellow100,
-        border: `1px solid ${theme.tokens.border.warning}`,
+        iconBackground: theme.colors.chonk.yellow400,
+        border: theme.tokens.border.warning,
       };
     case 'success':
       return {
-        color: theme.tokens.content.primary,
         background: theme.colors.green100,
-        border: `1px solid ${theme.tokens.border.success}`,
+        iconBackground: theme.colors.chonk.green400,
+        border: theme.tokens.border.success,
       };
     case 'subtle':
       return {
-        color: theme.tokens.content.primary,
         background: theme.colors.surface500,
-        border: `1px solid ${theme.tokens.border.muted}`,
+        iconBackground: theme.colors.surface500,
+        border: theme.tokens.border.primary,
       };
     default:
       unreachable(type);
   }
 
   throw new TypeError(`Invalid alert type, got ${type}`);
+}
+
+function generateAlertBackground(
+  props: ChonkAlertProps,
+  tokens: ReturnType<typeof getChonkAlertTokens>
+) {
+  const width = 44;
+  if (props.showIcon) {
+    return css`
+      background: linear-gradient(
+        to right,
+        ${tokens.iconBackground},
+        ${tokens.iconBackground} ${width - 1}px,
+        ${tokens.iconBackground} ${width - 1}px,
+        ${tokens.border} ${width - 1}px,
+        ${tokens.border} ${width}px,
+        ${tokens.background} ${width}px,
+        ${tokens.background} ${width + 1}px
+      );
+    `;
+  }
+  return css`
+    background: ${tokens.background};
+  `;
 }
 
 export const TrailingItems = chonkStyled('div')<ChonkAlertProps>`
@@ -108,37 +141,20 @@ export const TrailingItems = chonkStyled('div')<ChonkAlertProps>`
 
 export const Message = chonkStyled('div')`
   padding: 0;
+  min-height: 24px;
+  padding-top: ${p => p.theme.space.mini};
 `;
 
 export const IconWrapper = chonkStyled('div')<{type: AlertProps['type']}>`
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: calc(${p => p.theme.space.lg} * -1);
+  margin: calc(${p => p.theme.space.nano} * -1) calc(${p => p.theme.space.lg} * -1) 0;
   margin-right: -1px;
   max-width: 44px;
+  max-height: 24px;
   color: ${p => (['info', 'error'].includes(p.type) ? p.theme.colors.white : p.type === 'muted' ? p.theme.tokens.content.primary : p.theme.colors.black)};
   z-index: 1;
-  background: ${p =>
-    p.type === 'success'
-      ? p.theme.colors.chonk.green400
-      : p.type === 'warning'
-        ? p.theme.colors.chonk.yellow400
-        : p.type === 'error'
-          ? p.theme.colors.chonk.red400
-          : p.type === 'info'
-            ? p.theme.colors.chonk.blue400
-            : p.theme.colors.background.primary};
-  border-right: 1px solid ${p =>
-    p.type === 'success'
-      ? p.theme.tokens.border.success
-      : p.type === 'warning'
-        ? p.theme.tokens.border.warning
-        : p.type === 'error'
-          ? p.theme.tokens.border.danger
-          : p.type === 'info'
-            ? p.theme.tokens.border.accent
-            : p.theme.tokens.border.muted};
 `;
 
 export const ExpandContainer = chonkStyled('div')<{

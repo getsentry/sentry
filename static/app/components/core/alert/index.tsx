@@ -102,7 +102,6 @@ export function Alert({
         )}
         {isExpanded && (
           <Fragment>
-            {showIcon && <IconWrapper type={type} style={{zIndex: 0}} />}
             <ExpandContainer
               ref={expandRef}
               showIcon={!!showIcon}
