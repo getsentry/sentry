@@ -29,7 +29,7 @@ type ScatterPlotDatum = [timestamp: string, value: number, id: string];
 type ValidSampleRow = {
   [key: string]: string | number | null;
   id: string;
-  timestamp: number;
+  timestamp: string;
 };
 
 type SamplesConfig = {
@@ -87,7 +87,7 @@ export class Samples implements Plottable {
     this.sampleTableData = samples;
     this.#timestamps = samples.data
       .filter(isValidSampleRow)
-      .map(sample => sample.timestamp)
+      .map(sample => new Date(sample.timestamp).getTime())
       .toSorted();
     this.config = config;
   }
