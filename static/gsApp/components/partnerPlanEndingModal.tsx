@@ -69,6 +69,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
 
   const isTeam = isTeamPlanFamily(subscription.planDetails);
   const hasBillingAccess = organization.access?.includes('org:billing');
+  const canRequestUpgrade = subscription.canSelfServe && !subscription.isManaged;
 
   const endDate = moment(subscription.contractPeriodEnd).add(1, 'days').format('ll');
   const lastDay = daysLeft === 0;
@@ -170,7 +171,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
               >
                 {t('Upgrade Now')}
               </LinkButton>
-            ) : (
+            ) : canRequestUpgrade ? (
               <Button
                 size="md"
                 aria-label="Request to Upgrade"
@@ -179,7 +180,7 @@ function PartnerPlanEndingModal({organization, subscription, closeModal}: Props)
               >
                 {t('Request to Upgrade')}
               </Button>
-            )}
+            ) : null}
           </StyledButtonBar>
         </div>
       </div>

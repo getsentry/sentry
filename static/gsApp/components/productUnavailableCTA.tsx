@@ -73,12 +73,14 @@ function RequestUpdateAlert({
   isAncientPlan,
   hasPerformanceView,
   hasSessionReplay,
+  subscription,
 }: {
   children: React.ReactNode;
   hasPerformanceView: boolean;
   hasSessionReplay: boolean;
   isAncientPlan: boolean;
   organization: Organization;
+  subscription: Subscription;
 }) {
   const api = useApi();
   const [loading, setLoading] = useState(false);
@@ -129,20 +131,25 @@ function RequestUpdateAlert({
     setLoading(false);
   }, [api, isAncientPlan, organization, analyticsCommonProps]);
 
+  // Don't show request upgrade button for non-self-serve or managed plans
+  const showRequestButton = subscription.canSelfServe && !subscription.isManaged;
+
   return (
     <AlertWithCustomMargin
       system
       type="info"
       trailingItems={
-        <Button
-          size="xs"
-          onClick={handleClick}
-          busy={loading}
-          disabled={requestSent}
-          title={requestSent ? t('Request sent!') : undefined}
-        >
-          {t('Request Update')}
-        </Button>
+        showRequestButton ? (
+          <Button
+            size="xs"
+            onClick={handleClick}
+            busy={loading}
+            disabled={requestSent}
+            title={requestSent ? t('Request sent!') : undefined}
+          >
+            {t('Request Update')}
+          </Button>
+        ) : null
       }
     >
       {children}
@@ -272,6 +279,7 @@ function ProductUnavailableCTAContainer({
       hasPerformanceView={hasPerformanceView}
       organization={organization}
       isAncientPlan={isAncientPlan}
+      subscription={subscription}
     >
       {getRequestUpdateLabel({hasSessionReplay, hasPerformanceView})}
     </RequestUpdateAlert>

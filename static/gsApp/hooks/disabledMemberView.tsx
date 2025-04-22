@@ -117,9 +117,10 @@ function DisabledMemberView(props: Props) {
 
   const totalLicenses = subscription.totalLicenses;
   const orgName = organization?.name;
+  const canRequestUpgrade = subscription.canSelfServe && !subscription.isManaged;
   const requestButton = requested ? (
     <strong>{t('Requested!')}</strong>
-  ) : (
+  ) : canRequestUpgrade ? (
     <Button
       onClick={() => handleUpgradeRequestMutation.mutate()}
       size="sm"
@@ -127,7 +128,7 @@ function DisabledMemberView(props: Props) {
     >
       {t('Request Upgrade')}
     </Button>
-  );
+  ) : null;
   return (
     <PageContainer>
       {prefersStackedNav ? (

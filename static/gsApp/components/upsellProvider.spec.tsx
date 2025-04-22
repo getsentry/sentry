@@ -175,6 +175,50 @@ describe('UpsellProvider', function () {
     expect(requestTrialMock).toHaveBeenCalled();
   });
 
+  it('does not request plan upgrade for non-self-serve plans', async function () {
+    populateOrg(undefined, {canTrial: false, canSelfServe: false});
+    const renderer = createRenderer();
+
+    const requestUpgradeMock = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/plan-upgrade-request/`,
+      method: 'POST',
+    });
+
+    render(
+      <UpsellProvider source="test-abc" triggerMemberRequests>
+        {renderer}
+      </UpsellProvider>,
+      {router, organization: org}
+    );
+
+    expect(screen.getByText('Request Upgrade')).toBeInTheDocument();
+    await userEvent.click(screen.getByTestId('test-render'));
+    // The upgrade request should not be made
+    expect(requestUpgradeMock).not.toHaveBeenCalled();
+  });
+
+  it('does not request plan upgrade for managed plans', async function () {
+    populateOrg(undefined, {canTrial: false, canSelfServe: true, isManaged: true});
+    const renderer = createRenderer();
+
+    const requestUpgradeMock = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/plan-upgrade-request/`,
+      method: 'POST',
+    });
+
+    render(
+      <UpsellProvider source="test-abc" triggerMemberRequests>
+        {renderer}
+      </UpsellProvider>,
+      {router, organization: org}
+    );
+
+    expect(screen.getByText('Request Upgrade')).toBeInTheDocument();
+    await userEvent.click(screen.getByTestId('test-render'));
+    // The upgrade request should not be made
+    expect(requestUpgradeMock).not.toHaveBeenCalled();
+  });
+
   it('opens modal with showConfirmation', async function () {
     populateOrg(
       {

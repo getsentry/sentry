@@ -89,6 +89,7 @@ describe('ProductUnavailableCTA', function () {
       const mockRequests = renderMockRequests({
         planTier: PlanTier.MM1,
         organization,
+        canSelfServe: true,
       });
 
       render(<ProductUnavailableCTA organization={organization} />, {
@@ -147,6 +148,87 @@ describe('ProductUnavailableCTA', function () {
           })
         );
       });
+    });
+
+    it('hides request update button for non-self-serve plans', async function () {
+      const {organization, router} = initializeOrg();
+
+      renderMockRequests({
+        planTier: PlanTier.MM1,
+        organization,
+        canSelfServe: false,
+      });
+
+      render(<ProductUnavailableCTA organization={organization} />, {
+        router,
+      });
+
+      expect(
+        await screen.findByText(/request an owner in your organization to update/i)
+      ).toBeInTheDocument();
+
+      expect(screen.getByText(/use performance and session replay/i)).toBeInTheDocument();
+
+      // The Request Update button should not be present
+      expect(
+        screen.queryByRole('button', {name: /request update/i})
+      ).not.toBeInTheDocument();
+    });
+
+    it('hides request update button for managed plans', async function () {
+      const {organization, router} = initializeOrg();
+
+      // Create a subscription that is self-serve but also managed
+      const subscription = SubscriptionFixture({
+        organization,
+        planTier: PlanTier.MM1,
+        canSelfServe: true,
+        isManaged: true,
+      });
+
+      act(() => SubscriptionStore.set(organization.slug, subscription));
+
+      render(<ProductUnavailableCTA organization={organization} />, {
+        router,
+      });
+
+      expect(
+        await screen.findByText(/request an owner in your organization to update/i)
+      ).toBeInTheDocument();
+
+      expect(screen.getByText(/use performance and session replay/i)).toBeInTheDocument();
+
+      // The Request Update button should not be present
+      expect(
+        screen.queryByRole('button', {name: /request update/i})
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows request update button for self-serve and non-managed plans', async function () {
+      const {organization, router} = initializeOrg();
+
+      // Create a subscription that is self-serve and not managed
+      const subscription = SubscriptionFixture({
+        organization,
+        planTier: PlanTier.MM1,
+        canSelfServe: true,
+        isManaged: false,
+      });
+
+      act(() => SubscriptionStore.set(organization.slug, subscription));
+
+      render(<ProductUnavailableCTA organization={organization} />, {
+        router,
+      });
+
+      expect(
+        await screen.findByText(/request an owner in your organization to update/i)
+      ).toBeInTheDocument();
+
+      expect(screen.getByText(/use performance and session replay/i)).toBeInTheDocument();
+
+      // The Request Update button should be present
+      expect(screen.getByRole('button', {name: /request update/i})).toBeInTheDocument();
     });
   });
 

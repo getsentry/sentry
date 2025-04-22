@@ -2,21 +2,31 @@ import moment from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
 
+import {sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
 import ProductTrialAlert from 'getsentry/components/productTrial/productTrialAlert';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {ProductTrial} from 'getsentry/types';
 
+jest.mock('getsentry/actionCreators/upsell', () => ({
+  sendUpgradeRequest: jest.fn(),
+}));
+
 describe('ProductTrialAlert', function () {
+  const mockSendUpgradeRequest = sendUpgradeRequest as jest.MockedFunction<
+    typeof sendUpgradeRequest
+  >;
+
   const api = new MockApiClient();
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization});
 
   beforeEach(function () {
     SubscriptionStore.set(organization.slug, subscription);
+    jest.clearAllMocks();
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -155,5 +165,255 @@ describe('ProductTrialAlert', function () {
         'Your unlimited Profiling trial ended. Keep using more by upgrading your plan.'
       )
     ).toBeInTheDocument();
+  });
+
+  it('shows the Request Upgrade button for non-admin users with self-serve and non-managed plans during trial ending', async function () {
+    const trial: ProductTrial = {
+      category: DataCategory.TRANSACTIONS,
+      isStarted: true,
+      reasonCode: 2001,
+      startDate: moment().utc().subtract(10, 'days').format(),
+      endDate: moment().utc().add(4, 'days').format(),
+      lengthDays: 14,
+    };
+
+    // Create a paid plan with no billing access, self-serve and not managed
+    const nonAdminOrg = OrganizationFixture({
+      access: [], // No billing access
+    });
+    const selfServeSubscription = SubscriptionFixture({
+      organization: nonAdminOrg,
+      planDetails: {
+        ...subscription.planDetails,
+        price: 100, // Make it a paid plan
+      },
+      canSelfServe: true,
+      isManaged: false,
+    });
+
+    render(
+      <ProductTrialAlert
+        api={api}
+        organization={nonAdminOrg}
+        subscription={selfServeSubscription}
+        trial={trial}
+        product={DataCategory.TRANSACTIONS}
+      />
+    );
+
+    // Request Upgrade button should be present
+    const requestUpgradeButton = screen.getByRole('button', {name: 'Request Upgrade'});
+    expect(requestUpgradeButton).toBeInTheDocument();
+
+    // Clicking the button should call sendUpgradeRequest
+    await userEvent.click(requestUpgradeButton);
+    expect(mockSendUpgradeRequest).toHaveBeenCalledTimes(1);
+    expect(mockSendUpgradeRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        api,
+        organization: nonAdminOrg,
+      })
+    );
+  });
+
+  it('does not show the Request Upgrade button for non-self-serve plans during trial ending', function () {
+    const trial: ProductTrial = {
+      category: DataCategory.TRANSACTIONS,
+      isStarted: true,
+      reasonCode: 2001,
+      startDate: moment().utc().subtract(10, 'days').format(),
+      endDate: moment().utc().add(4, 'days').format(),
+      lengthDays: 14,
+    };
+
+    // Create a paid plan with no billing access and non-self-serve
+    const nonAdminOrg = OrganizationFixture({
+      access: [], // No billing access
+    });
+    const nonSelfServeSubscription = SubscriptionFixture({
+      organization: nonAdminOrg,
+      planDetails: {
+        ...subscription.planDetails,
+        price: 100, // Make it a paid plan
+      },
+      canSelfServe: false,
+    });
+
+    render(
+      <ProductTrialAlert
+        api={api}
+        organization={nonAdminOrg}
+        subscription={nonSelfServeSubscription}
+        trial={trial}
+        product={DataCategory.TRANSACTIONS}
+      />
+    );
+
+    // Request Upgrade button should not be present
+    expect(
+      screen.queryByRole('button', {name: 'Request Upgrade'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not show the Request Upgrade button for managed plans during trial ending', function () {
+    const trial: ProductTrial = {
+      category: DataCategory.TRANSACTIONS,
+      isStarted: true,
+      reasonCode: 2001,
+      startDate: moment().utc().subtract(10, 'days').format(),
+      endDate: moment().utc().add(4, 'days').format(),
+      lengthDays: 14,
+    };
+
+    // Create a paid plan with no billing access, self-serve but managed
+    const nonAdminOrg = OrganizationFixture({
+      access: [], // No billing access
+    });
+    const managedSubscription = SubscriptionFixture({
+      organization: nonAdminOrg,
+      planDetails: {
+        ...subscription.planDetails,
+        price: 100, // Make it a paid plan
+      },
+      canSelfServe: true,
+      isManaged: true,
+    });
+
+    render(
+      <ProductTrialAlert
+        api={api}
+        organization={nonAdminOrg}
+        subscription={managedSubscription}
+        trial={trial}
+        product={DataCategory.TRANSACTIONS}
+      />
+    );
+
+    // Request Upgrade button should not be present
+    expect(
+      screen.queryByRole('button', {name: 'Request Upgrade'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows the Request Upgrade button for non-admin users with self-serve and non-managed plans after trial ended', async function () {
+    const trial: ProductTrial = {
+      category: DataCategory.PROFILES,
+      isStarted: true,
+      reasonCode: 2001,
+      startDate: moment().utc().subtract(16, 'days').format(),
+      endDate: moment().utc().subtract(2, 'days').format(),
+      lengthDays: 14,
+    };
+
+    // Create a paid plan with no billing access, self-serve and not managed
+    const nonAdminOrg = OrganizationFixture({
+      access: [], // No billing access
+    });
+    const selfServeSubscription = SubscriptionFixture({
+      organization: nonAdminOrg,
+      planDetails: {
+        ...subscription.planDetails,
+        price: 100, // Make it a paid plan
+      },
+      canSelfServe: true,
+      isManaged: false,
+    });
+
+    render(
+      <ProductTrialAlert
+        api={api}
+        organization={nonAdminOrg}
+        subscription={selfServeSubscription}
+        trial={trial}
+        product={DataCategory.PROFILES}
+      />
+    );
+
+    // Request Upgrade button should be present
+    const requestUpgradeButton = screen.getByRole('button', {name: 'Request Upgrade'});
+    expect(requestUpgradeButton).toBeInTheDocument();
+
+    // Clicking the button should call sendUpgradeRequest
+    await userEvent.click(requestUpgradeButton);
+    expect(mockSendUpgradeRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not show the Request Upgrade button for non-self-serve plans after trial ended', function () {
+    const trial: ProductTrial = {
+      category: DataCategory.PROFILES,
+      isStarted: true,
+      reasonCode: 2001,
+      startDate: moment().utc().subtract(16, 'days').format(),
+      endDate: moment().utc().subtract(2, 'days').format(),
+      lengthDays: 14,
+    };
+
+    // Create a paid plan with no billing access and non-self-serve
+    const nonAdminOrg = OrganizationFixture({
+      access: [], // No billing access
+    });
+    const nonSelfServeSubscription = SubscriptionFixture({
+      organization: nonAdminOrg,
+      planDetails: {
+        ...subscription.planDetails,
+        price: 100, // Make it a paid plan
+      },
+      canSelfServe: false,
+    });
+
+    render(
+      <ProductTrialAlert
+        api={api}
+        organization={nonAdminOrg}
+        subscription={nonSelfServeSubscription}
+        trial={trial}
+        product={DataCategory.PROFILES}
+      />
+    );
+
+    // Request Upgrade button should not be present
+    expect(
+      screen.queryByRole('button', {name: 'Request Upgrade'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not show the Request Upgrade button for managed plans after trial ended', function () {
+    const trial: ProductTrial = {
+      category: DataCategory.PROFILES,
+      isStarted: true,
+      reasonCode: 2001,
+      startDate: moment().utc().subtract(16, 'days').format(),
+      endDate: moment().utc().subtract(2, 'days').format(),
+      lengthDays: 14,
+    };
+
+    // Create a paid plan with no billing access, self-serve but managed
+    const nonAdminOrg = OrganizationFixture({
+      access: [], // No billing access
+    });
+    const managedSubscription = SubscriptionFixture({
+      organization: nonAdminOrg,
+      planDetails: {
+        ...subscription.planDetails,
+        price: 100, // Make it a paid plan
+      },
+      canSelfServe: true,
+      isManaged: true,
+    });
+
+    render(
+      <ProductTrialAlert
+        api={api}
+        organization={nonAdminOrg}
+        subscription={managedSubscription}
+        trial={trial}
+        product={DataCategory.PROFILES}
+      />
+    );
+
+    // Request Upgrade button should not be present
+    expect(
+      screen.queryByRole('button', {name: 'Request Upgrade'})
+    ).not.toBeInTheDocument();
   });
 });

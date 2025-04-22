@@ -6,6 +6,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
+import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription} from 'getsentry/types';
 import OnDemandBudgetEditModal from 'getsentry/views/onDemandBudgets/onDemandBudgetEditModal';
 
@@ -16,6 +17,10 @@ interface UpgradeCTAProps {
 export function CronsBannerUpgradeCTA({hasBillingAccess}: UpgradeCTAProps) {
   const organization = useOrganization();
   const api = useApi();
+
+  // Check if subscription is self-serve
+  const subscription = SubscriptionStore.getState()[organization.slug];
+  const canSelfServe = subscription?.canSelfServe !== false; // Default to true if unknown
 
   if (hasBillingAccess) {
     return (
@@ -29,6 +34,11 @@ export function CronsBannerUpgradeCTA({hasBillingAccess}: UpgradeCTAProps) {
         {t('Upgrade Now')}
       </LinkButton>
     );
+  }
+
+  // Don't show request upgrade button for non-self-serve or managed plans
+  if (!canSelfServe || subscription?.isManaged) {
+    return null;
   }
 
   return (
