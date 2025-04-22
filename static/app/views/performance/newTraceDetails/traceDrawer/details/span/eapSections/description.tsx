@@ -15,7 +15,7 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import ResourceSize from 'sentry/views/insights/browser/resources/components/resourceSize';
 import {
   DisabledImages,
@@ -135,7 +135,7 @@ export function SpanDescription({
                 organization,
                 transaction: node.event?.title ?? '',
                 query: location.query,
-                spanSlug: {op: span.op!, group: group ?? ''},
+                spanSlug: {op: span.op, group: group ?? ''},
                 projectID: node.event?.projectID,
               })
         }
