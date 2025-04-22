@@ -61,7 +61,10 @@ export function PrimaryNavigationHelp() {
   return (
     <StackedNavigationTourReminder>
       <SidebarMenu
-        onOpen={chonkPrompt.dismissDotIndicatorPrompt}
+        onOpen={() => {
+          chonkPrompt.dismissDotIndicatorPrompt();
+          chonkPrompt.dismissBannerPrompt();
+        }}
         items={[
           {
             key: 'search',
@@ -142,7 +145,7 @@ export function PrimaryNavigationHelp() {
                 ? user.options.prefersChonkUI
                   ? {
                       key: 'new-chonk-ui',
-                      label: t('Switch Back To Our Old Look'),
+                      label: t('Switch back to our old look'),
                       onAction() {
                         mutateUserOptions({prefersChonkUI: false});
                         trackAnalytics('navigation.help_menu_opt_out_chonk_ui_clicked', {
@@ -152,7 +155,7 @@ export function PrimaryNavigationHelp() {
                     }
                   : {
                       key: 'new-chonk-ui',
-                      label: t('Try Our New Look'),
+                      label: t('Try our new look'),
                       onAction() {
                         mutateUserOptions({prefersChonkUI: true});
                         trackAnalytics('navigation.help_menu_opt_in_chonk_ui_clicked', {

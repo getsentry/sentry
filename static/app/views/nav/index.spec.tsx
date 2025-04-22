@@ -401,11 +401,19 @@ describe('Nav', function () {
 
       describe('when feature flag is enabled', function () {
         it('shows the chonk-ui toggle in the help menu', async function () {
+          const dismissRequest = MockApiClient.addMockResponse({
+            url: '/organizations/org-slug/prompts-activity/',
+            method: 'PUT',
+          });
+
           renderNav({features: ALL_AVAILABLE_FEATURES.concat('chonk-ui')});
           const helpMenu = screen.getByRole('button', {name: 'Help'});
           await userEvent.click(helpMenu);
 
-          expect(screen.getByText('Try Our New Look')).toBeInTheDocument();
+          expect(screen.getByText('Try our new look')).toBeInTheDocument();
+
+          // Once for banner, once for dot indicator
+          expect(dismissRequest).toHaveBeenCalledTimes(2);
         });
 
         it('shows the chonk-ui toggle to old theme', async function () {
@@ -421,7 +429,7 @@ describe('Nav', function () {
           const helpMenu = screen.getByRole('button', {name: 'Help'});
           await userEvent.click(helpMenu);
 
-          expect(screen.getByText('Switch Back To Our Old Look')).toBeInTheDocument();
+          expect(screen.getByText('Switch back to our old look')).toBeInTheDocument();
         });
       });
 
@@ -436,7 +444,7 @@ describe('Nav', function () {
           const helpMenu = screen.getByRole('button', {name: 'Help'});
           await userEvent.click(helpMenu);
 
-          expect(screen.queryByText('Try Our New Look')).not.toBeInTheDocument();
+          expect(screen.queryByText('Try our new look')).not.toBeInTheDocument();
         });
       });
     });

@@ -49,7 +49,7 @@ export function useChonkPrompt() {
       bannerPrompt.dismissPrompt();
     },
     dismissDotIndicatorPrompt: () => {
-      if (!showDotIndicatorPrompt) {
+      if (dotIndicatorPrompt.isPromptDismissed) {
         return;
       }
 
