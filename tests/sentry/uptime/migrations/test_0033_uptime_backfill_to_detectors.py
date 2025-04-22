@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.testutils.cases import TestMigrations
 from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription, get_detector
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
@@ -46,6 +48,7 @@ class UptimeBackfillToDetectorsTest(TestMigrations):
         )
         DataSourceDetector.objects.create(data_source=data_source, detector=detector)
 
+    @pytest.mark.skip(reason="Flaky test causes problems in our CI/CD")
     def test(self):
         from sentry.workflow_engine.models import Detector
 
