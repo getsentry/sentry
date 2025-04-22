@@ -5,7 +5,11 @@ import Feature from 'sentry/components/acl/feature';
 import {LinkButton} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {EventTransaction} from 'sentry/types/event';
+import {UseApiQueryResult} from 'sentry/utils/queryClient';
+import RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
+import {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {treeHasValidVitals} from 'sentry/views/performance/newTraceDetails/traceContextVitals';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
@@ -54,12 +58,25 @@ function SectionLink({
   );
 }
 
-function ScrollToSectionLinks({tree}: {tree: TraceTree}) {
+function ScrollToSectionLinks({
+  rootEvent,
+  tree,
+  logs,
+}: {
+  logs: OurLogsResponseItem[];
+  rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
+  tree: TraceTree;
+}) {
   const location = useLocation();
   const hasValidVitals = treeHasValidVitals(tree);
-  const hasProfiles = tree.profiled_events.size > 0;
+  const hasProfiles = tree.type === 'trace' && tree.profiled_events.size > 0;
+  const hasLogs = logs && logs.length > 0;
+  const hasTags =
+    rootEvent.data &&
+    rootEvent.data.tags.length > 0 &&
+    !(tree.type === 'empty' && hasLogs); // We don't show tags for only logs trace views
 
-  return (
+  return hasValidVitals || hasTags || hasProfiles || hasLogs ? (
     <Wrapper>
       <div aria-hidden>{t('Jump to:')}</div>
       {hasValidVitals && (
@@ -68,15 +85,19 @@ function ScrollToSectionLinks({tree}: {tree: TraceTree}) {
           location={location}
         />
       )}
-      <SectionLink sectionKey={TraceContextSectionKeys.TAGS} location={location} />
+      {hasTags && (
+        <SectionLink sectionKey={TraceContextSectionKeys.TAGS} location={location} />
+      )}
       {hasProfiles && (
         <SectionLink sectionKey={TraceContextSectionKeys.PROFILES} location={location} />
       )}
       <Feature features={['ourlogs-enabled']}>
-        <SectionLink sectionKey={TraceContextSectionKeys.LOGS} location={location} />
+        {hasLogs && (
+          <SectionLink sectionKey={TraceContextSectionKeys.LOGS} location={location} />
+        )}
       </Feature>
     </Wrapper>
-  );
+  ) : null;
 }
 
 const Wrapper = styled('div')`

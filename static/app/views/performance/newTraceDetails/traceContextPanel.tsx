@@ -1,4 +1,3 @@
-import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -9,6 +8,7 @@ import type {EventTransaction} from 'sentry/types/event';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
+import {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceContextProfiles} from 'sentry/views/performance/newTraceDetails/traceContextProfiles';
@@ -20,26 +20,19 @@ import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/trace
 import {TraceViewLogsSection} from 'sentry/views/performance/newTraceDetails/traceOurlogs';
 
 type Props = {
+  logs: OurLogsResponseItem[] | undefined;
   onScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
   tree: TraceTree;
 };
 
-export function TraceContextPanel({tree, rootEvent, onScrollToNode}: Props) {
-  const renderTags = useCallback(() => {
-    if (!rootEvent.data) {
-      return null;
-    }
-
-    return (
-      <EventTagsTree
-        event={rootEvent.data}
-        meta={rootEvent.data._meta}
-        projectSlug={rootEvent.data.projectSlug ?? ''}
-        tags={rootEvent.data.tags ?? []}
-      />
-    );
-  }, [rootEvent.data]);
+export function TraceContextPanel({tree, rootEvent, onScrollToNode, logs}: Props) {
+  const hasProfiles = tree.type === 'trace' && tree.profiled_events.size > 0;
+  const hasLogs = logs && logs?.length > 0;
+  const hasTags =
+    rootEvent.data &&
+    rootEvent.data.tags.length > 0 &&
+    !(tree.type === 'empty' && hasLogs); // We don't show tags for only logs trace views
 
   const organization = useOrganization();
   const showLinkedTraces = organization?.features.includes('trace-view-linked-traces');
@@ -73,21 +66,33 @@ export function TraceContextPanel({tree, rootEvent, onScrollToNode}: Props) {
       <VitalMetersContainer id={TraceContextSectionKeys.WEB_VITALS}>
         <TraceContextVitals tree={tree} />
       </VitalMetersContainer>
-      <ContextRow>
-        <FoldSection
-          sectionKey={TraceContextSectionKeys.TAGS as string as SectionKey}
-          title={t('Tags')}
-        >
-          {renderTags()}
-        </FoldSection>
-      </ContextRow>
-      <ContextRow>
-        <TraceContextProfiles tree={tree} onScrollToNode={onScrollToNode} />
-      </ContextRow>
-      <Feature features={['ourlogs-enabled']}>
+      {hasTags && (
         <ContextRow>
-          <TraceViewLogsSection />
+          <FoldSection
+            sectionKey={TraceContextSectionKeys.TAGS as string as SectionKey}
+            title={t('Tags')}
+            disableCollapsePersistence
+          >
+            <EventTagsTree
+              event={rootEvent.data}
+              meta={rootEvent.data._meta}
+              projectSlug={rootEvent.data.projectSlug ?? ''}
+              tags={rootEvent.data.tags}
+            />
+          </FoldSection>
         </ContextRow>
+      )}
+      {hasProfiles && (
+        <ContextRow>
+          <TraceContextProfiles tree={tree} onScrollToNode={onScrollToNode} />
+        </ContextRow>
+      )}
+      <Feature features={['ourlogs-enabled']}>
+        {hasLogs && (
+          <ContextRow>
+            <TraceViewLogsSection />
+          </ContextRow>
+        )}
       </Feature>
     </Container>
   );
