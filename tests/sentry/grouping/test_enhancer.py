@@ -68,10 +68,13 @@ error.value:"*something*"                       max-frames=12
 
     insta_snapshot(dump_obj(enhancement))
 
-    dumped = enhancement.base64_string
-    assert Enhancements.loads(dumped).base64_string == dumped
-    assert Enhancements.loads(dumped)._to_config_structure() == enhancement._to_config_structure()
-    assert isinstance(dumped, str)
+    enhancements_str = enhancement.base64_string
+    assert Enhancements.loads(enhancements_str).base64_string == enhancements_str
+    assert (
+        Enhancements.loads(enhancements_str)._to_config_structure()
+        == enhancement._to_config_structure()
+    )
+    assert isinstance(enhancements_str, str)
 
 
 def test_parse_empty_with_base():
