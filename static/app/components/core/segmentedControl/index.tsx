@@ -26,7 +26,7 @@ import {
   type Priority,
 } from './index.chonk';
 
-export interface SegmentedControlItemProps<Value extends string> {
+interface SegmentedControlItemProps<Value extends string> {
   key: Value;
   children?: React.ReactNode;
   disabled?: boolean;
@@ -51,7 +51,7 @@ export interface SegmentedControlItemProps<Value extends string> {
   tooltipOptions?: Omit<TooltipProps, 'children' | 'title' | 'className'>;
 }
 
-export interface SegmentedControlProps<Value extends string>
+interface SegmentedControlProps<Value extends string>
   extends Omit<RadioGroupProps, 'value' | 'defaultValue' | 'onChange' | 'isDisabled'> {
   children: CollectionChildren<Value>;
   onChange: (value: Value) => void;

@@ -40,7 +40,7 @@ import {getLogBodySearchTerms, getTableHeaderLabel, logsFieldAlignment} from './
 
 const LOGS_INSTRUCTIONS_URL = 'https://github.com/getsentry/sentry/discussions/86804';
 
-export type LogsTableProps = {
+type LogsTableProps = {
   tableData: UseExploreLogsTableResult;
   allowPagination?: boolean;
   numberAttributes?: TagCollection;

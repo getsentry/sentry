@@ -16,7 +16,7 @@ export type TableDataRow = {
   tags_value: string;
 };
 
-export type HistogramTag = {
+type HistogramTag = {
   tags_value: string;
 };
 

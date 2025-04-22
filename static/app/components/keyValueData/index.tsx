@@ -119,7 +119,7 @@ export function Content({
   );
 }
 
-export interface KeyValueDataCardProps {
+interface KeyValueDataCardProps {
   /**
    * ContentProps items to be rendered in this card.
    */

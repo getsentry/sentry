@@ -1,6 +1,6 @@
 import type {Action} from './actions';
 
-export interface SnubaQuery {
+interface SnubaQuery {
   aggregate: string;
   dataset: string;
   id: string;
