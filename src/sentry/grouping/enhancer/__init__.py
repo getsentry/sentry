@@ -90,11 +90,11 @@ RustExceptionData = dict[str, bytes | None]
 def make_rust_exception_data(
     exception_data: dict[str, Any] | None,
 ) -> RustExceptionData:
-    e = exception_data or {}
+    exception_data = exception_data or {}
     e = {
-        "ty": e.get("type"),
-        "value": e.get("value"),
-        "mechanism": get_path(e, "mechanism", "type"),
+        "ty": exception_data.get("type"),
+        "value": exception_data.get("value"),
+        "mechanism": get_path(exception_data, "mechanism", "type"),
     }
     for key, value in e.items():
         if isinstance(value, str):
