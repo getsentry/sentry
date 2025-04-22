@@ -79,7 +79,7 @@ describe('logFieldsTree', () => {
             [OurLogKnownFieldKey.ORGANIZATION_ID]: 1,
             [OurLogKnownFieldKey.MESSAGE]: 'test log body',
             [OurLogKnownFieldKey.SEVERITY_NUMBER]: 456,
-            [OurLogKnownFieldKey.SEVERITY_TEXT]: 'error',
+            [OurLogKnownFieldKey.SEVERITY]: 'error',
             [OurLogKnownFieldKey.TIMESTAMP]: '2025-04-03T15:50:10+00:00',
           }}
         />
