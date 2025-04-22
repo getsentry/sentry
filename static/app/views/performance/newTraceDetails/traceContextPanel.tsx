@@ -8,7 +8,7 @@ import type {EventTransaction} from 'sentry/types/event';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
-import {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceContextProfiles} from 'sentry/views/performance/newTraceDetails/traceContextProfiles';

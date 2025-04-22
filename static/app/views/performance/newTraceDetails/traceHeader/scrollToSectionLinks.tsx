@@ -5,11 +5,11 @@ import Feature from 'sentry/components/acl/feature';
 import {LinkButton} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EventTransaction} from 'sentry/types/event';
-import {UseApiQueryResult} from 'sentry/utils/queryClient';
-import RequestError from 'sentry/utils/requestError/requestError';
+import type {EventTransaction} from 'sentry/types/event';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
-import {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {treeHasValidVitals} from 'sentry/views/performance/newTraceDetails/traceContextVitals';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
