@@ -11,6 +11,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {
@@ -86,7 +87,7 @@ export function ToolbarVisualize({equationSupport}: ToolbarVisualizeProps) {
   const shouldRenderLabel = visualizes.length > 1;
 
   return (
-    <ToolbarSection data-test-id="section-visualizes">
+    <StyledToolbarSection data-test-id="section-visualizes">
       <ToolbarHeader>
         <Tooltip
           position="right"
@@ -154,7 +155,7 @@ export function ToolbarVisualize({equationSupport}: ToolbarVisualizeProps) {
           );
         })}
       </div>
-    </ToolbarSection>
+    </StyledToolbarSection>
   );
 }
 
@@ -372,4 +373,8 @@ const AggregateCompactSelect = styled(CompactSelect)`
   > button {
     width: 100%;
   }
+`;
+
+const StyledToolbarSection = styled(ToolbarSection)`
+  margin-bottom: ${space(1)};
 `;

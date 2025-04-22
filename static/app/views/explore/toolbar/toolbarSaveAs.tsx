@@ -305,7 +305,7 @@ const DisabledText = styled('span')`
 
 const StyledToolbarSection = styled(ToolbarSection)`
   border-top: 1px solid ${p => p.theme.border};
-  padding-top: ${space(2)};
+  padding-top: ${space(3)};
 `;
 
 const SaveAsButton = styled(Button)`
