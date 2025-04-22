@@ -117,7 +117,7 @@ export default function SeerSection({
 
   const onlyHasResources =
     issueTypeDoesntHaveSeer ||
-    (!aiConfig.needsGenAIConsent &&
+    (!aiConfig.needsGenAiAcknowledgement &&
       !aiConfig.hasSummary &&
       !aiConfig.hasAutofix &&
       aiConfig.hasResources);

@@ -10,10 +10,7 @@ interface AutofixSetupRepoDefinition extends AutofixRepoDefinition {
   ok: boolean;
 }
 
-export type AutofixSetupResponse = {
-  genAIConsent: {
-    ok: boolean;
-  };
+export interface AutofixSetupResponse {
   integration: {
     ok: boolean;
     reason: string | null;
@@ -26,7 +23,7 @@ export type AutofixSetupResponse = {
     ok: boolean;
     repos: AutofixSetupRepoDefinition[];
   } | null;
-};
+}
 
 function makeAutofixSetupQueryKey(
   groupId: string,
