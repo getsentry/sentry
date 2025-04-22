@@ -443,10 +443,13 @@ function Highlights({
   const endTimestamp = node.space[0] + node.space[1];
   const durationInSeconds = (endTimestamp - startTimestamp) / 1e3;
 
+  const baseDescription = isTransactionNode(node)
+    ? t('Average duration for this transaction over the last 24 hours')
+    : t('Average duration for this span over the last 24 hours');
   const comparison = getDurationComparison(
     avgDuration,
     durationInSeconds,
-    t('Average duration for this transaction over the last 24 hours')
+    baseDescription
   );
 
   return (
