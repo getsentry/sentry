@@ -43,6 +43,9 @@ def save_userreport(
     start_time: datetime | None = None,
 ) -> UserReport | None:
     with metrics.timer("sentry.ingest.userreport.save_userreport", tags={"referrer": source.value}):
+        if start_time is None:
+            start_time = timezone.now()
+
         if is_in_feedback_denylist(project.organization):
             metrics.incr(
                 "user_report.create_user_report.filtered",
@@ -54,7 +57,7 @@ def save_userreport(
                 key_id=None,
                 outcome=Outcome.RATE_LIMITED,
                 reason="feedback_denylist",
-                timestamp=start_time or timezone.now(),
+                timestamp=start_time,
                 event_id=None,  # Note report["event_id"] is id of the associated event, not the report itself.
                 category=DataCategory.USER_REPORT_V2,
                 quantity=1,
@@ -75,15 +78,12 @@ def save_userreport(
                 key_id=None,
                 outcome=Outcome.INVALID,
                 reason=outcomes_reason,
-                timestamp=start_time or timezone.now(),
+                timestamp=start_time,
                 event_id=None,  # Note report["event_id"] is id of the associated event, not the report itself.
                 category=DataCategory.USER_REPORT_V2,
                 quantity=1,
             )
             return None
-
-        if start_time is None:
-            start_time = timezone.now()
 
         # XXX(dcramer): enforce case insensitivity by coercing this to a lowercase string
         report["event_id"] = report["event_id"].lower()
@@ -101,6 +101,17 @@ def save_userreport(
                 metrics.incr(
                     "user_report.create_user_report.filtered",
                     tags={"reason": "event_too_old", "referrer": source.value},
+                )
+                track_outcome(
+                    org_id=project.organization_id,
+                    project_id=project.id,
+                    key_id=None,
+                    outcome=Outcome.INVALID,
+                    reason="Associated event is too old",
+                    timestamp=start_time,
+                    event_id=None,
+                    category=DataCategory.USER_REPORT_V2,
+                    quantity=1,
                 )
                 raise Conflict("Feedback for this event cannot be modified.")
 
@@ -130,7 +141,18 @@ def save_userreport(
             if existing_report.date_added < timezone.now() - timedelta(minutes=5):
                 metrics.incr(
                     "user_report.create_user_report.filtered",
-                    tags={"reason": "existing_report", "referrer": source.value},
+                    tags={"reason": "duplicate_report", "referrer": source.value},
+                )
+                track_outcome(
+                    org_id=project.organization_id,
+                    project_id=project.id,
+                    key_id=None,
+                    outcome=Outcome.INVALID,
+                    reason="Duplicate report",
+                    timestamp=start_time,
+                    event_id=None,
+                    category=DataCategory.USER_REPORT_V2,
+                    quantity=1,
                 )
                 raise Conflict("Feedback for this event cannot be modified.")
 
