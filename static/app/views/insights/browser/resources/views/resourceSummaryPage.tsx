@@ -155,7 +155,7 @@ function ResourceSummary() {
                 </ModuleLayout.Full>
               )}
 
-              <ResourceSummaryCharts groupId={groupId!} />
+              <ResourceSummaryCharts />
 
               <ModuleLayout.Full>
                 <ResourceSummaryTable />
