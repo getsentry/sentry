@@ -141,7 +141,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         event = self.store_event(data={}, project_id=self.project.id)
         occurrence = self.build_occurrence(
             event_id=event.event_id,
-            initial_issue_priority=PriorityLevel.HIGH,
+            priority=PriorityLevel.HIGH,
         )
         _, group_info = save_issue_occurrence(occurrence.to_dict(), event)
         assert group_info is not None
@@ -443,7 +443,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert group_info.group.priority == PriorityLevel.LOW
 
     def test_new_group_with_priority(self) -> None:
-        occurrence = self.build_occurrence(initial_issue_priority=PriorityLevel.HIGH)
+        occurrence = self.build_occurrence(priority=PriorityLevel.HIGH)
         event = self.store_event(data={}, project_id=self.project.id)
         group_info = save_issue_from_occurrence(occurrence, event, None)
         assert group_info is not None
@@ -480,7 +480,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "metadata": {
                 "title": occurrence.issue_title,
                 "value": occurrence.subtitle,
-                "initial_priority": occurrence.initial_issue_priority,
+                "priority": occurrence.priority,
             },
             "title": occurrence.issue_title,
             "location": event.location,
@@ -498,7 +498,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "title": occurrence.issue_title,
             "value": occurrence.subtitle,
             "dogs": "are great",
-            "initial_priority": occurrence.initial_issue_priority,
+            "priority": occurrence.priority,
         }
 
     def test_populates_feedback_metadata(self) -> None:
@@ -524,7 +524,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "message": "test",
             "name": "Name Test",
             "source": "crash report widget",
-            "initial_priority": occurrence.initial_issue_priority,
+            "priority": occurrence.priority,
         }
 
 

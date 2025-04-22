@@ -37,8 +37,8 @@ class IssueOccurrenceData(TypedDict):
     detection_time: float
     level: str | None
     culprit: str | None
-    initial_issue_priority: NotRequired[int | None]
     assignee: NotRequired[str | None]
+    priority: NotRequired[int | None]
     """
     Who to assign the issue to when creating a new issue. Has no effect on existing issues.
     In the format of an Actor identifier, as defined in `Actor.from_identifier`
@@ -94,8 +94,10 @@ class IssueOccurrence:
     detection_time: datetime
     level: str
     culprit: str
-    initial_issue_priority: int | None = None
+    priority: int | None = None
     assignee: Actor | None = None
+    # `initial_issue_priority` is deprecated, use `priority` instead
+    initial_issue_priority: int | None = None
 
     def __post_init__(self) -> None:
         if not is_aware(self.detection_time):
@@ -118,7 +120,7 @@ class IssueOccurrence:
             "detection_time": self.detection_time.timestamp(),
             "level": self.level,
             "culprit": self.culprit,
-            "initial_issue_priority": self.initial_issue_priority,
+            "priority": self.priority,
             "assignee": self.assignee.identifier if self.assignee else None,
         }
 
@@ -163,7 +165,9 @@ class IssueOccurrence:
             cast(datetime, parse_timestamp(data["detection_time"])),
             level,
             culprit,
-            data.get("initial_issue_priority"),
+            # When getting the priority, we fallback to the deprecated initial_issue_priority if specified.
+            # This ensures we don't break existing uses of the `initial_issue_priority` field.
+            data.get("priority", data.get("initial_issue_priority")),
             assignee,
         )
 
