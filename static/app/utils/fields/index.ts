@@ -107,6 +107,7 @@ export enum FieldKey {
   STACK_RESOURCE = 'stack.resource',
   STACK_STACK_LEVEL = 'stack.stack_level',
   STATUS = 'status',
+  SYMBOLICATED_IN_APP = 'symbolicated_in_app',
   TIMESTAMP = 'timestamp',
   TIMESTAMP_TO_DAY = 'timestamp.to_day',
   TIMESTAMP_TO_HOUR = 'timestamp.to_hour',
@@ -1703,6 +1704,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.NUMBER,
   },
+  [FieldKey.SYMBOLICATED_IN_APP]: {
+    desc: t('Indicates if all in-app frames are symbolicated'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
+  },
   [FieldKey.STATUS]: {
     desc: t('Status of the issue'),
     kind: FieldKind.FIELD,
@@ -1929,6 +1935,7 @@ export const ISSUE_EVENT_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.STACK_MODULE,
   FieldKey.STACK_PACKAGE,
   FieldKey.STACK_STACK_LEVEL,
+  FieldKey.SYMBOLICATED_IN_APP,
   FieldKey.TIMESTAMP,
   FieldKey.TITLE,
   FieldKey.TRACE,
@@ -2088,6 +2095,7 @@ export const DISCOVER_FIELDS = [
   FieldKey.STACK_COLNO,
   FieldKey.STACK_LINENO,
   FieldKey.STACK_STACK_LEVEL,
+  FieldKey.SYMBOLICATED_IN_APP,
   // contexts.key and contexts.value omitted on purpose.
 
   // App context fields
