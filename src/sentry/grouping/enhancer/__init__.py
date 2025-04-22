@@ -65,7 +65,7 @@ def merge_rust_enhancements(
     return merged_rust_enhancements
 
 
-def parse_rust_enhancements(
+def get_rust_enhancements(
     source: Literal["config_structure", "config_string"], input: str | bytes
 ) -> RustEnhancements:
     """
@@ -349,7 +349,7 @@ class Enhancements:
             else:
                 pickled = zlib.decompress(compressed_pickle)
 
-            rust_enhancements = parse_rust_enhancements("config_structure", pickled)
+            rust_enhancements = get_rust_enhancements("config_structure", pickled)
 
             return cls._from_config_structure(msgpack.loads(pickled, raw=False), rust_enhancements)
         except (LookupError, AttributeError, TypeError, ValueError) as e:
@@ -360,7 +360,7 @@ class Enhancements:
     def from_rules_text(
         cls, s: str, bases: list[str] | None = None, id: str | None = None
     ) -> Enhancements:
-        rust_enhancements = parse_rust_enhancements("config_string", s)
+        rust_enhancements = get_rust_enhancements("config_string", s)
 
         rules = parse_enhancements(s)
 
