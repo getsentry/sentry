@@ -415,8 +415,8 @@ describe('ExploreToolbar', function () {
       },
     ]);
 
-    // only one left so cant be deleted
-    expect(within(section).getByLabelText('Remove Overlay')).toBeDisabled();
+    // only one left so we hide the delete button
+    expect(within(section).queryByLabelText('Remove Overlay')).not.toBeInTheDocument();
   });
 
   it('allows changing visualizes equations', async function () {
