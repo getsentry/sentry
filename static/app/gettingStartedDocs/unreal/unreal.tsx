@@ -111,9 +111,9 @@ const onboarding: OnboardingConfig = {
             <Fragment>
               <p>
                 {tct(
-                  "By default, the SDK is automatically initialized on application startup. Alternatively, the [strong:Initialize SDK automatically] option can be disabled and in this case, explicit SDK initialization is required:",
+                  'By default, the SDK is automatically initialized on application startup. Alternatively, the [strong:Initialize SDK automatically] option can be disabled and in this case, explicit SDK initialization is required:',
                   {
-                    strong: <strong />
+                    strong: <strong />,
                   }
                 )}
               </p>
