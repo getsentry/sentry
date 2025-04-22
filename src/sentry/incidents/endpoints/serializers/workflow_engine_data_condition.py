@@ -38,16 +38,21 @@ class WorkflowEngineDataConditionSerializer(Serializer):
         detector_trigger_ids = [dc.id for dc in item_list]
 
         # below, we go from detector trigger to action filter
-        detectors = Detector.objects.filter(
-            workflow_condition_group__in=[
-                detector_trigger.condition_group for detector_trigger in detector_triggers.values()
-            ]
-        ).values_list("id", flat=True)
-        workflows = DetectorWorkflow.objects.filter(detector__in=detectors).values_list(
-            "id", flat=True
+        detector_ids = Subquery(
+            Detector.objects.filter(
+                workflow_condition_group__in=[
+                    detector_trigger.condition_group
+                    for detector_trigger in detector_triggers.values()
+                ]
+            ).values_list("id", flat=True)
+        )
+        workflow_ids = Subquery(
+            DetectorWorkflow.objects.filter(detector__in=detector_ids).values_list(
+                "workflow_id", flat=True
+            )
         )
         workflow_dcgs = DataConditionGroup.objects.filter(
-            workflowdataconditiongroup__workflow__in=workflows
+            workflowdataconditiongroup__workflow__in=workflow_ids
         )
         action_filter_data_condition_groups = DataCondition.objects.filter(
             comparison__in=[item.condition_result for item in item_list],
