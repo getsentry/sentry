@@ -67,6 +67,12 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
         ),
         # Deprecated
         ResolvedAttribute(
+            public_alias="severity_text",
+            internal_name="sentry.severity_text",
+            search_type="string",
+            secondary_alias=True,
+        ),
+        ResolvedAttribute(
             public_alias="log.severity_text",
             internal_name="sentry.severity_text",
             search_type="string",
