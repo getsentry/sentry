@@ -213,4 +213,22 @@ describe('AddPaymentMethod', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
     expect(onCompleteStep).toHaveBeenCalledWith(stepNumber);
   });
+
+  it('displays fine print text', async function () {
+    const sub = {...subscription, paymentSource: null};
+    const props = {...stepProps, subscription: sub};
+
+    render(<AddPaymentMethod {...props} />);
+
+    await waitFor(() => expect(setupIntent).toHaveBeenCalled());
+
+    expect(
+      screen.getByText(/Payments are processed securely through/)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /, you authorize Sentry to automatically charge you recurring subscription fees and applicable pay-as-you-go fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for pay-as-you-go fees. You may cancel your subscription at any time/
+      )
+    ).toBeInTheDocument();
+  });
 });

@@ -8,6 +8,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 
 import CreditCardSetup from 'getsentry/components/creditCardSetup';
 import type {Subscription} from 'getsentry/types';
+import {FTCConsentLocation} from 'getsentry/types';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 type Props = ModalRenderProps & {
@@ -43,6 +44,7 @@ function CreditCardEditModal({
           }}
           buttonText={t('Save Changes')}
           referrer={referrer}
+          location={FTCConsentLocation.BILLING_DETAILS}
         />
       </Body>
     </Fragment>
