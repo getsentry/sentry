@@ -11,6 +11,7 @@ import {
   IconSearch,
   IconSettings,
 } from 'sentry/icons';
+import {ChonkOptInBanner} from 'sentry/utils/theme/ChonkOptInBanner';
 import useOrganization from 'sentry/utils/useOrganization';
 import {CODECOV_BASE_URL, COVERAGE_BASE_URL} from 'sentry/views/codecov/settings';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
@@ -148,6 +149,7 @@ export function PrimaryNavigationItems() {
       </SidebarBody>
 
       <SidebarFooter>
+        <ChonkOptInBanner collapsed="never" />
         <PrimaryNavigationHelp />
 
         <SeparatorItem />
