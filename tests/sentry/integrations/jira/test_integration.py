@@ -211,6 +211,68 @@ class RegionJiraIntegrationTest(APITestCase):
 
     @responses.activate
     @with_feature("organizations:jira-paginated-projects")
+    def test_get_create_issue_config_with_none_issue(self):
+        # Mock the paginated projects response
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project/search",
+            json={
+                "values": [
+                    {"id": "10000", "key": "PROJ1", "name": "Project 1"},
+                    {"id": "10001", "key": "PROJ2", "name": "Project 2"},
+                ],
+                "total": 2,
+            },
+        )
+
+        # Mock the create issue metadata endpoint
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/issue/createmeta",
+            json={
+                "projects": [
+                    {
+                        "id": "10000",
+                        "key": "PROJ1",
+                        "name": "Project 1",
+                        "issuetypes": [
+                            {
+                                "description": "An error in the code",
+                                "fields": {
+                                    "issuetype": {
+                                        "key": "issuetype",
+                                        "name": "Issue Type",
+                                        "required": True,
+                                    }
+                                },
+                                "id": "bug1",
+                                "name": "Bug",
+                            }
+                        ],
+                    }
+                ]
+            },
+        )
+        # None, user, params=self.params
+        installation = self.integration.get_installation(self.organization.id)
+        fields = installation.get_create_issue_config(group=None, user=self.user)
+
+        # Find the project field in the config
+        project_field = next(field for field in fields if field["name"] == "project")
+
+        # Verify the project field is configured correctly
+        assert (
+            project_field["url"]
+            == f"/extensions/jira/search/{self.organization.slug}/{self.integration.id}/"
+        )
+        assert project_field["choices"] == [
+            ("10000", "PROJ1 - Project 1"),
+            ("10001", "PROJ2 - Project 2"),
+        ]
+        assert project_field["type"] == "select"
+
+    @responses.activate
+    @with_feature("organizations:jira-paginated-projects")
     def test_get_create_issue_config_paginated_projects(self):
         """Test that projects are fetched using pagination when the feature flag is enabled"""
         event = self.store_event(

@@ -792,7 +792,7 @@ class JiraIntegration(IssueSyncIntegration):
             jira_projects = (
                 client.get_projects_paginated({"maxResults": MAX_PER_PROJECT_QUERIES})["values"]
                 if features.has(
-                    "organizations:jira-paginated-projects", group.project.organization, actor=user
+                    "organizations:jira-paginated-projects", self.organization, actor=user
                 )
                 else client.get_projects_list()
             )
@@ -837,9 +837,7 @@ class JiraIntegration(IssueSyncIntegration):
             "updatesForm": True,
             "required": True,
         }
-        if features.has(
-            "organizations:jira-paginated-projects", group.project.organization, actor=user
-        ):
+        if features.has("organizations:jira-paginated-projects", self.organization, actor=user):
             paginated_projects_url = reverse(
                 "sentry-extensions-jira-search", args=[self.organization.slug, self.model.id]
             )
