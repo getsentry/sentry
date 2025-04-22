@@ -19,9 +19,12 @@ import {
   computeBuckets,
   formatHistogramData,
 } from 'sentry/utils/performance/histogram/utils';
-
-import type {ViewProps} from '../../../types';
-import {filterToColor, filterToField, SpanOperationBreakdownFilter} from '../../filter';
+import {
+  filterToColor,
+  filterToField,
+  SpanOperationBreakdownFilter,
+} from 'sentry/views/performance/transactionSummary/filter';
+import type {ViewProps} from 'sentry/views/performance/types';
 
 import {decodeHistogramZoom, ZOOM_END, ZOOM_START} from './utils';
 

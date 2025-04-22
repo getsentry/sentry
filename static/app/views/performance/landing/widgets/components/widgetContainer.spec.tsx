@@ -9,10 +9,9 @@ import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pa
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import WidgetContainer from 'sentry/views/performance/landing/widgets/components/widgetContainer';
+import {QUERY_LIMIT_PARAM} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {ProjectPerformanceType} from 'sentry/views/performance/utils';
-
-import {QUERY_LIMIT_PARAM} from '../utils';
 
 const initializeData = (query = {}, rest: InitializeDataSettings = {}) => {
   const data = _initializeData({
@@ -182,7 +181,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           partial: '1',
           query: 'transaction.op:pageload',
           statsPeriod: '28d',
-          yAxis: 'tpm()',
+          yAxis: 'epm()',
         }),
       })
     );
@@ -318,7 +317,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           partial: '1',
           query: 'transaction.op:pageload',
           statsPeriod: '14d',
-          yAxis: 'tpm()',
+          yAxis: 'epm()',
         }),
       })
     );
@@ -1097,6 +1096,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'count_scores(measurements.score.cls)',
             'count_scores(measurements.score.inp)',
             'count_scores(measurements.score.ttfb)',
+            'count_scores(measurements.score.total)',
             'total_opportunity_score()',
           ],
           query:

@@ -8,8 +8,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type RequestError from 'sentry/utils/requestError/requestError';
-
-import useApi from '../useApi';
+import useApi from 'sentry/utils/useApi';
 
 function fetchReleases(
   api: Client,

@@ -10,6 +10,7 @@ import {
   getFormattedContextData,
 } from 'sentry/components/events/contexts/utils';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
+import {t} from 'sentry/locale';
 import type {Event, EventTag} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -169,4 +170,43 @@ export function getHighlightTagData({
       : EMPTY_HIGHLIGHT_DEFAULT,
     originalTag: tagMap[tagKey]?.tag ?? {key: tagKey, value: EMPTY_HIGHLIGHT_DEFAULT},
   }));
+}
+
+/**
+ * Returns a label that can be used in the Event Highlight Summary.
+ * Currently only used for JavaScript-based events.
+ */
+export function getRuntimeLabelAndTooltip(
+  event: Event
+): {label: string; tooltip: string} | null {
+  if (!event.sdk?.name?.includes('javascript')) {
+    return null;
+  }
+
+  // eslint-disable-next-line default-case
+  switch (event.contexts.runtime?.name || '') {
+    case 'node':
+      return {label: t('Backend'), tooltip: t('Error from Node.js Server Runtime')};
+    case 'bun':
+      return {label: t('Backend'), tooltip: t('Error from Bun Server Runtime')};
+    case 'deno':
+      return {label: t('Backend'), tooltip: t('Error from Deno Server Runtime')};
+    case 'cloudflare':
+      return {label: t('Backend'), tooltip: t('Error from Cloudflare Workers')};
+    case 'vercel-edge':
+      return {label: t('Backend'), tooltip: t('Error from Vercel Edge Runtime')};
+  }
+
+  if (event.contexts.runtime?.name) {
+    // Browser events don't have a runtime context
+    return {label: t('Backend'), tooltip: t('Error from Server, Edge or Worker Runtime')};
+  }
+
+  if (event.contexts.browser) {
+    // Backend events might also have a browser context
+    const browserName = event.contexts.browser.name || 'browser';
+    return {label: t('Frontend'), tooltip: t('Error from %s browser', browserName)};
+  }
+
+  return null;
 }

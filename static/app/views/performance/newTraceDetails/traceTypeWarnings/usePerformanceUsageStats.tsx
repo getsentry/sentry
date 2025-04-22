@@ -1,12 +1,11 @@
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
-
-import type {TraceTree} from '../traceModels/traceTree';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 // 1 hour in milliseconds
 const ONE_HOUR = 60 * 60 * 1000;
 
-export type PerformanceStatsGroup = {
+type PerformanceStatsGroup = {
   by: {
     reason: string;
   };

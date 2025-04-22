@@ -8,13 +8,13 @@ from sentry.issues.grouptype import (
     GroupTypeRegistry,
     MonitorIncidentType,
     PerformanceSlowDBQueryGroupType,
-    UptimeDomainCheckFailure,
 )
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.workflow_engine.handlers.detector import DetectorEvaluationResult, DetectorHandler
 from sentry.workflow_engine.models import DataPacket
-from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
+from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel, DetectorSettings
 
 
 @region_silo_test
@@ -43,7 +43,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             slug = MetricAlertFire.slug
             description = "Metric alert"
             category = GroupCategory.METRIC_ALERT.value
-            detector_handler = MockDetectorHandler
+            detector_settings = DetectorSettings(handler=MockDetectorHandler)
             released = True
 
         @dataclass(frozen=True)
@@ -52,7 +52,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             slug = MonitorIncidentType.slug
             description = "Crons"
             category = GroupCategory.CRON.value
-            detector_handler = MockDetectorHandler
+            detector_settings = DetectorSettings(handler=MockDetectorHandler)
             released = True
 
         @dataclass(frozen=True)
@@ -61,7 +61,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             slug = UptimeDomainCheckFailure.slug
             description = "Uptime"
             category = GroupCategory.UPTIME.value
-            detector_handler = MockDetectorHandler
+            detector_settings = DetectorSettings(handler=MockDetectorHandler)
             released = True
 
         # Should not be included in the response
@@ -79,7 +79,6 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
 
     def test_simple(self):
         response = self.get_success_response(self.organization.slug, status_code=200)
-        assert len(response.data) == 3
         assert response.data == [
             MetricAlertFire.slug,
             MonitorIncidentType.slug,

@@ -3,8 +3,10 @@ import * as qs from 'query-string';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {t} from 'sentry/locale';
 import {safeURL} from 'sentry/utils/url/safeURL';
-
-import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
+import {
+  type SectionCardKeyValueList,
+  TraceDrawerComponents,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 
 export function hasSpanHTTPInfo(span: RawSpanType) {
   if (span.op !== 'http.client' || !span.description) {

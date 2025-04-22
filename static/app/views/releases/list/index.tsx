@@ -5,7 +5,6 @@ import pick from 'lodash/pick';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Alert} from 'sentry/components/core/alert';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -41,16 +40,16 @@ import type {AvatarProject, Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import Projects from 'sentry/utils/projects';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
-
-import Header from '../components/header';
-import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
-import {isMobileRelease} from '../utils';
+import Header from 'sentry/views/releases/components/header';
+import ReleaseArchivedNotice from 'sentry/views/releases/detail/overview/releaseArchivedNotice';
+import {isMobileRelease} from 'sentry/views/releases/utils';
 
 import ReleaseCard from './releaseCard';
 import ReleasesAdoptionChart from './releasesAdoptionChart';
@@ -559,9 +558,16 @@ class ReleasesList extends DeprecatedAsyncComponent<Props, State> {
               {this.renderHealthCta()}
 
               <ReleasesPageFilterBar condensed>
-                <GuideAnchor target="release_projects">
+                <DemoTourElement
+                  id={DemoTourStep.RELEASES_COMPARE}
+                  title={t('Compare releases')}
+                  description={t(
+                    'Click here and select the "react" project to see how the release is trending compared to previous releases.'
+                  )}
+                  position="bottom-start"
+                >
                   <ProjectPageFilter />
-                </GuideAnchor>
+                </DemoTourElement>
                 <EnvironmentPageFilter />
                 <DatePageFilter
                   disallowArbitraryRelativeRanges

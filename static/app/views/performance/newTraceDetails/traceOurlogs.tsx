@@ -19,7 +19,7 @@ import {LogsTable} from 'sentry/views/explore/logs/logsTable';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {TraceContextSectionKeys} from 'sentry/views/performance/newTraceDetails/traceHeader/scrollToSectionLinks';
 
-export type UseTraceViewLogsDataProps = {
+type UseTraceViewLogsDataProps = {
   children: React.ReactNode;
   traceSlug: string;
 };

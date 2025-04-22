@@ -8,13 +8,13 @@ import Card from 'sentry/components/card';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import {getInterval} from 'sentry/components/charts/utils';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Sparklines} from 'sentry/components/sparklines';
 import SparklinesLine from 'sentry/components/sparklines/line';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -35,16 +35,15 @@ import type {
 import VitalsCardsDiscoverQuery from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeList} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
-
-import ColorBar from '../vitalDetail/colorBar';
+import ColorBar from 'sentry/views/performance/vitalDetail/colorBar';
 import {
   vitalAbbreviations,
   vitalDetailRouteWithQuery,
   vitalMap,
   VitalState,
   vitalStateColors,
-} from '../vitalDetail/utils';
-import VitalPercents from '../vitalDetail/vitalPercents';
+} from 'sentry/views/performance/vitalDetail/utils';
+import VitalPercents from 'sentry/views/performance/vitalDetail/vitalPercents';
 
 import {
   getDefaultDisplayFieldForPlatform,

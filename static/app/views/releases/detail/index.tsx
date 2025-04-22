@@ -36,11 +36,10 @@ import {useParams} from 'sentry/utils/useParams';
 import useRouter from 'sentry/utils/useRouter';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
+import type {ReleaseBounds} from 'sentry/views/releases/utils';
+import {getReleaseBounds, searchReleaseVersion} from 'sentry/views/releases/utils';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 import {useReleaseMeta} from 'sentry/views/releases/utils/useReleaseMeta';
-
-import type {ReleaseBounds} from '../utils';
-import {getReleaseBounds, searchReleaseVersion} from '../utils';
 
 import ReleaseHeader from './header/releaseHeader';
 
@@ -349,5 +348,5 @@ function ReleasesDetailContainer(props: ReleasesDetailContainerProps) {
     </PageFiltersContainer>
   );
 }
-export {ReleaseContext, ReleasesDetailContainer};
+export {ReleaseContext};
 export default ReleasesDetailContainer;

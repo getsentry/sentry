@@ -12,7 +12,8 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
-import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
+import {Switch} from 'sentry/components/core/switch';
+import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
@@ -20,19 +21,19 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSetExplorePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
-import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 
 type SingleQueryProps = {
   query: string;
-  visualizes: Visualize[];
+  visualizes: BaseVisualize[];
   groupBys?: string[]; // This needs to be passed in because saveQuery relies on being within the Explore PageParamsContext to fetch params
 };
 
 export type SaveQueryModalProps = {
   organization: Organization;
-  queries: SingleQueryProps[];
-  saveQuery: (name: string) => Promise<SavedQuery>;
+  saveQuery: (name: string, starred?: boolean) => Promise<SavedQuery>;
   name?: string;
+  source?: 'toolbar' | 'table';
 };
 
 type Props = ModalRenderProps & SaveQueryModalProps;
@@ -42,14 +43,15 @@ function SaveQueryModal({
   Body,
   Footer,
   closeModal,
-  queries,
   saveQuery,
   name: initialName,
+  source,
 }: Props) {
   const organization = useOrganization();
 
   const [name, setName] = useState(initialName ?? '');
   const [isSaving, setIsSaving] = useState(false);
+  const [starred, setStarred] = useState(true);
 
   const setExplorePageParams = useSetExplorePageParams();
 
@@ -64,14 +66,19 @@ function SaveQueryModal({
     try {
       setIsSaving(true);
       addLoadingMessage(t('Saving query...'));
-      const {id} = await saveQuery(name);
-      updatePageIdAndTitle(id, name);
+      const {id} = await saveQuery(name, initialName === undefined ? starred : undefined);
+      if (initialName === undefined) {
+        updatePageIdAndTitle(id, name);
+      }
       addSuccessMessage(t('Query saved successfully'));
-      trackAnalytics('trace_explorer.save_as', {
-        save_type: 'saved_query',
-        ui_source: 'toolbar',
-        organization,
-      });
+      if (defined(source)) {
+        trackAnalytics('trace_explorer.save_query_modal', {
+          action: 'submit',
+          save_type: initialName === undefined ? 'save_new_query' : 'rename_query',
+          ui_source: source,
+          organization,
+        });
+      }
       closeModal();
     } catch (error) {
       addErrorMessage(t('Failed to save query'));
@@ -79,11 +86,16 @@ function SaveQueryModal({
     } finally {
       setIsSaving(false);
     }
-  }, [saveQuery, name, updatePageIdAndTitle, closeModal, organization]);
-
-  if (queries.length === 0) {
-    return null;
-  }
+  }, [
+    saveQuery,
+    name,
+    starred,
+    updatePageIdAndTitle,
+    closeModal,
+    organization,
+    initialName,
+    source,
+  ]);
 
   return (
     <Fragment>
@@ -100,12 +112,18 @@ function SaveQueryModal({
             title={t('Enter a name for your saved query')}
           />
         </Wrapper>
-        <Wrapper>
-          <SectionHeader>{t('Query')}</SectionHeader>
-          {queries.map((q, index) => (
-            <ExploreParams key={index} {...q} />
-          ))}
-        </Wrapper>
+        {initialName === undefined && (
+          <StarredWrapper>
+            <Switch
+              checked={starred}
+              onChange={() => {
+                setStarred(!starred);
+              }}
+              title={t('Starred')}
+            />
+            <SectionHeader>{t('Starred')}</SectionHeader>
+          </StarredWrapper>
+        )}
       </Body>
 
       <Footer>
@@ -122,11 +140,16 @@ function SaveQueryModal({
   );
 }
 
-function ExploreParams({query, visualizes, groupBys}: SingleQueryProps) {
+export function ExploreParams({
+  query,
+  visualizes,
+  groupBys,
+  className,
+}: SingleQueryProps & {className?: string}) {
   const yAxes = visualizes.flatMap(visualize => visualize.yAxes);
 
   return (
-    <ExploreParamsContainer>
+    <ExploreParamsContainer className={className}>
       <ExploreParamSection>
         <ExploreParamTitle>{t('Visualize')}</ExploreParamTitle>
         <ExploreParamSection>
@@ -139,7 +162,7 @@ function ExploreParams({query, visualizes, groupBys}: SingleQueryProps) {
         <ExploreParamSection>
           <ExploreParamTitle>{t('Filter')}</ExploreParamTitle>
           <FormattedQueryWrapper>
-            <FormattedQuery query={query} />
+            <ProvidedFormattedQuery query={query} />
           </FormattedQueryWrapper>
         </ExploreParamSection>
       )}
@@ -153,7 +176,6 @@ function ExploreParams({query, visualizes, groupBys}: SingleQueryProps) {
           </ExploreParamSection>
         </ExploreParamSection>
       )}
-      <ExploreParamSection>...</ExploreParamSection>
     </ExploreParamsContainer>
   );
 }
@@ -162,6 +184,17 @@ export default SaveQueryModal;
 
 const Wrapper = styled('div')`
   margin-bottom: ${space(2)};
+`;
+
+const StarredWrapper = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(1)};
+  align-items: center;
+
+  > h6 {
+    margin-bottom: 0;
+  }
 `;
 
 const StyledButtonBar = styled(ButtonBar)`

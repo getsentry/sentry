@@ -6,13 +6,6 @@ import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
 import {
-  SESSIONS_FIELDS,
-  SESSIONS_OPERATIONS,
-} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
-import {STARFISH_FIELDS} from 'sentry/views/insights/common/utils/constants';
-import {STARFISH_AGGREGATION_FIELDS} from 'sentry/views/insights/constants';
-
-import {
   AGGREGATION_FIELDS,
   AggregationKey,
   DISCOVER_FIELDS,
@@ -24,7 +17,13 @@ import {
   MobileVital,
   SpanOpBreakdown,
   WebVital,
-} from '../fields';
+} from 'sentry/utils/fields';
+import {
+  SESSIONS_FIELDS,
+  SESSIONS_OPERATIONS,
+} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
+import {STARFISH_FIELDS} from 'sentry/views/insights/common/utils/constants';
+import {STARFISH_AGGREGATION_FIELDS} from 'sentry/views/insights/constants';
 
 import {CONDITIONS_ARGUMENTS, DiscoverDatasets, WEB_VITALS_QUALITY} from './types';
 
@@ -657,11 +656,6 @@ export type Aggregation = {
 
 export const DEPRECATED_FIELDS: string[] = [FieldKey.CULPRIT];
 
-export type FieldTag = {
-  key: FieldKey;
-  name: FieldKey;
-};
-
 export const FIELD_TAGS = Object.freeze(
   Object.fromEntries(DISCOVER_FIELDS.map(item => [item, {key: item, name: item}]))
 );
@@ -706,7 +700,7 @@ export function formatTagKey(key: string): string {
 // Allows for a less strict field key definition in cases we are returning custom strings as fields
 export type LooseFieldKey = FieldKey | string | '';
 
-export type MeasurementType =
+type MeasurementType =
   | FieldValueType.DURATION
   | FieldValueType.NUMBER
   | FieldValueType.INTEGER

@@ -1,6 +1,6 @@
-import {useRef, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
-import {css, useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 import classNames from 'classnames';
@@ -37,7 +37,6 @@ export function Alert({
   type,
   ...props
 }: AlertProps) {
-  const theme = useTheme();
   const showExpand = defined(expand);
   const [isExpanded, setIsExpanded] = useState(!!props.defaultExpanded);
 
@@ -74,14 +73,13 @@ export function Alert({
       onClick={handleClick}
       hovered={isHovered && !expandIsHovered}
       className={classNames(type ? `ref-${type}` : '', className)}
-      alertColors={getAlertColors(theme, type)}
       type={type}
       {...hoverProps}
       {...props}
     >
       <PanelProvider>
         {showIcon && (
-          <IconWrapper onClick={handleClick}>
+          <IconWrapper type={type} onClick={handleClick}>
             {icon ?? <AlertIcon type={type} />}
           </IconWrapper>
         )}
@@ -103,14 +101,16 @@ export function Alert({
           </ExpandIconWrap>
         )}
         {isExpanded && (
-          <ExpandContainer
-            ref={expandRef}
-            showIcon={!!showIcon}
-            showTrailingItems={!!trailingItems}
-            {...expandHoverProps}
-          >
-            {Array.isArray(expand) ? expand.map(item => item) : expand}
-          </ExpandContainer>
+          <Fragment>
+            <ExpandContainer
+              ref={expandRef}
+              showIcon={!!showIcon}
+              showTrailingItems={!!trailingItems}
+              {...expandHoverProps}
+            >
+              {Array.isArray(expand) ? expand.map(item => item) : expand}
+            </ExpandContainer>
+          </Fragment>
         )}
       </PanelProvider>
     </AlertContainer>
@@ -176,41 +176,39 @@ function getAlertGridLayout(p: AlertProps) {
   return `1fr ${p.trailingItems ? 'min-content' : ''} ${p.expand ? 'min-content' : ''}`;
 }
 
-const AlertPanel = styled('div')<
-  AlertProps & {alertColors: ReturnType<typeof getAlertColors>; hovered: boolean}
->`
+const AlertPanel = styled('div')<AlertProps & {hovered: boolean}>`
   display: grid;
   grid-template-columns: ${p => getAlertGridLayout(p)};
   gap: ${space(1)};
-  color: ${p => p.alertColors.color};
+  color: ${p => getAlertColors(p.theme, p.type).color};
   font-size: ${p => p.theme.fontSizeMedium};
   border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.alertColors.border};
+  border: 1px solid ${p => getAlertColors(p.theme, p.type).border};
   padding: ${space(1.5)} ${space(2)};
-  background: ${p => p.alertColors.backgroundLight};
+  background: ${p => getAlertColors(p.theme, p.type).backgroundLight};
 
   a:not([role='button']) {
-    color: ${p => p.alertColors.color};
-    text-decoration-color: ${p => p.alertColors.border};
+    color: ${p => getAlertColors(p.theme, p.type).color};
+    text-decoration-color: ${p => getAlertColors(p.theme, p.type).border};
     text-decoration-style: solid;
     text-decoration-line: underline;
     text-decoration-thickness: 0.08em;
     text-underline-offset: 0.06em;
   }
   a:not([role='button']):hover {
-    text-decoration-color: ${p => p.alertColors.color};
+    text-decoration-color: ${p => getAlertColors(p.theme, p.type).color};
     text-decoration-style: solid;
   }
 
   pre {
-    background: ${p => p.alertColors.backgroundLight};
+    background: ${p => getAlertColors(p.theme, p.type).backgroundLight};
     margin: ${space(0.5)} 0 0;
   }
 
   ${p =>
     p.hovered &&
     css`
-      border-color: ${p.alertColors.borderHover};
+      border-color: ${getAlertColors(p.theme, p.type).borderHover};
     `}
 
   ${p =>
@@ -236,51 +234,65 @@ const AlertContainer = withChonk(
   ChonkAlert.chonkAlertPropMapping
 );
 
-const IconWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  height: calc(${p => p.theme.fontSizeMedium} * ${p => p.theme.text.lineHeightBody});
-`;
+const IconWrapper = withChonk(
+  styled('div')<{type: AlertProps['type']}>`
+    display: flex;
+    align-items: center;
+    height: calc(${p => p.theme.fontSizeMedium} * ${p => p.theme.text.lineHeightBody});
+  `,
+  ChonkAlert.IconWrapper
+);
 
-const Message = styled('span')`
-  position: relative;
-  line-height: ${p => p.theme.text.lineHeightBody};
-`;
+const Message = withChonk(
+  styled('span')`
+    position: relative;
+    line-height: ${p => p.theme.text.lineHeightBody};
+  `,
+  ChonkAlert.Message
+);
 
-const TrailingItems = styled('div')<{showIcon: boolean}>`
-  height: calc(${p => p.theme.fontSizeMedium} * ${p => p.theme.text.lineHeightBody});
-  display: grid;
-  grid-auto-flow: column;
-  grid-template-rows: 100%;
-  align-items: center;
-  gap: ${space(1)};
+const TrailingItems = withChonk(
+  styled('div')<{showIcon: boolean}>`
+    height: calc(${p => p.theme.fontSizeMedium} * ${p => p.theme.text.lineHeightBody});
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-rows: 100%;
+    align-items: center;
+    gap: ${space(1)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    /* In mobile, TrailingItems should wrap to a second row and be vertically aligned
+    @media (max-width: ${p => p.theme.breakpoints.small}) {
+      /* In mobile, TrailingItems should wrap to a second row and be vertically aligned
     with Message. When there is a leading icon, Message is in the second grid column.
     Otherwise it's in the first grid column. */
-    grid-row: 2;
-    grid-column: ${p => (p.showIcon ? 2 : 1)} / -1;
-    justify-items: start;
-    margin: ${space(0.5)} 0;
-  }
-`;
+      grid-row: 2;
+      grid-column: ${p => (p.showIcon ? 2 : 1)} / -1;
+      justify-items: start;
+      margin: ${space(0.5)} 0;
+    }
+  `,
+  ChonkAlert.TrailingItems
+);
 
-const ExpandIconWrap = styled(IconWrapper)`
+const ExpandIconWrap = styled('div')`
+  display: flex;
+  align-items: center;
   margin-left: ${space(0.5)};
 `;
 
-const ExpandContainer = styled('div')<{showIcon: boolean; showTrailingItems: boolean}>`
-  grid-row: 2;
-  /* ExpandContainer should be vertically aligned with Message. When there is a leading icon,
+const ExpandContainer = withChonk(
+  styled('div')<{showIcon: boolean; showTrailingItems: boolean}>`
+    grid-row: 2;
+    /* ExpandContainer should be vertically aligned with Message. When there is a leading icon,
   Message is in the second grid column. Otherwise it's in the first column. */
-  grid-column: ${p => (p.showIcon ? 2 : 1)} / -1;
-  cursor: auto;
+    grid-column: ${p => (p.showIcon ? 2 : 1)} / -1;
+    cursor: auto;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    grid-row: ${p => (p.showTrailingItems ? 3 : 2)};
-  }
-`;
+    @media (max-width: ${p => p.theme.breakpoints.small}) {
+      grid-row: ${p => (p.showTrailingItems ? 3 : 2)};
+    }
+  `,
+  ChonkAlert.ExpandContainer
+);
 
 function AlertIcon({type}: {type: AlertProps['type']}): React.ReactNode {
   switch (type) {

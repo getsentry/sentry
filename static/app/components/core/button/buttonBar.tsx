@@ -1,3 +1,4 @@
+import {Children, cloneElement, Fragment, isValidElement} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -5,14 +6,25 @@ import {StyledButton} from 'sentry/components/core/button';
 import type {ValidSize} from 'sentry/styles/space';
 import {space} from 'sentry/styles/space';
 
-export interface ButtonBarProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'className'> {
+interface ButtonBarProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'className'> {
   children: React.ReactNode;
   gap?: ValidSize | 0;
   merged?: boolean;
 }
 
 export function ButtonBar({children, merged = false, gap = 0, ...props}: ButtonBarProps) {
+  if (Children.count(children) <= 1) {
+    // There is no need to render a button bar if there is only one button.
+    if (isValidElement(children)) {
+      if (children.type !== Fragment) {
+        return cloneElement(children, props);
+      }
+      return children;
+    }
+
+    return children;
+  }
+
   return (
     <StyledButtonBar merged={merged} gap={gap} {...props}>
       {children}

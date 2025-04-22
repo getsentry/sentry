@@ -68,6 +68,25 @@ def test_apply_async_expires(task_namespace: TaskNamespace) -> None:
     assert activation.parameters == json.dumps({"args": ["arg2"], "kwargs": {"org_id": 2}})
 
 
+def test_apply_async_countdown(task_namespace: TaskNamespace) -> None:
+    def test_func(*args, **kwargs) -> None:
+        pass
+
+    task = Task(
+        name="test.test_func",
+        func=test_func,
+        namespace=task_namespace,
+    )
+    with patch.object(task_namespace, "send_task") as mock_send:
+        task.apply_async(args=["arg2"], kwargs={"org_id": 2}, countdown=600, producer=None)
+        assert mock_send.call_count == 1
+        call_params = mock_send.call_args
+
+    activation = call_params.args[0]
+    assert activation.delay == 600
+    assert activation.parameters == json.dumps({"args": ["arg2"], "kwargs": {"org_id": 2}})
+
+
 def test_delay_taskrunner_immediate_mode(task_namespace: TaskNamespace) -> None:
     calls = []
 
@@ -235,3 +254,44 @@ def test_create_activation_headers(task_namespace: TaskNamespace) -> None:
     assert headers["sentry-trace"]
     assert "baggage" in headers
     assert headers["key"] == "value"
+
+
+def test_create_activation_headers_nested(task_namespace: TaskNamespace) -> None:
+    @task_namespace.register(name="test.parameters")
+    def with_parameters(one: str, two: int, org_id: int) -> None:
+        raise NotImplementedError
+
+    headers = {
+        "key": "value",
+        "nested": {
+            "name": "sentry",
+        },
+    }
+    with pytest.raises(ValueError) as err:
+        with_parameters.create_activation(["one", 22], {"org_id": 99}, headers)
+    assert "Only scalar header values are supported" in str(err)
+    assert "The `nested` header value is of type <class 'dict'>" in str(err)
+
+
+def test_create_activation_headers_monitor_config_treatment(task_namespace: TaskNamespace) -> None:
+    @task_namespace.register(name="test.parameters")
+    def with_parameters(one: str, two: int, org_id: int) -> None:
+        raise NotImplementedError
+
+    headers = {
+        "key": "value",
+        "sentry-monitor-config": {
+            "schedule": {"type": "crontab", "value": "*/15 * * * *"},
+            "timezone": "UTC",
+        },
+        "sentry-monitor-slug": "delete-stuff",
+        "sentry-monitor-check-in-id": "abc123",
+    }
+    activation = with_parameters.create_activation(["one", 22], {"org_id": 99}, headers)
+
+    result = activation.headers
+    assert result
+    assert result["key"] == "value"
+    assert "sentry-monitor-config" not in result
+    assert "sentry-monitor-slug" in result
+    assert "sentry-monitor-check-in-id" in result

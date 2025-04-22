@@ -309,7 +309,7 @@ def migrate_metric_data_conditions(
     action_filter = DataCondition.objects.create(
         comparison=PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH),
         condition_result=True,
-        type=Condition.ISSUE_PRIORITY_EQUALS,
+        type=Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL,
         condition_group=data_condition_group,
     )
     return detector_trigger, action_filter
@@ -576,7 +576,7 @@ def dual_write_alert_rule(alert_rule: AlertRule, user: RpcUser | None = None) ->
     """
     with transaction.atomic(router.db_for_write(Detector)):
         # step 1: migrate the alert rule
-        migrate_alert_rule(alert_rule)
+        migrate_alert_rule(alert_rule, user)
         triggers = AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
         # step 2: migrate each trigger
         for trigger in triggers:

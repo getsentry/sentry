@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -34,6 +34,7 @@ from sentry.models.pullrequest import (
 )
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import (
+    ApiError,
     ApiInvalidRequestError,
     ApiRateLimitedError,
     ApiRetryError,
@@ -99,7 +100,7 @@ class CommitContextIntegration(ABC):
         raise NotImplementedError
 
     def get_blame_for_files(
-        self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
+        self, files: Sequence[SourceLineInfo], extra: dict[str, Any]
     ) -> list[FileBlameInfo]:
         """
         Calls the client's `get_blame_for_files` method to fetch blame for a list of files.
@@ -150,7 +151,7 @@ class CommitContextIntegration(ABC):
             return response
 
     def get_commit_context_all_frames(
-        self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
+        self, files: Sequence[SourceLineInfo], extra: dict[str, Any]
     ) -> list[FileBlameInfo]:
         """
         Given a list of source files and line numbers,returns the commit info for the most recent commit.
@@ -375,24 +376,33 @@ class CommitContextIntegration(ABC):
                 extra={"new_comment": pr_comment is None, "pr_key": pr_key, "repo": repo.name},
             )
 
+    @abstractmethod
+    def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
+        """
+        Handle errors from the create_or_update_comment method.
+
+        Returns True if the error was handled, False otherwise.
+        """
+        raise NotImplementedError
+
 
 class CommitContextClient(ABC):
     base_url: str
 
     @abstractmethod
     def get_blame_for_files(
-        self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
+        self, files: Sequence[SourceLineInfo], extra: dict[str, Any]
     ) -> list[FileBlameInfo]:
         """Get the blame for a list of files. This method should include custom metrics for the specific integration implementation."""
         raise NotImplementedError
 
     @abstractmethod
-    def create_comment(self, repo: str, issue_id: str, data: Mapping[str, Any]) -> Any:
+    def create_comment(self, repo: str, issue_id: str, data: dict[str, Any]) -> Any:
         raise NotImplementedError
 
     @abstractmethod
     def update_comment(
-        self, repo: str, issue_id: str, comment_id: str, data: Mapping[str, Any]
+        self, repo: str, issue_id: str, comment_id: str, data: dict[str, Any]
     ) -> Any:
         raise NotImplementedError
 

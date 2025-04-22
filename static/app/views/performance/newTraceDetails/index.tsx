@@ -13,6 +13,8 @@ import {TraceContextPanel} from 'sentry/views/performance/newTraceDetails/traceC
 import {TraceViewLogsDataProvider} from 'sentry/views/performance/newTraceDetails/traceOurlogs';
 import {TraceWaterfall} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
 import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
+import {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
+import {useTraceWaterfallScroll} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallScroll';
 
 import {useTrace} from './traceApi/useTrace';
 import {useTraceMeta} from './traceApi/useTraceMeta';
@@ -44,21 +46,6 @@ export function TraceView() {
   const params = useParams<{traceSlug?: string}>();
   const traceSlug = useMemo(() => decodeTraceSlug(params.traceSlug), [params.traceSlug]);
 
-  return (
-    <TraceViewLogsDataProvider traceSlug={traceSlug}>
-      <InnerTraceView traceSlug={traceSlug} />
-    </TraceViewLogsDataProvider>
-  );
-}
-
-function InnerTraceView({traceSlug}: {traceSlug: string}) {
-  const organization = useOrganization();
-  const queryParams = useTraceQueryParams();
-  const traceEventView = useTraceEventView(traceSlug, queryParams);
-  const hasTraceNewUi = useHasTraceNewUi();
-  const logsTableData = useLogsPageData();
-  const hideTraceWaterfallIfEmpty = logsTableData?.logsData?.data?.length > 0;
-
   const preferences = useMemo(
     () =>
       loadTraceViewPreferences('trace-view-preferences') ||
@@ -66,51 +53,81 @@ function InnerTraceView({traceSlug}: {traceSlug: string}) {
     []
   );
 
+  return (
+    <TraceViewLogsDataProvider traceSlug={traceSlug}>
+      <TraceStateProvider
+        initialPreferences={preferences}
+        preferencesStorageKey="trace-view-preferences"
+      >
+        <TraceViewImpl traceSlug={traceSlug} />
+      </TraceStateProvider>
+    </TraceViewLogsDataProvider>
+  );
+}
+
+function TraceViewImpl({traceSlug}: {traceSlug: string}) {
+  const organization = useOrganization();
+  const queryParams = useTraceQueryParams();
+  const traceEventView = useTraceEventView(traceSlug, queryParams);
+  const hasTraceNewUi = useHasTraceNewUi();
+  const logsTableData = useLogsPageData();
+  const hideTraceWaterfallIfEmpty = logsTableData?.logsData?.data?.length > 0;
+
   const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);
   const trace = useTrace({traceSlug, timestamp: queryParams.timestamp});
   const rootEvent = useTraceRootEvent(trace.data ?? null);
   const tree = useTraceTree({traceSlug, trace, meta, replay: null});
+
+  const traceWaterfallModels = useTraceWaterfallModels();
+  const traceWaterfallScroll = useTraceWaterfallScroll({
+    organization,
+    tree,
+    viewManager: traceWaterfallModels.viewManager,
+  });
 
   return (
     <SentryDocumentTitle
       title={`${t('Trace Details')} - ${traceSlug}`}
       orgSlug={organization.slug}
     >
-      <TraceStateProvider
-        initialPreferences={preferences}
-        preferencesStorageKey="trace-view-preferences"
-      >
-        <TraceViewLogsDataProvider traceSlug={traceSlug}>
-          <NoProjectMessage organization={organization}>
-            <TraceExternalLayout>
-              <TraceMetaDataHeader
-                rootEventResults={rootEvent}
+      <TraceViewLogsDataProvider traceSlug={traceSlug}>
+        <NoProjectMessage organization={organization}>
+          <TraceExternalLayout>
+            <TraceMetaDataHeader
+              rootEventResults={rootEvent}
+              tree={tree}
+              metaResults={meta}
+              organization={organization}
+              traceSlug={traceSlug}
+              traceEventView={traceEventView}
+              logs={logsTableData.logsData?.data}
+            />
+            <TraceInnerLayout>
+              <TraceWaterfall
                 tree={tree}
-                metaResults={meta}
-                organization={organization}
+                trace={trace}
+                meta={meta}
+                replay={null}
+                source="performance"
+                rootEvent={rootEvent}
                 traceSlug={traceSlug}
                 traceEventView={traceEventView}
-                logs={logsTableData.logsData?.data}
+                organization={organization}
+                hideIfNoData={hideTraceWaterfallIfEmpty}
+                traceWaterfallScrollHandlers={traceWaterfallScroll}
+                traceWaterfallModels={traceWaterfallModels}
               />
-              <TraceInnerLayout>
-                <TraceWaterfall
+              {hasTraceNewUi && (
+                <TraceContextPanel
                   tree={tree}
-                  trace={trace}
-                  meta={meta}
-                  replay={null}
-                  source="performance"
                   rootEvent={rootEvent}
-                  traceSlug={traceSlug}
-                  traceEventView={traceEventView}
-                  organization={organization}
-                  hideIfNoData={hideTraceWaterfallIfEmpty}
+                  onScrollToNode={traceWaterfallScroll.onScrollToNode}
                 />
-                {hasTraceNewUi && <TraceContextPanel tree={tree} rootEvent={rootEvent} />}
-              </TraceInnerLayout>
-            </TraceExternalLayout>
-          </NoProjectMessage>
-        </TraceViewLogsDataProvider>
-      </TraceStateProvider>
+              )}
+            </TraceInnerLayout>
+          </TraceExternalLayout>
+        </NoProjectMessage>
+      </TraceViewLogsDataProvider>
     </SentryDocumentTitle>
   );
 }

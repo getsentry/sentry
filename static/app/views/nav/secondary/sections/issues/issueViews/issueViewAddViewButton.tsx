@@ -6,6 +6,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -13,14 +14,14 @@ import {
   DEFAULT_ENVIRONMENTS,
   DEFAULT_TIME_FILTERS,
 } from 'sentry/views/issueList/issueViews/issueViews';
-import {useUpdateGroupSearchViews} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViews';
-import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
+import {useCreateGroupSearchView} from 'sentry/views/issueList/mutations/useCreateGroupSearchView';
+import {useFetchStarredGroupSearchViews} from 'sentry/views/issueList/queries/useFetchStarredGroupSearchViews';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {useNavContext} from 'sentry/views/nav/context';
 import useDefaultProject from 'sentry/views/nav/secondary/sections/issues/issueViews/useDefaultProject';
 import type {NavLayout} from 'sentry/views/nav/types';
 
-export function IssueViewAddViewButton({baseUrl}: {baseUrl: string}) {
+export function IssueViewAddViewButton() {
   const navigate = useNavigate();
   const organization = useOrganization();
 
@@ -29,43 +30,42 @@ export function IssueViewAddViewButton({baseUrl}: {baseUrl: string}) {
 
   const defaultProject = useDefaultProject();
 
-  const {data: groupSearchViews} = useFetchGroupSearchViews({
+  const {data: starredGroupSearchViews} = useFetchStarredGroupSearchViews({
     orgSlug: organization.slug,
   });
 
-  const {mutate: updateViews} = useUpdateGroupSearchViews({
-    onSuccess: data => {
-      if (data?.length) {
-        navigate(
-          normalizeUrl({
-            pathname: `${baseUrl}/views/${data.at(-1)!.id}/`,
-          })
-        );
-        setIsLoading(false);
-      }
+  const {mutate: createIssueView} = useCreateGroupSearchView({
+    onSuccess: (data, variables) => {
+      setIsLoading(false);
+      navigate(
+        normalizeUrl(`/organizations/${organization.slug}/issues/views/${data.id}/`)
+      );
+
+      trackAnalytics('issue_views.created', {
+        organization,
+        starred: variables.starred ?? false,
+      });
     },
   });
 
   const handleOnAddView = () => {
-    if (groupSearchViews) {
+    if (starredGroupSearchViews) {
       setIsLoading(true);
-      updateViews({
-        groupSearchViews: [
-          ...groupSearchViews,
-          {
-            name: 'New View',
-            query: 'is:unresolved',
-            querySort: IssueSortOptions.DATE,
-            projects: defaultProject,
-            environments: DEFAULT_ENVIRONMENTS,
-            timeFilters: DEFAULT_TIME_FILTERS,
-            starred: true,
-          },
-        ],
-        orgSlug: organization.slug,
+      createIssueView({
+        name: 'New View',
+        query: 'is:unresolved',
+        querySort: IssueSortOptions.DATE,
+        projects: defaultProject,
+        environments: DEFAULT_ENVIRONMENTS,
+        timeFilters: DEFAULT_TIME_FILTERS,
+        starred: true,
       });
     }
   };
+
+  if (organization.features.includes('issue-view-sharing')) {
+    return null;
+  }
 
   return (
     <AddViewButton

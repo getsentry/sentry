@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from unittest import TestCase
 from wsgiref.util import is_hop_by_hop
 
 from django.test import override_settings
@@ -19,7 +20,6 @@ from sentry.silo.util import (
     trim_leading_slashes,
     verify_subnet_signature,
 )
-from sentry.testutils.cases import TestCase
 
 
 class SiloUtilityTest(TestCase):

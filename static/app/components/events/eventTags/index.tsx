@@ -4,14 +4,13 @@ import * as Sentry from '@sentry/react';
 import EventTagCustomBanner from 'sentry/components/events/eventTags/eventTagCustomBanner';
 import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
 import {TagFilter} from 'sentry/components/events/eventTags/util';
+import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import type {Event, EventTag} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import {AnnotatedText} from '../meta/annotatedText';
 
 type Props = {
   event: Event;

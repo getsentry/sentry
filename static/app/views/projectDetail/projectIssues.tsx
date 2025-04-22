@@ -7,6 +7,7 @@ import * as qs from 'query-string';
 import type {Client} from 'sentry/api';
 import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import DiscoverButton from 'sentry/components/discoverButton';
 import GroupList from 'sentry/components/issues/groupList';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -14,7 +15,6 @@ import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import QueryCount from 'sentry/components/queryCount';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
@@ -26,8 +26,7 @@ import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {appendQueryDatasetParam} from 'sentry/views/dashboards/utils';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
-
-import NoGroupsHandler from '../issueList/noGroupsHandler';
+import NoGroupsHandler from 'sentry/views/issueList/noGroupsHandler';
 
 enum IssuesType {
   NEW = 'new',

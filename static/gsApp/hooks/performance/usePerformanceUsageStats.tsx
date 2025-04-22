@@ -3,7 +3,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
-export type PerformanceStatsGroup = {
+type PerformanceStatsGroup = {
   by: {
     reason: string;
   };

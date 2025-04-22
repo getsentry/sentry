@@ -52,11 +52,7 @@ register("system.root-api-key", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODI
 register("system.logging-format", default=LoggingFormat.HUMAN, flags=FLAG_NOSTORE)
 # This is used for the chunk upload endpoint
 register("system.upload-url-prefix", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
-register(
-    "system.maximum-file-size",
-    default=2**31,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
+
 
 # URL configuration
 # Absolute URL to the sentry root directory. Should not include a trailing slash.
@@ -346,6 +342,12 @@ register(
     default={"location": "/tmp/sentry-relocation-files"},
     flags=FLAG_NOSTORE,
 )
+register("filestore.profiles-backend", default="filesystem", flags=FLAG_NOSTORE)
+register(
+    "filestore.profiles-options",
+    default={"location": "/tmp/sentry-profiles", "allow_overwrite": True},
+    flags=FLAG_NOSTORE,
+)
 
 # Filestore for control silo
 register("filestore.control.backend", default="", flags=FLAG_NOSTORE)
@@ -610,12 +612,6 @@ register("github-app.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MOD
 register("github-app.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
 # Github Enterprise Integration
-register(
-    "github-enterprise-app.alert-rule-action",
-    type=Bool,
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "github-enterprise-app.allowed-hosts-legacy-webhooks",
     type=Sequence,
@@ -1037,6 +1033,16 @@ register(
     default=1,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Temporary killswitch for making a second request to Seer to store the incoming event when we have
+# a hybrid fingerprint and none of the matches returned by Seer is a fingerprint match
+register(
+    "seer.similarity.ingest.store_hybrid_fingerprint_non_matches",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # TODO: Once Seer grouping is GA-ed, we probably either want to turn this down or get rid of it in
 # favor of the default 10% sample rate
@@ -2442,6 +2448,12 @@ register(
 # END: SDK Crash Detection
 
 register(
+    "issues.auto_source_code_config.update_code_mapping_if_needed",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     # Lists the shared resource ids we want to account usage for.
     "shared_resources_accounting_enabled",
     default=[],
@@ -2803,20 +2815,12 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Killswitch for GroupRelease.get_or_create refactor
+# Killswitch for EnvironmentProject.get_or_create refactor
 register(
-    "grouprelease.new_get_or_create.rollout",
+    "environmentproject.new_add_project.rollout",
     default=0.0,
     type=Float,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Killswitch for Postgres query timeout error handling
-register(
-    "api.postgres-query-timeout-error-handling.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # TODO: remove once removed from options
@@ -2958,10 +2962,6 @@ register(
     type=Float,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "ecosystem:enable_integration_form_error_raise", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
 
@@ -3195,6 +3195,16 @@ register(
 )
 register(
     "taskworker.tempest.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.relocation.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.relocation.control.rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

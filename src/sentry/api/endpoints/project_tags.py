@@ -6,15 +6,16 @@ from rest_framework.response import Response
 from sentry import features, options, tagstore
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import EnvironmentMixin, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.helpers.environments import get_environment_id
 from sentry.api.utils import clamp_date_range, default_start_end_dates
 from sentry.constants import DS_DENYLIST, PROTECTED_TAG_KEYS
 from sentry.models.environment import Environment
 
 
 @region_silo_endpoint
-class ProjectTagsEndpoint(ProjectEndpoint, EnvironmentMixin):
+class ProjectTagsEndpoint(ProjectEndpoint):
     owner = ApiOwner.UNOWNED
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
@@ -22,7 +23,7 @@ class ProjectTagsEndpoint(ProjectEndpoint, EnvironmentMixin):
 
     def get(self, request: Request, project) -> Response:
         try:
-            environment_id = self._get_environment_id_from_request(request, project.organization_id)
+            environment_id = get_environment_id(request, project.organization_id)
         except Environment.DoesNotExist:
             tag_keys = []
         else:

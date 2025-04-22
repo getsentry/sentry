@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
@@ -18,7 +18,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {DrawerTab} from 'sentry/views/issueDetails/groupDistributionsDrawer';
+import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import {
   getFlagActionLabel,
   type RawFlag,
@@ -36,17 +36,6 @@ export function FlagDetailsDrawerContent() {
 
   const sortArrow = <IconArrow color="gray300" size="xs" direction="down" />;
 
-  const flagQuery = useMemo(() => {
-    return {
-      flag: tagKey,
-      per_page: 50,
-      queryReferrer: 'featureFlagDetailsDrawer',
-      statsPeriod: '90d',
-      sort: '-created_at',
-      cursor: location.query.flagDrawerCursor,
-    };
-  }, [tagKey, location.query.flagDrawerCursor]);
-
   const {
     data: flagLog,
     isPending,
@@ -54,11 +43,25 @@ export function FlagDetailsDrawerContent() {
     getResponseHeader,
   } = useOrganizationFlagLog({
     organization,
-    query: flagQuery,
+    query: {
+      flag: tagKey,
+      per_page: 50,
+      queryReferrer: 'featureFlagDetailsDrawer',
+      sort: '-created_at',
+      cursor: location.query.flagDrawerCursor,
+    },
   });
   const pageLinks = getResponseHeader?.('Link') ?? null;
 
   const analyticsArea = useAnalyticsArea();
+  useEffect(() => {
+    if (!isPending && !isError) {
+      trackAnalytics('flags.drawer_details_rendered', {
+        organization,
+        numLogs: flagLog.data.length,
+      });
+    }
+  }, [organization, flagLog?.data.length, isPending, isError]);
 
   if (isPending) {
     return <LoadingIndicator />;

@@ -16,8 +16,12 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {shiftTabularDataToNow} from 'sentry/utils/tabularData/shiftTabularDataToNow';
 import {shiftTimeSeriesToNow} from 'sentry/utils/timeSeries/shiftTimeSeriesToNow';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-
-import type {LegendSelection, Release, TimeSeries, TimeSeriesMeta} from '../common/types';
+import type {
+  LegendSelection,
+  Release,
+  TimeSeries,
+  TimeSeriesMeta,
+} from 'sentry/views/dashboards/widgets/common/types';
 
 import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
 import {sampleScoreTimeSeries} from './fixtures/sampleScoreTimeSeries';
@@ -597,7 +601,8 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
   });
 
   story('Highlighting', () => {
-    const [sampleId, setSampleId] = useState<string>();
+    const [legendSelection, setLegendSelection] = useState<LegendSelection>({});
+    const [sampleId, setSampleId] = useState<string | null>(null);
 
     const aggregatePlottable = new Line(shiftTimeSeriesToNow(sampleDurationTimeSeries), {
       delay: 1800,
@@ -612,20 +617,27 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
         onHighlight: row => {
           setSampleId(row.id);
         },
+        onDownplay: () => {
+          setSampleId(null);
+        },
       });
     }, []);
 
-    // Synchronize the highlighted sample ID state with ECharts by dispatching a
-    // "highlight" event whenever the highlighted ID changes. Storing the highlighted
-    // ID in the state prevents the highlight from getting cleared on re-render.
+    // Synchronize the highlighted sample ID state with ECharts
     useEffect(() => {
-      samplesPlottable.highlight(undefined);
+      const sample = shiftedSpanSamples.data.find(datum => datum.id === sampleId)!;
 
-      const sample = shiftedSpanSamples.data.find(datum => datum.id === sampleId);
-
+      // Highlight the new selected sample
       if (sample) {
         samplesPlottable.highlight(sample);
       }
+
+      return () => {
+        // Downplay the previous selected sample
+        if (sample) {
+          samplesPlottable.downplay(sample);
+        }
+      };
     }, [sampleId, samplesPlottable]);
 
     return (
@@ -635,14 +647,15 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           first way is to pass the <code>onHighlight</code> configuration option to your
           plottable. All plottables support this configuration option. It's a callback,
           called whenever a data point is highlighted by bringing the X axis cursor near
-          its timestamp. The second way is to manually cause highlighting on your
-          plottables by calling the <code>highlight</code> method of the plottable
-          instance. Note: only <code>Samples</code> supports this right now.
+          its timestamp. There is also a corresponding <code>onDownplay</code> option. The
+          second way is to manually cause highlighting on your plottables by calling the{' '}
+          <code>highlight</code> method of the plottable instance. Note: only{' '}
+          <code>Samples</code> supports this right now.
         </p>
 
         <p>
           e.g., the <code>Samples</code> plottable in the chart below has both a callback,
-          and manual highlighting. The callback reports the ID of the most recently
+          and manual highlighting. The callback reports the ID of the currently
           highlighted sample. The "Highlight Random Sample" button manually highlights a
           random sample in the plottable.
         </p>
@@ -650,7 +663,9 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
         <Button
           size="sm"
           onClick={() => {
-            const sample = shuffle(shiftedSpanSamples.data).at(0) as {
+            const sample = shuffle(shiftedSpanSamples.data).find(
+              shuffledSample => shuffledSample.id !== sampleId
+            ) as {
               id: string;
               timestamp: string;
             };
@@ -663,6 +678,8 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
 
         <MediumWidget>
           <TimeSeriesWidgetVisualization
+            legendSelection={legendSelection}
+            onLegendSelectionChange={setLegendSelection}
             plottables={[aggregatePlottable, samplesPlottable]}
           />
 

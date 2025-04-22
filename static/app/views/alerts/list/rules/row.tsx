@@ -10,6 +10,7 @@ import {
   CompactSelect,
   type SelectOptionOrSection,
 } from 'sentry/components/core/compactSelect';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -18,7 +19,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -32,10 +32,9 @@ import CombinedAlertBadge from 'sentry/views/alerts/list/rules/combinedAlertBadg
 import {getActor} from 'sentry/views/alerts/list/rules/utils';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
-
-import type {CombinedAlerts} from '../../types';
-import {CombinedAlertType} from '../../types';
-import {isIssueAlert} from '../../utils';
+import type {CombinedAlerts} from 'sentry/views/alerts/types';
+import {CombinedAlertType} from 'sentry/views/alerts/types';
+import {isIssueAlert} from 'sentry/views/alerts/utils';
 
 type Props = {
   hasEditAccess: boolean;

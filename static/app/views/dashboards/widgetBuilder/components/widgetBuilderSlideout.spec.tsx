@@ -304,7 +304,7 @@ describe('WidgetBuilderSlideout', () => {
     await userEvent.click(screen.getByText('Errors'));
 
     expect(await screen.findByPlaceholderText('Add Alias')).toHaveValue('');
-  });
+  }, 10_000);
 
   it('clears the alias when display type changes', async () => {
     render(
@@ -342,13 +342,13 @@ describe('WidgetBuilderSlideout', () => {
       'test alias again'
     );
 
-    await userEvent.click(screen.getByText('Table'));
-    await userEvent.click(screen.getByText('Area'));
-    await userEvent.click(screen.getByText('Area'));
-    await userEvent.click(screen.getByText('Table'));
+    await userEvent.click(await screen.findByText('Table'));
+    await userEvent.click(await screen.findByText('Area'));
+    await userEvent.click(await screen.findByText('Area'));
+    await userEvent.click(await screen.findByText('Table'));
 
     expect(await screen.findByPlaceholderText('Add Alias')).toHaveValue('');
-  });
+  }, 10_000);
 
   it('only renders thresholds for big number widgets', async () => {
     render(

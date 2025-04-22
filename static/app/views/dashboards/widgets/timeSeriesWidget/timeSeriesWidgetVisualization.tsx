@@ -23,6 +23,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {
   EChartClickHandler,
   EChartDataZoomHandler,
+  EChartDownplayHandler,
   EChartHighlightHandler,
   ReactEchartsRef,
 } from 'sentry/types/echarts';
@@ -32,12 +33,19 @@ import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {type Range, RangeMap} from 'sentry/utils/number/rangeMap';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
+import {
+  NO_PLOTTABLE_VALUES,
+  X_GUTTER,
+  Y_GUTTER,
+} from 'sentry/views/dashboards/widgets/common/settings';
+import type {
+  LegendSelection,
+  Release,
+} from 'sentry/views/dashboards/widgets/common/types';
+import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useReleaseBubbles} from 'sentry/views/releases/releaseBubbles/useReleaseBubbles';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
-
-import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
-import {NO_PLOTTABLE_VALUES, X_GUTTER, Y_GUTTER} from '../common/settings';
-import type {LegendSelection, Release} from '../common/types';
 
 import {formatTooltipValue} from './formatters/formatTooltipValue';
 import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
@@ -49,7 +57,8 @@ import {TimeSeriesWidgetYAxis} from './timeSeriesWidgetYAxis';
 
 const {error, warn, info} = Sentry.logger;
 
-export interface TimeSeriesWidgetVisualizationProps {
+export interface TimeSeriesWidgetVisualizationProps
+  extends Partial<LoadableChartWidgetProps> {
   /**
    * An array of `Plottable` objects. This can be any object that implements the `Plottable` interface.
    */
@@ -89,10 +98,6 @@ export interface TimeSeriesWidgetVisualizationProps {
    * Default: `auto`
    */
   showLegend?: 'auto' | 'never';
-  /**
-   * Show releases as either lines per release or a bubble for a group of releases.
-   */
-  showReleaseAs?: 'bubble' | 'line';
 }
 
 export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizationProps) {
@@ -108,7 +113,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const {register: registerWithWidgetSyncContext} = useWidgetSyncContext();
 
   const pageFilters = usePageFilters();
-  const {start, end, period, utc} = pageFilters.selection.datetime;
+  const {start, end, period, utc} =
+    props.pageFilters?.datetime || pageFilters.selection.datetime;
 
   const theme = useTheme();
   const organization = useOrganization();
@@ -501,41 +507,48 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);
 
-  const handleClick: EChartClickHandler = event => {
-    const affectedRange = seriesIndexToPlottableRangeMap.getRange(event.seriesIndex);
+  const runHandler = (
+    batch: {dataIndex: number; seriesIndex: number},
+    handlerName: 'onClick' | 'onHighlight' | 'onDownplay'
+  ): void => {
+    const affectedRange = seriesIndexToPlottableRangeMap.getRange(batch.seriesIndex);
     const affectedPlottable = affectedRange?.value;
 
     if (
       !defined(affectedRange) ||
       !defined(affectedPlottable) ||
-      !defined(affectedPlottable.onClick)
+      !defined(affectedPlottable[handlerName])
     ) {
       return;
     }
 
-    affectedPlottable.onClick(
-      getPlottableEventDataIndex(allSeries, event, affectedRange)
+    affectedPlottable[handlerName](
+      getPlottableEventDataIndex(allSeries, batch, affectedRange)
     );
+  };
+
+  const handleClick: EChartClickHandler = event => {
+    runHandler(event, 'onClick');
   };
 
   const handleHighlight: EChartHighlightHandler = event => {
     // Unlike click events, highlights happen to potentially more than one
     // series at a time. We have to iterate each item in the batch
     for (const batch of event.batch ?? []) {
-      const affectedRange = seriesIndexToPlottableRangeMap.getRange(batch.seriesIndex);
-      const affectedPlottable = affectedRange?.value;
+      runHandler(batch, 'onHighlight');
+    }
+  };
 
-      if (
-        !defined(affectedRange) ||
-        !defined(affectedPlottable) ||
-        !defined(affectedPlottable.onHighlight)
-      ) {
-        continue;
+  const handleDownplay: EChartDownplayHandler = event => {
+    // Unlike click events, downplays happen to potentially more than one
+    // series at a time. We have to iterate each item in the batch
+    for (const batch of event.batch ?? []) {
+      // Downplay events sometimes trigger for the entire series, rather than
+      // for individual points. We are ignoring these. It's not clear why or
+      // when they are called, but they appear to be redundant.
+      if (defined(batch.dataIndex) && defined(batch.seriesIndex)) {
+        runHandler(batch, 'onDownplay');
       }
-
-      affectedPlottable.onHighlight(
-        getPlottableEventDataIndex(allSeries, batch, affectedRange)
-      );
     }
   };
 
@@ -578,6 +591,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         props?.onLegendSelectionChange?.(event.selected);
       }}
       tooltip={{
+        appendToBody: true,
         trigger: 'axis',
         axisPointer: {
           type: 'cross',
@@ -611,6 +625,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       period={period}
       utc={utc ?? undefined}
       onHighlight={handleHighlight}
+      onDownplay={handleDownplay}
       onClick={handleClick}
     />
   );

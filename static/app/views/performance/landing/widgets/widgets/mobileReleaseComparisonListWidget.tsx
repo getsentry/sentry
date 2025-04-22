@@ -30,15 +30,16 @@ import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
-import {Subtitle} from 'sentry/views/profiling/landing/styles';
-import {RightAlignedCell} from 'sentry/views/replays/deadRageClick/deadRageSelectorCards';
-
-import {Accordion} from '../components/accordion';
-import {GenericPerformanceWidget} from '../components/performanceWidget';
-import {GrowLink, WidgetEmptyStateWarning} from '../components/selectableList';
-import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
-import type {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
+import {Accordion} from 'sentry/views/performance/landing/widgets/components/accordion';
+import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
+import {
+  GrowLink,
+  WidgetEmptyStateWarning,
+} from 'sentry/views/performance/landing/widgets/components/selectableList';
+import {transformDiscoverToList} from 'sentry/views/performance/landing/widgets/transforms/transformDiscoverToList';
+import type {transformEventsRequestToArea} from 'sentry/views/performance/landing/widgets/transforms/transformEventsToArea';
 import type {
   GenericPerformanceWidgetProps,
   PerformanceWidgetProps,
@@ -47,14 +48,16 @@ import type {
   WidgetDataConstraint,
   WidgetDataResult,
   WidgetPropUnion,
-} from '../types';
+} from 'sentry/views/performance/landing/widgets/types';
 import {
   eventsRequestQueryProps,
   getMEPParamsIfApplicable,
   QUERY_LIMIT_PARAM,
   TOTAL_EXPANDABLE_ROWS_HEIGHT,
-} from '../utils';
-import {PerformanceWidgetSetting} from '../widgetDefinitions';
+} from 'sentry/views/performance/landing/widgets/utils';
+import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
+import {Subtitle} from 'sentry/views/profiling/landing/styles';
+import {RightAlignedCell} from 'sentry/views/replays/deadRageClick/deadRageSelectorCards';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
@@ -65,7 +68,7 @@ type ComponentData = React.ComponentProps<
   GenericPerformanceWidgetProps<DataType>['Visualizations'][0]['component']
 >;
 
-export function transformEventsChartRequest<T extends WidgetDataConstraint>(
+function transformEventsChartRequest<T extends WidgetDataConstraint>(
   widgetProps: WidgetPropUnion<T>,
   results: RenderProps,
   _: QueryDefinitionWithKey<T>
@@ -109,6 +112,18 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
   const {InteractiveTitle} = props;
   const {setPageError} = usePageAlert();
 
+  const useEap = useInsightsEap();
+
+  const dataset = useInsightsEap()
+    ? DiscoverDatasets.SPANS_EAP_RPC
+    : DiscoverDatasets.SPANS_METRICS;
+
+  const queryParams: Record<string, string> = useEap
+    ? {useRpc: '1', dataset: DiscoverDatasets.SPANS_EAP}
+    : {dataset: DiscoverDatasets.SPANS_METRICS};
+
+  const segmentOp = useEap ? 'span.op' : 'transaction.op';
+
   const field = props.fields[0]!;
 
   const listQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
@@ -120,7 +135,9 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
         }
 
         const eventView = provided.eventView.clone();
-        let extraQueryParams = getMEPParamsIfApplicable(mepSetting, props.chartSetting);
+        let extraQueryParams = useEap
+          ? queryParams
+          : getMEPParamsIfApplicable(mepSetting, props.chartSetting);
 
         // Set fields
         const sortField: string = (
@@ -141,16 +158,18 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
         ];
 
         // Change data set to metrics
-        eventView.dataset = DiscoverDatasets.METRICS;
+        eventView.dataset = dataset;
         extraQueryParams = {
           ...extraQueryParams,
-          dataset: DiscoverDatasets.METRICS,
+          ...queryParams,
         };
 
         // Update query
         const mutableSearch = new MutableSearch(eventView.query);
-        mutableSearch.addFilterValue('event.type', 'transaction');
-        mutableSearch.addFilterValue('transaction.op', 'ui.load');
+        if (!useEap) {
+          mutableSearch.addFilterValue('event.type', 'transaction');
+        }
+        mutableSearch.addFilterValue(segmentOp, 'ui.load');
         eventView.query = appendReleaseFilters(
           mutableSearch,
           primaryRelease,
@@ -206,16 +225,18 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
             provided.widgetData.list.data[selectedListIndex]!.transaction as string,
           ]);
 
-          eventView.dataset = DiscoverDatasets.METRICS;
+          eventView.dataset = dataset;
           extraQueryParams = {
             ...extraQueryParams,
-            dataset: DiscoverDatasets.METRICS,
+            ...queryParams,
           };
 
           eventView.fields = [{field}, {field: 'release'}];
           const mutableSearch = new MutableSearch(eventView.query);
-          mutableSearch.addFilterValue('event.type', 'transaction');
-          mutableSearch.addFilterValue('transaction.op', 'ui.load');
+          if (!useEap) {
+            mutableSearch.addFilterValue('event.type', 'transaction');
+          }
+          mutableSearch.addFilterValue(segmentOp, 'ui.load');
           eventView.query = appendReleaseFilters(
             mutableSearch,
             primaryRelease,
@@ -284,7 +305,8 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
             } as SeriesDataUnit;
           }) ?? [];
 
-        const color = isPrimary ? theme.chart.colors[3][0] : theme.chart.colors[3][1];
+        const colors = theme.chart.getColorPalette(3);
+        const color = isPrimary ? colors[0] : colors[1];
         transformedReleaseSeries[release] = {
           seriesName: formatVersion(label, true),
           color,

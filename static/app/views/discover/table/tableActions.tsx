@@ -19,8 +19,7 @@ import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-
-import {downloadAsCsv} from '../utils';
+import {downloadAsCsv} from 'sentry/views/discover/utils';
 
 type Props = {
   error: string | null;

@@ -1,7 +1,6 @@
 import type {AccuracyStats, Confidence} from 'sentry/types/organization';
 import type {DataUnit} from 'sentry/utils/discover/fields';
-
-import type {ThresholdsConfig} from '../../widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
+import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 
 type AttributeValueType =
   | 'number'
@@ -19,7 +18,7 @@ type AttributeValueType =
 
 type AttributeValueUnit = DataUnit | null;
 
-export type TimeSeriesValueType = AttributeValueType;
+type TimeSeriesValueType = AttributeValueType;
 export type TimeSeriesValueUnit = AttributeValueUnit;
 export type TimeSeriesMeta = {
   type: TimeSeriesValueType;
@@ -38,13 +37,14 @@ export type TimeSeries = {
   field: string;
   meta: TimeSeriesMeta;
   confidence?: Confidence;
+  dataScanned?: 'full' | 'partial';
   sampleCount?: AccuracyStats<number>;
   samplingRate?: AccuracyStats<number | null>;
 };
 
 export type TabularValueType = AttributeValueType;
 export type TabularValueUnit = AttributeValueUnit;
-export type TabularMeta<TFields extends string = string> = {
+type TabularMeta<TFields extends string = string> = {
   fields: Record<TFields, TabularValueType>;
   units: Record<TFields, TabularValueUnit>;
 };
@@ -59,7 +59,7 @@ export type TabularData<TFields extends string = string> = {
   meta: TabularMeta<TFields>;
 };
 
-export type ErrorProp = Error | string;
+type ErrorProp = Error | string;
 export interface ErrorPropWithResponseJSON extends Error {
   responseJSON?: {detail: string};
 }

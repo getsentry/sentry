@@ -36,8 +36,7 @@ import {
   TransactionFilterOptions,
   transactionSummaryRouteWithQuery,
 } from 'sentry/views/performance/transactionSummary/utils';
-
-import {getProjectID, getSelectedProjectPlatforms} from '../utils';
+import {getProjectID, getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 
 import {
   getVitalDetailTableMehStatusFunction,
@@ -117,7 +116,7 @@ class Table extends Component<Props, State> {
     const {eventView, organization, projects, location, summaryConditions, theme} =
       this.props;
 
-    if (!tableData || !tableData.meta?.fields) {
+    if (!tableData?.meta?.fields) {
       return dataRow[column.key];
     }
     const tableMeta = tableData.meta?.fields;

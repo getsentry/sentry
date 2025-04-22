@@ -15,6 +15,7 @@ import {safeURL} from 'sentry/utils/url/safeURL';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import type {Policy, Subscription} from 'getsentry/types';
+import {PolicyStatus} from 'getsentry/views/legalAndCompliance/policyStatus';
 import {PanelItemPolicy} from 'getsentry/views/legalAndCompliance/styles';
 
 type PolicyRowProps = {
@@ -172,7 +173,6 @@ export function PolicyRow({
       {modalCss: modalCss(theme)}
     );
   };
-
   const getPolicySubstatus = () => {
     const {consent, updatedAt, version} = policy;
     if (consent && showConsentText) {
@@ -198,7 +198,8 @@ export function PolicyRow({
         </PolicyTitle>
         <PolicySubtext>{getPolicySubstatus()}</PolicySubtext>
       </div>
-      <div>
+      <PolicyStatusRow>
+        <PolicyStatus policy={policy} />
         {policy.url &&
           policyUrl &&
           (policy.consent?.acceptedVersion === policy.version ? (
@@ -229,7 +230,7 @@ export function PolicyRow({
               {t('Review')}
             </LinkButton>
           ))}
-      </div>
+      </PolicyStatusRow>
     </PanelItemPolicy>
   );
 }
@@ -271,4 +272,9 @@ const modalCss = (theme: Theme) => css`
     width: 80%;
     max-width: 1200px;
   }
+`;
+export const PolicyStatusRow = styled('div')`
+  display: flex;
+  align-items: center;
+  height: 100%;
 `;

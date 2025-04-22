@@ -9,7 +9,7 @@ import orjson
 from django.core.exceptions import ObjectDoesNotExist
 from sentry_relay.processing import parse_release
 
-from sentry import tagstore
+from sentry import features, tagstore
 from sentry.constants import LOG_LEVELS
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.identity.services.identity import RpcIdentity, identity_service
@@ -20,6 +20,7 @@ from sentry.integrations.messaging.message_builder import (
     format_actor_option_slack,
     format_actor_options_slack,
     get_title_link,
+    get_title_link_workflow_engine_ui,
 )
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.image_block_builder import ImageBlockBuilder
@@ -52,6 +53,7 @@ from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.notifications.notifications.base import ProjectNotification
+from sentry.notifications.notifications.rules import get_key_from_rule_data
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
@@ -75,6 +77,7 @@ SUPPORTED_COMMIT_PROVIDERS = (
 
 MAX_BLOCK_TEXT_LENGTH = 256
 USER_FEEDBACK_MAX_BLOCK_TEXT_LENGTH = 1500
+MAX_SUMMARY_HEADLINE_LENGTH = 50
 
 
 def get_group_users_count(group: Group, rules: list[Rule] | None = None) -> int:
@@ -455,21 +458,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self,
         event_or_group: Event | GroupEvent | Group,
         has_action: bool,
-        rule_id: int | None = None,
-        rule_environment_id: int | None = None,
-        notification_uuid: str | None = None,
+        title_link: str | None = None,
     ) -> SlackBlock:
-        title_link = get_title_link(
-            self.group,
-            self.event,
-            self.link_to_event,
-            self.issue_details,
-            self.notification,
-            ExternalProviders.SLACK,
-            rule_id,
-            rule_environment_id,
-            notification_uuid=notification_uuid,
-        )
         # If using summary, put the body in the headline as well
         headline = None
         if self.issue_summary is not None:
@@ -480,9 +470,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             text = text.lstrip(" ")
             if "\n" in text:
                 text = text.strip().split("\n")[0] + "..."
-            if len(text) > 100:
-                text = text[:100] + "..."
-            headline = f"{error_type}: `{text}`"
+            if len(text) > MAX_SUMMARY_HEADLINE_LENGTH:
+                text = text[:MAX_SUMMARY_HEADLINE_LENGTH] + "..."
+            headline = f"{error_type}: {text}" if text else error_type
 
         title = headline if headline else build_attachment_title(event_or_group)
 
@@ -622,8 +612,14 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         rule_id = None
         rule_environment_id = None
         if self.rules:
-            rule_id = self.rules[0].id
-            rule_environment_id = self.rules[0].environment_id
+            if features.has("organizations:workflow-engine-ui-links", self.group.organization):
+                rule_id = int(get_key_from_rule_data(self.rules[0], "workflow_id"))
+            elif features.has(
+                "organizations:workflow-engine-trigger-actions", self.group.organization
+            ):
+                rule_id = int(get_key_from_rule_data(self.rules[0], "legacy_rule_id"))
+            else:
+                rule_id = self.rules[0].id
 
         # build up actions text
         if self.actions and self.identity and not action_text:
@@ -631,11 +627,33 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             action_text = get_action_text(self.actions, self.identity)
             has_action = True
 
-        blocks = [
-            self.get_title_block(
-                event_or_group, has_action, rule_id, rule_environment_id, notification_uuid
+        title_link = None
+        if features.has("organizations:workflow-engine-ui-links", self.group.organization):
+            title_link = get_title_link_workflow_engine_ui(
+                self.group,
+                self.event,
+                self.link_to_event,
+                self.issue_details,
+                self.notification,
+                ExternalProviders.SLACK,
+                rule_id,
+                rule_environment_id,
+                notification_uuid=notification_uuid,
             )
-        ]
+        else:
+            title_link = get_title_link(
+                self.group,
+                self.event,
+                self.link_to_event,
+                self.issue_details,
+                self.notification,
+                ExternalProviders.SLACK,
+                rule_id,
+                rule_environment_id,
+                notification_uuid=notification_uuid,
+            )
+
+        blocks = [self.get_title_block(event_or_group, has_action, title_link)]
 
         if culprit_block := self.get_culprit_block(event_or_group):
             blocks.append(culprit_block)

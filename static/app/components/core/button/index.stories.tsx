@@ -42,6 +42,11 @@ export default storyBook('Button', (story, APIReference) => {
           propMatrix={propMatrix}
           selectedProps={['children', 'icon']}
         />
+        <Matrix<ButtonProps>
+          render={Button}
+          propMatrix={propMatrix}
+          selectedProps={['priority', 'disabled']}
+        />
       </div>
     );
   });

@@ -121,6 +121,8 @@ class VirtualColumnDefinition:
     ) = None
     filter_column: str | None = None
     default_value: str | None = None
+    # Processor is the function run in the post process step to transform a row into the final result
+    processor: Callable[[Any], Any] | None = None
 
 
 @dataclass(frozen=True, kw_only=True)

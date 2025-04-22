@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Panel from 'sentry/components/panels/panel';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -11,11 +11,10 @@ import getDuration from 'sentry/utils/duration/getDuration';
 import type {Vital} from 'sentry/utils/performance/vitals/types';
 import type {IconSize} from 'sentry/utils/theme';
 import useProjects from 'sentry/utils/useProjects';
-
-import {TraceDrawerComponents} from '../../traceDrawer/details/styles';
-import {isTransactionNode} from '../../traceGuards';
-import type {TraceTree} from '../../traceModels/traceTree';
-import {TRACE_MEASUREMENT_LOOKUP} from '../../traceModels/traceTree.measurements';
+import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TRACE_MEASUREMENT_LOOKUP} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree.measurements';
 
 interface TraceVitalsProps {
   trace: TraceTree;

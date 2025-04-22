@@ -38,7 +38,9 @@ import {
   TOP_N,
 } from 'sentry/utils/discover/types';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
+import type {WebVital} from 'sentry/utils/fields';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {WidgetType} from 'sentry/views/dashboards/types';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
@@ -50,9 +52,6 @@ import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import type {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
-
-import type {WebVital} from '../fields';
-import {MutableSearch} from '../tokenizeSearch';
 
 import {getSortField} from './fieldRenderers';
 
@@ -145,7 +144,7 @@ export function isFieldSortable(
 
 const decodeFields = (location: Location): Field[] => {
   const {query} = location;
-  if (!query || !query.field) {
+  if (!query?.field) {
     return [];
   }
 
@@ -219,7 +218,7 @@ const collectQueryStringByKey = (query: Query, key: string): string[] => {
 };
 
 export const decodeQuery = (location: Location): string => {
-  if (!location.query || !location.query.query) {
+  if (!location.query?.query) {
     return '';
   }
 
@@ -236,7 +235,7 @@ const decodeTeam = (value: string): 'myteams' | number => {
 };
 
 const decodeTeams = (location: Location): Array<'myteams' | number> => {
-  if (!location.query || !location.query.team) {
+  if (!location.query?.team) {
     return [];
   }
   const value = location.query.team;
@@ -246,7 +245,7 @@ const decodeTeams = (location: Location): Array<'myteams' | number> => {
 };
 
 export const decodeProjects = (location: Location): number[] => {
-  if (!location.query || !location.query.project) {
+  if (!location.query?.project) {
     return [];
   }
 
@@ -284,6 +283,7 @@ export type EventViewOptions = {
   dataset?: DiscoverDatasets;
   expired?: boolean;
   interval?: string;
+  multiSort?: boolean;
   utc?: string | boolean | undefined;
   yAxis?: string | string[] | undefined;
 };
@@ -309,6 +309,7 @@ class EventView {
   createdBy: User | undefined;
   additionalConditions: MutableSearch; // This allows views to always add additional conditions to the query to get specific data. It should not show up in the UI unless explicitly called.
   dataset?: DiscoverDatasets;
+  multiSort?: boolean;
 
   constructor(props: EventViewOptions) {
     const fields: Field[] = Array.isArray(props.fields) ? props.fields : [];
@@ -334,8 +335,12 @@ class EventView {
       }
     });
 
-    const sort = sorts.find(currentSort => sortKeys.includes(currentSort.field));
-    sorts = sort ? [sort] : [];
+    if (props.multiSort) {
+      sorts = sorts.filter(currentSort => sortKeys.includes(currentSort.field));
+    } else {
+      const sort = sorts.find(currentSort => sortKeys.includes(currentSort.field));
+      sorts = sort ? [sort] : [];
+    }
 
     const id = props.id !== null && props.id !== void 0 ? String(props.id) : void 0;
 
@@ -476,6 +481,7 @@ class EventView {
       expired: saved.expired,
       additionalConditions: new MutableSearch([]),
       dataset: saved.dataset,
+      multiSort: saved.multiSort,
     });
   }
 
@@ -813,6 +819,7 @@ class EventView {
       expired: this.expired,
       createdBy: this.createdBy,
       additionalConditions: this.additionalConditions.copy(),
+      multiSort: this.multiSort,
     });
   }
 

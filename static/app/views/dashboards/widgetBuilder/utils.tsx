@@ -25,6 +25,8 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MeasurementCollection} from 'sentry/utils/measurements/measurements';
 import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {FlatValidationError, ValidationError} from 'sentry/views/dashboards/utils';
+import {getNumEquations} from 'sentry/views/dashboards/utils';
 import {
   appendFieldIfUnknown,
   type FieldValueOption,
@@ -32,9 +34,6 @@ import {
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
-
-import type {FlatValidationError, ValidationError} from '../utils';
-import {getNumEquations} from '../utils';
 
 import {DISABLED_SORT, TAG_SORT_DENY_LIST} from './releaseWidget/fields';
 

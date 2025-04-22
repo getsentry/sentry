@@ -10,6 +10,7 @@ import {encodeSort} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {newExploreTarget} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
@@ -17,8 +18,6 @@ import type {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
-
-import type {TimeSeries} from '../dashboards/widgets/common/types';
 
 export function getExploreUrl({
   organization,
@@ -95,9 +94,9 @@ export function getExploreUrlFromSavedQueryUrl({
       title: savedQuery.name,
       selection: {
         datetime: {
-          end: savedQuery.end,
-          period: savedQuery.range,
-          start: savedQuery.start,
+          end: savedQuery.end ?? null,
+          period: savedQuery.range ?? null,
+          start: savedQuery.start ?? null,
           utc: null,
         },
         environments: savedQuery.environment,
@@ -116,9 +115,9 @@ export function getExploreUrlFromSavedQueryUrl({
     mode: savedQuery.query[0].mode as Mode,
     selection: {
       datetime: {
-        end: savedQuery.end,
-        period: savedQuery.range,
-        start: savedQuery.start,
+        end: savedQuery.end ?? null,
+        period: savedQuery.range ?? null,
+        start: savedQuery.start ?? null,
         utc: null,
       },
       environments: savedQuery.environment,
@@ -280,4 +279,28 @@ export function showConfidence(isSampled: boolean | null | undefined) {
     return false;
   }
   return true;
+}
+
+export function getDefaultExploreRoute(organization: Organization) {
+  if (organization.features.includes('performance-trace-explorer')) {
+    return 'traces';
+  }
+
+  if (organization.features.includes('ourlogs-enabled')) {
+    return 'logs';
+  }
+
+  if (organization.features.includes('discover-basic')) {
+    return 'discover';
+  }
+
+  if (organization.features.includes('performance-profiling')) {
+    return 'profiling';
+  }
+
+  if (organization.features.includes('session-replay-ui')) {
+    return 'replays';
+  }
+
+  return 'releases';
 }

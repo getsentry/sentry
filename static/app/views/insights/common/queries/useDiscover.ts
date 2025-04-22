@@ -4,6 +4,7 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {OurLogFieldKey, OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {useWrappedDiscoverQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
@@ -30,12 +31,16 @@ interface UseDiscoverOptions<Fields> {
   orderby?: string | string[];
   pageFilters?: PageFilters;
   projectIds?: number[];
+  samplingMode?: SamplingMode | 'NONE';
   /**
    * TODO - ideally this probably would be only `Mutable Search`, but it doesn't handle some situations well
    */
   search?: MutableSearch | string;
   sorts?: Sort[];
 }
+
+// The default sampling mode for eap queries
+export const DEFAULT_SAMPLING_MODE: SamplingMode = 'BEST_EFFORT';
 
 export const useSpansIndexed = <Fields extends SpanIndexedProperty[]>(
   options: UseDiscoverOptions<Fields> = {},
@@ -65,12 +70,11 @@ export const useOurlogs = <Fields extends OurLogFieldKey[]>(
 
 export const useEAPSpans = <Fields extends EAPSpanProperty[]>(
   options: UseDiscoverOptions<Fields> = {},
-  referrer: string,
-  useRpc?: boolean
+  referrer: string
 ) => {
   return useDiscover<Fields, EAPSpanResponse>(
     options,
-    useRpc ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_EAP,
+    DiscoverDatasets.SPANS_EAP_RPC,
     referrer
   );
 };
@@ -129,7 +133,11 @@ export const useDiscover = <
     noPagination,
     projectIds,
     orderby,
+    samplingMode = DEFAULT_SAMPLING_MODE,
   } = options;
+
+  // TODO: remove this check with eap
+  const shouldSetSamplingMode = dataset === DiscoverDatasets.SPANS_EAP_RPC;
 
   const pageFilters = usePageFilters();
 
@@ -151,6 +159,8 @@ export const useDiscover = <
     referrer,
     cursor,
     noPagination,
+    samplingMode:
+      samplingMode === 'NONE' || !shouldSetSamplingMode ? undefined : samplingMode,
   });
 
   // This type is a little awkward but it explicitly states that the response could be empty. This doesn't enable unchecked access errors, but it at least indicates that it's possible that there's no data

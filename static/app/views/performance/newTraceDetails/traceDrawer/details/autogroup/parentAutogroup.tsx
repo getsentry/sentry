@@ -3,14 +3,16 @@ import {useTheme} from '@emotion/react';
 
 import {IconGroup} from 'sentry/icons';
 import {t} from 'sentry/locale';
-
-import type {TraceTreeNodeDetailsProps} from '../../../traceDrawer/tabs/traceTreeNodeDetails';
-import type {ParentAutogroupNode} from '../../../traceModels/parentAutogroupNode';
-import {TraceTree} from '../../../traceModels/traceTree';
-import {makeTraceNodeBarColor} from '../../../traceRow/traceBar';
-import {getTraceTabTitle} from '../../../traceState/traceTabs';
-import {IssueList} from '.././issues/issues';
-import {type SectionCardKeyValueList, TraceDrawerComponents} from '.././styles';
+import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
+import {
+  type SectionCardKeyValueList,
+  TraceDrawerComponents,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
+import type {ParentAutogroupNode} from 'sentry/views/performance/newTraceDetails/traceModels/parentAutogroupNode';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {makeTraceNodeBarColor} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
+import {getTraceTabTitle} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 
 export function ParentAutogroupNodeDetails({
   node,
@@ -20,8 +22,8 @@ export function ParentAutogroupNodeDetails({
 }: TraceTreeNodeDetailsProps<ParentAutogroupNode>) {
   const theme = useTheme();
   const issues = useMemo(() => {
-    return [...node.errors, ...node.occurences];
-  }, [node.errors, node.occurences]);
+    return [...node.errors, ...node.occurrences];
+  }, [node.errors, node.occurrences]);
 
   const parentTransaction = TraceTree.ParentTransaction(node);
 
