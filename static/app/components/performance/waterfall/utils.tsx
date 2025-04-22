@@ -250,7 +250,8 @@ export const pickBarColor = (input: string | undefined, theme: Theme): string =>
   const barColors = makeBarColors(theme);
 
   if (!input || input.length < 3) {
-    return theme.chart.colors[17][4];
+    const colors = theme.chart.getColorPalette(17);
+    return colors[4]!;
   }
 
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message

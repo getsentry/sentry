@@ -628,7 +628,8 @@ export function ActivityCell({replay, showDropdownFilters}: Props) {
   if (replay.is_archived) {
     return <Item isArchived />;
   }
-  const scoreBarPalette = new Array(10).fill([theme.chart.colors[0][0]]);
+  const colors = theme.chart.getColorPalette(0);
+  const scoreBarPalette = new Array(10).fill([colors[0]]);
   return (
     <Item>
       <Container>

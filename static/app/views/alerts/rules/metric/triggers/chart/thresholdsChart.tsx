@@ -442,7 +442,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
             ...this.getThresholdLine(trigger, 'resolveThreshold', true),
           ]),
         })}
-        colors={this.props.theme.chart.colors[0]}
+        colors={this.props.theme.chart.getColorPalette(0)}
         series={[
           ...dataWithoutRecentBucket,
           ...comparisonMarkLines,

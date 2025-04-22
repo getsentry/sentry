@@ -39,6 +39,7 @@ export function ThroughputChart({id, error, destination, pageFilters, referrer}:
     pageFilters,
   });
 
+  const colors = theme.chart.getColorPalette(2);
   return (
     <InsightsLineChartWidget
       id={id}
@@ -47,14 +48,14 @@ export function ThroughputChart({id, error, destination, pageFilters, referrer}:
         renameDiscoverSeries(
           {
             ...publishData['epm()'],
-            color: theme.chart.colors[2][1],
+            color: colors[1],
           },
           'epm() span.op:queue.publish'
         ),
         renameDiscoverSeries(
           {
             ...processData['epm()'],
-            color: theme.chart.colors[2][2],
+            color: colors[2],
           },
           'epm() span.op:queue.process'
         ),
