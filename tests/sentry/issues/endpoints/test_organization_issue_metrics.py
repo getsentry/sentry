@@ -9,12 +9,12 @@ from sentry.testutils.cases import APITestCase
 class OrganizationIssueMetricsTestCase(APITestCase):
     endpoint = "sentry-api-0-organization-issue-metrics"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.url = reverse(self.endpoint, args=(self.organization.slug,))
 
-    def test_get_errors(self):
+    def test_get_errors(self) -> None:
         project1 = self.create_project(teams=[self.team], slug="foo")
         project2 = self.create_project(teams=[self.team], slug="bar")
         one = self.create_release(project1, version="1.0.0")
@@ -110,7 +110,7 @@ class OrganizationIssueMetricsTestCase(APITestCase):
             },
         ]
 
-    def test_get_issues_by_project(self):
+    def test_get_issues_by_project(self) -> None:
         """Assert the project filter works."""
         project1 = self.create_project(teams=[self.team], slug="foo")
         project2 = self.create_project(teams=[self.team], slug="bar")
@@ -173,7 +173,7 @@ class OrganizationIssueMetricsTestCase(APITestCase):
             },
         ]
 
-    def test_get_feedback(self):
+    def test_get_feedback(self) -> None:
         project1 = self.create_project(teams=[self.team], slug="foo")
         project2 = self.create_project(teams=[self.team], slug="bar")
 
@@ -245,31 +245,31 @@ class OrganizationIssueMetricsTestCase(APITestCase):
             },
         ]
 
-    def test_get_too_much_granularity(self):
+    def test_get_too_much_granularity(self) -> None:
         response = self.client.get(self.url + "?statsPeriod=14d&interval=1001")
         assert response.status_code == 400
         assert response.json() == {
             "detail": "The specified granularity is too precise. Increase your interval."
         }
 
-    def test_get_invalid_interval(self):
+    def test_get_invalid_interval(self) -> None:
         response = self.client.get(self.url + "?interval=foo")
         assert response.status_code == 400
         assert response.json() == {"detail": "Could not parse interval value."}
 
-    def test_get_zero_interval(self):
+    def test_get_zero_interval(self) -> None:
         response = self.client.get(self.url + "?interval=0")
         assert response.status_code == 400
         assert response.json() == {"detail": "Interval must be greater than 1000 milliseconds."}
 
-    def test_get_invalid_category(self):
+    def test_get_invalid_category(self) -> None:
         response = self.client.get(self.url + "?category=foo")
         assert response.status_code == 400
         assert response.json() == {
             "detail": "Invalid issue category. Valid options are 'issue' and 'feedback'."
         }
 
-    def test_other_grouping(self):
+    def test_other_grouping(self) -> None:
         project1 = self.create_project(teams=[self.team], slug="foo")
         project2 = self.create_project(teams=[self.team], slug="bar")
         one = self.create_release(project1, version="1.0.0")
