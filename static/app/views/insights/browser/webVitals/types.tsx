@@ -72,8 +72,6 @@ export type ProjectScore = Partial<Score>;
 
 export type RowWithScoreAndOpportunity = Row & Score & Opportunity;
 
-export type RowWithScore = Row & Score;
-
 export type WebVitals = 'lcp' | 'fcp' | 'cls' | 'ttfb' | 'inp';
 
 // TODO: Refactor once stored scores are GA'd

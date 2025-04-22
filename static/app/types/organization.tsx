@@ -288,12 +288,6 @@ export interface SavedQuery extends NewQuery {
   id: string;
 }
 
-export type SavedQueryState = {
-  hasError: boolean;
-  isLoading: boolean;
-  savedQueries: SavedQuery[];
-};
-
 export type Confidence = 'high' | 'low' | null;
 
 export type EventsStatsData = Array<

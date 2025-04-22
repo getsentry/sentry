@@ -23,13 +23,3 @@ export interface ReplayNetworkRequestOrResponse {
   body?: NetworkBody;
   size?: number;
 }
-
-export type ReplayNetworkRequestData = {
-  endTimestamp: number;
-  startTimestamp: number;
-  statusCode: number;
-  url: string;
-  method?: string;
-  request?: ReplayNetworkRequestOrResponse;
-  response?: ReplayNetworkRequestOrResponse;
-};

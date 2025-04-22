@@ -141,12 +141,6 @@ export type RawSpanFrame =
   | CompatibleReplayWebVitalFrame;
 export type SpanFrameEvent = TSpanFrameEvent;
 
-export type CustomEvent<T = RecordingFrame> = T extends RecordingFrame & {
-  type: EventType.Custom;
-}
-  ? T
-  : never;
-
 export function isRecordingFrame(
   attachment: Record<string, any>
 ): attachment is RecordingFrame {
@@ -367,17 +361,11 @@ export type FeedbackFrame = {
   type: string;
 };
 
-export type ForegroundFrame = HydratedBreadcrumb<'app.foreground'>;
-export type BackgroundFrame = HydratedBreadcrumb<'app.background'>;
-export type BlurFrame = HydratedBreadcrumb<'ui.blur'>;
 export type ClickFrame = HydratedBreadcrumb<'ui.click'>;
 export type TapFrame = HydratedBreadcrumb<'ui.tap'>;
 export type SwipeFrame = HydratedBreadcrumb<'ui.swipe'>;
 export type ScrollFrame = HydratedBreadcrumb<'ui.scroll'>;
 export type ConsoleFrame = HydratedBreadcrumb<'console'>;
-export type FocusFrame = HydratedBreadcrumb<'ui.focus'>;
-export type InputFrame = HydratedBreadcrumb<'ui.input'>;
-export type KeyboardEventFrame = HydratedBreadcrumb<'ui.keyDown'>;
 export type MultiClickFrame = HydratedBreadcrumb<'ui.multiClick'>;
 export type MutationFrame = HydratedBreadcrumb<'replay.mutations'>;
 export type HydrationErrorFrame = Overwrite<
@@ -423,7 +411,6 @@ export const BreadcrumbCategories = [
 
 // Spans
 export type SpanFrame = Overwrite<TRawSpanFrame, HydratedStartEndDate>;
-export type HistoryFrame = HydratedSpan<'navigation.push'>;
 export type WebVitalFrame = HydratedSpan<
   | 'largest-contentful-paint'
   | 'cumulative-layout-shift'

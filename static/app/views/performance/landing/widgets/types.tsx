@@ -2,7 +2,6 @@ import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
 import type BaseChart from 'sentry/components/charts/baseChart';
-import type {RenderProps} from 'sentry/components/charts/eventsRequest';
 import type {DateString} from 'sentry/types/core';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -156,16 +155,11 @@ export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
   containerType?: PerformanceWidgetContainerTypes;
 };
 
-export type GenericPerformanceWithData<T extends WidgetDataConstraint> =
-  GenericPerformanceWidgetProps<T> & WidgetDataProps<T>;
-
 export type WidgetDataProps<T> = {
   removeWidgetDataForKey: (dataKey: string) => void;
   setWidgetDataForKey: (dataKey: string, result?: WidgetDataResult) => void;
   widgetData: T;
 };
-
-export type EventsRequestChildrenProps = RenderProps;
 
 export type QueryDefinitionWithKey<T extends WidgetDataConstraint> = QueryDefinition<
   T,

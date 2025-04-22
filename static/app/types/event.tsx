@@ -51,13 +51,6 @@ type VariantEvidence = {
   parent_span_ids?: string[];
 };
 
-type EventGroupVariantKey =
-  | 'built-in-fingerprint'
-  | 'custom-fingerprint'
-  | 'app'
-  | 'default'
-  | 'system';
-
 export const enum EventGroupVariantType {
   CHECKSUM = 'checksum',
   FALLBACK = 'fallback',
@@ -121,8 +114,6 @@ export type EventGroupVariant =
   | CustomFingerprintVariant
   | BuiltInFingerprintVariant
   | PerformanceProblemVariant;
-
-export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
 
 /**
  * SDK Update metadata
@@ -210,10 +201,6 @@ export type Frame = {
   sourceLink?: string | null;
   symbolicatorStatus?: SymbolicatorStatus;
 };
-
-export enum FrameBadge {
-  GROUPING = 'grouping',
-}
 
 export type ExceptionValue = {
   mechanism: StackTraceMechanism | null;

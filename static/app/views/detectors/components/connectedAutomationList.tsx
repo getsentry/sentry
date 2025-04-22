@@ -21,9 +21,6 @@ const columns = defineColumns<Automation>({
   },
 });
 
-export interface ConnectedAutomationsListProps {
-  automations: Automation[];
-}
 export function ConnectedAutomationsList({automations = []}) {
   return (
     <SimpleTable

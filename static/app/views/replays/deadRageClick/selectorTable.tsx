@@ -23,10 +23,6 @@ import {WiderHovercard} from 'sentry/views/insights/common/components/tableCells
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {DeadRageSelectorItem} from 'sentry/views/replays/types';
 
-export interface UrlState {
-  widths: string[];
-}
-
 export function transformSelectorQuery(selector: string) {
   return selector
     .replaceAll('"', `\\"`)

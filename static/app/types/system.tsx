@@ -457,8 +457,3 @@ export interface StatuspageIncident {
    */
   updated_at: string | undefined;
 }
-
-export type PromptActivity = {
-  dismissedTime?: number;
-  snoozedTime?: number;
-};

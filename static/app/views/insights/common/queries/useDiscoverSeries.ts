@@ -27,11 +27,6 @@ import type {
 
 import {convertDiscoverTimeseriesResponse} from './convertDiscoverTimeseriesResponse';
 
-export interface MetricTimeseriesRow {
-  [key: string]: number;
-  interval: number;
-}
-
 export type DiscoverSeries = Series & {
   meta: EventsMetaType;
 };

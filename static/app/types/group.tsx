@@ -993,18 +993,3 @@ export type ShortIdResponse = {
   projectSlug: string;
   shortId: string;
 };
-
-/**
- * Note used in Group Activity and Alerts for users to comment
- */
-export type Note = {
-  /**
-   * Array of [id, display string] tuples used for @-mentions
-   */
-  mentions: Array<[string, string]>;
-
-  /**
-   * Note contents (markdown allowed)
-   */
-  text: string;
-};

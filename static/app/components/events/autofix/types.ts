@@ -21,14 +21,6 @@ export enum AutofixStepType {
   SOLUTION = 'solution',
 }
 
-export enum AutofixCodebaseIndexingStatus {
-  UP_TO_DATE = 'up_to_date',
-  INDEXING = 'indexing',
-  NOT_INDEXED = 'not_indexed',
-  OUT_OF_DATE = 'out_of_date',
-  ERRORED = 'errored',
-}
-
 export enum AutofixStatus {
   COMPLETED = 'COMPLETED',
   ERROR = 'ERROR',
@@ -45,12 +37,6 @@ type AutofixPullRequestDetails = {
 
 type AutofixOptions = {
   iterative_feedback?: boolean;
-};
-
-export type AutofixUpdateEndpointResponse = {
-  run_id: number;
-  message?: string;
-  status?: 'success' | 'error';
 };
 
 type CodebaseState = {
@@ -117,14 +103,6 @@ export interface CommentThreadMessage {
   role: 'user' | 'assistant';
   isLoading?: boolean;
 }
-
-export type CodeSnippetContext = {
-  file_path: string;
-  repo_name: string;
-  snippet: string;
-  end_line?: number;
-  start_line?: number;
-};
 
 export type AutofixInsight = {
   insight: string;
@@ -252,16 +230,6 @@ export interface AutofixRepoDefinition {
   name: string;
   owner: string;
   provider: string;
-}
-
-export interface Repository {
-  externalId: string;
-  id: string;
-  name: string;
-  provider?: {
-    id?: string;
-    name?: string;
-  };
 }
 
 export interface RepoSettings {
