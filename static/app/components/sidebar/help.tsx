@@ -1,4 +1,3 @@
-import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
@@ -39,13 +38,13 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
   const {mutate: mutateUserOptions} = useMutateUserOptions();
   const openForm = useFeedbackForm();
 
-  const onHelpMenuOpen = useCallback(() => {
-    navPrompts.onOpenHelpMenu();
-    chonkPrompts.dismissDotIndicatorPrompt();
-  }, [navPrompts, chonkPrompts]);
-
   return (
-    <DeprecatedDropdownMenu onOpen={onHelpMenuOpen}>
+    <DeprecatedDropdownMenu
+      onOpen={() => {
+        navPrompts.onOpenHelpMenu();
+        chonkPrompts.dismissDotIndicatorPrompt();
+      }}
+    >
       {({isOpen, getActorProps, getMenuProps}) => (
         <HelpRoot>
           <HelpActor {...getActorProps({onClick: hidePanel})}>
