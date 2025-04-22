@@ -72,12 +72,10 @@ export type ProjectScore = Partial<Score>;
 
 export type RowWithScoreAndOpportunity = Row & Score & Opportunity;
 
-export type RowWithScore = Row & Score;
-
 export type WebVitals = 'lcp' | 'fcp' | 'cls' | 'ttfb' | 'inp';
 
 // TODO: Refactor once stored scores are GA'd
-export const SORTABLE_SCORE_FIELDS = [
+const SORTABLE_SCORE_FIELDS = [
   'totalScore',
   'opportunity',
   'avg(measurements.score.total)',
@@ -94,7 +92,7 @@ export const SORTABLE_FIELDS = [
   ...SORTABLE_SCORE_FIELDS,
 ] as const;
 
-export const SORTABLE_INDEXED_SCORE_FIELDS = [
+const SORTABLE_INDEXED_SCORE_FIELDS = [
   'totalScore',
   'measurements.score.total',
   'inpScore',

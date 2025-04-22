@@ -5,7 +5,7 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {safeURL} from 'sentry/utils/url/safeURL';
 
 // remove leading and trailing whitespace and remove double spaces
-export function formatQueryString(query: string): string {
+function formatQueryString(query: string): string {
   return query.trim().replace(/\s+/g, ' ');
 }
 
