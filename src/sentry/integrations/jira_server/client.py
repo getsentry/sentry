@@ -11,11 +11,11 @@ from requests import PreparedRequest
 from requests_oauthlib import OAuth1
 
 from sentry.identity.services.identity.model import RpcIdentity
+from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.client import ApiClient
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.utils.metrics import (
-    IntegrationDomain,
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
 )
