@@ -15,7 +15,7 @@ import {
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription as TSubscription} from 'getsentry/types';
-import {PlanTier} from 'getsentry/types';
+import {FTCConsentLocation, PlanTier} from 'getsentry/types';
 import {BillingDetails as BillingDetailsView} from 'getsentry/views/subscriptionPage/billingDetails';
 
 jest.mock('getsentry/utils/stripe', () => ({
@@ -228,6 +228,7 @@ describe('Subscription > BillingDetails', function () {
       expect.objectContaining({
         data: expect.objectContaining({
           paymentMethod: 'pm_abc123',
+          ftcConsentLocation: FTCConsentLocation.BILLING_DETAILS,
         }),
       })
     );
