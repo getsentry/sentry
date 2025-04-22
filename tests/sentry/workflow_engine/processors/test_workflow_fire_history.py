@@ -188,7 +188,7 @@ class WorkflowGroupsPaginatedTest(TestCase):
 
 
 @freeze_time()
-class FetchRuleHourlyStatsTest(TestCase):
+class WorkflowHourlyStatsTest(TestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
