@@ -7,7 +7,7 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from operator import attrgetter
-from typing import Any, ClassVar
+from typing import Any, ClassVar, TypedDict
 
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.base import IntegrationInstallation
@@ -33,6 +33,19 @@ from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger("sentry.integrations.issues")
 MAX_CHAR = 50
+
+
+class BaseFormFieldConfig(TypedDict):
+    name: str
+    label: str
+    default: str
+    type: str
+    required: bool
+
+
+class TextAreaFormFieldConfig(BaseFormFieldConfig, total=False):
+    autosize: bool
+    maxRows: int
 
 
 class ResolveSyncAction(enum.Enum):
@@ -144,7 +157,7 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
     @all_silo_function
     def get_create_issue_config(
         self, group: Group | None, user: User | RpcUser, **kwargs
-    ) -> list[dict[str, Any]]:
+    ) -> list[BaseFormFieldConfig]:
         """
         These fields are used to render a form for the user,
         and are then passed in the format of:
@@ -160,21 +173,22 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
         event = group.get_latest_event()
 
         return [
-            {
-                "name": "title",
-                "label": "Title",
-                "default": self.get_group_title(group, event, **kwargs),
-                "type": "string",
-                "required": True,
-            },
-            {
-                "name": "description",
-                "label": "Description",
-                "default": self.get_group_description(group, event, **kwargs),
-                "type": "textarea",
-                "autosize": True,
-                "maxRows": 10,
-            },
+            BaseFormFieldConfig(
+                name="title",
+                label="Title",
+                default=self.get_group_title(group, event, **kwargs),
+                type="string",
+                required=True,
+            ),
+            TextAreaFormFieldConfig(
+                name="description",
+                label="Description",
+                default=self.get_group_description(group, event, **kwargs),
+                type="textarea",
+                autosize=True,
+                maxRows=10,
+                required=False,
+            ),
         ]
 
     def get_link_issue_config(self, group, **kwargs):
