@@ -63,12 +63,42 @@ export enum SavedSearchType {
 }
 
 export enum IssueCategory {
-  PERFORMANCE = 'performance',
   ERROR = 'error',
+  FEEDBACK = 'feedback',
+
+  /**
+   * @deprecated
+   * Regression issues will move to the "performance_regression" category
+   * Other issues will move to the "performance_best_practice" category
+   */
+  PERFORMANCE = 'performance',
+  /**
+   * @deprecated
+   * Cron issues will move to the "outage" category
+   */
   CRON = 'cron',
+  /**
+   * @deprecated
+   * Rage/dead click issues will move to the "user_experience" category
+   */
   REPLAY = 'replay',
+  /**
+   * @deprecated
+   * Uptime issues will move to the "outage" category
+   */
   UPTIME = 'uptime',
+  /**
+   * @deprecated
+   * Metric alert issues will move to the "performance_regression" category
+   */
   METRIC_ALERT = 'metric_alert',
+
+  // New issue categories (under the issue-taxonomy flag)
+  OUTAGE = 'outage',
+  PERFORMANCE_REGRESSION = 'performance_regression',
+  USER_EXPERIENCE = 'user_experience',
+  RESPONSIVENESS = 'responsiveness',
+  PERFORMANCE_BEST_PRACTICE = 'performance_best_practice',
 }
 
 export enum IssueType {

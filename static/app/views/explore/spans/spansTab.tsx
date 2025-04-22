@@ -24,6 +24,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   type AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
@@ -34,8 +35,8 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {ExploreCharts} from 'sentry/views/explore/charts';
 import SchemaHintsList, {
   SchemaHintsSection,
-} from 'sentry/views/explore/components/schemaHintsList';
-import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
+} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {
   PageParamsProvider,
   useExploreDataset,
@@ -201,7 +202,9 @@ export function SpansTabContentImpl({
     (queryType === 'samples'
       ? false // Samples mode won't show the progressive loading spinner
       : queryType === 'aggregate'
-        ? aggregatesTableResult.samplingMode !== SAMPLING_MODE.BEST_EFFORT
+        ? // Only show the progressive spinner after the preflight query has been run
+          aggregatesTableResult.samplingMode === SAMPLING_MODE.PREFLIGHT &&
+          aggregatesTableResult.result.isFetched
         : false);
 
   const eapSpanSearchQueryBuilderProps = {
@@ -318,6 +321,7 @@ export function SpansTabContentImpl({
                 visualizes={visualizes}
                 setVisualizes={setVisualizes}
                 samplingMode={timeseriesSamplingMode}
+                dataset={DiscoverDatasets.SPANS_EAP}
               />
               <ExploreTables
                 aggregatesTableResult={aggregatesTableResult}
