@@ -4,10 +4,20 @@ import type {PageFilters} from 'sentry/types/core';
  * These props are common across components that are required to dynamically
  * render an Insight Chart Widget
  */
-export interface LoadableChartWidgetProps {
-  // TODO(billy): This should be required when all chart widgets are converted
+export interface LoadableChartWidgetProps<T = Record<string, string> | undefined> {
+  /**
+   * Additional chart-specific properties that are required to render the
+   * chart. `chartProperties` should be of type Record<string, string> as it
+   * will be appended to the URL as query parameters so that the chart can be
+   * linked.
+   */
+
+  chartProperties?: T;
+
   /**
    * Unique ID for the widget
+   *
+   * TODO(billy): This should be required when all chart widgets are converted
    */
   id?: string;
 

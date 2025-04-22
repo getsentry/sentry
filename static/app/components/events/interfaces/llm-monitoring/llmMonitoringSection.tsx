@@ -5,12 +5,10 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import LlmNumberOfPipelinesChartWidget from 'sentry/views/insights/common/components/widgets/llmNumberOfPipelinesChartWidget';
+import LlmTotalTokensUsedChart from 'sentry/views/insights/common/components/widgets/llmTotalTokensUsedChartWidget';
 import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
-import {
-  NumberOfPipelinesChart,
-  TotalTokensUsedChart,
-} from 'sentry/views/insights/llmMonitoring/components/charts/llmMonitoringCharts';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
@@ -53,10 +51,12 @@ export default function LLMMonitoringSection({event}: Props) {
       {aiPipelineGroup ? (
         <ModuleLayout.Layout>
           <ModuleLayout.Half>
-            <TotalTokensUsedChart groupId={aiPipelineGroup} />
+            <LlmTotalTokensUsedChart chartProperties={{groupId: aiPipelineGroup}} />
           </ModuleLayout.Half>
           <ModuleLayout.Half>
-            <NumberOfPipelinesChart groupId={aiPipelineGroup} />
+            <LlmNumberOfPipelinesChartWidget
+              chartProperties={{groupId: aiPipelineGroup}}
+            />
           </ModuleLayout.Half>
         </ModuleLayout.Layout>
       ) : (
