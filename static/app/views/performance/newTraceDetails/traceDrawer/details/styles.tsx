@@ -483,10 +483,10 @@ function Highlights({
             <StyledPanelHeader>{headerContent}</StyledPanelHeader>
             <PanelBody>{bodyContent}</PanelBody>
           </StyledPanel>
-          {event ? (
-            <HighLightsOpsBreakdown event={event} />
-          ) : isEAPSpanNode(node) ? (
+          {isEAPSpanNode(node) ? (
             <HighLightEAPOpsBreakdown node={node} />
+          ) : event ? (
+            <HighLightsOpsBreakdown event={event} />
           ) : null}
         </HighlightsRightColumn>
       </HighlightsWrapper>

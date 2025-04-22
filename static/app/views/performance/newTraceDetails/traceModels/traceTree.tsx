@@ -465,7 +465,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
           }
         }
 
-        function updateAncestorOps(node: TraceTreeNode<TraceTree.EAPSpan>, op: string) {
+        function updateAncestorOpsBreakdown(
+          node: TraceTreeNode<TraceTree.EAPSpan>,
+          op: string
+        ) {
           let current = node.parent;
           while (current) {
             const existing = current.eapSpanOpsBreakdown.find(b => b.op === op);
@@ -479,7 +482,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         }
 
         if (isEAPSpanNode(c)) {
-          updateAncestorOps(c, c.value.op);
+          updateAncestorOpsBreakdown(c, c.value.op);
         }
       }
 
