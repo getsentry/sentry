@@ -29,7 +29,6 @@ import {
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
-import {TimeSpentInDatabaseWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 export function SlowSSRWidget({query}: {query?: string}) {
   const theme = useTheme();
@@ -112,7 +111,6 @@ export function SlowSSRWidget({query}: {query?: string}) {
       isEmpty={!hasData}
       isLoading={isLoading}
       error={error}
-      emptyMessage={<TimeSpentInDatabaseWidgetEmptyStateWarning />}
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
         showLegend: 'never',
