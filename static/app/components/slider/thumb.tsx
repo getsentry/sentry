@@ -8,7 +8,7 @@ import type {SliderState} from '@react-stately/slider';
 
 import {space} from 'sentry/styles/space';
 
-export interface SliderThumbProps extends Omit<AriaSliderThumbOptions, 'inputRef'> {
+interface SliderThumbProps extends Omit<AriaSliderThumbOptions, 'inputRef'> {
   getFormattedValue: (value: number) => React.ReactNode;
   state: SliderState;
   error?: boolean;

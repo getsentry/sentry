@@ -52,7 +52,7 @@ type PromptCheckParams = {
 /**
  * Raw response data from the endpoint
  */
-export type PromptResponseItem = {
+type PromptResponseItem = {
   /**
    * Time since dismissed
    */

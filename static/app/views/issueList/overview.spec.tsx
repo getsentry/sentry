@@ -1472,4 +1472,46 @@ describe('IssueList', function () {
       });
     });
   });
+
+  describe('new view page', function () {
+    it('displays empty state when first loaded', async function () {
+      const fetchDataMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [group],
+        headers: {
+          Link: DEFAULT_LINKS_HEADER,
+        },
+      });
+
+      const {router: testRouter} = render(
+        <IssueListOverview {...routerProps} initialQuery="" shouldFetchOnMount={false} />,
+        {
+          enableRouterMocks: false,
+          initialRouterConfig: {
+            ...initialRouterConfig,
+            location: {
+              ...initialRouterConfig.location,
+              pathname: '/organizations/org-slug/issues/views/new/',
+              query: {},
+            },
+          },
+        }
+      );
+
+      await screen.findByText('Suggested Queries');
+      expect(fetchDataMock).not.toHaveBeenCalled();
+
+      const highVolumeIssuesQuery = screen.getByRole('button', {
+        name: 'High Volume Issues is:unresolved timesSeen:>100',
+      });
+
+      // Clicking query should add it, remove suggested queries, and search issues
+      await userEvent.click(highVolumeIssuesQuery);
+      await waitFor(() => {
+        expect(testRouter.location.query.query).toBe('is:unresolved timesSeen:>100');
+      });
+      expect(fetchDataMock).toHaveBeenCalledTimes(1);
+      expect(screen.queryByText('Suggested Queries')).not.toBeInTheDocument();
+    });
+  });
 });

@@ -32,7 +32,7 @@ export function formatWeightToProfileDuration(
   return `${Math.round(weight * 100) / 100}%`;
 }
 
-export interface FlamegraphTooltipProps {
+interface FlamegraphTooltipProps {
   configSpaceCursor: vec2;
   flamegraph: Flamegraph | DifferentialFlamegraph;
   flamegraphCanvas: FlamegraphCanvas;

@@ -8,9 +8,7 @@ import type {Automation} from 'sentry/views/automations/components/automationLis
 const columns = defineColumns<Automation>({
   name: {
     Header: () => t('Name'),
-    Cell: ({value, row}) => (
-      <TitleCell name={value} link={row.link} project={row.project} />
-    ),
+    Cell: ({value, row}) => <TitleCell name={value} link={row.link} />,
     width: 'minmax(0, 3fr)',
   },
   lastTriggered: {
@@ -23,9 +21,6 @@ const columns = defineColumns<Automation>({
   },
 });
 
-export interface ConnectedAutomationsListProps {
-  automations: Automation[];
-}
 export function ConnectedAutomationsList({automations = []}) {
   return (
     <SimpleTable
