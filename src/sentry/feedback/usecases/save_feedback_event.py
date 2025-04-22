@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
-from sentry.ingest.userreport import save_userreport
+from sentry.ingest.userreport import Conflict, save_userreport
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.utils import metrics
@@ -62,6 +62,9 @@ def save_feedback_event(event_data: Mapping[str, Any], project_id: int):
                 start_time=start_time,
             )
             metrics.incr("feedback.shim_to_userreport.success")
+
+    except Conflict:
+        pass
 
     except Exception:
         metrics.incr("feedback.shim_to_userreport.failed")
