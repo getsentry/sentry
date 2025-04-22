@@ -175,7 +175,11 @@ class CommitContextIntegration(ABC):
         group_owner: GroupOwner,
         group_id: int,
     ) -> None:
-        pr_comment_workflow = self.get_pr_comment_workflow()
+        try:
+            # TODO(jianyuan): Remove this try/except once we have implemented the abstract method for all integrations
+            pr_comment_workflow = self.get_pr_comment_workflow()
+        except NotImplementedError:
+            return
 
         with CommitContextIntegrationInteractionEvent(
             interaction_type=SCMIntegrationInteractionType.QUEUE_COMMENT_TASK,
@@ -393,6 +397,7 @@ class CommitContextIntegration(ABC):
         """
         raise NotImplementedError
 
+    # TODO(jianyuan): Make this an abstract method
     def get_pr_comment_workflow(self) -> PRCommentWorkflow:
         raise NotImplementedError
 
