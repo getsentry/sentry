@@ -6,7 +6,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
-export function getInstallSnippet({
+function getInstallSnippet({
   params,
   packageManager,
   additionalPackages = [],

@@ -25,7 +25,7 @@ export interface TimelineItemProps {
   timestamp?: React.ReactNode;
 }
 
-export function Item({
+function Item({
   title,
   children,
   icon,
@@ -121,7 +121,7 @@ const Content = styled('div')`
   word-wrap: break-word;
 `;
 
-export const Text = styled('div')`
+const Text = styled('div')`
   text-align: left;
   font-size: ${p => p.theme.fontSizeSmall};
   &:only-child {
@@ -129,7 +129,7 @@ export const Text = styled('div')`
   }
 `;
 
-export const Data = styled('div')`
+const Data = styled('div')`
   border-radius: ${space(0.5)};
   padding: ${space(0.25)} ${space(0.75)};
   border: 1px solid ${p => p.theme.translucentInnerBorder};
@@ -143,7 +143,7 @@ export const Data = styled('div')`
   }
 `;
 
-export const Container = styled('div')`
+const Container = styled('div')`
   position: relative;
   /* vertical line connecting items */
   &::before {
