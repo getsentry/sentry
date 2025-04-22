@@ -8,8 +8,8 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {useChonkPrompt} from './useChonkPrompt';
 
+const queryClient = new QueryClient();
 function makeWrapper(organization: Organization) {
-  const queryClient = new QueryClient();
   return function ({children}: {children: React.ReactNode}) {
     return (
       <QueryClientProvider client={queryClient}>
@@ -71,11 +71,7 @@ describe('useChonkPrompt', () => {
       '/organizations/org-slug/prompts-activity/',
       expect.objectContaining({
         data: expect.objectContaining({
-<<<<<<< HEAD
-          feature: 'chonk-ui-tooltip',
-=======
           feature: 'chonk_ui_banner',
->>>>>>> 4153a154687 (chonk: add nav prompts)
           status: 'dismissed',
         }),
       })
@@ -109,11 +105,7 @@ describe('useChonkPrompt', () => {
       '/organizations/org-slug/prompts-activity/',
       expect.objectContaining({
         data: expect.objectContaining({
-<<<<<<< HEAD
-          feature: 'chonk-ui-dot-indicator',
-=======
           feature: 'chonk_ui_dot_indicator',
->>>>>>> 4153a154687 (chonk: add nav prompts)
           status: 'dismissed',
         }),
       })
