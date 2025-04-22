@@ -86,8 +86,6 @@ export function IssueViewNavItemContent({
 
   const {startInteraction, endInteraction, isInteractingRef} = useNavContext();
 
-  const scrollPosition = window.scrollY || document.documentElement.scrollTop;
-
   return (
     <StyledReorderItem
       as="div"
@@ -111,7 +109,7 @@ export function IssueViewNavItemContent({
       // upon scrolling down on the page and triggering a page navigation.
       // See: https://github.com/motiondivision/motion/issues/2006
       style={{
-        ...(isDragging || scrollPosition === 0
+        ...(isDragging
           ? {}
           : {
               originY: '0px',
@@ -178,7 +176,9 @@ export function IssueViewNavItemContent({
         hasIssueViewSharing={hasIssueViewSharing}
       >
         {hasIssueViewSharing ? (
-          view.label
+          <Tooltip title={view.label} position="top" showOnlyOnOverflow skipWrapper>
+            <TruncatedTitle>{view.label}</TruncatedTitle>
+          </Tooltip>
         ) : (
           <IssueViewNavEditableTitle
             view={view}
@@ -253,10 +253,12 @@ const StyledInteractionStateLayer = styled(InteractionStateLayer)`
 const TrailingItemsWrapper = styled('div')`
   display: flex;
   align-items: center;
-  margin-right: ${space(0.25)};
+  margin-left: ${space(0.5)};
 `;
 
-const StyledSecondaryNavItem = styled(SecondaryNav.Item)<{hasIssueViewSharing: boolean}>`
+const StyledSecondaryNavItem = styled(SecondaryNav.Item, {
+  shouldForwardProp: prop => prop !== 'hasIssueViewSharing',
+})<{hasIssueViewSharing: boolean}>`
   position: relative;
   padding-right: ${space(0.5)};
 
@@ -337,4 +339,8 @@ const GrabHandleWrapper = styled(motion.div)`
   &:active {
     cursor: grabbing;
   }
+`;
+
+const TruncatedTitle = styled('div')`
+  ${p => p.theme.overflowEllipsis}
 `;

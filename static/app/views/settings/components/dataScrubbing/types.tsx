@@ -120,5 +120,3 @@ export type PiiConfig =
   | PiiConfigReplaceAndPattern;
 
 export type Applications = Record<string, string[]>;
-
-export type Errors = Partial<Record<KeysOfUnion<Rule>, string>>;
