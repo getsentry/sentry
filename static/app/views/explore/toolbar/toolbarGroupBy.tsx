@@ -178,14 +178,15 @@ function ColumnEditorRow({
         searchable
         triggerProps={{style: {width: '100%'}}}
       />
-      <Button
-        aria-label={t('Remove Column')}
-        borderless
-        disabled={!canDelete || disabled}
-        size="zero"
-        icon={<IconDelete size="sm" />}
-        onClick={() => onColumnDelete()}
-      />
+      {canDelete ? (
+        <Button
+          aria-label={t('Remove Column')}
+          borderless
+          size="zero"
+          icon={<IconDelete size="sm" />}
+          onClick={() => onColumnDelete()}
+        />
+      ) : null}
     </ToolbarRow>
   );
 }
