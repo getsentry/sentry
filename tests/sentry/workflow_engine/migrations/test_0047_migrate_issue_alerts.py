@@ -6,7 +6,6 @@ from sentry.rules.conditions.event_frequency import EventUniqueUserFrequencyCond
 from sentry.rules.conditions.every_event import EveryEventCondition
 from sentry.rules.conditions.reappeared_event import ReappearedEventCondition
 from sentry.rules.conditions.regression_event import RegressionEventCondition
-from sentry.rules.conditions.tagged_event import TaggedEventCondition
 from sentry.rules.filters.age_comparison import AgeComparisonFilter
 from sentry.testutils.cases import TestMigrations
 from sentry.testutils.helpers import install_slack
@@ -27,8 +26,8 @@ from sentry.workflow_engine.models.data_condition import Condition
 
 
 class TestMigrateIssueAlerts(TestMigrations):
-    migrate_from = "0044_rm_detector_name_unique_constraint"
-    migrate_to = "0045_migrate_issue_alerts"
+    migrate_from = "0046_drop_metric_alert_fire_detectors"
+    migrate_to = "0047_migrate_issue_alerts"
     app = "workflow_engine"
 
     def setup_initial_state(self):
@@ -107,10 +106,9 @@ class TestMigrateIssueAlerts(TestMigrations):
         invalid_conditions = [
             {
                 "interval": "1h",
-                "id": TaggedEventCondition.id,
-                "match": "asdf",
-                "key": "asdf",
-                "value": "asdf",
+                "id": EventUniqueUserFrequencyConditionWithConditions.id,
+                "value": -1,
+                "comparisonType": "asdf",
             },
             {"id": RegressionEventCondition.id},
         ]
@@ -121,14 +119,7 @@ class TestMigrateIssueAlerts(TestMigrations):
 
         self.issue_alert_no_valid_conditions = self.create_project_rule(
             name="test7",
-            condition_data=[
-                {
-                    "interval": "1h",
-                    "id": EventUniqueUserFrequencyConditionWithConditions.id,
-                    "value": -1,
-                    "comparisonType": "asdf",
-                }
-            ],
+            condition_data=[invalid_conditions[0]],
             frequency=5,
         )
 
