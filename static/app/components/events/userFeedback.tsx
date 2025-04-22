@@ -10,6 +10,7 @@ import {space} from 'sentry/styles/space';
 import type {UserReport} from 'sentry/types/group';
 import {escape, nl2br} from 'sentry/utils';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
 type Props = {
   issueId: string;
@@ -36,6 +37,8 @@ export function EventUserFeedback({
 
   const {onClick, label} = useCopyToClipboard({text: report.email});
 
+  const {selection} = usePageFilters();
+
   return (
     <div className={className}>
       <StyledActivityItem
@@ -43,7 +46,21 @@ export function EventUserFeedback({
         author={{type: 'user', user}}
         header={
           <Items>
-            <ActivityAuthor>{report.name}</ActivityAuthor>
+            <ActivityAuthor>
+              <Link
+                to={{
+                  pathname: `/organizations/${orgSlug}/issues/feedback/`,
+                  query: {
+                    project: '-1', // TODO:
+                    query: `associated_event_id:${report.eventID}`,
+                    referrer: 'feedback_list_page',
+                    statsPeriod: selection.datetime.period,
+                  },
+                }}
+              >
+                {report.name}
+              </Link>
+            </ActivityAuthor>
             <CopyButton
               aria-label={label}
               borderless
