@@ -1,3 +1,4 @@
+import type {Theme} from '@emotion/react';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -31,7 +32,7 @@ export function ChonkOptInBanner(props: {collapsed: boolean | 'never'}) {
       <Description>
         {t(`We've updated Sentry with a fresh new look, try it out by opting in below.`)}
       </Description>
-      <ThemeProvider theme={DO_NOT_USE_lightChonkTheme}>
+      <ThemeProvider theme={DO_NOT_USE_lightChonkTheme as unknown as Theme}>
         <OptInButton
           priority="primary"
           size="xs"
