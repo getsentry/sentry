@@ -163,7 +163,7 @@ export type TracingEventParameters = {
   };
 };
 
-export type TracingEventKey = keyof TracingEventParameters;
+type TracingEventKey = keyof TracingEventParameters;
 
 export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'compare_queries.add_query': 'Compare Queries: Add Query',

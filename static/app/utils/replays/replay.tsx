@@ -15,7 +15,7 @@ interface NetworkMeta {
   warnings?: NetworkMetaWarning[];
 }
 
-export type NetworkBody = JsonObject | JsonArray | string;
+type NetworkBody = JsonObject | JsonArray | string;
 
 export interface ReplayNetworkRequestOrResponse {
   headers: Record<string, string>;
