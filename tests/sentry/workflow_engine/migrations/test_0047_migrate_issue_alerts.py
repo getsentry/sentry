@@ -251,10 +251,14 @@ class TestMigrateIssueAlerts(TestMigrations):
         self._test_run__none_matches()
         self._test_run__disabled_rule()
         self._test_run__snoozed_rule()
+
+    def test_2(self):
         self._test_run__snoozed_rule_for_user()
         self._test_run__skip_invalid_conditions()
         self._test_run__skip_migration_if_no_valid_conditions()
         self._test_run__no_double_migrate()
+
+    def test_3(self):
         self._test_run__detector_exists()
         self._test_run__every_event_condition()
         self._test_run__invalid_action()

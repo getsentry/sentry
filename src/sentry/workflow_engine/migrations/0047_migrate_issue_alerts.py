@@ -1951,15 +1951,16 @@ def migrate_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) ->
     ) -> list[Any]:
         notification_actions = _translate_rule_data_actions_to_notification_actions(actions)
 
-        created_notification_actions = []
+        notification_actions_to_create: list[Any] = []
 
         for action in notification_actions:
             try:
                 enforce_action_json_schema(action)
-                action.save()
-                created_notification_actions.append(action)
+                notification_actions_to_create.append(action)
             except Exception:
                 pass
+
+        created_notification_actions = Action.objects.bulk_create(notification_actions_to_create)
 
         return created_notification_actions
 
@@ -2049,19 +2050,21 @@ def migrate_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) ->
 
         filtered_data_conditions = [dc for dc in dcg_conditions if dc.type != Condition.EVERY_EVENT]
 
-        data_conditions: list[Any] = []
+        data_conditions_to_create: list[Any] = []
         # try one by one, ignoring errors
         for dc in filtered_data_conditions:
             try:
                 enforce_data_condition_json_schema(dc)
-                dc.save()
-                data_conditions.append(dc)
+                data_conditions_to_create.append(dc)
             except Exception as e:
                 sentry_sdk.capture_exception(e)
                 logger.exception(
                     "workflow_engine.issue_alert_migration.error",
                     extra={"rule_id": rule.id, "error": str(e)},
                 )
+
+        data_conditions = DataCondition.objects.bulk_create(data_conditions_to_create)
+
         return data_conditions
 
     def _create_when_dcg(
