@@ -47,8 +47,12 @@ function makeChonkAlertTheme(props: ChonkAlertProps): SerializedStyles {
   const tokens = getChonkAlertTokens(props.type, props.theme!);
   return css`
     ${generateAlertBackground(props, tokens)};
-    color: ${props.theme!.tokens.content.primary};
     border: 1px solid ${tokens.border};
+
+    /* We dont want to override the color of any elements inside buttons */
+    :not(button *) {
+      color: ${props.theme!.tokens.content.primary};
+    }
   `;
 }
 
