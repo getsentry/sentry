@@ -118,7 +118,10 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
         app_label = "uptime"
         db_table = "uptime_uptimesubscription"
 
-        indexes = (models.Index(fields=("url_domain_suffix", "url_domain")),)
+        indexes = [
+            models.Index(fields=("url_domain_suffix", "url_domain")),
+            models.Index(fields=("uptime_status", "uptime_status_update_date")),
+        ]
 
 
 @region_silo_model
