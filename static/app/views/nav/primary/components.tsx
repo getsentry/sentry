@@ -164,6 +164,7 @@ export function SidebarButton({
   onClick,
   label,
 }: SidebarButtonProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const {layout} = useNavContext();
   const showLabel = layout === NavLayout.MOBILE;
@@ -180,7 +181,7 @@ export function SidebarButton({
           onClick?.(e);
         }}
       >
-        <InteractionStateLayer />
+        {theme.isChonk ? null : <InteractionStateLayer />}
         {children}
         {showLabel ? label : null}
       </NavButton>
