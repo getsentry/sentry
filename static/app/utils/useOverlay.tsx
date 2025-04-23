@@ -27,6 +27,9 @@ const maxSize: Modifier<'maxSize', NonNullable<PreventOverflowModifier['options'
   requiresIfExists: ['offset', 'preventOverflow', 'flip'],
   enabled: false, // will be enabled when overlay is open
   fn({state, name, options}) {
+    // Initialize the modifier data to prevent undefined errors
+    state.modifiersData[name] = state.modifiersData[name] || { width: undefined, height: undefined };
+
     const overflow = detectOverflow(state, options);
     const {x, y} = state.modifiersData.preventOverflow ?? {x: 0, y: 0};
     const {width, height} = state.rects.popper;
@@ -67,6 +70,9 @@ const applyMaxSize: Modifier<'applyMaxSize', Record<string, unknown>> = {
   requires: ['maxSize'],
   enabled: false, // will be enabled when overlay is open
   fn({state}) {
+    if (!state.modifiersData.maxSize) {
+      return;
+    }
     const {width, height} = state.modifiersData.maxSize;
     state.styles.popper!.maxHeight = height;
     state.styles.popper!.maxWidth = width;
