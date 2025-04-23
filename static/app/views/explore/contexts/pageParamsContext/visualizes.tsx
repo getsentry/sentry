@@ -29,46 +29,16 @@ export interface BaseVisualize {
 }
 
 export class Visualize {
+  chartType: ChartType;
   label: string;
   yAxes: readonly string[];
-  private suggestedChartType: ChartType;
   private selectedChartType?: ChartType;
 
   constructor(yAxes: readonly string[], label = '', chartType?: ChartType) {
     this.label = label;
     this.yAxes = yAxes;
     this.selectedChartType = chartType;
-    this.suggestedChartType = this.determineChartType();
-  }
-
-  get chartType(): ChartType {
-    return this.selectedChartType ?? this.suggestedChartType;
-  }
-
-  determineChartType(): ChartType {
-    if (this.selectedChartType) {
-      return this.selectedChartType;
-    }
-
-    const counts: Record<ChartType, number> = {
-      [ChartType.BAR]: 0,
-      [ChartType.LINE]: 0,
-      [ChartType.AREA]: 0,
-    };
-
-    for (const yAxis of this.yAxes) {
-      const func = parseFunction(yAxis);
-      if (!defined(func)) {
-        continue;
-      }
-      const chartType = FUNCTION_TO_CHART_TYPE[func.name] ?? ChartType.LINE;
-      counts[chartType] += 1;
-    }
-
-    return [ChartType.AREA, ChartType.BAR, ChartType.LINE].reduce(
-      (acc, ct) => (counts[ct] >= counts[acc] ? ct : acc),
-      ChartType.AREA
-    );
+    this.chartType = this.selectedChartType ?? determineDefaultChartType(this.yAxes);
   }
 
   clone(): Visualize {
@@ -200,3 +170,25 @@ const FUNCTION_TO_CHART_TYPE: Record<string, ChartType> = {
   [AggregationKey.COUNT_UNIQUE]: ChartType.BAR,
   [AggregationKey.SUM]: ChartType.BAR,
 };
+
+function determineDefaultChartType(yAxes: readonly string[]): ChartType {
+  const counts: Record<ChartType, number> = {
+    [ChartType.BAR]: 0,
+    [ChartType.LINE]: 0,
+    [ChartType.AREA]: 0,
+  };
+
+  for (const yAxis of yAxes) {
+    const func = parseFunction(yAxis);
+    if (!defined(func)) {
+      continue;
+    }
+    const chartType = FUNCTION_TO_CHART_TYPE[func.name] ?? ChartType.LINE;
+    counts[chartType] += 1;
+  }
+
+  return [ChartType.AREA, ChartType.BAR, ChartType.LINE].reduce(
+    (acc, ct) => (counts[ct] >= counts[acc] ? ct : acc),
+    ChartType.AREA
+  );
+}
