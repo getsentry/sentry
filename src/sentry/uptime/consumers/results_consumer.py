@@ -33,7 +33,7 @@ from sentry.uptime.models import (
     UptimeSubscription,
     UptimeSubscriptionRegion,
     get_detector,
-    get_project_subscriptions_for_uptime_subscription,
+    get_project_subscription_for_uptime_subscription,
     get_top_hosting_provider_names,
     load_regions_for_uptime_subscription,
 )
@@ -293,29 +293,12 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
 
         try_check_and_update_regions(subscription, result, subscription_regions)
 
-        project_subscriptions = get_project_subscriptions_for_uptime_subscription(subscription.id)
+        project_subscription = get_project_subscription_for_uptime_subscription(subscription.id)
 
         cluster = _get_cluster()
-        last_updates: list[str | None] = cluster.mget(
-            build_last_update_key(sub) for sub in project_subscriptions
-        )
+        last_update_raw: str | None = cluster.get(build_last_update_key(project_subscription))
+        last_update_ms = 0 if last_update_raw is None else int(last_update_raw)
 
-        for last_update_raw, project_subscription in zip(last_updates, project_subscriptions):
-            last_update_ms = 0 if last_update_raw is None else int(last_update_raw)
-            self.handle_result_for_project(
-                project_subscription,
-                result,
-                last_update_ms,
-                metric_tags.copy(),
-            )
-
-    def handle_result_for_project(
-        self,
-        project_subscription: ProjectUptimeSubscription,
-        result: CheckResult,
-        last_update_ms: int,
-        metric_tags: dict[str, str],
-    ):
         if features.has(
             "organizations:uptime-detailed-logging", project_subscription.project.organization
         ):
