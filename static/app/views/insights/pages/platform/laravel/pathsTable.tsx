@@ -298,10 +298,10 @@ export function PathsTable({query, handleAddTransactionFilter}: PathsTableProps)
       />
       <Pagination
         pageLinks={pathsTablePageLinks}
-        onCursor={(cursor, path, _direction) => {
+        onCursor={(cursor, path, currentQuery) => {
           router.push({
             pathname: path,
-            query: {...location.query, pathsCursor: cursor},
+            query: {...currentQuery, pathsCursor: cursor},
           });
         }}
       />
