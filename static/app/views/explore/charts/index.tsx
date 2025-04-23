@@ -24,7 +24,10 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {WidgetExtrapolationFooter} from 'sentry/views/explore/charts/widgetExtrapolationFooter';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
-import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {
+  BaseVisualize,
+  Visualize,
+} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
@@ -40,7 +43,7 @@ interface ExploreChartsProps {
   confidences: Confidence[];
   dataset: DiscoverDatasets;
   query: string;
-  setVisualizes: (visualizes: Visualize[]) => void;
+  setVisualizes: (visualizes: BaseVisualize[]) => void;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   visualizes: Visualize[];
   hideContextMenu?: boolean;
@@ -166,9 +169,9 @@ export function ExploreCharts({
     (chartType: ChartType, index: number) => {
       const newVisualizes = visualizes.map((visualize, i) => {
         if (i === index) {
-          return visualize.replace({chartType});
+          visualize = visualize.replace({chartType});
         }
-        return visualize.clone();
+        return visualize.toJSON();
       });
       setVisualizes(newVisualizes);
     },

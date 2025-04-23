@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useReducer} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -32,6 +32,7 @@ import {
   useSetLogsFields,
   useSetLogsPageParams,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
+import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useLogAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
@@ -73,9 +74,22 @@ export function LogsTabContent({
     'explore.ourlogs.main-chart',
     DiscoverDatasets.OURLOGS
   );
-  const [visualizes, setVisualizes] = useState<Visualize[]>([
-    new Visualize([`count(${OurLogKnownFieldKey.MESSAGE})`], 'A'),
-  ]);
+
+  const [visualizes, dispatch] = useReducer(
+    (_state: Visualize[], action: BaseVisualize[]) => {
+      return action.map(
+        (visualize, i) =>
+          new Visualize(
+            visualize.yAxes,
+            String.fromCharCode(65 + i), // starts from 'A'
+            visualize.chartType
+          )
+      );
+    },
+    [new Visualize([`count(${OurLogKnownFieldKey.MESSAGE})`], 'A')]
+  );
+
+  const setVisualizes = useCallback((vs: BaseVisualize[]) => dispatch(vs), [dispatch]);
 
   const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
     useTraceItemAttributes('string');

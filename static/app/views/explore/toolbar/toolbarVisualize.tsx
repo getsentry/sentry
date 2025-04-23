@@ -18,6 +18,7 @@ import {
   useExploreVisualizes,
   useSetExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
+import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
   DEFAULT_VISUALIZATION,
   DEFAULT_VISUALIZATION_FIELD,
@@ -46,21 +47,21 @@ export function ToolbarVisualize({equationSupport}: ToolbarVisualizeProps) {
   const setVisualizes = useSetExploreVisualizes();
 
   const addChart = useCallback(() => {
-    setVisualizes(
-      [...visualizes, new Visualize([DEFAULT_VISUALIZATION])],
-      [DEFAULT_VISUALIZATION_FIELD]
+    const newVisualizes = [...visualizes, new Visualize([DEFAULT_VISUALIZATION])].map(
+      visualize => visualize.toJSON()
     );
+    setVisualizes(newVisualizes, [DEFAULT_VISUALIZATION_FIELD]);
   }, [setVisualizes, visualizes]);
 
   const addOverlay = useCallback(
     (group: number) => {
       const newVisualizes = visualizes.map((visualize, i) => {
-        if (i !== group) {
-          return visualize;
+        if (i === group) {
+          visualize = visualize.replace({
+            yAxes: [...visualize.yAxes, DEFAULT_VISUALIZATION],
+          });
         }
-        const yAxes = [...visualize.yAxes];
-        yAxes.push(DEFAULT_VISUALIZATION);
-        return visualize.replace({yAxes});
+        return visualize.toJSON();
       });
       setVisualizes(newVisualizes, [DEFAULT_VISUALIZATION_FIELD]);
     },
@@ -69,15 +70,14 @@ export function ToolbarVisualize({equationSupport}: ToolbarVisualizeProps) {
 
   const deleteOverlay = useCallback(
     (group: number, index: number) => {
-      const newVisualizes: Visualize[] = visualizes
+      const newVisualizes = visualizes
         .map((visualize, orgGroup) => {
-          if (group !== orgGroup) {
-            return visualize;
+          if (group === orgGroup) {
+            visualize = visualize.replace({
+              yAxes: visualize.yAxes.filter((_, orgIndex) => index !== orgIndex),
+            });
           }
-
-          return visualize.replace({
-            yAxes: visualize.yAxes.filter((_, orgIndex) => index !== orgIndex),
-          });
+          return visualize.toJSON();
         })
         .filter(visualize => visualize.yAxes.length > 0);
       setVisualizes(newVisualizes);
@@ -168,7 +168,7 @@ interface VisualizeDropdownProps {
   deleteOverlay: (group: number, index: number) => void;
   group: number;
   index: number;
-  setVisualizes: (visualizes: Visualize[], fields?: string[]) => void;
+  setVisualizes: (visualizes: BaseVisualize[], fields?: string[]) => void;
   visualizes: Visualize[];
   yAxis: string;
   label?: string;
@@ -224,12 +224,12 @@ function VisualizeDropdown({
   const setChartField = useCallback(
     ({value}: SelectOption<SelectKey>) => {
       const newVisualizes = visualizes.map((visualize, i) => {
-        if (i !== group) {
-          return visualize;
+        if (i === group) {
+          const newYAxes = [...visualize.yAxes];
+          newYAxes[index] = `${parsedVisualize.name}(${value})`;
+          visualize = visualize.replace({yAxes: newYAxes});
         }
-        const newYAxes = [...visualize.yAxes];
-        newYAxes[index] = `${parsedVisualize.name}(${value})`;
-        return visualize.replace({yAxes: newYAxes});
+        return visualize.toJSON();
       });
       setVisualizes(newVisualizes, [String(value)]);
     },
@@ -239,16 +239,16 @@ function VisualizeDropdown({
   const setChartAggregate = useCallback(
     ({value}: SelectOption<SelectKey>) => {
       const newVisualizes = visualizes.map((visualize, i) => {
-        if (i !== group) {
-          return visualize;
+        if (i === group) {
+          const newYAxes = [...visualize.yAxes];
+          newYAxes[index] = updateVisualizeAggregate({
+            newAggregate: value as string,
+            oldAggregate: parsedVisualize.name,
+            oldArgument: parsedVisualize.arguments[0]!,
+          });
+          visualize = visualize.replace({yAxes: newYAxes});
         }
-        const newYAxes = [...visualize.yAxes];
-        newYAxes[index] = updateVisualizeAggregate({
-          newAggregate: value as string,
-          oldAggregate: parsedVisualize.name,
-          oldArgument: parsedVisualize.arguments[0]!,
-        });
-        return visualize.replace({yAxes: newYAxes});
+        return visualize.toJSON();
       });
       setVisualizes(newVisualizes);
     },
@@ -287,7 +287,7 @@ interface VisualizeEquationProps {
   deleteOverlay: (group: number, index: number) => void;
   group: number;
   index: number;
-  setVisualizes: (visualizes: Visualize[], fields?: string[]) => void;
+  setVisualizes: (visualizes: BaseVisualize[], fields?: string[]) => void;
   visualizes: Visualize[];
   label?: string;
   yAxis?: string;
@@ -308,12 +308,12 @@ function VisualizeEquation({
       if (expression.isValid) {
         const functions = expression.tokens.filter(isTokenFunction);
         const newVisualizes = visualizes.map((visualize, i) => {
-          if (i !== group) {
-            return visualize;
+          if (i === group) {
+            const yAxes = [...visualize.yAxes];
+            yAxes[index] = expression.text;
+            visualize = visualize.replace({yAxes});
           }
-          const yAxes = [...visualize.yAxes];
-          yAxes[index] = expression.text;
-          return visualize.replace({yAxes});
+          return visualize.toJSON();
         });
         setVisualizes(
           newVisualizes,

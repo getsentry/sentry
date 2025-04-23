@@ -293,10 +293,8 @@ export function useSetExploreVisualizes() {
   const pageParams = useExplorePageParams();
   const setPageParams = useSetExplorePageParams();
   return useCallback(
-    (visualizes: Visualize[], fields?: string[]) => {
-      const writablePageParams: WritablePageParams = {
-        visualizes: visualizes.map(visualize => visualize.toJSON()),
-      };
+    (visualizes: BaseVisualize[], fields?: string[]) => {
+      const writablePageParams: WritablePageParams = {visualizes};
       const newFields = fields?.filter(field => !pageParams.fields.includes(field)) || [];
       if (newFields.length > 0) {
         writablePageParams.fields = [...pageParams.fields, ...newFields];
