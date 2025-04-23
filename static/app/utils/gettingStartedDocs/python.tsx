@@ -10,9 +10,6 @@ import {t, tct} from 'sentry/locale';
 const getProfilingInstallSnippet = (basePackage: string, minimumVersion?: string) =>
   `pip install --upgrade ${minimumVersion ? `${basePackage}>=${minimumVersion}` : basePackage}`;
 
-/**
- * Creates install snippets for various Python package managers
- */
 export function getPythonInstallSnippet({
   packageName,
   packageManager,
@@ -26,9 +23,6 @@ export function getPythonInstallSnippet({
   return `pip install --upgrade ${packageName}`;
 }
 
-/**
- * Creates a configuration object for installation instructions that supports multiple package managers
- */
 export function getPythonInstallConfig({
   packageName = 'sentry-sdk',
   description,
