@@ -4,6 +4,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SavedQueriesLandingContent} from 'sentry/views/explore/savedQueries/savedQueriesLandingContent';
+import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 export default function SavedQueriesView() {
   const organization = useOrganization();
@@ -17,7 +18,7 @@ export default function SavedQueriesView() {
               crumbs={[
                 {
                   label: t('Explore'),
-                  to: `/organizations/${organization.slug}/traces/`,
+                  to: makeTracesPathname({organization, path: '/'}),
                 },
                 {
                   label: t('All Queries'),
