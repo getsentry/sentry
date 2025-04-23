@@ -402,7 +402,7 @@ export type IssueEventParameters = {
     Partial<Pick<Broadcast, 'category'>>;
 };
 
-export type IssueEventKey = keyof IssueEventParameters;
+type IssueEventKey = keyof IssueEventParameters;
 
 export const issueEventMap: Record<IssueEventKey, string | null> = {
   'autofix.setup_modal_viewed': 'Autofix: Setup Modal Viewed',

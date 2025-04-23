@@ -1,7 +1,7 @@
 import {prettifyTagKey} from 'sentry/utils/discover/fields';
 
 function removePrefixes(key: string) {
-  return key.replace('log.', '').replace('sentry.', '');
+  key.replace(/^log\.|^sentry\./, '');
 }
 
 export function prettifyAttributeName(name: string) {

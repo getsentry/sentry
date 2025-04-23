@@ -9,7 +9,7 @@ import FormField from 'sentry/components/forms/formField';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {space} from 'sentry/styles/space';
 
-export interface SegmentedRadioFieldProps<Choices extends string = string>
+interface SegmentedRadioFieldProps<Choices extends string = string>
   extends Omit<InputFieldProps, 'type'> {
   choices?: RadioGroupProps<Choices>['choices'];
 }
@@ -105,7 +105,7 @@ const Container = styled('div')`
 const shouldForwardProp = (p: PropertyKey) =>
   typeof p === 'string' && !['disabled', 'animate'].includes(p) && isPropValid(p);
 
-export const RadioItem = styled('label', {shouldForwardProp})<{
+const RadioItem = styled('label', {shouldForwardProp})<{
   index: number;
   disabled?: boolean;
 }>`

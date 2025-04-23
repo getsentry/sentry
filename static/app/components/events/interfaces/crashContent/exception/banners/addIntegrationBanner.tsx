@@ -49,7 +49,7 @@ export function AddIntegrationBanner({orgSlug, onDismiss}: AddIntegrationBannerP
   );
 }
 
-export const StacktraceIntegrationBannerWrapper = styled('div')`
+const StacktraceIntegrationBannerWrapper = styled('div')`
   position: relative;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
@@ -63,18 +63,18 @@ export const StacktraceIntegrationBannerWrapper = styled('div')`
   );
 `;
 
-export const IntegationBannerTitle = styled('div')`
+const IntegationBannerTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin-bottom: ${space(1)};
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
-export const IntegationBannerDescription = styled('div')`
+const IntegationBannerDescription = styled('div')`
   margin-bottom: ${space(1.5)};
   max-width: 340px;
 `;
 
-export const CloseBannerButton = styled(Button)`
+const CloseBannerButton = styled(Button)`
   position: absolute;
   display: block;
   top: ${space(2)};

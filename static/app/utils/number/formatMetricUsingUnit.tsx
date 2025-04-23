@@ -110,8 +110,7 @@ export const formattingSupportedMetricUnits = [
   'exabytes',
 ] as const;
 
-export type FormattingSupportedMetricUnit =
-  (typeof formattingSupportedMetricUnits)[number];
+type FormattingSupportedMetricUnit = (typeof formattingSupportedMetricUnits)[number];
 
 const METRIC_UNIT_TO_SHORT: Record<FormattingSupportedMetricUnit, string> = {
   nanosecond: 'ns',

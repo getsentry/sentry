@@ -17,7 +17,7 @@ import type {FieldDefinition, FieldKind} from 'sentry/utils/fields';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
-export interface SearchQueryBuilderContextData {
+interface SearchQueryBuilderContextData {
   actionBarRef: React.RefObject<HTMLDivElement | null>;
   disabled: boolean;
   disallowFreeText: boolean;

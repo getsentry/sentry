@@ -82,7 +82,7 @@ export const ScorePanel = styled(Panel)`
   min-height: 96px;
 `;
 
-export const HeaderTitle = styled('div')`
+const HeaderTitle = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
   gap: ${space(1)};

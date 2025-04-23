@@ -105,7 +105,7 @@ export function determineMultiSeriesConfidence(
   );
 }
 
-export function combineConfidence(a: Confidence, b: Confidence): Confidence {
+function combineConfidence(a: Confidence, b: Confidence): Confidence {
   if (!defined(a)) {
     return b;
   }

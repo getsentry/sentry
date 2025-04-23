@@ -839,7 +839,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
     "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
     return_value=[],
 )
-@patch("sentry.integrations.github.tasks.pr_comment.github_comment_workflow.delay")
+@patch("sentry.integrations.source_code_management.tasks.pr_comment_workflow.delay")
 class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
     provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"

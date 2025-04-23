@@ -13,7 +13,7 @@ import {PipelinesTable} from 'sentry/views/insights/llmMonitoring/components/tab
 import {AiHeader} from 'sentry/views/insights/pages/ai/aiPageHeader';
 import {ModuleName} from 'sentry/views/insights/types';
 
-export function LLMMonitoringPage() {
+function LLMMonitoringPage() {
   return (
     <Layout.Page>
       <AiHeader module={ModuleName.AI} />

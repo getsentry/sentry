@@ -85,7 +85,7 @@ export function useShortInterval(datetimeObj: DateTimeObject): boolean {
   return computeShortInterval(datetimeObj);
 }
 
-export type GranularityStep = [timeDiff: number, interval: string];
+type GranularityStep = [timeDiff: number, interval: string];
 
 export class GranularityLadder {
   steps: GranularityStep[];
