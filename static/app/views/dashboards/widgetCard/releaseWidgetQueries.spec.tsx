@@ -919,6 +919,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
         {id: 1, version: 'this release has spaces'},
         {id: 2, version: 'this_release_has_no_spaces'},
         {id: 3, version: 'this release has (parens)'},
+        {id: 3, version: 'this_release_has_(parens)'},
       ],
     });
     const queries = [
@@ -954,7 +955,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           query:
-            ' release:["this release has spaces",this_release_has_no_spaces,"this release has (parens)"]',
+            ' release:["this release has spaces",this_release_has_no_spaces,"this release has (parens)","this_release_has_(parens)"]',
         }),
       })
     );
