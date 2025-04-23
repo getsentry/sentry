@@ -415,6 +415,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
         <SmallWidget>
           <TimeSeriesWidgetVisualization
             plottables={[new Line(sampleDurationTimeSeries)]}
+            showXAxis="never"
           />
         </SmallWidget>
       </Fragment>
