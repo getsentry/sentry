@@ -151,6 +151,7 @@ function CreditCardSetup({
       onCancel={onCancel}
       onSubmit={handleSubmit}
       referrer={referrer}
+      location={location}
     />
   );
 }

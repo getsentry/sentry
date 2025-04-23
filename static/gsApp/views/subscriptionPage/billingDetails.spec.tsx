@@ -216,6 +216,12 @@ describe('Subscription > BillingDetails', function () {
     const modal = await screen.findByRole('dialog');
     const inModal = within(modal);
 
+    expect(
+      inModal.getByText(
+        /, you authorize Sentry to automatically charge you recurring subscription fees and applicable pay-as-you-go fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for pay-as-you-go fees. You may cancel your subscription at any time/
+      )
+    ).toBeInTheDocument();
+
     // Save the updated credit card details
     await userEvent.click(inModal.getByRole('button', {name: 'Save Changes'}));
     await waitForModalToHide();

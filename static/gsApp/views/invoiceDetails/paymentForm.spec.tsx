@@ -88,6 +88,11 @@ describe('InvoiceDetails > Payment Form', function () {
     expect(
       screen.getByRole('button', {name: 'Pay Now', hidden: true})
     ).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        /, you authorize Sentry to automatically charge you recurring subscription fees and applicable pay-as-you-go fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for pay-as-you-go fees. You may cancel your subscription at any time/
+      )
+    ).not.toBeInTheDocument();
   });
 
   it('renders an error when intent creation fails', async function () {
