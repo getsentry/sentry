@@ -50,6 +50,7 @@ const sectionLabels: Partial<Record<SectionKey, string>> = {
   [SectionKey.REPLAY]: t('Replay'),
   [SectionKey.BREADCRUMBS]: t('Breadcrumbs'),
   [SectionKey.TRACE]: t('Trace'),
+  [SectionKey.LOGS]: t('Logs'),
   [SectionKey.TAGS]: t('Tags'),
   [SectionKey.CONTEXTS]: t('Context'),
   [SectionKey.USER_FEEDBACK]: t('User Feedback'),
@@ -67,10 +68,13 @@ export function EventTitle({
   const organization = useOrganization();
   const theme = useTheme();
   const showTraceLink = organization.features.includes('performance-view');
-
+  const showLogsLink = organization.features.includes('ourlogs-enabled');
   const excludedSectionKeys: SectionKey[] = [];
   if (!showTraceLink) {
     excludedSectionKeys.push(SectionKey.TRACE);
+  }
+  if (!showLogsLink) {
+    excludedSectionKeys.push(SectionKey.LOGS);
   }
 
   const {sectionData} = useIssueDetails();
