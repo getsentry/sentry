@@ -2,7 +2,6 @@ import * as Sentry from '@sentry/react';
 
 import {INTERNAL_SOURCE} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/utils';
 import {t} from 'sentry/locale';
-import type {BuiltinSymbolSource} from 'sentry/types/debugFiles';
 import type {ImageCandidate} from 'sentry/types/debugImage';
 import {CandidateDownloadStatus, ImageFeature} from 'sentry/types/debugImage';
 
@@ -44,25 +43,6 @@ export function getImageFeatureDescription(type: ImageFeature) {
       return {}; // this shall not happen
     }
   }
-}
-
-export function getSourceTooltipDescription(
-  source: string,
-  builtinSymbolSources: BuiltinSymbolSource[] | null
-) {
-  if (source === INTERNAL_SOURCE) {
-    return t(
-      "This debug information file is from Sentry's internal symbol server for this project"
-    );
-  }
-
-  if (
-    builtinSymbolSources?.find(builtinSymbolSource => builtinSymbolSource.id === source)
-  ) {
-    return t('This debug information file is from a built-in symbol server');
-  }
-
-  return t('This debug information file is from a custom symbol server');
 }
 
 export function getStatusTooltipDescription(

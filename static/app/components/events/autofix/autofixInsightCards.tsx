@@ -19,47 +19,6 @@ import marked, {singleLineRenderer} from 'sentry/utils/marked';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
-export function ExpandableInsightContext({
-  children,
-  title,
-  icon,
-  rounded,
-  expandByDefault = false,
-}: {
-  children: React.ReactNode;
-  title: string;
-  expandByDefault?: boolean;
-  icon?: React.ReactNode;
-  rounded?: boolean;
-}) {
-  const [expanded, setExpanded] = useState(expandByDefault);
-
-  const toggleExpand = () => {
-    setExpanded(oldState => !oldState);
-  };
-
-  return (
-    <ExpandableContext isRounded={rounded}>
-      <ContextHeader
-        onClick={toggleExpand}
-        name={title}
-        isRounded={rounded}
-        isExpanded={expanded}
-        size="sm"
-      >
-        <ContextHeaderWrapper>
-          <ContextHeaderLeftAlign>
-            {icon}
-            <ContextHeaderText>{title}</ContextHeaderText>
-          </ContextHeaderLeftAlign>
-          <IconChevron size="xs" direction={expanded ? 'down' : 'right'} />
-        </ContextHeaderWrapper>
-      </ContextHeader>
-      {expanded && <ContextBody>{children}</ContextBody>}
-    </ExpandableContext>
-  );
-}
-
 interface AutofixInsightCardProps {
   groupId: string;
   hasCardAbove: boolean;
@@ -436,7 +395,7 @@ function AutofixInsightCards({
   );
 }
 
-export function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: string}) {
+function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
@@ -656,46 +615,6 @@ const MiniHeader = styled('p')`
   margin: 0;
   flex: 1;
   word-break: break-word;
-`;
-
-const ExpandableContext = styled('div')<{isRounded?: boolean}>`
-  width: 100%;
-  border-radius: ${p => (p.isRounded ? p.theme.borderRadius : 0)};
-`;
-
-const ContextHeader = styled(Button)<{isExpanded?: boolean; isRounded?: boolean}>`
-  width: 100%;
-  box-shadow: none;
-  margin: 0;
-  border: none;
-  font-weight: normal;
-  background: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => {
-    if (!p.isRounded) {
-      return 0;
-    }
-    if (p.isExpanded) {
-      return `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`;
-    }
-    return p.theme.borderRadius;
-  }};
-`;
-
-const ContextHeaderLeftAlign = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
-const ContextHeaderWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-`;
-
-const ContextHeaderText = styled('p')`
-  height: 0;
 `;
 
 const ContextBody = styled('div')`
