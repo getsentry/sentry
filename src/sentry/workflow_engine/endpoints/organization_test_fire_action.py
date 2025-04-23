@@ -16,10 +16,8 @@ from sentry.apidocs.constants import RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
-from sentry.workflow_engine.endpoints.utils.test_fire_action import (
-    get_test_notification_event_data,
-    test_fire_action,
-)
+from sentry.notifications.notification_action.grouptype import get_test_notification_event_data
+from sentry.workflow_engine.endpoints.utils.test_fire_action import test_fire_action
 from sentry.workflow_engine.endpoints.validators.base.action import BaseActionValidator
 from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.types import WorkflowEventData
