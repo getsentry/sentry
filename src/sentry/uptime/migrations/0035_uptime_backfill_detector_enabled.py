@@ -2,14 +2,15 @@
 
 
 import logging
+
 from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
+
 from sentry.constants import ObjectStatus
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION
 from sentry.utils.query import RangeQuerySetWrapper
-
 
 logger = logging.getLogger(__name__)
 
