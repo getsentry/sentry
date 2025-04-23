@@ -133,6 +133,9 @@ export enum FieldKey {
   USER_SEGMENT = 'user.segment',
   APP_IN_FOREGROUND = 'app.in_foreground',
   FUNCTION_DURATION = 'function.duration',
+  EXPO_UPDATES_CHANNEL = 'expo_updates.channel',
+  EXPO_UPDATES_RUNTIME_VERSION = 'expo_updates.runtime_version',
+  EXPO_UPDATES_UPDATE_ID = 'expo_updates.update_id',
 }
 
 export enum FieldValueType {
@@ -1585,10 +1588,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [FieldKey.PROJECT]: {
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
+  [FieldKey.PROJECT]: {kind: FieldKind.FIELD, valueType: FieldValueType.STRING},
   [FieldKey.FIRST_RELEASE]: {
     desc: t('Issues first seen in a given release'),
     kind: FieldKind.FIELD,
@@ -2544,17 +2544,11 @@ export const getFieldDefinition = (
       // aggregate functions. We assign value type based on kind, so that we can filter
       // on them when suggesting function parameters.
       if (kind === FieldKind.MEASUREMENT) {
-        return {
-          kind: FieldKind.FIELD,
-          valueType: FieldValueType.NUMBER,
-        };
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.NUMBER};
       }
 
       if (kind === FieldKind.TAG) {
-        return {
-          kind: FieldKind.FIELD,
-          valueType: FieldValueType.STRING,
-        };
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.STRING};
       }
 
       return null;
@@ -2569,17 +2563,11 @@ export const getFieldDefinition = (
       // aggregate functions. We assign value type based on kind, so that we can filter
       // on them when suggesting function parameters.
       if (kind === FieldKind.MEASUREMENT) {
-        return {
-          kind: FieldKind.FIELD,
-          valueType: FieldValueType.NUMBER,
-        };
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.NUMBER};
       }
 
       if (kind === FieldKind.TAG) {
-        return {
-          kind: FieldKind.FIELD,
-          valueType: FieldValueType.STRING,
-        };
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.STRING};
       }
       return null;
 
@@ -2594,11 +2582,7 @@ export function makeTagCollection(fieldKeys: FieldKey[]): TagCollection {
   return Object.fromEntries(
     fieldKeys.map(fieldKey => [
       fieldKey,
-      {
-        key: fieldKey,
-        name: fieldKey,
-        kind: getFieldDefinition(fieldKey)?.kind,
-      },
+      {key: fieldKey, name: fieldKey, kind: getFieldDefinition(fieldKey)?.kind},
     ])
   );
 }

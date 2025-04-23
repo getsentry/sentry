@@ -435,3 +435,18 @@ class OsAttributeHandler(AttributeHandler):
                 os_context = {}
             return [os_context.get(path[1])]
         return []
+
+
+@attribute_registry.register("expo_updates")
+class ExpoUpdatesAttributeHandler(AttributeHandler):
+    minimum_path_length = 2
+
+    @classmethod
+    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
+        if path[1] in ("channel", "runtime_version", "update_id"):
+            contexts = event.data.get("contexts", {})
+            expo_updates_context = contexts.get("expo_updates")
+            if expo_updates_context is None:
+                expo_updates_context = {}
+            return [expo_updates_context.get(path[1])]
+        return []
