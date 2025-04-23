@@ -7,8 +7,8 @@ from django.db.models import Subquery
 
 from sentry.api.serializers import Serializer, serialize
 from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
-from sentry.incidents.endpoints.serializers.workflow_engine_alert_rule_trigger import (
-    WorkflowEngineAlertRuleTriggerSerializer,
+from sentry.incidents.endpoints.serializers.workflow_engine_data_condition import (
+    WorkflowEngineDataConditionSerializer,
 )
 from sentry.incidents.models.alert_rule import AlertRuleStatus
 from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_component
@@ -53,7 +53,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
         ).values_list("id", flat=True)
         data_conditions = DataCondition.objects.filter(condition_group__in=workflow_dcg_ids)
         dcgas = DataConditionGroupAction.objects.filter(
-            data_condition_group__in=workflow_dcg_ids
+            condition_group__in=workflow_dcg_ids
         ).select_related("action")
         actions = [dcga.action for dcga in dcgas]
 
@@ -78,11 +78,11 @@ class WorkflowEngineDetectorSerializer(Serializer):
 
         # build up trigger and action data
         serialized_data_conditions = serialize(
-            data_conditions, WorkflowEngineAlertRuleTriggerSerializer(), **kwargs
+            data_conditions, WorkflowEngineDataConditionSerializer(), **kwargs
         )
         for data_condition, serialized in zip(data_conditions, serialized_data_conditions):
             errors = []
-            detector = detectors[data_condition.detector_id]
+            detector = detectors[data_condition.get("alertRuleId")]
             alert_rule_triggers = result[detector].setdefault("triggers", [])
             for action in serialized.get("actions", []):
                 if action is None:
@@ -159,7 +159,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
 
         # skipping snapshot data
 
-        # TODO fetch latest metric issue occurrence if "latestIncident" in self.expand
+        # TODO fetch latest metric issue occurrence (open period?) if "latestIncident" in self.expand
         # if "latestIncident" in self.expand:
         #     incident_map = {}
         #     for incident in Incident.objects.filter(
@@ -186,7 +186,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             "status": (
                 AlertRuleStatus.PENDING.value if active is True else AlertRuleStatus.DISABLED
             ),  # this is a rough first pass, need to handle other statuses
-            "query": "test",
+            "query": "test",  # TODO get these all from get attrs
             "aggregate": "test",
             "timeWindow": 1,
             "resolution": 1,
@@ -194,8 +194,8 @@ class WorkflowEngineDetectorSerializer(Serializer):
             "triggers": attrs.get("triggers", []),
             "projects": sorted(attrs.get("projects", [])),
             "owner": attrs.get("owner", None),
-            "dateModified": obj.date_updated(),
-            "dateCreated": obj.date_added(),
+            "dateModified": obj.date_updated,
+            "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by", None),
             "description": obj.description,
             "detectionType": obj.type,
