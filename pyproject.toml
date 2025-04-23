@@ -130,7 +130,6 @@ module = [
     "sentry.integrations.github.client",
     "sentry.integrations.github.integration",
     "sentry.integrations.gitlab.issues",
-    "sentry.integrations.jira.integration",
     "sentry.integrations.pagerduty.actions.form",
     "sentry.integrations.pipeline",
     "sentry.integrations.slack.message_builder.notifications.issues",
