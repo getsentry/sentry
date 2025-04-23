@@ -144,7 +144,6 @@ class OpsgenieClient(ApiClient):
                     raise
 
         # Creating a metric alert
-
         with record_event(OnCallInteractionType.CREATE).capture() as lifecycle:
             try:
                 return self.post("/alerts", data=data, headers=headers)
