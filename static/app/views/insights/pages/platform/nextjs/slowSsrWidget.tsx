@@ -195,7 +195,7 @@ export function SlowSSRWidget({query}: {query?: string}) {
             }}
             onOpenFullScreen={() => {
               openInsightChartModal({
-                title: t('Slow Queries'),
+                title: t('Slow SSR'),
                 children: (
                   <Fragment>
                     <ModalChartContainer>{visualization}</ModalChartContainer>
