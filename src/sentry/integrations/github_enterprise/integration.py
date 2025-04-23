@@ -172,7 +172,7 @@ class GitHubEnterpriseIntegration(
 
     # IntegrationInstallation methods
 
-    def message_from_error(self, exc):
+    def message_from_error(self, exc: Exception) -> str:
         if isinstance(exc, ApiError):
             if exc.code is None:
                 message = None

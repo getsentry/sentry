@@ -142,7 +142,7 @@ class BitbucketPlugin(CorePluginMixin, IssuePlugin2):
             },
         ]
 
-    def message_from_error(self, exc):
+    def message_from_error(self, exc: Exception) -> str:
         if isinstance(exc, ApiError) and exc.code == 404:
             return ERR_404
         return super().message_from_error(exc)
