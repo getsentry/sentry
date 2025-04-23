@@ -1,5 +1,4 @@
 import {useCallback, useRef} from 'react';
-import styled from '@emotion/styled';
 import type {SeriesOption} from 'echarts';
 import type {MarkLineOption} from 'echarts/types/dist/shared';
 import type {EChartsInstance} from 'echarts-for-react';
@@ -14,7 +13,6 @@ import {
   NavigationCrumbs,
 } from 'sentry/components/events/eventDrawer';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {ReactEchartsRef, SeriesDataUnit} from 'sentry/types/echarts';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
@@ -126,13 +124,14 @@ export function ReleasesDrawerList({chart, pageFilters}: ReleasesDrawerListProps
       </EventNavigator>
       <EventDrawerBody>
         {chart ? (
-          <ChartContainer style={{height: chartHeight}}>
+          <div style={{height: chartHeight}}>
             <ChartWidgetLoader
               id={chart}
+              height={chartHeight}
               pageFilters={pageFilters}
               showReleaseAs="line"
             />
-          </ChartContainer>
+          </div>
         ) : null}
 
         <ReleaseDrawerTable
@@ -144,7 +143,3 @@ export function ReleasesDrawerList({chart, pageFilters}: ReleasesDrawerListProps
     </EventDrawerContainer>
   );
 }
-
-const ChartContainer = styled('div')`
-  margin-bottom: ${space(2)};
-`;
