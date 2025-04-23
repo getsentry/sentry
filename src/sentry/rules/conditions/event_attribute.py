@@ -66,6 +66,9 @@ ATTR_CHOICES: dict[str, Columns | None] = {
     "os.distribution_name": Columns.OS_DISTRIBUTION_NAME,
     "os.distribution_version": Columns.OS_DISTRIBUTION_VERSION,
     "symbolicated_in_app": Columns.SYMBOLICATED_IN_APP,
+    "expo_updates.channel": Columns.EXPO_UPDATES_CHANNEL,
+    "expo_updates.runtime_version": Columns.EXPO_UPDATES_RUNTIME_VERSION,
+    "expo_updates.update_id": Columns.EXPO_UPDATES_UPDATE_ID,
 }
 
 
