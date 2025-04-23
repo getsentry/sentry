@@ -119,6 +119,7 @@ function CreditCardSetup({
           method: 'PUT',
           data: {
             paymentMethod: setupResult.setupIntent.payment_method,
+            ftcConsentLocation: location,
           },
         }
       );
