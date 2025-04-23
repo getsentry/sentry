@@ -534,9 +534,9 @@ class JiraIntegration(IssueSyncIntegration):
 
     def create_comment_attribution(self, user_id, comment_text):
         user = user_service.get_user(user_id=user_id)
-        assert user is not None, "user must exist to get username for comment attribution"
+        username = "Unknown User" if user is None else user.name
 
-        attribution = f"{user.name} wrote:\n\n"
+        attribution = f"{username} wrote:\n\n"
         return f"{attribution}{{quote}}{comment_text}{{quote}}"
 
     def update_comment(self, issue_id, user_id, group_note):
