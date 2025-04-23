@@ -1,7 +1,13 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {
   getPlatform,
@@ -313,5 +319,71 @@ describe('View Hierarchy', function () {
 
     await userEvent.hover(screen.getByTestId('rendering-system-icon'));
     expect(await screen.findByText('Rendering System: flutter')).toBeInTheDocument();
+  });
+
+  it('renders a custom ui for godot platform', async function () {
+    const mockData = getMockData(ProjectFixture({platform: 'godot'}));
+    render(
+      <ViewHierarchy
+        viewHierarchy={{
+          rendering_system: 'Godot',
+          windows: [
+            {
+              name: 'root',
+              class: 'Window',
+              children: [
+                {
+                  name: 'SentryConfigurationScript',
+                  class: 'SentryConfiguration',
+                  script: 'res://example_configuration.gd',
+                  children: [
+                    {
+                      name: 'Header - Output',
+                      class: 'Label',
+                      children: [],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        }}
+        emptyMessage={mockData.emptyMessage}
+        nodeField={mockData.nodeField}
+        showWireframe={mockData.showWireframe}
+        platform={mockData.platform}
+      />
+    );
+
+    expect(screen.queryByTestId('view-hierarchy-wireframe')).not.toBeInTheDocument();
+
+    expect(screen.getAllByRole('button', {name: 'Collapse'})).toHaveLength(3);
+
+    expect(screen.getByText('Header - Output')).toBeInTheDocument();
+
+    const collapseButton = within(
+      screen.getByLabelText('SentryConfigurationScript')
+    ).getByRole('button', {name: 'Collapse'});
+
+    await userEvent.click(collapseButton);
+
+    await waitFor(() =>
+      expect(screen.queryByText('Header - Output')).not.toBeInTheDocument()
+    );
+  });
+
+  it('renders a custom empty message for godot platform', function () {
+    const mockData = getMockData(ProjectFixture({platform: 'godot'}));
+    render(
+      <ViewHierarchy
+        viewHierarchy={{rendering_system: 'This can be anything', windows: []}}
+        emptyMessage={mockData.emptyMessage}
+        nodeField={mockData.nodeField}
+        showWireframe={mockData.showWireframe}
+        platform={mockData.platform}
+      />
+    );
+
+    expect(screen.getByText(/no scene tree data/)).toBeInTheDocument();
   });
 });

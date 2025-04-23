@@ -61,17 +61,19 @@ function onScrollToNode(
 }
 
 export type ViewHierarchyWindow = {
-  alpha: number;
-  height: number;
-  visible: boolean;
-  width: number;
-  x: number;
-  y: number;
+  // there can be many other properties, but we only care about a few
+  [key: string]: unknown;
+  alpha?: number;
   children?: ViewHierarchyWindow[];
   depth?: number;
+  height?: number;
   identifier?: string;
   name?: string;
   type?: string;
+  visible?: boolean;
+  width?: number;
+  x?: number;
+  y?: number;
 };
 
 export type ViewHierarchyData = {
