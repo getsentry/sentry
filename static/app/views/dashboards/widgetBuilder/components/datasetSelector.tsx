@@ -30,15 +30,7 @@ function WidgetBuilderDatasetSelector() {
     datasetChoices.push([
       WidgetType.SPANS,
       <FeatureBadgeAlignmentWrapper aria-label={t('Spans')} key={'dataset-choice-spans'}>
-        {t('Spans')}{' '}
-        <FeatureBadge
-          type="beta"
-          tooltipProps={{
-            title: t(
-              'This feature is available for early adopters and the UX may change'
-            ),
-          }}
-        />
+        {t('Spans')} <FeatureBadge type="new" />
       </FeatureBadgeAlignmentWrapper>,
     ]);
   }
