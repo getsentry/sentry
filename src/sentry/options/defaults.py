@@ -3312,6 +3312,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "taskworker.issues.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "taskworker.export.rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
