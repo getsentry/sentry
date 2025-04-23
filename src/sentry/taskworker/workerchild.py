@@ -133,8 +133,6 @@ def child_process(
         processing_pool_name: str,
         process_type: str,
     ) -> None:
-        # print("!!!!!! STARTING WORKER !!!!!!!")
-
         processed_task_count = 0
 
         def handle_alarm(signum: int, frame: FrameType | None) -> None:
