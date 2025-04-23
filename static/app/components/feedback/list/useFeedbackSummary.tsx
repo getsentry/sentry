@@ -57,7 +57,7 @@ Key sentiments:
   return data.choices[0].message.content;
 }
 
-export default function useFeedbackSummary(): {
+export default function useFeedbackSummary({isHelpful}: {isHelpful: boolean | null}): {
   error: Error | null;
   keySentiments: Sentiment[];
   loading: boolean;
@@ -70,6 +70,7 @@ export default function useFeedbackSummary(): {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const requestMadeRef = useRef(false);
+  const prevIsHelpfulRef = useRef<boolean | null>(isHelpful);
 
   const finalResultRef = useRef<{
     keySentiments: Sentiment[];
@@ -80,6 +81,15 @@ export default function useFeedbackSummary(): {
   });
 
   useEffect(() => {
+    // Refetch when isHelpful changes to false
+    const shouldRefetch = isHelpful === false && prevIsHelpfulRef.current !== isHelpful;
+
+    if (shouldRefetch) {
+      requestMadeRef.current = false;
+    }
+
+    prevIsHelpfulRef.current = isHelpful;
+
     if (!apiKey || !messages.length || requestMadeRef.current) {
       return;
     }
@@ -100,7 +110,7 @@ export default function useFeedbackSummary(): {
       .finally(() => {
         setLoading(false);
       });
-  }, [apiKey, messages]);
+  }, [apiKey, messages, isHelpful]);
 
   const parsedResults = useMemo(() => {
     if (!response) {

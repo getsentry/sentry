@@ -11,15 +11,21 @@ import styled from '@emotion/styled';
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackListHeader from 'sentry/components/feedback/list/feedbackListHeader';
 import FeedbackListItem from 'sentry/components/feedback/list/feedbackListItem';
+import {
+  getSentimentIcon,
+  getSentimentType,
+} from 'sentry/components/feedback/list/summaryUtils';
 import useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
 import useSentimentKeyword from 'sentry/components/feedback/list/useSentimentKeyword';
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconHappy, IconMeh, IconSad} from 'sentry/icons';
+import Placeholder from 'sentry/components/placeholder';
+import {IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useFetchInfiniteListData from 'sentry/utils/api/useFetchInfiniteListData';
@@ -55,14 +61,20 @@ interface FeedbackListProps {
     loading: boolean;
     summary: string | null;
   };
+  isHelpful: boolean | null;
+  setIsHelpful: (isHelpful: boolean) => void;
 }
 
-export default function FeedbackList({feedbackSummary}: FeedbackListProps) {
+export default function FeedbackList({
+  feedbackSummary,
+  setIsHelpful,
+  isHelpful,
+}: FeedbackListProps) {
   const {listQueryKey} = useFeedbackQueryKeys();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const {summary, keySentiments} = feedbackSummary;
+  const {summary, keySentiments, loading: summaryLoading} = feedbackSummary;
   const [selectedSentiment, setSelectedSentiment] = useState<string | null>(null);
   // keyword used for search when a sentiment is selected
   const {keyword} = useSentimentKeyword({sentiment: selectedSentiment});
@@ -90,28 +102,6 @@ export default function FeedbackList({feedbackSummary}: FeedbackListProps) {
       });
     }
   }, [keyword, selectedSentiment, navigate]);
-
-  const getSentimentIcon = (type: string) => {
-    switch (type) {
-      case 'positive':
-        return <IconHappy color="green400" />;
-      case 'negative':
-        return <IconSad color="red400" />;
-      default:
-        return <IconMeh color="yellow400" />;
-    }
-  };
-
-  const getSentimentType = (type: string) => {
-    switch (type) {
-      case 'positive':
-        return 'success';
-      case 'negative':
-        return 'error';
-      default:
-        return 'warning';
-    }
-  };
 
   const {
     isFetchingNextPage,
@@ -167,23 +157,56 @@ export default function FeedbackList({feedbackSummary}: FeedbackListProps) {
   return (
     <Fragment>
       <Summary>
-        <SummaryHeader>{t('Feedback Summary')}</SummaryHeader>
-        <div>{summary}</div>
-        <KeySentiments>
-          {keySentiments.map(sentiment => (
-            <SentimentTag
-              key={sentiment.value}
-              icon={getSentimentIcon(sentiment.type)}
-              type={getSentimentType(sentiment.type)}
-              onClick={e => {
-                const targetSentiment = (e.target as HTMLElement).textContent ?? '';
-                setSelectedSentiment(targetSentiment);
-              }}
-            >
-              {sentiment.value}
-            </SentimentTag>
-          ))}
-        </KeySentiments>
+        <SummaryHeader>
+          {t('Feedback Summary')}
+          <Thumbs>
+            {
+              <Button
+                title={t('This summary is helpful')}
+                borderless
+                size="xs"
+                onClick={() => setIsHelpful(true)}
+              >
+                <IconThumb color={isHelpful ? 'green400' : undefined} direction="up" />
+              </Button>
+            }
+            {
+              <Button
+                title={t('This summary is not helpful. Click to update.')}
+                borderless
+                size="xs"
+                onClick={() => setIsHelpful(false)}
+              >
+                <IconThumb
+                  color={isHelpful === false ? 'red400' : undefined}
+                  direction="down"
+                />
+              </Button>
+            }
+          </Thumbs>
+        </SummaryHeader>
+        {summaryLoading ? (
+          <Placeholder height="200px" />
+        ) : (
+          <Fragment>
+            <div>{summary}</div>
+            <KeySentiments>
+              {keySentiments.map(sentiment => (
+                <SentimentTag
+                  key={sentiment.value}
+                  icon={getSentimentIcon(sentiment.type)}
+                  type={getSentimentType(sentiment.type)}
+                  onClick={e => {
+                    const targetSentiment = (e.target as HTMLElement).textContent ?? '';
+                    setSelectedSentiment(targetSentiment);
+                  }}
+                >
+                  {sentiment.value}
+                </SentimentTag>
+              ))}
+            </KeySentiments>
+          </Fragment>
+        )}
       </Summary>
       <FeedbackListHeader {...checkboxState} />
       <FeedbackListItems>
@@ -244,6 +267,14 @@ export default function FeedbackList({feedbackSummary}: FeedbackListProps) {
 
 const SummaryHeader = styled('div')`
   font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const Thumbs = styled('div')`
+  display: flex;
+  gap: ${space(0.25)};
 `;
 
 const Summary = styled('div')`

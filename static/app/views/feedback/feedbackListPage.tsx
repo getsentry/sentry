@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -45,7 +45,9 @@ export default function FeedbackListPage() {
   const pageFilters = usePageFilters();
   const projects = useProjects();
   const prefersStackedNav = usePrefersStackedNav();
-  const feedbackSummary = useFeedbackSummary();
+
+  const [isHelpful, setIsHelpful] = useState<boolean | null>(null);
+  const feedbackSummary = useFeedbackSummary({isHelpful});
 
   const selectedProjects = projects.projects.filter(p =>
     pageFilters.selection.projects.includes(Number(p.id))
@@ -86,7 +88,11 @@ export default function FeedbackListPage() {
                 {hasSetupOneFeedback || hasSlug ? (
                   <Fragment>
                     <Container style={{gridArea: 'list'}}>
-                      <FeedbackList feedbackSummary={feedbackSummary} />
+                      <FeedbackList
+                        feedbackSummary={feedbackSummary}
+                        setIsHelpful={setIsHelpful}
+                        isHelpful={isHelpful}
+                      />
                     </Container>
                     <SearchContainer>
                       <FeedbackSearch />
