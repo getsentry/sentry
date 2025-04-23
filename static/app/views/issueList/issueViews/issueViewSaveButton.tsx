@@ -42,7 +42,9 @@ function SegmentedIssueViewSaveButton({
   const {data: view} = useSelectedGroupSearchView();
   const {mutate: updateGroupSearchView, isPending: isSaving} = useUpdateGroupSearchView();
   const user = useUser();
-  const canEdit = view ? canEditIssueView({user, groupSearchView: view}) : false;
+  const canEdit = view
+    ? canEditIssueView({user, groupSearchView: view, organization})
+    : false;
 
   const discardUnsavedChanges = () => {
     if (view) {
