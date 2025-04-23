@@ -7,7 +7,7 @@ import zlib
 from collections import Counter
 from collections.abc import Sequence
 from functools import cached_property
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Any, Literal
 
 import msgpack
 import sentry_sdk
@@ -16,7 +16,6 @@ from sentry_ophio.enhancers import Cache as RustCache
 from sentry_ophio.enhancers import Component as RustFrame
 from sentry_ophio.enhancers import Enhancements as RustEnhancements
 
-from sentry import projectoptions
 from sentry.grouping.component import FrameGroupingComponent, StacktraceGroupingComponent
 from sentry.stacktraces.functions import set_in_app
 from sentry.utils.safe import get_path, set_path
@@ -24,7 +23,7 @@ from sentry.utils.safe import get_path, set_path
 from .exceptions import InvalidEnhancerConfig
 from .matchers import create_match_frame
 from .parser import parse_enhancements
-from .rules import EnhancementRule, EnhancementRuleDict
+from .rules import EnhancementRule
 
 logger = logging.getLogger(__name__)
 
@@ -132,13 +131,6 @@ def keep_profiling_rules(config: str) -> str:
         if is_valid_profiling_matcher(matchers) and is_valid_profiling_action(action):
             filtered_rules.append(rule)
     return "\n".join(filtered_rules)
-
-
-class EnhancementsDict(TypedDict):
-    id: str | None
-    bases: list[str]
-    latest: bool
-    rules: NotRequired[list[EnhancementRuleDict]]
 
 
 class Enhancements:
@@ -293,19 +285,6 @@ class Enhancements:
         )
 
         return stacktrace_component
-
-    def as_dict(self, with_rules: bool = False) -> EnhancementsDict:
-        rv: EnhancementsDict = {
-            "id": self.id,
-            "bases": self.bases,
-            "latest": projectoptions.lookup_well_known_key(
-                "sentry:grouping_enhancements_base"
-            ).get_default(epoch=projectoptions.LATEST_EPOCH)
-            == self.id,
-        }
-        if with_rules:
-            rv["rules"] = [x.as_dict() for x in self.rules]
-        return rv
 
     def _to_config_structure(self) -> list[Any]:
         # TODO: Can we switch this to a tuple so we can type it more exactly?
