@@ -160,9 +160,7 @@ class NoGroupsHandler extends Component<Props, State> {
     ];
 
     const hasUpdatedEmptyState =
-      organization.features.includes('issue-stream-empty-state') &&
-      project?.platform &&
-      updatedEmptyStatePlatforms.includes(project.platform);
+      project?.platform && updatedEmptyStatePlatforms.includes(project.platform);
 
     return (
       <Suspense fallback={<Placeholder height="260px" />}>
