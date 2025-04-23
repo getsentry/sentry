@@ -10,7 +10,7 @@ export function convertSeriesToTimeseries(series: DiscoverSeries): TimeSeries {
       type: series.meta?.fields?.[series.seriesName] ?? null,
       unit: (series.meta?.units?.[series.seriesName] ?? null) as DataUnit,
     },
-    data: (series?.data ?? []).map(datum => ({
+    values: (series?.data ?? []).map(datum => ({
       timestamp: datum.name.toString(),
       value: datum.value,
     })),

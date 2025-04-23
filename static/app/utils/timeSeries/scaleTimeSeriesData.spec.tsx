@@ -7,7 +7,7 @@ describe('scaleTimeSeriesData', () => {
   describe('does not scale unscalable types', () => {
     const timeSeries: TimeSeries = {
       field: 'user',
-      data: [
+      values: [
         {
           timestamp: '2025-01-01T00:00:00',
           value: 17,
@@ -30,7 +30,7 @@ describe('scaleTimeSeriesData', () => {
   it('does not scale duration units from second to gigabyte', () => {
     const timeSeries: TimeSeries = {
       field: 'transaction.duration',
-      data: [
+      values: [
         {
           timestamp: '2025-01-01T00:00:00',
           value: 17,
@@ -48,7 +48,7 @@ describe('scaleTimeSeriesData', () => {
   it('scales duration units from second to millisecond', () => {
     const timeSeries: TimeSeries = {
       field: 'transaction.duration',
-      data: [
+      values: [
         {
           timestamp: '2025-01-01T00:00:00',
           value: 17,
@@ -62,7 +62,7 @@ describe('scaleTimeSeriesData', () => {
 
     expect(scaleTimeSeriesData(timeSeries, DurationUnit.MILLISECOND)).toEqual({
       field: 'transaction.duration',
-      data: [
+      values: [
         {
           timestamp: '2025-01-01T00:00:00',
           value: 17000,
@@ -78,7 +78,7 @@ describe('scaleTimeSeriesData', () => {
   it('scales size units from mebibyte to byte', () => {
     const timeSeries: TimeSeries = {
       field: 'file.size',
-      data: [
+      values: [
         {
           timestamp: '2025-01-01T00:00:00',
           value: 17,
@@ -92,7 +92,7 @@ describe('scaleTimeSeriesData', () => {
 
     expect(scaleTimeSeriesData(timeSeries, SizeUnit.BYTE)).toEqual({
       field: 'file.size',
-      data: [
+      values: [
         {
           timestamp: '2025-01-01T00:00:00',
           value: 17825792,

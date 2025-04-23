@@ -6,7 +6,7 @@ export const sampleScoreTimeSeries: TimeSeries = {
     type: 'score',
     unit: null,
   },
-  data: [
+  values: [
     {
       value: 16,
       timestamp: '2024-10-24T15:00:00-04:00',

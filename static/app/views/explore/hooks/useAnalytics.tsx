@@ -480,14 +480,14 @@ function computeTotals(
   });
 }
 
-function computeEmptyBucketsForSeries(series: Pick<TimeSeries, 'data'>): number {
+function computeEmptyBucketsForSeries(series: Pick<TimeSeries, 'values'>): number {
   let emptyBucketsForSeries = 0;
-  for (const item of series.data) {
+  for (const item of series.values) {
     if (item.value === 0 || item.value === null) {
       emptyBucketsForSeries += 1;
     }
   }
-  return Math.floor((emptyBucketsForSeries / series.data.length) * 100);
+  return Math.floor((emptyBucketsForSeries / series.values.length) * 100);
 }
 
 function computeEmptyBuckets(

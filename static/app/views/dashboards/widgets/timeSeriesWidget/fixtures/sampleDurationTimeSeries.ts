@@ -7,7 +7,7 @@ export const sampleDurationTimeSeries: TimeSeries = {
     type: 'duration',
     unit: DurationUnit.MILLISECOND,
   },
-  data: [
+  values: [
     {
       value: 163.26759544018776,
       timestamp: '2024-10-24T15:00:00-04:00',

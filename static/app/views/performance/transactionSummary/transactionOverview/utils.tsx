@@ -51,7 +51,7 @@ export function eapSeriesDataToTimeSeries(data: EAPSeriesData) {
         type: value.meta?.fields?.[key] ?? null,
         unit: value.meta?.units?.[key] as DataUnit,
       },
-      data:
+      values:
         value.data.map(item => ({
           timestamp: item.name.toString(),
           value: item.value,
