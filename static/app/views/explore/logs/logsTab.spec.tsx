@@ -16,7 +16,7 @@ const mockUseLocation = jest.mocked(useLocation);
 describe('LogsTabContent', function () {
   const {organization, project} = initializeOrg({
     organization: {
-      features: ['ourlogs', 'ourlogs-graph'],
+      features: ['ourlogs'],
     },
   });
 
