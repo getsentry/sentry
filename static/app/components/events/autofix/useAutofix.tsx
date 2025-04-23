@@ -48,7 +48,7 @@ const makeInitialAutofixData = (): AutofixResponse => ({
         ],
       },
     ],
-    created_at: new Date().toISOString(),
+    last_triggered_at: new Date().toISOString(),
     request: {
       repos: [],
     },

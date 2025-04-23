@@ -47,7 +47,7 @@ type CodebaseState = {
 
 export type AutofixData = {
   codebases: Record<string, CodebaseState>;
-  created_at: string;
+  last_triggered_at: string;
   request: {
     repos: SeerRepoDefinition[];
   };
