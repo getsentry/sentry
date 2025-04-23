@@ -94,7 +94,7 @@ export function ExploreParams({
   }, [query]);
   if (query) {
     tokens.push(
-      <Token>
+      <Token key="filter">
         <ExploreParamTitle>{t('Filter')}</ExploreParamTitle>
       </Token>
     );
@@ -112,7 +112,7 @@ export function ExploreParams({
   }
   if (groupBys && groupBys.length > 0) {
     tokens.push(
-      <Token>
+      <Token key="groupBy">
         <ExploreParamTitle>{t('Group By')}</ExploreParamTitle>
       </Token>
     );
