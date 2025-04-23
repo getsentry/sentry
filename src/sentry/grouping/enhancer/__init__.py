@@ -353,8 +353,9 @@ class Enhancements:
                 pickled = zlib.decompress(compressed_pickle)
 
             rust_enhancements = get_rust_enhancements("config_structure", pickled)
+            config_structure = msgpack.loads(pickled, raw=False)
 
-            return cls._from_config_structure(msgpack.loads(pickled, raw=False), rust_enhancements)
+            return cls._from_config_structure(config_structure, rust_enhancements)
         except (LookupError, AttributeError, TypeError, ValueError) as e:
             raise ValueError("invalid stack trace rule config: %s" % e)
 
