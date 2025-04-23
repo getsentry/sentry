@@ -46,7 +46,7 @@ export function SavedQueriesLandingContent() {
       <h4>{t('Created by Me')}</h4>
       <SavedQueriesTable
         mode="owned"
-        perPage={5}
+        perPage={20}
         cursorKey="ownedCursor"
         sort={sort}
         searchQuery={searchQuery}
@@ -54,7 +54,7 @@ export function SavedQueriesLandingContent() {
       <h4>{t('Created by Others')}</h4>
       <SavedQueriesTable
         mode="shared"
-        perPage={8}
+        perPage={20}
         cursorKey="sharedCursor"
         sort={sort}
         searchQuery={searchQuery}

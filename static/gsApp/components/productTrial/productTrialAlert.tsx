@@ -50,7 +50,7 @@ const PRODUCT_URLS = {
     'https://docs.sentry.io/product/explore/profiling/getting-started/#continuous-profiling',
 };
 
-export interface ProductTrialAlertProps {
+interface ProductTrialAlertProps {
   api: Client;
   organization: Organization;
   subscription: Subscription;

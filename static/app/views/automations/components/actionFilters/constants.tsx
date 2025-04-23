@@ -42,7 +42,7 @@ export enum MatchType {
   STARTS_WITH = 'sw',
 }
 
-export enum Assignee {
+enum Assignee {
   UNASSIGNED = 'Unassigned',
   TEAM = 'Team',
   MEMBER = 'Member',

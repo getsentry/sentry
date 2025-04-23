@@ -1,6 +1,6 @@
 import type {Action} from './actions';
 
-export interface SnubaQuery {
+interface SnubaQuery {
   aggregate: string;
   dataset: string;
   id: string;
@@ -68,11 +68,6 @@ export interface NewDataCondition {
   comparison_type: DataConditionType;
   condition_group?: DataConditionGroup;
   condition_result?: any;
-}
-
-export interface DataCondition extends Readonly<NewDataCondition> {
-  readonly id: string;
-  type: DataConditionGroupLogicType;
 }
 
 export interface DataConditionGroup {

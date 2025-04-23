@@ -53,7 +53,7 @@ export const convertGSVtoIssueView = (gsv: StarredGroupSearchView): NavIssueView
   };
 };
 
-export const convertIssueViewToGSV = (view: NavIssueView): StarredGroupSearchView => {
+const convertIssueViewToGSV = (view: NavIssueView): StarredGroupSearchView => {
   return {
     id: view.id,
     name: view.label,

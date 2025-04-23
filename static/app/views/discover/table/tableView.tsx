@@ -72,7 +72,7 @@ import TableActions from './tableActions';
 import {TopResultsIndicator} from './topResultsIndicator';
 import type {TableColumn} from './types';
 
-export type TableViewProps = {
+type TableViewProps = {
   error: string | null;
   eventView: EventView;
   isFirstPage: boolean;
@@ -747,7 +747,7 @@ const StyledTooltip = styled(Tooltip)`
   max-width: max-content;
 `;
 
-export const StyledLink = styled(Link)`
+const StyledLink = styled(Link)`
   & div {
     display: inline;
   }
