@@ -16,9 +16,9 @@ import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDisco
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {ModalChartContainer} from 'sentry/views/insights/pages/platform/laravel/styles';
-import {Toolbar} from 'sentry/views/insights/pages/platform/laravel/toolbar';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
+import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 
 export function DurationWidget({query}: {query?: string}) {
   const theme = useTheme();
