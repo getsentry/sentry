@@ -1,6 +1,7 @@
 import logging
 from uuid import uuid4
 
+from django.contrib.auth.models import AnonymousUser
 from django.urls import re_path
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -18,7 +19,8 @@ from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2
 from sentry.plugins.providers import RepositoryProvider
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.users.services.user import RpcUser
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.users.services.usersocialauth.service import usersocialauth_service
 from sentry.utils.http import absolute_uri
 from sentry_plugins.base import CorePluginMixin
@@ -39,30 +41,25 @@ API_ERRORS = {
 WEBHOOK_EVENTS = ["push", "pull_request"]
 
 
-class GitHubMixin(CorePluginMixin):
-    def message_from_error(self, exc):
-        if isinstance(exc, ApiError):
-            message = API_ERRORS.get(exc.code)
-            if message:
-                return message
-            return "Error Communicating with GitHub (HTTP {}): {}".format(
-                exc.code,
-                exc.json.get("message", "unknown error") if exc.json else "unknown error",
-            )
-        else:
-            return ERR_INTERNAL
-
-    def get_client(self, user: RpcUser):
-        auth = self.get_auth(user=user)
-        if auth is None:
-            raise PluginError(API_ERRORS[401])
-        return GithubPluginClient(auth=auth)
+def _message_from_error(exc: Exception) -> str:
+    if isinstance(exc, ApiError):
+        if exc.code:
+            try:
+                return API_ERRORS[exc.code]
+            except KeyError:
+                pass
+        return "Error Communicating with GitHub (HTTP {}): {}".format(
+            exc.code,
+            exc.json.get("message", "unknown error") if exc.json else "unknown error",
+        )
+    else:
+        return ERR_INTERNAL
 
 
 # TODO(dcramer): half of this plugin is for the issue tracking integration
 # (which is a singular entry) and the other half is generic GitHub. It'd be nice
 # if plugins were entirely generic, and simply registered the various hooks.
-class GitHubPlugin(GitHubMixin, IssuePlugin2):
+class GitHubPlugin(CorePluginMixin, IssuePlugin2):
     description = "Integrate GitHub issues by linking a repository to a project."
     slug = "github"
     title = "GitHub"
@@ -89,6 +86,18 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
             IntegrationFeatures.ISSUE_BASIC,
         ),
     ]
+
+    def message_from_error(self, exc: Exception) -> str:
+        return _message_from_error(exc)
+
+    def get_client(self, user: User | RpcUser | AnonymousUser) -> GithubPluginClient:
+        if not user.is_authenticated:
+            raise PluginError(API_ERRORS[401])
+        auth = self.get_auth(user=user)
+        if auth is None:
+            raise PluginError(API_ERRORS[401])
+        else:
+            return GithubPluginClient(auth=auth)
 
     def get_group_urls(self):
         return super().get_group_urls() + [
@@ -256,10 +265,22 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
             bindings.add("repository.provider", GitHubAppsRepositoryProvider, id="github_apps")
 
 
-class GitHubRepositoryProvider(GitHubMixin, RepositoryProvider):
+class GitHubRepositoryProvider(CorePluginMixin, RepositoryProvider):
     name = "GitHub"
     auth_provider = "github"
     logger = logging.getLogger("sentry.plugins.github")
+
+    def message_from_error(self, exc: Exception) -> str:
+        return _message_from_error(exc)
+
+    def get_client(self, user: User | RpcUser | AnonymousUser) -> GithubPluginClient:
+        if not user.is_authenticated:
+            raise PluginError(API_ERRORS[401])
+        auth = self.get_auth(user=user)
+        if auth is None:
+            raise PluginError(API_ERRORS[401])
+        else:
+            return GithubPluginClient(auth=auth)
 
     def get_config(self):
         return [
@@ -477,6 +498,7 @@ class GitHubAppsRepositoryProvider(GitHubRepositoryProvider):
         integration = integration_service.get_integration(
             integration_id=integration_id, provider=self.auth_provider
         )
+        assert integration is not None
         client = GithubPluginAppsClient(integration=integration)
 
         # use config name because that is kept in sync via webhooks
