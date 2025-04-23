@@ -58,13 +58,11 @@ export default function AutomationForm() {
         <Flex column gap={space(1.5)} style={{padding: space(2)}}>
           <Card>
             <Heading>{t('Connect Monitors')}</Heading>
-            <ConnectedMonitorsWrapper>
-              <ConnectedMonitorsList
-                monitors={connectedMonitors}
-                connectedMonitorIds={connectedMonitorIds}
-                toggleConnected={toggleConnected}
-              />
-            </ConnectedMonitorsWrapper>
+            <ConnectedMonitorsList
+              monitors={connectedMonitors}
+              connectedMonitorIds={connectedMonitorIds}
+              toggleConnected={toggleConnected}
+            />
             <ButtonWrapper justify="space-between">
               <Button icon={<IconAdd />}>{t('Create New Monitor')}</Button>
               <Button icon={<IconEdit />}>{t('Edit Monitors')}</Button>
@@ -92,11 +90,7 @@ export default function AutomationForm() {
 
 const Heading = styled('h2')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  margin-bottom: ${space(1.5)};
-`;
-
-const ConnectedMonitorsWrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  margin: 0;
 `;
 
 const ButtonWrapper = styled(Flex)`
