@@ -280,8 +280,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:performance-saved-queries", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable querying spans fields stats from comparative workflows project
     manager.add("organizations:performance-spans-fields-stats", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable linking to trace explorer from metrics
-    manager.add("organizations:performance-trace-explorer-with-metrics", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable FE/BE for tracing without performance
     manager.add("organizations:performance-tracing-without-performance", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=True)
     # Enable transaction name only search
@@ -462,8 +460,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:visibility-explore-equations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the new explore page
     manager.add("organizations:visibility-explore-view", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable the dataset toggle on the new explore page
-    manager.add("organizations:visibility-explore-dataset", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable high date range options on new explore page
     manager.add("organizations:visibility-explore-range-high", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable medium date range options on new explore page
