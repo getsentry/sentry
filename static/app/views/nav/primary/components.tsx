@@ -2,7 +2,7 @@ import {Fragment, type MouseEventHandler} from 'react';
 import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonLabel} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -429,13 +429,13 @@ const ChonkNavButton = styled(Button, {
   width: ${p => (p.isMobile ? '100%' : '44px')};
   padding: ${p => (p.isMobile ? `${space(1)} ${space(3)}` : undefined)};
 
-  ${ButtonLabel} {
-    gap: ${space(1)};
+  svg {
+    margin-right: ${p => (p.isMobile ? space(1) : undefined)};
+  }
 
-    /* Disable interactionstatelayer hover */
-    [data-isl] {
-      display: none;
-    }
+  /* Disable interactionstatelayer hover */
+  [data-isl] {
+    display: none;
   }
 `;
 
