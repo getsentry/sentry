@@ -213,10 +213,15 @@ def sync_status_inbound(
     elif integration.status != ObjectStatus.ACTIVE:
         return
 
-    organization = Organization.objects.get(id=organization_id)
+    try:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        return
 
     affected_groups = list(
-        Group.objects.get_groups_by_external_issue(integration, [organization], issue_key)
+        Group.objects.get_groups_by_external_issue(
+            integration=integration, organizations=[organization], external_issue_key=issue_key
+        )
     )
     if not affected_groups:
         return
@@ -238,7 +243,10 @@ def sync_status_inbound(
         "provider_key": provider.key,
         "integration_id": integration_id,
     }
-    default_user_id, default_user = _get_default_user_info(organization=organization)
+    try:
+        default_user_id, default_user = _get_default_user_info(organization=organization)
+    except AssertionError:
+        return
 
     if action == ResolveSyncAction.RESOLVE:
         # Check if the group was recently resolved and we should skip the request
