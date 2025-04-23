@@ -1195,6 +1195,8 @@ const commonTheme = {
     initial: 1,
     truncationFullValue: 10,
 
+    footer: 899,
+
     // @TODO(jonasbadalic) This should exist on traceView component
     traceView: {
       spanTreeToggler: 900,
