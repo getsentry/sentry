@@ -46,6 +46,10 @@ export class Visualize {
   }
 
   determineChartType(): ChartType {
+    if (this.selectedChartType) {
+      return this.selectedChartType;
+    }
+
     const counts: Record<ChartType, number> = {
       [ChartType.BAR]: 0,
       [ChartType.LINE]: 0,
