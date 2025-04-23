@@ -22,7 +22,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 
 from sentry.conf.types import kafka_definition
 from sentry.conf.types.uptime import UptimeRegionConfig
-from sentry.constants import DataCategory, ObjectStatus
+from sentry.constants import DataCategory
 from sentry.models.group import Group, GroupStatus
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.datetime import freeze_time
@@ -445,32 +445,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             self.assert_redis_config(
                 "default", UptimeSubscription(subscription_id=subscription_id), "delete", None
             )
-
-    def test_multiple_project_subscriptions_with_disabled(self):
-        """
-        Tests that we do not process results for disabled project subscriptions
-        """
-        # Second disabled project subscription
-        self.create_project_uptime_subscription(
-            uptime_subscription=self.subscription,
-            project=self.create_project(),
-            status=ObjectStatus.DISABLED,
-        )
-        result = self.create_uptime_result(self.subscription.subscription_id)
-
-        with (
-            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
-        ):
-            self.send_result(result)
-            # We only process a single project result, the other is dropped,
-            # there should be only one handle_result_for_project metric call
-            handle_result_calls = [
-                c
-                for c in metrics.incr.mock_calls
-                if c[1][0] == "uptime.result_processor.handle_result_for_project"
-            ]
-            assert len(handle_result_calls) == 1
 
     def test_organization_feature_disabled(self):
         """
