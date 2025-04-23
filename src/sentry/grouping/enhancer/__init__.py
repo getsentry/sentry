@@ -178,9 +178,10 @@ class Enhancements:
         """
         # TODO: Fix this type to list[MatchFrame] once it's fixed in ophio
         match_frames: list[Any] = [create_match_frame(frame, platform) for frame in frames]
+        rust_exception_data = make_rust_exception_data(exception_data)
 
         category_and_in_app_results = self.rust_enhancements.apply_modifications_to_frames(
-            match_frames, make_rust_exception_data(exception_data)
+            match_frames, rust_exception_data
         )
 
         for frame, (category, in_app) in zip(frames, category_and_in_app_results):
@@ -209,13 +210,14 @@ class Enhancements:
         match_frames: list[Any] = [create_match_frame(frame, platform) for frame in frames]
 
         rust_frames = [RustFrame(contributes=c.contributes) for c in frame_components]
+        rust_exception_data = make_rust_exception_data(exception_data)
 
         # Modify the rust frames by applying +group/-group rules and getting hints for both those
         # changes and the `in_app` changes applied by earlier in the ingestion process by
         # `apply_category_and_updated_in_app_to_frames`. Also, get `hint` and `contributes` values
         # for the overall stacktrace (returned in `rust_results`).
         rust_stacktrace_results = self.rust_enhancements.assemble_stacktrace_component(
-            match_frames, make_rust_exception_data(exception_data), rust_frames
+            match_frames, rust_exception_data, rust_frames
         )
 
         # Tally the number of each type of frame in the stacktrace. Later on, this will allow us to
