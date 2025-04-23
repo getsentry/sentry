@@ -907,4 +907,56 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
 
     expect(releasesMock).toHaveBeenCalledTimes(1);
   });
+
+  it('escapes release versions with spaces and special characters', async function () {
+    const mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics/data/',
+      body: MetricsFieldFixture(`session.status`),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/',
+      body: [
+        {id: 1, version: 'this release has spaces'},
+        {id: 2, version: 'this_release_has_no_spaces'},
+        {id: 3, version: 'this release has (parens)'},
+      ],
+    });
+    const queries = [
+      {
+        conditions: '',
+        fields: [`count_unique(user)`],
+        aggregates: [`count_unique(user)`],
+        columns: ['release'],
+        name: 'sessions',
+        orderby: '-release',
+      },
+    ];
+
+    const children = jest.fn(() => <div />);
+
+    render(
+      <ReleaseWidgetQueries
+        api={api}
+        widget={{...singleQueryWidget, queries}}
+        organization={organization}
+        selection={selection}
+      >
+        {children}
+      </ReleaseWidgetQueries>
+    );
+
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(mock).toHaveBeenCalledWith(
+      '/organizations/org-slug/metrics/data/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query:
+            ' release:["this release has spaces",this_release_has_no_spaces,"this release has (parens)"]',
+        }),
+      })
+    );
+  });
 });

@@ -17,6 +17,7 @@ import {defined} from 'sentry/utils';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
+import {appendTagCondition} from 'sentry/utils/queryString';
 import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
@@ -65,10 +66,12 @@ function getReleasesQuery(releases: Release[]): {
 } {
   let releaseCondition = '';
   const releasesArray: string[] = [];
-  releaseCondition += 'release:[' + releases[0]!.version;
+  releaseCondition +=
+    'release:[' + appendTagCondition('', '', releases[0]!.version).replace(/^:/, '');
   releasesArray.push(releases[0]!.version);
   for (let i = 1; i < releases.length; i++) {
-    releaseCondition += ',' + releases[i]!.version;
+    releaseCondition +=
+      ',' + appendTagCondition('', '', releases[i]!.version).replace(/^:/, '');
     releasesArray.push(releases[i]!.version);
   }
   releaseCondition += ']';
