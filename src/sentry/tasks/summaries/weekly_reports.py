@@ -40,6 +40,9 @@ from sentry.tasks.summaries.utils import (
     project_key_transactions_this_week,
     user_project_ownership,
 )
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import reports_tasks
+from sentry.taskworker.retry import Retry
 from sentry.types.group import GroupSubStatus
 from sentry.users.models.user import User
 from sentry.utils import json, redis
@@ -61,6 +64,7 @@ logger = logging.getLogger(__name__)
     max_retries=5,
     acks_late=True,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(namespace=reports_tasks, retry=Retry(times=5)),
 )
 @retry
 def schedule_organizations(
@@ -118,6 +122,7 @@ def schedule_organizations(
     max_retries=5,
     acks_late=True,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(namespace=reports_tasks, retry=Retry(times=5)),
 )
 @retry
 def prepare_organization_report(
