@@ -1,13 +1,12 @@
 import uniqBy from 'lodash/uniqBy';
 
 import type {ExceptionValue, Frame} from 'sentry/types/event';
-import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {useApiQuery, useQueries} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {useQueries} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
-import {isFrameFilenamePathlike, sourceMapSdkDocsMap} from './utils';
+import {isFrameFilenamePathlike} from './utils';
 
 interface BaseSourceMapDebugError {
   message: string;
@@ -98,20 +97,6 @@ interface UseSourceMapDebugProps {
 
 export type StacktraceFilenameQuery = {filename: string; query: UseSourceMapDebugProps};
 
-export function useSourceMapDebug(
-  props?: UseSourceMapDebugProps,
-  options: Partial<UseApiQueryOptions<SourceMapDebugResponse>> = {}
-) {
-  return useApiQuery<SourceMapDebugResponse>(props ? sourceMapDebugQuery(props) : [''], {
-    staleTime: Infinity,
-    retry: false,
-    refetchOnWindowFocus: false,
-    notifyOnChangeProps: ['data'],
-    ...options,
-    enabled: !!options.enabled && defined(props),
-  });
-}
-
 export function useSourceMapDebugQueries(props: UseSourceMapDebugProps[]) {
   const api = useApi({persistInFlight: true});
 
@@ -136,29 +121,7 @@ export function useSourceMapDebugQueries(props: UseSourceMapDebugProps[]) {
   });
 }
 
-const ALLOWED_SDKS = Object.keys(sourceMapSdkDocsMap);
 const MAX_FRAMES = 5;
-
-/**
- * Check we have all required props and platform is supported
- */
-export function debugFramesEnabled({
-  sdkName,
-  eventId,
-  organization,
-  projectSlug,
-}: {
-  eventId?: string;
-  organization?: Organization | null;
-  projectSlug?: string;
-  sdkName?: string;
-}) {
-  if (!organization?.features || !projectSlug || !eventId || !sdkName) {
-    return false;
-  }
-
-  return ALLOWED_SDKS.includes(sdkName);
-}
 
 /**
  * Returns an array of unique filenames and the first frame they appear in.

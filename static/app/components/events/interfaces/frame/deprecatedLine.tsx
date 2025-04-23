@@ -33,9 +33,6 @@ import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import Context from './context';
 import DefaultTitle from './defaultTitle';
 import {OpenInContextLine} from './openInContextLine';
-import {PackageStatusIcon} from './packageStatus';
-import {FunctionNameToggleIcon} from './symbol';
-import {AddressToggleIcon} from './togglableAddress';
 import {
   getPlatform,
   hasAssembly,
@@ -190,7 +187,7 @@ function DeprecatedLine({
   });
 
   return (
-    <StyledLi data-test-id="line" className={className}>
+    <li data-test-id="line" className={className}>
       <StrictClick onClick={isExpandable ? toggleContext : undefined}>
         <DefaultLine
           data-test-id="title"
@@ -345,7 +342,7 @@ function DeprecatedLine({
         frameMeta={frameMeta}
         platform={propPlatform}
       />
-    </StyledLi>
+    </li>
   );
 }
 
@@ -424,23 +421,6 @@ const DefaultLineTagWrapper = styled('div')`
 
 const ToggleContextButton = styled(Button)`
   color: ${p => p.theme.subText};
-`;
-
-const StyledLi = styled('li')`
-  ${PackageStatusIcon} {
-    flex-shrink: 0;
-  }
-  :hover {
-    ${PackageStatusIcon} {
-      visibility: visible;
-    }
-    ${AddressToggleIcon} {
-      visibility: visible;
-    }
-    ${FunctionNameToggleIcon} {
-      visibility: visible;
-    }
-  }
 `;
 
 const ToggleButton = styled(Button)`
