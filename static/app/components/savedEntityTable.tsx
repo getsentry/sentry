@@ -83,9 +83,11 @@ SavedEntityTable.Header = styled('div')`
 
   height: 36px;
   background-color: ${p => p.theme.backgroundSecondary};
+  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
 `;
 
 SavedEntityTable.HeaderCell = styled('div')<{
+  gridArea?: string;
   noBorder?: boolean;
 }>`
   display: flex;
@@ -119,6 +121,12 @@ SavedEntityTable.HeaderCell = styled('div')<{
 
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightBold};
+
+  ${p =>
+    p.gridArea &&
+    css`
+      grid-area: ${p.gridArea};
+    `}
 `;
 
 SavedEntityTable.Row = styled('div')<{isFirst: boolean; disableHover?: boolean}>`
@@ -147,7 +155,11 @@ SavedEntityTable.Row = styled('div')<{isFirst: boolean; disableHover?: boolean}>
     `}
 `;
 
-SavedEntityTable.Cell = styled('div')<{hasButton?: boolean}>`
+SavedEntityTable.Cell = styled('div')<{
+  'data-column'?: string;
+  gridArea?: string;
+  hasButton?: boolean;
+}>`
   display: flex;
   align-items: center;
   padding: ${space(1)} ${space(1.5)};
@@ -158,6 +170,12 @@ SavedEntityTable.Cell = styled('div')<{hasButton?: boolean}>`
     p.hasButton &&
     css`
       padding: 0 ${space(0.5)};
+    `}
+
+  ${p =>
+    p.gridArea &&
+    css`
+      grid-area: ${p['data-column']};
     `}
 `;
 
@@ -225,7 +243,15 @@ SavedEntityTable.CellProjects = function CellProjects({
 };
 
 SavedEntityTable.CellQuery = function CellQuery({query}: {query: string}) {
-  return <FormattedQueryNoWrap query={query} />;
+  return (
+    <Tooltip
+      title={<ProvidedFormattedQuery query={query} />}
+      showOnlyOnOverflow
+      maxWidth={500}
+    >
+      <FormattedQueryNoWrap query={query} />
+    </Tooltip>
+  );
 };
 
 SavedEntityTable.CellActions = function CellActions({items}: {items: MenuItemProps[]}) {
@@ -243,6 +269,7 @@ SavedEntityTable.CellActions = function CellActions({items}: {items: MenuItemPro
       )}
       items={items}
       position="bottom-end"
+      size="sm"
     />
   );
 };
@@ -322,11 +349,6 @@ const StyledPanelTable = styled(Panel)`
   display: grid;
   white-space: nowrap;
   font-size: ${p => p.theme.fontSizeMedium};
-  overflow: auto;
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    overflow: hidden;
-  }
 `;
 
 const EmptyContainer = styled('div')`
@@ -339,6 +361,10 @@ const EmptyContainer = styled('div')`
 const FormattedQueryNoWrap = styled(ProvidedFormattedQuery)`
   flex-wrap: nowrap;
   overflow: hidden;
+
+  > * {
+    min-width: min-content;
+  }
 `;
 
 const OverflowEllipsis = styled('div')`
