@@ -1,3 +1,4 @@
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 
@@ -6,9 +7,9 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 /**
  * @param cursor The string cursor value
@@ -35,23 +36,23 @@ type Props = {
   to?: string;
 };
 
-const defaultOnCursor: CursorHandler = (cursor, path, query, _direction) =>
-  browserHistory.push({
-    pathname: path,
-    query: {...query, cursor},
-  });
-
 function Pagination({
   to,
   className,
-  onCursor = defaultOnCursor,
+  onCursor,
   paginationAnalyticsEvent,
   pageLinks,
   size = 'sm',
   caption,
   disabled = false,
 }: Props) {
+  const navigate = useNavigate();
   const location = useLocation();
+  const defaultCursorHandler = useCallback<CursorHandler>(
+    (cursor, path, query) => navigate({pathname: path, query: {...query, cursor}}),
+    [navigate]
+  );
+
   if (!pageLinks) {
     return null;
   }
@@ -61,6 +62,8 @@ function Pagination({
   const links = parseLinkHeader(pageLinks);
   const previousDisabled = disabled || links.previous?.results === false;
   const nextDisabled = disabled || links.next?.results === false;
+
+  const cursorHandler = onCursor ?? defaultCursorHandler;
 
   return (
     <Wrapper className={className} data-test-id="pagination">
@@ -72,7 +75,7 @@ function Pagination({
           size={size}
           disabled={previousDisabled}
           onClick={() => {
-            onCursor?.(links.previous?.cursor, path, query, -1);
+            cursorHandler(links.previous?.cursor, path, query, -1);
             paginationAnalyticsEvent?.('Previous');
           }}
         />
@@ -82,7 +85,7 @@ function Pagination({
           size={size}
           disabled={nextDisabled}
           onClick={() => {
-            onCursor?.(links.next?.cursor, path, query, 1);
+            cursorHandler(links.next?.cursor, path, query, 1);
             paginationAnalyticsEvent?.('Next');
           }}
         />
