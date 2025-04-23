@@ -16,10 +16,10 @@ import {generateStats} from 'sentry/components/events/opsBreakdown';
 import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {
+import type {
   CardPanel,
   KeyValueData,
-  type KeyValueDataContentProps,
+  KeyValueDataContentProps,
   Subject,
   ValueSection,
 } from 'sentry/components/keyValueData';
