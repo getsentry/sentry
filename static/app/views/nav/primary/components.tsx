@@ -63,7 +63,7 @@ interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
 export function SidebarItem({children, label, showLabel, ...props}: SidebarItemProps) {
   const {layout} = useNavContext();
   return (
-    <IconDefaultsProvider legacySize={layout === NavLayout.MOBILE ? '14px' : '21px'}>
+    <IconDefaultsProvider legacySize={layout === NavLayout.MOBILE ? '16px' : '21px'}>
       <Tooltip title={label} disabled={showLabel} position="right" skipWrapper delay={0}>
         <SidebarListItem {...props}>{children}</SidebarListItem>
       </Tooltip>
@@ -89,6 +89,7 @@ export function SidebarMenu({
     <DropdownMenu
       position={layout === NavLayout.MOBILE ? 'bottom' : 'right-end'}
       shouldApplyMinWidth={false}
+      minMenuWidth={200}
       trigger={(props, isOpen) => {
         return (
           <SidebarItem label={label} showLabel={showLabel}>
@@ -188,9 +189,15 @@ export function SidebarButton({
   );
 }
 
-export function SeparatorItem() {
+export function SeparatorItem({
+  className,
+  hasMargin,
+}: {
+  className?: string;
+  hasMargin?: boolean;
+}) {
   return (
-    <SeparatorListItem aria-hidden>
+    <SeparatorListItem aria-hidden className={className} hasMargin={hasMargin}>
       <Separator />
     </SeparatorListItem>
   );
@@ -202,10 +209,15 @@ const SidebarListItem = styled('li')`
   justify-content: center;
 `;
 
-const SeparatorListItem = styled('li')`
+const SeparatorListItem = styled('li')<{hasMargin?: boolean}>`
   list-style: none;
   width: 100%;
   padding: 0 ${space(1.5)};
+  ${p =>
+    p.hasMargin &&
+    css`
+      margin: ${space(0.5)} 0;
+    `}
 `;
 
 const Separator = styled('hr')`
