@@ -31,13 +31,14 @@ from sentry.issues.status_change import handle_status_update, infer_substatus
 from sentry.issues.update_inbox import update_inbox
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.commit import Commit
-from sentry.models.group import STATUS_UPDATE_CHOICES, Group, GroupStatus, update_group_open_period
+from sentry.models.group import STATUS_UPDATE_CHOICES, Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
 from sentry.models.grouplink import GroupLink
+from sentry.models.groupopenperiod import update_group_open_period
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare

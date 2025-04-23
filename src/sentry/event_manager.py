@@ -88,7 +88,7 @@ from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.grouplink import GroupLink
-from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.models.groupopenperiod import GroupOpenPeriod, has_initial_open_period
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.organization import Organization
@@ -1715,7 +1715,9 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
         kick_off_status_syncs.apply_async(
             kwargs={"project_id": group.project_id, "group_id": group.id}
         )
-        if features.has("organizations:issue-open-periods", group.project.organization):
+        if features.has(
+            "organizations:issue-open-periods", group.project.organization
+        ) and has_initial_open_period(group):
             GroupOpenPeriod.objects.create(
                 group=group,
                 project_id=group.project_id,
