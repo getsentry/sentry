@@ -338,6 +338,8 @@ const MarkdownIndicator = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
-const NotePreview = styled(MarkedText)<{minHeight: Props['minHeight']}>`
+const NotePreview = styled(MarkedText, {
+  shouldForwardProp: prop => prop !== 'minHeight',
+})<{minHeight: Props['minHeight']}>`
   ${p => getNotePreviewCss(p)};
 `;
