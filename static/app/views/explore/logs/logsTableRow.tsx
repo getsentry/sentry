@@ -1,3 +1,4 @@
+import type {SyntheticEvent} from 'react';
 import {Fragment, useCallback, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
@@ -62,6 +63,21 @@ type LogsRowProps = {
 
 const ALLOWED_CELL_ACTIONS: Actions[] = [Actions.ADD, Actions.EXCLUDE];
 
+function isInsideButton(element: Element | null): boolean {
+  let i = 10;
+  while (element && i > 0) {
+    i -= 1;
+    if (
+      element instanceof HTMLButtonElement ||
+      element.getAttribute('role') === 'button'
+    ) {
+      return true;
+    }
+    element = element.parentElement;
+  }
+  return false;
+}
+
 export function LogRowContent({
   dataRow,
   highlightTerms,
@@ -74,14 +90,22 @@ export function LogRowContent({
   const search = useLogsSearch();
   const setLogsSearch = useSetLogsSearch();
 
-  function onPointerUp() {
+  function toggleExpanded() {
+    setExpanded(e => !e);
+    trackAnalytics('logs.table.row_expanded', {
+      log_id: String(dataRow[OurLogKnownFieldKey.ID]),
+      page_source: analyticsPageSource,
+      organization,
+    });
+  }
+
+  function onPointerUp(event: SyntheticEvent) {
+    if (event.target instanceof Element && isInsideButton(event.target)) {
+      // do not expand the context menu if you clicked a button
+      return;
+    }
     if (window.getSelection()?.toString() === '') {
-      setExpanded(e => !e);
-      trackAnalytics('logs.table.row_expanded', {
-        log_id: String(dataRow[OurLogKnownFieldKey.ID]),
-        page_source: analyticsPageSource,
-        organization,
-      });
+      toggleExpanded();
     }
   }
 
@@ -140,6 +164,7 @@ export function LogRowContent({
               aria-expanded={expanded}
               size="zero"
               borderless
+              onClick={() => toggleExpanded()}
             />
             <SeverityCircleRenderer
               extra={rendererExtra}
