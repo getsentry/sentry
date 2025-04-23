@@ -382,6 +382,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
                 slug = "test"
                 description = "Test"
                 category = GroupCategory.PROFILE.value
+                category_v2 = GroupCategory.RESPONSIVENESS.value
                 noise_config = NoiseConfig(ignore_limit=2)
 
             event = self.store_event(data={}, project_id=self.project.id)

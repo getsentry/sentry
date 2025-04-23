@@ -119,6 +119,7 @@ class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
                 slug="test_type",
                 description="no handler",
                 category=GroupCategory.METRIC_ALERT.value,
+                category_v2=GroupCategory.PERFORMANCE_REGRESSION.value,
                 detector_settings=DetectorSettings(validator=MetricAlertsDetectorValidator),
             )
             validator = self.validator_class()
@@ -141,6 +142,7 @@ class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
                 slug="test_type",
                 description="no handler",
                 category=GroupCategory.METRIC_ALERT.value,
+                category_v2=GroupCategory.PERFORMANCE_REGRESSION.value,
             )
             validator = self.validator_class()
             with pytest.raises(
