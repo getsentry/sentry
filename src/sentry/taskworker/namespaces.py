@@ -46,6 +46,8 @@ options_tasks = taskregistry.create_namespace("options")
 
 options_control_tasks = taskregistry.create_namespace("options.control")
 
+release_health_tasks = taskregistry.create_namespace("releasehealth")
+
 replays_tasks = taskregistry.create_namespace("replays")
 
 sdk_tasks = taskregistry.create_namespace("sdk")
