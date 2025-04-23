@@ -18,11 +18,7 @@ export type IssueCellProps = {
 
 export function IssueCell({group, disabled = false, className}: IssueCellProps) {
   if (!group) {
-    return (
-      <span>
-        <EmptyCell />
-      </span>
-    );
+    return <EmptyCell />;
   }
   return (
     <IssueWrapper to={'/issues/' + group.id} disabled={disabled} className={className}>
