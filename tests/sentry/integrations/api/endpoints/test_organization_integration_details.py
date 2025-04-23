@@ -9,8 +9,9 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import APITestCase, before_now
-from sentry.testutils.helpers import with_feature
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.identity import Identity
 
