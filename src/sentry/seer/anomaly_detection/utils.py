@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from django.utils import timezone
@@ -11,6 +11,7 @@ from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.eap.constants import DownsampledStorageConfig
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.anomaly_detection.types import AnomalyType, TimeSeriesPoint
@@ -275,6 +276,16 @@ def fetch_historical_data(
     if dataset == metrics_performance:
         return get_crash_free_historical_data(start, end, project, organization, granularity)
     elif dataset in [spans_eap, spans_rpc]:
+        # EAP timeseries don't round time buckets to the nearest time window but seer expects
+        # that. So for example, if start was 7:01 with a 15 min interval, EAP would
+        # bucket it as 7:01, 7:16 etc. Force rounding the start and end times so we
+        # get the buckets seer expects.
+        rounded_end = int(end.timestamp() / granularity) * granularity
+        rounded_start = int(start.timestamp() / granularity) * granularity
+
+        snuba_params.end = datetime.fromtimestamp(rounded_end, UTC)
+        snuba_params.start = datetime.fromtimestamp(rounded_start, UTC)
+
         results = spans_rpc.run_timeseries_query(
             params=snuba_params,
             query_string=snuba_query.query,
@@ -288,7 +299,7 @@ def fetch_historical_data(
                 auto_fields=False,
                 use_aggregate_conditions=False,
             ),
-            sampling_mode=None,
+            sampling_mode=DownsampledStorageConfig.MODE_BEST_EFFORT,
         )
         return results
     else:
