@@ -185,20 +185,7 @@ def update_dcg(
     return dcg
 
 
-def delete_migrated_issue_alert(rule: Rule) -> int | None:
-    try:
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id)
-    except AlertRuleWorkflow.DoesNotExist:
-        # OK state, rule may not have been migrated
-        logger.info(
-            "rule was not dual written or objects were already deleted, returning early",
-            extra={"rule_id": rule.id},
-        )
-        return None
-
-    workflow: Workflow = alert_rule_workflow.workflow
-    workflow_id = workflow.id
-
+def delete_workflow(workflow: Workflow) -> None:
     # delete all associated IF DCGs and their conditions
     workflow_dcgs = WorkflowDataConditionGroup.objects.filter(workflow=workflow)
     for workflow_dcg in workflow_dcgs:
@@ -222,6 +209,23 @@ def delete_migrated_issue_alert(rule: Rule) -> int | None:
         when_dcg.delete()
 
     workflow.delete()
+
+
+def delete_migrated_issue_alert(rule: Rule) -> int | None:
+    try:
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id)
+    except AlertRuleWorkflow.DoesNotExist:
+        # OK state, rule may not have been migrated
+        logger.info(
+            "rule was not dual written or objects were already deleted, returning early",
+            extra={"rule_id": rule.id},
+        )
+        return None
+
+    workflow: Workflow = alert_rule_workflow.workflow
+    workflow_id = workflow.id
+
+    delete_workflow(workflow)
     alert_rule_workflow.delete()
 
     return workflow_id
