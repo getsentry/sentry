@@ -64,7 +64,7 @@ describe('StreamlinedSidebar', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/autofix/`,
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
       body: {steps: []},
     });
 
