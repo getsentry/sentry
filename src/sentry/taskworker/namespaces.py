@@ -3,6 +3,8 @@ from sentry.taskworker.registry import taskregistry
 # Namespaces for taskworker tasks
 alerts_tasks = taskregistry.create_namespace("alerts")
 
+attachments_tasks = taskregistry.create_namespace("attachments")
+
 auth_tasks = taskregistry.create_namespace("auth")
 
 auth_control_tasks = taskregistry.create_namespace("auth.control")

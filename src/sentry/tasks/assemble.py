@@ -41,6 +41,8 @@ from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseArchive, ReleaseFile, update_artifact_index
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import attachments_tasks
 from sentry.utils import metrics, redis
 from sentry.utils.db import atomic_transaction
 from sentry.utils.rollback_metrics import incr_rollback_metrics
@@ -230,6 +232,9 @@ def delete_assemble_status(task, scope, checksum):
     name="sentry.tasks.assemble.assemble_dif",
     queue="assemble",
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=attachments_tasks,
+    ),
 )
 def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     """
@@ -790,6 +795,9 @@ def prepare_post_assembler(
     name="sentry.tasks.assemble.assemble_artifacts",
     queue="assemble",
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=attachments_tasks,
+    ),
 )
 def assemble_artifacts(
     org_id,
