@@ -521,7 +521,9 @@ function DiffHunkContent({
             data-overlay="true"
           >
             <OverlayHeader>
-              <OverlayTitle>{t('Editing `%s`', fileName)}</OverlayTitle>
+              <OverlayTitle>
+                {t('Editing')} <code>{fileName}</code>
+              </OverlayTitle>
             </OverlayHeader>
             <OverlayContent>
               <SectionTitle>{getDeletedLineTitle(editingGroup)}</SectionTitle>
