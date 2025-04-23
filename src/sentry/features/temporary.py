@@ -196,8 +196,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:new-page-filter", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=True)
     # Enable access to NextJS specific insights
     manager.add("organizations:nextjs-insights", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Drop obsoleted status changes in occurence consumer
-    manager.add("organizations:occurence-consumer-prune-status-changes", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable User Feedback v1
     manager.add("organizations:old-user-feedback", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Extract on demand metrics
