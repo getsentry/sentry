@@ -43,25 +43,30 @@ class SafeRenderer extends marked.Renderer {
   }
 }
 
-class LimitedRenderer extends marked.Renderer {
-  link({href}: Tokens.Link) {
-    return href;
-  }
-
-  image({href}: Tokens.Image) {
-    return href;
-  }
-}
-
 class NoParagraphRenderer extends SafeRenderer {
-  paragraph({text}: Tokens.Paragraph) {
-    return text;
+  paragraph(tokens: Tokens.Paragraph) {
+    // Do not render the paragraph but still render sub-tokens
+    return super.text({...tokens, type: 'text'});
   }
 }
 
-marked.setOptions({
-  renderer: new SafeRenderer(),
+function preprocess(markdown: string) {
+  // Allow no html tags at all in the preprocess step.
+  // GitHub and others allow this, we could in the future.
+  return dompurify.sanitize(markdown, {ALLOWED_TAGS: []});
+}
+
+function postprocess(html: string) {
+  return dompurify.sanitize(html);
+}
+
+marked.use({
   async: false,
+  renderer: new SafeRenderer(),
+  hooks: {
+    preprocess,
+    postprocess,
+  },
 });
 
 marked.use(
@@ -95,26 +100,23 @@ marked.use(
   })
 );
 
-type NonAsyncMarkedOptions = MarkedOptions & {async: false};
-
-const limitedMarked = (text: string, options: NonAsyncMarkedOptions = {async: false}) => {
-  return sanitizedMarked(text, {...options, renderer: new LimitedRenderer()});
-};
+type NonAsyncMarkedOptions = Omit<MarkedOptions, 'hooks'> & {async: false};
 
 const sanitizedMarked = (
   src: string,
   options: NonAsyncMarkedOptions = {async: false}
 ) => {
-  const rawHtml = marked(src, options);
-  return dompurify.sanitize(rawHtml);
+  // Sanitized via hooks
+  return marked(src, options);
 };
 
+const noParagraphRenderer = new NoParagraphRenderer();
 const singleLineRenderer = (
   text: string,
   options: NonAsyncMarkedOptions = {async: false}
 ) => {
-  return sanitizedMarked(text, {...options, renderer: new NoParagraphRenderer()});
+  return sanitizedMarked(text, {...options, renderer: noParagraphRenderer});
 };
 
-export {singleLineRenderer, limitedMarked};
+export {singleLineRenderer};
 export default sanitizedMarked;
