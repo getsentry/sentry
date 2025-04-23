@@ -163,6 +163,9 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
             return Response(serializer.errors, status=400)
         serialized = serializer.validated_data
 
+        use_rpc = bool(serialized["useRpc"])
+        sentry_sdk.set_tag("performance.use_rpc", use_rpc)
+
         executor = TracesExecutor(
             dataset=serialized["dataset"],
             snuba_params=snuba_params,
@@ -177,7 +180,7 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
                 project_slugs=None,
                 include_all_accessible=True,
             ),
-            use_rpc=bool(serialized["useRpc"]),
+            use_rpc=use_rpc,
         )
 
         return self.paginate(
