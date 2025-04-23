@@ -91,10 +91,15 @@ describe('AutofixDiff', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Edit changes'}));
 
-    expect(screen.getByText('Editing')).toBeInTheDocument();
     expect(
-      screen.getAllByText('src/sentry/processing/backpressure/memory.py')
-    ).toHaveLength(2); // one in the header of the diff and one in the popup
+      screen.getByRole('heading', {
+        name: 'Editing `src/sentry/processing/backpressure/memory.py`',
+      })
+    ).toBeInTheDocument();
+    // In the popup
+    expect(
+      screen.getByText('src/sentry/processing/backpressure/memory.py')
+    ).toBeInTheDocument();
 
     const textarea = screen.getAllByRole('textbox')[0];
     await userEvent.clear(textarea!);

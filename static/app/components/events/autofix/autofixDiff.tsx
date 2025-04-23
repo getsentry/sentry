@@ -18,7 +18,6 @@ import {DIFF_COLORS} from 'sentry/components/splitDiff';
 import {IconChevron, IconClose, IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {singleLineRenderer} from 'sentry/utils/marked';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
@@ -522,11 +521,7 @@ function DiffHunkContent({
             data-overlay="true"
           >
             <OverlayHeader>
-              <OverlayTitle
-                dangerouslySetInnerHTML={{
-                  __html: singleLineRenderer(t('Editing `%s`', fileName)),
-                }}
-              />
+              <OverlayTitle>{t('Editing `%s`', fileName)}</OverlayTitle>
             </OverlayHeader>
             <OverlayContent>
               <SectionTitle>{getDeletedLineTitle(editingGroup)}</SectionTitle>

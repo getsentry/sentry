@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
@@ -123,18 +123,31 @@ function AutofixInsightCard({
 
   const insightCardAboveIndex = index - 1 >= 0 ? index - 1 : null;
 
-  let truncatedTitle = displayedInsightTitle;
   const newlineIndex = displayedInsightTitle.indexOf('\n');
-  if (newlineIndex !== -1 && newlineIndex < displayedInsightTitle.length - 1) {
-    truncatedTitle = displayedInsightTitle.substring(0, newlineIndex) + '...';
-  }
 
-  let fullJustification = isUserMessage ? '' : insight.justification;
-  if (newlineIndex !== -1) {
-    const excludedText = displayedInsightTitle.substring(newlineIndex + 1);
-    const excludedTextWithEllipsis = excludedText ? '...' + excludedText : '';
-    fullJustification = excludedTextWithEllipsis + '\n\n' + fullJustification;
-  }
+  const truncatedTitleHtml = useMemo(() => {
+    let truncatedTitle = displayedInsightTitle;
+    if (newlineIndex !== -1 && newlineIndex < displayedInsightTitle.length - 1) {
+      truncatedTitle = displayedInsightTitle.substring(0, newlineIndex) + '...';
+    }
+    return {
+      __html: singleLineRenderer(truncatedTitle),
+    };
+  }, [displayedInsightTitle, newlineIndex]);
+
+  const hasFullJustification = !isUserMessage && !insight.justification;
+
+  const fullJustificationHtml = useMemo(() => {
+    let fullJustification = isUserMessage ? '' : insight.justification;
+    if (newlineIndex !== -1) {
+      const excludedText = displayedInsightTitle.substring(newlineIndex + 1);
+      const excludedTextWithEllipsis = excludedText ? '...' + excludedText : '';
+      fullJustification = excludedTextWithEllipsis + '\n\n' + fullJustification;
+    }
+    return {
+      __html: marked(replaceHeadersWithBold(fullJustification || t('No details here.'))),
+    };
+  }, [displayedInsightTitle, isUserMessage, insight.justification, newlineIndex]);
 
   return (
     <ContentWrapper>
@@ -200,11 +213,7 @@ function AutofixInsightCard({
                   stepIndex={stepIndex}
                   retainInsightCardIndex={insightCardAboveIndex}
                 >
-                  <MiniHeader
-                    dangerouslySetInnerHTML={{
-                      __html: singleLineRenderer(truncatedTitle),
-                    }}
-                  />
+                  <MiniHeader dangerouslySetInnerHTML={truncatedTitleHtml} />
                 </AutofixHighlightWrapper>
 
                 <RightSection>
@@ -251,16 +260,8 @@ function AutofixInsightCard({
                     retainInsightCardIndex={insightCardAboveIndex}
                   >
                     <ContextBody>
-                      {fullJustification || !insight.change_diff ? (
-                        <p
-                          dangerouslySetInnerHTML={{
-                            __html: marked(
-                              replaceHeadersWithBold(
-                                fullJustification || t('No details here.')
-                              )
-                            ),
-                          }}
-                        />
+                      {hasFullJustification || !insight.change_diff ? (
+                        <p dangerouslySetInnerHTML={fullJustificationHtml} />
                       ) : (
                         <DiffContainer>
                           <AutofixDiff
