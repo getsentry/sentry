@@ -136,7 +136,12 @@ sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
   },
 };
 
-const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
+const getInstallSnippet = (packageManager?: 'pip' | 'uv') => {
+  if (packageManager === 'uv') {
+    return `uv add sentry-sdk`;
+  }
+  return `pip install --upgrade sentry-sdk`;
+};
 
 const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
@@ -201,7 +206,7 @@ const onboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      description: tct('Install our Python SDK using [code:pip]:', {
+      description: tct('Install our Python SDK:', {
         code: <code />,
       }),
       configurations: [
@@ -216,7 +221,20 @@ const onboarding: OnboardingConfig = {
                 )
               : undefined,
           language: 'bash',
-          code: getInstallSnippet(),
+          code: [
+            {
+              label: 'pip',
+              value: 'pip',
+              language: 'bash',
+              code: getInstallSnippet('pip'),
+            },
+            {
+              label: 'uv',
+              value: 'uv',
+              language: 'bash',
+              code: getInstallSnippet('uv'),
+            },
+          ],
         },
       ],
     },
@@ -382,6 +400,12 @@ export const featureFlagOnboarding: OnboardingConfig = {
                 value: 'pip',
                 language: 'bash',
                 code: `pip install --upgrade ${packageName}`,
+              },
+              {
+                label: 'uv',
+                value: 'uv',
+                language: 'bash',
+                code: `uv pip install --upgrade ${packageName}`,
               },
             ],
           },
