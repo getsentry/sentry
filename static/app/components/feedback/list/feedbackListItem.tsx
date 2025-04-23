@@ -16,7 +16,10 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
+import {
+  CRASH_REPORT_SOURCES,
+  type FeedbackIssueListItem,
+} from 'sentry/utils/feedback/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useReplayCountForFeedbacks from 'sentry/utils/replayCount/useReplayCountForFeedbacks';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
@@ -47,8 +50,9 @@ function FeedbackListItem({feedbackItem, isSelected, onSelect, style, ref}: Prop
   const hasReplayId = feedbackHasReplay(feedbackItem.id);
   const location = useLocation();
 
-  const isCrashReport = feedbackItem.metadata.source === 'crash_report_embed_form';
-  const isUserReportWithError = feedbackItem.metadata.source === 'user_report_envelope';
+  const hasLinkedError = CRASH_REPORT_SOURCES.includes(
+    feedbackItem.metadata.source ?? ''
+  );
   const hasAttachments = feedbackItem.latestEventHasAttachments;
   const hasComments = feedbackItem.numComments > 0;
 
@@ -135,7 +139,7 @@ function FeedbackListItem({feedbackItem, isSelected, onSelect, style, ref}: Prop
               </Tooltip>
             )}
 
-            {(isCrashReport || isUserReportWithError) && (
+            {hasLinkedError && (
               <Tooltip title={t('Linked Error')} containerDisplayMode="flex">
                 <IconFatal color="red400" size="xs" />
               </Tooltip>
