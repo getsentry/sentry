@@ -73,7 +73,7 @@ def event_to_record(
     # TODO(iamrajjoshi): This will only work during the dual write period of the rollout!
     if features.has("organizations:workflow-engine-trigger-actions", event.organization):
         for rule in rules:
-            rule_ids.append(get_key_from_rule_data(rule, "legacy_rule_id"))
+            rule_ids.append(int(get_key_from_rule_data(rule, "legacy_rule_id")))
     else:
         for rule in rules:
             rule_ids.append(rule.id)
