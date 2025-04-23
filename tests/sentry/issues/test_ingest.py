@@ -506,7 +506,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "metadata": {
                 "title": occurrence.issue_title,
                 "value": occurrence.subtitle,
-                "priority": occurrence.priority,
+                "initial_priority": occurrence.priority,
             },
             "title": occurrence.issue_title,
             "location": event.location,
@@ -524,7 +524,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "title": occurrence.issue_title,
             "value": occurrence.subtitle,
             "dogs": "are great",
-            "priority": occurrence.priority,
+            "initial_priority": occurrence.priority,
         }
 
     def test_populates_feedback_metadata(self) -> None:
@@ -550,7 +550,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "message": "test",
             "name": "Name Test",
             "source": "crash report widget",
-            "priority": occurrence.priority,
+            "initial_priority": occurrence.priority,
         }
 
 
