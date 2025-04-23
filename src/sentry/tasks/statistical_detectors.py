@@ -59,7 +59,7 @@ from sentry.statistical_detectors.redis import RedisDetectorStore
 from sentry.statistical_detectors.store import DetectorStore
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
-from sentry.taskworker.namespaces import performance_tasks
+from sentry.taskworker.namespaces import performance_tasks, profiling_tasks
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.math import ExponentialMovingAverage
@@ -423,6 +423,9 @@ def _detect_transaction_change_points(
     name="sentry.tasks.statistical_detectors.detect_function_trends",
     queue="profiling.statistical_detector",
     max_retries=0,
+    taskworker_config=TaskworkerConfig(
+        namespace=profiling_tasks,
+    ),
 )
 def detect_function_trends(project_ids: list[int], start: datetime, *args, **kwargs) -> None:
     if not options.get("statistical_detectors.enable"):
@@ -461,6 +464,9 @@ def detect_function_trends(project_ids: list[int], start: datetime, *args, **kwa
     name="sentry.tasks.statistical_detectors.detect_function_change_points",
     queue="profiling.statistical_detector",
     max_retries=0,
+    taskworker_config=TaskworkerConfig(
+        namespace=profiling_tasks,
+    ),
 )
 def detect_function_change_points(
     functions_list: list[tuple[int, int]], start: datetime, *args, **kwargs

@@ -50,6 +50,8 @@ options_control_tasks = taskregistry.create_namespace("options.control")
 
 performance_tasks = taskregistry.create_namespace("performance")
 
+profiling_tasks = taskregistry.create_namespace("profiling")
+
 replays_tasks = taskregistry.create_namespace("replays")
 
 sdk_tasks = taskregistry.create_namespace("sdk")
