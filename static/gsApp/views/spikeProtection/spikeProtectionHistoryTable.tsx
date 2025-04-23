@@ -22,6 +22,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import withOrganization from 'sentry/utils/withOrganization';
+import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {
   formatUsageWithUnits,
   getFormatUsageOptions,
@@ -158,7 +159,10 @@ class SpikeProtectionHistoryTable extends Component<Props> {
             })
           }
           to={{
-            pathname: `/organizations/${organization.slug}/discover/homepage/`,
+            pathname: makeDiscoverPathname({
+              organization,
+              path: '/homepage/',
+            }),
             query: {
               project: [project.id],
               start: decodeScalar(spike.start),
