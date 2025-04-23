@@ -2815,13 +2815,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Killswitch for EnvironmentProject.get_or_create refactor
-register(
-    "environmentproject.new_add_project.rollout",
-    default=0.0,
-    type=Float,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # TODO: remove once removed from options
 register(
