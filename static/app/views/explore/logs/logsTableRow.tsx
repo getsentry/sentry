@@ -90,18 +90,22 @@ export function LogRowContent({
   const search = useLogsSearch();
   const setLogsSearch = useSetLogsSearch();
 
+  function toggleExpanded() {
+    setExpanded(e => !e);
+    trackAnalytics('logs.table.row_expanded', {
+      log_id: String(dataRow[OurLogKnownFieldKey.ID]),
+      page_source: analyticsPageSource,
+      organization,
+    });
+  }
+
   function onPointerUp(event: SyntheticEvent) {
     if (event.target instanceof Element && isInsideButton(event.target)) {
       // do not expand the context menu if you clicked a button
       return;
     }
     if (window.getSelection()?.toString() === '') {
-      setExpanded(e => !e);
-      trackAnalytics('logs.table.row_expanded', {
-        log_id: String(dataRow[OurLogKnownFieldKey.ID]),
-        page_source: analyticsPageSource,
-        organization,
-      });
+      toggleExpanded();
     }
   }
 
@@ -160,6 +164,7 @@ export function LogRowContent({
               aria-expanded={expanded}
               size="zero"
               borderless
+              onClick={() => toggleExpanded()}
             />
             <SeverityCircleRenderer
               extra={rendererExtra}
