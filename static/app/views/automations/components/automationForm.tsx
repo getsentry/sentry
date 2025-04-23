@@ -9,6 +9,7 @@ import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DebugForm} from 'sentry/components/workflowEngine/form/debug';
+import {Card} from 'sentry/components/workflowEngine/ui/card';
 import {IconAdd, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -55,7 +56,7 @@ export default function AutomationForm() {
     >
       <AutomationBuilderContext.Provider value={{state, actions}}>
         <Flex column gap={space(1.5)} style={{padding: space(2)}}>
-          <SectionBody>
+          <Card>
             <Heading>{t('Connect Monitors')}</Heading>
             <ConnectedMonitorsWrapper>
               <ConnectedMonitorsList
@@ -68,12 +69,12 @@ export default function AutomationForm() {
               <Button icon={<IconAdd />}>{t('Create New Monitor')}</Button>
               <Button icon={<IconEdit />}>{t('Edit Monitors')}</Button>
             </ButtonWrapper>
-          </SectionBody>
-          <SectionBody>
+          </Card>
+          <Card>
             <Heading>{t('Automation Builder')}</Heading>
             <AutomationBuilder />
-          </SectionBody>
-          <SectionBody>
+          </Card>
+          <Card>
             <Heading>{t('Action Interval')}</Heading>
             <EmbeddedSelectField
               name="frequency"
@@ -81,22 +82,13 @@ export default function AutomationForm() {
               clearable={false}
               options={FREQUENCY_OPTIONS}
             />
-          </SectionBody>
+          </Card>
           <DebugForm />
         </Flex>
       </AutomationBuilderContext.Provider>
     </Form>
   );
 }
-
-const SectionBody = styled('div')`
-  display: flex;
-  flex-direction: column;
-  background-color: ${p => p.theme.backgroundElevated};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(2)} ${space(2)};
-`;
 
 const Heading = styled('h2')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
