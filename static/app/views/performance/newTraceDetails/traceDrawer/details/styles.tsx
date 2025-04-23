@@ -14,7 +14,6 @@ import {
 import {EventTagsDataSection} from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {generateStats} from 'sentry/components/events/opsBreakdown';
 import {DataSection} from 'sentry/components/events/styles';
-import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {
   CardPanel,
@@ -23,7 +22,7 @@ import {
   Subject,
   ValueSection,
 } from 'sentry/components/keyValueData';
-import {LazyRender, type LazyRenderProps} from 'sentry/components/lazyRender';
+import {type LazyRenderProps} from 'sentry/components/lazyRender';
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -31,12 +30,10 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {
-  IconChevron,
   IconCircleFill,
   IconEllipsis,
   IconFocus,
   IconJson,
-  IconOpen,
   IconPanel,
   IconProfiling,
 } from 'sentry/icons';
@@ -47,12 +44,10 @@ import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import type {Color, ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {
@@ -67,11 +62,7 @@ import {
   makeTransactionProfilingLink,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/traceProfilingLink';
 import {
-  isAutogroupedNode,
-  isMissingInstrumentationNode,
-  isRootNode,
   isSpanNode,
-  isTraceErrorNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {MissingInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/missingInstrumentationNode';
@@ -83,7 +74,6 @@ import {
   useTraceState,
   useTraceStateDispatch,
 } from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
-import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 
 import {
   getSearchInExploreTarget,
@@ -91,7 +81,7 @@ import {
   TraceDrawerActionValueKind,
 } from './utils';
 
-const BodyContainer = styled('div')<{hasNewTraceUi?: boolean}>`
+const BodyContainer = styled('div')`
   display: flex;
   flex-direction: column;
   height: calc(100% - 52px);
@@ -745,12 +735,10 @@ function KeyValueAction({
 }: KeyValueActionProps) {
   const location = useLocation();
   const organization = useOrganization();
-  const hasNewTraceUi = useHasTraceNewUi();
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
   const [isVisible, setIsVisible] = useState(false);
 
   if (
-    !hasNewTraceUi ||
     !hasExploreEnabled ||
     !defined(rowValue) ||
     !defined(rowKey) ||
@@ -880,10 +868,6 @@ const KeyValueActionDropdown = styled(DropdownMenu)`
   }
 `;
 
-function TypeSafeBoolean<T>(value: T | null | undefined): value is NonNullable<T> {
-  return value !== null && value !== undefined;
-}
-
 function PanelPositionDropDown({organization}: {organization: Organization}) {
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
@@ -961,7 +945,6 @@ function NodeActions(props: {
   organization: Organization;
   eventSize?: number | undefined;
 }) {
-  const hasNewTraceUi = useHasTraceNewUi();
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
 
@@ -1001,16 +984,6 @@ function NodeActions(props: {
       threadId: getThreadIdFromNode(props.node, transaction),
     });
   }, [organization, params.traceSlug, props.node, transaction]);
-
-  if (!hasNewTraceUi) {
-    return (
-      <LegacyNodeActions
-        {...props}
-        continuousProfileTarget={continuousProfileTarget}
-        transactionProfileTarget={transactionProfileTarget}
-      />
-    );
-  }
 
   return (
     <ActionWrapper>
@@ -1095,167 +1068,7 @@ const ActionWrapper = styled('div')`
   gap: ${space(0.25)};
 `;
 
-function LegacyNodeActions(props: {
-  continuousProfileTarget: LocationDescriptor | null;
-  node: TraceTreeNode<any>;
-  onTabScrollToNode: (
-    node:
-      | TraceTreeNode<any>
-      | ParentAutogroupNode
-      | SiblingAutogroupNode
-      | MissingInstrumentationNode
-  ) => void;
-  organization: Organization;
-  transactionProfileTarget: LocationDescriptor | null;
-  eventSize?: number | undefined;
-}) {
-  const navigate = useNavigate();
-
-  const items = useMemo((): MenuItemProps[] => {
-    const showInView: MenuItemProps = {
-      key: 'show-in-view',
-      label: t('Show in View'),
-      onAction: () => {
-        traceAnalytics.trackShowInView(props.organization);
-        props.onTabScrollToNode(props.node);
-      },
-    };
-
-    const eventId =
-      props.node.metadata.event_id ??
-      TraceTree.ParentTransaction(props.node)?.metadata.event_id;
-    const projectSlug =
-      props.node.metadata.project_slug ??
-      TraceTree.ParentTransaction(props.node)?.metadata.project_slug;
-
-    const eventSize = props.eventSize;
-    const jsonDetails: MenuItemProps = {
-      key: 'json-details',
-      onAction: () => {
-        traceAnalytics.trackViewEventJSON(props.organization);
-        window.open(
-          `/api/0/projects/${props.organization.slug}/${projectSlug}/events/${eventId}/json/`,
-          '_blank'
-        );
-      },
-      label:
-        t('JSON') +
-        (typeof eventSize === 'number' ? ` (${formatBytesBase10(eventSize, 0)})` : ''),
-    };
-
-    const profileLink: MenuItemProps | null = props.continuousProfileTarget
-      ? {
-          key: 'profile',
-          onAction: () => {
-            traceAnalytics.trackViewContinuousProfile(props.organization);
-            navigate(props.continuousProfileTarget!);
-          },
-          label: t('View Profile'),
-        }
-      : props.transactionProfileTarget
-        ? {
-            key: 'profile',
-            onAction: () => {
-              traceAnalytics.trackViewTransactionProfile(props.organization);
-              navigate(props.transactionProfileTarget!);
-            },
-            label: t('View Profile'),
-          }
-        : null;
-
-    if (isTransactionNode(props.node)) {
-      return [showInView, jsonDetails, profileLink].filter(TypeSafeBoolean);
-    }
-    if (isSpanNode(props.node)) {
-      return [showInView, profileLink].filter(TypeSafeBoolean);
-    }
-    if (isMissingInstrumentationNode(props.node)) {
-      return [showInView, profileLink].filter(TypeSafeBoolean);
-    }
-    if (isTraceErrorNode(props.node)) {
-      return [showInView, profileLink].filter(TypeSafeBoolean);
-    }
-    if (isRootNode(props.node)) {
-      return [showInView];
-    }
-    if (isAutogroupedNode(props.node)) {
-      return [showInView];
-    }
-
-    return [showInView];
-  }, [props, navigate]);
-
-  return (
-    <ActionsContainer>
-      <Actions className="Actions">
-        {props.continuousProfileTarget ? (
-          <LinkButton size="xs" to={props.continuousProfileTarget}>
-            {t('View Profile')}
-          </LinkButton>
-        ) : props.transactionProfileTarget ? (
-          <LinkButton size="xs" to={props.transactionProfileTarget}>
-            {t('View Profile')}
-          </LinkButton>
-        ) : null}
-        <Button
-          size="xs"
-          onClick={_e => {
-            traceAnalytics.trackShowInView(props.organization);
-            props.onTabScrollToNode(props.node);
-          }}
-        >
-          {t('Show in view')}
-        </Button>
-
-        {isTransactionNode(props.node) ? (
-          <LinkButton
-            size="xs"
-            icon={<IconOpen />}
-            onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
-            href={`/api/0/projects/${props.organization.slug}/${props.node.value.project_slug}/events/${props.node.value.event_id}/json/`}
-            external
-          >
-            {t('JSON')} (<FileSize bytes={props.eventSize ?? 0} />)
-          </LinkButton>
-        ) : null}
-      </Actions>
-      <DropdownMenuWithPortal
-        items={items}
-        className="DropdownMenu"
-        position="bottom-end"
-        trigger={triggerProps => (
-          <ActionsButtonTrigger size="xs" {...triggerProps}>
-            {t('Actions')}
-            <IconChevron direction="down" size="xs" />
-          </ActionsButtonTrigger>
-        )}
-      />
-    </ActionsContainer>
-  );
-}
-
-const ActionsButtonTrigger = styled(Button)`
-  svg {
-    margin-left: ${space(0.5)};
-    width: 10px;
-    height: 10px;
-  }
-`;
-
-const ActionsContainer = styled('div')`
-  display: flex;
-  justify-content: end;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
 function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
-  const hasNewTraceUi = useHasTraceNewUi();
-
-  if (!hasNewTraceUi) {
-    return <LegacyEventTags event={event} projectSlug={projectSlug} />;
-  }
-
   return (
     <EventTagsDataSection
       event={event}
@@ -1264,22 +1077,6 @@ function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
     />
   );
 }
-
-function LegacyEventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
-  return (
-    <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
-      <TagsWrapper>
-        <EventTagsDataSection event={event} projectSlug={projectSlug} />
-      </TagsWrapper>
-    </LazyRender>
-  );
-}
-
-const TagsWrapper = styled('div')`
-  h3 {
-    color: ${p => p.theme.textColor};
-  }
-`;
 
 export type SectionCardKeyValueList = KeyValueListData;
 
