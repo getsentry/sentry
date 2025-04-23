@@ -135,12 +135,22 @@ function useTableSortParams() {
 interface PathsTableProps {
   handleAddTransactionFilter: (value: string) => void;
   query?: string;
+  showHttpMethodColumn?: boolean;
 }
 
-export function PathsTable({query, handleAddTransactionFilter}: PathsTableProps) {
+export function PathsTable({
+  query,
+  handleAddTransactionFilter,
+  showHttpMethodColumn = true,
+}: PathsTableProps) {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams();
-  const [columnOrder, setColumnOrder] = useState(defaultColumnOrder);
+  const [columnOrder, setColumnOrder] = useState(() => {
+    if (!showHttpMethodColumn) {
+      return defaultColumnOrder.filter(column => column.key !== 'http.method');
+    }
+    return defaultColumnOrder;
+  });
   const {sortField, sortOrder} = useTableSortParams();
 
   const transactionsRequest = useApiQuery<DiscoverQueryResponse>(
