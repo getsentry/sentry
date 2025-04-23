@@ -22,22 +22,6 @@ function BaseFrame<T extends RawSpanFrame['op']>(
   } as MockFrame<T>;
 }
 
-export function ReplayWebVitalFrameFixture(
-  fields: TestableFrame<'largest-contentful-paint' | 'cumulative-layout-shift' | 'first-input-delay' | 'interaction-to-next-paint'
->
-): MockFrame<'largest-contentful-paint' | 'cumulative-layout-shift' | 'first-input-delay' | 'interaction-to-next-paint'
-> {
-  return BaseFrame(fields.op ?? 'largest-contentful-paint', {
-    ...fields,
-    data: {
-      nodeId: fields.data?.nodeId,
-      size: fields.data?.size ?? 0,
-      value: fields.data?.value ?? 0,
-      rating: fields.data?.rating ?? "good",
-    },
-  });
-}
-
 export function ReplayMemoryFrameFixture(
   fields: TestableFrame<'memory'>
 ): MockFrame<'memory'> {
@@ -85,12 +69,6 @@ export function ReplayNavigationPushFrameFixture(
       previous: fields.data?.previous ?? '/',
     },
   });
-}
-
-export function ReplayPaintFrameFixture(
-  fields: TestableFrame<'paint'>
-): MockFrame<'paint'> {
-  return BaseFrame('paint', fields);
 }
 
 export function ReplayRequestFrameFixture(

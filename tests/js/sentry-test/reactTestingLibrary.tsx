@@ -431,12 +431,6 @@ instrumentUserEvent();
 // eslint-disable-next-line no-restricted-imports, import/export
 export * from '@testing-library/react';
 
-/**
- * @deprecated Cleanup is called for you between each test.
- * If you are getting act errors in afterEach, try moving them to beforeEach.
- */
-const cleanup = rtl.cleanup;
-
 export {
   // eslint-disable-next-line import/export
   render,
@@ -446,6 +440,4 @@ export {
   fireEvent,
   waitForDrawerToHide,
   makeAllTheProviders,
-  // eslint-disable-next-line import/export
-  cleanup,
 };
