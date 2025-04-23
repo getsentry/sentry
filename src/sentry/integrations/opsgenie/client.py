@@ -7,7 +7,7 @@ from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.client import ApiClient
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.on_call.metrics import OnCallInteractionType
-from sentry.integrations.opsgenie.metrics import record_event
+from sentry.integrations.opsgenie.metrics import record_event, record_lifecycle_termination_level
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.group import Group
 from sentry.notifications.notifications.rules import get_key_from_rule_data
@@ -121,7 +121,7 @@ class OpsgenieClient(ApiClient):
             try:
                 return self.post("/alerts", data=data, headers=headers)
             except (ApiUnauthorized, ApiError) as e:
-                lifecycle.record_halt(halt_reason=e)
+                record_lifecycle_termination_level(lifecycle=lifecycle, error=e)
                 raise
 
     # TODO(iamrajjoshi): We need to delete this method during notification platform
@@ -140,7 +140,7 @@ class OpsgenieClient(ApiClient):
                         headers=headers,
                     )
                 except (ApiUnauthorized, ApiError) as e:
-                    lifecycle.record_halt(halt_reason=e)
+                    record_lifecycle_termination_level(lifecycle=lifecycle, error=e)
                     raise
 
         # Creating a metric alert
@@ -148,5 +148,5 @@ class OpsgenieClient(ApiClient):
             try:
                 return self.post("/alerts", data=data, headers=headers)
             except (ApiUnauthorized, ApiError) as e:
-                lifecycle.record_halt(halt_reason=e)
+                record_lifecycle_termination_level(lifecycle=lifecycle, error=e)
                 raise

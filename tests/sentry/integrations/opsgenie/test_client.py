@@ -10,6 +10,7 @@ from sentry.models.rule import Rule
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.testutils.asserts import (
     assert_count_of_metric,
+    assert_halt_metric,
     assert_many_halt_metrics,
     assert_slo_metric,
 )
@@ -254,14 +255,14 @@ class OpsgenieClientTest(APITestCase):
             responses.POST,
             url="https://api.opsgenie.com/v2/alerts",
             status=401,
-            json={"message": "Unauthorized"},
+            json={"message": ":bufo-riot:"},
         )
 
         responses.add(
             responses.POST,
             url="https://api.opsgenie.com/v2/alerts",
             status=403,
-            json={"message": ":bufo-riot:"},
+            json={"code": 40301},
         )
 
         event = self.store_event(
@@ -312,14 +313,14 @@ class OpsgenieClientTest(APITestCase):
             responses.POST,
             url="https://api.opsgenie.com/v2/alerts",
             status=401,
-            json={"message": "Unauthorized"},
+            json={"message": "bufo-brick"},
         )
 
         responses.add(
             responses.POST,
             url="https://api.opsgenie.com/v2/alerts",
             status=403,
-            json={"message": ":bufo-riot:"},
+            json={"code": 40301},
         )
         client: OpsgenieClient = self.installation.get_keyring_client("team-123")
 
@@ -364,7 +365,7 @@ class OpsgenieClientTest(APITestCase):
             responses.POST,
             url=f"https://api.opsgenie.com/v2/alerts/{identifier}/close?identifierType=alias",
             status=401,
-            json={"message": "Unauthorized"},
+            json={"code": 40301},
         )
 
         responses.add(
@@ -386,9 +387,10 @@ class OpsgenieClientTest(APITestCase):
             mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=2
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
         )
-        assert_many_halt_metrics(
-            mock_record=mock_record,
-            messages_or_errors=[ApiUnauthorized("something"), ApiError("something")],
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
         )
+
+        assert_halt_metric(mock_record=mock_record, error_msg=ApiError("something"))
