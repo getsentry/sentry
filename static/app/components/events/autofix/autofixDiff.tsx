@@ -662,7 +662,7 @@ export function AutofixDiff({
   previousInsightCount,
   isExpandable = true,
 }: AutofixDiffProps) {
-  if (!diff || !diff.length) {
+  if (!diff?.length) {
     return null;
   }
 
@@ -825,7 +825,6 @@ const ButtonGroup = styled('div')`
   top: 0;
   right: ${space(0.5)};
   display: flex;
-  z-index: 1;
 `;
 
 const ActionButton = styled(Button)<{isHovered: boolean}>`
@@ -896,6 +895,8 @@ const RemovedLine = styled('div')`
   background-color: ${DIFF_COLORS.removedRow};
   color: ${p => p.theme.textColor};
   padding: ${space(0.25)} ${space(0.5)};
+  white-space: pre-wrap;
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const StyledTextArea = styled(TextArea)`

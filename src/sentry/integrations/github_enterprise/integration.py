@@ -15,7 +15,6 @@ from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
-    IntegrationFeatureNotImplementedError,
     IntegrationFeatures,
     IntegrationMetadata,
 )
@@ -173,7 +172,7 @@ class GitHubEnterpriseIntegration(
 
     # IntegrationInstallation methods
 
-    def message_from_error(self, exc):
+    def message_from_error(self, exc: Exception) -> str:
         if isinstance(exc, ApiError):
             if exc.code is None:
                 message = None
@@ -212,7 +211,7 @@ class GitHubEnterpriseIntegration(
         ]
 
     def source_url_matches(self, url: str) -> bool:
-        raise IntegrationFeatureNotImplementedError
+        return url.startswith(f"https://{self.model.metadata["domain_name"]}")
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         # Must format the url ourselves since `check_file` is a head request
@@ -220,10 +219,14 @@ class GitHubEnterpriseIntegration(
         return f"{repo.url}/blob/{branch}/{filepath}"
 
     def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
-        raise IntegrationFeatureNotImplementedError
+        url = url.replace(f"{repo.url}/blob/", "")
+        branch, _, _ = url.partition("/")
+        return branch
 
     def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
-        raise IntegrationFeatureNotImplementedError
+        url = url.replace(f"{repo.url}/blob/", "")
+        _, _, source_path = url.partition("/")
+        return source_path
 
     def search_issues(self, query: str | None, **kwargs):
         return self.get_client().search_issues(query)
@@ -231,6 +234,11 @@ class GitHubEnterpriseIntegration(
     def has_repo_access(self, repo: RpcRepository) -> bool:
         # TODO: define this, used to migrate repositories
         return False
+
+    # CommitContextIntegration methods
+
+    def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
+        raise NotImplementedError
 
 
 class InstallationForm(forms.Form):

@@ -2,13 +2,17 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {PathsTable} from 'sentry/views/insights/pages/platform/laravel/pathsTable';
+import {SlowSSRWidget} from 'sentry/views/insights/pages/platform/nextjs/slowSsrWidget';
+import {DurationWidget} from 'sentry/views/insights/pages/platform/shared/durationWidget';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {PlatformLandingPageLayout} from 'sentry/views/insights/pages/platform/shared/layout';
+import {TrafficWidget} from 'sentry/views/insights/pages/platform/shared/trafficWidget';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 function PlaceholderWidget() {
@@ -31,25 +35,34 @@ export function NextJsOverviewPage({headerTitle}: {headerTitle: React.ReactNode}
     <PlatformLandingPageLayout headerTitle={headerTitle}>
       <WidgetGrid>
         <RequestsContainer>
-          <PlaceholderWidget />
+          <TrafficWidget
+            title={t('Traffic')}
+            trafficSeriesName={t('Page views')}
+            baseQuery={'span.op:[navigation,pageload]'}
+            query={query}
+          />
         </RequestsContainer>
         <IssuesContainer>
           <IssuesWidget query={query} />
         </IssuesContainer>
         <DurationContainer>
-          <PlaceholderWidget />
+          <DurationWidget query={query} />
         </DurationContainer>
         <JobsContainer>
           <PlaceholderWidget />
         </JobsContainer>
         <QueriesContainer>
-          <PlaceholderWidget />
+          <SlowSSRWidget query={query} />
         </QueriesContainer>
         <CachesContainer>
           <PlaceholderWidget />
         </CachesContainer>
       </WidgetGrid>
-      <PathsTable handleAddTransactionFilter={setTransactionFilter} query={query} />
+      <PathsTable
+        handleAddTransactionFilter={setTransactionFilter}
+        query={query}
+        showHttpMethodColumn={false}
+      />
     </PlatformLandingPageLayout>
   );
 }

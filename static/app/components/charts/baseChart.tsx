@@ -47,11 +47,15 @@ import type {
   Series,
 } from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 import Grid from './components/grid';
 import Legend from './components/legend';
-import type {TooltipSubLabel} from './components/tooltip';
-import {CHART_TOOLTIP_VIEWPORT_OFFSET, computeChartTooltip} from './components/tooltip';
+import {
+  CHART_TOOLTIP_VIEWPORT_OFFSET,
+  computeChartTooltip,
+  type TooltipSubLabel,
+} from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 import LineSeries from './series/lineSeries';
@@ -398,11 +402,11 @@ function BaseChart({
     resolveColors ||
     (series.length
       ? theme.chart.getColorPalette(series.length)
-      : theme.chart.colors[theme.chart.colors.length - 1]);
+      : theme.chart.getColorPalette(theme.chart.colors.length - 1));
 
   const resolvedSeries = useMemo(() => {
     const previousPeriodColors =
-      (previousPeriod?.length ?? 0) > 1 ? lightenHexToRgb(color as string[]) : undefined;
+      (previousPeriod?.length ?? 0) > 1 ? lightenHexToRgb(color) : undefined;
 
     const hasSinglePoints = (series as LineSeriesOption[] | undefined)?.every(
       s => Array.isArray(s.data) && s.data.length <= 1
@@ -447,13 +451,17 @@ function BaseChart({
           lineStyle: {
             color: previousPeriodColors
               ? previousPeriodColors[seriesIndex]
-              : theme.gray200,
+              : isChonkTheme(theme)
+                ? theme.colors.gray400
+                : theme.gray200,
             type: 'dotted',
           },
           itemStyle: {
             color: previousPeriodColors
               ? previousPeriodColors[seriesIndex]
-              : theme.gray200,
+              : isChonkTheme(theme)
+                ? theme.colors.gray400
+                : theme.gray200,
           },
           stack: 'previous',
           animation: false,
@@ -470,7 +478,7 @@ function BaseChart({
     transformSinglePointToLine,
     previousPeriod,
     additionalSeries,
-    theme.gray200,
+    theme,
   ]);
 
   /**

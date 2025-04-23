@@ -1,3 +1,4 @@
+import type {PageFilters} from 'sentry/types/core';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {getSessionsInterval} from 'sentry/utils/sessions';
@@ -6,7 +7,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getSessionStatusSeries} from 'sentry/views/insights/sessions/utils/sessions';
 
-export default function useErroredSessions() {
+export default function useErroredSessions({pageFilters}: {pageFilters?: PageFilters}) {
   const location = useLocation();
   const organization = useOrganization();
   const {
@@ -30,7 +31,7 @@ export default function useErroredSessions() {
       {
         query: {
           ...locationQuery,
-          interval: getSessionsInterval(datetime),
+          interval: getSessionsInterval(pageFilters ? pageFilters.datetime : datetime),
           field: ['sum(session)'],
           groupBy: ['session.status'],
         },

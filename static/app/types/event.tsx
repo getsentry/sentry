@@ -39,7 +39,7 @@ export type EventGroupingConfig = {
   strategies: string[];
 };
 
-export type VariantEvidence = {
+type VariantEvidence = {
   desc: string;
   fingerprint: string;
   cause_span_hashes?: string[];
@@ -50,13 +50,6 @@ export type VariantEvidence = {
   parent_span_hashes?: string[];
   parent_span_ids?: string[];
 };
-
-type EventGroupVariantKey =
-  | 'built-in-fingerprint'
-  | 'custom-fingerprint'
-  | 'app'
-  | 'default'
-  | 'system';
 
 export const enum EventGroupVariantType {
   CHECKSUM = 'checksum',
@@ -122,8 +115,6 @@ export type EventGroupVariant =
   | BuiltInFingerprintVariant
   | PerformanceProblemVariant;
 
-export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
-
 /**
  * SDK Update metadata
  */
@@ -134,7 +125,7 @@ type EnableIntegrationSuggestion = {
   integrationUrl?: string | null;
 };
 
-export type UpdateSdkSuggestion = {
+type UpdateSdkSuggestion = {
   enables: SDKUpdatesSuggestion[];
   newSdkVersion: string;
   sdkName: string;
@@ -210,10 +201,6 @@ export type Frame = {
   sourceLink?: string | null;
   symbolicatorStatus?: SymbolicatorStatus;
 };
-
-export enum FrameBadge {
-  GROUPING = 'grouping',
-}
 
 export type ExceptionValue = {
   mechanism: StackTraceMechanism | null;
@@ -337,7 +324,7 @@ type EntryMessage = {
   type: EntryType.MESSAGE;
 };
 
-export interface EntryRequestDataDefault {
+interface EntryRequestDataDefault {
   apiTarget: null;
   method: string | null;
   url: string;
@@ -405,7 +392,7 @@ export type Entry =
 
 // Contexts: https://develop.sentry.dev/sdk/event-payloads/contexts/
 
-export interface BaseContext {
+interface BaseContext {
   type: string;
 }
 
@@ -527,7 +514,7 @@ type OSContext = {
   version: string;
 };
 
-export enum OtelContextKey {
+enum OtelContextKey {
   ATTRIBUTES = 'attributes',
   RESOURCE = 'resource',
 }
@@ -619,7 +606,7 @@ export interface ThreadPoolInfoContext {
   [ThreadPoolInfoContextKey.AVAILABLE_COMPLETION_PORT_THREADS]: number;
 }
 
-export type MetricAlertContextType = {
+type MetricAlertContextType = {
   alert_rule_id?: string;
 };
 
@@ -641,19 +628,19 @@ export interface ReplayContext {
   [ReplayContextKey.REPLAY_ID]: string;
   type: string;
 }
-export interface BrowserContext {
+interface BrowserContext {
   name: string;
   version: string;
 }
 
-export interface ResponseContext {
+interface ResponseContext {
   data: unknown;
   type: 'response';
 }
 
 // event.contexts.flags can be overriden by the user so the type is not strict
 export type FeatureFlag = {flag?: string; result?: boolean};
-export type Flags = {values?: FeatureFlag[]};
+type Flags = {values?: FeatureFlag[]};
 
 export type EventContexts = {
   'Current Culture'?: CultureContext;
@@ -687,7 +674,7 @@ export type Measurement = {value: number; type?: string; unit?: string};
 
 export type EventTag = {key: string; value: string};
 
-export type EventUser = {
+type EventUser = {
   data?: string | null;
   email?: string;
   id?: string;
@@ -696,7 +683,7 @@ export type EventUser = {
   username?: string | null;
 };
 
-export type PerformanceDetectorData = {
+type PerformanceDetectorData = {
   causeSpanIds: string[];
   offenderSpanIds: string[];
   parentSpanIds: string[];
@@ -795,8 +782,8 @@ interface EventBase {
   release?: EventRelease | null;
   resolvedWith?: string[];
   sdk?: {
-    name: string;
-    version: string;
+    name: string | null;
+    version: string | null;
   } | null;
   sdkUpdates?: SDKUpdatesSuggestion[];
   userReport?: any;

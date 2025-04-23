@@ -1,9 +1,9 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
 import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 

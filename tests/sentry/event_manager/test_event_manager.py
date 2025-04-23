@@ -1022,7 +1022,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     def test_culprit_after_stacktrace_processing(self) -> None:
         from sentry.grouping.enhancer import Enhancements
 
-        enhancements_str = Enhancements.from_config_string(
+        enhancements_str = Enhancements.from_rules_text(
             """
             function:in_app_function +app
             function:not_in_app_function -app
@@ -1186,7 +1186,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.group is not None
 
         def query(model: TSDBModel, key: int, **kwargs: Any) -> int:
-            return tsdb.backend.get_sums(
+            return tsdb.backend.get_timeseries_sums(
                 model,
                 [key],
                 event.datetime,
@@ -2251,7 +2251,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         assert event.group is None
         assert (
-            tsdb.backend.get_sums(
+            tsdb.backend.get_timeseries_sums(
                 TSDBModel.project,
                 [self.project.id],
                 event.datetime,
@@ -2269,7 +2269,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         """
         from sentry.grouping.enhancer import Enhancements
 
-        enhancements_str = Enhancements.from_config_string(
+        enhancements_str = Enhancements.from_rules_text(
             """
             function:foo category=bar
             function:foo2 category=bar
@@ -2345,7 +2345,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         """
         from sentry.grouping.enhancer import Enhancements
 
-        enhancements_str = Enhancements.from_config_string(
+        enhancements_str = Enhancements.from_rules_text(
             """
             function:foo category=foo_like
             category:foo_like -group

@@ -12,7 +12,7 @@ export enum ExperimentType {
  * An experiment configuration object defines an experiment in the frontend.
  * This drives various logic in experiment helpers.
  */
-export type ExperimentConfig = {
+type ExperimentConfig = {
   /**
    * Possible assignment values of the experiment
    */

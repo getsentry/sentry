@@ -5,7 +5,7 @@ from typing import Any
 from django.db import router, transaction
 from django.forms import ValidationError
 
-from sentry.incidents.grouptype import MetricAlertFire
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleThresholdType,
@@ -309,7 +309,7 @@ def migrate_metric_data_conditions(
     action_filter = DataCondition.objects.create(
         comparison=PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH),
         condition_result=True,
-        type=Condition.ISSUE_PRIORITY_EQUALS,
+        type=Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL,
         condition_group=data_condition_group,
     )
     return detector_trigger, action_filter
@@ -483,7 +483,7 @@ def get_detector_field_values(
                 "project_id": project_id,
                 "enabled": True,
                 "created_by_id": user.id if user else None,
-                "type": MetricAlertFire.slug,
+                "type": MetricIssue.slug,
             }
         )
     return detector_field_values

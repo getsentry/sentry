@@ -2,10 +2,10 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import getDuration from 'sentry/utils/duration/getDuration';
@@ -117,7 +117,7 @@ type VitalMeterProps = {
   onClick?: (webVital: WebVitals) => void;
 };
 
-export function VitalMeter({
+function VitalMeter({
   webVital,
   showTooltip,
   score,

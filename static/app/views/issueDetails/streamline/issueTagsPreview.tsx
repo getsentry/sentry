@@ -5,11 +5,11 @@ import styled from '@emotion/styled';
 import Color from 'color';
 
 import {LinkButton} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DeviceName} from 'sentry/components/deviceName';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
 import {
   backend,
   featureFlagDrawerPlatforms,
@@ -54,7 +54,7 @@ type Segment = {
 };
 
 const bgColor = (index: number, theme: Theme) =>
-  Color(theme.chart.colors[4].at(index)).alpha(0.8).toString();
+  Color(theme.chart.getColorPalette(4).at(index)).alpha(0.8).toString();
 const getRoundedPercentage = (percentage: number) =>
   percentage < 0.5 ? '<1%' : `${Math.round(percentage)}%`;
 

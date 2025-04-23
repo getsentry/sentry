@@ -30,7 +30,6 @@ import typescriptSortKeys from 'eslint-plugin-typescript-sort-keys';
 import unicorn from 'eslint-plugin-unicorn';
 import globals from 'globals';
 import invariant from 'invariant';
-// biome-ignore lint/correctness/noNodejsModules: Need to get the list of things!
 import {builtinModules} from 'node:module';
 import typescript from 'typescript-eslint';
 
@@ -45,6 +44,9 @@ export const typeAwareLintRules = {
     '@typescript-eslint/await-thenable': 'error',
     '@typescript-eslint/no-array-delete': 'error',
     '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+    '@typescript-eslint/prefer-optional-chain': 'error',
+    '@typescript-eslint/consistent-type-exports': 'error',
+    '@typescript-eslint/consistent-type-imports': 'error',
   },
 };
 

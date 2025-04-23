@@ -68,7 +68,7 @@ const cardAnimationProps: AnimationProps = {
   }),
 };
 
-export function useSelectCause({groupId, runId}: {groupId: string; runId: string}) {
+function useSelectCause({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi();
   const queryClient = useQueryClient();
 
@@ -109,7 +109,7 @@ export function useSelectCause({groupId, runId}: {groupId: string; runId: string
         queryClient,
         makeAutofixQueryKey(groupId),
         data => {
-          if (!data || !data.autofix) {
+          if (!data?.autofix) {
             return data;
           }
 

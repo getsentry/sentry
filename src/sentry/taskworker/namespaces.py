@@ -7,6 +7,8 @@ auth_tasks = taskregistry.create_namespace("auth")
 
 auth_control_tasks = taskregistry.create_namespace("auth.control")
 
+buffer_tasks = taskregistry.create_namespace("buffer")
+
 crons_tasks = taskregistry.create_namespace("crons")
 
 deletion_tasks = taskregistry.create_namespace(
@@ -23,6 +25,8 @@ deletion_control_tasks = taskregistry.create_namespace(
 demomode_tasks = taskregistry.create_namespace("demomode")
 
 digests_tasks = taskregistry.create_namespace("digests")
+
+export_tasks = taskregistry.create_namespace(name="export", processing_deadline_duration=15)
 
 hybridcloud_tasks = taskregistry.create_namespace("hybridcloud")
 
@@ -46,12 +50,16 @@ sdk_tasks = taskregistry.create_namespace("sdk")
 
 sdk_control_tasks = taskregistry.create_namespace("sdk.control")
 
+seer_tasks = taskregistry.create_namespace("seer")
+
 selfhosted_tasks = taskregistry.create_namespace("selfhosted")
 
 tempest_tasks = taskregistry.create_namespace("tempest")
 
 uptime_tasks = taskregistry.create_namespace("uptime")
 
+relocation_tasks = taskregistry.create_namespace("relocation")
+relocation_control_tasks = taskregistry.create_namespace("relocation.control")
 
 # Namespaces for testing taskworker tasks
 exampletasks = taskregistry.create_namespace(name="examples")

@@ -13,7 +13,7 @@ export enum DismissId {
   CACHE_SDK_UPDATE_ALERT = 1,
 }
 
-export type PageAlertOptions = {
+type PageAlertOptions = {
   message: React.ReactNode | undefined;
   type: PageAlertType;
   dismissId?: DismissId;
@@ -88,7 +88,7 @@ export function PageAlert() {
     []
   );
 
-  if (!pageAlert || !pageAlert.message) {
+  if (!pageAlert?.message) {
     return null;
   }
 

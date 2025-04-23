@@ -21,11 +21,7 @@ jest.mock('sentry/components/lazyRender', () => ({
 }));
 
 describe('MultiQueryModeContent', function () {
-  const {organization, project} = initializeOrg({
-    organization: {
-      features: ['performance-saved-queries'],
-    },
-  });
+  const {organization, project} = initializeOrg();
   let eventsRequest: any;
   let eventsStatsRequest: any;
 
@@ -138,11 +134,11 @@ describe('MultiQueryModeContent', function () {
         yAxes: ['count(span.duration)'],
         sortBys: [
           {
-            field: 'span.duration',
+            field: 'timestamp',
             kind: 'desc',
           },
         ],
-        fields: ['id', 'span.duration'],
+        fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
       },
@@ -159,11 +155,11 @@ describe('MultiQueryModeContent', function () {
         yAxes: ['avg(span.self_time)'],
         sortBys: [
           {
-            field: 'id',
+            field: 'timestamp',
             kind: 'desc',
           },
         ],
-        fields: ['id', 'span.self_time'],
+        fields: ['id', 'span.self_time', 'timestamp'],
         groupBys: [],
         query: '',
       },
@@ -178,11 +174,11 @@ describe('MultiQueryModeContent', function () {
         yAxes: ['count(span.duration)'],
         sortBys: [
           {
-            field: 'id',
+            field: 'timestamp',
             kind: 'desc',
           },
         ],
-        fields: ['id', 'span.duration'],
+        fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
       },
@@ -213,11 +209,11 @@ describe('MultiQueryModeContent', function () {
         yAxes: ['count(span.duration)'],
         sortBys: [
           {
-            field: 'span.duration',
+            field: 'timestamp',
             kind: 'desc',
           },
         ],
-        fields: ['id', 'span.duration'],
+        fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
       },
@@ -232,11 +228,11 @@ describe('MultiQueryModeContent', function () {
         yAxes: ['count_unique(span.op)'],
         sortBys: [
           {
-            field: 'id',
+            field: 'timestamp',
             kind: 'desc',
           },
         ],
-        fields: ['id', 'span.op'],
+        fields: ['id', 'span.op', 'timestamp'],
         groupBys: [],
         query: '',
       },
@@ -253,11 +249,11 @@ describe('MultiQueryModeContent', function () {
         yAxes: ['avg(span.self_time)'],
         sortBys: [
           {
-            field: 'id',
+            field: 'timestamp',
             kind: 'desc',
           },
         ],
-        fields: ['id', 'span.self_time'],
+        fields: ['id', 'span.self_time', 'timestamp'],
         groupBys: [],
         query: '',
       },
@@ -272,11 +268,11 @@ describe('MultiQueryModeContent', function () {
         yAxes: ['count_unique(span.op)'],
         sortBys: [
           {
-            field: 'id',
+            field: 'timestamp',
             kind: 'desc',
           },
         ],
-        fields: ['id', 'span.op'],
+        fields: ['id', 'span.op', 'timestamp'],
         groupBys: [],
         query: '',
       },
@@ -305,11 +301,11 @@ describe('MultiQueryModeContent', function () {
         yAxes: ['count(span.duration)'],
         sortBys: [
           {
-            field: 'span.duration',
+            field: 'timestamp',
             kind: 'desc',
           },
         ],
-        fields: ['id', 'span.duration'],
+        fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
       },
@@ -325,11 +321,11 @@ describe('MultiQueryModeContent', function () {
         yAxes: ['avg(span.self_time)'],
         sortBys: [
           {
-            field: 'id',
+            field: 'timestamp',
             kind: 'desc',
           },
         ],
-        fields: ['id', 'span.self_time'],
+        fields: ['id', 'span.self_time', 'timestamp'],
         groupBys: [],
         query: '',
       },
@@ -358,17 +354,17 @@ describe('MultiQueryModeContent', function () {
         yAxes: ['count(span.duration)'],
         sortBys: [
           {
-            field: 'span.duration',
+            field: 'timestamp',
             kind: 'desc',
           },
         ],
-        fields: ['id', 'span.duration'],
+        fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
       },
     ]);
     const section = screen.getByTestId('section-sort-by-0');
-    await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'timestamp'}));
     await userEvent.click(within(section).getByRole('option', {name: 'id'}));
     expect(queries).toEqual([
       {
@@ -380,7 +376,7 @@ describe('MultiQueryModeContent', function () {
             kind: 'desc',
           },
         ],
-        fields: ['id', 'span.duration'],
+        fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
       },
@@ -409,11 +405,11 @@ describe('MultiQueryModeContent', function () {
         yAxes: ['count(span.duration)'],
         sortBys: [
           {
-            field: 'span.duration',
+            field: 'timestamp',
             kind: 'desc',
           },
         ],
-        fields: ['id', 'span.duration'],
+        fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
       },
@@ -433,7 +429,7 @@ describe('MultiQueryModeContent', function () {
         ],
         query: '',
         groupBys: ['span.op'],
-        fields: ['id', 'span.duration'],
+        fields: ['id', 'span.duration', 'timestamp'],
       },
     ]);
   });
@@ -460,11 +456,11 @@ describe('MultiQueryModeContent', function () {
         yAxes: ['count(span.duration)'],
         sortBys: [
           {
-            field: 'span.duration',
+            field: 'timestamp',
             kind: 'desc',
           },
         ],
-        fields: ['id', 'span.duration'],
+        fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
       },
@@ -478,11 +474,11 @@ describe('MultiQueryModeContent', function () {
         yAxes: ['count(span.duration)'],
         sortBys: [
           {
-            field: 'span.duration',
+            field: 'timestamp',
             kind: 'desc',
           },
         ],
-        fields: ['id', 'span.duration'],
+        fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
       },
@@ -491,11 +487,11 @@ describe('MultiQueryModeContent', function () {
         yAxes: ['count(span.duration)'],
         sortBys: [
           {
-            field: 'span.duration',
+            field: 'timestamp',
             kind: 'desc',
           },
         ],
-        fields: ['id', 'span.duration'],
+        fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
       },
@@ -512,11 +508,11 @@ describe('MultiQueryModeContent', function () {
         yAxes: ['avg(span.self_time)'],
         sortBys: [
           {
-            field: 'id',
+            field: 'timestamp',
             kind: 'desc',
           },
         ],
-        fields: ['id', 'span.self_time'],
+        fields: ['id', 'span.self_time', 'timestamp'],
         groupBys: [],
         query: '',
       },
@@ -525,11 +521,11 @@ describe('MultiQueryModeContent', function () {
         yAxes: ['count(span.duration)'],
         sortBys: [
           {
-            field: 'span.duration',
+            field: 'timestamp',
             kind: 'desc',
           },
         ],
-        fields: ['id', 'span.duration'],
+        fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
       },
@@ -541,11 +537,11 @@ describe('MultiQueryModeContent', function () {
         yAxes: ['count(span.duration)'],
         sortBys: [
           {
-            field: 'span.duration',
+            field: 'timestamp',
             kind: 'desc',
           },
         ],
-        fields: ['id', 'span.duration'],
+        fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
       },
@@ -574,11 +570,11 @@ describe('MultiQueryModeContent', function () {
         yAxes: ['count(span.duration)'],
         sortBys: [
           {
-            field: 'span.duration',
+            field: 'timestamp',
             kind: 'desc',
           },
         ],
-        fields: ['id', 'span.duration'],
+        fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
       },
@@ -620,16 +616,16 @@ describe('MultiQueryModeContent', function () {
             field: [
               'id',
               'span.duration',
+              'timestamp',
               'transaction.span_id',
               'trace',
               'project',
-              'timestamp',
             ],
             per_page: 10,
             project: ['2'],
             query: '!transaction.span_id:00',
             referrer: 'api.explore.multi-query-spans-table',
-            sort: '-span.duration',
+            sort: '-timestamp',
             statsPeriod: '7d',
             useRpc: '1',
           }),
@@ -727,11 +723,11 @@ describe('MultiQueryModeContent', function () {
         yAxes: ['count(span.duration)'],
         sortBys: [
           {
-            field: 'span.duration',
+            field: 'timestamp',
             kind: 'desc',
           },
         ],
-        fields: ['id', 'span.duration'],
+        fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: '',
       },
@@ -749,11 +745,11 @@ describe('MultiQueryModeContent', function () {
         yAxes: ['count(span.duration)'],
         sortBys: [
           {
-            field: 'id',
+            field: 'timestamp',
             kind: 'desc',
           },
         ],
-        fields: ['id', 'span.duration'],
+        fields: ['id', 'span.duration', 'timestamp'],
         groupBys: [],
         query: 'span.op:POST',
       },
@@ -806,5 +802,63 @@ describe('MultiQueryModeContent', function () {
     expect(await screen.findByLabelText('Save')).toBeInTheDocument();
     await userEvent.click(screen.getByLabelText('Save'));
     expect(await screen.findByText('A New Query')).toBeInTheDocument();
+  });
+
+  it('highlights save button when query has changes', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/saved/123/`,
+      method: 'GET',
+      body: {
+        query: [
+          {
+            query: '',
+            fields: ['count(span.duration)'],
+            groupby: ['span.op'],
+            orderby: '-count(span.duration)',
+            visualize: [
+              {
+                chartType: 1,
+                yAxes: ['count(span.duration)'],
+              },
+            ],
+            mode: 'aggregate',
+          },
+        ],
+        range: '14d',
+        projects: [],
+        environment: [],
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/saved/123/visit/`,
+      method: 'POST',
+    });
+    const router = RouterFixture({
+      location: {
+        pathname: '/traces/compare',
+        query: {
+          queries: [
+            '{"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["avg(span.duration)"]}',
+          ],
+          id: '123',
+        },
+      },
+    });
+
+    function Component() {
+      return <MultiQueryModeContent />;
+    }
+
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {router, organization}
+    );
+    // No good way to check for highlighted css, so we just check for the text
+    expect(await screen.findByText('Save')).toBeInTheDocument();
   });
 });

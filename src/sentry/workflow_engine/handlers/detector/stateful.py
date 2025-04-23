@@ -1,6 +1,7 @@
 import abc
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any, TypeVar
+from uuid import uuid4
 
 from django.conf import settings
 from django.db.models import Q
@@ -15,6 +16,7 @@ from sentry.utils.iterators import chunked
 from sentry.workflow_engine.handlers.detector.base import (
     DetectorEvaluationResult,
     DetectorHandler,
+    DetectorOccurrence,
     DetectorStateData,
 )
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
@@ -63,8 +65,8 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
 
     @abc.abstractmethod
     def build_occurrence_and_event_data(
-        self, group_key: DetectorGroupKey, value: int, new_status: PriorityLevel
-    ) -> tuple[IssueOccurrence, dict[str, Any]]:
+        self, group_key: DetectorGroupKey, new_status: PriorityLevel
+    ) -> tuple[DetectorOccurrence, dict[str, Any]]:
         pass
 
     def build_fingerprint(self, group_key) -> list[str]:
@@ -209,9 +211,29 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
                     new_substatus=None,
                 )
             else:
-                result, event_data = self.build_occurrence_and_event_data(
-                    group_key, value, PriorityLevel(new_status)
+                detector_occurrence, event_data = self.build_occurrence_and_event_data(
+                    group_key, PriorityLevel(new_status)
                 )
+                evidence_data = {
+                    **detector_occurrence.evidence_data,
+                    "detector_id": self.detector.id,
+                    "value": value,
+                }
+                result = detector_occurrence.to_issue_occurrence(
+                    occurrence_id=str(uuid4()),
+                    project_id=self.detector.project_id,
+                    status=new_status,
+                    detection_time=datetime.now(UTC),
+                    additional_evidence_data=evidence_data,
+                    fingerprint=self.build_fingerprint(group_key),
+                )
+                event_data["timestamp"] = result.detection_time
+                event_data["project_id"] = result.project_id
+                event_data["event_id"] = result.event_id
+                event_data.setdefault("platform", "python")
+                event_data.setdefault("received", result.detection_time)
+                event_data.setdefault("tags", {})
+
             return DetectorEvaluationResult(
                 group_key=group_key,
                 is_active=is_active,

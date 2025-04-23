@@ -1,6 +1,7 @@
 import {type ComponentProps, Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {
   DatePageFilter,
@@ -9,7 +10,6 @@ import {
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {SECOND} from 'sentry/utils/formatters';
@@ -134,7 +134,7 @@ const StyledIconBuisness = styled(IconBusiness)`
   margin-left: auto;
 `;
 
-export const UpsellFooterHook = HookOrDefault({
+const UpsellFooterHook = HookOrDefault({
   hookName: 'component:insights-date-range-query-limit-footer',
   defaultComponent: () => undefined,
 });

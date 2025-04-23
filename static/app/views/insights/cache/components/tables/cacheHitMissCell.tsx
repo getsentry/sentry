@@ -1,12 +1,14 @@
 import {t} from 'sentry/locale';
-import type {SpanIndexedResponse} from 'sentry/views/insights/types';
+import type {EAPSpanResponse, SpanIndexedResponse} from 'sentry/views/insights/types';
 
-export function CacheHitMissCell(props: {hit: SpanIndexedResponse['cache.hit']}) {
+export function CacheHitMissCell(props: {
+  hit: SpanIndexedResponse['cache.hit'] | EAPSpanResponse['cache.hit'];
+}) {
   const {hit} = props;
-  if (hit === 'true') {
+  if (hit === 'true' || hit === true) {
     return <span>{t('HIT')}</span>;
   }
-  if (hit === 'false') {
+  if (hit === 'false' || hit === false) {
     return <span>{t('MISS')}</span>;
   }
   return <span>--</span>;

@@ -48,7 +48,7 @@ function PlanList({
       // Get the category data using type assertion to allow string indexing
       const categories = subscription.categories as Record<string, {reserved?: number}>;
 
-      if (categories[category] && categories[category].reserved !== undefined) {
+      if (categories[category]?.reserved !== undefined) {
         const reservedValue = categories[category].reserved;
 
         return (
