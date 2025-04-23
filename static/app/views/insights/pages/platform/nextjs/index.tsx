@@ -57,7 +57,11 @@ export function NextJsOverviewPage({headerTitle}: {headerTitle: React.ReactNode}
           <PlaceholderWidget />
         </CachesContainer>
       </WidgetGrid>
-      <PathsTable handleAddTransactionFilter={setTransactionFilter} query={query} />
+      <PathsTable
+        handleAddTransactionFilter={setTransactionFilter}
+        query={query}
+        showHttpMethodColumn={false}
+      />
     </PlatformLandingPageLayout>
   );
 }
