@@ -121,7 +121,11 @@ export function AutofixTimelineItem({
                 stepIndex={stepIndex}
                 retainInsightCardIndex={retainInsightCardIndex}
               >
-                <StyledSpan as="span" text={event.code_snippet_and_analysis} inline />
+                <StyledSpan
+                  as="span"
+                  text={replaceHeadersWithBold(event.code_snippet_and_analysis)}
+                  inline
+                />
               </AutofixHighlightWrapper>
             </Timeline.Text>
           </AnimatedContent>
