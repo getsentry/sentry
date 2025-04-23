@@ -26,7 +26,7 @@ from sentry.workflow_engine.models.data_condition import Condition
 
 
 class TestMigrateIssueAlerts(TestMigrations):
-    migrate_from = "0042_workflow_fire_history_add_fired_actions_bool"
+    migrate_from = "0046_drop_metric_alert_fire_detectors"
     migrate_to = "0043_migrate_issue_alerts"
     app = "workflow_engine"
 

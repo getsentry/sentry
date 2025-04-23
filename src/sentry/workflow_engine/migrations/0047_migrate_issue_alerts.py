@@ -1563,7 +1563,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("workflow_engine", "0042_workflow_fire_history_add_fired_actions_bool"),
+        ("workflow_engine", "0046_drop_metric_alert_fire_detectors"),
     ]
 
     operations = [
