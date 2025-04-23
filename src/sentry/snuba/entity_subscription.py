@@ -120,7 +120,11 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
     """
 
     def __init__(
-        self, aggregate: str, time_window: int, extra_fields: _EntitySpecificParams | None = None
+        self,
+        aggregate: str,
+        time_window: int,
+        group_by: str | None = None,
+        extra_fields: _EntitySpecificParams | None = None,
     ):
         pass
 
@@ -162,10 +166,15 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
 
 class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
     def __init__(
-        self, aggregate: str, time_window: int, extra_fields: _EntitySpecificParams | None = None
+        self,
+        aggregate: str,
+        time_window: int,
+        extra_fields: _EntitySpecificParams | None = None,
+        group_by: str | None = None,
     ):
         super().__init__(aggregate, time_window, extra_fields)
         self.aggregate = aggregate
+        self.group_by = group_by
         self.event_types = None
         if extra_fields:
             self.event_types = extra_fields.get("event_types")
@@ -197,6 +206,7 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
             query_builder_cls = ErrorsQueryBuilder
             parser_config_overrides.update(PARSER_CONFIG_OVERRIDES)
 
+        print("group_by", self.group_by)
         return query_builder_cls(
             dataset=Dataset(self.dataset.value),
             query=query,
@@ -204,6 +214,7 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
             params=params,
             offset=None,
             limit=None,
+            groupby_columns=[self.group_by],
             config=QueryBuilderConfig(
                 skip_time_conditions=True,
                 parser_config_overrides=parser_config_overrides,
@@ -534,6 +545,7 @@ def get_entity_subscription(
     aggregate: str,
     time_window: int,
     extra_fields: _EntitySpecificParams | None = None,
+    group_by: str | None = None,
 ) -> EntitySubscription:
     """
     Function that routes to the correct instance of `EntitySubscription` based on the query type and
@@ -562,7 +574,7 @@ def get_entity_subscription(
             f"Couldn't determine entity subscription for query type {query_type} with dataset {dataset}"
         )
 
-    return entity_subscription_cls(aggregate, time_window, extra_fields)
+    return entity_subscription_cls(aggregate, time_window, extra_fields, group_by)
 
 
 def determine_crash_rate_alert_entity(aggregate: str) -> EntityKey:
@@ -610,6 +622,7 @@ def get_entity_subscription_from_snuba_query(
             "org_id": organization_id,
             "event_types": snuba_query.event_types,
         },
+        group_by=snuba_query.group_by,
     )
 
 

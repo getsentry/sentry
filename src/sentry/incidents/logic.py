@@ -524,6 +524,7 @@ def create_alert_rule(
     sensitivity: AlertRuleSensitivity | None = None,
     seasonality: AlertRuleSeasonality | None = None,
     detection_type: AlertRuleDetectionType = AlertRuleDetectionType.STATIC,
+    group_by: str | None = None,
     **kwargs: Any,
 ) -> AlertRule:
     """
@@ -605,6 +606,7 @@ def create_alert_rule(
             dataset=dataset,
             query=query,
             aggregate=aggregate,
+            group_by=group_by,
             time_window=timedelta(minutes=time_window),
             resolution=timedelta(minutes=resolution),
             environment=environment,

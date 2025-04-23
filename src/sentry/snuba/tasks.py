@@ -250,6 +250,8 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
                 },
             ).get_snql_query()
 
+            print("SNQL_QUERYYYYYYY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!", snql_query)
+
             return _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscription)
 
 

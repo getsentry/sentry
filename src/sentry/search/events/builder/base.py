@@ -930,6 +930,7 @@ class BaseQueryBuilder:
             return self.resolve_field(field, alias=alias)
 
     def resolve_groupby(self, groupby_columns: list[str] | None = None) -> list[SelectType]:
+        print("resolve_groupby", groupby_columns)
         self.validate_aggregate_arguments()
         if self.aggregates:
             groupby_columns = (
