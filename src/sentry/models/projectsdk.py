@@ -138,12 +138,22 @@ class ProjectSDK(DefaultFieldsModel):
                 cache.set(cache_key, project_sdk, 3600)
 
 
+LEGACY_SDK_NAMES: set[str] = {
+    "sentry.javascript.serverless",
+}
+
+
 def normalize_sdk_name(sdk_name: str) -> str | None:
     sdk_index = get_sdk_index()
 
     # usually, the sdk names reported will match
     # exactly what's in the registry
     if sdk_name in sdk_index:
+        return sdk_name
+
+    # some legacy sdks are not present in the registry
+    # and will not be backfilled, so check them here
+    if sdk_name in LEGACY_SDK_NAMES:
         return sdk_name
 
     # some sdks suffix the name depending on the integrations

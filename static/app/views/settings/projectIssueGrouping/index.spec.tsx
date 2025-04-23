@@ -87,5 +87,8 @@ describe('projectIssueGrouping', () => {
 
     // Verify the section is visible for superuser
     expect(screen.getByText(/Derived Grouping Enhancements/)).toBeInTheDocument();
+    expect(
+      screen.getByRole('textbox', {name: /Derived Grouping Enhancements/})
+    ).toBeDisabled();
   });
 });

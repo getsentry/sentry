@@ -280,70 +280,110 @@ def get_seer_similar_issues(
     }
     event.data.pop("stacktrace_string", None)
 
-    seer_request_metric_tags = {"hybrid_fingerprint": event_has_hybrid_fingerprint}
+    seer_request_metric_tags = {"platform": event.platform or "unknown"}
 
-    # Similar issues are returned with the closest match first
-    seer_results = get_similarity_data_from_seer(request_data, seer_request_metric_tags)
-    matching_seer_result = asdict(seer_results[0]) if seer_results else None
-    stacktrace_distance = seer_results[0].stacktrace_distance if seer_results else None
-    parent_grouphash = (
-        GroupHash.objects.filter(
-            hash=seer_results[0].parent_hash, project_id=event.project.id
-        ).first()
-        if seer_results
-        else None
+    seer_results = get_similarity_data_from_seer(
+        request_data,
+        {**seer_request_metric_tags, "hybrid_fingerprint": event_has_hybrid_fingerprint},
     )
 
-    if parent_grouphash:
-        # In order for a grouphash returned by Seer to count as a match to an event with a hybrid
-        # fingerprint,
-        #   a) the Seer grouphash must also have come from a hybrid fingerprint, and
-        #   b) the two fingerprints much match.
+    # All of these will get overridden if we find a usable match
+    matching_seer_result = None  # JSON of result data
+    winning_parent_grouphash = None  # A GroupHash object
+    stacktrace_distance = None
+    seer_match_status = "no_matches_usable" if seer_results else "no_seer_matches"
+
+    parent_grouphashes = GroupHash.objects.filter(
+        hash__in=[result.parent_hash for result in seer_results],
+        project_id=event.project.id,
+    )
+    parent_grouphashes_by_hash = {grouphash.hash: grouphash for grouphash in parent_grouphashes}
+
+    parent_grouphashes_checked = 0
+
+    if parent_grouphashes:
+        # Search for a Seer match we can use. If there are no hybrid fingerprints involved, this
+        # will be the first match returned. If hybrid fingerprints *are* involved, this will be the
+        # first match returned whose fingerprint values match the incoming event.
         #
-        # The same is true in reverse: If a Seer grouphash is from a hybrid fingerprint, so must the
-        # new event be, and again the values must match.
-        parent_fingerprint = parent_grouphash.get_associated_fingerprint()
-        parent_has_hybrid_fingerprint = get_fingerprint_type(parent_fingerprint) == "hybrid"
-        parent_has_metadata = bool(
-            parent_grouphash.metadata and parent_grouphash.metadata.hashing_metadata
+        # Similar issues are returned sorted in descending order of similarity, so we want to use
+        # the first match we find.
+        for seer_result in seer_results:
+            parent_grouphash = parent_grouphashes_by_hash[seer_result.parent_hash]
+            can_use_parent_grouphash = _should_use_seer_match_for_grouping(
+                event,
+                event_grouphash,
+                parent_grouphash,
+                event_has_hybrid_fingerprint,
+                parent_grouphashes_checked,
+            )
+            parent_grouphashes_checked += 1
+
+            if can_use_parent_grouphash:
+                winning_parent_grouphash = parent_grouphash
+                matching_seer_result = asdict(seer_result)
+                stacktrace_distance = seer_result.stacktrace_distance
+                seer_match_status = "match_found"
+                break
+
+    # If Seer sent back matches, that means it didn't store the incoming event's data in its
+    # database. But if we then weren't able to use any of the matches Seer sent back, we do actually
+    # want a Seer record to be created, so that future events with this fingerprint have something
+    # with which to match.
+    if seer_match_status == "no_matches_usable" and options.get(
+        "seer.similarity.ingest.store_hybrid_fingerprint_non_matches"
+    ):
+        request_data = {
+            **request_data,
+            "referrer": "ingest_follow_up",
+            # By asking Seer to find zero matches, we can trick it into thinking there aren't
+            # any, thereby forcing it to create the record
+            "k": 0,
+            # Turn off re-ranking to speed up the process of finding nothing
+            "use_reranking": False,
+        }
+
+        # TODO: Temporary log to prove things are working as they should. This should come in a pair
+        # with the `get_similarity_data_from_seer.ingest_follow_up` log in `similar_issues.py`,
+        # which should show that no matches are returned.
+        logger.info("get_seer_similar_issues.follow_up_seer_request", extra={"hash": event_hash})
+
+        # We only want this for the side effect, and we know it'll return no matches, so we don't
+        # bother to capture the return value.
+        get_similarity_data_from_seer(request_data, seer_request_metric_tags)
+
+    is_hybrid_fingerprint_case = (
+        event_has_hybrid_fingerprint
+        # This means we had to reject at least one match because it was a hybrid even though the
+        # event isn't
+        or parent_grouphashes_checked > 1
+        # This catches cases where we only checked one parent (presumably because there was only one
+        # to check) but we couldn't use it because it was hybrid
+        or seer_match_status == "no_matches_usable"
+    )
+    metrics_tags = {"platform": event.platform, "result": seer_match_status}
+
+    # We don't want to collect this metric in non-hybrid cases (for which the answer will always be
+    # 1) or in cases where Seer doesn't return any results (for which the answer will always be 0).
+    if is_hybrid_fingerprint_case and parent_grouphashes_checked > 0:
+        metrics.distribution(
+            "grouping.similarity.hybrid_fingerprint_results_checked",
+            parent_grouphashes_checked,
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags=metrics_tags,
         )
 
-        if event_has_hybrid_fingerprint or parent_has_hybrid_fingerprint:
-            # This check will catch both fingerprint type match and fingerprint value match
-            fingerprints_match = check_grouphashes_for_positive_fingerprint_match(
-                event_grouphash, parent_grouphash
-            )
-
-            if not fingerprints_match:
-                parent_grouphash = None
-                stacktrace_distance = None
-                matching_seer_result = None
-
-            if not parent_has_metadata:
-                result = "no_parent_metadata"
-            elif event_has_hybrid_fingerprint and not parent_has_hybrid_fingerprint:
-                result = "only_event_hybrid"
-            elif parent_has_hybrid_fingerprint and not event_has_hybrid_fingerprint:
-                result = "only_parent_hybrid"
-            elif not fingerprints_match:
-                result = "no_fingerprint_match"
-            else:
-                result = "fingerprint_match"
-
-            metrics.incr(
-                "grouping.similarity.hybrid_fingerprint_seer_result",
-                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-                tags={"platform": event.platform, "result": result},
-            )
-    # For convenience and ease of graph creation in DD, we collect the no-match case as part of this
-    # metric in addition to collecting it as part of the overall seer request metric
-    else:
-        if event_has_hybrid_fingerprint:
-            metrics.incr(
-                "grouping.similarity.hybrid_fingerprint_seer_result",
-                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-                tags={"platform": event.platform, "result": "no_seer_match"},
-            )
+    metrics.distribution(
+        "grouping.similarity.seer_results_returned",
+        len(seer_results),
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+        tags={**metrics_tags, "is_hybrid": is_hybrid_fingerprint_case},
+    )
+    metrics.incr(
+        "grouping.similarity.get_seer_similar_issues",
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+        tags={**metrics_tags, "is_hybrid": is_hybrid_fingerprint_case},
+    )
 
     logger.info(
         "get_seer_similar_issues.results",
@@ -351,12 +391,76 @@ def get_seer_similar_issues(
             "event_id": event.event_id,
             "project_id": event.project.id,
             "hash": event_hash,
+            "num_seer_matches": len(seer_results),
+            "num_seer_matches_checked": parent_grouphashes_checked,
             "matching_result": matching_seer_result,
-            "grouphash_returned": bool(parent_grouphash),
+            "grouphash_returned": bool(winning_parent_grouphash),
         },
     )
 
-    return (stacktrace_distance, parent_grouphash)
+    return (stacktrace_distance, winning_parent_grouphash)
+
+
+def _should_use_seer_match_for_grouping(
+    event: Event,
+    event_grouphash: GroupHash,
+    parent_grouphash: GroupHash,
+    event_has_hybrid_fingerprint: bool,
+    num_grouphashes_previously_checked: int,
+) -> bool:
+    """
+    Determine if a match returned from Seer can be used to group the given event.
+
+    If neither the event nor the Seer match has a hybrid fingerprint, return True. Seer matches
+    without the necessary metadata to make a determination are considered non-hybrid.
+
+    If the event is hybrid and the match is not (or vice versa), return False.
+
+    If they are both hybrid, return True if their fingerprints match, and False otherwise.
+    """
+    parent_has_hybrid_fingerprint = (
+        get_fingerprint_type(parent_grouphash.get_associated_fingerprint()) == "hybrid"
+    )
+
+    if not event_has_hybrid_fingerprint and not parent_has_hybrid_fingerprint:
+        # If this isn't the first result we're checking, and the incoming event doesn't have a
+        # hybrid fingerprint, we must have already hit a hybrid fingerprint parent and rejected it,
+        # so we want to collect this hybrid-fingerprint-related metric
+        if num_grouphashes_previously_checked > 0:
+            metrics.incr(
+                "grouping.similarity.hybrid_fingerprint_match_check",
+                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+                tags={"platform": event.platform, "result": "non-hybrid"},
+            )
+
+        return True
+
+    # This check will catch both fingerprint type match and fingerprint value match
+    fingerprints_match = check_grouphashes_for_positive_fingerprint_match(
+        event_grouphash, parent_grouphash
+    )
+    parent_has_metadata = bool(
+        parent_grouphash.metadata and parent_grouphash.metadata.hashing_metadata
+    )
+
+    if not parent_has_metadata:
+        result = "no_parent_metadata"
+    elif event_has_hybrid_fingerprint and not parent_has_hybrid_fingerprint:
+        result = "only_event_hybrid"
+    elif parent_has_hybrid_fingerprint and not event_has_hybrid_fingerprint:
+        result = "only_parent_hybrid"
+    elif not fingerprints_match:
+        result = "no_fingerprint_match"
+    else:
+        result = "fingerprint_match"
+
+    metrics.incr(
+        "grouping.similarity.hybrid_fingerprint_match_check",
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+        tags={"platform": event.platform, "result": result},
+    )
+
+    return fingerprints_match
 
 
 def maybe_check_seer_for_matching_grouphash(

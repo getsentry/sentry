@@ -1,27 +1,29 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import type {Key} from '@react-types/shared';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
-import {Badge} from 'sentry/components/core/badge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Switch} from 'sentry/components/core/switch';
+import DropdownButton from 'sentry/components/dropdownButton';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import {TabList} from 'sentry/components/tabs';
 import type {TabListItemProps} from 'sentry/components/tabs/item';
-import {IconBusiness} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {IconBusiness, IconLab} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {
   type RoutableModuleNames,
   useModuleURLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
-import {useIsLaravelInsightsEnabled} from 'sentry/views/insights/pages/backend/laravel/features';
+import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {
   isModuleConsideredNew,
@@ -61,8 +63,8 @@ export function DomainViewHeader({
   const location = useLocation();
   const navigate = useNavigate();
   const moduleURLBuilder = useModuleURLBuilder();
-  const [isLaravelInsightsEnabled] = useIsLaravelInsightsEnabled();
-  const useEap = location.query?.useEap === '1';
+  const isLaravelInsightsAvailable = useIsLaravelInsightsAvailable();
+  const useEap = useInsightsEap();
   const hasEapFlag = organization.features.includes('insights-modules-use-eap');
 
   const toggleUseEap = () => {
@@ -89,7 +91,10 @@ export function DomainViewHeader({
   const tabValue =
     hideDefaultTabs && tabs?.value ? tabs.value : (selectedModule ?? OVERVIEW_PAGE_TITLE);
 
-  const globalQuery = extractSelectionParameters(location?.query);
+  const globalQuery = {
+    ...extractSelectionParameters(location?.query),
+    useEap: location.query?.useEap,
+  };
 
   const tabList: TabListItemProps[] = [
     ...(hasOverviewPage
@@ -114,6 +119,12 @@ export function DomainViewHeader({
       })),
   ];
 
+  const handleExperimentDropdownAction = (key: Key) => {
+    if (key === 'eap') {
+      toggleUseEap();
+    }
+  };
+
   return (
     <Fragment>
       <Layout.Header>
@@ -128,7 +139,7 @@ export function DomainViewHeader({
             ) : (
               <FeedbackWidgetButton
                 optionOverrides={
-                  isLaravelInsightsEnabled
+                  isLaravelInsightsAvailable
                     ? {
                         tags: {
                           ['feedback.source']: 'laravel-insights',
@@ -142,8 +153,24 @@ export function DomainViewHeader({
             {additonalHeaderActions}
             {hasEapFlag && (
               <Fragment>
-                Use Eap
-                <Switch checked={useEap} onChange={() => toggleUseEap()} />
+                <DropdownMenu
+                  trigger={triggerProps => (
+                    <StyledDropdownButton {...triggerProps} size={'sm'}>
+                      {/* Passing icon as child to avoid extra icon margin */}
+                      <IconLab isSolid />
+                    </StyledDropdownButton>
+                  )}
+                  onAction={handleExperimentDropdownAction}
+                  items={[
+                    {
+                      key: 'eap',
+                      label: useEap
+                        ? 'Switch to Metrics Dataset'
+                        : 'Switch to EAP Dataset',
+                    },
+                  ]}
+                  position="bottom-end"
+                />
               </Fragment>
             )}
           </ButtonBar>
@@ -156,7 +183,7 @@ export function DomainViewHeader({
               ))}
             </TabList>
           )}
-          {hideDefaultTabs && tabs && tabs.tabList}
+          {hideDefaultTabs && tabs?.tabList}
         </Layout.HeaderTabs>
       </Layout.Header>
     </Fragment>
@@ -176,7 +203,7 @@ function TabLabel({moduleName}: TabLabelProps) {
     return (
       <TabContainer>
         {moduleTitles[moduleName]}
-        {isModuleConsideredNew(moduleName) && <Badge type="new">{t('New')}</Badge>}
+        {isModuleConsideredNew(moduleName) && <FeatureBadge type="new" />}
         {showBusinessIcon && <IconBusiness />}
       </TabContainer>
     );
@@ -190,4 +217,11 @@ const TabContainer = styled('div')`
   align-items: center;
   text-align: left;
   gap: ${space(0.5)};
+`;
+
+const StyledDropdownButton = styled(DropdownButton)`
+  color: ${p => p.theme.button.primary.background};
+  :hover {
+    color: ${p => p.theme.button.primary.background};
+  }
 `;

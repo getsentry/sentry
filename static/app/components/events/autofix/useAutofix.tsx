@@ -92,6 +92,13 @@ const isPolling = (
     return true;
   }
 
+  if (
+    autofixData.status === AutofixStatus.PROCESSING ||
+    autofixData?.steps.some(step => step.status === AutofixStatus.PROCESSING)
+  ) {
+    return true;
+  }
+
   // Check if there's any active comment thread that hasn't been completed
   const hasActiveCommentThread = autofixData.steps.some(
     step =>

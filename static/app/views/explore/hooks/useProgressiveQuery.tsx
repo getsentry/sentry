@@ -18,7 +18,7 @@ const HIGH_SAMPLING_MODE_QUERY_EXTRAS = {
   samplingMode: SAMPLING_MODE.BEST_EFFORT,
 } as const;
 
-export type QueryMode = (typeof QUERY_MODE)[keyof typeof QUERY_MODE];
+type QueryMode = (typeof QUERY_MODE)[keyof typeof QUERY_MODE];
 export type SamplingMode = (typeof SAMPLING_MODE)[keyof typeof SAMPLING_MODE];
 export type SpansRPCQueryExtras = {
   samplingMode?: SamplingMode;
@@ -31,10 +31,16 @@ interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
   // progressive loading to surface the correct data.
   queryHookImplementation: (props: Parameters<TQueryFn>[0]) => ReturnType<TQueryFn> & {
     result: {
+      data: any;
       isFetched: boolean;
     };
   };
-  queryMode: QueryMode;
+  queryOptions?: QueryOptions;
+}
+
+interface QueryOptions {
+  queryMode?: QueryMode;
+  withholdBestEffort?: boolean;
 }
 
 /**
@@ -53,7 +59,7 @@ export function useProgressiveQuery<
 >({
   queryHookImplementation,
   queryHookArgs,
-  queryMode,
+  queryOptions,
 }: ProgressiveQueryOptions<TQueryFn>): ReturnType<TQueryFn> & {
   samplingMode?: SamplingMode;
 } {
@@ -61,6 +67,8 @@ export function useProgressiveQuery<
   const canUseProgressiveLoading = organization.features.includes(
     'visibility-explore-progressive-loading'
   );
+
+  const queryMode = queryOptions?.queryMode ?? QUERY_MODE.SERIAL;
 
   const singleQueryResult = queryHookImplementation({
     ...queryHookArgs,
@@ -73,13 +81,22 @@ export function useProgressiveQuery<
     enabled: queryHookArgs.enabled && canUseProgressiveLoading,
   });
 
+  const triggerBestEffortAfterPreflight =
+    !queryOptions?.withholdBestEffort && preflightRequest.result.isFetched;
+  const triggerBestEffortRequestForEmptyPreflight =
+    preflightRequest.result.isFetched &&
+    queryOptions?.withholdBestEffort &&
+    preflightRequest.result.data?.length === 0;
+
   const bestEffortRequest = queryHookImplementation({
     ...queryHookArgs,
     queryExtras: HIGH_SAMPLING_MODE_QUERY_EXTRAS,
     enabled:
       queryHookArgs.enabled &&
       canUseProgressiveLoading &&
-      (queryMode === QUERY_MODE.PARALLEL || preflightRequest.result.isFetched),
+      (queryMode === QUERY_MODE.PARALLEL ||
+        triggerBestEffortAfterPreflight ||
+        triggerBestEffortRequestForEmptyPreflight),
   });
 
   if (!canUseProgressiveLoading) {

@@ -12,7 +12,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import type {UseTraceItemAttributeBaseProps} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 
-export interface TraceItemAttributeValue {
+interface TraceItemAttributeValue {
   first_seen: null;
   key: string;
   last_seen: null;

@@ -19,9 +19,7 @@ type BaseCheckoutData = {
 };
 
 export type CheckoutFormData = BaseCheckoutData & {
-  reserved: {
-    [categoryKey in DataCategory]?: number;
-  };
+  reserved: Partial<Record<DataCategory, number>>;
 };
 
 export type CheckoutAPIData = BaseCheckoutData & {

@@ -43,7 +43,7 @@ interface TicketRuleModalProps extends ModalRenderProps {
   instance: IssueAlertRuleAction;
   link: string | null;
   onSubmitAction: (
-    data: {[key: string]: string},
+    data: Record<string, string>,
     fetchedFieldOptionsCache: Record<string, Choices>
   ) => void;
   ticketType: string;

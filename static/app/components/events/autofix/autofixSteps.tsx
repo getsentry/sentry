@@ -57,7 +57,7 @@ function isProgressLog(
   return 'message' in item && 'timestamp' in item;
 }
 
-export function Step({
+function Step({
   step,
   groupId,
   runId,
@@ -161,11 +161,46 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
     const errorStep = steps.find(step => step.status === AutofixStatus.ERROR);
     const errorMessage = errorStep?.completedMessage || t('Something went wrong.');
 
+    // sugar coat common errors
+    let customErrorMessage = '';
+    if (
+      errorMessage.toLowerCase().includes('overloaded') ||
+      errorMessage.toLowerCase().includes('max tries') ||
+      errorMessage.toLowerCase().includes('no completion tokens returned')
+    ) {
+      customErrorMessage = t(
+        'The robots are having a moment. Our LLM provider is overloaded - please try again soon.'
+      );
+    } else if (
+      errorMessage.toLowerCase().includes('prompt') ||
+      errorMessage.toLowerCase().includes('tokens')
+    ) {
+      customErrorMessage = t(
+        "Autofix worked so hard that it couldn't fit all its findings in its own memory. Please try again."
+      );
+    } else if (errorMessage.toLowerCase().includes('iterations')) {
+      customErrorMessage = t(
+        'Autofix was taking a ton of iterations, so we pulled the plug out of fear it might go rogue. Please try again.'
+      );
+    } else if (errorMessage.toLowerCase().includes('timeout')) {
+      customErrorMessage = t(
+        'Autofix was taking way too long, so we pulled the plug to put it out of its misery. Please try again.'
+      );
+    } else {
+      customErrorMessage = t(
+        "Oops, Autofix went kaput. We've dispatched Autofix to fix Autofix. In the meantime, try again?"
+      );
+    }
+
     return (
       <ErrorContainer>
         <StyledArrow direction="down" size="sm" />
         <ErrorMessage>
-          <strong>{t('Something went wrong with Autofix:')}</strong> {errorMessage}
+          {customErrorMessage || (
+            <Fragment>
+              {t('Something went wrong with Autofix:')} {errorMessage}
+            </Fragment>
+          )}
         </ErrorMessage>
       </ErrorContainer>
     );
@@ -245,15 +280,16 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
           </div>
         );
       })}
-      {((activeLog && lastStep!.status === 'PROCESSING') || lastStep!.output_stream) && (
-        <AutofixOutputStream
-          stream={lastStep!.output_stream ?? ''}
-          activeLog={activeLog}
-          groupId={groupId}
-          runId={runId}
-          responseRequired={lastStep!.status === 'WAITING_FOR_USER_RESPONSE'}
-        />
-      )}
+      {((activeLog && lastStep!.status === 'PROCESSING') || lastStep!.output_stream) &&
+        lastStep!.type !== AutofixStepType.CHANGES && (
+          <AutofixOutputStream
+            stream={lastStep!.output_stream ?? ''}
+            activeLog={activeLog}
+            groupId={groupId}
+            runId={runId}
+            responseRequired={lastStep!.status === 'WAITING_FOR_USER_RESPONSE'}
+          />
+        )}
     </StepsContainer>
   );
 }

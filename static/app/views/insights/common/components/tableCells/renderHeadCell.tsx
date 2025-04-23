@@ -31,13 +31,13 @@ const {
   TIME_SPENT_PERCENTAGE,
   SPS,
   EPM,
-  HTTP_ERROR_COUNT,
+  HTTP_RESPONSE_COUNT,
   HTTP_RESPONSE_RATE,
   CACHE_HIT_RATE,
   CACHE_MISS_RATE,
 } = SpanFunction;
 
-export const SORTABLE_FIELDS = new Set([
+const SORTABLE_FIELDS = new Set([
   `avg(${SPAN_SELF_TIME})`,
   `avg(${SPAN_DURATION})`,
   `sum(${SPAN_SELF_TIME})`,
@@ -49,10 +49,14 @@ export const SORTABLE_FIELDS = new Set([
   `${SPS}()`,
   `${EPM}()`,
   `${TIME_SPENT_PERCENTAGE}()`,
-  `${HTTP_ERROR_COUNT}()`,
-  `${HTTP_RESPONSE_RATE}(2)`,
-  `${HTTP_RESPONSE_RATE}(4)`,
+  `${HTTP_RESPONSE_COUNT}(5)`,
+  `${HTTP_RESPONSE_COUNT}(4)`,
+  `${HTTP_RESPONSE_COUNT}(3)`,
+  `${HTTP_RESPONSE_COUNT}(2)`,
   `${HTTP_RESPONSE_RATE}(5)`,
+  `${HTTP_RESPONSE_RATE}(4)`,
+  `${HTTP_RESPONSE_RATE}(3)`,
+  `${HTTP_RESPONSE_RATE}(2)`,
   `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
   `${CACHE_HIT_RATE}()`,
   `${CACHE_MISS_RATE}()`,
@@ -64,7 +68,15 @@ export const SORTABLE_FIELDS = new Set([
   'count_op(queue.process)',
   'avg_if(span.duration,span.op,queue.process)',
   'avg(messaging.message.receive.latency)',
-  'time_spent_percentage(app,span.duration)',
+  'time_spent_percentage(span.duration)',
+  'transaction',
+  'request.method',
+  'span.op',
+  'project',
+  'epm()',
+  'p50(span.duration)',
+  'p95(span.duration)',
+  'failure_rate()',
 ]);
 
 const NUMERIC_FIELDS = new Set([
@@ -109,7 +121,7 @@ export const renderHeadCell = ({column, location, sort, sortParameterName}: Opti
   );
 };
 
-export const getAlignment = (key: string): Alignments => {
+const getAlignment = (key: string): Alignments => {
   const result = parseFunction(key);
 
   if (result) {

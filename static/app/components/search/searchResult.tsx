@@ -70,8 +70,8 @@ function SearchResult({item, matches, highlighted}: Props) {
 
       const badgeProps = {
         displayName: title,
-        displayEmail: DescriptionNode,
         description: DescriptionNode,
+        hideEmail: true,
         useLink: false,
         orgId: params.orgId,
         avatarSize: 32,
@@ -122,6 +122,7 @@ const Wrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: ${space(1)};
 `;
 
 const Content = styled('div')`

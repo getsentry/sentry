@@ -1,4 +1,5 @@
 import enum
+import logging
 from datetime import timedelta
 from typing import ClassVar, Literal, Self, cast
 
@@ -6,7 +7,6 @@ from django.conf import settings
 from django.db import models
 from django.db.models import Count, Q
 from django.db.models.functions import Now
-from sentry_kafka_schemas.schema_types.uptime_configs_v1 import REGIONSCHEDULEMODE_ROUND_ROBIN
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
@@ -20,11 +20,19 @@ from sentry.db.models import (
 from sentry.db.models.fields.bounded import BoundedPositiveBigIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
+from sentry.deletions.base import ModelRelation
 from sentry.models.organization import Organization
 from sentry.remote_subscriptions.models import BaseRemoteSubscription
 from sentry.types.actor import Actor
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
+from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION, ProjectUptimeSubscriptionMode
 from sentry.utils.function_cache import cache_func, cache_func_for_models
 from sentry.utils.json import JSONEncoder
+from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
+from sentry.workflow_engine.registry import data_source_type_registry
+from sentry.workflow_engine.types import DataSourceTypeHandler
+
+logger = logging.getLogger(__name__)
 
 headers_json_encoder = JSONEncoder(
     separators=(",", ":"),
@@ -34,6 +42,11 @@ headers_json_encoder = JSONEncoder(
 
 SupportedHTTPMethodsLiteral = Literal["GET", "POST", "HEAD", "PUT", "DELETE", "PATCH", "OPTIONS"]
 IntervalSecondsLiteral = Literal[60, 300, 600, 1200, 1800, 3600]
+
+
+class UptimeStatus(enum.IntEnum):
+    OK = 1
+    FAILED = 2
 
 
 @region_silo_model
@@ -89,6 +102,12 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # How to sample traces for this monitor. Note that we always send a trace_id, so any errors will
     # be associated, this just controls the span sampling.
     trace_sampling = models.BooleanField(default=False)
+    # Tracks the curernt status of this subscrioption. This is possibly going
+    # to be replaced in the future with open-periods as we replace
+    # ProjectUptimeSubscription with Detectors.
+    uptime_status = models.PositiveSmallIntegerField(db_default=UptimeStatus.OK.value)
+    # (Likely) temporary column to keep track of the current uptime status of this monitor
+    uptime_status_update_date = models.DateTimeField(db_default=Now())
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=["pk", "subscription_id"],
@@ -130,20 +149,6 @@ class UptimeSubscriptionRegion(DefaultFieldsModel):
                 name="uptime_uptimesubscription_region_slug_unique",
             ),
         ]
-
-
-class ProjectUptimeSubscriptionMode(enum.IntEnum):
-    # Manually created by a user
-    MANUAL = 1
-    # Auto-detected by our system and in the onboarding stage
-    AUTO_DETECTED_ONBOARDING = 2
-    # Auto-detected by our system and actively monitoring
-    AUTO_DETECTED_ACTIVE = 3
-
-
-class UptimeStatus(enum.IntEnum):
-    OK = 1
-    FAILED = 2
 
 
 @region_silo_model
@@ -280,4 +285,77 @@ def load_regions_for_uptime_subscription(
 
 
 class UptimeRegionScheduleMode(enum.StrEnum):
-    ROUND_ROBIN = REGIONSCHEDULEMODE_ROUND_ROBIN
+    ROUND_ROBIN = "round_robin"
+
+
+@data_source_type_registry.register(DATA_SOURCE_UPTIME_SUBSCRIPTION)
+class UptimeSubscriptionDataSourceHandler(DataSourceTypeHandler[UptimeSubscription]):
+    @staticmethod
+    def bulk_get_query_object(
+        data_sources: list[DataSource],
+    ) -> dict[int, UptimeSubscription | None]:
+        uptime_subscription_ids: list[int] = []
+
+        for ds in data_sources:
+            try:
+                uptime_subscription_id = int(ds.source_id)
+                uptime_subscription_ids.append(uptime_subscription_id)
+            except ValueError:
+                logger.exception(
+                    "Invalid DataSource.source_id fetching UptimeSubscription",
+                    extra={"id": ds.id, "source_id": ds.source_id},
+                )
+
+        qs_lookup = {
+            str(uptime_subscription.id): uptime_subscription
+            for uptime_subscription in UptimeSubscription.objects.filter(
+                id__in=uptime_subscription_ids
+            )
+        }
+        return {ds.id: qs_lookup.get(ds.source_id) for ds in data_sources}
+
+    @staticmethod
+    def related_model(instance) -> list[ModelRelation]:
+        return [ModelRelation(UptimeSubscription, {"id": instance.source_id})]
+
+
+def get_detector(uptime_subscription: UptimeSubscription) -> Detector | None:
+    """
+    Fetches a workflow_engine Detector given an existing uptime_subscription.
+    This is used during the transition period moving uptime to detector.
+    """
+    try:
+        data_source = DataSource.objects.get(
+            type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
+            source_id=str(uptime_subscription.id),
+        )
+        return Detector.objects.get(data_sources=data_source)
+    except (DataSource.DoesNotExist, Detector.DoesNotExist):
+        return None
+
+
+def create_detector_from_project_subscription(project_sub: ProjectUptimeSubscription) -> Detector:
+    """
+    Creates a uptime detector and associated data-source given a
+    ProjectUptimeSubscription.
+    """
+    data_source = DataSource.objects.create(
+        type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
+        organization=project_sub.project.organization,
+        source_id=str(project_sub.uptime_subscription.id),
+    )
+    env = project_sub.environment.name if project_sub.environment else None
+    detector = Detector.objects.create(
+        type=UptimeDomainCheckFailure.slug,
+        project=project_sub.project,
+        name=project_sub.name,
+        owner_user_id=project_sub.owner_user_id,
+        owner_team_id=project_sub.owner_team_id,
+        config={
+            "environment": env,
+            "mode": project_sub.mode,
+        },
+    )
+    DataSourceDetector.objects.create(data_source=data_source, detector=detector)
+
+    return detector

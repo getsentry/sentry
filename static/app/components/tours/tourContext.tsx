@@ -31,7 +31,7 @@ type TourSetRegistrationAction = {
   type: 'SET_REGISTRATION';
 };
 
-export type TourAction<T extends TourEnumType> =
+type TourAction<T extends TourEnumType> =
   | TourStartAction<T>
   | TourNextStepAction
   | TourPreviousStepAction
@@ -65,9 +65,7 @@ export interface TourState<T extends TourEnumType> {
 
 // XXX: TourSteps are currently just IDs, so we could use a set here instead, but we're using a
 // dictionary in case we ever want to add more data to the steps.
-type TourRegistry<T extends TourEnumType> = {
-  [key in T]: TourStep<T> | null;
-};
+type TourRegistry<T extends TourEnumType> = Record<T, TourStep<T> | null>;
 
 type TourOptions<T extends TourEnumType> = Partial<{
   onEndTour: () => void;

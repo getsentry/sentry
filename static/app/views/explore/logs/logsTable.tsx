@@ -1,11 +1,11 @@
 import {Fragment, useRef} from 'react';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {GridResizer} from 'sentry/components/gridEditable/styles';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
@@ -32,6 +32,7 @@ import {
   LogTableBody,
   LogTableRow,
 } from 'sentry/views/explore/logs/styles';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
 import {EmptyStateText} from 'sentry/views/traces/styles';
 
@@ -39,7 +40,7 @@ import {getLogBodySearchTerms, getTableHeaderLabel, logsFieldAlignment} from './
 
 const LOGS_INSTRUCTIONS_URL = 'https://github.com/getsentry/sentry/discussions/86804';
 
-export type LogsTableProps = {
+type LogsTableProps = {
   tableData: UseExploreLogsTableResult;
   allowPagination?: boolean;
   numberAttributes?: TagCollection;
@@ -66,6 +67,9 @@ export function LogsTable({
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef, {
     minimumColumnWidth: 50,
     prefixColumnWidth: 'min-content',
+    staticColumnWidths: {
+      [OurLogKnownFieldKey.MESSAGE]: '1fr',
+    },
   });
 
   const isEmpty = !isPending && !isError && (data?.length ?? 0) === 0;
@@ -75,7 +79,7 @@ export function LogsTable({
 
   return (
     <Fragment>
-      <Table ref={tableRef} styles={initialTableStyles}>
+      <Table ref={tableRef} styles={initialTableStyles} data-test-id="logs-table">
         {showHeader ? (
           <TableHead>
             <LogTableRow>

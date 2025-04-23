@@ -26,17 +26,33 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.RemoveConstraint(
-            model_name="groupopenperiod",
-            name="exclude_open_period_overlap",
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.RemoveConstraint(
+                    model_name="groupopenperiod",
+                    name="exclude_open_period_overlap",
+                ),
+            ],
+            database_operations=[
+                SafeRunSQL(
+                    """
+                    ALTER TABLE "sentry_groupopenperiod"
+                    DROP CONSTRAINT IF EXISTS "exclude_open_period_overlap";
+                    """,
+                    hints={"tables": ["sentry_groupopenperiod"]},
+                ),
+            ],
         ),
-        SafeRunSQL(
-            """ALTER TABLE "sentry_groupopenperiod"
-                ADD CONSTRAINT "exclude_open_period_overlap" EXCLUDE USING GIST (
-                    "group_id" gist_int8_ops WITH =,
-                    (TSTZRANGE("date_started", "date_ended", '[)')) WITH &&
-                );""",
-            use_statement_timeout=False,
-            hints={"tables": ["sentry_groupopenperiod"]},
-        ),
+        # These two operations weren't able to run together in the right sequence -
+        # commenting this out to include in a later migration. This migration now
+        # only drops the exclusion constraint.
+        # SafeRunSQL(
+        #     """ALTER TABLE "sentry_groupopenperiod"
+        #         ADD CONSTRAINT "exclude_open_period_overlap" EXCLUDE USING GIST (
+        #             "group_id" gist_int8_ops WITH =,
+        #             (TSTZRANGE("date_started", "date_ended", '[)')) WITH &&
+        #         );""",
+        #     use_statement_timeout=False,
+        #     hints={"tables": ["sentry_groupopenperiod"]},
+        # ),
     ]

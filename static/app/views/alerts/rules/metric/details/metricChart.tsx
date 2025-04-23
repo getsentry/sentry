@@ -28,11 +28,11 @@ import {
 import {isEmptySeries} from 'sentry/components/charts/utils';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconClock, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -56,21 +56,21 @@ import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constan
 import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleTriggerType, Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 import {shouldUseErrorsDiscoverDataset} from 'sentry/views/alerts/rules/utils';
-import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
-import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
-import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
-import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {useMetricEventStats} from 'sentry/views/issueDetails/metricIssues/useMetricEventStats';
-import {useMetricSessionStats} from 'sentry/views/issueDetails/metricIssues/useMetricSessionStats';
-
-import type {Anomaly, Incident} from '../../../types';
+import type {Anomaly, Incident} from 'sentry/views/alerts/types';
 import {
   alertDetailsLink,
   alertTooltipValueFormatter,
   isSessionAggregate,
-} from '../../../utils';
-import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
+} from 'sentry/views/alerts/utils';
+import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
+import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
+import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {useMetricEventStats} from 'sentry/views/issueDetails/metricIssues/useMetricEventStats';
+import {useMetricSessionStats} from 'sentry/views/issueDetails/metricIssues/useMetricSessionStats';
 
 import type {TimePeriodType} from './constants';
 import {
@@ -459,6 +459,11 @@ export default function MetricChart({
       rule,
       timePeriod,
       referrer: 'api.alerts.alert-rule-chart',
+      samplingMode:
+        organization.features.includes('visibility-explore-progressive-loading') &&
+        rule.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
+          ? SAMPLING_MODE.BEST_EFFORT
+          : undefined,
     },
     {enabled: !shouldUseSessionsStats}
   );
@@ -577,7 +582,7 @@ export function getMetricChartTooltipFormatter({
         )}</strong></span></div>`,
       `<div><span class="tooltip-label">${marker} <strong>${seriesName}</strong></span>${pointYFormatted}</div>`,
       comparisonSeries &&
-        `<div><span class="tooltip-label">${comparisonSeries.marker} <strong>${comparisonSeriesName}</strong></span>${comparisonPointYFormatted}</div>`,
+        `<div><span class="tooltip-label">${comparisonSeries.marker as string} <strong>${comparisonSeriesName}</strong></span>${comparisonPointYFormatted}</div>`,
       `</div>`,
       `<div class="tooltip-footer">`,
       `<span>${startTime} &mdash; ${endTime}</span>`,

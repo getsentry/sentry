@@ -1,5 +1,6 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -12,10 +13,14 @@ import {
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import * as useRecentCreatedProjectHook from 'sentry/components/onboarding/useRecentCreatedProject';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import Onboarding from 'sentry/views/onboarding/onboarding';
 
 describe('Onboarding', function () {
+  beforeAll(function () {
+    TeamStore.loadInitialData([TeamFixture()]);
+  });
   afterEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();

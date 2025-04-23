@@ -205,17 +205,23 @@ export function miniWidget(displayType: DisplayType): string {
 }
 
 export function getWidgetInterval(
-  displayType: DisplayType,
+  widget: Widget,
   datetimeObj: Partial<PageFilters['datetime']>,
-  widgetInterval?: string,
+  widgetIntervalOverride?: string,
   fidelity?: Fidelity
 ): string {
   // Don't fetch more than 66 bins as we're plotting on a small area.
   const MAX_BIN_COUNT = 66;
 
-  // Bars charts are daily totals to aligned with discover. It also makes them
-  // usefully different from line/area charts until we expose the interval control, or remove it.
-  let interval = displayType === 'bar' ? '1d' : widgetInterval;
+  let interval =
+    widget.widgetType === WidgetType.SPANS
+      ? // For span based widgets, we want to permit non 1d bar charts.
+        undefined
+      : // Bars charts are daily totals to aligned with discover. It also makes them
+        // usefully different from line/area charts until we expose the interval control, or remove it.
+        widget.displayType === 'bar'
+        ? '1d'
+        : widgetIntervalOverride;
   if (!interval) {
     // Default to 5 minutes
     interval = '5m';
@@ -230,13 +236,16 @@ export function getWidgetInterval(
     if (selectedRange > SIX_HOURS && selectedRange <= TWENTY_FOUR_HOURS) {
       interval = '1h';
     }
-    return displayType === 'bar' ? '1d' : interval;
+    return widget.displayType === 'bar' ? '1d' : interval;
   }
 
   // selectedRange is in minutes, desiredPeriod is in hours
   // convert desiredPeriod to minutes
   if (selectedRange / (desiredPeriod * 60) > MAX_BIN_COUNT) {
-    const highInterval = getInterval(datetimeObj, 'high');
+    const highInterval = getInterval(
+      datetimeObj,
+      widget.widgetType === WidgetType.SPANS ? 'spans' : 'high'
+    );
     // Only return high fidelity interval if desired interval is higher fidelity
     if (desiredPeriod < parsePeriodToHours(highInterval)) {
       return highInterval;

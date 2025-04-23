@@ -11,7 +11,7 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {IconWrapper} from 'sentry/components/sidebarSection';
 import GroupChart from 'sentry/components/stream/groupChart';
 import {IconUser} from 'sentry/icons';
-import {t, tct, tn} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -30,7 +30,7 @@ function Issue({data}: {data: Group}) {
   const organization = useOrganization();
 
   return (
-    <StyledPanelItem as="tr">
+    <StyledPanelItem>
       <IssueSummaryWrapper>
         <IssueSummary data={data} organization={organization} />
         <EventOrGroupExtraDetails data={data} />
@@ -64,14 +64,10 @@ function Issue({data}: {data: Group}) {
 
 function IssueListHeader({issues}: {issues?: Group[]}) {
   return (
-    <StyledPanelHeader as="tr">
+    <StyledPanelHeader>
       <IssueHeading>
-        {tct(`[count] [text]`, {
-          count: issues?.length ?? 0,
-          text: tn('Related Issue', 'Related Issues', issues?.length ?? 0),
-        })}
+        {tn('%s Related Issue', '%s Related Issues', issues?.length ?? 0)}
       </IssueHeading>
-
       <GraphHeading>{t('Graph')}</GraphHeading>
       <EventsHeading>{t('Events')}</EventsHeading>
       <UsersHeading>{t('Users')}</UsersHeading>
@@ -98,9 +94,7 @@ function useInsightIssues(
       `/organizations/${organization.slug}/issues/`,
       {
         query: {
-          expand: ['inbox', 'owners'],
           query,
-          shortIdLookup: 1,
           // hack: set an arbitrary large upper limit so that the api response likely contains the exact message,
           // even though we only search for the first 200 characters of the message
           limit: 100,
@@ -148,12 +142,13 @@ export default function InsightIssuesList({
   );
 }
 
-const Heading = styled('th')`
+const Heading = styled('h6')`
   display: flex;
   align-self: center;
   margin: 0 ${space(2)};
   width: 60px;
   color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const IssueHeading = styled(Heading)`
@@ -210,7 +205,7 @@ const StyledIconWrapper = styled(IconWrapper)`
   margin: 0;
 `;
 
-const IssueSummaryWrapper = styled('td')`
+const IssueSummaryWrapper = styled('div')`
   overflow: hidden;
   flex: 1;
   width: 66.66%;
@@ -220,7 +215,7 @@ const IssueSummaryWrapper = styled('td')`
   }
 `;
 
-const ColumnWrapper = styled('td')`
+const ColumnWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
   align-self: center;
@@ -246,7 +241,7 @@ const AssineeWrapper = styled(ColumnWrapper)`
   }
 `;
 
-const ChartWrapper = styled('td')`
+const ChartWrapper = styled('div')`
   width: 200px;
   align-self: center;
 
@@ -263,5 +258,4 @@ const PrimaryCount = styled(Count)`
 const StyledPanelItem = styled(PanelItem)`
   padding-top: ${space(1)};
   padding-bottom: ${space(1)};
-  height: 84px;
 `;

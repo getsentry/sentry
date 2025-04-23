@@ -1,20 +1,17 @@
 import {uuid4} from '@sentry/core';
 
 import {EntryType, type Event, type EventTransaction} from 'sentry/types/event';
-import type {
-  TracePerformanceIssue,
-  TraceSplitResults,
-} from 'sentry/utils/performance/quickTrace/types';
-
-import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
+import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
+import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {
   isAutogroupedNode,
+  isEAPSpanNode,
   isMissingInstrumentationNode,
   isSpanNode,
   isTraceErrorNode,
   isTraceNode,
   isTransactionNode,
-} from '../traceGuards';
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
 
 import {ParentAutogroupNode} from './parentAutogroupNode';
 import {SiblingAutogroupNode} from './siblingAutogroupNode';
@@ -129,6 +126,23 @@ export function makeEAPError(
   } as TraceTree.EAPError;
 }
 
+export function makeEAPOccurrence(
+  overrides: Partial<TraceTree.EAPOccurrence> = {}
+): TraceTree.EAPOccurrence {
+  return {
+    event_id: overrides.event_id ?? uuid4(),
+    description: 'Test Occurence',
+    start_timestamp: 0,
+    project_id: 1,
+    project_slug: 'project_slug',
+    transaction: 'occurence.transaction',
+    event_type: 'occurrence',
+    issue_id: 1,
+    level: 'info',
+    ...overrides,
+  };
+}
+
 export function makeTraceError(
   overrides: Partial<TraceTree.TraceError> = {}
 ): TraceTree.TraceError {
@@ -136,14 +150,15 @@ export function makeTraceError(
     title: 'MaybeEncodingError: Error sending result',
     level: 'error',
     event_type: 'error',
+    message: 'error message',
     data: {},
     ...overrides,
   } as TraceTree.TraceError;
 }
 
 export function makeTracePerformanceIssue(
-  overrides: Partial<TracePerformanceIssue> = {}
-): TracePerformanceIssue {
+  overrides: Partial<TraceTree.TracePerformanceIssue> = {}
+): TraceTree.TracePerformanceIssue {
   return {
     culprit: 'code',
     end: new Date().toISOString(),
@@ -153,7 +168,7 @@ export function makeTracePerformanceIssue(
     type: 0,
     issue_short_id: 'issue short id',
     ...overrides,
-  } as TracePerformanceIssue;
+  } as TraceTree.TracePerformanceIssue;
 }
 
 export function makeTraceMetaQueryResults(
@@ -227,6 +242,13 @@ export function assertTransactionNode(
   }
 }
 
+export function assertEAPSpanNode(
+  node: TraceTreeNode<TraceTree.NodeValue> | null
+): asserts node is TraceTreeNode<TraceTree.EAPSpan> {
+  if (!node || !isEAPSpanNode(node)) {
+    throw new Error('node is not a eap span');
+  }
+}
 export function assertMissingInstrumentationNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): asserts node is TraceTreeNode<TraceTree.MissingInstrumentationSpan> {

@@ -4,17 +4,19 @@ import {css} from '@emotion/react';
 import AnalyticsProvider, {
   AnalyticsContext,
 } from 'sentry/components/devtoolbar/components/analyticsProvider';
+import PanelLayout from 'sentry/components/devtoolbar/components/panelLayout';
 import SentryAppLink from 'sentry/components/devtoolbar/components/sentryAppLink';
+import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';
 import useReplayRecorder from 'sentry/components/devtoolbar/hooks/useReplayRecorder';
+import {
+  panelInsetContentCss,
+  panelSectionCss,
+} from 'sentry/components/devtoolbar/styles/panel';
 import {resetButtonCss, resetFlexRowCss} from 'sentry/components/devtoolbar/styles/reset';
+import {smallCss} from 'sentry/components/devtoolbar/styles/typography';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {IconPause, IconPlay} from 'sentry/icons';
 import type {PlatformKey} from 'sentry/types/project';
-
-import useConfiguration from '../../hooks/useConfiguration';
-import {panelInsetContentCss, panelSectionCss} from '../../styles/panel';
-import {smallCss} from '../../styles/typography';
-import PanelLayout from '../panelLayout';
 
 const TRUNC_ID_LENGTH = 16;
 

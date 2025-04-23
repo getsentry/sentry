@@ -31,7 +31,7 @@ import {
 } from 'sentry/views/insights/types';
 
 const {CACHE_MISS_RATE, EPM, TIME_SPENT_PERCENTAGE} = SpanFunction;
-const {TRANSACTION_DURATION} = MetricsFields;
+const {TRANSACTION_DURATION, SPAN_DURATION} = MetricsFields;
 const {CACHE_ITEM_SIZE} = SpanMetricsField;
 
 type Row = Pick<
@@ -45,7 +45,7 @@ type Row = Pick<
   | 'time_spent_percentage()'
   | 'avg(cache.item_size)'
 > &
-  Pick<MetricsResponse, 'avg(transaction.duration)'>;
+  Pick<MetricsResponse, 'avg(span.duration)'>;
 
 type Column = GridColumnHeader<
   | 'transaction'
@@ -53,7 +53,7 @@ type Column = GridColumnHeader<
   | 'cache_miss_rate()'
   | 'time_spent_percentage()'
   | 'project'
-  | 'avg(transaction.duration)'
+  | 'avg(span.duration)'
   | 'avg(cache.item_size)'
 >;
 
@@ -79,7 +79,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `avg(${TRANSACTION_DURATION})`,
+    key: `avg(${SPAN_DURATION})`,
     name: DataTitles[`avg(${TRANSACTION_DURATION})`],
     width: COL_WIDTH_UNDEFINED,
   },

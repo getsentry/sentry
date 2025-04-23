@@ -157,7 +157,7 @@ describe('contexts utils', function () {
       expect(knownData[0]!.key).toEqual(knownStructuredData[0]!.key);
       expect(knownData[0]!.subject).toEqual(knownStructuredData[0]!.subject);
       render(<Fragment>{knownStructuredData[0]!.value as React.ReactNode}</Fragment>);
-      expect(screen.getByText(`${knownData[0]!.value}`)).toBeInTheDocument();
+      expect(screen.getByText(`${knownData[0]!.value as string}`)).toBeInTheDocument();
       expect(screen.getByTestId('annotated-text-error-icon')).toBeInTheDocument();
     });
   });

@@ -14,11 +14,12 @@ export type RelayActivity = {
   version: string;
 };
 
-export type RelaysByPublickey = {
-  [publicKey: string]: {
+export type RelaysByPublickey = Record<
+  string,
+  {
     activities: RelayActivity[];
     name: string;
     created?: string;
     description?: string;
-  };
-};
+  }
+>;

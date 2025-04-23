@@ -5,6 +5,7 @@ import type {
   PriorityLevel,
   TagValue,
 } from 'sentry/types/group';
+import type {AvatarUser} from 'sentry/types/user';
 import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 export type TagValueLoader = (key: string, search: string) => Promise<TagValue[]>;
@@ -21,7 +22,13 @@ export enum GroupSearchViewVisibility {
   ORGANIZATION = 'organization',
 }
 
-export type GroupSearchView = {
+export enum GroupSearchViewCreatedBy {
+  ME = 'me',
+  OTHERS = 'others',
+}
+
+export type StarredGroupSearchView = {
+  createdBy: AvatarUser;
   environments: string[];
   id: string;
   lastVisited: string | null;
@@ -29,15 +36,28 @@ export type GroupSearchView = {
   projects: number[];
   query: string;
   querySort: IssueSortOptions;
+  stars: number;
   timeFilters: PageFilters['datetime'];
+};
+
+export type GroupSearchView = StarredGroupSearchView & {
+  starred: boolean;
   visibility: GroupSearchViewVisibility;
 };
 
 export interface UpdateGroupSearchViewPayload
-  extends Omit<GroupSearchView, 'id' | 'lastVisited' | 'visibility'> {
+  extends Omit<GroupSearchView, 'id' | 'lastVisited' | 'visibility' | 'starred'> {
   environments: string[];
   projects: number[];
   timeFilters: PageFilters['datetime'];
   id?: string;
   isAllProjects?: boolean;
+}
+
+// Frontend sort options which map to multiple backend sorts
+export enum GroupSearchViewSort {
+  VIEWED = 'visited',
+  POPULARITY = 'popularity',
+  NAME_ASC = 'name',
+  NAME_DESC = '-name',
 }

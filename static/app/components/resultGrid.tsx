@@ -230,7 +230,7 @@ class ResultGrid extends Component<Props, State> {
   }
 
   get query() {
-    return (this.props.location?.query ?? {}) as {[k: string]: string};
+    return (this.props.location?.query ?? {}) as Record<string, string>;
   }
 
   remountComponent() {
@@ -388,7 +388,5 @@ class ResultGrid extends Component<Props, State> {
     );
   }
 }
-
-export {ResultGrid};
 
 export default withApi(ResultGrid);

@@ -86,6 +86,10 @@ filestore.options:
 filestore.relocation-backend: 'filesystem'
 filestore.relocation-options:
   location: '/tmp/sentry-relocation-files'
+filestore.profiles-backend: 'filesystem'
+filestore.profiles-options:
+  location: '/tmp/sentry-profiles'
+  allow_overwrite: true
 
 # NOTE: See docs/filestore for instructions on configuring the shell environment
 #       with authentication credentials for Google Cloud.
@@ -95,6 +99,9 @@ filestore.relocation-options:
 # filestore.relocation-backend: 'gcs'
 # filestore.relocation-options:
 #   bucket_name: 'gcs-relocation-bucket-name'
+# filestore.profiles-backend: 'gcs'
+# filestore.profiles-options:
+#   bucket_name: 'gcs-profiles-bucket-name'
 
 # filestore.backend: 's3'
 # filestore.options:
@@ -106,3 +113,8 @@ filestore.relocation-options:
 #   access_key: 'AKIXXXXXX'
 #   secret_key: 'XXXXXXX'
 #   bucket_name: 's3-relocation-bucket-name'
+# filestore.profiles-backend: 's3'
+# filestore.profiles-options:
+#   access_key: 'AKIXXXXXX'
+#   secret_key: 'XXXXXXX'
+#   bucket_name: 's3-profiles-bucket-name'

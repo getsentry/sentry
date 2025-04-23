@@ -1,10 +1,11 @@
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import JsonFormModal from 'admin/components/jsonFormModal';
 import {PolicyRevisionSchema, PolicySchema} from 'admin/schemas/policies';
 
 function AddPolicyModal(props: ModalRenderProps) {
+  const navigate = useNavigate();
   return (
     <JsonFormModal
       title="Add Policy"
@@ -15,7 +16,7 @@ function AddPolicyModal(props: ModalRenderProps) {
         ...PolicyRevisionSchema.filter(f => f.name !== 'current'),
       ]}
       onSuccess={(data: any) => {
-        browserHistory.push(`/_admin/policies/${data.slug}/`);
+        navigate(`/_admin/policies/${data.slug}/`);
       }}
       {...props}
     />

@@ -14,7 +14,6 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
-  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -128,16 +127,13 @@ describe('AlertRulesList', () => {
   it('displays team dropdown context if unassigned', async () => {
     const {router, organization} = initializeOrg({organization: defaultOrg});
     render(<AlertRulesList />, {router, organization});
-    const assignee = (await screen.findAllByTestId('alert-row-assignee'))[0]!;
-    const btn = within(assignee).getAllByRole('button')[0]!;
+    const btn = (await screen.findAllByRole('button', {name: 'Unassigned'}))[0]!;
 
-    expect(assignee).toBeInTheDocument();
     expect(btn).toBeInTheDocument();
 
     await userEvent.click(btn, {skipHover: true});
 
     expect(screen.getByText('#team-slug')).toBeInTheDocument();
-    expect(within(assignee).getByText('Unassigned')).toBeInTheDocument();
   });
 
   it('assigns rule to team from unassigned', async () => {
@@ -149,10 +145,8 @@ describe('AlertRulesList', () => {
     const {router, organization} = initializeOrg({organization: defaultOrg});
     render(<AlertRulesList />, {router, organization});
 
-    const assignee = (await screen.findAllByTestId('alert-row-assignee'))[0]!;
-    const btn = within(assignee).getAllByRole('button')[0]!;
+    const btn = (await screen.findAllByRole('button', {name: 'Unassigned'}))[0]!;
 
-    expect(assignee).toBeInTheDocument();
     expect(btn).toBeInTheDocument();
 
     await userEvent.click(btn, {skipHover: true});

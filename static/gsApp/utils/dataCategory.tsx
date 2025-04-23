@@ -27,7 +27,7 @@ export const GIFT_CATEGORIES: string[] = [
   DataCategory.UPTIME,
 ];
 
-const DATA_CATEGORY_FEATURES: {[key: string]: string | null} = {
+const DATA_CATEGORY_FEATURES: Record<string, string | null> = {
   [DataCategory.ERRORS]: null, // All plans have access to errors
   [DataCategory.TRANSACTIONS]: 'performance-view',
   [DataCategory.REPLAYS]: 'session-replay',
@@ -183,15 +183,15 @@ export function listDisplayNames({
 /**
  * Sort data categories in order.
  */
-export function sortCategories(categories?: {
-  [key: string]: BillingMetricHistory;
-}): BillingMetricHistory[] {
+export function sortCategories(
+  categories?: Record<string, BillingMetricHistory>
+): BillingMetricHistory[] {
   return Object.values(categories || {}).sort((a, b) => (a.order > b.order ? 1 : -1));
 }
 
-export function sortCategoriesWithKeys(categories?: {
-  [key: string]: BillingMetricHistory;
-}): Array<[string, BillingMetricHistory]> {
+export function sortCategoriesWithKeys(
+  categories?: Record<string, BillingMetricHistory>
+): Array<[string, BillingMetricHistory]> {
   return Object.entries(categories || {}).sort((a, b) =>
     a[1].order > b[1].order ? 1 : -1
   );

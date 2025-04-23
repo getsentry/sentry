@@ -11,13 +11,18 @@ import {
   generateContinuousProfileFlamechartRouteWithQuery,
   generateProfileFlamechartRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
-
-import {isSpanNode, isTransactionNode} from '../../traceGuards';
-import {TraceTree} from '../../traceModels/traceTree';
-import type {TraceTreeNode} from '../../traceModels/traceTreeNode';
+import {
+  isEAPSpanNode,
+  isSpanNode,
+  isTransactionNode,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
 export function TraceProfiles({
   tree,
@@ -28,6 +33,8 @@ export function TraceProfiles({
 }) {
   const {projects} = useProjects();
   const organization = useOrganization();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const projectLookup: Record<string, PlatformKey | undefined> = useMemo(() => {
     return projects.reduce<Record<Project['slug'], Project['platform']>>(
@@ -56,6 +63,17 @@ export function TraceProfiles({
       }
     },
     [organization]
+  );
+
+  const onNodeIdClick = useCallback(
+    (node: TraceTreeNode<TraceTree.NodeValue>) => {
+      navigate({
+        ...location,
+        hash: `#trace-waterfall`,
+      });
+      onScrollToNode(node);
+    },
+    [location, navigate, onScrollToNode]
   );
 
   return (
@@ -106,7 +124,7 @@ export function TraceProfiles({
           return (
             <ProfilesTableRow key={index}>
               <div>
-                <a onClick={() => onScrollToNode(node)}>
+                <a onClick={() => onNodeIdClick(node)}>
                   <PlatformIcon
                     platform={projectLookup[node.value.project_slug] ?? 'default'}
                   />
@@ -122,18 +140,20 @@ export function TraceProfiles({
             </ProfilesTableRow>
           );
         }
-        if (isSpanNode(node)) {
+        if (isSpanNode(node) || isEAPSpanNode(node)) {
+          const spanId =
+            'span_id' in node.value ? node.value.span_id : node.value.event_id;
           return (
             <ProfilesTableRow key={index}>
               <div>
-                <a onClick={() => onScrollToNode(node)}>
+                <a onClick={() => onNodeIdClick(node)}>
                   <span>{node.value.op ?? '<unknown>'}</span> —{' '}
                   <span className="TraceDescription" title={node.value.description}>
                     {node.value.description
                       ? node.value.description.length > 100
                         ? node.value.description.slice(0, 100).trim() + '\u2026'
                         : node.value.description
-                      : (node.value.span_id ?? 'unknown')}
+                      : (spanId ?? 'unknown')}
                   </span>
                 </a>
               </div>

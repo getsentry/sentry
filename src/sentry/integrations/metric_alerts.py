@@ -59,6 +59,7 @@ class TitleLinkParams(TypedDict, total=False):
     referrer: str
     detection_type: str
     notification_uuid: str
+    project_id: int | None
 
 
 def logo_url() -> str:
@@ -150,6 +151,23 @@ def get_title(status: str, name: str) -> str:
     return f"{status}: {name}"
 
 
+def build_title_link_workflow_engine_ui(
+    identifier_id: int, organization: Organization, project_id: int, params: TitleLinkParams
+) -> str:
+    """Builds the URL for the metric issue with the given parameters."""
+    return organization.absolute_url(
+        reverse(
+            "sentry-group",
+            kwargs={
+                "organization_slug": organization.slug,
+                "project_id": project_id,
+                "group_id": identifier_id,
+            },
+        ),
+        query=parse.urlencode(params),
+    )
+
+
 def build_title_link(
     identifier_id: int, organization: Organization, params: TitleLinkParams
 ) -> str:
@@ -199,9 +217,27 @@ def incident_attachment_info(
     if notification_uuid:
         title_link_params["notification_uuid"] = notification_uuid
 
-    title_link = build_title_link(
-        alert_context.action_identifier_id, organization, title_link_params
-    )
+    if features.has("organizations:workflow-engine-trigger-actions", organization) and features.has(
+        "organizations:workflow-engine-ui-links", organization
+    ):
+        if metric_issue_context.group is None:
+            raise ValueError("Group is required for workflow engine UI links")
+
+        # We don't need to save the query param the alert rule id here because the link is to the group and not the alert rule
+        # TODO(iamrajjoshi): This this through and perhaps
+        workflow_engine_ui_params = title_link_params.copy()
+        workflow_engine_ui_params.pop("alert", None)
+
+        title_link = build_title_link_workflow_engine_ui(
+            metric_issue_context.group.id,
+            organization,
+            metric_issue_context.group.project.id,
+            workflow_engine_ui_params,
+        )
+    else:
+        title_link = build_title_link(
+            alert_context.action_identifier_id, organization, title_link_params
+        )
 
     return AttachmentInfo(
         title=title,

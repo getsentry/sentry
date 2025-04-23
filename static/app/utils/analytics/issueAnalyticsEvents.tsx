@@ -285,19 +285,32 @@ export type IssueEventParameters = {
   'issue_views.add_view.saved_search_saved': {
     query: string;
   };
+  'issue_views.created': {
+    starred: boolean;
+  };
   'issue_views.deleted_view': Record<string, unknown>;
   'issue_views.discarded_changes': Record<string, unknown>;
   'issue_views.duplicated_view': Record<string, unknown>;
+  'issue_views.new_view.suggested_query_clicked': {
+    query: string;
+    query_label: string;
+  };
   'issue_views.page_filters_logged': {
     user_id: string;
   };
   'issue_views.renamed_view': Record<string, unknown>;
   'issue_views.reordered_views': Record<string, unknown>;
+  'issue_views.save.clicked': Record<string, unknown>;
+  'issue_views.save_as.clicked': Record<string, unknown>;
   'issue_views.saved_changes': Record<string, unknown>;
   'issue_views.shared_view_opened': {
     query: string;
   };
   'issue_views.switched_views': Record<string, unknown>;
+  'issue_views.table.create_view_clicked': Record<string, unknown>;
+  'issue_views.table.sort_changed': {
+    sort: string;
+  };
   'issue_views.temp_view_discarded': Record<string, unknown>;
   'issue_views.temp_view_saved': Record<string, unknown>;
   'issues_stream.archived': {
@@ -389,7 +402,7 @@ export type IssueEventParameters = {
     Partial<Pick<Broadcast, 'category'>>;
 };
 
-export type IssueEventKey = keyof IssueEventParameters;
+type IssueEventKey = keyof IssueEventParameters;
 
 export const issueEventMap: Record<IssueEventKey, string | null> = {
   'autofix.setup_modal_viewed': 'Autofix: Setup Modal Viewed',
@@ -460,6 +473,9 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_views.deleted_view': 'Issue Views: Deleted View',
   'issue_views.reordered_views': 'Issue Views: Views Reordered',
   'issue_views.add_view.clicked': 'Issue Views: Add View Clicked',
+  'issue_views.created': 'Issue Views: Created',
+  'issue_views.save_as.clicked': 'Issue Views: Save As Clicked',
+  'issue_views.save.clicked': 'Issue Views: Save Clicked',
   'issue_views.add_view.custom_query_saved':
     'Issue Views: Custom Query Saved From Add View',
   'issue_views.add_view.saved_search_saved': 'Issue Views: Saved Search Saved',
@@ -471,6 +487,9 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_views.temp_view_discarded': 'Issue Views: Temporary View Discarded',
   'issue_views.temp_view_saved': 'Issue Views: Temporary View Saved',
   'issue_views.page_filters_logged': 'Issue Views: Page Filters Logged',
+  'issue_views.table.sort_changed': 'Issue Views: Changed Sort',
+  'issue_views.table.create_view_clicked': 'Issue Views: Create View Clicked',
+  'issue_views.new_view.suggested_query_clicked': 'Issue Views: Suggested Query Clicked',
   'issue_search.failed': 'Issue Search: Failed',
   'issue_search.empty': 'Issue Search: Empty',
   'issue.search_sidebar_clicked': 'Issue Search Sidebar Clicked',

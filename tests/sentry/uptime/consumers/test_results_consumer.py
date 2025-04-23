@@ -22,8 +22,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 
 from sentry.conf.types import kafka_definition
 from sentry.conf.types.uptime import UptimeRegionConfig
-from sentry.constants import ObjectStatus
-from sentry.issues.grouptype import UptimeDomainCheckFailure
+from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.group import Group, GroupStatus
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.datetime import freeze_time
@@ -37,13 +36,14 @@ from sentry.uptime.consumers.results_consumer import (
 )
 from sentry.uptime.detectors.ranking import _get_cluster
 from sentry.uptime.detectors.tasks import is_failed_url
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
-    ProjectUptimeSubscriptionMode,
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
 )
+from sentry.uptime.types import ProjectUptimeSubscriptionMode
 from sentry.utils import json
 from tests.sentry.uptime.subscriptions.test_tasks import ConfigPusherTestMixin
 
@@ -155,6 +155,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert assignee and (assignee.id == self.user.id)
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_status == UptimeStatus.FAILED
+        assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.FAILED
 
     def test_restricted_host_provider_id(self):
         """
@@ -200,6 +201,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         # subscription status is still updated
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_status == UptimeStatus.FAILED
+        assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.FAILED
 
     def test_reset_fail_count(self):
         with (
@@ -296,6 +298,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_status == UptimeStatus.OK
+        assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.OK
 
     def test_no_create_issues_feature(self):
         result = self.create_uptime_result(self.subscription.subscription_id)
@@ -328,6 +331,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_status == UptimeStatus.FAILED
+        assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.FAILED
 
     def test_resolve(self):
         with (
@@ -388,6 +392,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert group.status == GroupStatus.UNRESOLVED
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_status == UptimeStatus.FAILED
+        assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.FAILED
 
         result = self.create_uptime_result(
             self.subscription.subscription_id,
@@ -418,6 +423,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert group.status == GroupStatus.RESOLVED
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_status == UptimeStatus.OK
+        assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.OK
 
     def test_no_subscription(self):
         subscription_id = uuid.uuid4().hex
@@ -636,6 +642,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             scheduled_check_time=datetime.now() - timedelta(minutes=4),
         )
         with (
+            mock.patch("sentry.quotas.backend.remove_seat") as mock_remove_seat,
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
             mock.patch(
                 "sentry.uptime.consumers.results_consumer.ONBOARDING_FAILURE_THRESHOLD", new=2
@@ -643,6 +650,13 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             self.tasks(),
             self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
         ):
+            remove_call_vals = []
+
+            def capture_remove_seat(data_category, seat_object):
+                remove_call_vals.append((data_category, seat_object.id))
+
+            mock_remove_seat.side_effect = capture_remove_seat
+
             self.send_result(result)
             metrics.incr.assert_has_calls(
                 [
@@ -671,6 +685,10 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             )
         assert not redis.exists(key)
         assert is_failed_url(self.subscription.url)
+        # XXX: Since project_subscription is mutable, the delete sets the id to null. So we're unable
+        # to compare the calls directly. Instead, we add a side effect to the mock so that it keeps track of
+        # the values we want to check.
+        assert remove_call_vals == [(DataCategory.UPTIME, self.project_subscription.id)]
 
         hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
         with pytest.raises(Group.DoesNotExist):

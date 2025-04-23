@@ -99,7 +99,6 @@ export const ChonkInnerWrap = chonkStyled('div', {
 
 export const ChonkContentWrap = chonkStyled('div')<{
   isFocused: boolean;
-  showDivider: boolean;
   size: FormSize;
 }>`
     position: relative;
@@ -109,21 +108,6 @@ export const ChonkContentWrap = chonkStyled('div')<{
     gap: ${space(1)};
     justify-content: space-between;
     padding: 0;
-
-    ${p =>
-      p.showDivider &&
-      !p.isFocused &&
-      `
-      li:not(:last-child) &::after {
-        content: '';
-        position: absolute;
-        left: 0;
-        bottom: 0;
-        width: 100%;
-        height: 1px;
-        box-shadow:  0 1px 0 0 ${p.theme.innerBorder};
-      }
-    `}
   `;
 
 export const ChonkLeadingItems = chonkStyled('div')<{
@@ -134,6 +118,7 @@ export const ChonkLeadingItems = chonkStyled('div')<{
   gap: ${space(1)};
   margin-right: ${space(1)};
   flex-shrink: 0;
+  align-items: center;
 
   ${p => p.disabled && `opacity: 0.5;`}
 `;

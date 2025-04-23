@@ -1,8 +1,6 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
@@ -17,14 +15,6 @@ describe('Discover > ResultsChart', function () {
   });
 
   const organization = OrganizationFixture({features});
-
-  const initialData = initializeOrg({
-    organization,
-    router: {
-      location,
-    },
-    projects: [],
-  });
 
   const eventView = EventView.fromSavedQueryOrLocation(undefined, location);
 
@@ -43,7 +33,6 @@ describe('Discover > ResultsChart', function () {
   it('only allows default, daily, previous period, and bar display modes when multiple y axis are selected', async function () {
     render(
       <ResultsChart
-        router={RouterFixture()}
         organization={organization}
         eventView={eventView}
         location={location}
@@ -54,8 +43,7 @@ describe('Discover > ResultsChart', function () {
         confirmedQuery
         yAxis={['count()', 'failure_count()']}
         onTopEventsChange={() => {}}
-      />,
-      {router: initialData.router}
+      />
     );
 
     await userEvent.click(screen.getByText(/Display/));
@@ -67,7 +55,7 @@ describe('Discover > ResultsChart', function () {
           DisplayModes.DAILY,
           DisplayModes.PREVIOUS,
           DisplayModes.BAR,
-        ].includes(value as DisplayModes)
+        ].includes(value)
       ) {
         expect(screen.getByRole('option', {name: String(label)})).toBeEnabled();
       }
@@ -77,7 +65,6 @@ describe('Discover > ResultsChart', function () {
   it('does not display a chart if no y axis is selected', async function () {
     render(
       <ResultsChart
-        router={RouterFixture()}
         organization={organization}
         eventView={eventView}
         location={location}
@@ -88,8 +75,7 @@ describe('Discover > ResultsChart', function () {
         confirmedQuery
         yAxis={[]}
         onTopEventsChange={() => {}}
-      />,
-      {router: initialData.router}
+      />
     );
 
     expect(await screen.findByText(/No Y-Axis selected/)).toBeInTheDocument();

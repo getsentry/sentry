@@ -2,7 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/container/flex';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import Panel from 'sentry/components/panels/panel';
@@ -10,40 +11,46 @@ import {GroupSummary} from 'sentry/components/stream/group';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types/project';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import type {WidgetTitleProps} from 'sentry/views/dashboards/widgets/widget/widgetTitle';
+import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {ModalChartContainer} from 'sentry/views/insights/pages/backend/laravel/styles';
-import {WidgetVisualizationStates} from 'sentry/views/insights/pages/backend/laravel/widgetVisualizationStates';
+import {ModalChartContainer} from 'sentry/views/insights/pages/platform/laravel/styles';
+import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
+import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
 import useRecentIssues from 'sentry/views/insights/sessions/queries/useRecentIssues';
 import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 
-export default function ChartWithIssues({
-  project,
-  series,
-  plottables,
-  title,
-  description,
-  isPending,
-  error,
-  legendSelection,
-}: {
+interface Props extends WidgetTitleProps, Partial<LoadableChartWidgetProps> {
   description: string;
   error: Error | null;
   isPending: boolean;
   plottables: Plottable[];
-  project: Project;
   series: DiscoverSeries[];
-  title: string;
+  interactiveTitle?: () => React.ReactNode;
   legendSelection?: LegendSelection | undefined;
-}) {
+}
+
+export default function ChartWithIssues(props: Props) {
+  const {
+    description,
+    error,
+    interactiveTitle,
+    isPending,
+    legendSelection,
+    plottables,
+    series,
+    title,
+    id,
+  } = props;
+  const {projects} = useProjectHasSessions();
   const {recentIssues, isPending: isPendingRecentIssues} = useRecentIssues({
-    projectId: project.id,
+    projectId: projects[0]?.id,
   });
   const pageFilters = usePageFilters();
 
@@ -66,6 +73,12 @@ export default function ChartWithIssues({
     );
   }
 
+  const Title = interactiveTitle ? (
+    interactiveTitle()
+  ) : (
+    <Widget.WidgetTitle title={title} />
+  );
+
   const visualization = (
     <WidgetVisualizationStates
       isEmpty={!hasData}
@@ -73,6 +86,8 @@ export default function ChartWithIssues({
       error={error}
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
+        ...props,
+        id,
         legendSelection,
         plottables,
       }}
@@ -92,7 +107,8 @@ export default function ChartWithIssues({
 
   return (
     <Widget
-      Title={<Widget.WidgetTitle title={title} />}
+      {...props}
+      Title={Title}
       height={SESSION_HEALTH_CHART_HEIGHT}
       Visualization={visualization}
       Actions={
@@ -105,11 +121,22 @@ export default function ChartWithIssues({
             icon={<IconExpand />}
             onClick={() => {
               openInsightChartModal({
-                title,
+                title: (
+                  <Flex justify="space-between">
+                    {title}
+                    {hasData && recentIssues?.length ? (
+                      <LinkButton size="xs" to={{pathname: `/issues/`}}>
+                        {t('View All')}
+                      </LinkButton>
+                    ) : null}
+                  </Flex>
+                ),
                 children: (
                   <Fragment>
                     <ModalChartContainer>
                       <TimeSeriesWidgetVisualization
+                        {...props}
+                        id={id}
                         releases={releases ?? []}
                         plottables={plottables}
                         legendSelection={legendSelection}
@@ -121,6 +148,11 @@ export default function ChartWithIssues({
               });
             }}
           />
+          {hasData && recentIssues?.length ? (
+            <LinkButton size="xs" to={{pathname: `/issues/`}}>
+              {t('View All')}
+            </LinkButton>
+          ) : null}
         </Widget.WidgetToolbar>
       }
       noFooterPadding
@@ -137,6 +169,7 @@ const FooterIssues = styled('div')`
 const GroupWrapper = styled(GroupSummary)`
   border-top: 1px solid ${p => p.theme.border};
   padding: ${space(1)} ${space(0.5)} ${space(1.5)} ${space(0.5)};
+  margin-inline: ${space(1)};
 
   &:first-child {
     border-top: none;

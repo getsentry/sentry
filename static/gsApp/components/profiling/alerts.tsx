@@ -1,18 +1,24 @@
-import {Fragment, useCallback, useEffect} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
 import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {openAM2ProfilingUpsellModal} from 'getsentry/actionCreators/modal';
+import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
 import withSubscription from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
+import {isAm2Plan, isEnterprise} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 export function makeLinkToOwnersAndBillingMembers(
@@ -361,3 +367,164 @@ export const ProfilingAM1OrMMXUpgrade = withSubscription(
     noLoader: true,
   }
 );
+
+interface ContinuousProfilingBetaAlertBannerInner {
+  organization: Organization;
+  subscription: Subscription;
+}
+
+function ContinuousProfilingBetaAlertBannerInner({
+  organization,
+  subscription,
+}: ContinuousProfilingBetaAlertBannerInner) {
+  if (!organization.features.includes('continuous-profiling-beta')) {
+    return null;
+  }
+
+  const eventTypes: EventType[] = ['profileDuration', 'profileDurationUI'];
+
+  return (
+    <Alert.Container>
+      <Alert
+        type="warning"
+        system
+        showIcon
+        trailingItems={
+          <AddEventsCTA
+            organization={organization}
+            subscription={subscription}
+            buttonProps={{
+              priority: 'default',
+              size: 'xs',
+            }}
+            eventTypes={eventTypes}
+            notificationType="overage_critical"
+            referrer={`overage-alert-${eventTypes.join('-')}`}
+            source="continuous-profiling-beta-trial-banner"
+          />
+        }
+      >
+        {subscription.isFree
+          ? isAm2Plan(subscription.plan)
+            ? tct(
+                '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a on-demand budget after this date. To avoid disruptions, upgrade to a paid plan.',
+                {bold: <b />}
+              )
+            : tct(
+                '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a pay-as-you-go budget after this date. To avoid disruptions, upgrade to a paid plan.',
+                {bold: <b />}
+              )
+          : isEnterprise(subscription)
+            ? tct(
+                '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. To avoid disruptions, contact your account manager before then to add it to your plan.',
+                {bold: <b />}
+              )
+            : isAm2Plan(subscription.plan)
+              ? tct(
+                  '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require an on-demand budget after this date.',
+                  {bold: <b />}
+                )
+              : tct(
+                  '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a pay-as-you-go budget after this date.',
+                  {bold: <b />}
+                )}
+      </Alert>
+    </Alert.Container>
+  );
+}
+
+export const ContinuousProfilingBetaAlertBanner = withSubscription(
+  ContinuousProfilingBetaAlertBannerInner
+);
+
+export function ContinuousProfilingBetaSDKAlertBanner() {
+  const sdkDeprecationResults = useSDKDeprecations();
+
+  const sdkDeprecations = useMemo(() => {
+    const sdks: Map<string, SDKDeprecation> = new Map();
+
+    for (const sdk of sdkDeprecationResults.data?.data ?? []) {
+      const key = `${sdk.sdkName}:${sdk.sdkVersion}`;
+      sdks.set(key, sdk);
+    }
+
+    return sdks;
+  }, [sdkDeprecationResults.data?.data]);
+
+  if (sdkDeprecations.size <= 0) {
+    return null;
+  }
+
+  return (
+    <Alert.Container>
+      <Alert system type="warning" showIcon>
+        {tct(
+          '[bold:Action Needed: Profiling beta period ends May 19, 2025.] Your SDK is out of date. To continue using profiling without interruption, upgrade to the latest version:',
+          {
+            bold: <b />,
+          }
+        )}
+        <SDKDeprecationsContainer>
+          {sdkDeprecations.values().map(sdk => {
+            const key = `${sdk.projectId}-${sdk.sdkName}-${sdk.sdkVersion}`;
+            return (
+              <SDKDeprecationContainer key={key}>
+                <Dot />
+                {tct('[name] minimum version [version]', {
+                  name: <code>{sdk.sdkName}</code>,
+                  version: <code>{sdk.minimumVersion}</code>,
+                })}
+              </SDKDeprecationContainer>
+            );
+          })}
+        </SDKDeprecationsContainer>
+      </Alert>
+    </Alert.Container>
+  );
+}
+
+interface SDKDeprecation {
+  minimumVersion: string;
+  projectId: string;
+  sdkName: string;
+  sdkVersion: string;
+}
+
+function useSDKDeprecations() {
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+
+  const path = `/organizations/${organization.slug}/sdk-deprecations/`;
+  const options = {
+    query: {
+      project: selection.projects,
+      event_type: 'profile',
+    },
+  };
+
+  return useApiQuery<{data: SDKDeprecation[]}>([path, options], {
+    staleTime: 0,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    retry: false,
+  });
+}
+
+const SDKDeprecationsContainer = styled('ul')`
+  margin: 0;
+`;
+
+const SDKDeprecationContainer = styled('li')`
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+`;
+
+const Dot = styled('span')`
+  display: inline-block;
+  margin-right: ${space(1)};
+  border-radius: ${p => p.theme.borderRadius};
+  width: ${space(0.5)};
+  height: ${space(0.5)};
+  background-color: ${p => p.theme.textColor};
+`;

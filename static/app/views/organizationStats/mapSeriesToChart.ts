@@ -16,9 +16,14 @@ import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
 // used for estimated dropped continuous profile hours and ui profile hours from profile chunks and profile chunks ui
 export function droppedProfileChunkMultiplier(
   category: number | string | undefined,
-  outcome: number | string | undefined
+  outcome: number | string | undefined,
+  shouldEstimateDroppedProfiles?: boolean
 ) {
-  if (category === 'profile_chunk' || category === 'profile_chunk_ui') {
+  if (
+    category === 'profile_chunk' ||
+    category === 'profile_chunk_ui' ||
+    (shouldEstimateDroppedProfiles && category === 'profile')
+  ) {
     if (outcome === Outcome.ACCEPTED) {
       return 0;
     }
@@ -33,12 +38,14 @@ export function mapSeriesToChart({
   chartDateUtc,
   endpointQuery,
   chartDateInterval,
+  shouldEstimateDroppedProfiles = false,
 }: {
   chartDateInterval: IntervalPeriod;
   chartDateUtc: boolean;
   dataCategory: DataCategoryInfo['plural'];
   endpointQuery: Record<string, unknown>;
   orgStats?: UsageSeries;
+  shouldEstimateDroppedProfiles?: boolean;
 }): {
   cardStats: {
     accepted?: string;
@@ -117,7 +124,7 @@ export function mapSeriesToChart({
       } else {
         const value =
           group.totals['sum(quantity)']! *
-          droppedProfileChunkMultiplier(category, outcome);
+          droppedProfileChunkMultiplier(category, outcome, shouldEstimateDroppedProfiles);
         if (outcome !== Outcome.CLIENT_DISCARD) {
           count.total += value;
         }
@@ -130,7 +137,9 @@ export function mapSeriesToChart({
       }
 
       group.series['sum(quantity)']!.forEach((stat, i) => {
-        stat = stat * droppedProfileChunkMultiplier(category, outcome);
+        stat =
+          stat *
+          droppedProfileChunkMultiplier(category, outcome, shouldEstimateDroppedProfiles);
         const dataObject = {name: orgStats.intervals[i]!, value: stat};
 
         const strigfiedReason = String(group.by.reason ?? '');

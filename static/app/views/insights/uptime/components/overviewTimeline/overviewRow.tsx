@@ -18,9 +18,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
-
-import {checkStatusPrecedent, statusToText, tickStyle} from '../../timelineConfig';
-import {useUptimeMonitorStats} from '../../utils/useUptimeMonitorStats';
+import {
+  checkStatusPrecedent,
+  statusToText,
+  tickStyle,
+} from 'sentry/views/insights/uptime/timelineConfig';
+import {useUptimeMonitorStats} from 'sentry/views/insights/uptime/utils/useUptimeMonitorStats';
 
 interface Props {
   timeWindowConfig: TimeWindowConfig;

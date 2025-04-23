@@ -17,6 +17,8 @@ from sentry.hybridcloud.models.outbox import (
 from sentry.hybridcloud.tasks.backfill_outboxes import backfill_outboxes_for
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import hybridcloud_control_tasks, hybridcloud_tasks
 from sentry.utils import metrics
 from sentry.utils.env import in_test_environment
 
@@ -25,6 +27,9 @@ from sentry.utils.env import in_test_environment
     name="sentry.tasks.enqueue_outbox_jobs_control",
     queue="outbox.control",
     silo_mode=SiloMode.CONTROL,
+    taskworker_config=TaskworkerConfig(
+        namespace=hybridcloud_control_tasks,
+    ),
 )
 def enqueue_outbox_jobs_control(
     concurrency: int | None = None, process_outbox_backfills: bool = True, **kwargs: Any
@@ -38,7 +43,12 @@ def enqueue_outbox_jobs_control(
 
 
 @instrumented_task(
-    name="sentry.tasks.enqueue_outbox_jobs", queue="outbox", silo_mode=SiloMode.REGION
+    name="sentry.tasks.enqueue_outbox_jobs",
+    queue="outbox",
+    silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=hybridcloud_tasks,
+    ),
 )
 def enqueue_outbox_jobs(
     concurrency: int | None = None, process_outbox_backfills: bool = True, **kwargs: Any
@@ -128,7 +138,12 @@ def schedule_batch(
 
 
 @instrumented_task(
-    name="sentry.tasks.drain_outbox_shards", queue="outbox", silo_mode=SiloMode.REGION
+    name="sentry.tasks.drain_outbox_shards",
+    queue="outbox",
+    silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=hybridcloud_tasks,
+    ),
 )
 def drain_outbox_shards(
     outbox_identifier_low: int = 0,
@@ -152,6 +167,9 @@ def drain_outbox_shards(
     name="sentry.tasks.drain_outbox_shards_control",
     queue="outbox.control",
     silo_mode=SiloMode.CONTROL,
+    taskworker_config=TaskworkerConfig(
+        namespace=hybridcloud_control_tasks,
+    ),
 )
 def drain_outbox_shards_control(
     outbox_identifier_low: int = 0,

@@ -13,24 +13,23 @@ import type {AggregationKeyWithAlias, Field, Sort} from 'sentry/utils/discover/f
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {
-  platformToPerformanceType,
-  ProjectPerformanceType,
-} from 'sentry/views/performance/utils';
-
 import type {
   NormalizedTrendsTransaction,
   TrendFunction,
   TrendParameter,
   TrendsTransaction,
   TrendView,
-} from '../types';
+} from 'sentry/views/performance/trends/types';
 import {
   TrendChangeType,
   TrendFunctionField,
   TrendParameterColumn,
   TrendParameterLabel,
-} from '../types';
+} from 'sentry/views/performance/trends/types';
+import {
+  platformToPerformanceType,
+  ProjectPerformanceType,
+} from 'sentry/views/performance/utils';
 
 export const DEFAULT_TRENDS_STATS_PERIOD = '14d';
 export const DEFAULT_MAX_DURATION = '15min';

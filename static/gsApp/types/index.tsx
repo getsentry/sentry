@@ -104,9 +104,7 @@ export type Plan = {
   name: string;
   onDemandCategories: string[];
   onDemandEventPrice: number;
-  planCategories: {
-    [categoryKey in DataCategories]?: EventBucket[];
-  };
+  planCategories: Partial<Record<DataCategories, EventBucket[]>>;
   price: number;
 
   reservedMinimum: number;
@@ -114,9 +112,9 @@ export type Plan = {
   totalPrice: number;
   trialPlan: string | null;
   userSelectable: boolean;
-  categoryDisplayNames?: {
-    [categoryKey in DataCategories]?: {plural: string; singular: string};
-  };
+  categoryDisplayNames?: Partial<
+    Record<DataCategories, {plural: string; singular: string}>
+  >;
   checkoutType?: CheckoutType;
 };
 
@@ -127,7 +125,7 @@ type PendingChanges = {
   customPricePcss: number | null;
   customPriceTransactions: number | null;
   // TODO:categories remove customPrice{Categories}
-  customPrices: {[categoryKey in DataCategories]?: number | null};
+  customPrices: Partial<Record<DataCategories, number | null>>;
   effectiveDate: string;
   onDemandBudgets: PendingOnDemandBudgets | null;
   onDemandEffectiveDate: string;
@@ -136,10 +134,10 @@ type PendingChanges = {
   planDetails: Plan;
   planName: string;
   // TODO:categories remove reserved{Categories}
-  reserved: {[categoryKey in DataCategories]?: number | null};
+  reserved: Partial<Record<DataCategories, number | null>>;
   reservedAttachments: number | null;
   reservedBudgets: PendingReservedBudget[];
-  reservedCpe: {[categoryKey in DataCategories]?: number | null};
+  reservedCpe: Partial<Record<DataCategories, number | null>>;
   reservedErrors: number | null;
   reservedEvents: number;
   reservedTransactions: number | null;
@@ -199,7 +197,7 @@ export type PerCategoryOnDemandBudget = {
   attachmentsBudget: number;
   budgetMode: OnDemandBudgetMode.PER_CATEGORY;
   // TODO:categories remove {categories}Budget
-  budgets: {[categoryKey in DataCategories]?: number};
+  budgets: Partial<Record<DataCategories, number>>;
   errorsBudget: number;
   replaysBudget: number;
   transactionsBudget: number;
@@ -214,7 +212,7 @@ type PerCategoryOnDemandBudgetWithSpends = PerCategoryOnDemandBudget & {
   errorSpendUsed: number;
   transactionSpendUsed: number;
   // TODO:categories remove {categories}SpendUsed
-  usedSpends: {[categoryKey in DataCategories]?: number};
+  usedSpends: Partial<Record<DataCategories, number>>;
 };
 
 export type OnDemandBudgets = SharedOnDemandBudget | PerCategoryOnDemandBudget;
@@ -258,9 +256,7 @@ export type Subscription = {
   /**
    * Current history per data category
    */
-  categories: {
-    [categoryKey in DataCategories]?: BillingMetricHistory;
-  };
+  categories: Partial<Record<DataCategories, BillingMetricHistory>>;
   contractInterval: 'monthly' | 'annual';
 
   contractPeriodEnd: string;
@@ -465,9 +461,7 @@ export type Feature = {
 export type BillingConfig = {
   annualDiscount: number;
   defaultPlan: string;
-  defaultReserved: {
-    [categoryKey in DataCategories]?: number;
-  };
+  defaultReserved: Partial<Record<DataCategories, number>>;
   featureList: Record<string, Feature>;
   freePlan: string;
   id: string;
@@ -510,9 +504,9 @@ export type CustomerUsage = {
   onDemandMaxSpend: number;
   periodEnd: string;
   periodStart: string;
-  stats: {[key: string]: BillingStats};
-  totals: {[key: string]: BillingStatTotal};
-  eventTotals?: {[key: string]: {[key: string]: BillingStatTotal}};
+  stats: Record<string, BillingStats>;
+  totals: Record<string, BillingStatTotal>;
+  eventTotals?: Record<string, Record<string, BillingStatTotal>>;
 };
 
 type StructuredAddress = {
@@ -659,7 +653,7 @@ export type BillingMetricHistory = {
 };
 
 export type BillingHistory = {
-  categories: {[key: string]: BillingMetricHistory};
+  categories: Record<string, BillingMetricHistory>;
   hadCustomDynamicSampling: boolean;
   hasReservedBudgets: boolean;
   id: string;
@@ -676,13 +670,9 @@ export type BillingHistory = {
   periodStart: string;
   plan: string;
   planName: string;
-  reserved: {
-    [categoryKey in DataCategories]?: number | null;
-  };
+  reserved: Partial<Record<DataCategories, number | null>>;
   reservedBudgetCategories: string[];
-  usage: {
-    [categoryKey in DataCategories]?: number;
-  };
+  usage: Partial<Record<DataCategories, number>>;
   planDetails?: Plan;
   reservedBudgets?: ReservedBudget[];
 };
@@ -783,18 +773,19 @@ export type NextPlanInfo = {
   errorCreditsMonths: number;
   id: string;
   name: string;
-  reserved: {
-    [categoryKey in DataCategories]?: number;
-  };
+  reserved: Partial<Record<DataCategories, number>>;
   reservedAttachments: number;
   reservedErrors: number;
   totalPrice: number;
-  categoryCredits?: {
-    [categoryKey in DataCategories]?: {
-      credits: number;
-      months: number;
-    };
-  };
+  categoryCredits?: Partial<
+    Record<
+      DataCategories,
+      {
+        credits: number;
+        months: number;
+      }
+    >
+  >;
   reservedTransactions?: number;
 };
 
@@ -877,15 +868,13 @@ export interface MonitorCountResponse {
   overQuotaMonitorCount: number;
 }
 
-export type PendingReservedBudget = {
-  categories: {[categoryKey in DataCategories]?: boolean | null};
+type PendingReservedBudget = {
+  categories: Partial<Record<DataCategories, boolean | null>>;
   reservedBudget: number;
 };
 
 export type ReservedBudget = {
-  categories: {
-    [categoryKey in DataCategories]?: ReservedBudgetMetricHistory;
-  };
+  categories: Partial<Record<DataCategories, ReservedBudgetMetricHistory>>;
   freeBudget: number;
   id: string;
   percentUsed: number;

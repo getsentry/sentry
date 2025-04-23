@@ -20,6 +20,11 @@ export const StyledPanel = styled(Panel)`
   margin-bottom: 0;
 `;
 
+export const LogDetailPanelItem = styled(PanelItem)`
+  padding: ${space(1)} ${space(1)};
+  display: auto;
+`;
+
 export const StyledPanelItem = styled(PanelItem)<{
   align?: 'left' | 'center' | 'right';
   overflow?: boolean;
@@ -100,16 +105,15 @@ export const DetailsWrapper = styled('div')`
   flex-direction: column;
   white-space: nowrap;
   grid-column: 1 / -1;
+  border-top: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.border};
+  z-index: ${2 /* place above the grid resizing lines */};
 `;
 
-export const DetailsGrid = styled(StyledPanel)`
-  display: grid;
-  grid-template-columns: 1fr;
+export const DetailsContent = styled(StyledPanel)`
+  display: flex;
+  flex-direction: column;
   width: 100%;
-  gap: ${space(1)} ${space(2)};
-  border-bottom: 0;
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
   padding: ${space(1)} ${space(2)};
 `;
 
@@ -124,31 +128,9 @@ export const LogFirstCellContent = styled('div')`
   align-items: center;
 `;
 
-export const DetailsFooter = styled(StyledPanelItem)<{
-  logColors: ReturnType<typeof getLogColors>;
-  opaque?: boolean;
-}>`
-  width: 100%;
-  padding: ${space(1)} ${space(2)};
-  color: ${p => p.logColors.color};
-
-  &:last-child {
-    border: 1px solid ${p => p.logColors.border};
-  }
-
-  border-bottom-left-radius: ${p => p.theme.borderRadius};
-  border-bottom-right-radius: ${p => p.theme.borderRadius};
-
-  background: ${p =>
-    p.opaque
-      ? `linear-gradient(
-          ${p.logColors.backgroundLight},
-          ${p.logColors.backgroundLight}),
-          linear-gradient(${p.theme.background}, ${p.theme.background}
-        )`
-      : `
-          ${p.logColors.backgroundLight}
-        `};
+export const DetailsBody = styled(LogDetailPanelItem)`
+  padding: ${space(1)} 0;
+  font-family: ${p => p.theme.text.familyMono};
 `;
 
 export const StyledChevronButton = styled(Button)`

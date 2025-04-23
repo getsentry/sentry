@@ -2,18 +2,18 @@ import {Fragment, useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
+import useQueryBasedSorting from 'sentry/components/gridEditable/useQueryBasedSorting';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
 import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHeaderCell';
-import useQueryBasedSorting from 'sentry/components/replays/useQueryBasedSorting';
 import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Release, ReleaseProject} from 'sentry/types/release';
@@ -48,9 +48,9 @@ type ReleaseHealthGridItem = Pick<ReleaseHealthItem, 'date' | 'release' | 'error
 type Column = GridColumnHeader<keyof ReleaseHealthGridItem>;
 
 const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthGridItem>> = [
-  {key: 'release', name: 'release', width: 400},
+  {key: 'release', name: 'release', width: 320},
   {key: 'error_count', name: 'new issues', width: 110},
-  {key: 'date', name: 'created'},
+  {key: 'date', name: 'created', width: 200},
 ];
 
 /**

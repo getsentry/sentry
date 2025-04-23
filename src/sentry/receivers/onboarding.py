@@ -35,7 +35,6 @@ from sentry.signals import (
     first_transaction_received,
     integration_added,
     member_invited,
-    member_joined,
     project_created,
     transaction_processed,
 )
@@ -127,25 +126,6 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
 
 @first_event_received.connect(weak=False, dispatch_uid="onboarding.record_first_event")
 def record_first_event(project, event, **kwargs):
-    """
-    Requires up to 2 database calls, but should only run with the first event in
-    any project, so performance should not be a huge bottleneck.
-    """
-    # If complete, pass (creation fails due to organization, task unique constraint)
-    # If pending, update.
-    # If does not exist, create.
-    rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
-        organization_id=project.organization_id,
-        task=OnboardingTask.FIRST_EVENT,
-        status=OnboardingTaskStatus.PENDING,
-        values={
-            "status": OnboardingTaskStatus.COMPLETE,
-            "project_id": project.id,
-            "date_completed": project.first_event,
-            "data": {"platform": event.platform},
-        },
-    )
-
     try:
         user: RpcUser = Organization.objects.get_from_cache(
             id=project.organization_id
@@ -157,7 +137,6 @@ def record_first_event(project, event, **kwargs):
         )
         return
 
-    # this event fires once per project
     analytics.record(
         "first_event_for_project.sent",
         user_id=user.id if user else None,
@@ -170,8 +149,26 @@ def record_first_event(project, event, **kwargs):
         sdk_name=get_path(event, "sdk", "name"),
     )
 
-    if rows_affected or created:
-        # this event only fires once per org
+    org_has_first_event_task = OrganizationOnboardingTask.objects.filter(
+        organization_id=project.organization_id, task=OnboardingTask.FIRST_EVENT
+    ).first()
+
+    if org_has_first_event_task:
+        # We don't need to record a first event for every project.
+        # Once a user sends their first event, we assume they've learned the process
+        # and completed the quick start task.
+        return
+
+    _, created = OrganizationOnboardingTask.objects.get_or_create(
+        organization_id=project.organization_id,
+        task=OnboardingTask.FIRST_EVENT,
+        defaults={
+            "status": OnboardingTaskStatus.COMPLETE,
+            "project_id": project.id,
+        },
+    )
+
+    if created:
         analytics.record(
             "first_event.sent",
             user_id=user.id if user else None,
@@ -180,46 +177,6 @@ def record_first_event(project, event, **kwargs):
             platform=event.platform,
             project_platform=project.platform,
         )
-        return
-
-    oot = OrganizationOnboardingTask.objects.filter(
-        organization_id=project.organization_id, task=OnboardingTask.FIRST_EVENT
-    ).first()
-    if not oot:
-        return
-
-    # Only counts if it's a new project
-    if oot.project_id != project.id:
-        rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
-            organization_id=project.organization_id,
-            task=OnboardingTask.SECOND_PLATFORM,
-            status=OnboardingTaskStatus.PENDING,
-            values={
-                "status": OnboardingTaskStatus.COMPLETE,
-                "project_id": project.id,
-                "date_completed": project.first_event,
-                "data": {"platform": event.platform},
-            },
-        )
-        if rows_affected or created:
-            # NOTE (vgrozdanic): preparation for deletion of this code
-            # this should never happen since the SECOND_PLATFORM task should be created
-            # when the project is created
-            logger.warning(
-                "Creating second platform task in record_first_event for project",
-                extra={
-                    "project_id": project.id,
-                    "project_updated": rows_affected,
-                    "project_created": created,
-                },
-            )
-            analytics.record(
-                "second_platform.added",
-                user_id=user.id if user else None,
-                organization_id=project.organization_id,
-                project_id=project.id,
-                platform=event.platform,
-            )
 
 
 @first_transaction_received.connect(weak=False, dispatch_uid="onboarding.record_first_transaction")
@@ -409,14 +366,15 @@ def record_first_insight_span(project, module, **kwargs):
 first_insight_span_received.connect(record_first_insight_span, weak=False)
 
 
+# TODO (mifu67): update this to use the new org member invite model
 @member_invited.connect(weak=False, dispatch_uid="onboarding.record_member_invited")
 def record_member_invited(member, user, **kwargs):
-    OrganizationOnboardingTask.objects.record(
+    OrganizationOnboardingTask.objects.get_or_create(
         organization_id=member.organization_id,
         task=OnboardingTask.INVITE_MEMBER,
-        user_id=user.id if user else None,
-        status=OnboardingTaskStatus.PENDING,
-        data={"invited_member_id": member.id},
+        defaults={
+            "status": OnboardingTaskStatus.COMPLETE,
+        },
     )
 
     analytics.record(
@@ -426,29 +384,6 @@ def record_member_invited(member, user, **kwargs):
         organization_id=member.organization_id,
         referrer=kwargs.get("referrer"),
     )
-
-
-@member_joined.connect(weak=False, dispatch_uid="onboarding.record_member_joined")
-def record_member_joined(organization_id: int, organization_member_id: int, **kwargs):
-    obj, created = OrganizationOnboardingTask.objects.get_or_create(
-        organization_id=organization_id,
-        task=OnboardingTask.INVITE_MEMBER,
-        defaults={
-            "status": OnboardingTaskStatus.COMPLETE,
-            "date_completed": django_timezone.now(),
-            "data": {"invited_member_id": organization_member_id},
-        },
-    )
-    if created:
-        # The task was just created and marked as complete, no need to do anything extra
-        return
-
-    if obj.status != OnboardingTaskStatus.COMPLETE:
-        # The task exists but is not complete, so we need to update it as complete
-        obj.status = OnboardingTaskStatus.COMPLETE
-        obj.date_completed = django_timezone.now()
-        obj.data = {"invited_member_id": organization_member_id}
-        obj.save()
 
 
 def _record_release_received(project, event, **kwargs):

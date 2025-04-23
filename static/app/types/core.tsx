@@ -122,9 +122,8 @@ export interface DataCategoryInfo {
   productName: string;
   titleName: string;
   uid: number;
+  snakeCasePlural?: string;
 }
-
-export type EventType = 'error' | 'transaction' | 'attachment';
 
 export enum Outcome {
   ACCEPTED = 'accepted',

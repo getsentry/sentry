@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {cleanup, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {DataCategoryExact} from 'sentry/types/core';
@@ -37,10 +37,6 @@ describe('SpikeProtectionHistoryTable', () => {
       body: [],
       statusCode: 200,
     });
-  });
-
-  afterEach(() => {
-    cleanup();
   });
 
   it('renders an empty state when no spikes are provided', async () => {

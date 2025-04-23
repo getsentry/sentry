@@ -12,8 +12,7 @@ import type {SubmitData} from 'getsentry/components/creditCardForm';
 import CreditCardForm from 'getsentry/components/creditCardForm';
 import type {Invoice, PaymentCreateResponse} from 'getsentry/types';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-
-import {displayPriceWithCents} from '../amCheckout/utils';
+import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'closeModal'> & {
   invoice: Invoice;

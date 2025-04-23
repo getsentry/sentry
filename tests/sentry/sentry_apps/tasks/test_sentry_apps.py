@@ -26,7 +26,7 @@ from sentry.models.rule import Rule
 from sentry.sentry_apps.metrics import SentryAppWebhookFailureReason, SentryAppWebhookHaltReason
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
-from sentry.sentry_apps.models.servicehook import ServiceHook
+from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.tasks.sentry_apps import (
     build_comment_webhook,
     installation_webhook,
@@ -59,6 +59,9 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
+from sentry.utils.sentry_apps.service_hook_manager import (
+    create_or_update_service_hooks_for_installation,
+)
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
@@ -303,6 +306,70 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         assert payload["data"]["issue_alert"] == {
             "id": self.rule.id,
             "title": self.rule.label,
+            "sentry_app_id": self.sentry_app.id,
+            "settings": settings,
+        }
+
+        buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
+        requests = buffer.get_requests()
+
+        assert len(requests) == 1
+        assert requests[0]["response_code"] == 200
+        assert requests[0]["event_type"] == "event_alert.triggered"
+
+        # SLO validation
+        assert_success_metric(mock_record=mock_record)
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=2
+        )
+
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @with_feature("organizations:workflow-engine-trigger-actions")
+    def test_send_alert_event_with_additional_payload_legacy_rule_id(
+        self, mock_record, safe_urlopen
+    ):
+        rule = self.create_project_rule(
+            action_data=[
+                {
+                    "sentryAppInstallationUuid": self.install.uuid,
+                    "legacy_rule_id": "123",
+                }
+            ]
+        )
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+
+        group_event = GroupEvent.from_event(event, event.group)
+        settings = [
+            {"name": "alert_prefix", "value": "[Not Good]"},
+            {"name": "channel", "value": "#ignored-errors"},
+            {"name": "best_emoji", "value": ":fire:"},
+            {"name": "teamId", "value": 1},
+            {"name": "assigneeId", "value": 3},
+        ]
+
+        rule_future = RuleFuture(
+            rule=rule,
+            kwargs={"sentry_app": self.sentry_app, "schema_defined_settings": settings},
+        )
+
+        with self.tasks():
+            notify_sentry_app(group_event, [rule_future])
+
+        ((args, kwargs),) = safe_urlopen.call_args_list
+        payload = json.loads(kwargs["data"])
+
+        assert payload["action"] == "triggered"
+        assert payload["data"]["triggered_rule"] == rule.label
+        assert payload["data"]["issue_alert"] == {
+            # Use the legacy rule id
+            "id": "123",
+            "title": rule.label,
             "sentry_app_id": self.sentry_app.id,
             "settings": settings,
         }
@@ -612,6 +679,137 @@ class TestProcessResourceChange(TestCase):
         )
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=4
+        )
+
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_project_filter_no_filters_sends_webhook(self, mock_record, safe_urlopen):
+        create_or_update_service_hooks_for_installation(
+            installation=self.install,
+            webhook_url=self.sentry_app.webhook_url,
+            events=self.sentry_app.events,
+        )
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error,
+            )
+
+        assert safe_urlopen.called
+        ((args, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
+        assert data["action"] == "created"
+        assert data["installation"]["uuid"] == self.install.uuid
+        assert data["data"]["issue"]["id"] == str(event.group.id)
+
+        # SLO assertions
+        assert_success_metric(mock_record)
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) -> SEND_WEBHOOK (success) SEND_WEBHOOK (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=4
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=4
+        )
+
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_project_filter_matches_project_sends_webhook(self, mock_record, safe_urlopen):
+        with assume_test_silo_mode_of(ServiceHookProject):
+            ServiceHookProject.objects.all().delete()
+            ServiceHook.objects.all().delete()
+
+        self.create_service_hook(
+            project_ids=[self.project.id],  # matches project of issue
+            installation=self.install,
+            application=self.sentry_app,
+            events=["issue.created"],
+            org=self.organization,
+            actor=self.install,
+        )
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error,
+            )
+
+        assert safe_urlopen.called
+        ((args, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
+        assert data["action"] == "created"
+        assert data["installation"]["uuid"] == self.install.uuid
+        assert data["data"]["issue"]["id"] == str(event.group.id)
+
+        # SLO assertions
+        assert_success_metric(mock_record)
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) -> SEND_WEBHOOK (success) -> SEND_WEBHOOK (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=4
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=4
+        )
+
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_project_filter_no_match_does_not_send_webhook(self, mock_record, safe_urlopen):
+        with assume_test_silo_mode_of(ServiceHookProject):
+            ServiceHookProject.objects.all().delete()
+            ServiceHook.objects.all().delete()
+
+        project_2 = self.create_project(
+            name="Bar2", slug="bar2", teams=[self.team], fire_project_created=False
+        )
+
+        self.create_service_hook(
+            project_ids=[project_2.id],  # no match
+            installation=self.install,
+            application=self.sentry_app,
+            events=["issue.created"],
+            org=self.organization,
+            actor=self.install,
+        )
+
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error,
+            )
+
+        assert not safe_urlopen.called
+
+        # SLO assertions
+        assert_success_metric(mock_record)
+        # PREPARE_WEBHOOK (success)
+        # Did not send a webhook bc per-project filter on project_id 2 and post_process was for project_id 1
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
         )
 
     # TODO(nola): Enable this test whenever we prevent infinite loops w/ error.created integrations

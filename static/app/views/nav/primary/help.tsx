@@ -5,9 +5,11 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useChonkPrompt} from 'sentry/utils/theme/useChonkPrompt';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import {activateZendesk, zendeskIsLoaded} from 'sentry/utils/zendesk';
 import {SidebarMenu} from 'sentry/views/nav/primary/components';
 import {
@@ -49,14 +51,20 @@ function getContactSupportItem({
 
 export function PrimaryNavigationHelp() {
   const organization = useOrganization();
+  const user = useUser();
   const {mutate: mutateUserOptions} = useMutateUserOptions();
   const contactSupportItem = getContactSupportItem({organization});
   const openForm = useFeedbackForm();
   const {startTour} = useStackedNavigationTour();
+  const chonkPrompt = useChonkPrompt();
 
   return (
     <StackedNavigationTourReminder>
       <SidebarMenu
+        onOpen={() => {
+          chonkPrompt.dismissDotIndicatorPrompt();
+          chonkPrompt.dismissBannerPrompt();
+        }}
         items={[
           {
             key: 'search',
@@ -133,7 +141,30 @@ export function PrimaryNavigationHelp() {
                   );
                 },
               },
-            ],
+              organization?.features?.includes('chonk-ui')
+                ? user.options.prefersChonkUI
+                  ? {
+                      key: 'new-chonk-ui',
+                      label: t('Switch back to our old look'),
+                      onAction() {
+                        mutateUserOptions({prefersChonkUI: false});
+                        trackAnalytics('navigation.help_menu_opt_out_chonk_ui_clicked', {
+                          organization,
+                        });
+                      },
+                    }
+                  : {
+                      key: 'new-chonk-ui',
+                      label: t('Try our new look'),
+                      onAction() {
+                        mutateUserOptions({prefersChonkUI: true});
+                        trackAnalytics('navigation.help_menu_opt_in_chonk_ui_clicked', {
+                          organization,
+                        });
+                      },
+                    }
+                : null,
+            ].filter(n => !!n),
           },
         ]}
         analyticsKey="help"

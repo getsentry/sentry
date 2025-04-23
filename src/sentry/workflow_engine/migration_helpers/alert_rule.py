@@ -5,7 +5,7 @@ from typing import Any
 from django.db import router, transaction
 from django.forms import ValidationError
 
-from sentry.incidents.grouptype import MetricAlertFire
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleThresholdType,
@@ -26,6 +26,7 @@ from sentry.workflow_engine.models import (
     AlertRuleDetector,
     AlertRuleWorkflow,
     DataCondition,
+    DataConditionAlertRuleTrigger,
     DataConditionGroup,
     DataConditionGroupAction,
     DataSource,
@@ -288,7 +289,10 @@ def migrate_metric_data_conditions(
         type=threshold_type,
         condition_group=detector_data_condition_group,
     )
-
+    DataConditionAlertRuleTrigger.objects.create(
+        data_condition=detector_trigger,
+        alert_rule_trigger_id=alert_rule_trigger.id,
+    )
     # create an "action filter": if the detector's status matches a certain priority level,
     # then the condition result is set to true
     data_condition_group = DataConditionGroup.objects.create(
@@ -305,7 +309,7 @@ def migrate_metric_data_conditions(
     action_filter = DataCondition.objects.create(
         comparison=PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH),
         condition_result=True,
-        type=Condition.ISSUE_PRIORITY_EQUALS,
+        type=Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL,
         condition_group=data_condition_group,
     )
     return detector_trigger, action_filter
@@ -479,7 +483,7 @@ def get_detector_field_values(
                 "project_id": project_id,
                 "enabled": True,
                 "created_by_id": user.id if user else None,
-                "type": MetricAlertFire.slug,
+                "type": MetricIssue.slug,
             }
         )
     return detector_field_values
@@ -572,7 +576,7 @@ def dual_write_alert_rule(alert_rule: AlertRule, user: RpcUser | None = None) ->
     """
     with transaction.atomic(router.db_for_write(Detector)):
         # step 1: migrate the alert rule
-        migrate_alert_rule(alert_rule)
+        migrate_alert_rule(alert_rule, user)
         triggers = AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
         # step 2: migrate each trigger
         for trigger in triggers:

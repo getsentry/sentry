@@ -23,20 +23,26 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import withOrganization from 'sentry/utils/withOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {GenericPerformanceWidgetDataType} from 'sentry/views/performance/landing/widgets/types';
+import {
+  _setChartSetting,
+  filterAllowedChartsMetrics,
+  getChartSetting,
+} from 'sentry/views/performance/landing/widgets/utils';
+import type {
+  ChartDefinition,
+  PerformanceWidgetSetting,
+} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
+import {WIDGET_DEFINITIONS} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
+import {HistogramWidget} from 'sentry/views/performance/landing/widgets/widgets/histogramWidget';
+import {LineChartListWidget} from 'sentry/views/performance/landing/widgets/widgets/lineChartListWidget';
 import MobileReleaseComparisonListWidget from 'sentry/views/performance/landing/widgets/widgets/mobileReleaseComparisonListWidget';
 import {PerformanceScoreListWidget} from 'sentry/views/performance/landing/widgets/widgets/performanceScoreListWidget';
-
-import {GenericPerformanceWidgetDataType} from '../types';
-import {_setChartSetting, filterAllowedChartsMetrics, getChartSetting} from '../utils';
-import type {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
-import {WIDGET_DEFINITIONS} from '../widgetDefinitions';
-import {HistogramWidget} from '../widgets/histogramWidget';
-import {LineChartListWidget} from '../widgets/lineChartListWidget';
-import {PerformanceScoreWidget} from '../widgets/performanceScoreWidget';
-import {SingleFieldAreaWidget} from '../widgets/singleFieldAreaWidget';
-import {StackedAreaChartListWidget} from '../widgets/stackedAreaChartListWidget';
-import {TrendsWidget} from '../widgets/trendsWidget';
-import {VitalWidget} from '../widgets/vitalWidget';
+import {PerformanceScoreWidget} from 'sentry/views/performance/landing/widgets/widgets/performanceScoreWidget';
+import {SingleFieldAreaWidget} from 'sentry/views/performance/landing/widgets/widgets/singleFieldAreaWidget';
+import {StackedAreaChartListWidget} from 'sentry/views/performance/landing/widgets/widgets/stackedAreaChartListWidget';
+import {TrendsWidget} from 'sentry/views/performance/landing/widgets/widgets/trendsWidget';
+import {VitalWidget} from 'sentry/views/performance/landing/widgets/widgets/vitalWidget';
 
 import type {ChartRowProps} from './widgetChartRow';
 
@@ -215,7 +221,7 @@ function WidgetContainerInner(props: Props) {
   }
 }
 
-export function WidgetInteractiveTitle({
+function WidgetInteractiveTitle({
   chartSetting,
   eventView,
   setChartSetting,
@@ -270,7 +276,7 @@ export function WidgetInteractiveTitle({
 
 const StyledCompactSelect = styled(CompactSelect)`
   /* Reset font-weight set by HeaderTitleLegend, buttons are already bold and
-   * setting this higher up causes it to trickle into the menues */
+   * setting this higher up causes it to trickle into the menus */
   font-weight: ${p => p.theme.fontWeightNormal};
   margin: -${space(0.5)} -${space(1)} -${space(0.25)};
   min-width: 0;
@@ -281,7 +287,7 @@ const StyledCompactSelect = styled(CompactSelect)`
   }
 `;
 
-export function WidgetContainerActions({
+function WidgetContainerActions({
   chartSetting,
   eventView,
   setChartSetting,

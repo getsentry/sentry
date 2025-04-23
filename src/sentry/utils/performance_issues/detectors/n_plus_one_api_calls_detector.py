@@ -45,8 +45,6 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
     type = DetectorType.N_PLUS_ONE_API_CALLS
     settings_key = DetectorType.N_PLUS_ONE_API_CALLS
 
-    HOST_DENYLIST: list[str] = []
-
     def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
         super().__init__(settings, event)
 
@@ -134,9 +132,6 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         # won't have to do this, since the URLs will be sent in as `span.data`
         # in a parsed format
         parsed_url = urlparse(str(url))
-
-        if parsed_url.netloc in cls.HOST_DENYLIST:
-            return False
 
         # Ignore anything that looks like an asset. Some frameworks (and apps)
         # fetch assets via XHR, which is not our concern

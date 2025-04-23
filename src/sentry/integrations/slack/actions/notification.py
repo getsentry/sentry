@@ -27,14 +27,7 @@ from sentry.integrations.repository.notification_action import (
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.slack.actions.form import SlackNotifyServiceForm
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
-from sentry.integrations.slack.message_builder.notifications.rule_save_edit import (
-    SlackRuleSaveEditMessageBuilder,
-)
-from sentry.integrations.slack.metrics import (
-    SLACK_ISSUE_ALERT_FAILURE_DATADOG_METRIC,
-    SLACK_ISSUE_ALERT_SUCCESS_DATADOG_METRIC,
-    record_lifecycle_termination_level,
-)
+from sentry.integrations.slack.metrics import record_lifecycle_termination_level
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.channel import SlackChannelIdData, get_channel_id
@@ -464,57 +457,18 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
         key = f"slack:{integration.id}:{channel}"
 
-        metrics.incr("notifications.sent", instance="slack.notification", skip_internal=False)
+        metrics.incr(
+            "notifications.sent",
+            instance="slack.notification",
+            tags={
+                "issue_type": event.group.issue_type.slug,
+            },
+            skip_internal=False,
+        )
         if features.has("organizations:workflow-engine-trigger-actions", self.project.organization):
             yield self.future(send_notification_noa, key=key)
         else:
             yield self.future(send_notification, key=key)
-
-    def send_confirmation_notification(
-        self, rule: Rule, new: bool, changed: dict[str, Any] | None = None
-    ):
-        integration = self.get_integration()
-        if not integration:
-            # Integration removed, rule still active.
-            return
-
-        channel = self.get_option("channel_id")
-        blocks = SlackRuleSaveEditMessageBuilder(rule=rule, new=new, changed=changed).build()
-        json_blocks = orjson.dumps(blocks.get("blocks")).decode()
-        client = SlackSdkClient(integration_id=integration.id)
-
-        try:
-            client.chat_postMessage(
-                blocks=json_blocks,
-                text=blocks.get("text"),
-                channel=channel,
-                unfurl_links=False,
-                unfurl_media=False,
-            )
-            metrics.incr(
-                SLACK_ISSUE_ALERT_SUCCESS_DATADOG_METRIC,
-                sample_rate=1.0,
-                tags={"action": "send_confirmation"},
-            )
-        except SlackApiError as e:
-            log_params = {
-                "error": str(e),
-                "project_id": rule.project.id,
-                "channel_name": self.get_option("channel"),
-            }
-            self.logger.info(
-                "slack.issue_alert.confirmation.fail",
-                extra=log_params,
-            )
-            metrics.incr(
-                SLACK_ISSUE_ALERT_FAILURE_DATADOG_METRIC,
-                sample_rate=1.0,
-                tags={
-                    "action": "send_confirmation",
-                    "ok": e.response.get("ok", False),
-                    "status": e.response.status_code,
-                },
-            )
 
     def render_label(self) -> str:
         tags = self.get_tags_list()

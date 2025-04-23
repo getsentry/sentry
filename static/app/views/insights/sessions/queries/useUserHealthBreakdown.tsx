@@ -1,12 +1,24 @@
+import type {PageFilters} from 'sentry/types/core';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {getSessionsInterval} from 'sentry/utils/sessions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {getCountStatusSeries} from 'sentry/views/insights/sessions/utils/sessions';
 
-export default function useUserHealthBreakdown({type}: {type: 'count' | 'rate'}) {
+export default function useUserHealthBreakdown({
+  type,
+  pageFilters,
+}: {
+  type: 'count' | 'rate';
+  pageFilters?: PageFilters;
+}) {
   const location = useLocation();
   const organization = useOrganization();
+  const {
+    selection: {datetime},
+  } = usePageFilters();
 
   const locationQuery = {
     ...location,
@@ -28,6 +40,7 @@ export default function useUserHealthBreakdown({type}: {type: 'count' | 'rate'})
       {
         query: {
           ...locationQuery.query,
+          interval: getSessionsInterval(pageFilters ? pageFilters.datetime : datetime),
           field: ['count_unique(user)'],
           groupBy: ['session.status'],
         },

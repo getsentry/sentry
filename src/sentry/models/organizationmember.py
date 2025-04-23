@@ -43,6 +43,7 @@ from sentry.hybridcloud.services.organizationmember_mapping import (
     RpcOrganizationMemberMappingUpdate,
     organizationmember_mapping_service,
 )
+from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.models.team import TeamStatus
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole
@@ -249,9 +250,9 @@ class OrganizationMember(ReplicatedRegionModel):
     __repr__ = sane_repr("organization_id", "user_id", "email", "role")
 
     def save(self, *args, **kwargs):
-        assert (self.user_id is None and self.email) or (
-            self.user_id and self.email is None
-        ), "Must set either user or email"
+        if self.id is not None:
+            invite = OrganizationMemberInvite.objects.filter(organization_member_id=self.id).first()
+            assert invite is None, "Cannot save placeholder organization member for an invited user"
 
         with outbox_context(transaction.atomic(using=router.db_for_write(OrganizationMember))):
             if self.token and not self.token_expires_at:

@@ -1,3 +1,4 @@
+import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
@@ -24,7 +25,7 @@ describe('IssueViewsHeader', () => {
   });
 
   const getRequestViews: GroupSearchView[] = [
-    {
+    GroupSearchViewFixture({
       id: '1',
       name: 'High Priority',
       query: 'priority:high',
@@ -39,8 +40,9 @@ describe('IssueViewsHeader', () => {
       },
       visibility: GroupSearchViewVisibility.OWNER,
       lastVisited: null,
-    },
-    {
+      starred: false,
+    }),
+    GroupSearchViewFixture({
       id: '2',
       name: 'Medium Priority',
       query: 'priority:medium',
@@ -55,8 +57,9 @@ describe('IssueViewsHeader', () => {
       },
       visibility: GroupSearchViewVisibility.ORGANIZATION,
       lastVisited: null,
-    },
-    {
+      starred: false,
+    }),
+    GroupSearchViewFixture({
       id: '3',
       name: 'Low Priority',
       query: 'priority:low',
@@ -71,7 +74,8 @@ describe('IssueViewsHeader', () => {
       },
       visibility: GroupSearchViewVisibility.ORGANIZATION,
       lastVisited: null,
-    },
+      starred: false,
+    }),
   ];
 
   const defaultRouter = RouterFixture({
@@ -121,7 +125,7 @@ describe('IssueViewsHeader', () => {
     beforeEach(() => {
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/group-search-views/`,
+        url: `/organizations/${organization.slug}/group-search-views/starred/`,
         method: 'GET',
         body: getRequestViews,
       });
@@ -202,7 +206,7 @@ describe('IssueViewsHeader', () => {
 
     it('creates a default viewId if no id is present in the request views', async () => {
       MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/group-search-views/`,
+        url: `/organizations/${organization.slug}/group-search-views/starred/`,
         method: 'GET',
         body: [
           {
@@ -246,7 +250,7 @@ describe('IssueViewsHeader', () => {
 
     it('allows you to manually enter a query, even if you only have a default tab', async () => {
       MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/group-search-views/`,
+        url: `/organizations/${organization.slug}/group-search-views/starred/`,
         method: 'GET',
         body: [
           {
@@ -397,7 +401,7 @@ describe('IssueViewsHeader', () => {
 
     it('updates the unsaved changes indicator for a default tab if the query is different', async () => {
       MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/group-search-views/`,
+        url: `/organizations/${organization.slug}/group-search-views/starred/`,
         method: 'GET',
         body: [
           {
@@ -458,7 +462,7 @@ describe('IssueViewsHeader', () => {
     beforeEach(() => {
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/group-search-views/`,
+        url: `/organizations/${organization.slug}/group-search-views/starred/`,
         method: 'GET',
         body: getRequestViews,
       });
@@ -676,7 +680,7 @@ describe('IssueViewsHeader', () => {
     beforeEach(() => {
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/group-search-views/`,
+        url: `/organizations/${organization.slug}/group-search-views/starred/`,
         method: 'GET',
         body: getRequestViews,
       });
@@ -694,7 +698,7 @@ describe('IssueViewsHeader', () => {
 
     it('should render the correct set of actions for an unchanged tab', async () => {
       MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/group-search-views/`,
+        url: `/organizations/${organization.slug}/group-search-views/starred/`,
         method: 'GET',
         body: getRequestViews,
       });
@@ -725,7 +729,7 @@ describe('IssueViewsHeader', () => {
 
     it('should render the correct set of actions for a changed tab', async () => {
       MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/group-search-views/`,
+        url: `/organizations/${organization.slug}/group-search-views/starred/`,
         method: 'GET',
         body: getRequestViews,
       });
@@ -757,7 +761,7 @@ describe('IssueViewsHeader', () => {
 
     it('should render the correct set of actions if only a single tab exists', async () => {
       MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/group-search-views/`,
+        url: `/organizations/${organization.slug}/group-search-views/starred/`,
         method: 'GET',
         body: [getRequestViews[0]],
       });
@@ -1027,7 +1031,7 @@ describe('IssueViewsHeader', () => {
 
     it('should render the correct count for a single view', async () => {
       MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/group-search-views/`,
+        url: `/organizations/${organization.slug}/group-search-views/starred/`,
         method: 'GET',
         body: [getRequestViews[0]],
       });
@@ -1052,7 +1056,7 @@ describe('IssueViewsHeader', () => {
 
     it('should render the correct count for multiple views', async () => {
       MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/group-search-views/`,
+        url: `/organizations/${organization.slug}/group-search-views/starred/`,
         method: 'GET',
         body: getRequestViews,
       });
@@ -1078,7 +1082,7 @@ describe('IssueViewsHeader', () => {
 
     it('should show a max count of 99+ if the count is greater than 99', async () => {
       MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/group-search-views/`,
+        url: `/organizations/${organization.slug}/group-search-views/starred/`,
         method: 'GET',
         body: [getRequestViews[0]],
       });
@@ -1103,7 +1107,7 @@ describe('IssueViewsHeader', () => {
 
     it('should show stil show a 0 query count if the count is 0', async () => {
       MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/group-search-views/`,
+        url: `/organizations/${organization.slug}/group-search-views/starred/`,
         method: 'GET',
         body: [getRequestViews[0]],
       });

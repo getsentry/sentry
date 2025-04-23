@@ -1,11 +1,10 @@
 import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import omit from 'lodash/omit';
 
-import {Chevron} from 'sentry/components/chevron';
 import {Button} from 'sentry/components/core/button';
 import type {StylesConfig as ReactSelectStylesConfig} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
-import {IconClose} from 'sentry/icons';
+import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {FormSize} from 'sentry/utils/theme';
@@ -67,7 +66,7 @@ export const getChonkStylesConfig = ({
       color: state.isDisabled ? theme.disabled : theme.textColor,
       background: theme.background,
       border: `1px solid ${theme.border}`,
-      boxShadow: theme.dropShadowMedium,
+      boxShadow: 'none',
       borderRadius: theme.formRadius[size].borderRadius,
       transition: 'border 0.1s, box-shadow 0.1s',
       alignItems: 'center',
@@ -90,7 +89,8 @@ export const getChonkStylesConfig = ({
       zIndex: theme.zIndex.dropdown,
       background: theme.backgroundElevated,
       borderRadius: theme.borderRadius,
-      boxShadow: `${theme.dropShadowHeavy}, 0 0 0 1px ${theme.translucentBorder}`,
+      border: `1px solid ${theme.border}`,
+      boxShadow: 'none',
       width: 'auto',
       minWidth: '100%',
       maxWidth: maxMenuWidth ?? 'auto',
@@ -257,7 +257,7 @@ export function ChonkDropdownIndicator(
 ) {
   return (
     <selectComponents.DropdownIndicator {...props}>
-      <Chevron direction="down" size="medium" />
+      <IconChevron direction="down" size="xs" />
     </selectComponents.DropdownIndicator>
   );
 }
@@ -278,9 +278,8 @@ export const ChonkCheckWrap = chonkStyled('div')<{
       ? `
       padding: 1px;
       border: solid 1px ${p.theme.border};
-      background: ${p.theme.backgroundElevated};
+      background: ${p.theme.backgroundElevated};;
       border-radius: 2px;
-      box-shadow: inset ${p.theme.dropShadowMedium};
       height: 1em;
       margin-top: 2px;
       ${

@@ -9,11 +9,21 @@ import mapValues from 'lodash/mapValues';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {LinkButton} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {getKeyValueListData as getRegressionIssueKeyValueList} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
+import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
+import type {
+  ProcessedSpanType,
+  RawSpanType,
+  TraceContextSpanProxy,
+} from 'sentry/components/events/interfaces/spans/types';
+import {
+  getSpanSubTimings,
+  SpanSubTimingName,
+} from 'sentry/components/events/interfaces/spans/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Link from 'sentry/components/links/link';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type {Entry, EntryRequest, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -34,10 +44,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
-
-import KeyValueList from '../keyValueList';
-import type {ProcessedSpanType, RawSpanType, TraceContextSpanProxy} from '../spans/types';
-import {getSpanSubTimings, SpanSubTimingName} from '../spans/utils';
 
 const formatter = new SQLishFormatter();
 
@@ -345,19 +351,17 @@ export function SpanEvidenceKeyValueList({
   const Component = PREVIEW_COMPONENTS[issueType] ?? DefaultSpanEvidence;
 
   return (
-    <ClippedBox clipHeight={300}>
-      <Component
-        theme={theme}
-        event={event}
-        issueType={issueType}
-        organization={organization}
-        location={location}
-        projectSlug={projectSlug}
-        parentSpan={spanInfo?.parentSpan ?? null}
-        offendingSpans={spanInfo?.offendingSpans ?? []}
-        causeSpans={spanInfo?.causeSpans ?? []}
-      />
-    </ClippedBox>
+    <Component
+      theme={theme}
+      event={event}
+      issueType={issueType}
+      organization={organization}
+      location={location}
+      projectSlug={projectSlug}
+      parentSpan={spanInfo?.parentSpan ?? null}
+      offendingSpans={spanInfo?.offendingSpans ?? []}
+      causeSpans={spanInfo?.causeSpans ?? []}
+    />
   );
 }
 
@@ -541,9 +545,11 @@ function getSpanEvidenceValue(span: Span | null) {
 
   if (span.op === 'db' && span.description) {
     return (
-      <StyledCodeSnippet language="sql">
-        {formatter.toString(span.description)}
-      </StyledCodeSnippet>
+      <NoPaddingClippedBox clipHeight={200}>
+        <StyledCodeSnippet language="sql">
+          {formatter.toString(span.description)}
+        </StyledCodeSnippet>
+      </NoPaddingClippedBox>
     );
   }
 
@@ -730,3 +736,7 @@ function formatBasePath(span: Span, baseURL?: string): string {
 
   return spanURL?.pathname ?? '';
 }
+
+const NoPaddingClippedBox = styled(ClippedBox)`
+  padding: 0;
+`;

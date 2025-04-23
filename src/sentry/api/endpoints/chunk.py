@@ -16,8 +16,8 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
 from sentry.api.utils import generate_region_url
 from sentry.models.files.fileblob import FileBlob
+from sentry.models.files.utils import MAX_FILE_SIZE
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.utils.files import get_max_file_size
 from sentry.utils.http import absolute_uri
 
 MAX_CHUNKS_PER_REQUEST = 64
@@ -103,6 +103,9 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             # If user overridden upload url prefix, we want an absolute, versioned endpoint, with user-configured prefix
             url = absolute_uri(relative_url, endpoint)
 
+        compression = (
+            [] if organization.id in options.get("chunk-upload.no-compression") else ["gzip"]
+        )
         accept = CHUNK_UPLOAD_ACCEPT
 
         # Sentry CLI versions ≤2.39.1 require "chunkSize" to be a power of two, and will error otherwise,
@@ -115,11 +118,11 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
                 "url": url,
                 "chunkSize": settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE,
                 "chunksPerRequest": MAX_CHUNKS_PER_REQUEST,
-                "maxFileSize": get_max_file_size(organization),
+                "maxFileSize": MAX_FILE_SIZE,
                 "maxRequestSize": MAX_REQUEST_SIZE,
                 "concurrency": MAX_CONCURRENCY,
                 "hashAlgorithm": HASH_ALGORITHM,
-                "compression": ["gzip"],
+                "compression": compression,
                 "accept": accept,
             }
         )

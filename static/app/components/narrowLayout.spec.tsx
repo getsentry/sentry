@@ -3,13 +3,6 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import NarrowLayout from 'sentry/components/narrowLayout';
 
 describe('NarrowLayout', function () {
-  beforeAll(function () {
-    jest.spyOn(window.location, 'assign').mockImplementation(() => {});
-  });
-  afterAll(function () {
-    jest.mocked(window.location.assign).mockRestore();
-  });
-
   it('renders without logout', function () {
     render(<NarrowLayout>{null}</NarrowLayout>);
     expect(screen.queryByText('Sign out')).not.toBeInTheDocument();

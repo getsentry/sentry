@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Panel from 'sentry/components/panels/panel';
 import {IconEllipsis} from 'sentry/icons';
@@ -19,8 +20,6 @@ import {
 } from 'sentry/utils/discover/fieldRenderers';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
-
-import {Tooltip} from '../tooltip';
 
 export enum EventDetailPageSource {
   PERFORMANCE = 'performance',
@@ -107,7 +106,7 @@ export function getFieldTypeFromUnit(unit: any) {
   return 'number';
 }
 
-export function EventCustomPerformanceMetric({
+function EventCustomPerformanceMetric({
   event,
   name,
   location,

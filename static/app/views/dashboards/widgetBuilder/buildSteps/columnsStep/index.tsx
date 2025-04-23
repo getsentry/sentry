@@ -7,9 +7,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-
-import {addIncompatibleFunctions, DataSet} from '../../utils';
-import {BuildStep} from '../buildStep';
+import {BuildStep} from 'sentry/views/dashboards/widgetBuilder/buildSteps/buildStep';
+import {
+  addIncompatibleFunctions,
+  DataSet,
+} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import {ColumnFields} from './columnFields';
 

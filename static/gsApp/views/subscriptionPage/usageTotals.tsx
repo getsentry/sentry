@@ -24,6 +24,7 @@ import {
 import {
   type BillingMetricHistory,
   type BillingStatTotal,
+  type DataCategories,
   type EventBucket,
   PlanTier,
   type ProductTrial,
@@ -36,6 +37,7 @@ import {
   formatUsageWithUnits,
   getActiveProductTrial,
   getPotentialProductTrial,
+  isAm2Plan,
   isUnlimitedReserved,
   MILLISECONDS_IN_HOUR,
 } from 'getsentry/utils/billing';
@@ -92,7 +94,7 @@ type UsageProps = {
   /**
    * All category totals when needed for reserved budgets.
    */
-  allTotalsByCategory?: {[key: string]: BillingStatTotal};
+  allTotalsByCategory?: Record<string, BillingStatTotal>;
   /**
    * Do not allow the table to be expansded
    */
@@ -100,7 +102,7 @@ type UsageProps = {
   /**
    * Event breakdown totals used by Performance Units
    */
-  eventTotals?: {[key: string]: BillingStatTotal};
+  eventTotals?: Record<string, BillingStatTotal>;
   /**
    * Gifted budget for the current billing period.
    */
@@ -154,7 +156,7 @@ type State = {expanded: boolean; trialButtonBusy: boolean};
  *
  * @param category - The data category to calculate usage for (e.g. 'errors', 'transactions')
  * @param subscription - The subscription object containing plan and usage details
- * @param totals - Object containing the accepted event count for this category
+ * @param accepted - The accepted event count for this category
  * @param prepaid - The prepaid/reserved event limit (volume-based reserved) or commited spend (budget-based reserved) for this category
  * @param reservedCpe - The reserved cost-per-event for this category (for reserved budget categories), in cents
  * @param reservedSpend - The reserved spend for this category (for reserved budget categories). If provided, calculations with `totals` and `reservedCpe` are overriden to use the number provided for `prepaidSpend`
@@ -169,8 +171,8 @@ type State = {expanded: boolean; trialButtonBusy: boolean};
 export function calculateCategoryPrepaidUsage(
   category: string,
   subscription: Subscription,
-  totals: Pick<BillingStatTotal, 'accepted'>,
   prepaid: number,
+  accepted?: number | null,
   reservedCpe?: number | null,
   reservedSpend?: number | null
 ): {
@@ -183,6 +185,10 @@ export function calculateCategoryPrepaidUsage(
   prepaidSpend: number;
   prepaidUsage: number;
 } {
+  const categoryInfo: BillingMetricHistory | undefined =
+    subscription.categories[category as DataCategories];
+  const usage = accepted ?? categoryInfo?.usage ?? 0;
+
   // Calculate the prepaid total
   let prepaidTotal: any;
   if (isUnlimitedReserved(prepaid)) {
@@ -200,13 +206,10 @@ export function calculateCategoryPrepaidUsage(
   }
   const hasReservedBudget = reservedCpe || typeof reservedSpend === 'number'; // reservedSpend can be 0
   const prepaidUsed = hasReservedBudget
-    ? (reservedSpend ?? totals.accepted * (reservedCpe ?? 0))
-    : totals.accepted;
+    ? (reservedSpend ?? usage * (reservedCpe ?? 0))
+    : usage;
   const prepaidPercentUsed = getPercentage(prepaidUsed, prepaidTotal);
 
-  // Calculate the prepaid price
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const categoryInfo: BillingMetricHistory = subscription.categories[category];
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const slots: EventBucket[] = subscription.planDetails.planCategories[category];
 
@@ -245,7 +248,7 @@ export function calculateCategoryPrepaidUsage(
     (hasReservedBudget && prepaidUsed >= prepaidTotal)
       ? categoryInfo.onDemandQuantity
       : 0;
-  const prepaidUsage = totals.accepted - onDemandUsage;
+  const prepaidUsage = usage - onDemandUsage;
 
   return {
     prepaidPrice,
@@ -352,11 +355,12 @@ function UsageTotals({
 }: UsageProps) {
   const [state, setState] = useState<State>({expanded: false, trialButtonBusy: false});
   const theme = useTheme();
+  const colors = theme.chart.getColorPalette(5);
 
   const COLORS = {
-    reserved: theme.chart.colors[5][0],
-    ondemand: theme.chart.colors[5][1],
-    secondary_reserved: theme.chart.colors[5][2],
+    reserved: colors[0],
+    ondemand: colors[1],
+    secondary_reserved: colors[2],
   } as const;
 
   const usageOptions = {useUnitScaling: true};
@@ -437,18 +441,20 @@ function UsageTotals({
     onDemandCategoryMax,
   } = calculateCategoryOnDemandUsage(category, subscription);
   const unusedOnDemandWidth = 100 - ondemandPercentUsed;
-
+  const categoryInfo: BillingMetricHistory | undefined =
+    subscription.categories[category as DataCategories];
+  const usage = categoryInfo?.usage ?? 0;
   const {prepaidPrice, prepaidPercentUsed, prepaidUsage, onDemandUsage} =
     calculateCategoryPrepaidUsage(
       category,
       subscription,
-      totals,
       prepaid,
+      null,
       undefined,
       reservedSpend
     );
   const unusedPrepaidWidth =
-    reserved !== 0 || subscription.isTrial ? 100 - prepaidPercentUsed : 0;
+    reserved !== 0 || subscription.isTrial ? 100 - prepaidPercentUsed : 100;
   const totalCategorySpend =
     (hasReservedBudget
       ? (subscription.reservedBudgets?.find(budget => category in budget.categories)
@@ -493,22 +499,21 @@ function UsageTotals({
     return t('usage this period');
   }
 
-  const formattedUnitsUsed = formatUsageWithUnits(
-    totals.accepted,
-    category,
-    usageOptions
-  );
+  const formattedUnitsUsed = formatUsageWithUnits(usage, category, usageOptions);
 
   // use dropped profile chunks to estimate dropped continuous profiling
+  // for AM3 plans, include profiles category to estimate dropped continuous profile hours
   const total = isContinuousProfiling(category)
     ? {
-        ...addBillingStatTotals(
-          totals,
-          eventTotals[getChunkCategoryFromDuration(category)]
-        ),
-        accepted: totals.accepted,
+        ...addBillingStatTotals(totals, [
+          eventTotals[getChunkCategoryFromDuration(category)] ?? EMPTY_STAT_TOTAL,
+          !isAm2Plan(subscription.plan) && category === DataCategory.PROFILE_DURATION
+            ? (eventTotals[DataCategory.PROFILES] ?? EMPTY_STAT_TOTAL)
+            : EMPTY_STAT_TOTAL,
+        ]),
+        accepted: usage,
       }
-    : totals;
+    : {...totals, accepted: usage};
 
   const hasReservedQuota: boolean =
     reserved !== null && (reserved === UNLIMITED_RESERVED || reserved > 0);
@@ -580,7 +585,7 @@ function UsageTotals({
               )}
             </AcceptedSummary>
           </BaseRow>
-          <PlanUseBarContainer>
+          <PlanUseBarContainer data-test-id={`usage-bar-container-${category}`}>
             <PlanUseBarGroup style={{width: `${reservedMaxWidth}%`}}>
               {prepaidPercentUsed >= 1 && (
                 <Fragment>

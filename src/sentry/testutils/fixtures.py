@@ -46,11 +46,11 @@ from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
-    ProjectUptimeSubscriptionMode,
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
 )
+from sentry.uptime.types import ProjectUptimeSubscriptionMode
 from sentry.users.models.identity import Identity, IdentityProvider
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -668,7 +668,16 @@ class Fixtures:
     def create_detector_workflow(self, *args, **kwargs):
         return Factories.create_detector_workflow(*args, **kwargs)
 
+    def create_alert_rule_detector(self, *args, **kwargs):
+        # TODO: this is only needed during the ACI migration
+        return Factories.create_alert_rule_detector(*args, **kwargs)
+
+    def create_action_alert_rule_trigger_action(self, *args, **kwargs):
+        # TODO: this is only needed during the ACI migration
+        return Factories.create_action_alert_rule_trigger_action(*args, **kwargs)
+
     def create_alert_rule_workflow(self, *args, **kwargs):
+        # TODO: this is only needed during the ACI migration
         return Factories.create_alert_rule_workflow(*args, **kwargs)
 
     def create_workflow_data_condition_group(self, *args, **kwargs):

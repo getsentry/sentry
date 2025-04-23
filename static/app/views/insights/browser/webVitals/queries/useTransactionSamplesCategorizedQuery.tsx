@@ -1,8 +1,5 @@
 import {useTransactionSamplesWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useTransactionSamplesWebVitalsScoresQuery';
-import type {
-  TransactionSampleRowWithScore,
-  WebVitals,
-} from 'sentry/views/insights/browser/webVitals/types';
+import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {
   PERFORMANCE_SCORE_MEDIANS,
@@ -77,7 +74,7 @@ export function useTransactionSamplesCategorizedQuery({
     isMehTransactionWebVitalsQueryLoading ||
     isPoorTransactionWebVitalsQueryLoading;
 
-  const transactionsTableData: TransactionSampleRowWithScore[] = data.sort(
+  const transactionsTableData = data.sort(
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     (a, b) => a[`${webVital}Score`] - b[`${webVital}Score`]
   );

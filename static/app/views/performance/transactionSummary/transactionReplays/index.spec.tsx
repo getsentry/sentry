@@ -15,7 +15,7 @@ import TransactionReplays from 'sentry/views/performance/transactionSummary/tran
 type InitializeOrgProps = {
   location?: {
     pathname?: string;
-    query?: {[key: string]: string};
+    query?: Record<string, string>;
   };
   organizationProps?: {
     features?: string[];

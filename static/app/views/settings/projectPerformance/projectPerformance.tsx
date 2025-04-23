@@ -71,7 +71,7 @@ export const allowedCountValues: number[] = [5, 10, 20, 50, 100];
 
 export const projectDetectorSettingsId = 'detector-threshold-settings';
 
-type ProjectPerformanceSettings = {[key: string]: number | boolean};
+type ProjectPerformanceSettings = Record<string, number | boolean>;
 
 enum DetectorConfigAdmin {
   N_PLUS_DB_ENABLED = 'n_plus_one_db_queries_detection_enabled',
@@ -1092,7 +1092,7 @@ function ProjectPerformance() {
           apiMethod="PUT"
           apiEndpoint={performanceIssuesEndpoint}
           saveOnBlur
-          onSubmitSuccess={(option: {[key: string]: number}) => {
+          onSubmitSuccess={(option: Record<string, number>) => {
             const [threshold_key, threshold_value] = Object.entries(option)[0]!;
 
             trackAnalytics(

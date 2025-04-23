@@ -16,7 +16,9 @@ from sentry.models.files.fileblobindex import FileBlobIndex
 from sentry.models.files.utils import DEFAULT_BLOB_SIZE, MAX_FILE_SIZE, AssembleChecksumMismatch
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.retry import NoRetriesRemainingError, retry_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import export_tasks
+from sentry.taskworker.retry import NoRetriesRemainingError, Retry, retry_task
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
 from sentry.utils.rollback_metrics import incr_rollback_metrics
@@ -45,6 +47,12 @@ logger = logging.getLogger(__name__)
     max_retries=3,
     acks_late=True,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=export_tasks,
+        retry=Retry(
+            times=3,
+        ),
+    ),
 )
 def assemble_download(
     data_export_id,
@@ -54,7 +62,6 @@ def assemble_download(
     bytes_written=0,
     environment_id=None,
     export_retries=3,
-    countdown=60,
     **kwargs,
 ):
     with sentry_sdk.start_span(op="assemble"):
@@ -148,7 +155,6 @@ def assemble_download(
                         "environment_id": environment_id,
                         "export_retries": export_retries - 1,
                     },
-                    countdown=countdown,
                 )
             else:
                 return data_export.email_failure(message=str(error))
@@ -187,7 +193,6 @@ def assemble_download(
                         "environment_id": environment_id,
                         "export_retries": export_retries,
                     },
-                    countdown=3,
                 )
             else:
                 metrics.distribution("dataexport.row_count", next_offset, sample_rate=1.0)
@@ -292,6 +297,9 @@ def store_export_chunk_as_blob(data_export, bytes_written, fileobj, blob_size=DE
     queue="data_export",
     acks_late=True,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=export_tasks,
+    ),
 )
 def merge_export_blobs(data_export_id, **kwargs):
     with sentry_sdk.start_span(op="merge"):

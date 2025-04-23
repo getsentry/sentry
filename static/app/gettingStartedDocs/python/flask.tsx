@@ -18,6 +18,7 @@ import {
   featureFlagOnboarding,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
+import {getPythonProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
@@ -187,11 +188,10 @@ const performanceOnboarding: OnboardingConfig = {
 import sentry-sdk
 
 sentry_sdk.init(
-  dsn: "${params.dsn.public}",
-
-  // Set traces_sample_rate to 1.0 to capture 100%
-  // of transactions for performance monitoring.
-  traces_sample_rate=1.0,
+    dsn: "${params.dsn.public}",
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    traces_sample_rate=1.0,
 )`,
           additionalInfo: tct(
             'Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to [linkSampleTransactions:sample transactions].',
@@ -230,7 +230,7 @@ sentry_sdk.init(
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-
+  profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[flask]'}),
   performanceOnboarding,
   crashReportOnboarding: crashReportOnboardingPython,
   featureFlagOnboarding,

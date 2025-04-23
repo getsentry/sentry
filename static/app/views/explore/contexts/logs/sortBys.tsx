@@ -3,30 +3,27 @@ import type {Location} from 'history';
 import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 const LOGS_SORT_BYS_KEY = 'logsSortBys';
 
 export const logsTimestampDescendingSortBy: Sort = {
-  field: 'timestamp',
+  field: OurLogKnownFieldKey.TIMESTAMP,
   kind: 'desc' as const,
 };
 
-function defaultLogSortBys(fields: string[]): Sort[] {
-  if (fields.includes('timestamp')) {
-    return [logsTimestampDescendingSortBy];
-  }
-
-  return [];
+function defaultLogSortBys(): Sort[] {
+  return [logsTimestampDescendingSortBy];
 }
 
-export function getLogSortBysFromLocation(location: Location, fields: string[]): Sort[] {
+export function getLogSortBysFromLocation(location: Location): Sort[] {
   const sortBys = decodeSorts(location.query[LOGS_SORT_BYS_KEY]);
 
   if (sortBys.length > 0) {
     return sortBys;
   }
 
-  return defaultLogSortBys(fields);
+  return defaultLogSortBys();
 }
 
 export function updateLocationWithLogSortBys(

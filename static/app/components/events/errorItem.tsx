@@ -32,7 +32,7 @@ const keyMapping = {
   image_path: 'File Path',
 };
 
-export type ErrorItemProps = {
+type ErrorItemProps = {
   error: EventErrorData;
   meta?: Record<any, any>;
 };

@@ -1409,7 +1409,7 @@ class CollisionTests(ImportTestCase):
     @expect_models(COLLISION_TESTED, OrganizationMemberInvite)
     def test_colliding_member_invite_token(self, expected_models: list[type[Model]]):
         org = self.create_organization(name="some-org")
-        invite = OrganizationMemberInvite.objects.create(
+        invite = self.create_member_invite(
             organization=org, email="user@example.com", token=generate_token()
         )
         assert OrganizationMemberInvite.objects.count() == 1
@@ -2241,6 +2241,9 @@ class CustomImportBehaviorTests(ImportTestCase):
         # they will not be imported if we only filter down to `test-org`. The desired outcome is
         # that the inviter is nulled out.
         for org_member in OrganizationMember.objects.filter(organization=org):
+            if OrganizationMemberInvite.objects.filter(organization_member=org_member).exists():
+                # placeholder organization member for invited member, skip
+                continue
             if not org_member.inviter_id:
                 org_member.inviter_id = admin.id
                 org_member.save()

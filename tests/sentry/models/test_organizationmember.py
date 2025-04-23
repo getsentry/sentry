@@ -553,3 +553,13 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
 
             member.role = "manager"
             member.save()
+
+    def test_cannot_edit_placeholder_org_member(self):
+        omi = self.create_member_invite()
+        placeholder_om = omi.organization_member
+
+        placeholder_om.role = "manager"
+        with pytest.raises(
+            AssertionError, match="Cannot save placeholder organization member for an invited user"
+        ):
+            placeholder_om.save()

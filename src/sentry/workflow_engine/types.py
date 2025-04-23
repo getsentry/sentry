@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypedDict, TypeVar
 
@@ -12,6 +12,8 @@ if TYPE_CHECKING:
     from sentry.eventstream.base import GroupState
     from sentry.models.environment import Environment
     from sentry.snuba.models import SnubaQueryEventType
+    from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
+    from sentry.workflow_engine.handlers.detector import DetectorHandler
     from sentry.workflow_engine.models import Action, Detector
     from sentry.workflow_engine.models.data_condition import Condition
 
@@ -63,10 +65,19 @@ class ActionHandler:
 class DataSourceTypeHandler(Generic[T]):
     @staticmethod
     def bulk_get_query_object(data_sources) -> dict[int, T | None]:
+        """
+        Bulk fetch related data-source models reutrning a dict of the
+        `DataSource.id -> T`.
+        """
         raise NotImplementedError
 
     @staticmethod
     def related_model(instance) -> list[ModelRelation]:
+        """
+        A list of deletion ModelRelations. The model relation query should map
+        the source_id field within the related model to the
+        `instance.source_id`.
+        """
         raise NotImplementedError
 
 
@@ -84,6 +95,7 @@ class DataConditionHandler(Generic[T]):
     group: ClassVar[Group]
     subgroup: ClassVar[Subgroup]
     comparison_json_schema: ClassVar[dict[str, Any]] = {}
+    condition_result_schema: ClassVar[dict[str, Any]] = {}
 
     @staticmethod
     def evaluate_value(value: T, comparison: Any) -> DataConditionResult:
@@ -108,3 +120,10 @@ class SnubaQueryDataSourceType(TypedDict):
     resolution: float
     environment: str
     event_types: list[SnubaQueryEventType]
+
+
+@dataclass(frozen=True)
+class DetectorSettings:
+    handler: type[DetectorHandler] | None = None
+    validator: type[BaseDetectorTypeValidator] | None = None
+    config_schema: dict[str, Any] = field(default_factory=dict)

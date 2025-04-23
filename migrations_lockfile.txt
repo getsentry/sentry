@@ -5,11 +5,15 @@ ahead of you.
 To resolve this, rebase against latest master and regenerate your migration. This file
 will then be regenerated, and you should be able to merge without conflicts.
 
-explore: 0001_add_explore_saved_query_model
+explore: 0002_add_starred_explore_query_model
 
 feedback: 0004_index_together
 
 hybridcloud: 0019_add_provider_webhook_payload
+
+insights: 0001_add_starred_transactions_model
+
+monitors: 0001_initial
 
 nodestore: 0002_nodestore_no_dictfield
 
@@ -17,12 +21,12 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0858_backfill_groupsearchviews_with_org_visibility
+sentry: 0866_grouptype_index
 
 social_auth: 0002_default_auto_field
 
 tempest: 0002_make_message_type_nullable
 
-uptime: 0031_translate_uptime_object_headers_to_lists_take_three
+uptime: 0034_uptime_backfill_uptime_status
 
-workflow_engine: 0040_break_lookup_fks
+workflow_engine: 0047_migrate_issue_alerts

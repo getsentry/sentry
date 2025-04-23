@@ -717,10 +717,12 @@ def snapshot_alert_rule(alert_rule: AlertRule, user: RpcUser | User | None = Non
                 action.alert_rule_trigger = trigger
                 action.save()
 
-    # Change the incident status asynchronously, which could take awhile with many incidents due to snapshot creations.
-    tasks.auto_resolve_snapshot_incidents.apply_async(
-        kwargs={"alert_rule_id": alert_rule_snapshot.id}, countdown=3
-    )
+        transaction.on_commit(
+            lambda: tasks.auto_resolve_snapshot_incidents.apply_async(
+                kwargs={"alert_rule_id": alert_rule_snapshot.id},
+            ),
+            using=router.db_for_write(Incident),
+        )
 
 
 def update_alert_rule(

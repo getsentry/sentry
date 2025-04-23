@@ -67,8 +67,6 @@ describe('Performance > Landing > Index', function () {
 
   act(() => void TeamStore.loadInitialData([], false, null));
   beforeEach(function () {
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
@@ -146,39 +144,39 @@ describe('Performance > Landing > Index', function () {
     }
   });
 
-  it('renders basic UI elements', function () {
+  it('renders basic UI elements', async function () {
     const data = initializeData();
 
     wrapper = render(<WrappedComponent data={data} />);
 
-    expect(screen.getByTestId('performance-landing-v3')).toBeInTheDocument();
+    expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
   });
 
-  it('renders frontend other view', function () {
+  it('renders frontend other view', async function () {
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.FRONTEND_OTHER},
     });
 
     wrapper = render(<WrappedComponent data={data} />);
-    expect(screen.getByTestId('performance-table')).toBeInTheDocument();
+    expect(await screen.findByTestId('performance-table')).toBeInTheDocument();
   });
 
-  it('renders backend view', function () {
+  it('renders backend view', async function () {
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.BACKEND},
     });
 
     wrapper = render(<WrappedComponent data={data} />);
-    expect(screen.getByTestId('performance-table')).toBeInTheDocument();
+    expect(await screen.findByTestId('performance-table')).toBeInTheDocument();
   });
 
-  it('renders mobile view', function () {
+  it('renders mobile view', async function () {
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.MOBILE},
     });
 
     wrapper = render(<WrappedComponent data={data} />);
-    expect(screen.getByTestId('performance-table')).toBeInTheDocument();
+    expect(await screen.findByTestId('performance-table')).toBeInTheDocument();
   });
 
   it('renders react-native table headers in mobile view', async function () {
@@ -225,7 +223,7 @@ describe('Performance > Landing > Index', function () {
           query: 'event.type:transaction',
           referrer: 'api.performance.generic-widget-chart.user-misery-area',
           statsPeriod: '28d',
-          yAxis: ['user_misery()', 'tpm()', 'failure_rate()'],
+          yAxis: ['user_misery()', 'epm()', 'failure_rate()'],
         }),
       })
     );
@@ -249,7 +247,7 @@ describe('Performance > Landing > Index', function () {
     });
 
     wrapper = render(<WrappedComponent data={data} />, {router});
-    expect(screen.getByTestId('frontend-other-view')).toBeInTheDocument();
+    expect(await screen.findByTestId('frontend-other-view')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('tab', {name: 'All Transactions'}));
 
     expect(router.push).toHaveBeenNthCalledWith(
@@ -261,14 +259,14 @@ describe('Performance > Landing > Index', function () {
     );
   });
 
-  it('Updating projects switches performance view', function () {
+  it('Updating projects switches performance view', async function () {
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.FRONTEND_OTHER},
     });
 
     wrapper = render(<WrappedComponent data={data} />);
 
-    expect(screen.getByTestId('frontend-other-view')).toBeInTheDocument();
+    expect(await screen.findByTestId('frontend-other-view')).toBeInTheDocument();
 
     const updatedData = initializeData({
       projects: [ProjectFixture({id: '123', platform: undefined})],
@@ -277,17 +275,17 @@ describe('Performance > Landing > Index', function () {
 
     wrapper.rerender(<WrappedComponent data={updatedData} />);
 
-    expect(screen.getByTestId('all-transactions-view')).toBeInTheDocument();
+    expect(await screen.findByTestId('all-transactions-view')).toBeInTheDocument();
   });
 
-  it('View correctly defaults based on project without url param', function () {
+  it('View correctly defaults based on project without url param', async function () {
     const data = initializeData({
       projects: [ProjectFixture({id: '99', platform: 'javascript-react'})],
       selectedProject: 99,
     });
 
     wrapper = render(<WrappedComponent data={data} />);
-    expect(screen.getByTestId('frontend-other-view')).toBeInTheDocument();
+    expect(await screen.findByTestId('frontend-other-view')).toBeInTheDocument();
   });
 
   describe('With transaction search feature', function () {

@@ -58,7 +58,7 @@ export type HookName = keyof Hooks;
 /**
  * Route hooks.
  */
-export type RouteHooks = {
+type RouteHooks = {
   'routes:legacy-organization-redirects': RoutesHook;
   'routes:root': RoutesHook;
   'routes:settings': RoutesHook;
@@ -100,6 +100,10 @@ type ReplayOnboardingCTAProps = {children: React.ReactNode; organization: Organi
 type ProductUnavailableCTAProps = {organization: Organization};
 
 type ProfilingBetaAlertBannerProps = {
+  organization: Organization;
+};
+
+type ContinuousProfilingBetaAlertBannerProps = {
   organization: Organization;
 };
 
@@ -171,10 +175,12 @@ export type MembershipSettingsProps = {
 /**
  * Component wrapping hooks
  */
-export type ComponentHooks = {
+type ComponentHooks = {
   'component:ai-setup-data-consent': () => React.ComponentType<AiSetupDataConsentProps> | null;
   'component:codecov-integration-settings-link': () => React.ComponentType<CodecovLinkProps>;
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
+  'component:continuous-profiling-beta-banner': () => React.ComponentType<ContinuousProfilingBetaAlertBannerProps>;
+  'component:continuous-profiling-beta-sdk-banner': () => React.ComponentType;
   'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
   'component:crons-onboarding-panel': () => React.ComponentType<CronsOnboardingPanelProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
@@ -219,7 +225,7 @@ export type ComponentHooks = {
  *
  * These are very similar to the component wrapping hooks
  */
-export type CustomizationHooks = {
+type CustomizationHooks = {
   'integrations:feature-gates': IntegrationsFeatureGatesHook;
   'member-invite-button:customization': InviteButtonCustomizationHook;
   'member-invite-modal:customization': InviteModalCustomizationHook;
@@ -230,7 +236,7 @@ export type CustomizationHooks = {
 /**
  * Analytics / tracking / and operational metrics backend hooks.
  */
-export type AnalyticsHooks = {
+type AnalyticsHooks = {
   'analytics:init-user': AnalyticsInitUser;
   'analytics:log-experiment': AnalyticsLogExperiment;
   'analytics:raw-track-event': AnalyticsRawTrackEvent;
@@ -284,20 +290,21 @@ export type FeatureDisabledHooks = {
 /**
  * Interface chrome hooks.
  */
-export type InterfaceChromeHooks = {
+type InterfaceChromeHooks = {
   footer: GenericComponentHook;
   'help-modal:footer': HelpModalFooterHook;
-  'sidebar:bottom-items': SidebarBottomItemsHook;
+  'sidebar:billing-status': GenericOrganizationComponentHook;
   'sidebar:help-menu': GenericOrganizationComponentHook;
   'sidebar:item-label': SidebarItemLabelHook;
   'sidebar:organization-dropdown-menu': GenericOrganizationComponentHook;
   'sidebar:organization-dropdown-menu-bottom': GenericOrganizationComponentHook;
+  'sidebar:try-business': SidebarTryBusinessHook;
 };
 
 /**
  * Onboarding experience hooks
  */
-export type OnboardingHooks = {
+type OnboardingHooks = {
   'onboarding-wizard:skip-help': () => React.ComponentType;
   'onboarding:block-hide-sidebar': () => boolean;
   'onboarding:targeted-onboarding-header': (opts: {source: string}) => React.ReactNode;
@@ -306,7 +313,7 @@ export type OnboardingHooks = {
 /**
  * Settings navigation hooks.
  */
-export type SettingsHooks = {
+type SettingsHooks = {
   'settings:api-navigation-config': SettingsItemsHook;
   'settings:organization-navigation': OrganizationSettingsHook;
   'settings:organization-navigation-config': SettingsConfigHook;
@@ -315,20 +322,20 @@ export type SettingsHooks = {
 /**
  * Feature Specific Hooks
  */
-export interface FeatureSpecificHooks extends SpendVisibilityHooks {}
+interface FeatureSpecificHooks extends SpendVisibilityHooks {}
 
 /**
  * Hooks related to Spend Visibitlity
  * (i.e. Per-Project Spike Protection + Spend Allocations)
  */
-export type SpendVisibilityHooks = {
+type SpendVisibilityHooks = {
   'spend-visibility:spike-protection-project-settings': GenericProjectComponentHook;
 };
 
 /**
  * Hooks that are actually React Hooks as well
  */
-export type ReactHooks = {
+type ReactHooks = {
   'react-hook:route-activated': (
     props: RouteContextInterface
   ) => React.ContextType<typeof RouteAnalyticsContext>;
@@ -522,7 +529,7 @@ type SidebarProps = Pick<
 /**
  * Returns an additional list of sidebar items.
  */
-type SidebarBottomItemsHook = (
+type SidebarTryBusinessHook = (
   opts: SidebarProps & {organization: Organization}
 ) => React.ReactNode;
 

@@ -15,13 +15,12 @@ import {isEquation} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import type {DisplayType, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/types';
+import {getNumEquations} from 'sentry/views/dashboards/utils';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
-
-import type {DisplayType, Widget, WidgetQuery} from '../types';
-import {WidgetType} from '../types';
-import {getNumEquations} from '../utils';
 
 import {ErrorsConfig} from './errors';
 import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
@@ -185,7 +184,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     limit?: number,
     cursor?: string,
     referrer?: string,
-    mepSetting?: MEPState | null
+    mepSetting?: MEPState | null,
+    samplingMode?: SamplingMode
   ) => Promise<[TableResponse, string | undefined, ResponseMeta | undefined]>;
   /**
    * Generate the list of sort options for table

@@ -18,6 +18,10 @@ import {Dataset, type MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import {getMetricDatasetQueryExtras} from 'sentry/views/alerts/rules/metric/utils/getMetricDatasetQueryExtras';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
+import type {
+  SamplingMode,
+  SpansRPCQueryExtras,
+} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 interface MetricEventStatsParams {
   project: Project;
@@ -26,7 +30,7 @@ interface MetricEventStatsParams {
   timePeriod: TimePeriodType;
 }
 
-export interface EventRequestQueryParams {
+interface EventRequestQueryParams {
   comparisonDelta?: number;
   dataset?: DiscoverDatasets;
   end?: string;
@@ -39,6 +43,7 @@ export interface EventRequestQueryParams {
   project?: number[];
   query?: string;
   referrer?: string;
+  samplingMode?: SamplingMode;
   start?: string;
   statsPeriod?: string;
   team?: string | string[];
@@ -51,7 +56,13 @@ export interface EventRequestQueryParams {
 }
 
 export function useMetricEventStats(
-  {project, rule, timePeriod, referrer}: MetricEventStatsParams,
+  {
+    project,
+    rule,
+    timePeriod,
+    referrer,
+    samplingMode,
+  }: MetricEventStatsParams & SpansRPCQueryExtras,
   options: Partial<UseApiQueryOptions<EventsStats>> = {}
 ) {
   const organization = useOrganization();
@@ -92,6 +103,7 @@ export function useMetricEventStats(
       yAxis: aggregate,
       useRpc: dataset === Dataset.EVENTS_ANALYTICS_PLATFORM ? '1' : undefined,
       referrer,
+      sampling: samplingMode,
       ...queryExtras,
     }).filter(([, value]) => typeof value !== 'undefined')
   );

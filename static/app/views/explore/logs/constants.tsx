@@ -8,8 +8,8 @@ import {type OurLogFieldKey, OurLogKnownFieldKey} from 'sentry/views/explore/log
 
 export const LogAttributesHumanLabel: Partial<Record<OurLogFieldKey, string>> = {
   [OurLogKnownFieldKey.TIMESTAMP]: t('Timestamp'),
-  [OurLogKnownFieldKey.SEVERITY_TEXT]: t('Severity'),
-  [OurLogKnownFieldKey.BODY]: t('Message'),
+  [OurLogKnownFieldKey.SEVERITY]: t('Severity'),
+  [OurLogKnownFieldKey.MESSAGE]: t('Message'),
   [OurLogKnownFieldKey.TRACE_ID]: t('Trace'),
 };
 
@@ -21,7 +21,8 @@ export const AlwaysPresentLogFields: OurLogFieldKey[] = [
   OurLogKnownFieldKey.PROJECT_ID,
   OurLogKnownFieldKey.TRACE_ID,
   OurLogKnownFieldKey.SEVERITY_NUMBER,
-  OurLogKnownFieldKey.SEVERITY_TEXT,
+  OurLogKnownFieldKey.SEVERITY,
+  OurLogKnownFieldKey.TIMESTAMP,
 ];
 
 const AlwaysHiddenLogFields: OurLogFieldKey[] = [
@@ -36,7 +37,7 @@ const AlwaysHiddenLogFields: OurLogFieldKey[] = [
  */
 export const HiddenLogDetailFields: OurLogFieldKey[] = [
   ...AlwaysHiddenLogFields,
-  OurLogKnownFieldKey.BODY,
+  OurLogKnownFieldKey.MESSAGE,
 ];
 
 export const HiddenColumnEditorLogFields: OurLogFieldKey[] = [...AlwaysHiddenLogFields];

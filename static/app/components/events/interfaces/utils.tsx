@@ -27,8 +27,8 @@ interface ImageForAddressProps {
 
 interface HiddenFrameIndicesProps {
   data: StacktraceType;
-  frameCountMap: {[frameIndex: number]: number};
-  toggleFrameMap: {[frameIndex: number]: boolean};
+  frameCountMap: Record<number, number>;
+  toggleFrameMap: Record<number, boolean>;
 }
 
 export function findImageForAddress({event, addrMode, address}: ImageForAddressProps) {
@@ -63,7 +63,7 @@ export function isRepeatedFrame(frame: Frame, nextFrame?: Frame) {
   );
 }
 
-export function getRepeatedFrameIndices(data: StacktraceType) {
+function getRepeatedFrameIndices(data: StacktraceType) {
   const repeats: number[] = [];
   (data.frames ?? []).forEach((frame, frameIdx) => {
     const nextFrame = (data.frames ?? [])[frameIdx + 1];
@@ -154,7 +154,7 @@ export function getCurlCommand(data: EntryRequest['data']) {
       case 'application/x-www-form-urlencoded':
         result +=
           ' \\\n --data "' +
-          escapeBashString(qs.stringify(data.data as {[key: string]: any})) +
+          escapeBashString(qs.stringify(data.data as Record<string, any>)) +
           '"';
         break;
 

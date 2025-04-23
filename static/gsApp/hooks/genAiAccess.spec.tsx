@@ -1,72 +1,65 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {renderHook} from 'sentry-test/reactTestingLibrary';
+
+import type {Organization} from 'sentry/types/organization';
+import {getRegionDataFromOrganization} from 'sentry/utils/regions';
+import {useUser} from 'sentry/utils/useUser';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {BillingType} from 'getsentry/types';
 
 import {useGenAiConsentButtonAccess} from './genAiAccess';
 
 // Mock the hooks that useGenAiConsentButtonAccess depends on
-jest.mock('sentry/utils/useOrganization');
 jest.mock('sentry/utils/useUser');
 jest.mock('sentry/utils/regions', () => ({
   getRegionDataFromOrganization: jest.fn(),
 }));
 
-const mockUseOrganization = jest.requireMock('sentry/utils/useOrganization').default;
-const mockUseUser = jest.requireMock('sentry/utils/useUser').useUser;
-const mockGetRegionData =
-  jest.requireMock('sentry/utils/regions').getRegionDataFromOrganization;
+const mockUseUser = jest.mocked(useUser);
+const mockGetRegionData = jest.mocked(getRegionDataFromOrganization);
+
+const contextWrapper = (organization: Organization) => {
+  return function ({children}: {children: React.ReactNode}) {
+    return <OrganizationContext value={organization}>{children}</OrganizationContext>;
+  };
+};
 
 describe('useGenAiConsentButtonAccess', function () {
-  // Reset all mocks before each test
   beforeEach(() => {
     mockUseUser.mockReset();
-    mockUseOrganization.mockReset();
     mockGetRegionData.mockReset();
   });
 
-  describe('Region-based access', function () {
-    it('disables access for non-US regions', function () {
-      const organization = OrganizationFixture();
-      const subscription = SubscriptionFixture({organization});
-
-      mockUseOrganization.mockReturnValue(organization);
-      mockGetRegionData.mockReturnValue({name: 'de'});
-      mockUseUser.mockReturnValue({isSuperuser: false});
-
-      const {result} = renderHook(() => useGenAiConsentButtonAccess({subscription}));
-
-      expect(result.current).toEqual(
-        expect.objectContaining({
-          isDisabled: true,
-          message: 'This feature is not available in your region.',
-          isUsRegion: false,
-        })
-      );
-    });
-
-    it('enables access for US region with proper permissions', function () {
+  describe('Flag-based access', function () {
+    it('enables access for US region when flag is present', function () {
       const organization = OrganizationFixture({
         access: ['org:billing'],
+        features: ['gen-ai-consent'],
       });
       const subscription = SubscriptionFixture({
         organization,
         type: BillingType.CREDIT_CARD,
       });
 
-      mockUseOrganization.mockReturnValue(organization);
-      mockGetRegionData.mockReturnValue({name: 'us'});
-      mockUseUser.mockReturnValue({isSuperuser: false});
+      mockGetRegionData.mockReturnValue({
+        name: 'us',
+        displayName: 'United States',
+        url: 'https://sentry.io',
+      });
+      mockUseUser.mockReturnValue(UserFixture({isSuperuser: false}));
 
-      const {result} = renderHook(() => useGenAiConsentButtonAccess({subscription}));
+      const {result} = renderHook(() => useGenAiConsentButtonAccess({subscription}), {
+        wrapper: contextWrapper(organization),
+      });
 
       expect(result.current).toEqual(
         expect.objectContaining({
           isDisabled: false,
           message: null,
-          isUsRegion: true,
         })
       );
     });
@@ -76,17 +69,23 @@ describe('useGenAiConsentButtonAccess', function () {
     it('disables access for users without billing access', function () {
       const organization = OrganizationFixture({
         access: [],
+        features: ['gen-ai-consent'],
       });
       const subscription = SubscriptionFixture({
         organization,
         type: BillingType.CREDIT_CARD,
       });
 
-      mockUseOrganization.mockReturnValue(organization);
-      mockGetRegionData.mockReturnValue({name: 'us'});
-      mockUseUser.mockReturnValue({isSuperuser: false});
+      mockGetRegionData.mockReturnValue({
+        name: 'us',
+        displayName: 'United States',
+        url: 'https://sentry.io',
+      });
+      mockUseUser.mockReturnValue(UserFixture({isSuperuser: false}));
 
-      const {result} = renderHook(() => useGenAiConsentButtonAccess({subscription}));
+      const {result} = renderHook(() => useGenAiConsentButtonAccess({subscription}), {
+        wrapper: contextWrapper(organization),
+      });
 
       expect(result.current).toEqual(
         expect.objectContaining({
@@ -101,17 +100,23 @@ describe('useGenAiConsentButtonAccess', function () {
     it('enables access for superusers regardless of billing access', function () {
       const organization = OrganizationFixture({
         access: [],
+        features: ['gen-ai-consent'],
       });
       const subscription = SubscriptionFixture({
         organization,
         type: BillingType.CREDIT_CARD,
       });
 
-      mockUseOrganization.mockReturnValue(organization);
-      mockGetRegionData.mockReturnValue({name: 'us'});
-      mockUseUser.mockReturnValue({isSuperuser: true});
+      mockGetRegionData.mockReturnValue({
+        name: 'us',
+        displayName: 'United States',
+        url: 'https://sentry.io',
+      });
+      mockUseUser.mockReturnValue(UserFixture({isSuperuser: true}));
 
-      const {result} = renderHook(() => useGenAiConsentButtonAccess({subscription}));
+      const {result} = renderHook(() => useGenAiConsentButtonAccess({subscription}), {
+        wrapper: contextWrapper(organization),
+      });
 
       expect(result.current).toEqual(
         expect.objectContaining({
@@ -126,17 +131,23 @@ describe('useGenAiConsentButtonAccess', function () {
     it('enables access for users with billing access', function () {
       const organization = OrganizationFixture({
         access: ['org:billing'],
+        features: ['gen-ai-consent'],
       });
       const subscription = SubscriptionFixture({
         organization,
         type: BillingType.CREDIT_CARD,
       });
 
-      mockUseOrganization.mockReturnValue(organization);
-      mockGetRegionData.mockReturnValue({name: 'us'});
-      mockUseUser.mockReturnValue({isSuperuser: false});
+      mockGetRegionData.mockReturnValue({
+        name: 'us',
+        displayName: 'United States',
+        url: 'https://sentry.io',
+      });
+      mockUseUser.mockReturnValue(UserFixture({isSuperuser: false}));
 
-      const {result} = renderHook(() => useGenAiConsentButtonAccess({subscription}));
+      const {result} = renderHook(() => useGenAiConsentButtonAccess({subscription}), {
+        wrapper: contextWrapper(organization),
+      });
 
       expect(result.current).toEqual(
         expect.objectContaining({
@@ -150,9 +161,10 @@ describe('useGenAiConsentButtonAccess', function () {
   });
 
   describe('Combined Conditions', function () {
-    it('shows region restriction for non-US regions', function () {
+    it('shows region restriction when feature flag is off', function () {
       const organization = OrganizationFixture({
         access: ['org:billing'],
+        features: [],
       });
       const subscription = SubscriptionFixture({
         organization,
@@ -160,17 +172,21 @@ describe('useGenAiConsentButtonAccess', function () {
         msaUpdatedForDataConsent: false,
       });
 
-      mockUseOrganization.mockReturnValue(organization);
-      mockGetRegionData.mockReturnValue({name: 'eu'});
-      mockUseUser.mockReturnValue({isSuperuser: false});
+      mockGetRegionData.mockReturnValue({
+        name: 'eu',
+        displayName: 'Europe',
+        url: 'https://sentry.io',
+      });
+      mockUseUser.mockReturnValue(UserFixture({isSuperuser: false}));
 
-      const {result} = renderHook(() => useGenAiConsentButtonAccess({subscription}));
+      const {result} = renderHook(() => useGenAiConsentButtonAccess({subscription}), {
+        wrapper: contextWrapper(organization),
+      });
 
       expect(result.current).toEqual(
         expect.objectContaining({
           isDisabled: true,
           message: 'This feature is not available in your region.',
-          isUsRegion: false,
           isTouchCustomerAndNeedsMsaUpdate: true,
         })
       );
@@ -179,6 +195,7 @@ describe('useGenAiConsentButtonAccess', function () {
     it('allows access for invoiced customers with undefined msaUpdatedForDataConsent', function () {
       const organization = OrganizationFixture({
         access: ['org:billing'],
+        features: ['gen-ai-consent'],
       });
       const subscription = SubscriptionFixture({
         organization,
@@ -186,11 +203,16 @@ describe('useGenAiConsentButtonAccess', function () {
         msaUpdatedForDataConsent: undefined,
       });
 
-      mockUseOrganization.mockReturnValue(organization);
-      mockGetRegionData.mockReturnValue({name: 'us'});
-      mockUseUser.mockReturnValue({isSuperuser: false});
+      mockGetRegionData.mockReturnValue({
+        name: 'us',
+        displayName: 'United States',
+        url: 'https://sentry.io',
+      });
+      mockUseUser.mockReturnValue(UserFixture({isSuperuser: false}));
 
-      const {result} = renderHook(() => useGenAiConsentButtonAccess({subscription}));
+      const {result} = renderHook(() => useGenAiConsentButtonAccess({subscription}), {
+        wrapper: contextWrapper(organization),
+      });
 
       expect(result.current).toEqual(
         expect.objectContaining({

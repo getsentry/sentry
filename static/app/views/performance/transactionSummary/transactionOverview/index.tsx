@@ -32,21 +32,20 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
+import {
+  decodeFilterFromLocation,
+  filterToLocationQuery,
+  SpanOperationBreakdownFilter,
+} from 'sentry/views/performance/transactionSummary/filter';
+import type {ChildProps} from 'sentry/views/performance/transactionSummary/pageLayout';
+import PageLayout from 'sentry/views/performance/transactionSummary/pageLayout';
+import Tab from 'sentry/views/performance/transactionSummary/tabs';
 import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
   makeVitalGroups,
   PERCENTILE as VITAL_PERCENTILE,
 } from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
-
-import {addRoutePerformanceContext} from '../../utils';
-import {
-  decodeFilterFromLocation,
-  filterToLocationQuery,
-  SpanOperationBreakdownFilter,
-} from '../filter';
-import type {ChildProps} from '../pageLayout';
-import PageLayout from '../pageLayout';
-import Tab from '../tabs';
+import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
 
 import {ZOOM_END, ZOOM_START} from './latencyChart/utils';
 import SummaryContent, {OTelSummaryContent} from './content';
@@ -185,11 +184,9 @@ function OTelOverviewContentWrapper(props: ChildProps) {
   };
 
   let totals: TotalValues | null =
-    (tableData?.data?.[0] as {
-      [k: string]: number;
-    }) ?? null;
+    (tableData?.data?.[0] as Record<string, number>) ?? null;
   const totalCountData: TotalValues | null =
-    (totalCountTableData?.data?.[0] as {[k: string]: number}) ?? null;
+    (totalCountTableData?.data?.[0] as Record<string, number>) ?? null;
 
   // Count is always a count of indexed events,
   // while other fields could be either metrics or index based
@@ -293,11 +290,9 @@ function OverviewContentWrapper(props: ChildProps) {
   };
 
   let totals: TotalValues | null =
-    (tableData?.data?.[0] as {
-      [k: string]: number;
-    }) ?? null;
+    (tableData?.data?.[0] as Record<string, number>) ?? null;
   const totalCountData: TotalValues | null =
-    (totalCountTableData?.data?.[0] as {[k: string]: number}) ?? null;
+    (totalCountTableData?.data?.[0] as Record<string, number>) ?? null;
 
   // Count is always a count of indexed events,
   // while other fields could be either metrics or index based

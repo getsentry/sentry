@@ -62,6 +62,11 @@ export default function ChartFooter({
       <InlineContainer>{elements}</InlineContainer>
       <InlineContainer>
         <IntervalSelector
+          key={
+            // this key forces the IntervalSelector to re-set it’s internal state
+            // once a value has been selected so that we get the initial items again.
+            eventView.interval
+          }
           displayMode={displayMode}
           eventView={eventView}
           onIntervalChange={onIntervalChange}

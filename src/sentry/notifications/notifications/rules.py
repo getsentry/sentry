@@ -19,6 +19,7 @@ from sentry.issues.grouptype import (
     ProfileFunctionRegressionType,
 )
 from sentry.models.group import Group
+from sentry.models.rule import Rule
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import (
     ActionTargetType,
@@ -62,6 +63,12 @@ def get_group_substatus_text(group: Group) -> str:
 
 
 GENERIC_TEMPLATE_NAME = "generic"
+
+
+def get_key_from_rule_data(rule: Rule, key: str) -> str:
+    value = rule.data.get("actions", [{}])[0].get(key)
+    assert value is not None
+    return value
 
 
 class AlertRuleNotification(ProjectNotification):
@@ -142,19 +149,13 @@ class AlertRuleNotification(ProjectNotification):
         }
 
     def get_image_url(self) -> str | None:
-        if features.has(
-            "organizations:email-performance-regression-image", self.group.organization
-        ):
-            image_builder = IssueAlertImageBuilder(
-                group=self.group, provider=ExternalProviderEnum.EMAIL
-            )
-            return image_builder.get_image_url()
-        return None
+        image_builder = IssueAlertImageBuilder(
+            group=self.group, provider=ExternalProviderEnum.EMAIL
+        )
+        return image_builder.get_image_url()
 
     def is_new_design(self) -> bool:
-        return features.has(
-            "organizations:email-performance-regression-image", self.group.organization
-        ) and self.group.issue_type in [
+        return self.group.issue_type in [
             PerformanceP95EndpointRegressionGroupType,
             ProfileFunctionRegressionType,
         ]

@@ -130,7 +130,7 @@ export function getRelativeTimeFromEventDateCreated(
   );
 }
 
-export type KnownDataDetails = Omit<KeyValueListDataItem, 'key'> | undefined;
+type KnownDataDetails = Omit<KeyValueListDataItem, 'key'> | undefined;
 
 export function getKnownData<Data, DataType>({
   data,
@@ -260,6 +260,11 @@ export function getContextTitle({
 
   if (PLATFORM_CONTEXT_KEYS.has(contextType)) {
     return getPlatformContextTitle({platform: alias});
+  }
+
+  if (alias === 'client_os') {
+    // To differentiate from `os` and avoid confusion with two items called "Operating System"
+    return t('Client Operating System');
   }
 
   switch (contextType) {

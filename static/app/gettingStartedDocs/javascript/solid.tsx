@@ -29,6 +29,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
+import {getJavascriptProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
 
 type Params = DocsParams;
 
@@ -201,7 +202,7 @@ const onboarding: OnboardingConfig = {
               code: getSdkSetupSnippet(params),
             },
           ],
-          additionalInfo: <TracePropagationMessage />,
+          additionalInfo: params.isReplaySelected ? <TracePropagationMessage /> : null,
         },
         ...(params.isProfilingSelected
           ? [getProfilingDocumentHeaderConfigurationStep()]
@@ -341,16 +342,16 @@ const crashReportOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
-const profilingOnboarding: OnboardingConfig = {
-  ...onboarding,
-  introduction: params => <MaybeBrowserProfilingBetaWarning {...params} />,
-};
+const profilingOnboarding = getJavascriptProfilingOnboarding({
+  getInstallConfig,
+  docsLink:
+    'https://docs.sentry.io/platforms/javascript/guides/solid/profiling/browser-profiling/',
+});
 
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
-
   crashReportOnboarding,
   profilingOnboarding,
   featureFlagOnboarding,

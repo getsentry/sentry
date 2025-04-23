@@ -1,3 +1,4 @@
+import sys
 from collections.abc import Mapping, MutableMapping
 from datetime import datetime
 from typing import Any
@@ -18,7 +19,7 @@ from sentry.issues.producer import (
 )
 from sentry.issues.run import OccurrenceStrategyFactory
 from sentry.issues.status_change_message import StatusChangeMessage
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls, with_feature
 from sentry.types.group import PriorityLevel
@@ -158,7 +159,12 @@ class TestOccurrenceConsumer(TestCase, OccurrenceTestMixin):
         mock_logger.exception.assert_called_once_with("failed to process message payload")
 
 
-class TestBatchedOccurrenceConsumer(TestCase, OccurrenceTestMixin, StatusChangeTestMixin):
+# XXX: this is a TransactionTestCase because it creates database objects in a
+# background thread which otherwise do not get cleaned up by django's
+# transaction-based cleanup
+class TestBatchedOccurrenceConsumer(
+    TransactionTestCase, OccurrenceTestMixin, StatusChangeTestMixin
+):
     def build_mock_message(
         self, data: MutableMapping[str, Any] | None, topic: ArroyoTopic | None = None
     ) -> mock.Mock:
@@ -187,7 +193,7 @@ class TestBatchedOccurrenceConsumer(TestCase, OccurrenceTestMixin, StatusChangeT
         strategy = OccurrenceStrategyFactory(
             mode="batched-parallel",
             max_batch_size=3,
-            max_batch_time=1,
+            max_batch_time=sys.maxsize,
         ).create_with_partitions(
             commit=mock_commit,
             partitions={},
@@ -327,7 +333,7 @@ class TestBatchedOccurrenceConsumer(TestCase, OccurrenceTestMixin, StatusChangeT
         strategy = OccurrenceStrategyFactory(
             mode="batched-parallel",
             max_batch_size=3,
-            max_batch_time=1,
+            max_batch_time=sys.maxsize,
         ).create_with_partitions(
             commit=mock_commit,
             partitions={},
@@ -407,12 +413,7 @@ class TestBatchedOccurrenceConsumer(TestCase, OccurrenceTestMixin, StatusChangeT
             strategy.terminate()
 
         calls = [mock.call({partition_1: 2, partition_2: 2})]
-        separate_calls = [mock.call({partition_1: 2}), mock.call({partition_2: 2})]
-
-        try:
-            mock_commit.assert_has_calls(calls=calls, any_order=True)
-        except AssertionError:
-            mock_commit.assert_has_calls(calls=separate_calls, any_order=True)
+        mock_commit.assert_has_calls(calls=calls, any_order=True)
 
         assert mock_save_issue_occurrence.call_count == 2
         occurrence_data1 = occurrence1.to_dict()

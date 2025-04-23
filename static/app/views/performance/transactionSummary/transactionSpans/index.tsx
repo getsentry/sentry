@@ -5,9 +5,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
-
-import PageLayout from '../pageLayout';
-import Tab from '../tabs';
+import PageLayout from 'sentry/views/performance/transactionSummary/pageLayout';
+import Tab from 'sentry/views/performance/transactionSummary/tabs';
 
 import SpansContent from './content';
 import {generateSpansEventView} from './utils';

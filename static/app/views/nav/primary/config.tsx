@@ -32,8 +32,8 @@ export const PRIMARY_NAV_GROUP_CONFIG: PrimaryNavGroupConfig = {
     basePaths: ['settings'],
     label: t('Settings'),
   },
-  [PrimaryNavGroup.PIPELINE]: {
-    basePaths: ['pipeline'],
-    label: t('Pipeline'),
+  [PrimaryNavGroup.CODECOV]: {
+    basePaths: ['codecov'],
+    label: t('Codecov'),
   },
 };

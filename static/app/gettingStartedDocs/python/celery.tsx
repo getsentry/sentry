@@ -16,6 +16,7 @@ import {
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {getPythonProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
@@ -201,15 +202,14 @@ def init_sentry(**_kwargs):
 
 const docs: Docs = {
   onboarding,
-
+  profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[celery]'}),
   crashReportOnboarding: crashReportOnboardingPython,
 };
 
 export default docs;
 
-const CONTENT_SPACING = space(2);
 const SpacedOnboardingCodeSnippet = styled(OnboardingCodeSnippet)`
   pre {
-    margin-bottom: ${CONTENT_SPACING};
+    margin-bottom: ${space(2)};
   }
 `;

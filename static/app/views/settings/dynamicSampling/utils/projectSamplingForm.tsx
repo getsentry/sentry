@@ -2,7 +2,7 @@ import {t} from 'sentry/locale';
 import {createForm} from 'sentry/views/settings/dynamicSampling/utils/formContext';
 
 type FormFields = {
-  projectRates: {[id: string]: string};
+  projectRates: Record<string, string>;
 };
 
 type FormErrors = {

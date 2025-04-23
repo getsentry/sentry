@@ -609,7 +609,9 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         return self._handlers.get(event_type)
 
     def is_valid_signature(self, method: str, body: bytes, secret: str, signature: str) -> bool:
-        if method == "sha1":
+        if method == "sha256":
+            mod = hashlib.sha256
+        elif method == "sha1":
             mod = hashlib.sha1
         else:
             raise NotImplementedError(f"signature method {method} is not supported")
@@ -664,10 +666,12 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
             return HttpResponse(status=204)
 
         try:
-            method, signature = request.META["HTTP_X_HUB_SIGNATURE"].split("=", 1)
-        except (KeyError, IndexError):
+            header = (
+                request.META.get("HTTP_X_HUB_SIGNATURE_256") or request.META["HTTP_X_HUB_SIGNATURE"]
+            )
+            method, signature = header.split("=", 1)
+        except (KeyError, ValueError):
             logger.exception("github.webhook.missing-signature", extra=self.get_logging_data())
-            logger.exception("Missing webhook secret.")
             return HttpResponse(status=400)
 
         if not self.is_valid_signature(method, body, secret, signature):

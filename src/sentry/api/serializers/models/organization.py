@@ -46,13 +46,9 @@ from sentry.constants import (
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     RESERVED_ORGANIZATION_SLUGS,
     ROLLBACK_ENABLED_DEFAULT,
-    SAFE_FIELDS_DEFAULT,
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
-    SENSITIVE_FIELDS_DEFAULT,
-    STREAMLINE_UI_ONLY,
     TARGET_SAMPLE_RATE_DEFAULT,
-    UPTIME_AUTODETECTION,
     ObjectStatus,
 )
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
@@ -506,7 +502,6 @@ class OnboardingTasksSerializer(Serializer):
 class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResponse, total=False):
     role: Any  # TODO: replace with enum/literal
     orgRole: str
-    uptimeAutodetection: bool
     targetSampleRate: float
     samplingMode: str
     effectiveSampleRate: float
@@ -647,9 +642,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             "dataScrubberDefaults": bool(
                 obj.get_option("sentry:require_scrub_defaults", REQUIRE_SCRUB_DEFAULTS_DEFAULT)
             ),
-            "sensitiveFields": obj.get_option("sentry:sensitive_fields", SENSITIVE_FIELDS_DEFAULT)
-            or [],
-            "safeFields": obj.get_option("sentry:safe_fields", SAFE_FIELDS_DEFAULT) or [],
+            "sensitiveFields": obj.get_option("sentry:sensitive_fields", None) or [],
+            "safeFields": obj.get_option("sentry:safe_fields", None) or [],
             "storeCrashReports": convert_crashreport_count(
                 obj.get_option("sentry:store_crash_reports")
             ),
@@ -701,7 +695,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             "rollbackEnabled": bool(
                 obj.get_option("sentry:rollback_enabled", ROLLBACK_ENABLED_DEFAULT)
             ),
-            "streamlineOnly": obj.get_option("sentry:streamline_ui_only", STREAMLINE_UI_ONLY),
+            "streamlineOnly": obj.get_option("sentry:streamline_ui_only", None),
             "trustedRelays": [
                 # serialize trusted relays info into their external form
                 _relay_internal_to_external(raw)
@@ -713,11 +707,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             ).count(),
             "isDynamicallySampled": is_dynamically_sampled,
         }
-
-        if features.has("organizations:uptime-settings", obj):
-            context["uptimeAutodetection"] = bool(
-                obj.get_option("sentry:uptime_autodetection", UPTIME_AUTODETECTION)
-            )
 
         if has_custom_dynamic_sampling(obj, actor=user):
             context["targetSampleRate"] = float(

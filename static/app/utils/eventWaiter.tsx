@@ -122,6 +122,8 @@ class EventWaiter extends Component<EventWaiterProps, EventWaiterState> {
       firstIssue = Boolean(firstEvent);
     } else if (eventType === 'replay') {
       firstIssue = Boolean(firstEvent);
+    } else if (eventType === 'profile') {
+      firstIssue = Boolean(firstEvent);
     }
 
     if (onIssueReceived) {

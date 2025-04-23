@@ -5,11 +5,11 @@ from datetime import datetime, timezone
 
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import CheckResult
 
-from sentry.issues.grouptype import UptimeDomainCheckFailure
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import ProjectUptimeSubscription
 
 

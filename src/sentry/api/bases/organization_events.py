@@ -3,7 +3,7 @@ from __future__ import annotations
 import itertools
 from collections.abc import Callable, Sequence
 from datetime import timedelta
-from typing import Any
+from typing import Any, cast
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
@@ -31,9 +31,10 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
+from sentry.search.eap.constants import SAMPLING_MODE_MAP
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
 from sentry.search.events.fields import get_function_alias
-from sentry.search.events.types import SnubaParams
+from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba import discover
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.utils import DATASET_LABELS, DATASET_OPTIONS, get_dataset
@@ -132,6 +133,12 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
             filter_params = self.get_filter_params(request, organization)
             query = request.GET.get("query", "")
+            sampling_mode = request.GET.get("sampling", None)
+            if sampling_mode is not None:
+                if sampling_mode.upper() not in SAMPLING_MODE_MAP:
+                    raise InvalidSearchQuery(f"sampling mode: {sampling_mode} is not supported")
+                sampling_mode = cast(SAMPLING_MODES, sampling_mode.upper())
+
             if quantize_date_params:
                 filter_params = self.quantize_date_params(request, filter_params)
             params = SnubaParams(
@@ -145,6 +152,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 teams=self.get_teams(request, organization),
                 organization=organization,
                 query_string=query,
+                sampling_mode=sampling_mode,
             )
 
             if check_global_views:
@@ -337,6 +345,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 isMetricsData = meta.pop("isMetricsData", False)
                 isMetricsExtractedData = meta.pop("isMetricsExtractedData", False)
                 discoverSplitDecision = meta.pop("discoverSplitDecision", None)
+                full_scan = meta.pop("full_scan", None)
                 query = meta.pop("query", None)
                 fields, units = self.handle_unit_meta(fields_meta)
                 meta = {
@@ -352,6 +361,12 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
                 if discoverSplitDecision is not None:
                     meta["discoverSplitDecision"] = discoverSplitDecision
+
+                if full_scan is not None:
+                    meta["dataScanned"] = "full" if full_scan else "partial"
+                else:
+                    # If this key isn't in meta there wasn't any sampling and we can assume all the data was scanned
+                    meta["dataScanned"] = "full"
 
                 # Only appears in meta when debug is passed to the endpoint
                 if query:

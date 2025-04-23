@@ -818,7 +818,6 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "sentry.incidentactivity": [UUID4Comparator("notification_uuid")],
             "sentry.incidenttrigger": [DateUpdatedComparator("date_modified")],
             "sentry.integration": [DateUpdatedComparator("date_updated")],
-            "sentry.monitor": [UUID4Comparator("guid")],
             "sentry.orgauthtoken": [
                 HashObfuscatingComparator("token_hashed", "token_last_characters")
             ],
@@ -832,6 +831,7 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             ],
             "sentry.organizationmemberinvite": [
                 DateUpdatedComparator("date_updated", "date_added"),
+                HashObfuscatingComparator("token"),
             ],
             "sentry.projectkey": [
                 HashObfuscatingComparator("public_key", "secret_key"),
@@ -915,10 +915,23 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "workflow_engine.alertruleworkflow": [
                 DateUpdatedComparator("date_updated", "date_added")
             ],
+            "workflow_engine.dataconditionalertruletrigger": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
+            "workflow_engine.incidentgroupopenperiod": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
             "tempest.tempestcredentials": [
                 DateUpdatedComparator("date_updated", "date_added"),
             ],
             "explore.exploresavedquery": [DateUpdatedComparator("date_updated", "date_added")],
+            "explore.exploresavedquerystarred": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
+            "insights.insightsstarredsegment": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
+            "monitors.monitor": [UUID4Comparator("guid")],
         },
     )
 

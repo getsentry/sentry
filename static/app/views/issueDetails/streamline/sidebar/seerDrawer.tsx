@@ -1,17 +1,17 @@
-import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import starImage from 'sentry-images/spot/banner-star.svg';
-
 import Feature from 'sentry/components/acl/feature';
-import {SeerIcon, SeerWaitingIcon} from 'sentry/components/ai/SeerIcon';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
+import {Flex} from 'sentry/components/container/flex';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Input} from 'sentry/components/core/input';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
+import {AutofixProgressBar} from 'sentry/components/events/autofix/autofixProgressBar';
+import {AutofixStartBox} from 'sentry/components/events/autofix/autofixStartBox';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import AutofixPreferenceDropdown from 'sentry/components/events/autofix/preferences/autofixPreferenceDropdown';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
@@ -19,8 +19,10 @@ import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconArrow} from 'sentry/icons';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -28,95 +30,10 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import useOrganization from 'sentry/utils/useOrganization';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import {SeerNotices} from 'sentry/views/issueDetails/streamline/sidebar/seerNotices';
-
-interface AutofixStartBoxProps {
-  groupId: string;
-  onSend: (message: string) => void;
-}
-
-function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
-  const [message, setMessage] = useState('');
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSend(message);
-  };
-
-  return (
-    <Wrapper>
-      <ScaleContainer>
-        <StyledArrow direction="down" size="sm" />
-        <Container>
-          <AutofixStartText>
-            <BackgroundStar
-              src={starImage}
-              style={{
-                width: '20px',
-                height: '20px',
-                right: '5%',
-                top: '20%',
-                transform: 'rotate(15deg)',
-              }}
-            />
-            <BackgroundStar
-              src={starImage}
-              style={{
-                width: '16px',
-                height: '16px',
-                right: '35%',
-                top: '40%',
-                transform: 'rotate(45deg)',
-              }}
-            />
-            <BackgroundStar
-              src={starImage}
-              style={{
-                width: '14px',
-                height: '14px',
-                right: '25%',
-                top: '60%',
-                transform: 'rotate(30deg)',
-              }}
-            />
-            <StartTextRow>
-              <StyledSeerWaitingIcon size="lg" />
-              <Fragment>Need help digging deeper?</Fragment>
-            </StartTextRow>
-          </AutofixStartText>
-          <InputWrapper onSubmit={handleSubmit}>
-            <StyledInput
-              type="text"
-              value={message}
-              onChange={e => setMessage(e.target.value)}
-              placeholder="(Optional) Share helpful context here..."
-              maxLength={4096}
-            />
-            <StyledButton
-              type="submit"
-              priority="primary"
-              analyticsEventKey={
-                message
-                  ? 'autofix.give_instructions_clicked'
-                  : 'autofix.start_fix_clicked'
-              }
-              analyticsEventName={
-                message
-                  ? 'Autofix: Give Instructions Clicked'
-                  : 'Autofix: Start Fix Clicked'
-              }
-              analyticsParams={{group_id: groupId}}
-            >
-              {t('Start Autofix')}
-            </StyledButton>
-          </InputWrapper>
-        </Container>
-      </ScaleContainer>
-    </Wrapper>
-  );
-}
 
 interface SeerDrawerProps {
   event: Event;
@@ -130,6 +47,7 @@ const AiSetupDataConsent = HookOrDefault({
 });
 
 export function SeerDrawer({group, project, event}: SeerDrawerProps) {
+  const organization = useOrganization();
   const {autofixData, triggerAutofix, reset} = useAiAutofix(group, event);
   const aiConfig = useAiConfig(group, project);
 
@@ -190,10 +108,9 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
         />
       </SeerDrawerHeader>
       <SeerDrawerNavigator>
-        <Header>
-          <SeerIcon size="lg" />
-          {t('Autofix')}
-          <StyledFeatureBadge
+        <Flex align="center" gap={space(1)}>
+          <Header>{t('Autofix')}</Header>
+          <FeatureBadge
             type="beta"
             tooltipProps={{
               title: tct(
@@ -203,7 +120,34 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
               isHoverable: true,
             }}
           />
-        </Header>
+          <QuestionTooltip
+            isHoverable
+            title={
+              <Flex column gap={space(1)}>
+                <div>
+                  {tct(
+                    'Seer models are powered by generative Al. Per our [dataDocs:data usage policies], Sentry does not use your data to train Seer models or share your data with other customers without your express consent.',
+                    {
+                      dataDocs: (
+                        <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/sentry-ai/#data-processing" />
+                      ),
+                    }
+                  )}
+                </div>
+                <div>
+                  {tct('Seer can be turned off in [settingsDocs:Settings].', {
+                    settingsDocs: (
+                      <Link
+                        to={`/settings/${organization.slug}/general-settings/#hideAiFeatures`}
+                      />
+                    ),
+                  })}
+                </div>
+              </Flex>
+            }
+            size="sm"
+          />
+        </Flex>
         {!aiConfig.needsGenAIConsent && (
           <ButtonBarWrapper data-test-id="autofix-button-bar">
             <ButtonBar gap={1}>
@@ -229,6 +173,10 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
           </ButtonBarWrapper>
         )}
       </SeerDrawerNavigator>
+
+      {!aiConfig.isAutofixSetupLoading && !aiConfig.needsGenAIConsent && autofixData && (
+        <AutofixProgressBar autofixData={autofixData} />
+      )}
       <SeerDrawerBody ref={scrollContainerRef} onScroll={handleScroll}>
         {aiConfig.isAutofixSetupLoading ? (
           <div data-test-id="ai-setup-loading-indicator">
@@ -241,6 +189,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
             <SeerNotices
               groupId={group.id}
               hasGithubIntegration={aiConfig.hasGithubIntegration}
+              project={project}
             />
             {aiConfig.hasSummary && (
               <StyledCard>
@@ -283,6 +232,10 @@ export const useOpenSeerDrawer = (
     openDrawer(() => <SeerDrawer group={group} project={project} event={event} />, {
       ariaLabel: t('Seer drawer'),
       drawerKey: 'seer-autofix-drawer',
+      drawerCss: css`
+        height: fit-content;
+        max-height: 100%;
+      `,
       shouldCloseOnInteractOutside: element => {
         const viewAllButton = buttonRef?.current;
 
@@ -328,85 +281,6 @@ export const useOpenSeerDrawer = (
   }, [openDrawer, buttonRef, event, group, project]);
 };
 
-const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin: ${space(1)} ${space(4)};
-  gap: ${space(1)};
-`;
-
-const ScaleContainer = styled('div')`
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
-const Container = styled('div')`
-  position: relative;
-  width: 100%;
-  border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.background}
-    linear-gradient(135deg, ${p => p.theme.pink400}08, ${p => p.theme.pink400}20);
-  overflow: hidden;
-  padding: ${space(0.5)};
-  border: 1px solid ${p => p.theme.border};
-`;
-
-const AutofixStartText = styled('div')`
-  margin: 0;
-  padding: ${space(1)};
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-size: ${p => p.theme.fontSizeLarge};
-  position: relative;
-`;
-
-const StartTextRow = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
-const StyledSeerWaitingIcon = styled(SeerWaitingIcon)`
-  color: ${p => p.theme.textColor};
-`;
-
-const BackgroundStar = styled('img')`
-  position: absolute;
-  filter: sepia(1) saturate(3) hue-rotate(290deg);
-  opacity: 0.7;
-  pointer-events: none;
-  z-index: 0;
-`;
-
-const StyledArrow = styled(IconArrow)`
-  color: ${p => p.theme.subText};
-  opacity: 0.5;
-`;
-
-const InputWrapper = styled('form')`
-  display: flex;
-  gap: ${space(0.5)};
-  padding: ${space(0.25)} ${space(0.25)};
-`;
-
-const StyledInput = styled(Input)`
-  flex-grow: 1;
-  background: ${p => p.theme.background};
-  border-color: ${p => p.theme.innerBorder};
-
-  &:hover {
-    border-color: ${p => p.theme.border};
-  }
-`;
-
-const StyledButton = styled(Button)`
-  flex-shrink: 0;
-`;
-
 const StyledCard = styled('div')`
   background: ${p => p.theme.backgroundElevated};
   overflow: visible;
@@ -416,15 +290,10 @@ const StyledCard = styled('div')`
   box-shadow: ${p => p.theme.dropShadowMedium};
 `;
 
-const StyledFeatureBadge = styled(FeatureBadge)`
-  margin-left: ${space(0.25)};
-  padding-bottom: 3px;
-`;
-
 const SeerDrawerContainer = styled('div')`
   height: 100%;
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: auto auto auto 1fr;
   position: relative;
 `;
 
@@ -461,9 +330,6 @@ const Header = styled('h3')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   font-weight: ${p => p.theme.fontWeightBold};
   margin: 0;
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const NavigationCrumbs = styled(NavigationBreadcrumbs)`

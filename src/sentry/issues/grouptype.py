@@ -6,7 +6,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import timedelta
 from enum import IntEnum, StrEnum
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
 from django.apps import apps
@@ -18,12 +18,11 @@ from sentry.features.base import OrganizationFeature
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
 from sentry.utils import metrics
+from sentry.workflow_engine.types import DetectorSettings
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
-    from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
-    from sentry.workflow_engine.handlers.detector import DetectorHandler
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +47,12 @@ GROUP_CATEGORIES_CUSTOM_EMAIL = (
 
 DEFAULT_IGNORE_LIMIT: int = 3
 DEFAULT_EXPIRY_TIME: timedelta = timedelta(hours=24)
+
+
+class InvalidGroupTypeError(ValueError):
+    def __init__(self, group_type_id: int) -> None:
+        super().__init__(f"No group type with the id {group_type_id} is registered.")
+        self.group_type_id = group_type_id
 
 
 @dataclass()
@@ -107,7 +112,7 @@ class GroupTypeRegistry:
 
     def get_by_type_id(self, id_: int) -> type[GroupType]:
         if id_ not in self._registry:
-            raise ValueError(f"No group type with the id {id_} is registered.")
+            raise InvalidGroupTypeError(id_)
         return self._registry[id_]
 
 
@@ -170,12 +175,10 @@ class GroupType:
     # Quota around many of these issue types can be created per project in a given time window
     creation_quota: Quota = Quota(3600, 60, 5)  # default 5 per hour, sliding window of 60 seconds
     notification_config: NotificationConfig = NotificationConfig()
-    detector_handler: type[DetectorHandler] | None = None
-    detector_validator: type[BaseDetectorTypeValidator] | None = None
+    detector_settings: DetectorSettings | None = None
     # Controls whether status change (i.e. resolved, regressed) workflow notifications are enabled.
     # Defaults to true to maintain the default workflow notification behavior as it exists for error group types.
     enable_status_change_workflow_notifications: bool = True
-    detector_config_schema: ClassVar[dict[str, Any]] = {}
 
     def __init_subclass__(cls: type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
@@ -183,8 +186,8 @@ class GroupType:
 
         if not cls.released:
             features.add(cls.build_visible_feature_name(), OrganizationFeature, True)
-            features.add(cls.build_ingest_feature_name(), OrganizationFeature)
-            features.add(cls.build_post_process_group_feature_name(), OrganizationFeature)
+            features.add(cls.build_ingest_feature_name(), OrganizationFeature, True)
+            features.add(cls.build_post_process_group_feature_name(), OrganizationFeature, True)
 
     def __post_init__(self) -> None:
         valid_categories = [category.value for category in GroupCategory]
@@ -218,7 +221,7 @@ class GroupType:
 
     @classmethod
     def build_base_feature_name(cls) -> str:
-        return f"organizations:{cls.build_feature_name_slug()}"
+        return f"organizations:issue-{cls.build_feature_name_slug()}"
 
     @classmethod
     def build_visible_feature_name(cls) -> str:
@@ -281,6 +284,7 @@ class PerformanceRenderBlockingAssetSpanGroupType(PerformanceGroupTypeDefaults, 
     category = GroupCategory.PERFORMANCE.value
     default_priority = PriorityLevel.LOW
     released = True
+    use_flagpole_for_all_features = True
 
 
 @dataclass(frozen=True)
@@ -384,19 +388,7 @@ class PerformanceHTTPOverheadGroupType(PerformanceGroupTypeDefaults, GroupType):
     noise_config = NoiseConfig(ignore_limit=20)
     category = GroupCategory.PERFORMANCE.value
     default_priority = PriorityLevel.LOW
-
-
-# experimental
-@dataclass(frozen=True)
-class PerformanceDurationRegressionGroupType(GroupType):
-    type_id = 1017
-    slug = "performance_duration_regression"
-    description = "Transaction Duration Regression (Experimental)"
-    category = GroupCategory.PERFORMANCE.value
-    enable_auto_resolve = False
-    enable_escalation_detection = False
-    default_priority = PriorityLevel.LOW
-    notification_config = NotificationConfig(context=[NotificationContextField.APPROX_START_TIME])
+    released = True
 
 
 @dataclass(frozen=True)
@@ -432,6 +424,7 @@ class ProfileFileIOGroupType(GroupType):
     description = "File I/O on Main Thread"
     category = GroupCategory.PERFORMANCE.value
     default_priority = PriorityLevel.LOW
+    released = True
 
 
 @dataclass(frozen=True)
@@ -441,6 +434,7 @@ class ProfileImageDecodeGroupType(GroupType):
     description = "Image Decoding on Main Thread"
     category = GroupCategory.PERFORMANCE.value
     default_priority = PriorityLevel.LOW
+    released = True
 
 
 @dataclass(frozen=True)
@@ -450,25 +444,7 @@ class ProfileJSONDecodeType(GroupType):
     description = "JSON Decoding on Main Thread"
     category = GroupCategory.PERFORMANCE.value
     default_priority = PriorityLevel.LOW
-
-
-@dataclass(frozen=True)
-class ProfileCoreDataExperimentalType(GroupType):
-    type_id = 2004
-    slug = "profile_core_data_main_exp"
-    description = "Core Data on Main Thread"
-    category = GroupCategory.PERFORMANCE.value
-    default_priority = PriorityLevel.LOW
-
-
-# 2005 was ProfileRegexExperimentalType
-@dataclass(frozen=True)
-class ProfileViewIsSlowExperimentalType(GroupType):
-    type_id = 2006
-    slug = "profile_view_is_slow_experimental"
-    description = "View Render/Layout/Update is slow"
-    category = GroupCategory.PERFORMANCE.value
-    default_priority = PriorityLevel.LOW
+    released = True
 
 
 @dataclass(frozen=True)
@@ -482,15 +458,6 @@ class ProfileRegexType(GroupType):
 
 
 @dataclass(frozen=True)
-class ProfileFrameDropExperimentalType(GroupType):
-    type_id = 2008
-    slug = "profile_frame_drop_experimental"
-    description = "Frame Drop"
-    category = GroupCategory.PERFORMANCE.value
-    default_priority = PriorityLevel.LOW
-
-
-@dataclass(frozen=True)
 class ProfileFrameDropType(GroupType):
     type_id = 2009
     slug = "profile_frame_drop"
@@ -499,17 +466,6 @@ class ProfileFrameDropType(GroupType):
     noise_config = NoiseConfig(ignore_limit=2000)
     released = True
     default_priority = PriorityLevel.LOW
-
-
-@dataclass(frozen=True)
-class ProfileFunctionRegressionExperimentalType(GroupType):
-    type_id = 2010
-    slug = "profile_function_regression_exp"
-    description = "Function Duration Regression (Experimental)"
-    category = GroupCategory.PERFORMANCE.value
-    enable_auto_resolve = False
-    default_priority = PriorityLevel.LOW
-    notification_config = NotificationConfig(context=[NotificationContextField.APPROX_START_TIME])
 
 
 @dataclass(frozen=True)
@@ -554,16 +510,6 @@ class MonitorCheckInMissed(MonitorIncidentType):
 
 
 @dataclass(frozen=True)
-class ReplayDeadClickType(ReplayGroupTypeDefaults, GroupType):
-    # This is not currently used
-    type_id = 5001
-    slug = "replay_click_dead"
-    description = "Dead Click Detected"
-    category = GroupCategory.REPLAY.value
-    default_priority = PriorityLevel.MEDIUM
-
-
-@dataclass(frozen=True)
 class ReplayRageClickType(ReplayGroupTypeDefaults, GroupType):
     type_id = 5002
     slug = "replay_click_rage"
@@ -596,18 +542,6 @@ class FeedbackGroup(GroupType):
     notification_config = NotificationConfig(context=[])
     in_default_search = False  # hide from issues stream
     released = True
-    enable_auto_resolve = False
-    enable_escalation_detection = False
-
-
-@dataclass(frozen=True)
-class UptimeDomainCheckFailure(GroupType):
-    type_id = 7001
-    slug = "uptime_domain_failure"
-    description = "Uptime Domain Monitor Failure"
-    category = GroupCategory.UPTIME.value
-    creation_quota = Quota(3600, 60, 1000)  # 1000 per hour, sliding window of 60 seconds
-    default_priority = PriorityLevel.HIGH
     enable_auto_resolve = False
     enable_escalation_detection = False
 

@@ -53,8 +53,9 @@ export interface User extends Omit<AvatarUser, 'options'> {
     clock24Hours: boolean;
     defaultIssueEvent: 'recommended' | 'latest' | 'oldest';
     language: string;
+    prefersChonkUI: boolean;
     prefersIssueDetailsStreamlinedUI: boolean | null;
-    prefersSpecializedProjectOverview: {[projectId: string]: boolean};
+    prefersNextjsInsightsOverview: boolean;
     prefersStackedNavigation: boolean;
     quickStartDisplay: QuickStartDisplay;
     stacktraceOrder: number;
@@ -129,5 +130,3 @@ export type InternetProtocol = {
   lastSeen: string;
   regionCode: string | null;
 };
-
-export type SubscriptionDetails = {disabled?: boolean; reason?: string};

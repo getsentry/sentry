@@ -4,7 +4,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   PageParamsProvider,
   useExplorePageParams,
-  useSetExploreDataset,
   useSetExploreFields,
   useSetExploreGroupBys,
   useSetExploreId,
@@ -16,12 +15,30 @@ import {
   useSetExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {
+  DEFAULT_VISUALIZATION,
+  DEFAULT_VISUALIZATION_AGGREGATE,
+  DEFAULT_VISUALIZATION_FIELD,
+} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+describe('defaults', function () {
+  it('default', function () {
+    expect(DEFAULT_VISUALIZATION).toBe('count(span.duration)');
+  });
+
+  it('default aggregate', function () {
+    expect(DEFAULT_VISUALIZATION_AGGREGATE).toBe('count');
+  });
+
+  it('default field', function () {
+    expect(DEFAULT_VISUALIZATION_FIELD).toBe('span.duration');
+  });
+});
 
 describe('PageParamsProvider', function () {
   let pageParams: ReturnType<typeof useExplorePageParams>;
   let setPageParams: ReturnType<typeof useSetExplorePageParams>;
-  let setDataset: ReturnType<typeof useSetExploreDataset>;
   let setFields: ReturnType<typeof useSetExploreFields>;
   let setGroupBys: ReturnType<typeof useSetExploreGroupBys>;
   let setMode: ReturnType<typeof useSetExploreMode>;
@@ -34,7 +51,6 @@ describe('PageParamsProvider', function () {
   function Component() {
     pageParams = useExplorePageParams();
     setPageParams = useSetExplorePageParams();
-    setDataset = useSetExploreDataset();
     setFields = useSetExploreFields();
     setGroupBys = useSetExploreGroupBys();
     setMode = useSetExploreMode();
@@ -92,37 +108,15 @@ describe('PageParamsProvider', function () {
         'transaction',
         'timestamp',
       ],
-      groupBys: ['span.op'],
+      groupBys: [''],
       mode: Mode.SAMPLES,
       query: '',
       sortBys: [{field: 'timestamp', kind: 'desc'}],
       visualizes: [
         {
-          chartType: ChartType.LINE,
+          chartType: ChartType.BAR,
           label: 'A',
-          yAxes: ['avg(span.duration)'],
-        },
-      ],
-    });
-  });
-
-  it('correctly updates dataset', function () {
-    renderTestComponent();
-
-    act(() => setDataset(DiscoverDatasets.SPANS_EAP));
-
-    expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP,
-      fields: ['id', 'timestamp'],
-      groupBys: ['span.op'],
-      mode: Mode.AGGREGATE,
-      query: '',
-      sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
-      visualizes: [
-        {
-          chartType: ChartType.AREA,
-          label: 'A',
-          yAxes: ['count(span.self_time)'],
+          yAxes: ['count(span.duration)'],
         },
       ],
     });
@@ -180,7 +174,7 @@ describe('PageParamsProvider', function () {
     expect(pageParams).toEqual({
       dataset: DiscoverDatasets.SPANS_EAP_RPC,
       fields: ['id', 'timestamp'],
-      groupBys: ['span.op'],
+      groupBys: [''],
       mode: Mode.AGGREGATE,
       query: '',
       sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],

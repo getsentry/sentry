@@ -436,7 +436,7 @@ const StyledOverlay = styled(Overlay)<{width?: string}>`
   width: ${p => p.width ?? 'auto'};
 `;
 
-export const EmptyMessage = styled('p')`
+const EmptyMessage = styled('p')`
   text-align: center;
   color: ${p => p.theme.subText};
   padding: ${space(1)} ${space(1.5)} ${space(1)};
@@ -486,8 +486,6 @@ const MenuTitle = styled('span')`
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   && {
     margin: 0 ${space(0.5)} 0 ${space(1)};
-    height: 12px;
-    width: 12px;
   }
 `;
 

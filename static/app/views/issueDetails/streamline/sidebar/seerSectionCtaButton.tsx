@@ -2,7 +2,6 @@ import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Chevron} from 'sentry/components/chevron';
 import {Button} from 'sentry/components/core/button';
 import {
   AutofixStatus,
@@ -12,6 +11,7 @@ import {
 import {useAiAutofix, useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -86,12 +86,12 @@ export function SeerSectionCtaButton({
         step => step.type === AutofixStepType.DEFAULT
       );
       if (prevProcessingStep && prevProcessingStep.status !== AutofixStatus.COMPLETED) {
-        if (currentSteps.find(step => step.type === AutofixStepType.CHANGES)) {
+        if (currentSteps.some(step => step.type === AutofixStepType.CHANGES)) {
           addSuccessMessage(t('Autofix has finished coding.'));
-        } else if (currentSteps.find(step => step.type === AutofixStepType.SOLUTION)) {
+        } else if (currentSteps.some(step => step.type === AutofixStepType.SOLUTION)) {
           addSuccessMessage(t('Autofix has found a solution.'));
         } else if (
-          currentSteps.find(step => step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS)
+          currentSteps.some(step => step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS)
         ) {
           addSuccessMessage(t('Autofix has found the root cause.'));
         }
@@ -203,9 +203,9 @@ export function SeerSectionCtaButton({
       {getButtonText()}
       <ChevronContainer>
         {isAutofixInProgress ? (
-          <StyledLoadingIndicator mini size={14} hideMessage />
+          <StyledLoadingIndicator size={14} />
         ) : (
-          <Chevron direction="right" size="large" />
+          <IconChevron direction="right" size="xs" />
         )}
       </ChevronContainer>
     </StyledButton>
@@ -231,7 +231,7 @@ const ChevronContainer = styled('div')`
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   position: relative;
-  top: 5px;
+  margin-left: ${space(1)};
   color: ${p => p.theme.pink400};
 
   .loading-indicator {

@@ -1,229 +1,151 @@
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import Link from 'sentry/components/links/link';
-import LoadingError from 'sentry/components/loadingError';
-import {PanelTable} from 'sentry/components/panels/panelTable';
-import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
-import {getAbsoluteSummary} from 'sentry/components/timeRangeSelector/utils';
-import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconLock, IconStar, IconUser} from 'sentry/icons';
+import {SavedEntityTable} from 'sentry/components/savedEntityTable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useUser} from 'sentry/utils/useUser';
+import {
+  canEditIssueView,
+  confirmDeleteIssueView,
+} from 'sentry/views/issueList/issueViews/utils';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
-import {getSortLabel} from 'sentry/views/issueList/utils';
-import {ProjectsRenderer} from 'sentry/views/traces/fieldRenderers';
 
 type IssueViewsTableProps = {
+  handleDeleteView: (view: GroupSearchView) => void;
+  handleStarView: (view: GroupSearchView) => void;
   isError: boolean;
   isPending: boolean;
+  type: string;
   views: GroupSearchView[];
+  hideCreatedBy?: boolean;
 };
 
-function StarCellContent({isStarred}: {isStarred: boolean}) {
-  return <IconStar isSolid={isStarred} />;
-}
-
-function ProjectsCellContent({projects}: {projects: GroupSearchView['projects']}) {
-  const {projects: allProjects} = useProjects();
-
-  const projectSlugs = allProjects
-    .filter(project => projects.includes(parseInt(project.id, 10)))
-    .map(project => project.slug);
-
-  if (projects.length === 0) {
-    return t('My Projects');
-  }
-  if (projects.includes(-1)) {
-    return t('All Projects');
-  }
-  return <ProjectsRenderer projectSlugs={projectSlugs} maxVisibleProjects={5} />;
-}
-
-function EnvironmentsCellContent({
-  environments,
-}: {
-  environments: GroupSearchView['environments'];
-}) {
-  const environmentsLabel =
-    environments.length === 0 ? t('All') : environments.join(', ');
-
-  return (
-    <PositionedContent>
-      <Tooltip title={environmentsLabel}>{environmentsLabel}</Tooltip>
-    </PositionedContent>
-  );
-}
-
-function TimeCellContent({timeFilters}: {timeFilters: GroupSearchView['timeFilters']}) {
-  if (timeFilters.period) {
-    return timeFilters.period;
-  }
-
-  return getAbsoluteSummary(timeFilters.start, timeFilters.end, timeFilters.utc);
-}
-
-function SharingCellContent({visibility}: {visibility: GroupSearchView['visibility']}) {
-  if (visibility === 'organization') {
-    return (
-      <Tooltip title={t('Shared with organziation')} skipWrapper>
-        <PositionedContent>
-          <IconUser />
-        </PositionedContent>
-      </Tooltip>
-    );
-  }
-  return (
-    <Tooltip title={t('Private')} skipWrapper>
-      <PositionedContent>
-        <IconLock locked />
-      </PositionedContent>
-    </Tooltip>
-  );
-}
-
-function LastVisitedCellContent({
-  lastVisited,
-}: {
-  lastVisited: GroupSearchView['lastVisited'];
-}) {
-  if (!lastVisited) {
-    return '-';
-  }
-  return <PositionedTimeSince date={lastVisited} unitStyle="short" />;
-}
-
-export function IssueViewsTable({views, isPending, isError}: IssueViewsTableProps) {
+export function IssueViewsTable({
+  views,
+  isPending,
+  isError,
+  handleStarView,
+  handleDeleteView,
+  type,
+  hideCreatedBy = false,
+}: IssueViewsTableProps) {
   const organization = useOrganization();
+  const user = useUser();
 
   return (
-    <StyledPanelTable
-      disableHeaderBorderBottom
-      headers={[
-        '',
-        t('Name'),
-        t('Project'),
-        t('Query'),
-        t('Envs'),
-        t('Time'),
-        t('Sort'),
-        t('Sharing'),
-        'Last Viewed',
-      ]}
+    <SavedEntityTableWithColumns
+      hideCreatedBy={hideCreatedBy}
+      data-test-id={`table-${type}`}
+      header={
+        <SavedEntityTable.Header>
+          <SavedEntityTable.HeaderCell key="star" />
+          <SavedEntityTable.HeaderCell key="name">
+            {t('Name')}
+          </SavedEntityTable.HeaderCell>
+          <SavedEntityTable.HeaderCell key="project">
+            {t('Project')}
+          </SavedEntityTable.HeaderCell>
+          <SavedEntityTable.HeaderCell key="envs">
+            {t('Environments')}
+          </SavedEntityTable.HeaderCell>
+          <SavedEntityTable.HeaderCell key="query">
+            {t('Query')}
+          </SavedEntityTable.HeaderCell>
+          {!hideCreatedBy && (
+            <SavedEntityTable.HeaderCell key="creator">
+              {t('Creator')}
+            </SavedEntityTable.HeaderCell>
+          )}
+          <SavedEntityTable.HeaderCell key="last-visited">
+            {t('Last Viewed')}
+          </SavedEntityTable.HeaderCell>
+          <SavedEntityTable.HeaderCell key="stars" noBorder>
+            {t('Stars')}
+          </SavedEntityTable.HeaderCell>
+          <SavedEntityTable.HeaderCell key="actions" />
+        </SavedEntityTable.Header>
+      }
       isLoading={isPending}
       isEmpty={views.length === 0}
+      isError={isError}
+      emptyMessage={t('No saved views found')}
     >
-      {isError && <LoadingError />}
-      {views.map((view, index) => (
-        <Row key={view.id} isFirst={index === 0}>
-          <RowHoverStateLayer />
-          <StarCell>
-            {/* TODO: Add isStarred when the API is update to include it */}
-            <StarCellContent isStarred />
-          </StarCell>
-          <Cell>
-            <RowLink to={`/organizations/${organization.slug}/issues/views/${view.id}/`}>
-              {view.name}
-            </RowLink>
-          </Cell>
-          <Cell>
-            <ProjectsCellContent projects={view.projects} />
-          </Cell>
-          <Cell>
-            <FormattedQuery query={view.query} />
-          </Cell>
-          <Cell>
-            <EnvironmentsCellContent environments={view.environments} />
-          </Cell>
-          <Cell>
-            <TimeCellContent timeFilters={view.timeFilters} />
-          </Cell>
-          <Cell>{getSortLabel(view.querySort)}</Cell>
-          <Cell>
-            <SharingCellContent visibility={view.visibility} />
-          </Cell>
-          <Cell>
-            <LastVisitedCellContent lastVisited={view.lastVisited} />
-          </Cell>
-        </Row>
-      ))}
-    </StyledPanelTable>
+      {views.map((view, index) => {
+        const canEdit = canEditIssueView({groupSearchView: view, user});
+
+        return (
+          <SavedEntityTable.Row
+            key={view.id}
+            isFirst={index === 0}
+            data-test-id={`table-${type}-row-${index}`}
+          >
+            <SavedEntityTable.Cell hasButton>
+              <SavedEntityTable.CellStar
+                isStarred={view.starred}
+                onClick={() => {
+                  handleStarView(view);
+                }}
+              />
+            </SavedEntityTable.Cell>
+            <SavedEntityTable.Cell>
+              <SavedEntityTable.CellName
+                to={`/organizations/${organization.slug}/issues/views/${view.id}/`}
+              >
+                {view.name}
+              </SavedEntityTable.CellName>
+            </SavedEntityTable.Cell>
+            <SavedEntityTable.Cell>
+              <SavedEntityTable.CellProjects projects={view.projects} />
+            </SavedEntityTable.Cell>
+            <SavedEntityTable.Cell>
+              <SavedEntityTable.CellEnvironments environments={view.environments} />
+            </SavedEntityTable.Cell>
+            <SavedEntityTable.Cell>
+              <SavedEntityTable.CellQuery query={view.query} />
+            </SavedEntityTable.Cell>
+            {!hideCreatedBy && (
+              <SavedEntityTable.Cell>
+                <SavedEntityTable.CellUser user={view.createdBy} />
+              </SavedEntityTable.Cell>
+            )}
+            <SavedEntityTable.Cell>
+              <SavedEntityTable.CellTimeSince date={view.lastVisited} />
+            </SavedEntityTable.Cell>
+            <SavedEntityTable.Cell>
+              <SavedEntityTable.CellTextContent>
+                {view.stars.toLocaleString()}
+              </SavedEntityTable.CellTextContent>
+            </SavedEntityTable.Cell>
+            <SavedEntityTable.Cell hasButton>
+              <SavedEntityTable.CellActions
+                items={[
+                  {
+                    key: 'delete',
+                    label: t('Delete'),
+                    priority: 'danger',
+                    onAction: () => {
+                      confirmDeleteIssueView({
+                        handleDelete: () => handleDeleteView(view),
+                        groupSearchView: view,
+                      });
+                    },
+                    disabled: !canEdit,
+                    details: canEdit
+                      ? undefined
+                      : t('You do not have permission to delete this view.'),
+                  },
+                ]}
+              />
+            </SavedEntityTable.Cell>
+          </SavedEntityTable.Row>
+        );
+      })}
+    </SavedEntityTableWithColumns>
   );
 }
 
-const StyledPanelTable = styled(PanelTable)`
-  white-space: nowrap;
-  font-size: ${p => p.theme.fontSizeMedium};
-  overflow: auto;
-  grid-template-columns: 36px auto auto 1fr auto auto 105px 90px 115px;
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    overflow: hidden;
-  }
-
-  & > * {
-    padding: ${space(1)} ${space(2)};
-  }
-`;
-
-const Row = styled('div')<{isFirst: boolean}>`
-  display: grid;
-  position: relative;
-  grid-template-columns: subgrid;
-  grid-column: 1/-1;
-  padding: 0;
-
-  ${p =>
-    p.isFirst &&
-    css`
-      border-top: 1px solid ${p.theme.border};
-    `}
-
-  &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
-  }
-`;
-
-const Cell = styled('div')`
-  display: flex;
-  align-items: center;
-  padding: ${space(1)} ${space(2)};
-`;
-
-const StarCell = styled(Cell)`
-  padding: 0 0 0 ${space(2)};
-`;
-
-const RowHoverStateLayer = styled(InteractionStateLayer)``;
-
-const RowLink = styled(Link)`
-  color: ${p => p.theme.textColor};
-
-  &:hover {
-    color: ${p => p.theme.textColor};
-    text-decoration: underline;
-  }
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-  }
-`;
-
-const PositionedTimeSince = styled(TimeSince)`
-  position: relative;
-`;
-
-const PositionedContent = styled('div')`
-  position: relative;
-  display: flex;
-  align-items: center;
+const SavedEntityTableWithColumns = styled(SavedEntityTable)<{hideCreatedBy?: boolean}>`
+  grid-template-columns:
+    40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(0, 1fr)
+    auto ${p => (p.hideCreatedBy ? '' : 'auto')} auto 48px;
 `;

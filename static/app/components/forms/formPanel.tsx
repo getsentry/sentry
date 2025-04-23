@@ -18,7 +18,7 @@ export interface FormPanelProps {
    */
   fields: FieldObject[];
   access?: Set<Scope>;
-  additionalFieldProps?: {[key: string]: any};
+  additionalFieldProps?: Record<string, any>;
   /**
    * Can the PanelBody be hidden with a click?
    */

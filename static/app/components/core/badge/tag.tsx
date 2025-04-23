@@ -102,6 +102,7 @@ const Text = styled('div')`
   /* @TODO(jonasbadalic): Some occurrences pass other things than strings into the children prop. */
   display: flex;
   align-items: center;
+  gap: ${space(0.5)};
 `;
 
 const IconWrapper = styled('span')`

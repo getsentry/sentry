@@ -4,12 +4,12 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {LinkButton} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import {ContextIcon} from 'sentry/components/events/contexts/contextIcon';
 import {generateIconName} from 'sentry/components/events/contexts/utils';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import {backend} from 'sentry/data/platformCategories';
 import {IconCopy, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -97,7 +97,7 @@ class EventMetas extends Component<Props, State> {
     // to check for presence of both to show the replay link button here.
     const hasReplay =
       organization.features.includes('session-replay') &&
-      Boolean(event.entries.find(({type}) => type === 'breadcrumbs')) &&
+      event.entries.some(({type}) => type === 'breadcrumbs') &&
       Boolean(getReplayIdFromEvent(event));
 
     const type = isTransaction(event) ? 'transaction' : 'event';
@@ -262,7 +262,7 @@ type EventDetailHeaderProps = {
   type?: 'transaction' | 'event';
 };
 
-export function getEventDetailHeaderCols({
+function getEventDetailHeaderCols({
   hasReplay,
   isBackendProject,
   type,

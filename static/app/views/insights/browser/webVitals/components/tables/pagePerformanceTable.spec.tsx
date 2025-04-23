@@ -68,7 +68,7 @@ describe('PagePerformanceTable', function () {
             'count()': 492,
             'count_scores(measurements.score.inp)': 985,
             'count_scores(measurements.score.total)': 985,
-            'avg(measurements.score.total)': 0.847767385770207,
+            'performance_score(measurements.score.total)': 0.847767385770207,
             'total_opportunity_score()': 6.956683571915815e-5,
             'opportunity_score(measurements.score.total)': 179.76662400002692,
             'p75(measurements.inp)': 144.0,

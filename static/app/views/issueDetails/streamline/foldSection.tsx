@@ -161,6 +161,8 @@ export function FoldSection({
   );
   const labelPrefix = isCollapsed ? t('View') : t('Collapse');
   const labelSuffix = typeof title === 'string' ? title + t(' Section') : t('Section');
+  // XXX: We should eventually only use titles as string, or explicitly pass them to stay accessible
+  const titleLabel = typeof title === 'string' ? title : sectionKey;
 
   return (
     <Fragment>
@@ -169,6 +171,7 @@ export function FoldSection({
         id={sectionKey}
         scrollMargin={navScrollMargin ?? 0}
         role="region"
+        aria-label={titleLabel}
         className={className}
       >
         <SectionExpander

@@ -36,7 +36,7 @@ export function useExploreSpansTable({
   return useProgressiveQuery<typeof useExploreSpansTableImp>({
     queryHookImplementation: useExploreSpansTableImp,
     queryHookArgs: {enabled, limit, query},
-    queryMode: QUERY_MODE.SERIAL,
+    queryOptions: {queryMode: QUERY_MODE.SERIAL, withholdBestEffort: true},
   });
 }
 

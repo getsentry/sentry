@@ -5,7 +5,7 @@ export default function hydrateFeedbackTags(
   eventData: Event | undefined,
   issueData: FeedbackIssue | undefined
 ): Record<string, string> {
-  if (!eventData || !eventData.contexts) {
+  if (!eventData?.contexts) {
     return {};
   }
   const context = eventData.contexts;
@@ -21,10 +21,10 @@ export default function hydrateFeedbackTags(
     ...(context.device?.name ? {'device.name': context.device?.name} : {}),
     ...(context.os?.name ? {'os.name': context.os?.name} : {}),
     ...(context.os?.version ? {'os.version': context.os?.version} : {}),
-    ...(eventTags.find(e => e.key === 'environment')
+    ...(eventTags.some(e => e.key === 'environment')
       ? {environment: eventTags.find(e => e.key === 'environment')?.value}
       : {}),
-    ...(eventTags.find(e => e.key === 'transaction')
+    ...(eventTags.some(e => e.key === 'transaction')
       ? {transaction: eventTags.find(e => e.key === 'transaction')?.value}
       : {}),
     ...(eventData.platform

@@ -16,6 +16,7 @@ import {
   featureFlagOnboarding,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
+import {getPythonProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
@@ -176,7 +177,7 @@ const performanceOnboarding: OnboardingConfig = {
             {code: <code />}
           ),
           code: `
-import sentry-sdk
+import sentry_sdk
 
 sentry_sdk.init(
   dsn: "${params.dsn.public}",
@@ -222,7 +223,7 @@ sentry_sdk.init(
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-
+  profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[django]'}),
   performanceOnboarding,
   crashReportOnboarding: crashReportOnboardingPython,
   featureFlagOnboarding,

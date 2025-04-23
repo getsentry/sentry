@@ -8,7 +8,7 @@ import string
 import sys
 import time
 from datetime import datetime
-from hashlib import md5
+from hashlib import sha256
 from typing import TypeVar
 from unittest import mock
 
@@ -415,7 +415,7 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
             if grouping_strategy == "scope"
             else item.nodeid.encode()
         )
-        item_to_group = int(md5(to_hash).hexdigest(), 16)
+        item_to_group = int(sha256(to_hash).hexdigest(), 16)
 
         # Split tests in different groups
         group_num = item_to_group % total_groups

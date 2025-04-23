@@ -12,7 +12,7 @@ import sys
 import tempfile
 from collections.abc import Callable, Mapping, MutableSequence
 from datetime import datetime, timedelta
-from typing import Any, Final, Union, overload
+from typing import Any, Final, Literal, Union, overload
 from urllib.parse import urlparse
 
 import sentry
@@ -20,6 +20,7 @@ import sentry.utils.types as env_types
 from sentry.conf.api_pagination_allowlist_do_not_modify import (
     SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
 )
+from sentry.conf.types.bgtask import BgTaskConfig
 from sentry.conf.types.celery import SplitQueueSize, SplitQueueTaskRoute
 from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
@@ -30,7 +31,6 @@ from sentry.conf.types.sentry_config import SentryMode
 from sentry.conf.types.service_options import ServiceOptions
 from sentry.conf.types.taskworker import ScheduleConfigMap
 from sentry.conf.types.uptime import UptimeRegionConfig
-from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import make_split_task_queues
 
 
@@ -359,7 +359,7 @@ ROOT_URLCONF = "sentry.conf.urls"
 # Once relay's fully rolled out, that can be deleted.
 # Until then, the safest and easiest thing to do is to disable this check
 # to leave things the way they were with Django <1.9.
-DATA_UPLOAD_MAX_MEMORY_SIZE = None
+DATA_UPLOAD_MAX_MEMORY_SIZE: int | None = None
 
 TEMPLATES = [
     {
@@ -436,6 +436,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.data_secrecy",
     "sentry.workflow_engine",
     "sentry.explore",
+    "sentry.insights",
 )
 
 # Silence internal hints from Django's system checks
@@ -615,7 +616,7 @@ SESSION_COOKIE_NAME = "sentrysid"
 # this breaks certain IDP flows where we need cookies sent to us on a redirected POST
 # request, and `Lax` doesnt permit this.
 # See here: https://docs.djangoproject.com/en/2.1/ref/settings/#session-cookie-samesite
-SESSION_COOKIE_SAMESITE = None
+SESSION_COOKIE_SAMESITE: Literal["Strict", "Lax", None] = None
 
 BITBUCKET_CONSUMER_KEY = ""
 BITBUCKET_CONSUMER_SECRET = ""
@@ -746,7 +747,7 @@ CELERY_TASK_PROTOCOL = 1
 CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
 CELERY_IGNORE_RESULT = True
 CELERY_SEND_EVENTS = False
-CELERY_RESULT_BACKEND = None
+CELERY_RESULT_BACKEND: str | None = None
 CELERY_TASK_RESULT_EXPIRES = 1
 CELERY_DISABLE_RATE_LIMITS = True
 CELERY_DEFAULT_QUEUE = "default"
@@ -768,6 +769,7 @@ CELERY_IMPORTS = (
     "sentry.hybridcloud.tasks.backfill_outboxes",
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.incidents.tasks",
+    "sentry.integrations.source_code_management.tasks",
     "sentry.integrations.github.tasks",
     "sentry.integrations.github.tasks.pr_comment",
     "sentry.integrations.jira.tasks",
@@ -1372,7 +1374,7 @@ TIMEDELTA_ALLOW_LIST = {
     "schedule-digests",
 }
 
-BGTASKS = {
+BGTASKS: dict[str, BgTaskConfig] = {
     "sentry.bgtasks.clean_dsymcache:clean_dsymcache": {"interval": 5 * 60, "roles": ["worker"]},
     "sentry.bgtasks.clean_releasefilecache:clean_releasefilecache": {
         "interval": 5 * 60,
@@ -1400,18 +1402,68 @@ TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.deletions.tasks.hybrid_cloud",
     "sentry.deletions.tasks.scheduled",
+    "sentry.demo_mode.tasks",
+    "sentry.data_export.tasks",
+    "sentry.hybridcloud.tasks.deliver_from_outbox",
+    "sentry.hybridcloud.tasks.deliver_webhooks",
+    "sentry.incidents.tasks",
+    "sentry.integrations.github.tasks.link_all_repos",
+    "sentry.integrations.github.tasks.open_pr_comment",
+    "sentry.integrations.github.tasks.pr_comment",
+    "sentry.integrations.jira.tasks",
+    "sentry.integrations.opsgenie.tasks",
+    "sentry.integrations.slack.tasks.find_channel_id_for_alert_rule",
+    "sentry.integrations.slack.tasks.find_channel_id_for_rule",
+    "sentry.integrations.slack.tasks.link_slack_user_identities",
+    "sentry.integrations.slack.tasks.post_message",
+    "sentry.integrations.slack.tasks.send_notifications_on_activity",
+    "sentry.integrations.tasks.create_comment",
+    "sentry.integrations.tasks.kick_off_status_syncs",
+    "sentry.integrations.tasks.migrate_repo",
+    "sentry.integrations.tasks.sync_assignee_outbound",
+    "sentry.integrations.tasks.sync_status_inbound",
+    "sentry.integrations.tasks.sync_status_outbound",
+    "sentry.integrations.tasks.update_comment",
+    "sentry.integrations.vsts.tasks.kickoff_subscription_check",
+    "sentry.integrations.vsts.tasks.subscription_check",
+    "sentry.middleware.integrations.tasks",
+    "sentry.monitors.tasks.clock_pulse",
+    "sentry.monitors.tasks.detect_broken_monitor_envs",
+    "sentry.notifications.utils.tasks",
+    "sentry.relocation.tasks.process",
+    "sentry.relocation.tasks.transfer",
+    "sentry.replays.tasks",
+    "sentry.sentry_apps.tasks.sentry_apps",
+    "sentry.snuba.tasks",
     "sentry.tasks.auth.auth",
     "sentry.tasks.auth.check_auth",
+    "sentry.tasks.autofix",
+    "sentry.tasks.auto_enable_codecov",
+    "sentry.tasks.delete_seer_grouping_records",
+    "sentry.tasks.digests",
+    "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
+    "sentry.tasks.email",
+    "sentry.tasks.process_buffer",
     "sentry.tasks.release_registry",
     "sentry.tempest.tasks",
     "sentry.tasks.beacon",
+    "sentry.tasks.options",
     "sentry.tasks.ping",
+    "sentry.tasks.repository",
+    "sentry.uptime.detectors.tasks",
+    "sentry.uptime.subscriptions.tasks",
+    "sentry.uptime.rdap.tasks",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
 
 # Schedules for taskworker tasks to be spawned on.
-TASKWORKER_SCHEDULES: ScheduleConfigMap = {}
+TASKWORKER_SCHEDULES: ScheduleConfigMap = {
+    "sync_options_trial": {
+        "schedule": timedelta(minutes=5),
+        "task": "options:sentry.tasks.options.sync_options",
+    },
+}
 
 # Sentry logs to two major places: stdout, and its internal project.
 # To disable logging to the internal project, add a logger whose only
@@ -2592,7 +2644,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.3.0"
+SELF_HOSTED_STABLE_VERSION = "25.4.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2804,21 +2856,19 @@ SENTRY_BUILTIN_SOURCES = {
         "url": "http://ctxsym.citrix.com/symbols/",
         "is_public": True,
     },
-    # Right now Symbolicator is not able to successfully download from
-    # the Intel source because the source doesn't accept custom user agents.
-    # Until we are confident we can spoof Symbolicator's user agent without
-    # abusing the source, we are disabling it. See
-    # https://github.com/getsentry/team-ingest/issues/642.
-    #
-    # "intel": {
-    #     "type": "http",
-    #     "id": "sentry:intel",
-    #     "name": "Intel",
-    #     "layout": {"type": "symstore"},
-    #     "filters": {"filetypes": ["pe", "pdb"]},
-    #     "url": "https://software.intel.com/sites/downloads/symbols/",
-    #     "is_public": True,
-    # },
+    "intel": {
+        "type": "http",
+        "id": "sentry:intel",
+        "name": "Intel",
+        "layout": {"type": "symstore"},
+        "filters": {"filetypes": ["pe", "pdb"]},
+        "url": "https://software.intel.com/sites/downloads/symbols/",
+        "headers": {
+            "User-Agent": "curl/7.72.0",
+        },
+        "is_public": True,
+        "has_index": True,
+    },
     "amd": {
         "type": "http",
         "id": "sentry:amd",
@@ -3019,6 +3069,9 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "ingest-metrics-dlq": "default",
     "snuba-metrics": "default",
     "profiles": "default",
+    "profiles-call-tree": "default",
+    "snuba-profile-chunks": "default",
+    "processed-profiles": "default",
     "ingest-performance-metrics": "default",
     "ingest-generic-metrics-dlq": "default",
     "snuba-generic-metrics": "default",
@@ -3029,9 +3082,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "monitors-clock-tick": "default",
     "monitors-clock-tasks": "default",
     "monitors-incident-occurrences": "default",
-    "uptime-configs": "default",
     "uptime-results": "default",
-    "uptime-configs": "default",
     "snuba-uptime-results": "default",
     "generic-events": "default",
     "snuba-generic-events-commit-log": "default",
@@ -3069,6 +3120,8 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "workflow_engine",
     "tempest",
     "explore",
+    "insights",
+    "monitors",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
@@ -3126,9 +3179,6 @@ SENTRY_SYNTHETIC_MONITORING_PROJECT_ID: int | None = None
 # Similarity cluster to use
 # Similarity-v1: uses hardcoded set of event properties for diffing
 SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
-
-# Unused legacy option, there to satisfy getsentry CI. Remove from getsentry, then here
-SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER = None
 
 # How long the migration phase for grouping lasts
 SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 30 * 24 * 3600  # 30 days
@@ -3192,7 +3242,7 @@ PG_VERSION: str = os.getenv("PG_VERSION") or "14"
 # Zero Downtime Migrations settings as defined at
 # https://github.com/tbicr/django-pg-zero-downtime-migrations#settings
 ZERO_DOWNTIME_MIGRATIONS_RAISE_FOR_UNSAFE = True
-ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT = None
+ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT: str | None = None
 ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT: str | None = None
 ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT_FORCE = False
 ZERO_DOWNTIME_MIGRATIONS_IDEMPOTENT_SQL = False
@@ -3320,8 +3370,12 @@ SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000
 
 SENTRY_GROUP_ATTRIBUTES_FUTURES_MAX_LIMIT = 10000
 
+SENTRY_PROCESSED_PROFILES_FUTURES_MAX_LIMIT = 10000
+SENTRY_PROFILE_FUNCTIONS_FUTURES_MAX_LIMIT = 10000
+SENTRY_PROFILE_CHUNKS_FUTURES_MAX_LIMIT = 10000
+
 # How long we should wait for a gateway proxy request to return before giving up
-GATEWAY_PROXY_TIMEOUT = None
+GATEWAY_PROXY_TIMEOUT: int | None = None
 
 SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
 # This maps a Sliceable for slicing by name and (lower logical partition, upper physical partition)

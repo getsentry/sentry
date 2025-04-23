@@ -7,7 +7,6 @@ import {
   useReducer,
   useRef,
 } from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -19,6 +18,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {IssueTraceWaterfallOverlay} from 'sentry/views/performance/newTraceDetails/issuesTraceWaterfallOverlay';
 import {
+  isEAPErrorNode,
   isEAPSpanNode,
   isEAPTransactionNode,
   isNonTransactionEAPSpanNode,
@@ -32,14 +32,10 @@ import {useDividerResizeSync} from 'sentry/views/performance/newTraceDetails/use
 import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/useTraceSpaceListeners';
 
 import type {TraceTreeNode} from './traceModels/traceTreeNode';
-import {TraceScheduler} from './traceRenderers/traceScheduler';
-import {TraceView as TraceViewModel} from './traceRenderers/traceView';
-import {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
 import {usePerformanceSubscriptionDetails} from './traceTypeWarnings/usePerformanceSubscriptionDetails';
 import {Trace} from './trace';
 import {traceAnalytics} from './traceAnalytics';
-import type {TraceReducerState} from './traceState';
 import {
   traceNodeAdjacentAnalyticsProperties,
   traceNodeAnalyticsName,
@@ -53,13 +49,13 @@ import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
 
 const noopTraceSearch = () => {};
 
-interface IssuesTraceWaterfallProps extends Omit<TraceWaterfallProps, 'tree'> {
+interface IssuesTraceWaterfallProps
+  extends Omit<TraceWaterfallProps, 'tree' | 'traceWaterfallScrollHandlers'> {
   event: Event;
   tree: IssuesTraceTree;
 }
 
 export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
-  const theme = useTheme();
   const {projects} = useProjects();
   const organization = useOrganization();
   const traceState = useTraceState();
@@ -68,20 +64,9 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
 
   const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
 
-  const traceView = useMemo(() => new TraceViewModel(), []);
-  const traceScheduler = useMemo(() => new TraceScheduler(), []);
   const problemSpans = useMemo((): ReturnType<typeof getProblemSpansForSpanTree> => {
     if (props.event.type === 'transaction') {
-      const result = getProblemSpansForSpanTree(props.event);
-      if (result.affectedSpanIds.length > 4) {
-        // Too many spans to focus on, instead let them click into the preview
-        // n+1 will have hundreds of affected spans
-        return {
-          affectedSpanIds: result.affectedSpanIds.slice(0, 4),
-          focusedSpanIds: result.focusedSpanIds.slice(0, 4),
-        };
-      }
-      return result;
+      return getProblemSpansForSpanTree(props.event);
     }
 
     return {affectedSpanIds: [], focusedSpanIds: []};
@@ -101,29 +86,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     null
   );
 
-  // Assign the trace state to a ref so we can access it without re-rendering
-  const traceStateRef = useRef<TraceReducerState>(traceState);
-  traceStateRef.current = traceState;
-
-  const traceStatePreferencesRef = useRef<
-    Pick<TraceReducerState['preferences'], 'autogroup' | 'missing_instrumentation'>
-  >(traceState.preferences);
-  traceStatePreferencesRef.current = traceState.preferences;
-
-  // Initialize the view manager right after the state reducer
-  const viewManager = useMemo(() => {
-    return new VirtualizedViewManager(
-      {
-        list: {width: traceState.preferences.list.width},
-        span_list: {width: 1 - traceState.preferences.list.width},
-      },
-      traceScheduler,
-      traceView,
-      theme
-    );
-    // We only care about initial state when we initialize the view manager
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const {viewManager, traceScheduler, traceView} = props.traceWaterfallModels;
 
   // Initialize the tabs reducer when the tree initializes
   useLayoutEffect(() => {
@@ -183,7 +146,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     // Find all the nodes that match the event id from the error so that we can try and
     // link the user to the most specific one.
     const nodes = IssuesTraceTree.FindAll(props.tree.root, n => {
-      if (isTraceErrorNode(n)) {
+      if (isTraceErrorNode(n) || isEAPErrorNode(n)) {
         return n.value.event_id === props.event.eventID;
       }
       if (isTransactionNode(n)) {
@@ -197,15 +160,14 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
           }
         }
 
-        for (const p of n.performance_issues) {
-          if (p.event_id === props.event.eventID) {
+        for (const o of n.occurrences) {
+          if (o.event_id === props.event.eventID) {
             return true;
           }
         }
       }
-      if (isSpanNode(n) || isEAPSpanNode(n)) {
-        const spanId = 'span_id' in n.value ? n.value.span_id : n.value.event_id;
-        if (spanId === props.event.eventID) {
+      if (isSpanNode(n)) {
+        if (n.value.span_id === props.event.eventID) {
           return true;
         }
         for (const e of n.errors) {
@@ -213,8 +175,24 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
             return true;
           }
         }
-        for (const p of n.performance_issues) {
-          if (p.event_id === props.event.eventID) {
+        for (const o of n.occurrences) {
+          if (o.event_id === props.event.eventID) {
+            return true;
+          }
+        }
+      }
+
+      if (isEAPSpanNode(n)) {
+        if (n.value.event_id === props.event.eventID) {
+          return true;
+        }
+        for (const e of n.errors) {
+          if (e.event_id === props.event.eventID) {
+            return true;
+          }
+        }
+        for (const o of n.occurrences) {
+          if (o.event_id === props.event.occurrence?.id) {
             return true;
           }
         }
@@ -230,7 +208,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
       nodes?.find(n => isSpanNode(n) || isNonTransactionEAPSpanNode(n)) ||
       nodes?.find(n => isTransactionNode(n) || isEAPTransactionNode(n));
 
-    const index = node ? props.tree.list.indexOf(node) : -1;
+    const index = node ? IssuesTraceTree.EnforceVisibility(props.tree, node) : -1;
 
     if (node) {
       const preserveNodes: Array<TraceTreeNode<TraceTree.NodeValue>> = [node];
@@ -240,7 +218,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         if (
           isTraceErrorNode(props.tree.list[start]!) ||
           node.errors.size > 0 ||
-          node.performance_issues.size > 0
+          node.occurrences.size > 0
         ) {
           preserveNodes.push(props.tree.list[start]!);
           break;
@@ -252,7 +230,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         if (
           isTraceErrorNode(props.tree.list[start]!) ||
           node.errors.size > 0 ||
-          node.performance_issues.size > 0
+          node.occurrences.size > 0
         ) {
           preserveNodes.push(props.tree.list[start]!);
           break;
@@ -263,6 +241,10 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
       // Preserve affectedSpanIds
       while (start < props.tree.list.length) {
         const currentNode = props.tree.list[start]!;
+        // Add more affected spans up to the minimum number of nodes to keep
+        if (preserveNodes.length >= MIN_NODES_TO_KEEP) {
+          break;
+        }
         if (
           currentNode.value &&
           'span_id' in currentNode.value &&
@@ -276,15 +258,12 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
       }
 
       let numSurroundingNodes = TRACE_PREVIEW_SURROUNDING_NODES;
-      let minShownNodes = MIN_NODES_TO_KEEP;
       if (props.event.type === 'transaction') {
         // Performance issues are tighter to focus on the suspect spans (of which there may be many)
         numSurroundingNodes = PERFORMANCE_ISSUE_SURROUNDING_NODES;
-        // Performance issues have multiple collapse sections already, keep smaller
-        minShownNodes = 0;
       }
 
-      props.tree.collapseList(preserveNodes, numSurroundingNodes, minShownNodes);
+      props.tree.collapseList(preserveNodes, numSurroundingNodes, MIN_NODES_TO_KEEP);
     }
 
     if (index === -1 || !node) {

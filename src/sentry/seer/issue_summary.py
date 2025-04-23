@@ -21,11 +21,60 @@ from sentry.models.project import Project
 from sentry.seer.autofix import trigger_autofix
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import seer_tasks
+from sentry.taskworker.retry import Retry
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
+
+
+@instrumented_task(
+    name="sentry.tasks.autofix.trigger_autofix_from_issue_summary",
+    max_retries=1,
+    soft_time_limit=60,  # 1 minute
+    time_limit=65,
+    taskworker_config=TaskworkerConfig(
+        namespace=seer_tasks,
+        processing_deadline_duration=65,
+        retry=Retry(
+            times=1,
+        ),
+    ),
+)
+def _trigger_autofix_task(group_id: int, event_id: str, user_id: int | None, auto_run_source: str):
+    """
+    Asynchronous task to trigger Autofix.
+    """
+    with sentry_sdk.start_span(op="ai_summary.trigger_autofix"):
+        try:
+            group = Group.objects.get(id=group_id)
+        except Group.DoesNotExist:
+            logger.warning("_trigger_autofix_task.group_not_found", extra={"group_id": group_id})
+            return
+
+        user: User | AnonymousUser | RpcUser | None = None
+        if user_id:
+            user = user_service.get_user(user_id=user_id)
+            if user is None:
+                logger.warning(
+                    "_trigger_autofix_task.user_not_found",
+                    extra={"group_id": group_id, "user_id": user_id},
+                )
+                user = AnonymousUser()
+        else:
+            user = AnonymousUser()
+
+        trigger_autofix(
+            group=group,
+            event_id=event_id,
+            user=user,
+            auto_run_source=auto_run_source,
+        )
 
 
 def _get_event(
@@ -194,6 +243,7 @@ def get_issue_summary(
         group: The issue group
         user: The user requesting the summary
         force_event_id: Optional event ID to force summarizing a specific event
+        source: The source triggering the summary generation
 
     Returns:
         A tuple containing (summary_data, status_code)
@@ -248,26 +298,16 @@ def get_issue_summary(
             if (
                 not autofix_state
             ):  # Only trigger autofix if we don't have an autofix on this issue already.
-                with sentry_sdk.start_span(op="ai_summary.trigger_autofix"):
-                    auto_run_source_map = {
-                        "issue_details": "issue_summary_fixability",
-                        "alert": "issue_summary_on_alert_fixability",
-                    }
-
-                    response = trigger_autofix(
-                        group=group,
-                        event_id=event.event_id,
-                        user=user,
-                        auto_run_source=auto_run_source_map.get(source, "unknown_source"),
-                    )
-
-                    if response.status_code != 202:
-                        # If autofix trigger fails, we don't cache to let it error and we can run again
-                        # This is only temporary for when we're testing this internally.
-                        return (
-                            convert_dict_key_case(response.data, snake_to_camel_case),
-                            response.status_code,
-                        )
+                auto_run_source_map = {
+                    "issue_details": "issue_summary_fixability",
+                    "alert": "issue_summary_on_alert_fixability",
+                }
+                _trigger_autofix_task.delay(
+                    group_id=group.id,
+                    event_id=event.event_id,
+                    user_id=user.id if user else None,
+                    auto_run_source=auto_run_source_map.get(source, "unknown_source"),
+                )
 
     summary_dict = issue_summary.dict()
     summary_dict["event_id"] = event.event_id

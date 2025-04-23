@@ -11,7 +11,7 @@ import {
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
@@ -66,6 +66,7 @@ import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvi
 import {
   isAutogroupedNode,
   isCollapsedNode,
+  isEAPErrorNode,
   isEAPSpanNode,
   isEAPTraceNode,
   isMissingInstrumentationNode,
@@ -496,6 +497,7 @@ export function Trace({
       <div
         ref={setScrollContainer}
         data-test-id="trace-virtualized-list-scroll-container"
+        id="trace-waterfall"
       >
         <div data-test-id="trace-virtualized-list">{virtualizedList.rendered}</div>
         <div className="TraceRow Hidden">
@@ -680,7 +682,7 @@ function RenderTraceRow(props: {
     return <TraceAutogroupedRow {...rowProps} node={node} />;
   }
 
-  if (isTraceErrorNode(node)) {
+  if (isTraceErrorNode(node) || isEAPErrorNode(node)) {
     return <TraceErrorRow {...rowProps} node={node} />;
   }
 
@@ -1094,7 +1096,7 @@ const TraceStylingWrapper = styled('div')`
         --pattern-odd: #a5752c;
         --pattern-even: ${p => p.theme.yellow300};
       }
-      &.performance_issue {
+      &.occurence {
         --pattern-odd: #063690;
         --pattern-even: ${p => p.theme.blue300};
       }
@@ -1135,7 +1137,7 @@ const TraceStylingWrapper = styled('div')`
         --pattern-odd: #a5752c;
         --pattern-even: ${p => p.theme.yellow300};
       }
-      &.performance_issue {
+      &.occurence {
         --pattern-odd: #063690;
         --pattern-even: ${p => p.theme.blue300};
       }
@@ -1190,7 +1192,7 @@ const TraceStylingWrapper = styled('div')`
     }
     &.error,
     &.fatal,
-    &.performance_issue {
+    &.occurence {
       color: ${p => p.theme.errorText};
       --autogrouped: ${p => p.theme.error};
       --row-children-button-border-color: ${p => p.theme.error};
@@ -1241,8 +1243,8 @@ const TraceStylingWrapper = styled('div')`
       &.fatal {
         background-color: var(--error);
       }
-      &.performance_issue {
-        background-color: var(--performance-issue);
+      &.occurence {
+        background-color: var(--occurence);
       }
       &.default {
         background-color: var(--default);
@@ -1266,7 +1268,7 @@ const TraceStylingWrapper = styled('div')`
 
       &.info,
       &.warning,
-      &.performance_issue,
+      &.occurence,
       &.default,
       &.unknown {
         svg {
@@ -1313,16 +1315,6 @@ const TraceStylingWrapper = styled('div')`
         var(--pattern-odd) 101%
       );
       background-size: 25.5px 17px;
-    }
-
-    .TracePerformanceIssue {
-      position: absolute;
-      top: 0;
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
-      background-color: var(--performance-issue);
-      height: 16px;
     }
 
     .TraceRightColumn.Odd {

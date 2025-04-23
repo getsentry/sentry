@@ -2,9 +2,9 @@ import React, {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {decodeList} from 'sentry/utils/queryString';
@@ -55,7 +55,7 @@ export function WebVitalsLandingPage() {
   const projectScore =
     isProjectScoresLoading || isPending
       ? undefined
-      : getWebVitalScoresFromTableDataRow(projectScores?.data?.[0]);
+      : getWebVitalScoresFromTableDataRow(projectScores?.[0]);
 
   const {openVitalsDrawer} = useWebVitalsDrawer({
     Component: <WebVitalsDetailPanel webVital={state.webVital} />,
@@ -95,8 +95,6 @@ export function WebVitalsLandingPage() {
                     projectScore={projectScore}
                     isProjectScoreLoading={isPending || isProjectScoresLoading}
                     webVital={state.webVital}
-                    browserTypes={browserTypes}
-                    subregions={subregions}
                   />
                 </PerformanceScoreChartContainer>
                 <WebVitalMetersContainer>

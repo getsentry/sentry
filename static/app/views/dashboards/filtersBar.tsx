@@ -147,6 +147,11 @@ const Wrapper = styled('div')`
   gap: ${space(1.5)};
   margin-bottom: ${space(2)};
 
+  & button[aria-haspopup] {
+    height: 100%;
+    width: 100%;
+  }
+
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: grid;
     grid-auto-flow: row;

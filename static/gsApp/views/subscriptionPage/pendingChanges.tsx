@@ -301,9 +301,7 @@ class PendingChanges extends Component<Props> {
     const {subscription} = this.props;
     const {pendingChanges} = subscription;
 
-    const results: {
-      [key: string]: React.ReactNode[];
-    } = {};
+    const results: Record<string, React.ReactNode[]> = {};
 
     if (!pendingChanges) {
       return results;

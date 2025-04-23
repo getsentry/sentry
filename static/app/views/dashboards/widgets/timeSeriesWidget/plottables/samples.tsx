@@ -1,23 +1,23 @@
 import type {Theme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
-import type {ScatterSeriesOption, SeriesOption} from 'echarts';
+import type {EChartsType, ScatterSeriesOption, SeriesOption} from 'echarts';
 
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
+import isValidDate from 'sentry/utils/date/isValidDate';
 import type {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {scaleTabularDataColumn} from 'sentry/utils/tabularData/scaleTabularDataColumn';
 import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
-import {getSampleChartSymbol} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/getSampleChartSymbol';
-import {crossIconPath} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/symbol';
-
-import {isAPlottableTimeSeriesValueType} from '../../common/typePredicates';
+import {isAPlottableTimeSeriesValueType} from 'sentry/views/dashboards/widgets/common/typePredicates';
 import type {
   TabularData,
   TabularRow,
   TabularValueUnit,
   TimeSeriesValueUnit,
-} from '../../common/types';
-import {FALLBACK_TYPE} from '../settings';
+} from 'sentry/views/dashboards/widgets/common/types';
+import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
+import {getSampleChartSymbol} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/getSampleChartSymbol';
+import {crossIconPath} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/symbol';
 
 import {BaselineMarkLine} from './baselineMarkline';
 import type {Plottable, PlottableTimeSeriesValueType} from './plottable';
@@ -32,7 +32,7 @@ type ValidSampleRow = {
   timestamp: string;
 };
 
-export type SamplesConfig = {
+type SamplesConfig = {
   /**
    * The name of the data attribute to plot. This should be one of the keys in the data that's available in the `samples` parameter that's passed to the constructor.
    */
@@ -50,12 +50,20 @@ export type SamplesConfig = {
    */
   baselineValue?: number;
   /**
-   * Callback for ECharts' `onHighlight`. Called with the sample that corresponds to the highlighted sample in the chart
+   * Callback for ECharts' `onClick` mouse event. Called with the sample that corresponds to the clicked sample in the chart
+   */
+  onClick?: (datum: ValidSampleRow) => void;
+  /**
+   * Callback for ECharts' `onDownplay`. Called with the sample that corresponds to the downplayed sample in the chart.
+   */
+  onDownplay?: (datum: ValidSampleRow) => void;
+  /**
+   * Callback for ECharts' `onHighlight`. Called with the sample that corresponds to the highlighted sample in the chart.
    */
   onHighlight?: (datum: ValidSampleRow) => void;
 };
 
-export type SamplesPlottingOptions = {
+type SamplesPlottingOptions = {
   /**
    * The current theme.
    */
@@ -73,6 +81,7 @@ export class Samples implements Plottable {
   sampleTableData: Readonly<TabularData>;
   #timestamps: readonly string[];
   config: Readonly<SamplesConfig>;
+  chartRef?: ReactEchartsRef;
 
   constructor(samples: TabularData, config: SamplesConfig) {
     this.sampleTableData = samples;
@@ -81,6 +90,47 @@ export class Samples implements Plottable {
       .map(sample => sample.timestamp)
       .toSorted();
     this.config = config;
+  }
+
+  handleChartRef(chartRef: ReactEchartsRef) {
+    this.chartRef = chartRef;
+  }
+
+  /**
+   * Dispatch an action on a data point to the chart instance, if possible. If not possible, log the error, but noop. In all current cases, failing to dispatch an action is harmless, and only happens if the chart is removed from the DOM, in which case there's nothing to dispatch to, anyway. Telemetry added in case this happens a lot and we want to track down what's dispatching actions to a removed chart.
+   */
+  #dispatchPointAction(action: string, dataIndex: number): void {
+    let chart: EChartsType | undefined = undefined;
+
+    try {
+      chart = this.chartRef?.getEchartsInstance();
+    } catch (e) {
+      warn(
+        '`Samples` could not dispatch action because the chart was removed from the DOM'
+      );
+      return undefined;
+    }
+
+    if (!chart) {
+      return undefined;
+    }
+
+    chart.dispatchAction({type: action, seriesName: this.name, dataIndex});
+    return undefined;
+  }
+
+  highlight(sample: TabularRow) {
+    if (sample && isValidSampleRow(sample)) {
+      const dataIndex = this.sampleTableData.data.indexOf(sample);
+      this.#dispatchPointAction('highlight', dataIndex);
+    }
+  }
+
+  downplay(sample: TabularRow) {
+    if (sample && isValidSampleRow(sample)) {
+      const dataIndex = this.sampleTableData.data.indexOf(sample);
+      this.#dispatchPointAction('downplay', dataIndex);
+    }
   }
 
   get isEmpty(): boolean {
@@ -138,11 +188,13 @@ export class Samples implements Plottable {
     return {
       ...this.sampleTableData,
       data: this.sampleTableData.data.filter(sample => {
-        if (!defined(sample.timestamp)) {
+        const timestampValue = sample.timestamp;
+        // @ts-expect-error: TypeScript pretends like `Date` doesn't accept `undefined`, but it does
+        const ts = new Date(timestampValue);
+
+        if (!isValidDate(ts)) {
           return false;
         }
-
-        const ts = new Date(sample.timestamp);
 
         return (
           (!boundaryStart || ts >= boundaryStart) && (!boundaryEnd || ts <= boundaryEnd)
@@ -155,26 +207,51 @@ export class Samples implements Plottable {
     return new Samples(this.constrainSamples(boundaryStart, boundaryEnd), this.config);
   }
 
-  onHighlight(dataIndex: number): void {
-    const {config} = this;
-
+  #getSampleByIndex(dataIndex: number): ValidSampleRow | undefined {
     const sample = this.sampleTableData.data.at(dataIndex);
 
     if (!sample) {
-      error('`Samples` plottable `onHighlight` out-of-range error', {
+      error('`Samples` plottable data out-of-range error', {
         dataIndex,
       });
-      return;
+      return undefined;
     }
 
     if (!isValidSampleRow(sample)) {
       warn('`Samples` plottable `onHighlight` almost received an invalid row', {
         dataIndex,
       });
-      return;
+      return undefined;
     }
 
-    config.onHighlight?.(sample);
+    return sample;
+  }
+
+  onClick(dataIndex: number): void {
+    const {config} = this;
+
+    const sample = this.#getSampleByIndex(dataIndex);
+    if (sample) {
+      config.onClick?.(sample);
+    }
+  }
+
+  onHighlight(dataIndex: number): void {
+    const {config} = this;
+
+    const sample = this.#getSampleByIndex(dataIndex);
+    if (sample) {
+      config.onHighlight?.(sample);
+    }
+  }
+
+  onDownplay(dataIndex: number): void {
+    const {config} = this;
+
+    const sample = this.#getSampleByIndex(dataIndex);
+    if (sample) {
+      config.onDownplay?.(sample);
+    }
   }
 
   toSeries(plottingOptions: SamplesPlottingOptions): SeriesOption[] {
@@ -196,7 +273,11 @@ export class Samples implements Plottable {
         return symbol;
       },
       markLine: config.baselineValue
-        ? BaselineMarkLine({value: config.baselineValue, label: config.baselineLabel})
+        ? BaselineMarkLine({
+            theme,
+            value: config.baselineValue,
+            label: config.baselineLabel,
+          })
         : undefined,
       animation: false,
       emphasis: {

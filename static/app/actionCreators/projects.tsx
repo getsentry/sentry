@@ -21,7 +21,7 @@ import useApi from 'sentry/utils/useApi';
 type UpdateParams = {
   orgId: string;
   projectId: string;
-  data?: {[key: string]: any};
+  data?: Record<string, any>;
   query?: Query;
 };
 
@@ -86,7 +86,7 @@ const _queryForStats = (
 
 export const _debouncedLoadStats = debounce(
   (api: Client, projectSet: Set<string>, params: UpdateParams) => {
-    const storedProjects: {[key: string]: Project} = ProjectsStatsStore.getAll();
+    const storedProjects: Record<string, Project> = ProjectsStatsStore.getAll();
     const existingProjectStats = Object.values(storedProjects).map(({id}) => id);
     const projects = Array.from(projectSet).filter(
       project => !existingProjectStats.includes(project)
@@ -292,37 +292,6 @@ export function sendSampleEvent(api: Client, orgSlug: string, projectSlug: strin
 
   return api.requestPromise(endpoint, {
     method: 'POST',
-  });
-}
-
-/**
- * Creates a project
- *
- * @param api API Client
- * @param orgSlug Organization Slug
- * @param team The team slug to assign the project to
- * @param name Name of the project
- * @param platform The platform key of the project
- * @param options Additional options such as creating default alert rules
- */
-export function createProject({
-  api,
-  name,
-  options = {},
-  orgSlug,
-  platform,
-  team,
-}: {
-  api: Client;
-  name: string;
-  options: {defaultRules?: boolean};
-  orgSlug: string;
-  platform: string;
-  team: string;
-}) {
-  return api.requestPromise(`/teams/${orgSlug}/${team}/projects/`, {
-    method: 'POST',
-    data: {name, platform, default_rules: options.defaultRules, origin: 'ui'},
   });
 }
 

@@ -7,18 +7,17 @@ import {
   type DispatchingReducerEmitter,
   useDispatchingReducer,
 } from 'sentry/utils/useDispatchingReducer';
-
-import {useHasTraceNewUi} from '../useHasTraceNewUi';
+import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 
 import {TraceReducer, type TraceReducerAction, type TraceReducerState} from './index';
 import {storeTraceViewPreferences, type TracePreferencesState} from './tracePreferences';
 
 interface TraceStateContext {}
 
-export const TraceStateContext = createContext<TraceReducerState | null>(null);
-export const TraceStateDispatchContext =
+const TraceStateContext = createContext<TraceReducerState | null>(null);
+const TraceStateDispatchContext =
   createContext<React.Dispatch<TraceReducerAction> | null>(null);
-export const TraceStateEmitterContext = createContext<DispatchingReducerEmitter<
+const TraceStateEmitterContext = createContext<DispatchingReducerEmitter<
   typeof TraceReducer
 > | null>(null);
 

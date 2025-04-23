@@ -914,9 +914,9 @@ describe('trace view', () => {
   });
 
   it('renders empty state for successfully ingested trace', async () => {
-    // set timestamp to 3 minutes ago
-    const threeMinutesAgoInSeconds = Math.floor(
-      new Date(Date.now() - 3 * 60 * 1000).getTime() / 1000
+    // set timestamp to 12 minutes ago
+    const twelveMinutesAgoInSeconds = Math.floor(
+      new Date(Date.now() - 12 * 60 * 1000).getTime() / 1000
     );
 
     mockPerformanceSubscriptionDetailsResponse();
@@ -930,7 +930,7 @@ describe('trace view', () => {
     mockTraceTagsResponse();
     mockEventsResponse();
 
-    window.location.search = `?timestamp=${threeMinutesAgoInSeconds.toString()}`;
+    window.location.search = `?timestamp=${twelveMinutesAgoInSeconds.toString()}`;
     render(<TraceView />, {
       router,
     });
@@ -962,7 +962,7 @@ describe('trace view', () => {
     });
     expect(
       await screen.findByText(
-        /We're still processing this trace. In a few seconds, refresh/i
+        /We're still processing this trace. Please try refreshing after a minute/i
       )
     ).toBeInTheDocument();
   });
@@ -1510,7 +1510,8 @@ describe('trace view', () => {
       const {container} = await searchTestSetup();
 
       const searchInput = await screen.findByPlaceholderText('Search in trace');
-      await userEvent.type(searchInput, 'transaction-op');
+      await userEvent.click(searchInput);
+      await userEvent.paste('transaction-op');
 
       expect(searchInput).toHaveValue('transaction-op');
       await searchToResolve();
@@ -1546,7 +1547,8 @@ describe('trace view', () => {
       await searchTestSetup();
 
       const searchInput = await screen.findByPlaceholderText('Search in trace');
-      await userEvent.type(searchInput, 'transaction-op');
+      await userEvent.click(searchInput);
+      await userEvent.paste('transaction-op');
       expect(searchInput).toHaveValue('transaction-op');
 
       // Wait for the search results to resolve
@@ -1571,14 +1573,16 @@ describe('trace view', () => {
       const {container} = await searchTestSetup();
       const searchInput = await screen.findByPlaceholderText('Search in trace');
 
-      await userEvent.type(searchInput, 'transaction-op-1');
+      await userEvent.click(searchInput);
+      await userEvent.paste('transaction-op-1');
       expect(searchInput).toHaveValue('transaction-op-1');
       await searchToResolve();
 
       await assertHighlightedRowAtIndex(container, 2);
 
       await userEvent.clear(searchInput);
-      await userEvent.type(searchInput, 'transaction-op-5');
+      await userEvent.click(searchInput);
+      await userEvent.paste('transaction-op-5');
       await searchToResolve();
 
       await assertHighlightedRowAtIndex(container, 6);
@@ -1605,12 +1609,15 @@ describe('trace view', () => {
       await assertHighlightedRowAtIndex(container, 2);
 
       await userEvent.clear(searchInput);
-      await userEvent.type(searchInput, 'this wont match anything');
+      await userEvent.click(searchInput);
+      await userEvent.paste('this wont match anything');
       expect(searchInput).toHaveValue('this wont match anything');
       await searchToResolve();
 
       // When there is no match, the highlighting is removed
-      expect(container.querySelectorAll('.TraceRow.Highlight')).toHaveLength(0);
+      await waitFor(() => {
+        expect(container.querySelectorAll('.TraceRow.Highlight')).toHaveLength(0);
+      });
     });
 
     it('auto highlights the first result when search begins', async () => {
@@ -1788,7 +1795,8 @@ describe('trace view', () => {
     it('during search, highlighting is persisted on the row', async () => {
       const {container} = await searchTestSetup();
       const searchInput = await screen.findByPlaceholderText('Search in trace');
-      await userEvent.type(searchInput, 'transaction-op');
+      await userEvent.click(searchInput);
+      await userEvent.paste('transaction-op');
       expect(searchInput).toHaveValue('transaction-op');
       await searchToResolve();
 
@@ -1817,11 +1825,14 @@ describe('trace view', () => {
       await assertHighlightedRowAtIndex(container, 6);
 
       await userEvent.clear(searchInput);
-      await userEvent.type(searchInput, 'transaction-op-none');
+      await userEvent.click(searchInput);
+      await userEvent.paste('transaction-op-none');
       await searchToResolve();
-      // eslint-disable-next-line testing-library/no-container
-      expect(container.querySelectorAll('.TraceRow.Highlight')).toHaveLength(0);
-    });
+      await waitFor(() => {
+        // eslint-disable-next-line testing-library/no-container
+        expect(container.querySelectorAll('.TraceRow.Highlight')).toHaveLength(0);
+      });
+    }, 20_000);
   });
 
   describe('tabbing', () => {

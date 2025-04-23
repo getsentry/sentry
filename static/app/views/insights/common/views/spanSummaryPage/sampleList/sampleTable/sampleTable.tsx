@@ -11,16 +11,22 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {SamplesTableColumnHeader} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
 import {SpanSamplesTable} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import type {SpanSample} from 'sentry/views/insights/common/queries/useSpanSamples';
+import {
+  useDiscoverOrEap,
+  useSpanMetrics,
+} from 'sentry/views/insights/common/queries/useDiscover';
+import type {
+  NonDefaultSpanSampleFields,
+  SpanSample,
+} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {useSpanSamples} from 'sentry/views/insights/common/queries/useSpanSamples';
-import {useTransactions} from 'sentry/views/insights/common/queries/useTransactions';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
   ModuleName,
   SpanMetricsQueryFilters,
   SubregionCode,
 } from 'sentry/views/insights/types';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
@@ -31,7 +37,7 @@ type Props = {
   groupId: string;
   moduleName: ModuleName;
   transactionName: string;
-  additionalFields?: string[];
+  additionalFields?: NonDefaultSpanSampleFields[];
   additionalFilters?: Record<string, string>;
   columnOrder?: SamplesTableColumnHeader[];
   highlightedSpanId?: string;
@@ -59,6 +65,8 @@ function SampleTable({
   additionalFilters,
   subregions,
 }: Props) {
+  const useEap = useInsightsEap();
+
   const filters: SpanMetricsQueryFilters = {
     'span.group': groupId,
     transaction: transactionName,
@@ -95,9 +103,9 @@ function SampleTable({
   const {setPageError} = usePageAlert();
 
   const {
-    data: spans,
+    data: spanSamplesData,
     isFetching: isFetchingSamples,
-    isEnabled: isSamplesEnabled,
+    isPending: isPendingSamples,
     error: sampleError,
     refetch,
   } = useSpanSamples({
@@ -110,14 +118,28 @@ function SampleTable({
     additionalFields,
   });
 
+  const spans = spanSamplesData?.data ?? [];
+
+  const transactionIdField = useEap ? 'transaction.span_id' : 'transaction.id';
+  const transactionIds = spans.map(span => span[transactionIdField]);
+
+  const isTransactionsEnabled = Boolean(transactionIds.length);
+
+  const search = useEap
+    ? `${SpanIndexedField.TRANSACTION_SPAN_ID}:[${transactionIds.join(',')}] is_transaction:true`
+    : `id:[${transactionIds.join(',')}]`;
+
   const {
     data: transactions,
     isFetching: isFetchingTransactions,
-    isEnabled: isTransactionsEnabled,
     isPending: isLoadingTransactions,
     error: transactionError,
-  } = useTransactions(
-    spans.map(span => span['transaction.id']),
+  } = useDiscoverOrEap(
+    {
+      search,
+      enabled: isTransactionsEnabled,
+      fields: ['id', 'timestamp', 'project', 'span.duration', 'trace'],
+    },
     'api.starfish.span-summary-panel-samples-table-transactions'
   );
 
@@ -151,7 +173,7 @@ function SampleTable({
   const isLoading =
     isFetchingSpanMetrics ||
     isFetchingSamples ||
-    !isSamplesEnabled ||
+    isPendingSamples ||
     (!areNoSamples && isFetchingTransactions && !isTransactionsEnabled);
 
   if (sampleError || transactionError) {
@@ -176,7 +198,7 @@ function SampleTable({
               ...sample,
               // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               op: spanMetrics[SPAN_OP]!,
-              transaction: transactionsById[sample['transaction.id']]!,
+              transaction: transactionsById[sample['transaction.span_id']]!,
             };
           })}
           isLoading={isLoading}

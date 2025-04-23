@@ -19,18 +19,16 @@ import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import type {TracePerformanceIssue} from 'sentry/utils/performance/quickTrace/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {HeaderDivider} from 'sentry/views/issueList/actions';
 import {AssigneeLabel} from 'sentry/views/issueList/actions/headers';
-
-import {isTracePerformanceIssue} from '../../../traceGuards';
-import {TraceIcons} from '../../../traceIcons';
-import type {TraceTree} from '../../../traceModels/traceTree';
-import type {TraceTreeNode} from '../../../traceModels/traceTreeNode';
-import {useHasTraceNewUi} from '../../../useHasTraceNewUi';
-import {TraceDrawerComponents} from '../styles';
+import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {isTraceOccurence} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 
 type IssueProps = {
   issue: TraceTree.TraceIssue;
@@ -102,10 +100,8 @@ function Issue(props: IssueProps) {
     );
   }
 
-  const isPerformanceIssue: boolean = isTracePerformanceIssue(props.issue);
-  const iconClassName: string = isPerformanceIssue
-    ? 'performance_issue'
-    : props.issue.level;
+  const isOccurence: boolean = isTraceOccurence(props.issue);
+  const iconClassName: string = isOccurence ? 'occurence' : props.issue.level;
 
   return isPending ? (
     <StyledLoadingIndicatorWrapper>
@@ -177,10 +173,10 @@ const IconWrapper = styled('div')`
       background-color: var(--error);
     }
   }
-  &.performance_issue {
-    border: 1px solid var(--performance-issue);
+  &.occurence {
+    border: 1px solid var(--occurence);
     ${IconBackground} {
-      background-color: var(--performance-issue);
+      background-color: var(--occurence);
     }
   }
   &.default {
@@ -198,7 +194,7 @@ const IconWrapper = styled('div')`
 
   &.info,
   &.warning,
-  &.performance_issue,
+  &.occurence,
   &.default,
   &.unknown {
     svg {
@@ -312,11 +308,11 @@ export function IssueList({issues, node, organization}: IssueListProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [node, node.errors.size]);
 
-  const uniquePerformanceIssues = useMemo(() => {
-    const unique: TracePerformanceIssue[] = [];
+  const uniqueOccurences = useMemo(() => {
+    const unique: TraceTree.TraceOccurrence[] = [];
     const seenIssues: Set<number> = new Set();
 
-    for (const issue of node.performance_issues) {
+    for (const issue of node.occurrences) {
       if (seenIssues.has(issue.issue_id)) {
         continue;
       }
@@ -327,11 +323,11 @@ export function IssueList({issues, node, organization}: IssueListProps) {
     return unique;
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [node, node.performance_issues.size]);
+  }, [node, node.occurrences.size]);
 
   const uniqueIssues = useMemo(() => {
-    return [...uniquePerformanceIssues, ...uniqueErrorIssues.sort(sortIssuesByLevel)];
-  }, [uniqueErrorIssues, uniquePerformanceIssues]);
+    return [...uniqueOccurences, ...uniqueErrorIssues.sort(sortIssuesByLevel)];
+  }, [uniqueErrorIssues, uniqueOccurences]);
 
   if (!issues.length) {
     return null;
@@ -343,7 +339,7 @@ export function IssueList({issues, node, organization}: IssueListProps) {
         <IssueListHeader
           node={node}
           errorIssues={uniqueErrorIssues}
-          performanceIssues={uniquePerformanceIssues}
+          occurences={uniqueOccurences}
         />
         {uniqueIssues.slice(0, MAX_DISPLAYED_ISSUES_COUNT).map((issue, index) => (
           <Issue key={index} issue={issue} organization={organization} />
@@ -384,11 +380,11 @@ const IssueLinkWrapper = styled('div')`
 function IssueListHeader({
   node,
   errorIssues,
-  performanceIssues,
+  occurences,
 }: {
   errorIssues: TraceTree.TraceErrorIssue[];
   node: TraceTreeNode<TraceTree.NodeValue>;
-  performanceIssues: TracePerformanceIssue[];
+  occurences: TraceTree.TraceOccurrence[];
 }) {
   const [singular, plural] = useMemo((): [string, string] => {
     const label = [t('Issue'), t('Issues')] as [string, string];
@@ -401,35 +397,31 @@ function IssueListHeader({
   }, [errorIssues]);
 
   const issueHeadingContent =
-    errorIssues.length + performanceIssues.length > MAX_DISPLAYED_ISSUES_COUNT
+    errorIssues.length + occurences.length > MAX_DISPLAYED_ISSUES_COUNT
       ? tct(`[count]+  issues, [link]`, {
           count: MAX_DISPLAYED_ISSUES_COUNT,
           link: <StyledIssuesLink node={node}>{t('View All')}</StyledIssuesLink>,
         })
-      : errorIssues.length > 0 && performanceIssues.length === 0
+      : errorIssues.length > 0 && occurences.length === 0
         ? tct('[count] [text]', {
             count: errorIssues.length,
             text: errorIssues.length > 1 ? plural : singular,
           })
-        : performanceIssues.length > 0 && errorIssues.length === 0
+        : occurences.length > 0 && errorIssues.length === 0
           ? tct('[count] [text]', {
-              count: performanceIssues.length,
-              text: tn(
-                'Performance issue',
-                'Performance Issues',
-                performanceIssues.length
-              ),
+              count: occurences.length,
+              text: tn('Performance issue', 'Performance Issues', occurences.length),
             })
           : tct(
               '[errors] [errorsText] and [performance_issues] [performanceIssuesText]',
               {
                 errors: errorIssues.length,
-                performance_issues: performanceIssues.length,
+                performance_issues: occurences.length,
                 errorsText: errorIssues.length > 1 ? plural : singular,
                 performanceIssuesText: tn(
                   'performance issue',
                   'performance issues',
-                  performanceIssues.length
+                  occurences.length
                 ),
               }
             );

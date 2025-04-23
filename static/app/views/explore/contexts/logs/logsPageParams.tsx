@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useLayoutEffect} from 'react';
 import type {Location} from 'history';
 
 import type {CursorHandler} from 'sentry/components/pagination';
@@ -6,9 +6,11 @@ import {defined} from 'sentry/utils';
 import type {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {decodeProjects} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
+import localStorage from 'sentry/utils/localStorage';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {
@@ -22,6 +24,7 @@ import {
 } from 'sentry/views/explore/contexts/logs/sortBys';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
+const LOGS_PARAMS_VERSION = 1;
 const LOGS_QUERY_KEY = 'logsQuery'; // Logs may exist on other pages.
 const LOGS_CURSOR_KEY = 'logsCursor';
 export const LOGS_FIELDS_KEY = 'logsFields';
@@ -86,7 +89,7 @@ export function LogsPageParamsProvider({
     : getLogFieldsFromLocation(location);
   const sortBys = isTableEditingFrozen
     ? [logsTimestampDescendingSortBy]
-    : getLogSortBysFromLocation(location, fields);
+    : getLogSortBysFromLocation(location);
   const projectIds = isOnEmbeddedView
     ? (limitToProjectIds ?? [-1])
     : decodeProjects(location);
@@ -111,10 +114,10 @@ export function LogsPageParamsProvider({
   );
 }
 
-export const useLogsPageParams = _useLogsPageParams;
+const useLogsPageParams = _useLogsPageParams;
 
 const decodeLogsQuery = (location: Location): string => {
-  if (!location.query || !location.query[LOGS_QUERY_KEY]) {
+  if (!location.query?.[LOGS_QUERY_KEY]) {
     return '';
   }
 
@@ -210,7 +213,16 @@ export function useLogsSortBys() {
 
 export function useLogsFields() {
   const {fields} = useLogsPageParams();
-  return fields;
+  const [persistentFields, _] = useLocalStorageState('logs-params-v0', {
+    fields: defaultLogFields(),
+  });
+  if (fields?.length) {
+    return fields;
+  }
+  if (persistentFields?.fields?.length) {
+    return persistentFields?.fields;
+  }
+  return defaultLogFields();
 }
 
 export function useLogsProjectIds() {
@@ -220,11 +232,26 @@ export function useLogsProjectIds() {
 
 export function useSetLogsFields() {
   const setPageParams = useSetLogsPageParams();
+
+  const [_, setPersistentParams] = useLocalStorageState(
+    getLogsParamsStorageKey(LOGS_PARAMS_VERSION),
+    {}
+  );
+  useLayoutEffect(() => {
+    const pastParams = localStorage.getItem(
+      getPastLogsParamsStorageKey(LOGS_PARAMS_VERSION)
+    );
+    if (pastParams) {
+      localStorage.removeItem(getPastLogsParamsStorageKey(LOGS_PARAMS_VERSION));
+    }
+  }, [setPersistentParams]);
+
   return useCallback(
     (fields: string[]) => {
       setPageParams({fields});
+      setPersistentParams({fields});
     },
-    [setPageParams]
+    [setPageParams, setPersistentParams]
   );
 }
 
@@ -276,13 +303,28 @@ export function useLogsAnalyticsPageSource() {
 }
 
 function getLogCursorFromLocation(location: Location): string {
-  if (!location.query || !location.query[LOGS_CURSOR_KEY]) {
+  if (!location.query?.[LOGS_CURSOR_KEY]) {
     return '';
   }
 
   return decodeScalar(location.query[LOGS_CURSOR_KEY], '');
 }
 
+export function stripLogParamsFromLocation(location: Location): Location {
+  const target: Location = {...location, query: {...location.query}};
+  delete target.query[LOGS_CURSOR_KEY];
+  delete target.query[LOGS_FIELDS_KEY];
+  delete target.query[LOGS_QUERY_KEY];
+  return target;
+}
+
+function getLogsParamsStorageKey(version: number) {
+  return `logs-params-v${version}`;
+}
+
+function getPastLogsParamsStorageKey(version: number) {
+  return `logs-params-v${version - 1}`;
+}
 interface ToggleableSortBy {
   field: string;
   defaultDirection?: 'asc' | 'desc'; // Defaults to descending if not provided.

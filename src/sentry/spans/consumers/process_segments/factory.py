@@ -49,7 +49,18 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
 
         topic_definition = get_topic_definition(Topic.SNUBA_SPANS)
         producer_config = get_kafka_producer_cluster_options(topic_definition["cluster"])
-        self.producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
+
+        # Due to the unfold step that precedes the producer, this pipeline
+        # writes large bursts of spans at once when a batch of segments is
+        # finished by the multi processing pool. We size the produce buffer
+        # so that it can accommodate batches from all subprocesses at the
+        # sime time, assuming some upper bound of spans per segment.
+        self.kafka_queue_size = self.max_batch_size * self.num_processes * SPANS_PER_SEG_P95
+        producer_config["queue.buffering.max.messages"] = self.kafka_queue_size
+
+        self.producer = KafkaProducer(
+            build_kafka_configuration(default_config=producer_config), use_simple_futures=True
+        )
         self.output_topic = ArroyoTopic(topic_definition["real_topic_name"])
 
     def create_with_partitions(
@@ -62,18 +73,11 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         produce_step: ProcessingStrategy[FilteredPayload | KafkaPayload]
 
         if not self.skip_produce:
-            # Due to the unfold step that precedes the producer, this pipeline
-            # writes large bursts of spans at once when a batch of segments is
-            # finished by the multi processing pool. We size the produce buffer
-            # so that it can accommodate batches from all subprocesses at the
-            # sime time, assuming some upper bound of spans per segment.
-            max_buffer_size = self.max_batch_size * self.num_processes * SPANS_PER_SEG_P95
-
             produce_step = Produce(
                 producer=self.producer,
                 topic=self.output_topic,
                 next_step=commit_step,
-                max_buffer_size=max_buffer_size,
+                max_buffer_size=self.kafka_queue_size,
             )
         else:
             produce_step = commit_step

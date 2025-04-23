@@ -18,7 +18,7 @@ from sentry.models.repository import Repository
 from sentry.utils import metrics
 from sentry.utils.event_frames import EventFrame, try_munge_frame_path
 
-from .constants import METRIC_PREFIX
+from .constants import METRIC_PREFIX, SECOND_LEVEL_TLDS, STACK_ROOT_MAX_LEVEL
 from .integration_utils import InstallationNotFoundError, get_installation
 from .utils.platform import PlatformConfig
 
@@ -293,7 +293,18 @@ class CodeMappingTreesHelper:
             logger.warning("More than one repo matched %s", frame_filename.raw_path)
             return None
 
-        return code_mappings[0]
+        cm = code_mappings[0]
+        logger.info(
+            "Found code mapping.",
+            extra={
+                "stack_path": frame_filename.raw_path,
+                "stack_root": cm.stacktrace_root,
+                "source_path": cm.source_path,
+                "repo_name": cm.repo.name,
+                "repo_branch": cm.repo.branch,
+            },
+        )
+        return cm
 
     def _generate_code_mapping_from_tree(
         self,
@@ -585,23 +596,30 @@ def get_path_from_module(module: str, abs_path: str) -> tuple[str, str]:
         # Split the module at the first '$' character and take the part before it
         # If there's no '$', use the entire module
         file_path = module.split("$", 1)[0] if "$" in module else module
-        stack_root = module.rsplit(".", 1)[0].replace(".", "/")
+        stack_root = module.rsplit(".", 1)[0].replace(".", "/") + "/"
         return stack_root, file_path.replace(".", "/")
 
     if "." not in module:
         raise DoesNotFollowJavaPackageNamingConvention
 
-    parts = module.split(".")
+    # Gets rid of the class name
+    parts = module.rsplit(".", 1)[0].split(".")
+    dirpath = "/".join(parts)
+    # a.Bar, Bar.kt -> stack_root: a/, file_path:  a/Bar.kt
+    granularity = 1
 
-    if len(parts) > 2:
+    if len(parts) > 1:
         # com.example.foo.bar.Baz$InnerClass, Baz.kt ->
         #    stack_root: com/example/
         #    file_path:  com/example/foo/bar/Baz.kt
-        stack_root = "/".join(parts[:2])
-        file_path = "/".join(parts[:-1]) + "/" + abs_path
-    else:
-        # a.Bar, Bar.kt -> stack_root: a/, file_path:  a/Bar.kt
-        stack_root = parts[0] + "/"
-        file_path = f"{stack_root}{abs_path}"
+        granularity = STACK_ROOT_MAX_LEVEL - 1
 
+        if parts[1] in SECOND_LEVEL_TLDS:
+            # uk.co.example.foo.bar.Baz$InnerClass, Baz.kt ->
+            #    stack_root: uk/co/example/
+            #    file_path:  uk/co/example/foo/bar/Baz.kt
+            granularity = STACK_ROOT_MAX_LEVEL
+
+    stack_root = "/".join(parts[:granularity]) + "/"
+    file_path = f"{dirpath}/{abs_path}"
     return stack_root, file_path

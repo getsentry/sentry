@@ -10,15 +10,20 @@ const FUNCTION_FIELD_VALUE_EXTRACT_PATTERN = /(\d+)\)$/;
  */
 export function transformData(
   data: Array<Record<string, number>>,
-  useAggregateAlias = true
+  useAggregateAlias = true,
+  customRegex?: RegExp
 ) {
   const extractedData = Object.keys(data[0]!)
     .map((key: string) => {
-      const nameMatch = (
+      let nameMatch = (
         useAggregateAlias
           ? AGGREGATE_ALIAS_VALUE_EXTRACT_PATTERN
           : FUNCTION_FIELD_VALUE_EXTRACT_PATTERN
       ).exec(key);
+
+      if (customRegex) {
+        nameMatch = customRegex.exec(key);
+      }
       if (!nameMatch) {
         return [-1, -1];
       }

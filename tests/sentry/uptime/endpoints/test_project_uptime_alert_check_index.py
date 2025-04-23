@@ -154,3 +154,19 @@ class ProjectUptimeAlertCheckIndexEndpoint(
         )
         assert response.data is not None
         assert len(response.data) == 0
+
+    def test_get_with_none_subscription_id(self):
+        # Create a subscription with None subscription_id
+        subscription = self.create_uptime_subscription(
+            url="https://example.com", subscription_id=None
+        )
+        project_uptime_subscription = self.create_project_uptime_subscription(
+            uptime_subscription=subscription
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            project_uptime_subscription.id,
+        )
+        assert response.data == []

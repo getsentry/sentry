@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import type {TagSegment} from 'sentry/actionCreators/events';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Link from 'sentry/components/links/link';
-import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -26,7 +26,7 @@ type Props = {
   showTitle?: boolean;
 };
 
-export type SegmentValue = {
+type SegmentValue = {
   index: number;
   onClick: () => void;
   to: LocationDescriptor;

@@ -37,6 +37,7 @@ import {
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getJavascriptProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {updateDynamicSdkLoaderOptions} from './jsLoader/updateDynamicSdkLoaderOptions';
@@ -783,10 +784,10 @@ Sentry.init({
   nextSteps: () => [],
 };
 
-const profilingOnboarding: OnboardingConfig<PlatformOptions> = {
-  ...onboarding,
-  introduction: params => <MaybeBrowserProfilingBetaWarning {...params} />,
-};
+const profilingOnboarding = getJavascriptProfilingOnboarding({
+  getInstallConfig,
+  docsLink: 'https://docs.sentry.io/platforms/javascript/profiling/browser-profiling/',
+});
 
 export const featureFlagOnboarding: OnboardingConfig = {
   install: () => [],
@@ -868,7 +869,6 @@ const docs: Docs<PlatformOptions> = {
   replayOnboarding,
   replayOnboardingJsLoader,
   performanceOnboarding,
-
   crashReportOnboarding,
   platformOptions,
   profilingOnboarding,

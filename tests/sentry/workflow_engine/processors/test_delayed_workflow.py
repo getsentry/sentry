@@ -17,9 +17,10 @@ from sentry.testutils.helpers import override_options, with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import json
-from sentry.workflow_engine.handlers.condition.slow_condition_query_handlers import (
+from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
     EventFrequencyQueryHandler,
     EventUniqueUserFrequencyQueryHandler,
+    QueryResult,
 )
 from sentry.workflow_engine.models import (
     Action,
@@ -27,6 +28,7 @@ from sentry.workflow_engine.models import (
     DataConditionGroup,
     Detector,
     Workflow,
+    WorkflowFireHistory,
 )
 from sentry.workflow_engine.models.data_condition import (
     PERCENT_CONDITIONS,
@@ -527,7 +529,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
         self.data_condition_groups = self.workflow1_dcgs + self.workflow2_dcgs + [self.detector_dcg]
         self.dcg_to_groups[self.detector_dcg.id] = {self.group1.id}
         self.workflows_to_envs = {self.workflow1.id: self.environment.id, self.workflow2.id: None}
-        self.condition_group_results = {
+        self.condition_group_results: dict[UniqueConditionQuery, QueryResult] = {
             UniqueConditionQuery(
                 handler=EventFrequencyQueryHandler,
                 interval="1h",
@@ -799,6 +801,41 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             self.event2.for_group(self.group2),
             WorkflowDataConditionGroupType.ACTION_FILTER,
         )
+
+    @patch("sentry.workflow_engine.processors.workflow.process_data_condition_group")
+    def test_fire_actions_for_groups__workflow_fire_history(self, mock_process):
+        mock_process.return_value = (True, []), []
+
+        self.trigger_group_to_dcg_model[DataConditionHandler.Group.WORKFLOW_TRIGGER] = {
+            self.workflow1_dcgs[0].id: self.workflow1.id,
+        }
+        self.trigger_group_to_dcg_model[DataConditionHandler.Group.ACTION_FILTER] = {
+            self.workflow2_dcgs[1].id: self.workflow2.id,
+        }
+        self.groups_to_dcgs = {
+            self.group1.id: {self.workflow1_dcgs[0]},
+            self.group2.id: {self.workflow2_dcgs[1]},
+        }
+        # WorkflowFireHistory for enqueued filter (already triggered)
+        wfh = WorkflowFireHistory.objects.create(
+            workflow=self.workflow2,
+            group_id=self.group2.id,
+            event_id=self.event2.event_id,
+        )
+
+        fire_actions_for_groups(
+            self.groups_to_dcgs, self.trigger_group_to_dcg_model, self.group_to_groupevent
+        )
+
+        wfh.refresh_from_db()
+        assert wfh.has_fired_actions is True
+
+        assert WorkflowFireHistory.objects.filter(
+            workflow=self.workflow1,
+            group_id=self.group1.id,
+            event_id=self.event1.event_id,
+            has_fired_actions=True,
+        ).exists()
 
 
 class TestCleanupRedisBuffer(TestDelayedWorkflowBase):

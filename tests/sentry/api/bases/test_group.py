@@ -1,11 +1,11 @@
+from typing import ContextManager
+
 from rest_framework.views import APIView
 
 from sentry.api.bases.group import GroupAiEndpoint, GroupAiPermission
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.requests import drf_request_from_request
-
-DEMO_USER_ID = 2
 
 
 class GroupAiPermissionTest(TestCase):
@@ -14,6 +14,10 @@ class GroupAiPermissionTest(TestCase):
         self.permission = GroupAiPermission()
         self.project = self.create_project()
         self.group = self.create_group(project=self.project)
+        self.demo_user = self.create_user()
+
+    def _demo_mode_enabled(self) -> ContextManager[None]:
+        return override_options({"demo-mode.enabled": True, "demo-mode.users": [self.demo_user.id]})
 
     def has_object_perm(self, method, obj, auth=None, user=None, is_superuser=None):
         request = self.make_request(user=user, auth=auth, method=method, is_superuser=is_superuser)
@@ -22,31 +26,23 @@ class GroupAiPermissionTest(TestCase):
             drf_request, APIView()
         ) and self.permission.has_object_permission(drf_request, APIView(), obj)
 
-    @override_options({"demo-mode.enabled": True, "demo-mode.users": [DEMO_USER_ID]})
     def test_demo_user_safe_methods(self):
-        demo_user = self.create_user(id=DEMO_USER_ID)
+        with self._demo_mode_enabled():
+            for method in ("GET", "HEAD", "OPTIONS"):
+                assert self.has_object_perm(method, self.group, user=self.demo_user)
 
-        for method in ("GET", "HEAD", "OPTIONS"):
-            assert self.has_object_perm(method, self.group, user=demo_user)
-
-    @override_options({"demo-mode.enabled": True, "demo-mode.users": [DEMO_USER_ID]})
     def test_demo_user_post_allowed(self):
-        demo_user = self.create_user(id=DEMO_USER_ID)
-        assert self.has_object_perm("POST", self.group, user=demo_user)
+        with self._demo_mode_enabled():
+            assert self.has_object_perm("POST", self.group, user=self.demo_user)
 
-    @override_options({"demo-mode.enabled": True, "demo-mode.users": [DEMO_USER_ID]})
     def test_demo_user_unsafe_methods_blocked(self):
-        demo_user = self.create_user(id=DEMO_USER_ID)
+        with self._demo_mode_enabled():
+            for method in ("PUT", "DELETE", "PATCH"):
+                assert not self.has_object_perm(method, self.group, user=self.demo_user)
 
-        for method in ("PUT", "DELETE", "PATCH"):
-            assert not self.has_object_perm(method, self.group, user=demo_user)
-
-    @override_options({"demo-mode.enabled": False, "demo-mode.users": [DEMO_USER_ID]})
     def test_demo_user_demo_mode_disabled(self):
-        demo_user = self.create_user(id=DEMO_USER_ID)
-
         for method in ("GET", "POST", "PUT", "DELETE"):
-            assert not self.has_object_perm(method, self.group, user=demo_user)
+            assert not self.has_object_perm(method, self.group, user=self.demo_user)
 
     def test_regular_user_with_access(self):
         user = self.create_user()

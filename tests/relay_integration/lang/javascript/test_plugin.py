@@ -170,18 +170,29 @@ class TestJavascriptIntegration(RelayStoreHelper):
         event = self.post_and_retrieve_event(data)
 
         contexts = event.interfaces["contexts"].to_json()
+
         assert contexts.get("os") == {
             "os": "Android 4.3",
             "name": "Android",
             "type": "os",
             "version": "4.3",
         }
-        assert contexts.get("browser") == {
+
+        browser_context = contexts.get("browser")
+
+        # The `user_agent` field was added retroactively so the browser context assertion needs to be forwards and backwards compatible
+        assert browser_context.pop("user_agent", None) in (
+            None,
+            "Mozilla/5.0 (Linux; U; Android 4.3; en-us; SCH-R530U Build/JSS15J) AppleWebKit/534.30 (KHTML, like Gecko) Version/4.0 Mobile Safari/534.30 USCC-R530U",
+        )
+
+        assert browser_context == {
             "browser": "Android 4.3",
             "name": "Android",
             "type": "browser",
             "version": "4.3",
         }
+
         assert contexts.get("device") == {
             "family": "Samsung SCH-R530U",
             "type": "device",
@@ -311,15 +322,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert raw_frame_list[1].in_app
         assert raw_frame_list[2].in_app
 
-    @requires_symbolicator
-    @pytest.mark.symbolicator
-    def test_sourcemap_source_expansion(self):
-        self.project.update_option("sentry:scrape_javascript", False)
-        release = Release.objects.create(
-            organization_id=self.project.organization_id, version="abc"
-        )
-        release.add_project(self.project)
-
+    def _create_source_files_and_sourcemaps(self, release):
         for file in ["file.min.js", "file1.js", "file2.js", "file.sourcemap.js"]:
             with open(get_fixture_path(file), "rb") as f:
                 f1 = File.objects.create(
@@ -335,6 +338,17 @@ class TestJavascriptIntegration(RelayStoreHelper):
                 organization_id=self.project.organization_id,
                 file=f1,
             )
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_sourcemap_source_expansion(self):
+        self.project.update_option("sentry:scrape_javascript", False)
+        release = Release.objects.create(
+            organization_id=self.project.organization_id, version="abc"
+        )
+        release.add_project(self.project)
+
+        self._create_source_files_and_sourcemaps(release)
 
         data = {
             "timestamp": self.min_ago,
@@ -2481,3 +2495,168 @@ class TestJavascriptIntegration(RelayStoreHelper):
             "symbolicator_type": "malformed_sourcemap",
             "url": "http://example.com/file.malformed.sourcemap.js",
         }
+
+    def generate_symbolicated_in_app_event_data(self, frames):
+        return {
+            "timestamp": self.min_ago,
+            "message": "hello",
+            "platform": "javascript",
+            "release": "abc",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": frames,
+                        },
+                    }
+                ]
+            },
+        }
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_symbolicated_in_app_after_symbolication(self):
+        self.project.update_option("sentry:scrape_javascript", False)
+        release = Release.objects.create(
+            organization_id=self.project.organization_id, version="abc"
+        )
+        release.add_project(self.project)
+
+        self._create_source_files_and_sourcemaps(release)
+
+        data = self.generate_symbolicated_in_app_event_data(
+            [
+                {
+                    "abs_path": "http://example.com/file.min.js",
+                    "filename": "file.min.js",
+                    "lineno": 1,
+                    "colno": 39,
+                    "in_app": True,
+                },
+                {
+                    "abs_path": "http://example.com/file.min.js",
+                    "filename": "file.min.js",
+                    "lineno": 1,
+                    "colno": 183,
+                    "in_app": True,
+                },
+            ]
+        )
+
+        event = self.post_and_retrieve_event(data)
+        exception = event.interfaces["exception"]
+        frame_list = exception.values[0].stacktrace.frames
+
+        # Verify both frames are symbolicated and in_app
+        assert frame_list[0].data["symbolicated"] is True
+        assert frame_list[0].in_app is True
+
+        assert frame_list[1].data["symbolicated"] is True
+        assert frame_list[1].in_app is True
+
+        # Verify symbolicated_in_app is True since all in_app frames are symbolicated
+        assert event.data["symbolicated_in_app"] is True
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_symbolicated_in_app_false_with_unsymbolicated_frame(self):
+        self.project.update_option("sentry:scrape_javascript", False)
+        release = Release.objects.create(
+            organization_id=self.project.organization_id, version="abc"
+        )
+        release.add_project(self.project)
+
+        # Create source files and sourcemaps for file.min.js
+        for file in ["file.min.js", "file1.js", "file2.js", "file.sourcemap.js"]:
+            with open(get_fixture_path(file), "rb") as f:
+                f1 = File.objects.create(
+                    name=file,
+                    type="release.file",
+                    headers={},
+                )
+                f1.putfile(f)
+
+            ReleaseFile.objects.create(
+                name=f"http://example.com/{f1.name}",
+                release_id=release.id,
+                organization_id=self.project.organization_id,
+                file=f1,
+            )
+
+        data = self.generate_symbolicated_in_app_event_data(
+            [
+                {
+                    "abs_path": "http://example.com/file.min.js",
+                    "filename": "file.min.js",
+                    "lineno": 1,
+                    "colno": 39,
+                    "in_app": True,
+                },
+                {
+                    "abs_path": "http://example.com/webpack2.min.js",
+                    "filename": "webpack2.min.js",
+                    "lineno": 1,
+                    "colno": 183,
+                    "in_app": True,
+                },
+            ]
+        )
+
+        event = self.post_and_retrieve_event(data)
+        exception = event.interfaces["exception"]
+        frame_list = exception.values[0].stacktrace.frames
+
+        # First frame should be symbolicated and in_app
+        assert frame_list[0].data["symbolicated"] is True
+        assert frame_list[0].in_app is True
+
+        # Second frame should not be symbolicated but is in_app
+        assert frame_list[1].data["symbolicated"] is False
+        assert frame_list[1].in_app is True
+
+        # Verify symbolicated_in_app is False since not all in_app frames are symbolicated
+        assert event.data["symbolicated_in_app"] is False
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_symbolicated_in_app_none_with_no_in_app_frames(self):
+        self.project.update_option("sentry:scrape_javascript", False)
+        release = Release.objects.create(
+            organization_id=self.project.organization_id, version="abc"
+        )
+        release.add_project(self.project)
+
+        data = self.generate_symbolicated_in_app_event_data(
+            [
+                {
+                    "abs_path": "http://example.com/webpack2.min.js",
+                    "filename": "webpack2.min.js",
+                    "lineno": 1,
+                    "colno": 39,
+                    "in_app": False,
+                },
+                {
+                    "abs_path": "http://example.com/webpack2.min.js",
+                    "filename": "webpack2.min.js",
+                    "lineno": 1,
+                    "colno": 183,
+                    "in_app": False,
+                },
+            ]
+        )
+
+        event = self.post_and_retrieve_event(data)
+        exception = event.interfaces["exception"]
+        frame_list = exception.values[0].stacktrace.frames
+
+        # Verify both frames are not symbolicated and not in_app
+        assert frame_list[0].data["symbolicated"] is False
+        assert frame_list[0].in_app is False
+
+        assert frame_list[1].data["symbolicated"] is False
+        assert frame_list[1].in_app is False
+
+        # Verify symbolicated_in_app is None since there are no in_app frames
+        # Using get() since the key might not exist when the value would be None
+        assert event.data.get("symbolicated_in_app") is None

@@ -959,6 +959,12 @@ class ProjectUpdateTest(APITestCase):
         resp = self.get_error_response(
             self.org_slug,
             self.proj_slug,
+            highlightContext={"! {} #$%$?": ["empty", "context", "type"]},
+        )
+        assert "Key '! {} #$%$?' is invalid" in resp.data["highlightContext"][0]
+        resp = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
             highlightContext={"bird-words": ["invalid", 123, "integer"]},
         )
         assert "must be a list of strings" in resp.data["highlightContext"][0]
@@ -1264,17 +1270,6 @@ class ProjectUpdateTest(APITestCase):
 
             assert resp.status_code == 200
             assert project.get_option("sentry:symbol_sources", orjson.dumps([source1]).decode())
-
-    @with_feature("organizations:uptime-settings")
-    def test_uptime_settings(self):
-        # test when the value is set to False
-        resp = self.get_success_response(self.org_slug, self.proj_slug, uptimeAutodetection=False)
-        assert self.project.get_option("sentry:uptime_autodetection") is False
-        assert resp.data["uptimeAutodetection"] is False
-        # test when the value is set to True
-        resp = self.get_success_response(self.org_slug, self.proj_slug, uptimeAutodetection=True)
-        assert self.project.get_option("sentry:uptime_autodetection") is True
-        assert resp.data["uptimeAutodetection"] is True
 
     @with_feature({"organizations:dynamic-sampling-custom": False})
     def test_target_sample_rate_without_feature(self):

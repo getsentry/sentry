@@ -1090,9 +1090,7 @@ function buildRoutes() {
       />
       <Route
         path=":projectId/getting-started/"
-        component={make(
-          () => import('sentry/views/projectInstall/platformOrIntegration')
-        )}
+        component={make(() => import('sentry/views/projectInstall/gettingStarted'))}
       />
     </Fragment>
   );
@@ -1924,6 +1922,14 @@ function buildRoutes() {
       />
     </Fragment>
   );
+
+  const logsChildRoutes = (
+    <Fragment>
+      <IndexRoute component={make(() => import('sentry/views/explore/logs'))} />
+      {traceViewRoute}
+    </Fragment>
+  );
+
   const tracesRoutes = (
     <Route
       path="/traces/"
@@ -1973,6 +1979,7 @@ function buildRoutes() {
 
   const exploreRoutes = (
     <Route path="/explore/" withOrgPath>
+      <IndexRoute component={make(() => import('sentry/views/explore/indexRedirect'))} />
       <Route path="profiling/" component={make(() => import('sentry/views/profiling'))}>
         {profilingChildRoutes}
       </Route>
@@ -1991,7 +1998,7 @@ function buildRoutes() {
       >
         {releasesChildRoutes}
       </Route>
-      <Route path="logs/" component={make(() => import('sentry/views/explore/logs'))} />
+      <Route path="logs/">{logsChildRoutes}</Route>
       <Route
         path="saved-queries/"
         component={make(() => import('sentry/views/explore/savedQueries'))}
@@ -2005,6 +2012,102 @@ function buildRoutes() {
       component={make(() => import('sentry/views/userFeedback'))}
       withOrgPath
     />
+  );
+
+  const codecovCommitRoutes = (
+    /* This is a layout route that will render a header for a commit */
+    <Route
+      path="commits/:sha/"
+      component={make(
+        () => import('sentry/views/codecov/coverage/commits/commitWrapper')
+      )}
+    >
+      <IndexRoute
+        component={make(
+          () => import('sentry/views/codecov/coverage/commits/commitDetail')
+        )}
+      />
+      <Route
+        path="history/"
+        component={make(
+          () => import('sentry/views/codecov/coverage/commits/commitHistory')
+        )}
+      />
+      <Route
+        path="yaml/"
+        component={make(() => import('sentry/views/codecov/coverage/commits/commitYaml'))}
+      />
+    </Route>
+  );
+  const codecovPRRoutes = (
+    /* This is a layout route that will render a header for a pull request */
+    <Route
+      path="pulls/:pullId/"
+      component={make(() => import('sentry/views/codecov/coverage/pulls/pullWrapper'))}
+    >
+      <IndexRoute
+        component={make(() => import('sentry/views/codecov/coverage/pulls/pullDetail'))}
+      />
+    </Route>
+  );
+  const codecovChildrenRoutes = (
+    <Fragment>
+      <Route path="coverage/">
+        {/* This is a layout route that will render a header for coverage */}
+        <Route
+          component={make(() => import('sentry/views/codecov/coverage/coverageWrapper'))}
+        >
+          <Route
+            path="file-explorer/"
+            component={make(() => import('sentry/views/codecov/coverage/coverage'))}
+          />
+          <Route
+            path="commits/"
+            component={make(() => import('sentry/views/codecov/coverage/commits'))}
+          />
+          <Route
+            path="pulls/"
+            component={make(() => import('sentry/views/codecov/coverage/pulls'))}
+          />
+          <Route
+            path="coverage-trend/"
+            component={make(() => import('sentry/views/codecov/coverage/coverageTrend'))}
+          />
+        </Route>
+
+        {/* Render coverage onboarding without any layout wrapping */}
+        <Route
+          path="new/"
+          component={make(() => import('sentry/views/codecov/coverage/onboarding'))}
+        />
+
+        {codecovCommitRoutes}
+        {codecovPRRoutes}
+      </Route>
+      <Route path="tests/">
+        {/* Render tests onboarding with layout wrapper */}
+        <Route component={make(() => import('sentry/views/codecov/tests/testsWrapper'))}>
+          <IndexRoute
+            component={make(() => import('sentry/views/codecov/tests/tests'))}
+          />
+        </Route>
+
+        {/* Render tests onboarding without any layout wrapping */}
+        <Route
+          path="new/"
+          component={make(() => import('sentry/views/codecov/tests/onboarding'))}
+        />
+      </Route>
+    </Fragment>
+  );
+  const codecovRoutes = (
+    <Route
+      path="/codecov/"
+      withOrgPath
+      component={make(() => import('sentry/views/codecov/index'))}
+    >
+      {codecovChildrenRoutes}
+    </Route>
   );
 
   const feedbackV2ChildRoutes = (
@@ -2099,6 +2202,10 @@ function buildRoutes() {
         component={make(
           () => import('sentry/views/issueList/issueViews/issueViewsList/issueViewsList')
         )}
+      />
+      <Route
+        path="views/new/"
+        component={make(() => import('sentry/views/issueList/newViewPage'))}
       />
       <Route path="views/:viewId/" component={errorHandler(OverviewWrapper)} />
       <Route path="searches/:searchId/" component={errorHandler(OverviewWrapper)} />
@@ -2402,6 +2509,7 @@ function buildRoutes() {
       {feedbackv2Routes}
       {issueRoutes}
       {alertRoutes}
+      {codecovRoutes}
       {cronsRoutes}
       {replayRoutes}
       {releasesRoutes}

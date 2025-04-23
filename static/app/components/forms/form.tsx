@@ -31,7 +31,7 @@ export interface FormProps
     | 'onSubmitError'
     | 'onSubmitSuccess'
   > {
-  additionalFieldProps?: {[key: string]: any};
+  additionalFieldProps?: Record<string, any>;
   cancelLabel?: string;
   children?: React.ReactNode | RenderFunc;
   className?: string;

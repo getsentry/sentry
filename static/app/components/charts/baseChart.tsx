@@ -4,7 +4,7 @@ import 'echarts/lib/component/toolbox';
 import 'echarts/lib/component/brush';
 import 'zrender/lib/svg/svg';
 
-import {useMemo} from 'react';
+import {useId, useMemo} from 'react';
 import type {Theme} from '@emotion/react';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -36,6 +36,7 @@ import type {
   EChartChartReadyHandler,
   EChartClickHandler,
   EChartDataZoomHandler,
+  EChartDownplayHandler,
   EChartEventHandler,
   EChartFinishedHandler,
   EChartHighlightHandler,
@@ -46,11 +47,15 @@ import type {
   Series,
 } from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 import Grid from './components/grid';
 import Legend from './components/legend';
-import type {TooltipSubLabel} from './components/tooltip';
-import {CHART_TOOLTIP_VIEWPORT_OFFSET, computeChartTooltip} from './components/tooltip';
+import {
+  CHART_TOOLTIP_VIEWPORT_OFFSET,
+  computeChartTooltip,
+  type TooltipSubLabel,
+} from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 import LineSeries from './series/lineSeries';
@@ -181,6 +186,7 @@ export interface BaseChartProps {
    * Chart height
    */
   height?: ReactEChartOpts['height'];
+
   /**
    * If data is grouped by date; then apply default date formatting to x-axis
    * and tooltips.
@@ -208,6 +214,7 @@ export interface BaseChartProps {
   onChartReady?: EChartChartReadyHandler;
   onClick?: EChartClickHandler;
   onDataZoom?: EChartDataZoomHandler;
+  onDownplay?: EChartDownplayHandler;
   onFinished?: EChartFinishedHandler;
   onHighlight?: EChartHighlightHandler;
   onLegendSelectChanged?: EChartEventHandler<{
@@ -357,6 +364,7 @@ function BaseChart({
   onClick,
   onLegendSelectChanged,
   onHighlight,
+  onDownplay,
   onMouseOut,
   onMouseOver,
   onDataZoom,
@@ -394,11 +402,11 @@ function BaseChart({
     resolveColors ||
     (series.length
       ? theme.chart.getColorPalette(series.length)
-      : theme.chart.colors[theme.chart.colors.length - 1]);
+      : theme.chart.getColorPalette(theme.chart.colors.length - 1));
 
   const resolvedSeries = useMemo(() => {
     const previousPeriodColors =
-      (previousPeriod?.length ?? 0) > 1 ? lightenHexToRgb(color as string[]) : undefined;
+      (previousPeriod?.length ?? 0) > 1 ? lightenHexToRgb(color) : undefined;
 
     const hasSinglePoints = (series as LineSeriesOption[] | undefined)?.every(
       s => Array.isArray(s.data) && s.data.length <= 1
@@ -443,13 +451,17 @@ function BaseChart({
           lineStyle: {
             color: previousPeriodColors
               ? previousPeriodColors[seriesIndex]
-              : theme.gray200,
+              : isChonkTheme(theme)
+                ? theme.colors.gray400
+                : theme.gray200,
             type: 'dotted',
           },
           itemStyle: {
             color: previousPeriodColors
               ? previousPeriodColors[seriesIndex]
-              : theme.gray200,
+              : isChonkTheme(theme)
+                ? theme.colors.gray400
+                : theme.gray200,
           },
           stack: 'previous',
           animation: false,
@@ -466,7 +478,7 @@ function BaseChart({
     transformSinglePointToLine,
     previousPeriod,
     additionalSeries,
-    theme.gray200,
+    theme,
   ]);
 
   /**
@@ -478,6 +490,7 @@ function BaseChart({
       : false;
 
   const isTooltipPortalled = tooltip?.appendToBody;
+  const chartId = useId();
 
   const chartOption = useMemo(() => {
     const seriesData =
@@ -496,6 +509,7 @@ function BaseChart({
               addSecondsToTimeFormat,
               utc,
               bucketSize,
+              chartId: isTooltipPortalled ? chartId : undefined,
               ...tooltip,
               className: isTooltipPortalled
                 ? `${tooltip?.className ?? ''} chart-tooltip-portal`
@@ -568,6 +582,7 @@ function BaseChart({
       brush,
     };
   }, [
+    chartId,
     color,
     resolvedSeries,
     isTooltipPortalled,
@@ -612,6 +627,7 @@ function BaseChart({
         },
 
         highlight: (props: any, instance: ECharts) => onHighlight?.(props, instance),
+        downplay: (props: any, instance: ECharts) => onDownplay?.(props, instance),
         mouseout: (props: any, instance: ECharts) => onMouseOut?.(props, instance),
         mouseover: (props: any, instance: ECharts) => onMouseOver?.(props, instance),
         datazoom: (props: any, instance: ECharts) => onDataZoom?.(props, instance),
@@ -631,6 +647,7 @@ function BaseChart({
     [
       onClick,
       onHighlight,
+      onDownplay,
       onLegendSelectChanged,
       onMouseOut,
       onMouseOver,
@@ -662,7 +679,11 @@ function BaseChart({
   }, [style, autoHeightResize, height, width]);
 
   return (
-    <ChartContainer autoHeightResize={autoHeightResize} data-test-id={dataTestId}>
+    <ChartContainer
+      id={isTooltipPortalled ? chartId : undefined}
+      autoHeightResize={autoHeightResize}
+      data-test-id={dataTestId}
+    >
       {isTooltipPortalled && <Global styles={getPortalledTooltipStyles({theme})} />}
       <ReactEchartsCore
         ref={ref}

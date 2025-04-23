@@ -1,6 +1,9 @@
 from sentry.models.grouplink import GroupLink
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import integrations_tasks
+from sentry.taskworker.retry import Retry
 
 
 @instrumented_task(
@@ -9,6 +12,10 @@ from sentry.tasks.base import instrumented_task, retry, track_group_async_operat
     default_retry_delay=60 * 5,
     max_retries=5,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=integrations_tasks,
+        retry=Retry(times=5),
+    ),
 )
 @retry()
 @track_group_async_operation

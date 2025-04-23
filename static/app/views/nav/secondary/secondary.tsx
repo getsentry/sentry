@@ -11,6 +11,8 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useNavContext} from 'sentry/views/nav/context';
@@ -36,6 +38,7 @@ interface SecondaryNavItemProps extends Omit<LinkProps, 'ref' | 'to'> {
   end?: boolean;
   isActive?: boolean;
   leadingItems?: ReactNode;
+  showInteractionStateLayer?: boolean;
   trailingItems?: ReactNode;
 }
 
@@ -81,16 +84,23 @@ SecondaryNav.Body = function SecondaryNavBody({children}: {children: ReactNode})
 SecondaryNav.Section = function SecondaryNavSection({
   title,
   children,
+  trailingItems,
 }: {
   children: ReactNode;
   title?: ReactNode;
+  trailingItems?: ReactNode;
 }) {
   const {layout} = useNavContext();
 
   return (
     <Section>
       <SectionSeparator />
-      {title && <SectionTitle layout={layout}>{title}</SectionTitle>}
+      {title && (
+        <SectionTitle layout={layout}>
+          {title}
+          {trailingItems}
+        </SectionTitle>
+      )}
       {children}
     </Section>
   );
@@ -104,6 +114,7 @@ SecondaryNav.Item = function SecondaryNavItem({
   isActive: incomingIsActive,
   end = false,
   leadingItems,
+  showInteractionStateLayer = true,
   trailingItems,
   ...linkProps
 }: SecondaryNavItemProps) {
@@ -130,7 +141,9 @@ SecondaryNav.Item = function SecondaryNavItem({
       }}
     >
       {leadingItems}
-      <InteractionStateLayer data-isl hasSelectedBackground={isActive} />
+      {showInteractionStateLayer && (
+        <InteractionStateLayer data-isl hasSelectedBackground={isActive} />
+      )}
       <ItemText>{children}</ItemText>
       {trailingItems}
     </Item>
@@ -184,6 +197,10 @@ const SectionTitle = styled('div')<{layout: NavLayout}>`
   padding: 0 ${space(1)};
   margin: ${space(2)} 0 ${space(0.5)} 0;
 
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
   ${p =>
     p.layout === NavLayout.MOBILE &&
     css`
@@ -200,7 +217,60 @@ const SectionSeparator = styled('hr')`
   border: none;
 `;
 
-const Item = styled(Link)<{layout: NavLayout}>`
+interface ItemProps extends LinkProps {
+  layout: NavLayout;
+}
+
+const ChonkItem = chonkStyled(Link)<ItemProps>`
+  display: flex;
+  gap: ${space(1)};
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  color: ${p => p.theme.textColor};
+  padding: ${p => (p.layout === NavLayout.MOBILE ? `${space(0.75)} ${space(1.5)} ${space(0.75)} 48px` : `${space(0.75)} ${space(1.5)}`)};
+  border-radius: ${p => (p.layout === NavLayout.MOBILE ? '0' : p.theme.radius.lg)};
+
+  /* Disable interaction state layer */
+  > [data-isl] {
+    display: none;
+  }
+
+  /* Renders the active state indicator */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%) translateX(100%);
+    width: 4px;
+    height: 20px;
+    left: -${space(1.5)};
+    border-radius: ${p => p.theme.radius.micro};
+    background-color: ${p => p.theme.colors.blue400};
+    transition: opacity 0.1s ease-in-out;
+    opacity: 0;
+  }
+
+  &:hover {
+    color: ${p => p.theme.textColor};
+    background-color: ${p => p.theme.colors.gray100};
+  }
+
+  &[aria-selected='true'] {
+    color: ${p => p.theme.colors.blue400};
+    background-color: ${p => p.theme.colors.blue100};
+
+    &::before {
+      opacity: 1;
+    }
+    /* Override the default hover styles */
+    &:hover {
+      background-color: ${p => p.theme.colors.blue100};
+    }
+  }
+`;
+
+const StyledNavItem = styled(Link)<ItemProps>`
   position: relative;
   display: flex;
   padding: 4px ${space(1)};
@@ -242,6 +312,8 @@ const Item = styled(Link)<{layout: NavLayout}>`
       border-radius: 0;
     `}
 `;
+
+const Item = withChonk(StyledNavItem, ChonkItem);
 
 const ItemText = styled('span')`
   ${p => p.theme.overflowEllipsis}
