@@ -704,10 +704,7 @@ def _create_detector_state(apps: Apps, alert_rule: Any, project: Any, detector: 
 
 
 def _migrate_resolve_threshold(apps: Apps, alert_rule: Any, detector: Any) -> None:
-    AlertRuleWorkflow = apps.get_model("workflow_engine", "AlertRuleWorkflow")
     DataCondition = apps.get_model("workflow_engine", "DataCondition")
-    DataConditionGroup = apps.get_model("workflow_engine", "DataConditionGroup")
-    WorkflowDataConditionGroup = apps.get_model("workflow_engine", "WorkflowDataConditionGroup")
 
     resolve_threshold_type = (
         Condition.LESS_OR_EQUAL
@@ -744,22 +741,6 @@ def _migrate_resolve_threshold(apps: Apps, alert_rule: Any, detector: Any) -> No
         condition_result=DetectorPriorityLevel.OK,
         type=resolve_threshold_type,
         condition_group=detector.workflow_condition_group,
-    )
-
-    data_condition_group = DataConditionGroup.objects.create(
-        organization_id=alert_rule.organization_id
-    )
-    alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=alert_rule.id)
-    WorkflowDataConditionGroup.objects.create(
-        condition_group=data_condition_group,
-        workflow=alert_rule_workflow.workflow,
-    )
-
-    DataCondition.objects.create(
-        comparison=DetectorPriorityLevel.OK,
-        condition_result=True,
-        type=Condition.ISSUE_PRIORITY_EQUALS,
-        condition_group=data_condition_group,
     )
 
 

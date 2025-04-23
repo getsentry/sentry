@@ -279,9 +279,7 @@ class MigrateMetricAlertTest(TestMigrations):
         assert resolve_detector_trigger.type == Condition.GREATER_OR_EQUAL
 
     def test_simple_resolve(self):
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.valid_rule.id)
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=self.valid_rule.id)
-        workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
         detector = Detector.objects.get(id=alert_rule_detector.detector.id)
 
         detector_trigger = DataCondition.objects.get(
@@ -292,25 +290,8 @@ class MigrateMetricAlertTest(TestMigrations):
         assert detector_trigger.comparison == self.valid_warning_trigger.alert_threshold
         assert detector_trigger.type == Condition.LESS_OR_EQUAL
 
-        workflow_dcgs = DataConditionGroup.objects.filter(
-            workflowdataconditiongroup__workflow=workflow
-        )
-        action_filter = DataCondition.objects.get(
-            condition_group__in=workflow_dcgs,
-            comparison=DetectorPriorityLevel.OK,
-        )
-
-        assert action_filter.condition_result is True
-        assert action_filter.type == Condition.ISSUE_PRIORITY_EQUALS
-
-        assert WorkflowDataConditionGroup.objects.filter(
-            condition_group=action_filter.condition_group
-        ).exists()
-
     def test_explicit_resolve(self):
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.rule_with_resolve.id)
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=self.rule_with_resolve.id)
-        workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
         detector = Detector.objects.get(id=alert_rule_detector.detector.id)
 
         detector_trigger = DataCondition.objects.get(
@@ -320,21 +301,6 @@ class MigrateMetricAlertTest(TestMigrations):
 
         assert detector_trigger.comparison == self.rule_with_resolve.resolve_threshold
         assert detector_trigger.type == Condition.LESS_OR_EQUAL
-
-        workflow_dcgs = DataConditionGroup.objects.filter(
-            workflowdataconditiongroup__workflow=workflow
-        )
-        action_filter = DataCondition.objects.get(
-            condition_group__in=workflow_dcgs,
-            comparison=DetectorPriorityLevel.OK,
-        )
-
-        assert action_filter.condition_result is True
-        assert action_filter.type == Condition.ISSUE_PRIORITY_EQUALS
-
-        assert WorkflowDataConditionGroup.objects.filter(
-            condition_group=action_filter.condition_group
-        ).exists()
 
     def test_simple_trigger_action(self):
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.valid_rule.id)
