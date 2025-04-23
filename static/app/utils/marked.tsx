@@ -20,7 +20,7 @@ function isSafeHref(href: string, pattern: RegExp) {
 }
 
 /**
- * Implementation of marked.Renderer which additonally sanitizes URLs.
+ * Implementation of marked. Renderer which additionally sanitizes URLs.
  */
 class SafeRenderer extends marked.Renderer {
   link({href, title, text, ...rest}: Tokens.Link) {
@@ -81,7 +81,7 @@ marked.use(
       }
 
       // This is really hacky because the previous version had a callback that let you update code
-      // once the language was loaded. The new versioon makes the entire call to marked async, which
+      // once the language was loaded. The new version makes marked return a promise, which
       // requires a migration to the new API.
       // This can cause the syntax highlight not to load if the component does not rerender after the language is loaded.
       // The ideal solution would be to move to the async api
