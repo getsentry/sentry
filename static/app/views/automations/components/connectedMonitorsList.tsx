@@ -7,6 +7,7 @@ import {defineColumns, SimpleTable} from 'sentry/components/workflowEngine/simpl
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Detector, DetectorType} from 'sentry/types/workflowEngine/detectors';
+import {MONITOR_ROUTES} from 'sentry/views/detectors/routes';
 
 type Props = {
   monitors: Detector[];
@@ -21,24 +22,22 @@ export default function ConnectedMonitorsList({
 }: Props) {
   const canEdit = connectedMonitorIds && toggleConnected;
 
-  const data = monitors.map(monitor => {
-    return {
-      title: {
-        name: monitor.name,
-        projectId: monitor.projectId,
-        link: `/issues/monitors/${monitor.id}/`,
-      },
-      type: monitor.type,
-      lastIssue: undefined, // TODO: call API to get last issue
-      createdBy: monitor.createdBy,
-      connected: canEdit
-        ? {
-            isConnected: connectedMonitorIds?.has(monitor.id),
-            toggleConnected: () => toggleConnected?.(monitor.id),
-          }
-        : undefined,
-    };
-  });
+  const data = monitors.map(monitor => ({
+    title: {
+      name: monitor.name,
+      projectId: monitor.projectId,
+      link: MONITOR_ROUTES.DETAILS(monitor.id),
+    },
+    type: monitor.type,
+    lastIssue: undefined, // TODO: call API to get last issue
+    createdBy: monitor.createdBy,
+    connected: canEdit
+      ? {
+          isConnected: connectedMonitorIds?.has(monitor.id),
+          toggleConnected: () => toggleConnected?.(monitor.id),
+        }
+      : undefined,
+  }));
 
   if (canEdit) {
     return <SimpleTable columns={connectedColumns} data={data} />;

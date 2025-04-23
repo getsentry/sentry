@@ -17,3 +17,8 @@ export const detectorRoutes = (
     </Route>
   </Route>
 );
+
+export const MONITOR_ROUTES = {
+  LIST: () => '/issues/monitors/',
+  DETAILS: (monitorId: string) => `/issues/monitors/${monitorId}/`,
+};
