@@ -7,11 +7,15 @@ from rest_framework import status
 
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.source_code_management.repo_trees import RepoAndBranch, RepoTree
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
+
+DEFAULT_REPO_NAME = "getsentry/codemap"
+DEFAULT_REPO_BRANCH = "master"
 
 
 class OrganizationDeriveCodeMappingsTest(APITestCase):
@@ -44,46 +48,54 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         expected_matches = [
             {
                 "filename": "stack/root/file.py",
-                "repo_name": "getsentry/codemap",
-                "repo_branch": "master",
-                "stacktrace_root": "/stack/root",
-                "source_path": "/source/root/",
+                "repo_name": DEFAULT_REPO_NAME,
+                "repo_branch": DEFAULT_REPO_BRANCH,
+                "stacktrace_root": "",
+                "source_path": "",
             }
         ]
-        with patch(
-            "sentry.issues.auto_source_code_config.code_mapping.CodeMappingTreesHelper.get_file_and_repo_matches",
-            return_value=expected_matches,
-        ):
-            response = self.client.get(self.url, data=config_data, format="json")
-            assert mock_get_trees_for_org.call_count == 1
-            assert response.status_code == 200, response.content
-            assert response.data == expected_matches
+
+        mock_get_trees_for_org.return_value = {
+            "getsentry/codemap": RepoTree(
+                RepoAndBranch(name=DEFAULT_REPO_NAME, branch=DEFAULT_REPO_BRANCH),
+                files=["stack/root/file.py"],
+            )
+        }
+        response = self.client.get(self.url, data=config_data, format="json")
+        assert mock_get_trees_for_org.call_count == 1
+        assert response.status_code == 200, response.content
+        assert response.data == expected_matches
 
     @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
     def test_get_frame_with_module(self, mock_get_trees_for_org: Any) -> None:
         config_data = {
             "absPath": "Billing.kt",
-            "module": "com.waffleware.billing.Billing$1",
+            "module": "com.waffleware.foo.billing.Billing$1",
             "platform": "java",
             "stacktraceFilename": "Billing.kt",
         }
         expected_matches = [
             {
-                "filename": "Billing.kt",
-                "repo_name": "getsentry/codemap",
-                "repo_branch": "master",
+                "filename": "app/com/waffleware/foo/billing/Billing.kt",
+                "repo_name": DEFAULT_REPO_NAME,
+                "repo_branch": DEFAULT_REPO_BRANCH,
                 "stacktrace_root": "com/waffleware/",
-                "source_path": "app/src/main/java/com/waffleware/",
+                "source_path": "app/com/waffleware/",
             }
         ]
-        with patch(
-            "sentry.issues.auto_source_code_config.code_mapping.CodeMappingTreesHelper.get_file_and_repo_matches",
-            return_value=expected_matches,
-        ):
-            response = self.client.get(self.url, data=config_data, format="json")
-            assert mock_get_trees_for_org.call_count == 1
-            assert response.status_code == 200, response.content
-            assert response.data == expected_matches
+
+        mock_get_trees_for_org.return_value = {
+            "getsentry/codemap": RepoTree(
+                RepoAndBranch(
+                    name=DEFAULT_REPO_NAME,
+                    branch=DEFAULT_REPO_BRANCH,
+                ),
+                files=["app/com/waffleware/foo/billing/Billing.kt"],
+            )
+        }
+        response = self.client.get(self.url, data=config_data, format="json")
+        assert response.status_code == 200, response.content
+        assert response.data == expected_matches
 
     @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
     def test_get_start_with_backslash(self, mock_get_trees_for_org: Any) -> None:
@@ -92,20 +104,25 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         expected_matches = [
             {
                 "filename": file,
-                "repo_name": "getsentry/codemap",
-                "repo_branch": "master",
-                "stacktrace_root": "",
+                "repo_name": DEFAULT_REPO_NAME,
+                "repo_branch": DEFAULT_REPO_BRANCH,
+                "stacktrace_root": "/",
                 "source_path": "",
             }
         ]
-        with patch(
-            "sentry.issues.auto_source_code_config.code_mapping.CodeMappingTreesHelper.get_file_and_repo_matches",
-            return_value=expected_matches,
-        ):
-            response = self.client.get(self.url, data=config_data, format="json")
-            assert mock_get_trees_for_org.call_count == 1
-            assert response.status_code == 200, response.content
-            assert response.data == expected_matches
+        mock_get_trees_for_org.return_value = {
+            "getsentry/codemap": RepoTree(
+                RepoAndBranch(
+                    name=DEFAULT_REPO_NAME,
+                    branch=DEFAULT_REPO_BRANCH,
+                ),
+                files=["stack/root/file.py"],
+            )
+        }
+        response = self.client.get(self.url, data=config_data, format="json")
+        assert mock_get_trees_for_org.call_count == 1
+        assert response.status_code == 200, response.content
+        assert response.data == expected_matches
 
     @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
     def test_get_multiple_matches(self, mock_get_trees_for_org: Any) -> None:
@@ -115,27 +132,40 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         expected_matches = [
             {
                 "filename": "stack/root/file.py",
-                "repo_name": "getsentry/codemap",
-                "repo_branch": "master",
-                "stacktrace_root": "/stack/root",
-                "source_path": "/source/root/",
+                "repo_name": DEFAULT_REPO_NAME,
+                "repo_branch": DEFAULT_REPO_BRANCH,
+                "stacktrace_root": "",
+                "source_path": "",
             },
             {
                 "filename": "stack/root/file.py",
-                "repo_name": "getsentry/codemap",
-                "repo_branch": "master",
-                "stacktrace_root": "/stack/root",
-                "source_path": "/source/root/",
+                "repo_name": "getsentry/foobar",
+                "repo_branch": DEFAULT_REPO_BRANCH,
+                "stacktrace_root": "",
+                "source_path": "",
             },
         ]
-        with patch(
-            "sentry.issues.auto_source_code_config.code_mapping.CodeMappingTreesHelper.get_file_and_repo_matches",
-            return_value=expected_matches,
-        ):
-            response = self.client.get(self.url, data=config_data, format="json")
-            assert mock_get_trees_for_org.call_count == 1
-            assert response.status_code == 200, response.content
-            assert response.data == expected_matches
+
+        mock_get_trees_for_org.return_value = {
+            "getsentry/codemap": RepoTree(
+                RepoAndBranch(
+                    name=DEFAULT_REPO_NAME,
+                    branch=DEFAULT_REPO_BRANCH,
+                ),
+                files=["stack/root/file.py"],
+            ),
+            "getsentry/foobar": RepoTree(
+                RepoAndBranch(
+                    name="getsentry/foobar",
+                    branch=DEFAULT_REPO_BRANCH,
+                ),
+                files=["stack/root/file.py"],
+            ),
+        }
+        response = self.client.get(self.url, data=config_data, format="json")
+        assert mock_get_trees_for_org.call_count == 1
+        assert response.status_code == 200, response.content
+        assert response.data == expected_matches
 
     def test_get_no_installation(self) -> None:
         config_data = {
@@ -155,8 +185,8 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             "projectId": self.project.id,
             "stackRoot": "/stack/root",
             "sourceRoot": "/source/root",
-            "defaultBranch": "master",
-            "repoName": "getsentry/codemap",
+            "defaultBranch": DEFAULT_REPO_BRANCH,
+            "repoName": DEFAULT_REPO_NAME,
         }
         non_member = self.create_user()
         non_member_om = self.create_member(organization=self.organization, user=non_member)
@@ -175,11 +205,11 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             "projectId": self.project.id,
             "stackRoot": "/stack/root",
             "sourceRoot": "/source/root",
-            "defaultBranch": "master",
-            "repoName": "getsentry/codemap",
+            "defaultBranch": DEFAULT_REPO_BRANCH,
+            "repoName": DEFAULT_REPO_NAME,
         }
         response = self.client.post(self.url, data=config_data, format="json")
-        repo = Repository.objects.get(name="getsentry/codemap")
+        repo = Repository.objects.get(name=DEFAULT_REPO_NAME)
         assert response.status_code == 201, response.content
         assert response.data == {
             "automaticallyGenerated": False,
@@ -187,7 +217,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             "projectId": str(self.project.id),
             "projectSlug": self.project.slug,
             "repoId": str(repo.id),
-            "repoName": "getsentry/codemap",
+            "repoName": DEFAULT_REPO_NAME,
             "provider": {
                 "aspects": {},
                 "features": ["codeowners", "commits", "issue-basic", "stacktrace-link"],
@@ -200,7 +230,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             "integrationId": str(self.integration.id),
             "stackRoot": "/stack/root",
             "sourceRoot": "/source/root",
-            "defaultBranch": "master",
+            "defaultBranch": DEFAULT_REPO_BRANCH,
         }
 
     def test_post_no_installation(self) -> None:
@@ -208,8 +238,8 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             "projectId": self.project.id,
             "stackRoot": "/stack/root",
             "sourceRoot": "/source/root",
-            "defaultBranch": "master",
-            "repoName": "name",
+            "defaultBranch": DEFAULT_REPO_BRANCH,
+            "repoName": DEFAULT_REPO_NAME,
         }
         with (
             assume_test_silo_mode(SiloMode.CONTROL),
@@ -224,7 +254,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             project=self.project,
             stack_root="/stack/root",
             source_root="/source/root/wrong",
-            default_branch="master",
+            default_branch=DEFAULT_REPO_BRANCH,
             repository=self.repo,
             organization_integration_id=self.organization_integration.id,
             organization_id=self.organization_integration.organization_id,
@@ -235,8 +265,8 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             "projectId": self.project.id,
             "stackRoot": "/stack/root",
             "sourceRoot": "/source/root",
-            "defaultBranch": "master",
-            "repoName": "name",
+            "defaultBranch": DEFAULT_REPO_BRANCH,
+            "repoName": DEFAULT_REPO_NAME,
         }
         response = self.client.post(self.url, data=config_data, format="json")
         assert response.status_code == 201, response.content
