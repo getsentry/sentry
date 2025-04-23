@@ -176,7 +176,7 @@ function ActionButtons({
   );
 }
 
-export function SearchQueryBuilderUI({
+function SearchQueryBuilderUI({
   className,
   disabled = false,
   label,
@@ -257,7 +257,8 @@ const Wrapper = styled(Input.withComponent('div'))`
 const ButtonsWrapper = styled('div')`
   position: absolute;
   right: 9px;
-  top: 9px;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
   gap: ${space(0.5)};

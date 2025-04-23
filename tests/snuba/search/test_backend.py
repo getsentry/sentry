@@ -12,7 +12,7 @@ from sentry import options
 from sentry.api.issue_search import convert_query_values, issue_search_config, parse_search_query
 from sentry.exceptions import InvalidSearchQuery
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.incidents.grouptype import MetricAlertFire
+from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.grouptype import (
     FeedbackGroup,
     NoiseConfig,
@@ -3485,11 +3485,11 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
     def test_no_feature(self):
         event_id = uuid.uuid4().hex
 
-        with self.feature(MetricAlertFire.build_ingest_feature_name()):
+        with self.feature(MetricIssue.build_ingest_feature_name()):
             _, group_info = self.process_occurrence(
                 event_id=event_id,
                 project_id=self.project.id,
-                type=MetricAlertFire.type_id,
+                type=MetricIssue.type_id,
                 fingerprint=["some perf issue"],
                 event_data={
                     "title": "some problem",

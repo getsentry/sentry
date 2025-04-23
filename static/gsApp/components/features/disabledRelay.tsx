@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Button, ButtonLabel} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Panel from 'sentry/components/panels/panel';
 import {IconBroadcast, IconBusiness} from 'sentry/icons';
@@ -71,9 +71,6 @@ const ButtonBar = styled('div')`
   justify-content: center;
   align-items: center;
   margin: -${space(0.75)};
-  ${ButtonLabel} {
-    white-space: nowrap;
-  }
 `;
 
 const StyledButton = styled(Button)`
