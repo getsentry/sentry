@@ -23,6 +23,7 @@ import type {
   TimeSeriesMeta,
 } from 'sentry/views/dashboards/widgets/common/types';
 
+import {sampleCrashFreeRateTimeSeries} from './fixtures/sampleCrashFreeRateTimeSeries';
 import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
 import {sampleScoreTimeSeries} from './fixtures/sampleScoreTimeSeries';
 import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
@@ -59,6 +60,17 @@ const sampleDurationTimeSeriesP75: TimeSeries = {
 };
 
 const shiftedSpanSamples = shiftTabularDataToNow(spanSamplesWithDurations);
+
+const releases = [
+  {
+    version: 'ui@0.1.2',
+    timestamp: sampleThroughputTimeSeries.data.at(2)?.timestamp,
+  },
+  {
+    version: 'ui@0.1.3',
+    timestamp: sampleThroughputTimeSeries.data.at(20)?.timestamp,
+  },
+].filter(hasTimestamp);
 
 export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) => {
   APIReference(types.TimeSeriesWidgetVisualization);
@@ -396,6 +408,67 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
             />
           </SmallWidget>
         </SideBySide>
+        <p>
+          A common issue with Y axes is data ranges. Some time series, like crash rates
+          tend to hover very close to 100%. In these cases, starting the Y axis at 0 can
+          make it difficult to see the actual values. You can set the{' '}
+          <code>axisRange</code> prop to <code>"dataMin"</code> to start the Y axis at the
+          minimum value of the data.
+        </p>
+
+        <p>
+          In the charts below you can see an example. The left chart is not very useful,
+          because it looks like a flat line at 100%. The chart in the middle shows the
+          actual data much clearer. The chart on the right shows the limitation related to
+          release bubbles.
+        </p>
+
+        <SideBySide>
+          <SmallWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[new Line(sampleCrashFreeRateTimeSeries)]}
+            />
+          </SmallWidget>
+          <SmallWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[new Line(sampleCrashFreeRateTimeSeries)]}
+              axisRange="dataMin"
+              releases={releases}
+            />
+          </SmallWidget>
+          <SmallWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[new Line(sampleCrashFreeRateTimeSeries)]}
+              axisRange="dataMin"
+              releases={releases}
+              showReleaseAs="bubble"
+            />
+          </SmallWidget>
+        </SideBySide>
+
+        <p>A few notes of caution:</p>
+        <ol>
+          <li>
+            This feature is not compatible with release bubbles! The bubble release series
+            will always force the range to start at 0, since the release bubbles are a
+            series with values of 0.
+          </li>
+          <li>
+            This only works well for line series. If you try this with area or bar
+            plottables you will have a bad time because the chart will look weird and make
+            no sense
+          </li>
+          <li>
+            If your data range is very narrow (e.g., &lt;0.00001) you will have a bad time
+            because the Y axis labels will become very long to accommodate the high
+            precision
+          </li>
+          <li>
+            Some customers find floating Y axis minimum disorienting. When they change the
+            date range or environment, the floating Y axis minimum makes it harder to
+            compare the data visually
+          </li>
+        </ol>
       </Fragment>
     );
   });
@@ -841,17 +914,6 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
   });
 
   story('Releases', () => {
-    const releases = [
-      {
-        version: 'ui@0.1.2',
-        timestamp: sampleThroughputTimeSeries.data.at(2)?.timestamp,
-      },
-      {
-        version: 'ui@0.1.3',
-        timestamp: sampleThroughputTimeSeries.data.at(20)?.timestamp,
-      },
-    ].filter(hasTimestamp);
-
     return (
       <Fragment>
         <p>
