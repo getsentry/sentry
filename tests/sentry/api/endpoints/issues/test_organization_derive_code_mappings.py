@@ -14,9 +14,6 @@ from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
 
-DEFAULT_REPO_NAME = "getsentry/codemap"
-DEFAULT_REPO_BRANCH = "master"
-
 
 class OrganizationDeriveCodeMappingsTest(APITestCase):
     def setUp(self) -> None:
@@ -48,8 +45,8 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         expected_matches = [
             {
                 "filename": "stack/root/file.py",
-                "repo_name": DEFAULT_REPO_NAME,
-                "repo_branch": DEFAULT_REPO_BRANCH,
+                "repo_name": "getsentry/codemap",
+                "repo_branch": "master",
                 "stacktrace_root": "",
                 "source_path": "",
             }
@@ -57,7 +54,10 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
 
         mock_get_trees_for_org.return_value = {
             "getsentry/codemap": RepoTree(
-                RepoAndBranch(name=DEFAULT_REPO_NAME, branch=DEFAULT_REPO_BRANCH),
+                RepoAndBranch(
+                    name="getsentry/codemap",
+                    branch="master",
+                ),
                 files=["stack/root/file.py"],
             )
         }
@@ -70,27 +70,27 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
     def test_get_frame_with_module(self, mock_get_trees_for_org: Any) -> None:
         config_data = {
             "absPath": "Billing.kt",
-            "module": "com.waffleware.foo.billing.Billing$1",
+            "module": "com.waffleware.billing.Billing$1",
             "platform": "java",
             "stacktraceFilename": "Billing.kt",
         }
         expected_matches = [
             {
-                "filename": "app/com/waffleware/foo/billing/Billing.kt",
-                "repo_name": DEFAULT_REPO_NAME,
-                "repo_branch": DEFAULT_REPO_BRANCH,
+                "filename": "app/src/main/java/com/waffleware/billing/Billing.kt",
+                "repo_name": "getsentry/codemap",
+                "repo_branch": "master",
                 "stacktrace_root": "com/waffleware/",
-                "source_path": "app/com/waffleware/",
+                "source_path": "app/src/main/java/com/waffleware/",
             }
         ]
 
         mock_get_trees_for_org.return_value = {
             "getsentry/codemap": RepoTree(
                 RepoAndBranch(
-                    name=DEFAULT_REPO_NAME,
-                    branch=DEFAULT_REPO_BRANCH,
+                    name="getsentry/codemap",
+                    branch="master",
                 ),
-                files=["app/com/waffleware/foo/billing/Billing.kt"],
+                files=["app/src/main/java/com/waffleware/billing/Billing.kt"],
             )
         }
         response = self.client.get(self.url, data=config_data, format="json")
@@ -104,8 +104,8 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         expected_matches = [
             {
                 "filename": file,
-                "repo_name": DEFAULT_REPO_NAME,
-                "repo_branch": DEFAULT_REPO_BRANCH,
+                "repo_name": "getsentry/codemap",
+                "repo_branch": "master",
                 "stacktrace_root": "/",
                 "source_path": "",
             }
@@ -113,8 +113,8 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         mock_get_trees_for_org.return_value = {
             "getsentry/codemap": RepoTree(
                 RepoAndBranch(
-                    name=DEFAULT_REPO_NAME,
-                    branch=DEFAULT_REPO_BRANCH,
+                    name="getsentry/codemap",
+                    branch="master",
                 ),
                 files=["stack/root/file.py"],
             )
@@ -132,15 +132,15 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         expected_matches = [
             {
                 "filename": "stack/root/file.py",
-                "repo_name": DEFAULT_REPO_NAME,
-                "repo_branch": DEFAULT_REPO_BRANCH,
+                "repo_name": "getsentry/codemap",
+                "repo_branch": "master",
                 "stacktrace_root": "",
                 "source_path": "",
             },
             {
                 "filename": "stack/root/file.py",
                 "repo_name": "getsentry/foobar",
-                "repo_branch": DEFAULT_REPO_BRANCH,
+                "repo_branch": "master",
                 "stacktrace_root": "",
                 "source_path": "",
             },
@@ -149,15 +149,15 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         mock_get_trees_for_org.return_value = {
             "getsentry/codemap": RepoTree(
                 RepoAndBranch(
-                    name=DEFAULT_REPO_NAME,
-                    branch=DEFAULT_REPO_BRANCH,
+                    name="getsentry/codemap",
+                    branch="master",
                 ),
                 files=["stack/root/file.py"],
             ),
             "getsentry/foobar": RepoTree(
                 RepoAndBranch(
                     name="getsentry/foobar",
-                    branch=DEFAULT_REPO_BRANCH,
+                    branch="master",
                 ),
                 files=["stack/root/file.py"],
             ),
@@ -185,8 +185,8 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             "projectId": self.project.id,
             "stackRoot": "/stack/root",
             "sourceRoot": "/source/root",
-            "defaultBranch": DEFAULT_REPO_BRANCH,
-            "repoName": DEFAULT_REPO_NAME,
+            "defaultBranch": "master",
+            "repoName": "getsentry/codemap",
         }
         non_member = self.create_user()
         non_member_om = self.create_member(organization=self.organization, user=non_member)
@@ -205,11 +205,11 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             "projectId": self.project.id,
             "stackRoot": "/stack/root",
             "sourceRoot": "/source/root",
-            "defaultBranch": DEFAULT_REPO_BRANCH,
-            "repoName": DEFAULT_REPO_NAME,
+            "defaultBranch": "master",
+            "repoName": "getsentry/codemap",
         }
         response = self.client.post(self.url, data=config_data, format="json")
-        repo = Repository.objects.get(name=DEFAULT_REPO_NAME)
+        repo = Repository.objects.get(name="getsentry/codemap")
         assert response.status_code == 201, response.content
         assert response.data == {
             "automaticallyGenerated": False,
@@ -217,7 +217,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             "projectId": str(self.project.id),
             "projectSlug": self.project.slug,
             "repoId": str(repo.id),
-            "repoName": DEFAULT_REPO_NAME,
+            "repoName": "getsentry/codemap",
             "provider": {
                 "aspects": {},
                 "features": ["codeowners", "commits", "issue-basic", "stacktrace-link"],
@@ -230,7 +230,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             "integrationId": str(self.integration.id),
             "stackRoot": "/stack/root",
             "sourceRoot": "/source/root",
-            "defaultBranch": DEFAULT_REPO_BRANCH,
+            "defaultBranch": "master",
         }
 
     def test_post_no_installation(self) -> None:
@@ -238,8 +238,8 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             "projectId": self.project.id,
             "stackRoot": "/stack/root",
             "sourceRoot": "/source/root",
-            "defaultBranch": DEFAULT_REPO_BRANCH,
-            "repoName": DEFAULT_REPO_NAME,
+            "defaultBranch": "master",
+            "repoName": "name",
         }
         with (
             assume_test_silo_mode(SiloMode.CONTROL),
@@ -254,7 +254,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             project=self.project,
             stack_root="/stack/root",
             source_root="/source/root/wrong",
-            default_branch=DEFAULT_REPO_BRANCH,
+            default_branch="master",
             repository=self.repo,
             organization_integration_id=self.organization_integration.id,
             organization_id=self.organization_integration.organization_id,
@@ -265,8 +265,8 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             "projectId": self.project.id,
             "stackRoot": "/stack/root",
             "sourceRoot": "/source/root",
-            "defaultBranch": DEFAULT_REPO_BRANCH,
-            "repoName": DEFAULT_REPO_NAME,
+            "defaultBranch": "master",
+            "repoName": "name",
         }
         response = self.client.post(self.url, data=config_data, format="json")
         assert response.status_code == 201, response.content
