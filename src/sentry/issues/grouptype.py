@@ -56,6 +56,7 @@ class GroupCategory(IntEnum):
     Metric alert types will move to the PERFORMANCE_REGRESSION category
     """
     METRIC_ALERT = 8
+    TEST_NOTIFICATION = 9
 
     # New issue categories (under the organizations:issue-taxonomy flag)
     OUTAGE = 9
