@@ -318,7 +318,7 @@ class Enhancements:
         """A base64 string representation of the enhancements object"""
         pickled = msgpack.dumps(self._to_config_structure())
         compressed_pickle = zstandard.compress(pickled)
-        return base64.urlsafe_b64encode(compressed_pickle).decode("ascii").strip("=")
+        return base64.urlsafe_b64encode(compressed_pickle).strip(b"=").decode("ascii")
 
     @classmethod
     def _from_config_structure(
