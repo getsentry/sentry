@@ -10,6 +10,7 @@ import {
   crashReportOnboardingPython,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
+import {getPythonInstallConfig} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
@@ -69,8 +70,6 @@ def _(app, request, e):
         data = UserError('Custom message', f'{event_id}{e}')
         return app.make_response(request, data)`;
 
-const getInstallSnippet = () => `pip install 'sentry-sdk'`;
-
 const onboarding: OnboardingConfig = {
   introduction: () =>
     tct('The Tryton integration adds support for the [link:Tryton Framework Server].', {
@@ -79,13 +78,15 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: t('Install the Sentry Python SDK package:'),
-      configurations: [
+      description: tct(
+        'Install [code:sentry-sdk] from PyPI with the [code:tryton] extra:',
         {
-          language: 'bash',
-          code: getInstallSnippet(),
-        },
-      ],
+          code: <code />,
+        }
+      ),
+      configurations: getPythonInstallConfig({
+        packageName: "'sentry-sdk[tryton]'",
+      }),
     },
   ],
   configure: (params: Params) => [

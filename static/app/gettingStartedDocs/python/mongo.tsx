@@ -8,6 +8,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {crashReportOnboardingPython} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
+import {getPythonInstallConfig} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
@@ -30,8 +31,6 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
 )`;
 
-const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[pymongo]'`;
-
 const onboarding: OnboardingConfig = {
   introduction: () =>
     tct(
@@ -49,23 +48,21 @@ const onboarding: OnboardingConfig = {
           code: <code />,
         }
       ),
-      configurations: [
-        {
-          description:
-            params.docsLocation === DocsPageLocation.PROFILING_PAGE
-              ? tct(
-                  'You need a minimum version [code:2.24.1] of the [code:sentry-python] SDK for the profiling feature.',
-                  {
-                    code: <code />,
-                  }
-                )
-              : undefined,
-          language: 'bash',
-          code: getInstallSnippet(),
-        },
-      ],
+      configurations: getPythonInstallConfig({
+        packageName: "'sentry-sdk[pymongo]'",
+        description:
+          params.docsLocation === DocsPageLocation.PROFILING_PAGE
+            ? tct(
+                'You need a minimum version [code:2.24.1] of the [code:sentry-python] SDK for the profiling feature.',
+                {
+                  code: <code />,
+                }
+              )
+            : undefined,
+      }),
     },
   ],
+
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,

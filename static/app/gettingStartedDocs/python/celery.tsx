@@ -16,11 +16,12 @@ import {
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {getPythonProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/python';
+import {
+  getPythonInstallConfig,
+  getPythonProfilingOnboarding,
+} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
-
-const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[celery]'`;
 
 const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
@@ -72,21 +73,18 @@ const onboarding: OnboardingConfig = {
           code: <code />,
         }
       ),
-      configurations: [
-        {
-          description:
-            params.docsLocation === DocsPageLocation.PROFILING_PAGE
-              ? tct(
-                  'You need a minimum version [code:2.24.1] of the [code:sentry-python] SDK for the profiling feature.',
-                  {
-                    code: <code />,
-                  }
-                )
-              : undefined,
-          language: 'bash',
-          code: getInstallSnippet(),
-        },
-      ],
+      configurations: getPythonInstallConfig({
+        packageName: "'sentry-sdk[celery]'",
+        description:
+          params.docsLocation === DocsPageLocation.PROFILING_PAGE
+            ? tct(
+                'You need a minimum version [code:2.24.1] of the [code:sentry-python] SDK for the profiling feature.',
+                {
+                  code: <code />,
+                }
+              )
+            : undefined,
+      }),
     },
   ],
   configure: (params: Params) => [

@@ -19,10 +19,9 @@ import {
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {getPythonInstallConfig} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
-
-const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
 
 const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
@@ -72,11 +71,17 @@ sentry_sdk.init(
   ],
 )`;
 
-const installStep = (params: Params): StepProps => ({
-  type: StepType.INSTALL,
-  description: tct('Install our Python SDK using [code:pip]:', {code: <code />}),
-  configurations: [
-    {
+const installStep = (params: Params) => [
+  {
+    type: StepType.INSTALL,
+    description: tct(
+      'Install [code:sentry-sdk] from PyPI with the [code:django] extra:',
+      {
+        code: <code />,
+      }
+    ),
+    configurations: getPythonInstallConfig({
+      packageName: "'sentry-sdk'",
       description:
         params.docsLocation === DocsPageLocation.PROFILING_PAGE
           ? tct(
@@ -86,11 +91,9 @@ const installStep = (params: Params): StepProps => ({
               }
             )
           : undefined,
-      language: 'bash',
-      code: getInstallSnippet(),
-    },
-  ],
-});
+    }),
+  },
+];
 
 const configureStep = (params: Params): StepProps => ({
   type: StepType.CONFIGURE,
