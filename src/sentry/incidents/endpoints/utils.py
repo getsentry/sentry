@@ -1,4 +1,3 @@
-
 from sentry.api.helpers.teams import get_teams
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
 from sentry.workflow_engine.models.data_condition import Condition
