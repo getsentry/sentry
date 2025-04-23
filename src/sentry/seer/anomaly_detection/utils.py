@@ -11,7 +11,6 @@ from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.search.eap.constants import DownsampledStorageConfig
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.anomaly_detection.types import AnomalyType, TimeSeriesPoint
@@ -299,7 +298,7 @@ def fetch_historical_data(
                 auto_fields=False,
                 use_aggregate_conditions=False,
             ),
-            sampling_mode=DownsampledStorageConfig.MODE_BEST_EFFORT,
+            sampling_mode="BEST_EFFORT",
         )
         return results
     else:
