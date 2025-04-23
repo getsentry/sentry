@@ -5,7 +5,7 @@ import {IconGrabbable} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
-export type DividerProps = {
+type DividerProps = {
   'data-is-held': boolean;
   'data-slide-direction': 'leftright' | 'updown';
   onDoubleClick: React.MouseEventHandler<HTMLElement>;

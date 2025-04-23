@@ -17,7 +17,7 @@ type RenderProps = {
   toolBox: ReturnType<typeof ToolBox>;
 };
 
-export type BarChartBucket = {
+type BarChartBucket = {
   end: number;
   start: number;
 };

@@ -83,7 +83,7 @@ function getVitalFields(baseField: string) {
   return vitalFields;
 }
 
-export function transformFieldsWithStops(props: {
+function transformFieldsWithStops(props: {
   field: string;
   fields: string[];
   vitalStops: ChartDefinition['vitalStops'];
@@ -462,7 +462,7 @@ function getVitalDataForListItem(
   return vitalData;
 }
 
-export const VitalBarCell = styled(RightAlignedCell)`
+const VitalBarCell = styled(RightAlignedCell)`
   width: 120px;
   margin-left: ${space(1)};
   margin-right: ${space(1)};

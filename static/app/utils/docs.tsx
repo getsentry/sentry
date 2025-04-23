@@ -22,7 +22,7 @@ const platforms = [
   'unity',
 ] as const;
 
-export type DocPlatform = (typeof platforms)[number];
+type DocPlatform = (typeof platforms)[number];
 
 const performancePlatforms: DocPlatform[] = [
   'dotnet',

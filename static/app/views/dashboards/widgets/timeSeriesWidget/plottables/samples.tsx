@@ -32,7 +32,7 @@ type ValidSampleRow = {
   timestamp: string;
 };
 
-export type SamplesConfig = {
+type SamplesConfig = {
   /**
    * The name of the data attribute to plot. This should be one of the keys in the data that's available in the `samples` parameter that's passed to the constructor.
    */
@@ -63,7 +63,7 @@ export type SamplesConfig = {
   onHighlight?: (datum: ValidSampleRow) => void;
 };
 
-export type SamplesPlottingOptions = {
+type SamplesPlottingOptions = {
   /**
    * The current theme.
    */
