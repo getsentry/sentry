@@ -512,7 +512,9 @@ const ScaleContainer = styled(motion.div)<{isFocused?: boolean}>`
   transition: transform 200ms ease;
 `;
 
-const Container = styled(motion.div)<{isFocused?: boolean}>`
+const Container = styled(motion.div, {
+  shouldForwardProp: prop => prop !== 'isFocused',
+})<{isFocused?: boolean}>`
   position: relative;
   width: 100%;
   border-radius: ${p => p.theme.borderRadius};
