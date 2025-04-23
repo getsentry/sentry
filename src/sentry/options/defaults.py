@@ -3328,3 +3328,8 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "taskworker.reports.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
