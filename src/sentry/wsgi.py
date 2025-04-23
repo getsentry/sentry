@@ -28,7 +28,7 @@ params = {
     "wsgi.input": io.BytesIO(),
     "wsgi.url_scheme": "https",
 }
-if settings.ALLOWED_HOSTS:
+if settings.ALLOWED_HOSTS and "*" not in settings.ALLOWED_HOSTS[0]:
     # ALLOWED_HOSTS items can start with a dot to match subdomains
     params["HTTP_HOST"] = settings.ALLOWED_HOSTS[0].lstrip(".")
 
