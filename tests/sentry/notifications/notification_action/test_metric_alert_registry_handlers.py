@@ -104,7 +104,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
             resource_id="test_resource_id",
             evidence_data=evidence_data,
             evidence_display=[],
-            type=MetricIssue.type_id,
+            type=MetricIssue,
             detection_time=timezone.now(),
             level=level,
             culprit="test_culprit",
