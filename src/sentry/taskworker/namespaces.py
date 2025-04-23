@@ -56,6 +56,8 @@ seer_tasks = taskregistry.create_namespace("seer")
 
 selfhosted_tasks = taskregistry.create_namespace("selfhosted")
 
+symbolication_tasks = taskregistry.create_namespace("symbolication")
+
 tempest_tasks = taskregistry.create_namespace("tempest")
 
 uptime_tasks = taskregistry.create_namespace("uptime")
