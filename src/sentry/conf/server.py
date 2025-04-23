@@ -1400,6 +1400,8 @@ TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 # Like celery, taskworkers need to import task modules to make tasks
 # accessible to the worker.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
+    "sentry.tasks.assemble",
+    "sentry.debug_files.tasks",
     "sentry.deletions.tasks.hybrid_cloud",
     "sentry.deletions.tasks.scheduled",
     "sentry.demo_mode.tasks",
@@ -1426,6 +1428,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.tasks.update_comment",
     "sentry.integrations.vsts.tasks.kickoff_subscription_check",
     "sentry.integrations.vsts.tasks.subscription_check",
+    "sentry.issues.forecasts",
     "sentry.middleware.integrations.tasks",
     "sentry.monitors.tasks.clock_pulse",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
@@ -1471,10 +1474,13 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.repository",
     "sentry.tasks.reprocessing2",
     "sentry.tasks.statistical_detectors",
+    "sentry.tasks.summaries.weekly_reports",
+    "sentry.tasks.summaries.daily_summary",
     "sentry.tasks.store",
     "sentry.tasks.unmerge",
     "sentry.tasks.update_user_reports",
     "sentry.tasks.user_report",
+    "sentry.tasks.weekly_escalating_forecast",
     "sentry.tempest.tasks",
     "sentry.uptime.detectors.tasks",
     "sentry.uptime.rdap.tasks",
