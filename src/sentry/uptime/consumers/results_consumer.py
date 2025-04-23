@@ -32,13 +32,14 @@ from sentry.uptime.models import (
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
+    get_detector,
     get_project_subscriptions_for_uptime_subscription,
     get_top_hosting_provider_names,
     load_regions_for_uptime_subscription,
 )
 from sentry.uptime.subscriptions.subscriptions import (
     check_and_update_regions,
-    delete_project_uptime_subscription,
+    delete_uptime_detector,
     update_project_uptime_subscription,
 )
 from sentry.uptime.subscriptions.tasks import (
@@ -444,7 +445,8 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             failure_count = pipeline.execute()[0]
             if failure_count >= ONBOARDING_FAILURE_THRESHOLD:
                 # If we've hit too many failures during the onboarding period we stop monitoring
-                delete_project_uptime_subscription(project_subscription)
+                if detector := get_detector(project_subscription.uptime_subscription):
+                    delete_uptime_detector(detector)
                 # Mark the url as failed so that we don't attempt to auto-detect it for a while
                 set_failed_url(project_subscription.uptime_subscription.url)
                 redis.delete(key)
