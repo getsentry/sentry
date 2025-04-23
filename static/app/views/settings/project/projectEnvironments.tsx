@@ -278,5 +278,4 @@ const EnvironmentButton = styled(Button)`
   margin-left: ${space(0.5)};
 `;
 
-export {ProjectEnvironments};
 export default withApi(ProjectEnvironments);

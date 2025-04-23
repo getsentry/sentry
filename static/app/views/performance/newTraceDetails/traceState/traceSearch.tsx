@@ -3,7 +3,7 @@ import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/trace
 import type {TraceSearchResult} from 'sentry/views/performance/newTraceDetails/traceSearch/traceSearchEvaluator';
 import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
 
-export type TraceSearchAction =
+type TraceSearchAction =
   | {query: string; type: 'set query'; source?: 'external'}
   | {type: 'go to first match'}
   | {type: 'go to last match'}

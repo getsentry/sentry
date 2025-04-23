@@ -67,7 +67,7 @@ function SeverityCircle(props: {
   );
 }
 
-export function SeverityTextRenderer(props: LogFieldRendererProps) {
+function SeverityTextRenderer(props: LogFieldRendererProps) {
   const attribute_value = props.item.value as string;
   const _severityNumber =
     props.extra.tableResultLogRow?.[OurLogKnownFieldKey.SEVERITY_NUMBER];
@@ -87,8 +87,7 @@ export function SeverityCircleRenderer(props: Omit<LogFieldRendererProps, 'item'
   if (!props.extra.tableResultLogRow) {
     return null;
   }
-  const attribute_value =
-    props.extra.tableResultLogRow?.[OurLogKnownFieldKey.SEVERITY_TEXT];
+  const attribute_value = props.extra.tableResultLogRow?.[OurLogKnownFieldKey.SEVERITY];
   const _severityNumber =
     props.extra.tableResultLogRow?.[OurLogKnownFieldKey.SEVERITY_NUMBER];
 
@@ -108,7 +107,7 @@ export function SeverityCircleRenderer(props: Omit<LogFieldRendererProps, 'item'
   );
 }
 
-export function TimestampRenderer(props: LogFieldRendererProps) {
+function TimestampRenderer(props: LogFieldRendererProps) {
   return (
     <LogDate align={props.extra.align}>
       <DateTime seconds date={props.item.value} />
@@ -187,7 +186,7 @@ export const LogAttributesRendererMap: Record<
   [OurLogKnownFieldKey.TIMESTAMP]: props => {
     return TimestampRenderer(props);
   },
-  [OurLogKnownFieldKey.SEVERITY_TEXT]: SeverityTextRenderer,
+  [OurLogKnownFieldKey.SEVERITY]: SeverityTextRenderer,
   [OurLogKnownFieldKey.MESSAGE]: LogBodyRenderer,
   [OurLogKnownFieldKey.TRACE_ID]: TraceIDRenderer,
 };

@@ -295,6 +295,7 @@ export function SpanNodeDetails(
 ) {
   const {node, organization, onTabScrollToNode, onParentClick} = props;
   const location = useLocation();
+  const theme = useTheme();
   const hasNewTraceUi = useHasTraceNewUi();
   const {projects} = useProjects();
   const issues = useMemo(() => {
@@ -311,10 +312,12 @@ export function SpanNodeDetails(
   if (isEAPSpanNode(node)) {
     return (
       <EAPSpanNodeDetails
-        {...(props as EAPSpanNodeDetailsProps)}
+        {...props}
+        node={node}
         project={project}
         issues={issues}
         location={location}
+        theme={theme}
       />
     );
   }
@@ -484,7 +487,7 @@ function EAPSpanNodeDetails({
               avgSpanDuration={avgSpanDuration}
             />
             <FoldSection
-              sectionKey={'span-attributes' as SectionKey}
+              sectionKey={SectionKey.SPAN_ATTRIBUTES}
               title={t('Attributes')}
               disableCollapsePersistence
             >

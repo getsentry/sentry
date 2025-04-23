@@ -11,6 +11,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
+import {useChonkPrompt} from 'sentry/utils/theme/useChonkPrompt';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import {useUser} from 'sentry/utils/useUser';
@@ -29,15 +30,21 @@ type Props = Pick<
 
 function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
   const user = useUser();
-  const {shouldShowHelpMenuDot, onOpenHelpMenu} = useNavPrompts({
+  const navPrompts = useNavPrompts({
     collapsed,
     organization,
   });
+  const chonkPrompts = useChonkPrompt();
   const {mutate: mutateUserOptions} = useMutateUserOptions();
   const openForm = useFeedbackForm();
 
   return (
-    <DeprecatedDropdownMenu onOpen={onOpenHelpMenu}>
+    <DeprecatedDropdownMenu
+      onOpen={() => {
+        navPrompts.onOpenHelpMenu();
+        chonkPrompts.dismissDotIndicatorPrompt();
+      }}
+    >
       {({isOpen, getActorProps, getMenuProps}) => (
         <HelpRoot>
           <HelpActor {...getActorProps({onClick: hidePanel})}>
@@ -50,7 +57,8 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
               label={t('Help')}
               id="help"
             />
-            {shouldShowHelpMenuDot && (
+            {(navPrompts.shouldShowHelpMenuDot ||
+              chonkPrompts.showDotIndicatorPrompt) && (
               <IndicatorDot
                 orientation={orientation}
                 collapsed={collapsed}
@@ -102,7 +110,7 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
                     );
                   }}
                 >
-                  {t('Try New Navigation')} <Badge type="alpha">Alpha</Badge>
+                  {t('Try New Navigation')} <Badge type="alpha">{t('Alpha')}</Badge>
                 </SidebarMenuItem>
               )}
               {organization?.features?.includes('chonk-ui') ? (
@@ -115,7 +123,7 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
                       });
                     }}
                   >
-                    {t('Switch to old UI theme')}
+                    {t('Switch Back To Our Old Look')}
                   </SidebarMenuItem>
                 ) : (
                   <SidebarMenuItem
@@ -126,7 +134,7 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
                       });
                     }}
                   >
-                    {t('Try New UI2 Theme')} <Badge type="internal">Internal</Badge>
+                    {t('Try Our New Look')} <Badge type="internal">{t('Internal')}</Badge>
                   </SidebarMenuItem>
                 )
               ) : null}

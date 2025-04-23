@@ -17,7 +17,7 @@ export enum OurLogKnownFieldKey {
   ID = 'sentry.item_id',
   MESSAGE = 'message',
   SEVERITY_NUMBER = 'severity_number',
-  SEVERITY_TEXT = 'severity_text',
+  SEVERITY = 'severity',
   ORGANIZATION_ID = 'organization.id',
   PROJECT_ID = 'project.id',
   PROJECT = 'project',
@@ -30,10 +30,10 @@ export enum OurLogKnownFieldKey {
 
 export type OurLogFieldKey = OurLogCustomFieldKey | OurLogKnownFieldKey;
 
-export type OurLogsKnownFieldResponseMap = {
+type OurLogsKnownFieldResponseMap = {
   [OurLogKnownFieldKey.MESSAGE]: string;
   [OurLogKnownFieldKey.SEVERITY_NUMBER]: number;
-  [OurLogKnownFieldKey.SEVERITY_TEXT]: string;
+  [OurLogKnownFieldKey.SEVERITY]: string;
   [OurLogKnownFieldKey.ORGANIZATION_ID]: number;
   [OurLogKnownFieldKey.PROJECT_ID]: number;
   [OurLogKnownFieldKey.TIMESTAMP]: string;

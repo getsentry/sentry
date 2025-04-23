@@ -22,7 +22,7 @@ export const DEFAULT_LOCALE_DATA = {
   },
 };
 
-export function setLocaleDebug(value: boolean) {
+function setLocaleDebug(value: boolean) {
   localStorage.setItem('localeDebug', value ? '1' : '0');
   // eslint-disable-next-line no-console
   console.log(`Locale debug is: ${value ? 'on' : 'off'}. Reload page to apply changes!`);
@@ -176,7 +176,7 @@ type ComponentMap = Record<string, React.ReactNode>;
  * The top level group will be keyed as `root`. All other group names will have
  * been extracted from the template string.
  */
-export function parseComponentTemplate(template: string): ParsedTemplate {
+function parseComponentTemplate(template: string): ParsedTemplate {
   const parsed: ParsedTemplate = {};
   let groupId = 1;
 
@@ -241,7 +241,7 @@ export function parseComponentTemplate(template: string): ParsedTemplate {
  * Renders a parsed template into a React tree given a ComponentMap to use for
  * the parsed groups.
  */
-export function renderTemplate(
+function renderTemplate(
   template: ParsedTemplate,
   components: ComponentMap
 ): React.ReactNode {
@@ -317,7 +317,7 @@ function mark<T extends React.ReactNode>(node: T): T {
  *
  * [0]: https://github.com/alexei/sprintf.js
  */
-export function format(formatString: string, args: FormatArg[]): React.ReactNode {
+function format(formatString: string, args: FormatArg[]): React.ReactNode {
   if (argsInvolveReact(args)) {
     return formatForReact(formatString, args);
   }
@@ -333,7 +333,7 @@ export function format(formatString: string, args: FormatArg[]): React.ReactNode
  *
  * [0]: https://github.com/alexei/sprintf.js
  */
-export function gettext(string: string, ...args: FormatArg[]): string {
+function gettext(string: string, ...args: FormatArg[]): string {
   const val: string = getClient().gettext(string);
 
   if (args.length === 0) {
@@ -357,7 +357,7 @@ export function gettext(string: string, ...args: FormatArg[]): string {
  *
  * [0]: https://github.com/alexei/sprintf.js
  */
-export function ngettext(singular: string, plural: string, ...args: FormatArg[]): string {
+function ngettext(singular: string, plural: string, ...args: FormatArg[]): string {
   let countArg = 0;
 
   if (args.length > 0) {
@@ -401,7 +401,7 @@ export function ngettext(singular: string, plural: string, ...args: FormatArg[])
  *
  * You may recursively nest additional groups within the grouped string values.
  */
-export function gettextComponentTemplate(
+function gettextComponentTemplate(
   template: string,
   components: ComponentMap
 ): React.JSX.Element {

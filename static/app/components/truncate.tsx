@@ -92,7 +92,7 @@ const Wrapper = styled('span')`
   position: relative;
 `;
 
-export const FullValue = styled('span')<{
+const FullValue = styled('span')<{
   expandDirection: 'left' | 'right';
   expanded: boolean;
 }>`

@@ -293,7 +293,7 @@ function ReviewAndConfirmItems({previewData}: Pick<State, 'previewData'>) {
   );
 }
 
-export function ReviewAndConfirmBody({
+function ReviewAndConfirmBody({
   cardActionError,
   loading,
   loadError,
