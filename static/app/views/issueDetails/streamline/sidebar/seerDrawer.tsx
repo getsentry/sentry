@@ -108,9 +108,9 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
         />
       </SeerDrawerHeader>
       <SeerDrawerNavigator>
-        <Header>
-          {t('Autofix')}
-          <StyledFeatureBadge
+        <Flex align="center" gap={space(1)}>
+          <Header>{t('Autofix')}</Header>
+          <FeatureBadge
             type="beta"
             tooltipProps={{
               title: tct(
@@ -147,7 +147,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
             }
             size="sm"
           />
-        </Header>
+        </Flex>
         {!aiConfig.needsGenAiAcknowledgement && (
           <ButtonBarWrapper data-test-id="autofix-button-bar">
             <ButtonBar gap={1}>
@@ -290,11 +290,6 @@ const StyledCard = styled('div')`
   box-shadow: ${p => p.theme.dropShadowMedium};
 `;
 
-const StyledFeatureBadge = styled(FeatureBadge)`
-  margin-left: ${space(0.25)};
-  padding-bottom: 3px;
-`;
-
 const SeerDrawerContainer = styled('div')`
   height: 100%;
   display: grid;
@@ -335,9 +330,6 @@ const Header = styled('h3')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   font-weight: ${p => p.theme.fontWeightBold};
   margin: 0;
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const NavigationCrumbs = styled(NavigationBreadcrumbs)`
