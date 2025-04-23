@@ -26,12 +26,11 @@ def get_file_and_repo_matches(request: Request, organization: Organization) -> l
 
 def get_frame_info_from_request(request: Request) -> FrameInfo:
     frame = {
-        "abs_path": request.GET.get("absPath"),
-        # Currently, the only required parameter, thus, avoiding the `get` method
-        "filename": request.GET["stacktraceFilename"],
-        "module": request.GET.get("module"),
+        "abs_path": request.data.get("absPath"),
+        "filename": request.data.get("stacktraceFilename") or request.data.get("stackPath"),
+        "module": request.data.get("module"),
     }
-    return FrameInfo(frame, request.GET.get("platform"))
+    return FrameInfo(frame, request.data.get("platform"))
 
 
 def get_code_mapping_from_request(request: Request) -> CodeMapping:

@@ -12,7 +12,10 @@ from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.services.integration import RpcIntegration, integration_service
-from sentry.issues.auto_source_code_config.code_mapping import FrameInfo, find_roots
+from sentry.issues.auto_source_code_config.code_mapping import find_roots
+from sentry.issues.auto_source_code_config.derived_code_mappings_endpoint import (
+    get_frame_info_from_request,
+)
 from sentry.models.repository import Repository
 
 
@@ -111,7 +114,7 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
 
         data = serializer.validated_data
         source_url = data["source_url"]
-        stack_path = data["stack_path"]
+        frame_info = get_frame_info_from_request(request)
 
         repo = serializer.repo
         integration = serializer.integration
@@ -119,7 +122,7 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
 
         branch = installation.extract_branch_from_source_url(repo, source_url)
         source_path = installation.extract_source_path_from_source_url(repo, source_url)
-        stack_root, source_root = find_roots(FrameInfo({"filename": stack_path}), source_path)
+        stack_root, source_root = find_roots(frame_info, source_path)
 
         return self.respond(
             {
