@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 class PriorityChangeReason(Enum):
     ESCALATING = "escalating"
     ONGOING = "ongoing"
+    ISSUE_PLATFORM = "issue_platform"
 
 
 PRIORITY_TO_GROUP_HISTORY_STATUS = {
@@ -44,6 +45,9 @@ def update_priority(
     """
 
     if priority is None or group.priority == priority:
+        return
+
+    if group.priority_locked_at is not None:
         return
 
     previous_priority = PriorityLevel(group.priority) if group.priority is not None else None
