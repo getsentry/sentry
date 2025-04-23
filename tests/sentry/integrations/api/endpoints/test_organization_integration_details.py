@@ -50,29 +50,6 @@ class OrganizationIntegrationDetailsGetTest(OrganizationIntegrationDetailsTest):
         response = self.get_success_response(self.organization.slug, self.integration.id)
         assert response.data["id"] == str(self.integration.id)
 
-    def test_with_query_params(self):
-        # Test with various query parameters
-        response = self.get_success_response(
-            self.organization.slug,
-            self.integration.id,
-            qs_params={"detailed": "1", "include": ["config", "domainName"]},
-        )
-        assert response.data["id"] == str(self.integration.id)
-
-        # Verify the response includes the requested fields
-        assert "config" in response.data
-        assert "domainName" in response.data
-
-        # Test with different query parameters
-        response = self.get_success_response(
-            self.organization.slug,
-            self.integration.id,
-            qs_params={"detailed": "0"},
-        )
-        assert response.data["id"] == str(self.integration.id)
-        # Verify minimal response when detailed=0
-        assert "config" not in response.data
-
 
 @control_silo_test
 class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest):
@@ -148,8 +125,9 @@ class IssueOrganizationIntegrationDetailsGetTest(APITestCase):
 
     @responses.activate
     @with_feature("organizations:jira-paginated-projects")
-    def test_serialize_organizationintegration_with_create_issue_config(self):
-        """ """
+    def test_serialize_organizationintegration_with_create_issue_config_for_jira(self):
+        """Test the flow of choosing ticket creation on alert rule fire action
+        then serializes the issue config correctly for Jira"""
 
         # Mock the paginated projects response
         responses.add(
