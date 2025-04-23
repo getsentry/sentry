@@ -58,6 +58,8 @@ from sentry.statistical_detectors.issue_platform_adapter import (
 from sentry.statistical_detectors.redis import RedisDetectorStore
 from sentry.statistical_detectors.store import DetectorStore
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import performance_tasks
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.math import ExponentialMovingAverage
@@ -110,6 +112,9 @@ def all_projects_with_flags() -> Generator[tuple[int, int]]:
     name="sentry.tasks.statistical_detectors.run_detection",
     queue="performance.statistical_detector",
     max_retries=0,
+    taskworker_config=TaskworkerConfig(
+        namespace=performance_tasks,
+    ),
 )
 def run_detection() -> None:
     if not options.get("statistical_detectors.enable"):
@@ -323,6 +328,9 @@ class FunctionRegressionDetector(RegressionDetector):
     name="sentry.tasks.statistical_detectors.detect_transaction_trends",
     queue="performance.statistical_detector",
     max_retries=0,
+    taskworker_config=TaskworkerConfig(
+        namespace=performance_tasks,
+    ),
 )
 def detect_transaction_trends(
     _org_ids: list[int], project_ids: list[int], start: datetime, *args, **kwargs
@@ -363,6 +371,9 @@ def detect_transaction_trends(
     name="sentry.tasks.statistical_detectors.detect_transaction_change_points",
     queue="performance.statistical_detector",
     max_retries=0,
+    taskworker_config=TaskworkerConfig(
+        namespace=performance_tasks,
+    ),
 )
 def detect_transaction_change_points(
     transactions: list[tuple[int, str | int]], start: datetime, *args, **kwargs

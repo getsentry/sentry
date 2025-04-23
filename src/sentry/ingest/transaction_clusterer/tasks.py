@@ -7,6 +7,9 @@ import sentry_sdk
 
 from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import performance_tasks
+from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 
 from . import ClustererNamespace, rules
@@ -43,6 +46,10 @@ CLUSTERING_TIMEOUT_PER_PROJECT = 0.3
     queue="transactions.name_clusterer",
     default_retry_delay=5,  # copied from release monitor
     max_retries=5,  # copied from release monitor
+    taskworker_config=TaskworkerConfig(
+        namespace=performance_tasks,
+        retry=Retry(times=5),
+    ),
 )
 def spawn_clusterers(**kwargs: Any) -> None:
     """Look for existing transaction name sets in redis and spawn clusterers for each"""
@@ -63,6 +70,11 @@ def spawn_clusterers(**kwargs: Any) -> None:
     max_retries=5,  # copied from release monitor
     soft_time_limit=PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT,
     time_limit=PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT + 2,  # extra 2s to emit metrics
+    taskworker_config=TaskworkerConfig(
+        namespace=performance_tasks,
+        processing_deadline_duration=PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT + 2,
+        retry=Retry(times=5),
+    ),
 )
 def cluster_projects(projects: Sequence[Project]) -> None:
     pending = set(projects)
