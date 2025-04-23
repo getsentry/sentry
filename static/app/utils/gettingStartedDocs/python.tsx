@@ -1,14 +1,68 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {
+  type DocsParams,
+  OnboardingConfig,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {AlternativeConfiguration} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
 const getProfilingInstallSnippet = (basePackage: string, minimumVersion?: string) =>
   `pip install --upgrade ${minimumVersion ? `${basePackage}>=${minimumVersion}` : basePackage}`;
-import type {
-  DocsParams,
-  OnboardingConfig,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
+
+/**
+ * Creates install snippets for various Python package managers
+ */
+export function getPythonInstallSnippet({
+  packageName,
+  packageManager,
+}: {
+  packageManager: 'pip' | 'uv';
+  packageName: string;
+}) {
+  if (packageManager === 'uv') {
+    return `uv add ${packageName}`;
+  }
+  return `pip install --upgrade ${packageName}`;
+}
+
+/**
+ * Creates a configuration object for installation instructions that supports multiple package managers
+ */
+export function getPythonInstallConfig({
+  packageName = 'sentry-sdk',
+  description,
+}: {
+  description?: React.ReactNode;
+  packageName?: string;
+} = {}) {
+  return [
+    {
+      description,
+      language: 'bash',
+      code: [
+        {
+          label: 'pip',
+          value: 'pip',
+          language: 'bash',
+          code: getPythonInstallSnippet({
+            packageName,
+            packageManager: 'pip',
+          }),
+        },
+        {
+          label: 'uv',
+          value: 'uv',
+          language: 'bash',
+          code: getPythonInstallSnippet({
+            packageName,
+            packageManager: 'uv',
+          }),
+        },
+      ],
+    },
+  ];
+}
 
 export const getPythonProfilingOnboarding = ({
   basePackage = 'sentry-sdk',

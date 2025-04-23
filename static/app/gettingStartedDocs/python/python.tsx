@@ -3,7 +3,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   type Docs,
-  DocsPageLocation,
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -13,7 +12,10 @@ import {
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
-import {getPythonProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/python';
+import {
+  getPythonInstallConfig,
+  getPythonProfilingOnboarding,
+} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
@@ -136,13 +138,6 @@ sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
   },
 };
 
-const getInstallSnippet = (packageManager?: 'pip' | 'uv') => {
-  if (packageManager === 'uv') {
-    return `uv add sentry-sdk`;
-  }
-  return `pip install --upgrade sentry-sdk`;
-};
-
 const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
 
@@ -203,40 +198,15 @@ sentry_sdk.profiler.stop_profiler()`
 }`;
 
 const onboarding: OnboardingConfig = {
-  install: (params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
       description: tct('Install our Python SDK:', {
         code: <code />,
       }),
-      configurations: [
-        {
-          description:
-            params.docsLocation === DocsPageLocation.PROFILING_PAGE
-              ? tct(
-                  'You need a minimum version [code:2.24.1] of the [code:sentry-python] SDK for the profiling feature.',
-                  {
-                    code: <code />,
-                  }
-                )
-              : undefined,
-          language: 'bash',
-          code: [
-            {
-              label: 'pip',
-              value: 'pip',
-              language: 'bash',
-              code: getInstallSnippet('pip'),
-            },
-            {
-              label: 'uv',
-              value: 'uv',
-              language: 'bash',
-              code: getInstallSnippet('uv'),
-            },
-          ],
-        },
-      ],
+      configurations: getPythonInstallConfig({
+        packageName: 'sentry-sdk',
+      }),
     },
   ],
   configure: (params: Params) => [
@@ -391,25 +361,9 @@ export const featureFlagOnboarding: OnboardingConfig = {
           featureFlagOptions.integration === FeatureFlagProviderEnum.GENERIC
             ? t('Install the Sentry SDK.')
             : t('Install the Sentry SDK with an extra.'),
-        configurations: [
-          {
-            language: 'bash',
-            code: [
-              {
-                label: 'pip',
-                value: 'pip',
-                language: 'bash',
-                code: `pip install --upgrade ${packageName}`,
-              },
-              {
-                label: 'uv',
-                value: 'uv',
-                language: 'bash',
-                code: `uv pip install --upgrade ${packageName}`,
-              },
-            ],
-          },
-        ],
+        configurations: getPythonInstallConfig({
+          packageName,
+        }),
       },
       {
         type: StepType.CONFIGURE,
