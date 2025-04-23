@@ -23,8 +23,6 @@ from sentry.taskworker.namespaces import integrations_tasks
 from sentry.taskworker.retry import Retry
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
-from sentry.users.services.user.model import RpcUser
-from sentry.users.services.user.service import user_service
 
 logger = logging.getLogger(__name__)
 
@@ -243,10 +241,6 @@ def sync_status_inbound(
         "provider_key": provider.key,
         "integration_id": integration_id,
     }
-    try:
-        default_user_id, default_user = _get_default_user_info(organization=organization)
-    except AssertionError:
-        return
 
     if action == ResolveSyncAction.RESOLVE:
         # Check if the group was recently resolved and we should skip the request
@@ -286,7 +280,7 @@ def sync_status_inbound(
 
             issue_resolved.send_robust(
                 organization_id=organization_id,
-                user=default_user,
+                user=None,
                 group=group,
                 project=group.project,
                 resolution_type=provider.key,
@@ -296,7 +290,7 @@ def sync_status_inbound(
             analytics.record(
                 "issue.resolved",
                 project_id=group.project.id,
-                default_user_id=str(default_user_id),
+                default_user_id=None,
                 organization_id=organization_id,
                 group_id=group.id,
                 resolution_type="with_third_party_app",
@@ -317,21 +311,8 @@ def sync_status_inbound(
         for group in affected_groups:
             issue_unresolved.send_robust(
                 project=group.project,
-                user=default_user,
+                user=None,
                 group=group,
                 transition_type=provider.key,
                 sender=f"unresolved_with_{provider.key}",
             )
-
-
-def _get_default_user_info(organization: Organization) -> tuple[int, RpcUser]:
-    try:
-        default_user_id = organization.default_owner_id
-    except IndexError:
-        logger.exception("Error getting default user")
-        default_user_id = "<unknown>"
-
-    default_user = user_service.get_user(default_user_id)
-    assert default_user is not None, "unable to fetch user"
-
-    return (default_user_id, default_user)
