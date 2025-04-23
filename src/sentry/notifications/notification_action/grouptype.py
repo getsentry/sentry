@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from sentry import features
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.models.organization import Organization
 from sentry.ratelimits.sliding_windows import Quota
@@ -27,4 +26,4 @@ class SendTestNotification(GroupType):
 
     @classmethod
     def allow_ingest(cls, organization: Organization) -> bool:
-        return features.has("organizations:workflow-engine-test-notifications", organization)
+        return True
