@@ -49,5 +49,5 @@ const ContentWrapper = styled('div')`
 `;
 
 const StyledStickyFooter = styled(StickyFooter)`
-  z-index: ${p => p.theme.zIndex.footer};
+  z-index: ${p => p.theme.zIndex.initial};
 `;
