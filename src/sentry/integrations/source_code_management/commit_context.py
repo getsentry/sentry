@@ -339,9 +339,9 @@ class CommitContextIntegration(ABC):
             pull_request_id=pr.id,
         ).capture():
             if pr_comment is None:
-                resp = client.create_comment(
-                    repo=repo.name,
-                    issue_id=str(pr.key),
+                resp = client.create_pr_comment(
+                    repo=repo,
+                    pr_key=str(pr.key),
                     data=comment_data,
                 )
 
@@ -367,9 +367,9 @@ class CommitContextIntegration(ABC):
                         language=(language or "not found"),
                     )
             else:
-                resp = client.update_comment(
-                    repo=repo.name,
-                    issue_id=str(pr.key),
+                resp = client.update_pr_comment(
+                    repo=repo,
+                    pr_key=str(pr.key),
                     comment_id=pr_comment.external_id,
                     data=comment_data,
                 )
@@ -419,6 +419,16 @@ class CommitContextClient(ABC):
     @abstractmethod
     def update_comment(
         self, repo: str, issue_id: str, comment_id: str, data: dict[str, Any]
+    ) -> Any:
+        raise NotImplementedError
+
+    @abstractmethod
+    def create_pr_comment(self, repo: Repository, pr_key: str, data: dict[str, Any]) -> Any:
+        raise NotImplementedError
+
+    @abstractmethod
+    def update_pr_comment(
+        self, repo: Repository, pr_key: str, comment_id: str, data: dict[str, Any]
     ) -> Any:
         raise NotImplementedError
 

@@ -438,6 +438,14 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         endpoint = f"/repos/{repo}/issues/comments/{comment_id}"
         return self.patch(endpoint, data=data)
 
+    def create_pr_comment(self, repo: Repository, pr_key: str, data: dict[str, Any]) -> Any:
+        return self.create_comment(repo.name, pr_key, data)
+
+    def update_pr_comment(
+        self, repo: Repository, pr_key: str, comment_id: str, data: dict[str, Any]
+    ) -> Any:
+        return self.update_comment(repo.name, pr_key, comment_id, data)
+
     def get_comment_reactions(self, repo: str, comment_id: str) -> Any:
         endpoint = f"/repos/{repo}/issues/comments/{comment_id}"
         response = self.get(endpoint)

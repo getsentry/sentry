@@ -20,8 +20,14 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.services.repository.model import RpcRepository
-from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
+from sentry.integrations.source_code_management.commit_context import (
+    CommitContextIntegration,
+    PRCommentWorkflow,
+)
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.models.group import Group
+from sentry.models.organization import Organization
+from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
 from sentry.shared_integrations.exceptions import (
@@ -29,6 +35,8 @@ from sentry.shared_integrations.exceptions import (
     IntegrationError,
     IntegrationProviderError,
 )
+from sentry.snuba.referrer import Referrer
+from sentry.types.referrer_ids import GITLAB_PR_BOT_REFERRER
 from sentry.users.models.identity import Identity
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.http import absolute_uri
@@ -163,7 +171,8 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
     # CommitContextIntegration methods
 
     def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
-        raise NotImplementedError
+        # TODO(jianyuan): handle this
+        return False
 
     # Gitlab only functions
 
@@ -183,6 +192,60 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
         resp = client.search_project_issues(project_id, query, iids)
         assert isinstance(resp, list)
         return resp
+
+    def get_pr_comment_workflow(self) -> PRCommentWorkflow:
+        return GitlabPRCommentWorkflow(integration=self)
+
+
+MERGED_PR_COMMENT_BODY_TEMPLATE = """\
+## Suspect Issues
+This pull request was deployed and Sentry observed the following issues:
+
+{issue_list}"""
+
+MERGED_PR_SINGLE_ISSUE_TEMPLATE = "- ‼️ **{title}** `{subtitle}` [View Issue]({url})"
+
+
+class GitlabPRCommentWorkflow(PRCommentWorkflow):
+    organization_option_key = "sentry:gitlab_pr_bot"
+    referrer = Referrer.GITLAB_PR_COMMENT_BOT
+    referrer_id = GITLAB_PR_BOT_REFERRER
+
+    @staticmethod
+    def format_comment_subtitle(subtitle: str) -> str:
+        return subtitle[:47] + "..." if len(subtitle) > 50 else subtitle
+
+    @staticmethod
+    def format_comment_url(url: str, referrer: str) -> str:
+        return url + "?referrer=" + referrer
+
+    def get_comment_body(self, issue_ids: list[int]) -> str:
+        issues = Group.objects.filter(id__in=issue_ids).order_by("id").all()
+
+        issue_list = "\n".join(
+            [
+                MERGED_PR_SINGLE_ISSUE_TEMPLATE.format(
+                    title=issue.title,
+                    subtitle=self.format_comment_subtitle(issue.culprit),
+                    url=self.format_comment_url(issue.get_absolute_url(), self.referrer_id),
+                )
+                for issue in issues
+            ]
+        )
+
+        return MERGED_PR_COMMENT_BODY_TEMPLATE.format(issue_list=issue_list)
+
+    def get_comment_data(
+        self,
+        organization: Organization,
+        repo: Repository,
+        pr: PullRequest,
+        comment_body: str,
+        issue_ids: list[int],
+    ) -> dict[str, Any]:
+        return {
+            "body": comment_body,
+        }
 
 
 class InstallationForm(forms.Form):

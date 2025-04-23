@@ -250,4 +250,32 @@ describe('IntegrationDetailedView', function () {
       );
     });
   });
+
+  it('can enable gitlab features', async function () {
+    const router = RouterFixture({
+      params: {integrationSlug: 'gitlab'},
+    });
+    render(<IntegrationDetailedView />, {organization, router});
+    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByText('features'));
+
+    const mock = MockApiClient.addMockResponse({
+      url: ENDPOINT,
+      method: 'PUT',
+    });
+
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: /Enable Comments on Suspect Pull Requests/})
+    );
+
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledWith(
+        ENDPOINT,
+        expect.objectContaining({
+          data: {gitlabPRBot: true},
+        })
+      );
+    });
+  });
 });
