@@ -3,6 +3,8 @@ from sentry.taskworker.registry import taskregistry
 # Namespaces for taskworker tasks
 alerts_tasks = taskregistry.create_namespace("alerts")
 
+attachments_tasks = taskregistry.create_namespace("attachments")
+
 auth_tasks = taskregistry.create_namespace("auth")
 
 auth_control_tasks = taskregistry.create_namespace("auth.control")
@@ -31,6 +33,8 @@ export_tasks = taskregistry.create_namespace(name="export", processing_deadline_
 hybridcloud_tasks = taskregistry.create_namespace("hybridcloud")
 
 hybridcloud_control_tasks = taskregistry.create_namespace("hybridcloud.control")
+
+issues_tasks = taskregistry.create_namespace("issues")
 
 integrations_tasks = taskregistry.create_namespace("integrations")
 
