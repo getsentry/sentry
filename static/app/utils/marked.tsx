@@ -56,16 +56,11 @@ function preprocess(markdown: string) {
   return dompurify.sanitize(markdown, {ALLOWED_TAGS: []});
 }
 
-function postprocess(html: string) {
-  return dompurify.sanitize(html);
-}
-
 marked.use({
   async: false,
   renderer: new SafeRenderer(),
   hooks: {
     preprocess,
-    postprocess,
   },
 });
 
@@ -106,8 +101,7 @@ const sanitizedMarked = (
   src: string,
   options: NonAsyncMarkedOptions = {async: false}
 ) => {
-  // Sanitized via hooks
-  return marked(src, options);
+  return dompurify.sanitize(marked(src, options));
 };
 
 const noParagraphRenderer = new NoParagraphRenderer();
