@@ -421,8 +421,8 @@ const formTheme: FormTheme = {
    */
   form: {
     md: {
-      height: '40px',
-      minHeight: '40px',
+      height: '36px',
+      minHeight: '36px',
       fontSize: '0.875rem',
       lineHeight: '1rem',
     },
