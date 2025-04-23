@@ -27,7 +27,23 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer):
         instance: DataConditionGroup,
         validated_data: dict[str, Any],
     ) -> DataConditionGroup:
-        pass
+        condition_ids = {
+            c["id"] for c in validated_data.get("conditions", []) if c.get("id") is not None
+        }
+
+        has_condition_removal = condition_ids != set(
+            instance.conditions.all().values_list("id", flat=True)
+        )
+
+        if has_condition_removal:
+            instance.conditions.exclude(id__in=condition_ids).delete()
+
+        # Create / Update Conditions
+        validated_data.pop("conditions", None)
+
+        # update the condition group
+        instance.update(**validated_data)
+        return instance
 
     def create(self, validated_data: dict[str, Any]) -> DataConditionGroup:
         with transaction.atomic(router.db_for_write(DataConditionGroup)):

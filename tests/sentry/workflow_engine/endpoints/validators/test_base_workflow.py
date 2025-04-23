@@ -289,6 +289,7 @@ class TestWorkflowValidatorUpdate(TestCase):
 
         validator.is_valid(raise_exception=True)
         self.workflow = validator.create(validator.validated_data)
+        self.context["workflow"] = self.workflow
 
         serializer = WorkflowSerializer()
         attrs = serializer.get_attrs([self.workflow], self.user)
@@ -339,3 +340,67 @@ class TestWorkflowValidatorUpdate(TestCase):
 
         with pytest.raises(ValidationError):
             validator.update(self.workflow, validator.validated_data)
+
+    def test_update__remove_action_fitler(self):
+        self.valid_saved_data["actionFilters"] = []
+
+        validator = WorkflowValidator(data=self.valid_saved_data, context=self.context)
+        assert validator.is_valid() is True
+
+        validator.update(self.workflow, validator.validated_data)
+        self.workflow.refresh_from_db()
+
+        assert self.workflow.workflowdataconditiongroup_set.count() == 0
+
+    def test_update__add_new_filter(self):
+        self.valid_saved_data["actionFilters"].append(
+            {
+                "actions": [
+                    {
+                        "type": Action.Type.SLACK,
+                        "config": {
+                            "target_identifier": "foo",
+                            "target_display": "bar",
+                            "target_type": 0,
+                        },
+                        "data": {},
+                        "integrationId": 1,
+                    }
+                ],
+                "logicType": "all",
+                "conditions": [],
+                "organizationId": self.organization.id,
+            }
+        )
+
+        validator = WorkflowValidator(data=self.valid_saved_data, context=self.context)
+        assert validator.is_valid() is True
+
+        validator.update(self.workflow, validator.validated_data)
+        self.workflow.refresh_from_db()
+
+        assert self.workflow.workflowdataconditiongroup_set.count() == 2
+
+    def test_update__remove_one_filter(self):
+        # Configuration for the test
+        self.workflow.workflowdataconditiongroup_set.create(
+            condition_group=DataConditionGroup.objects.create(
+                organization=self.organization,
+                logic_type="any",
+            )
+        )
+
+        assert self.workflow.workflowdataconditiongroup_set.count() == 2
+        serializer = WorkflowSerializer()
+        attrs = serializer.get_attrs([self.workflow], self.user)
+        self.valid_saved_data = serializer.serialize(self.workflow, attrs[self.workflow], self.user)
+
+        self.valid_saved_data["actionFilters"].pop(0)
+        validator = WorkflowValidator(data=self.valid_saved_data, context=self.context)
+        assert validator.is_valid() is True
+
+        # The evaluation
+        validator.update(self.workflow, validator.validated_data)
+        self.workflow.refresh_from_db()
+
+        assert self.workflow.workflowdataconditiongroup_set.count() == 1

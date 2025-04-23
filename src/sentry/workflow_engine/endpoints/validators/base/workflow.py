@@ -42,11 +42,11 @@ class WorkflowValidator(CamelSnakeSerializer):
 
         return actions, action_filter
 
-    def validate_config(self, value):
+    def validate_config(self, value) -> bool:
         schema = Workflow.config_schema
         return validate_json_schema(value, schema)
 
-    def validate_action_filters(self, value):
+    def validate_action_filters(self, value: ActionData) -> ActionData:
         for action_filter in value:
             actions, condition_group = self._split_action_and_condition_group(action_filter)
             BaseDataConditionGroupValidator(data=condition_group).is_valid(raise_exception=True)
@@ -79,7 +79,8 @@ class WorkflowValidator(CamelSnakeSerializer):
         validator = BaseDataConditionGroupValidator(context=self.context)
         actions: list = []
 
-        if instance and condition_group_data.get("id") != str(instance.id):
+        condition_group_id = condition_group_data.get("id")
+        if instance and condition_group_id and condition_group_id != str(instance.id):
             raise serializers.ValidationError(
                 f"Invalid Condition Group ID {condition_group_data.get('id')}"
             )
@@ -88,8 +89,9 @@ class WorkflowValidator(CamelSnakeSerializer):
             actions, condition_group_data = self._split_action_and_condition_group(
                 condition_group_data
             )
+            condition_group_data.pop("actions")
 
-        if condition_group_data.get("id") is None:
+        if condition_group_id is None:
             result = validator.create(condition_group_data)
         else:
             condition_group = DataConditionGroup.objects.get(id=condition_group_data["id"])
@@ -100,41 +102,47 @@ class WorkflowValidator(CamelSnakeSerializer):
 
         return result
 
+    def update_action_filters(self, action_filters: dict[str, Any]) -> list[DataConditionGroup]:
+        instance = self.context["workflow"]
+        filters: list[DataConditionGroup] = []
+
+        if not action_filters:
+            # If the action filter is set to an empty list, delete all the actions
+            instance.workflowdataconditiongroup_set.all().delete()
+
+        action_filter_ids = {af["id"] for af in action_filters if af.get("id") is not None}
+        has_action_filter_removal = set(action_filter_ids) != set(
+            instance.workflowdataconditiongroup_set.values_list("id", flat=True)
+        )
+
+        if has_action_filter_removal:
+            # Remove the action filters that are not in the new list
+            instance.workflowdataconditiongroup_set.exclude(id__in=action_filter_ids).delete()
+
+        for action_filter in action_filters:
+            condition_group = self.update_or_create_data_condition_group(action_filter)
+            filters.append(condition_group)
+
+            if action_filter.get("id") is None:
+                # If it's a new action filter, associate the condition group to the workflow
+                WorkflowDataConditionGroup.objects.create(
+                    condition_group=condition_group,
+                    workflow=instance,
+                )
+
+        return filters
+
     def update(self, instance: Workflow, validated_data: dict[str, Any]) -> Workflow:
         with transaction.atomic(router.db_for_write(Workflow)):
-            # Update the workflow triggers
+            # Update the Workflow.when_condition_group
             triggers = validated_data.pop("triggers", None)
-            if triggers:
-                # Ensure any conditions that were removed in the UI are removed from the DB
-                if triggers.get("id") is not None:
-                    condition_ids = [
-                        condition.get("id")
-                        for condition in triggers.get("conditions", [])
-                        if condition.get("id") is not None
-                    ]
-                    if (
-                        instance.when_condition_group
-                        and instance.when_condition_group.conditions.exists()
-                    ):
-                        instance.when_condition_group.conditions.exclude(
-                            id__in=condition_ids
-                        ).delete()
-
+            if triggers is not None:
                 self.update_or_create_data_condition_group(triggers, instance.when_condition_group)
 
-            # Update the actions & dcg
+            # Update the Action Filters and Actions
             action_filters = validated_data.pop("action_filters", None)
-            if action_filters:
-                for action_filter in action_filters:
-                    actions, condition_group = self._split_action_and_condition_group(action_filter)
-
-                    if condition_group.get("id") is not None:
-                        # TODO - remove any data condition groups not in the request
-                        # TODO - figure out if this needs to happen with actions too
-                        pass
-
-                    self.update_or_create_data_condition_group(condition_group)
-                    self.update_or_create_actions(actions)
+            if action_filters is not None:
+                self.update_action_filters(action_filters)
 
             # Update the workflow
             instance.update(**validated_data)
