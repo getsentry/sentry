@@ -72,8 +72,8 @@ describe('marked', function () {
 
   it('single line renderer should not render paragraphs', function () {
     expect(singleLineRenderer('foo')).toBe('foo');
+    expect(marked('foo')).toBe('<p>foo</p>\n');
     expect(singleLineRenderer('Reading `file.py`')).toBe(`Reading <code>file.py</code>`);
     expect(marked('Reading `file.py`')).toBe(`<p>Reading <code>file.py</code></p>\n`);
-    expect(marked('foo')).toBe('<p>foo</p>\n');
   });
 });
