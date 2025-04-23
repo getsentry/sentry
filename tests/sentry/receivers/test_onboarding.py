@@ -175,7 +175,6 @@ class OrganizationOnboardingTaskTest(TestCase):
             organization_id=self.organization.id,
             project_id=project.id,
             platform=project.platform,
-            updated_empty_state=False,
             origin="ui",
         )
 
@@ -867,7 +866,6 @@ class OrganizationOnboardingTaskTest(TestCase):
             organization_id=self.organization.id,
             project_id=project.id,
             platform=project.platform,
-            updated_empty_state=False,
             origin=None,
         )
 
