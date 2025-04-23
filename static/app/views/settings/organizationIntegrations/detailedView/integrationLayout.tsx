@@ -24,7 +24,8 @@ import type {
   IntegrationInstallationStatus,
 } from 'sentry/types/integrations';
 import {getCategories, getIntegrationFeatureGate} from 'sentry/utils/integrationUtil';
-import marked, {singleLineRenderer} from 'sentry/utils/marked';
+import {singleLineRenderer} from 'sentry/utils/marked/marked';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
@@ -244,7 +245,7 @@ function InformationCard({
     <Fragment>
       <Flex align="center">
         <FlexContainer>
-          <Description dangerouslySetInnerHTML={{__html: marked(description)}} />
+          <Description text={description} />
           <FeatureList
             features={features}
             organization={organization}
@@ -356,7 +357,7 @@ const FlexContainer = styled('div')`
   flex: 1;
 `;
 
-const Description = styled('div')`
+const Description = styled(MarkedText)`
   li {
     margin-bottom: 6px;
   }

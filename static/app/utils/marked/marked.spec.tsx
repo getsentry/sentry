@@ -1,12 +1,23 @@
 /* eslint no-script-url:0 */
 
-import marked, {singleLineRenderer} from 'sentry/utils/marked';
+import {
+  asyncSanitizedMarked,
+  sanitizedMarked,
+  singleLineRenderer,
+} from 'sentry/utils/marked/marked';
+import {loadPrismLanguage} from 'sentry/utils/prism';
+
+jest.unmock('prismjs');
 
 function expectMarkdown(test: any) {
-  expect(marked(test[0])).toEqual('<p>' + test[1] + '</p>\n');
+  expect(sanitizedMarked(test[0])).toEqual('<p>' + test[1] + '</p>\n');
 }
 
 describe('marked', function () {
+  beforeAll(async () => {
+    await loadPrismLanguage('javascript', {});
+  });
+
   it('normal links get rendered as html', function () {
     for (const test of [
       ['[x](http://example.com)', '<a href="http://example.com">x</a>'],
@@ -22,7 +33,7 @@ describe('marked', function () {
   });
 
   it('renders inline code blocks', function () {
-    expect(marked('`foo`')).toBe('<p><code>foo</code></p>\n');
+    expect(sanitizedMarked('`foo`')).toBe('<p><code>foo</code></p>\n');
   });
 
   it('rejected links should be rendered as plain text', function () {
@@ -67,13 +78,52 @@ describe('marked', function () {
         '<a title="class=&quot;bar" href="https://evil.example.com">x</a>',
       ],
     ].forEach(expectMarkdown);
-    expect(marked('<script> <img <script> src=x onerror=alert(1) />')).toBe('');
+    expect(sanitizedMarked('<script> <img <script> src=x onerror=alert(1) />')).toBe('');
   });
 
   it('single line renderer should not render paragraphs', function () {
     expect(singleLineRenderer('foo')).toBe('foo');
-    expect(marked('foo')).toBe('<p>foo</p>\n');
+    expect(sanitizedMarked('foo')).toBe('<p>foo</p>\n');
     expect(singleLineRenderer('Reading `file.py`')).toBe(`Reading <code>file.py</code>`);
-    expect(marked('Reading `file.py`')).toBe(`<p>Reading <code>file.py</code></p>\n`);
+    expect(sanitizedMarked('Reading `file.py`')).toBe(
+      `<p>Reading <code>file.py</code></p>\n`
+    );
+  });
+
+  it('escapes injections via asyncSanitizedMarked', async function () {
+    const tests: Array<[string, string]> = [
+      [
+        '[x<b>Bold</b>](https://evil.example.com)',
+        '<a href="https://evil.example.com">xBold</a>',
+      ],
+      [
+        '[x](https://evil.example.com"class="foo)',
+        '<a href="https://evil.example.com%22class=%22foo">x</a>',
+      ],
+      [
+        '[x](https://evil.example.com "class=\\"bar")',
+        '<a title="class=&quot;bar" href="https://evil.example.com">x</a>',
+      ],
+    ];
+    for (const test of tests) {
+      expect(await asyncSanitizedMarked(test[0])).toBe(`<p>${test[1]}</p>\n`);
+    }
+    expect(
+      await asyncSanitizedMarked('<script> <img <script> src=x onerror=alert(1) />')
+    ).toBe('');
+  });
+
+  it('does not render syntax highlighting via sanitizedMarked', function () {
+    const markdown = '```javascript\nconst x = 1;\n```';
+    expect(sanitizedMarked(markdown)).toBe(
+      `<pre><code class="language-javascript">const x = 1;\n</code></pre>\n`
+    );
+  });
+
+  it('renders syntax highlighting via asyncSanitizedMarked', async function () {
+    const markdown = '```javascript\nconst x = 1;\n```';
+    expect(await asyncSanitizedMarked(markdown)).toBe(
+      `<pre><code class="language-javascript"><span class="token keyword">const</span> x <span class="token operator">=</span> <span class="token number">1</span><span class="token punctuation">;</span>\n</code></pre>`
+    );
   });
 });

@@ -15,7 +15,8 @@ import {useTypingAnimation} from 'sentry/components/events/autofix/useTypingAnim
 import {IconChevron, IconClose, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import marked, {singleLineRenderer} from 'sentry/utils/marked';
+import {singleLineRenderer} from 'sentry/utils/marked/marked';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
@@ -96,16 +97,14 @@ function AutofixInsightCard({
 
   const hasFullJustification = !isUserMessage && !insight.justification;
 
-  const fullJustificationHtml = useMemo(() => {
+  const fullJustificationText = useMemo(() => {
     let fullJustification = isUserMessage ? '' : insight.justification;
     if (newlineIndex !== -1) {
       const excludedText = displayedInsightTitle.substring(newlineIndex + 1);
       const excludedTextWithEllipsis = excludedText ? '...' + excludedText : '';
       fullJustification = excludedTextWithEllipsis + '\n\n' + fullJustification;
     }
-    return {
-      __html: marked(replaceHeadersWithBold(fullJustification || t('No details here.'))),
-    };
+    return replaceHeadersWithBold(fullJustification || t('No details here.'));
   }, [displayedInsightTitle, isUserMessage, insight.justification, newlineIndex]);
 
   return (
@@ -220,7 +219,7 @@ function AutofixInsightCard({
                   >
                     <ContextBody>
                       {hasFullJustification || !insight.change_diff ? (
-                        <p dangerouslySetInnerHTML={fullJustificationHtml} />
+                        <MarkedText as="p" text={fullJustificationText} />
                       ) : (
                         <DiffContainer>
                           <AutofixDiff
