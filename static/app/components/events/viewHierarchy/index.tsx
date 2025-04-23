@@ -60,9 +60,8 @@ function onScrollToNode(
   }
 }
 
+// there can be many other properties, but we only care about a few
 export type ViewHierarchyWindow = {
-  // there can be many other properties, but we only care about a few
-  [key: string]: unknown;
   alpha?: number;
   children?: ViewHierarchyWindow[];
   depth?: number;

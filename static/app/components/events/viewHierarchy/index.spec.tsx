@@ -15,6 +15,7 @@ import {
 } from 'sentry/components/events/viewHierarchy/utils';
 import type {Project} from 'sentry/types/project';
 
+import type {ViewHierarchyData} from './index';
 import {ViewHierarchy} from './index';
 
 // Mocks for useVirtualizedTree hook
@@ -325,29 +326,31 @@ describe('View Hierarchy', function () {
     const mockData = getMockData(ProjectFixture({platform: 'godot'}));
     render(
       <ViewHierarchy
-        viewHierarchy={{
-          rendering_system: 'Godot',
-          windows: [
-            {
-              name: 'root',
-              class: 'Window',
-              children: [
-                {
-                  name: 'SentryConfigurationScript',
-                  class: 'SentryConfiguration',
-                  script: 'res://example_configuration.gd',
-                  children: [
-                    {
-                      name: 'Header - Output',
-                      class: 'Label',
-                      children: [],
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        }}
+        viewHierarchy={
+          {
+            rendering_system: 'Godot',
+            windows: [
+              {
+                name: 'root',
+                class: 'Window',
+                children: [
+                  {
+                    name: 'SentryConfigurationScript',
+                    class: 'SentryConfiguration',
+                    script: 'res://example_configuration.gd',
+                    children: [
+                      {
+                        name: 'Header - Output',
+                        class: 'Label',
+                        children: [],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          } as unknown as ViewHierarchyData
+        }
         emptyMessage={mockData.emptyMessage}
         nodeField={mockData.nodeField}
         showWireframe={mockData.showWireframe}
