@@ -2,7 +2,7 @@ import subprocess
 import sys
 
 modules = [
-    "django.contrib.messages.storage.fallback.FallbackStorage",
+    "django.contrib.messages.storage.fallback",
     "django.contrib.sessions.serializers",
     "django.db.models.sql.compiler",
     "sentry.identity.services.identity.impl",
