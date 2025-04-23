@@ -48,11 +48,15 @@ options_tasks = taskregistry.create_namespace("options")
 
 options_control_tasks = taskregistry.create_namespace("options.control")
 
+profiling_tasks = taskregistry.create_namespace("profiling")
+
 relocation_tasks = taskregistry.create_namespace("relocation")
 
 relocation_control_tasks = taskregistry.create_namespace("relocation.control")
 
 replays_tasks = taskregistry.create_namespace("replays")
+
+reports_tasks = taskregistry.create_namespace("reports")
 
 sdk_tasks = taskregistry.create_namespace("sdk")
 
