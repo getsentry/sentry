@@ -19,7 +19,10 @@ import {
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {getPythonInstallConfig} from 'sentry/utils/gettingStartedDocs/python';
+import {
+  getPythonInstallConfig,
+  getPythonProfilingMinVersionMessage,
+} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
@@ -84,12 +87,7 @@ const installStep = (params: Params) => [
       packageName: "'sentry-sdk'",
       description:
         params.docsLocation === DocsPageLocation.PROFILING_PAGE
-          ? tct(
-              'You need a minimum version [code:2.24.1] of the [code:sentry-python] SDK for the profiling feature.',
-              {
-                code: <code />,
-              }
-            )
+          ? getPythonProfilingMinVersionMessage()
           : undefined,
     }),
   },

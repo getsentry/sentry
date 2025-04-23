@@ -18,6 +18,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
   getPythonInstallConfig,
+  getPythonProfilingMinVersionMessage,
   getPythonProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/python';
 
@@ -77,12 +78,7 @@ const onboarding: OnboardingConfig = {
         packageName: "'sentry-sdk[celery]'",
         description:
           params.docsLocation === DocsPageLocation.PROFILING_PAGE
-            ? tct(
-                'You need a minimum version [code:2.24.1] of the [code:sentry-python] SDK for the profiling feature.',
-                {
-                  code: <code />,
-                }
-              )
+            ? getPythonProfilingMinVersionMessage()
             : undefined,
       }),
     },

@@ -58,6 +58,15 @@ export function getPythonInstallConfig({
   ];
 }
 
+export function getPythonProfilingMinVersionMessage() {
+  return tct(
+    'You need a minimum version [code:2.24.1] of the [code:sentry-python] SDK for the profiling feature.',
+    {
+      code: <code />,
+    }
+  );
+}
+
 export const getPythonProfilingOnboarding = ({
   basePackage = 'sentry-sdk',
   traceLifecycle = 'trace',
