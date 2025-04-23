@@ -23,7 +23,7 @@ import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {LoadingScreen} from 'sentry/views/insights/common/components/chart';
 import MiniChartPanel from 'sentry/views/insights/common/components/miniChartPanel';
 
-export type ChartSelectOptions = {
+type ChartSelectOptions = {
   title: string;
   yAxis: string;
   series?: Series[];

@@ -6,11 +6,11 @@ import {
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 
-export interface AutofixSetupRepoDefinition extends AutofixRepoDefinition {
+interface AutofixSetupRepoDefinition extends AutofixRepoDefinition {
   ok: boolean;
 }
 
-export type AutofixSetupResponse = {
+type AutofixSetupResponse = {
   genAIConsent: {
     ok: boolean;
   };
@@ -24,7 +24,7 @@ export type AutofixSetupResponse = {
   } | null;
 };
 
-export function makeAutofixSetupQueryKey(
+function makeAutofixSetupQueryKey(
   groupId: string,
   checkWriteAccess?: boolean
 ): ApiQueryKey {

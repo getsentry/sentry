@@ -64,13 +64,6 @@ import type {FieldValue, TableColumn} from './table/types';
 import {FieldValueKind} from './table/types';
 import {getAllViews, getTransactionViews, getWebVitalsViews} from './data';
 
-export type QueryWithColumnState =
-  | Query
-  | {
-      field: string | string[] | null | undefined;
-      sort: string | string[] | null | undefined;
-    };
-
 const TEMPLATE_TABLE_COLUMN: TableColumn<string> = {
   key: '',
   name: '',

@@ -3,11 +3,11 @@ import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button, ButtonLabel} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {linkStyles} from 'sentry/components/links/styles';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -36,6 +36,7 @@ interface SidebarItemDropdownProps {
   label: string;
   children?: React.ReactNode;
   forceLabel?: boolean;
+  onOpen?: MouseEventHandler<HTMLButtonElement>;
 }
 
 interface SidebarButtonProps {
@@ -76,6 +77,7 @@ export function SidebarMenu({
   analyticsKey,
   label,
   forceLabel,
+  onOpen,
 }: SidebarItemDropdownProps) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -96,6 +98,7 @@ export function SidebarMenu({
               onClick={event => {
                 recordPrimaryItemClick(analyticsKey, organization);
                 props.onClick?.(event);
+                onOpen?.(event);
               }}
               isMobile={layout === NavLayout.MOBILE}
             >
@@ -412,7 +415,7 @@ const StyledNavLink = styled(Link, {
     `}
 `;
 
-export const NavLink = withChonk(StyledNavLink, ChonkNavLink);
+const NavLink = withChonk(StyledNavLink, ChonkNavLink);
 
 const ChonkNavButton = styled(Button, {
   shouldForwardProp: prop => prop !== 'isMobile',

@@ -4,7 +4,8 @@ import styled from '@emotion/styled';
 
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
-import {DropdownMenu, type DropdownMenuProps} from 'sentry/components/dropdownMenu';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
@@ -14,7 +15,6 @@ import {ProjectList} from 'sentry/components/projectList';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {getAbsoluteSummary} from 'sentry/components/timeRangeSelector/utils';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -85,7 +85,9 @@ SavedEntityTable.Header = styled('div')`
   background-color: ${p => p.theme.backgroundSecondary};
 `;
 
-SavedEntityTable.HeaderCell = styled('div')`
+SavedEntityTable.HeaderCell = styled('div')<{
+  noBorder?: boolean;
+}>`
   display: flex;
   align-items: center;
   padding: 0 ${space(1.5)};
@@ -108,6 +110,12 @@ SavedEntityTable.HeaderCell = styled('div')`
   &:empty {
     border: 0;
   }
+
+  ${p =>
+    p.noBorder &&
+    css`
+      border: 0;
+    `}
 
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightBold};
@@ -139,15 +147,18 @@ SavedEntityTable.Row = styled('div')<{isFirst: boolean; disableHover?: boolean}>
     `}
 `;
 
-SavedEntityTable.Cell = styled('div')`
+SavedEntityTable.Cell = styled('div')<{hasButton?: boolean}>`
   display: flex;
   align-items: center;
   padding: ${space(1)} ${space(1.5)};
+  height: 40px;
 
   /* Buttons already provide some padding */
-  &:has(> button:first-child) {
-    padding: 0 ${space(0.5)};
-  }
+  ${p =>
+    p.hasButton &&
+    css`
+      padding: 0 ${space(0.5)};
+    `}
 `;
 
 SavedEntityTable.CellStar = function CellStar({
@@ -217,11 +228,7 @@ SavedEntityTable.CellQuery = function CellQuery({query}: {query: string}) {
   return <FormattedQueryNoWrap query={query} />;
 };
 
-SavedEntityTable.CellActions = function CellActions({
-  items,
-}: {
-  items: DropdownMenuProps['items'];
-}) {
+SavedEntityTable.CellActions = function CellActions({items}: {items: MenuItemProps[]}) {
   return (
     <DropdownMenu
       trigger={triggerProps => (
@@ -230,7 +237,7 @@ SavedEntityTable.CellActions = function CellActions({
           aria-label={t('More options')}
           size="sm"
           borderless
-          icon={<IconEllipsis direction="down" size="sm" />}
+          icon={<IconEllipsis compact />}
           data-test-id="menu-trigger"
         />
       )}

@@ -35,7 +35,7 @@ from sentry.eventstore.models import Event
 from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
-from sentry.incidents.grouptype import MetricAlertFire
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import (
     create_alert_rule,
     create_alert_rule_trigger,
@@ -155,11 +155,11 @@ from sentry.types.token import AuthTokenType
 from sentry.uptime.models import (
     IntervalSecondsLiteral,
     ProjectUptimeSubscription,
-    ProjectUptimeSubscriptionMode,
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
 )
+from sentry.uptime.types import ProjectUptimeSubscriptionMode
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.users.models.user import User
 from sentry.users.models.user_avatar import UserAvatar
@@ -323,7 +323,7 @@ DEFAULT_EVENT_DATA = {
 }
 
 default_detector_config_data = {
-    MetricAlertFire.slug: {"threshold_period": 1, "detection_type": "static"}
+    MetricIssue.slug: {"threshold_period": 1, "detection_type": "static"}
 }
 
 

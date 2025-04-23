@@ -6,6 +6,7 @@ import partial from 'lodash/partial';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import {deviceNameMapper} from 'sentry/components/deviceName';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -19,7 +20,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
-import {Tooltip} from 'sentry/components/tooltip';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {IconDownload} from 'sentry/icons';
@@ -128,8 +128,6 @@ type FieldFormatters = {
   size: FieldFormatter;
   string: FieldFormatter;
 };
-
-export type FieldTypes = keyof FieldFormatters;
 
 const EmptyValueContainer = styled('span')`
   color: ${p => p.theme.subText};

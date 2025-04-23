@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -11,6 +11,7 @@ import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -37,6 +38,7 @@ import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/use
 interface ExploreChartsProps {
   canUsePreviousResults: boolean;
   confidences: Confidence[];
+  dataset: DiscoverDatasets;
   query: string;
   setVisualizes: (visualizes: Visualize[]) => void;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
@@ -60,7 +62,7 @@ export const EXPLORE_CHART_TYPE_OPTIONS = [
   },
 ];
 
-export const EXPLORE_CHART_GROUP = 'explore-charts_group';
+const EXPLORE_CHART_GROUP = 'explore-charts_group';
 
 export function ExploreCharts({
   canUsePreviousResults,
@@ -71,6 +73,7 @@ export function ExploreCharts({
   setVisualizes,
   hideContextMenu,
   samplingMode,
+  dataset,
 }: ExploreChartsProps) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -208,6 +211,7 @@ export function ExploreCharts({
                       confidence={undefined}
                       topEvents={undefined}
                       dataScanned={undefined}
+                      dataset={dataset}
                     />
                   )
                 }
@@ -329,6 +333,7 @@ export function ExploreCharts({
                   }
                   dataScanned={chartInfo.dataScanned}
                   samplingMode={samplingMode}
+                  dataset={dataset}
                 />
               }
             />

@@ -38,6 +38,8 @@ from sentry.utils.snuba import (
     raw_snql_query,
 )
 
+LIMIT = 10000
+
 
 @dataclasses.dataclass
 class SnubaModelQuerySettings:
@@ -390,7 +392,7 @@ class SnubaTSDB(BaseTSDB):
         if keys:
             start = to_datetime(series[0])
             end = to_datetime(series[-1] + rollup)
-            limit = min(10000, int(len(keys) * ((end - start).total_seconds() / rollup)))
+            limit = min(LIMIT, int(len(keys) * ((end - start).total_seconds() / rollup)))
 
             # build up order by
             orderby: list[OrderBy] = []
@@ -566,7 +568,7 @@ class SnubaTSDB(BaseTSDB):
 
         start = to_datetime(series[0])
         end = to_datetime(series[-1] + rollup)
-        limit = min(10000, int(len(keys) * ((end - start).total_seconds() / rollup)))
+        limit = min(LIMIT, int(len(keys) * ((end - start).total_seconds() / rollup)))
 
         conditions = conditions if conditions is not None else []
         if model_query_settings.conditions is not None:
@@ -703,6 +705,48 @@ class SnubaTSDB(BaseTSDB):
                     else:
                         self.unnest(val, aggregated_as)
 
+    def get_aggregate_function(self, model) -> str:
+        model_query_settings = self.model_query_settings.get(model)
+        assert model_query_settings is not None, f"Unsupported TSDBModel: {model.name}"
+
+        if model_query_settings.dataset == Dataset.Outcomes:
+            aggregate_function = "sum"
+        else:
+            aggregate_function = "count()"
+        return aggregate_function
+
+    def get_sums_data(
+        self,
+        model: TSDBModel,
+        keys: Sequence[TSDBKey],
+        start: datetime,
+        end: datetime,
+        rollup: int | None = None,
+        environment_ids: Sequence[int] | None = None,
+        conditions=None,
+        use_cache: bool = False,
+        jitter_value: int | None = None,
+        tenant_ids: dict[str, str | int] | None = None,
+        referrer_suffix: str | None = None,
+        group_on_time: bool = True,
+    ) -> Mapping[TSDBKey, int]:
+        result: Mapping[TSDBKey, int] = self.get_data(
+            model,
+            keys,
+            start,
+            end,
+            rollup,
+            environment_ids,
+            aggregation=self.get_aggregate_function(model),
+            group_on_time=group_on_time,
+            conditions=conditions,
+            use_cache=use_cache,
+            jitter_value=jitter_value,
+            tenant_ids=tenant_ids,
+            referrer_suffix=referrer_suffix,
+        )
+        return result
+
     def get_range(
         self,
         model: TSDBModel,
@@ -716,15 +760,8 @@ class SnubaTSDB(BaseTSDB):
         jitter_value: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
+        group_on_time: bool = True,
     ) -> dict[TSDBKey, list[tuple[int, int]]]:
-        model_query_settings = self.model_query_settings.get(model)
-        assert model_query_settings is not None, f"Unsupported TSDBModel: {model.name}"
-
-        if model_query_settings.dataset == Dataset.Outcomes:
-            aggregate_function = "sum"
-        else:
-            aggregate_function = "count()"
-
         result = self.get_data(
             model,
             keys,
@@ -732,7 +769,7 @@ class SnubaTSDB(BaseTSDB):
             end,
             rollup,
             environment_ids,
-            aggregation=aggregate_function,
+            aggregation=self.get_aggregate_function(model),
             group_on_time=True,
             conditions=conditions,
             use_cache=use_cache,
@@ -749,7 +786,7 @@ class SnubaTSDB(BaseTSDB):
     def get_distinct_counts_series(
         self,
         model,
-        keys: Sequence[int],
+        keys: Sequence[TSDBKey],
         start,
         end=None,
         rollup=None,
@@ -776,7 +813,7 @@ class SnubaTSDB(BaseTSDB):
     def get_distinct_counts_totals(
         self,
         model,
-        keys: Sequence[int],
+        keys: Sequence[TSDBKey],
         start,
         end=None,
         rollup=None,
@@ -786,7 +823,8 @@ class SnubaTSDB(BaseTSDB):
         tenant_ids=None,
         referrer_suffix=None,
         conditions=None,
-    ):
+        group_on_time: bool = False,
+    ) -> Mapping[TSDBKey, int]:
         return self.get_data(
             model,
             keys,
@@ -800,6 +838,7 @@ class SnubaTSDB(BaseTSDB):
             tenant_ids=tenant_ids,
             referrer_suffix=referrer_suffix,
             conditions=conditions,
+            group_on_time=group_on_time,
         )
 
     def get_frequency_series(

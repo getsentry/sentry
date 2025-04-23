@@ -35,7 +35,7 @@ function getTitle(event: TraceTree.TraceEvent | OurLogsResponseItem | null): {
   }
 
   // Handle log events
-  if (OurLogKnownFieldKey.SEVERITY_TEXT in event) {
+  if (OurLogKnownFieldKey.SEVERITY in event) {
     return {
       title: t('Trace'),
       subtitle: event[OurLogKnownFieldKey.MESSAGE],

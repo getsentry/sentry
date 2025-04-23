@@ -3,7 +3,7 @@ import type {UseInfiniteQueryResult, UseQueryResult} from '@tanstack/react-query
 
 import type {ApiResult} from 'sentry/components/devtoolbar/types';
 
-export interface Props<Data> {
+interface Props<Data> {
   children: React.ReactNode;
   queryResult:
     | UseQueryResult<ApiResult<Data>, Error>

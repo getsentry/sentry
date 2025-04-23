@@ -18,6 +18,7 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.locking import UnableToAcquireLock
@@ -82,7 +83,12 @@ class BaseDeriveCodeMappings(TestCase):
         return cast(GroupEvent, self.store_event(data=test_data, project_id=self.project.id))
 
     def create_repo_and_code_mapping(
-        self, repo_name: str, stack_root: str, source_root: str
+        self,
+        repo_name: str,
+        stack_root: str,
+        source_root: str,
+        automatically_generated: bool = False,
+        default_branch: str = "master",
     ) -> None:
         with assume_test_silo_mode_of(OrganizationIntegration):
             organization_integration = OrganizationIntegration.objects.get(
@@ -98,10 +104,12 @@ class BaseDeriveCodeMappings(TestCase):
             project_id=self.project.id,
             stack_root=stack_root,
             source_root=source_root,
+            default_branch=default_branch,
             repository=repository,
             organization_integration_id=organization_integration.id,
             integration_id=organization_integration.integration_id,
             organization_id=organization_integration.organization_id,
+            automatically_generated=automatically_generated,
         )
 
     def _process_and_assert_configuration_changes(
@@ -112,6 +120,8 @@ class BaseDeriveCodeMappings(TestCase):
         platform: str,
         expected_new_code_mappings: Sequence[ExpectedCodeMapping] | None = None,
         expected_new_in_app_stack_trace_rules: list[str] | None = None,
+        updated_code_mapping: ExpectedCodeMapping | None = None,
+        updated_reasons: list[str] | None = None,
     ) -> GroupEvent:
         platform_config = PlatformConfig(platform)
         dry_run = platform_config.is_dry_run_platform(self.organization)
@@ -194,6 +204,19 @@ class BaseDeriveCodeMappings(TestCase):
                 else:
                     assert current_enhancements == starting_enhancements
 
+            if updated_code_mapping:
+                assert current_code_mappings.filter(
+                    stack_root=updated_code_mapping["stack_root"],
+                    source_root=updated_code_mapping["source_root"],
+                ).exists()
+                assert updated_reasons is not None
+                for reason in updated_reasons:
+                    mock_incr.assert_any_call(
+                        key=f"{METRIC_PREFIX}.code_mapping.updated",
+                        tags={**tags, "reason": reason},
+                        sample_rate=1.0,
+                    )
+
             if (current_repositories.count() > starting_repositories_count) or dry_run:
                 mock_incr.assert_any_call(
                     key=f"{METRIC_PREFIX}.repository.created", tags=tags, sample_rate=1.0
@@ -218,7 +241,6 @@ class BaseDeriveCodeMappings(TestCase):
         self,
         module: str,
         abs_path: str,
-        category: str | None = None,
         in_app: bool = False,
     ) -> dict[str, str | bool | Any]:
         frame: dict[str, str | bool | Any] = {}
@@ -228,8 +250,6 @@ class BaseDeriveCodeMappings(TestCase):
             frame["abs_path"] = abs_path
         if in_app and in_app is not None:
             frame["in_app"] = in_app
-        if category:
-            frame["data"] = {"category": category}
         return frame
 
     def code_mapping(
@@ -813,6 +833,19 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             expected_new_in_app_stack_trace_rules=["stack.module:x.y.** +app"],
         )
 
+    def test_prevent_creating_duplicate_rules(self) -> None:
+        # Rules set by the customer prevent configuration changes
+        self.project.update_option("sentry:grouping_enhancements", "stack.module:foo.bar.** +app")
+        # Manually created code mapping
+        self.create_repo_and_code_mapping(REPO1, "foo/bar/", "src/foo/")
+        # We do not expect code mappings or in-app rules to be created since
+        # the developer already created the code mapping and in-app rule
+        self._process_and_assert_configuration_changes(
+            repo_trees={REPO1: ["src/foo/bar/Baz.java"]},
+            frames=[self.frame_from_module("foo.bar.Baz", "Baz.java")],
+            platform=self.platform,
+        )
+
     def test_basic_case(self) -> None:
         repo_trees = {REPO1: ["src/com/example/foo/Bar.kt"]}
         frames = [
@@ -885,3 +918,31 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
                 expected_new_code_mappings=[self.code_mapping("android/app/", "src/android/app/")],
                 expected_new_in_app_stack_trace_rules=["stack.module:android.app.** +app"],
             )
+
+    @override_options({"issues.auto_source_code_config.update_code_mapping_if_needed": True})
+    def test_automatic_bad_code_mapping_is_updated(self) -> None:
+        # The automation may have created a code mapping with the wrong source path
+        # or the code has been moved to a new location and need to correct it
+        self.create_repo_and_code_mapping(
+            REPO1, "foo/bar/", "bad/source/path", automatically_generated=True
+        )
+        # We expect the code mapping to be updated
+        self._process_and_assert_configuration_changes(
+            repo_trees={REPO1: ["src/foo/bar/Baz.java"]},
+            frames=[self.frame_from_module("foo.bar.Baz", "Baz.java")],
+            platform=self.platform,
+            updated_code_mapping=self.code_mapping("foo/bar/", "src/foo/bar/"),
+            updated_reasons=["source_root_changed"],
+            expected_new_in_app_stack_trace_rules=["stack.module:foo.bar.** +app"],
+        )
+
+    def test_manual_bad_code_mapping_is_not_updated(self) -> None:
+        # The developer creates a bad code mapping
+        self.create_repo_and_code_mapping(REPO1, "foo/bar/", "bad/source/path")
+        # We do not expect code mappings since it matches the existing code mapping
+        self._process_and_assert_configuration_changes(
+            repo_trees={REPO1: ["src/foo/bar/Baz.java"]},
+            frames=[self.frame_from_module("foo.bar.Baz", "Baz.java")],
+            platform=self.platform,
+            expected_new_in_app_stack_trace_rules=["stack.module:foo.bar.** +app"],
+        )

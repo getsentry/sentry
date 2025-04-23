@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   SpanProfileDetails,
   useSpanProfileDetails,
@@ -10,7 +11,6 @@ import {
 import type {SpanType} from 'sentry/components/events/interfaces/spans/types';
 import {getSpanOperation} from 'sentry/components/events/interfaces/spans/utils';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';

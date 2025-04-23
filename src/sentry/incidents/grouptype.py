@@ -3,18 +3,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
-from uuid import uuid4
 
 from sentry import features
 from sentry.incidents.metric_alert_detector import MetricAlertsDetectorValidator
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, ComparisonDeltaChoices
 from sentry.incidents.utils.types import MetricDetectorUpdate, QuerySubscriptionUpdate
 from sentry.issues.grouptype import GroupCategory, GroupType
-from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.organization import Organization
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
-from sentry.workflow_engine.handlers.detector import StatefulDetectorHandler
+from sentry.workflow_engine.handlers.detector import DetectorOccurrence, StatefulDetectorHandler
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorSettings
 
@@ -24,35 +22,17 @@ COMPARISON_DELTA_CHOICES.append(None)
 
 class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate]):
     def build_occurrence_and_event_data(
-        self, group_key: DetectorGroupKey, value: int, new_status: PriorityLevel
-    ) -> tuple[IssueOccurrence, dict[str, Any]]:
+        self, group_key: DetectorGroupKey, new_status: PriorityLevel
+    ) -> tuple[DetectorOccurrence, dict[str, Any]]:
         # Returning a placeholder for now, this may require us passing more info
-
-        occurrence = IssueOccurrence(
-            id=str(uuid4()),
-            project_id=self.detector.project_id,
-            event_id=str(uuid4()),
-            fingerprint=self.build_fingerprint(group_key),
-            issue_title="Some Issue",
-            subtitle="Some subtitle",
-            resource_id=None,
-            evidence_data={"detector_id": self.detector.id, "value": value},
-            evidence_display=[],
-            type=MetricAlertFire,
-            detection_time=datetime.now(UTC),
+        occurrence = DetectorOccurrence(
+            issue_title="Some Issue Title",
+            subtitle="An Issue Subtitle",
+            type=MetricIssue,
             level="error",
             culprit="Some culprit",
-            initial_issue_priority=new_status.value,
         )
-        event_data = {
-            "timestamp": occurrence.detection_time,
-            "project_id": occurrence.project_id,
-            "event_id": occurrence.event_id,
-            "platform": "python",
-            "received": occurrence.detection_time,
-            "tags": {},
-        }
-        return occurrence, event_data
+        return occurrence, {}
 
     @property
     def counter_names(self) -> list[str]:
@@ -71,10 +51,10 @@ class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
 # Example GroupType and detector handler for metric alerts. We don't create these issues yet, but we'll use something
 # like these when we're sending issues as alerts
 @dataclass(frozen=True)
-class MetricAlertFire(GroupType):
+class MetricIssue(GroupType):
     type_id = 8001
-    slug = "metric_alert_fire"
-    description = "Metric alert fired"
+    slug = "metric_issue"
+    description = "Metric issue triggered"
     category = GroupCategory.METRIC_ALERT.value
     creation_quota = Quota(3600, 60, 100)
     default_priority = PriorityLevel.HIGH
@@ -107,3 +87,8 @@ class MetricAlertFire(GroupType):
     @classmethod
     def allow_post_process_group(cls, organization: Organization) -> bool:
         return features.has("organizations:workflow-engine-metric-alert-processing", organization)
+
+
+# This needs to be removed once the import in getsentry is updated to use MetricIssue
+class MetricAlertFire:
+    slug = "metric_alert_fire"
