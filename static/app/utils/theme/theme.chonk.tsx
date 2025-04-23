@@ -1204,7 +1204,7 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   radius,
   focusRing: {
     outline: 'none',
-    boxShadow: `0 0 0 2px ${lightAliases.background}, 0 0 0 4px ${lightAliases.focusBorder}`,
+    boxShadow: `0 0 0 0 ${lightAliases.background}, 0 0 0 2px ${lightAliases.focusBorder}`,
   },
 
   // @TODO: these colors need to be ported
@@ -1281,7 +1281,7 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   radius,
   focusRing: {
     outline: 'none',
-    boxShadow: `0 0 0 2px ${darkAliases.background}, 0 0 0 4px ${darkAliases.focusBorder}`,
+    boxShadow: `0 0 0 0 ${darkAliases.background}, 0 0 0 2px ${darkAliases.focusBorder}`,
   },
 
   // @TODO: these colors need to be ported
