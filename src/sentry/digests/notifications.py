@@ -5,12 +5,13 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any, NamedTuple, TypeAlias
 
-from sentry import tsdb
+from sentry import features, tsdb
 from sentry.digests.types import Notification, Record, RecordWithRuleObjects
 from sentry.eventstore.models import Event
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
+from sentry.notifications.notifications.rules import get_key_from_rule_data
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.tsdb.base import TSDBModel
 
@@ -68,9 +69,17 @@ def event_to_record(
     if not rules:
         logger.warning("Creating record for %s that does not contain any rules!", event)
 
+    rule_ids = []
+    # TODO(iamrajjoshi): This will only work during the dual write period of the rollout!
+    if features.has("organizations:workflow-engine-trigger-actions", event.organization):
+        for rule in rules:
+            rule_ids.append(get_key_from_rule_data(rule, "legacy_rule_id"))
+    else:
+        for rule in rules:
+            rule_ids.append(rule.id)
     return Record(
         event.event_id,
-        Notification(event, [rule.id for rule in rules], notification_uuid),
+        Notification(event, rule_ids, notification_uuid),
         event.datetime.timestamp(),
     )
 
@@ -164,6 +173,19 @@ def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
     groups = Group.objects.in_bulk(record.value.event.group_id for record in records)
     group_ids = list(groups)
     rules = Rule.objects.in_bulk(rule_id for record in records for rule_id in record.value.rules)
+
+    # TODO(iamrajjoshi): This will only work during the dual write period of the rollout!
+    if features.has("organizations:workflow-engine-trigger-actions", project.organization):
+        for rule in rules.values():
+            try:
+                rule.data["actions"][0]["legacy_rule_id"] = get_key_from_rule_data(
+                    rule, "legacy_rule_id"
+                )
+            except Exception:
+                logger.warning("Failed to get legacy rule id for rule %s", rule.id)
+                # This means that this is an "old" rule that hasn't been flushed from redis yet
+                # We manually set the legacy rule id because we are under the feature flag
+                rule.data["actions"][0]["legacy_rule_id"] = rule.id
 
     for group_id, g in groups.items():
         assert g.project_id == project.id, "Group must belong to Project"
