@@ -32,17 +32,21 @@ hybridcloud_tasks = taskregistry.create_namespace("hybridcloud")
 
 hybridcloud_control_tasks = taskregistry.create_namespace("hybridcloud.control")
 
-notifications_tasks = taskregistry.create_namespace("notifications")
-
-notifications_control_tasks = taskregistry.create_namespace("notifications.control")
-
 integrations_tasks = taskregistry.create_namespace("integrations")
 
 integrations_control_tasks = taskregistry.create_namespace("integrations.control")
 
+notifications_tasks = taskregistry.create_namespace("notifications")
+
+notifications_control_tasks = taskregistry.create_namespace("notifications.control")
+
 options_tasks = taskregistry.create_namespace("options")
 
 options_control_tasks = taskregistry.create_namespace("options.control")
+
+relocation_tasks = taskregistry.create_namespace("relocation")
+
+relocation_control_tasks = taskregistry.create_namespace("relocation.control")
 
 replays_tasks = taskregistry.create_namespace("replays")
 
@@ -54,12 +58,14 @@ seer_tasks = taskregistry.create_namespace("seer")
 
 selfhosted_tasks = taskregistry.create_namespace("selfhosted")
 
+sentryapp_tasks = taskregistry.create_namespace("sentryapp")
+
+sentryapp_control_tasks = taskregistry.create_namespace("sentryapp.control")
+
 tempest_tasks = taskregistry.create_namespace("tempest")
 
 uptime_tasks = taskregistry.create_namespace("uptime")
 
-relocation_tasks = taskregistry.create_namespace("relocation")
-relocation_control_tasks = taskregistry.create_namespace("relocation.control")
 
 # Namespaces for testing taskworker tasks
 exampletasks = taskregistry.create_namespace(name="examples")
