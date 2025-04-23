@@ -103,9 +103,7 @@ export function ToolbarGroupBy({autoSwitchToAggregates}: ToolbarGroupBy) {
             {editableColumns.map((column, i) => (
               <ColumnEditorRow
                 key={column.id}
-                canDelete={
-                  editableColumns.length > 1 || !['', undefined].includes(column.column)
-                }
+                canDelete={editableColumns.length > 1}
                 column={column}
                 options={options}
                 onColumnChange={c => updateColumnAtIndex(i, c)}
