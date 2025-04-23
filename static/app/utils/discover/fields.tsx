@@ -656,11 +656,6 @@ export type Aggregation = {
 
 export const DEPRECATED_FIELDS: string[] = [FieldKey.CULPRIT];
 
-export type FieldTag = {
-  key: FieldKey;
-  name: FieldKey;
-};
-
 export const FIELD_TAGS = Object.freeze(
   Object.fromEntries(DISCOVER_FIELDS.map(item => [item, {key: item, name: item}]))
 );
@@ -705,7 +700,7 @@ export function formatTagKey(key: string): string {
 // Allows for a less strict field key definition in cases we are returning custom strings as fields
 export type LooseFieldKey = FieldKey | string | '';
 
-export type MeasurementType =
+type MeasurementType =
   | FieldValueType.DURATION
   | FieldValueType.NUMBER
   | FieldValueType.INTEGER

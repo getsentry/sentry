@@ -26,10 +26,11 @@ export function TotalTokensUsedChart({groupId}: TotalTokensUsedChartProps) {
     'api.ai-pipelines.view'
   );
 
+  const colors = theme.chart.getColorPalette(2);
   return (
     <InsightsLineChartWidget
       title={t('Total tokens used')}
-      series={[{...data[aggregate], color: theme.chart.colors[2][0]}]}
+      series={[{...data[aggregate], color: colors[0]}]}
       isLoading={isPending}
       error={error}
     />
@@ -57,10 +58,11 @@ export function NumberOfPipelinesChart({groupId}: NumberOfPipelinesChartProps) {
     'api.ai-pipelines.view'
   );
 
+  const colors = theme.chart.getColorPalette(2);
   return (
     <InsightsLineChartWidget
       title={t('Number of AI pipelines')}
-      series={[{...data[aggregate], color: theme.chart.colors[2][1]}]}
+      series={[{...data[aggregate], color: colors[1]}]}
       isLoading={isPending}
       error={error}
     />
@@ -88,10 +90,11 @@ export function PipelineDurationChart({groupId}: PipelineDurationChartProps) {
     'api.ai-pipelines.view'
   );
 
+  const colors = theme.chart.getColorPalette(2);
   return (
     <InsightsLineChartWidget
       title={t('Pipeline Duration')}
-      series={[{...data[aggregate], color: theme.chart.colors[2][2]}]}
+      series={[{...data[aggregate], color: colors[2]}]}
       isLoading={isPending}
       error={error}
     />

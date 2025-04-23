@@ -16,9 +16,9 @@ import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDisco
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {ModalChartContainer} from 'sentry/views/insights/pages/platform/laravel/styles';
-import {Toolbar} from 'sentry/views/insights/pages/platform/laravel/toolbar';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
+import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 
 export function DurationWidget({query}: {query?: string}) {
   const theme = useTheme();
@@ -67,9 +67,10 @@ export function DurationWidget({query}: {query?: string}) {
   );
 
   const plottables = useMemo(() => {
+    const colors = theme.chart.getColorPalette(2);
     return [
-      getTimeSeries('avg(span.duration)', theme.chart.colors[1][0]),
-      getTimeSeries('p95(span.duration)', theme.chart.colors[1][1]),
+      getTimeSeries('avg(span.duration)', colors[0]),
+      getTimeSeries('p95(span.duration)', colors[1]),
     ]
       .filter(series => !!series)
       .map(ts => new Line(convertSeriesToTimeseries(ts)));

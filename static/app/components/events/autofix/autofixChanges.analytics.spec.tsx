@@ -54,7 +54,7 @@ describe('AutofixChanges', () => {
           repos: [],
         },
         codebases: {},
-        created_at: '2024-01-01T00:00:00Z',
+        last_triggered_at: '2024-01-01T00:00:00Z',
         run_id: '456',
         status: AutofixStatus.COMPLETED,
       },

@@ -126,7 +126,7 @@ export function decodeFlamegraphStateFromQueryParams(
   return decoded;
 }
 
-export function encodeFlamegraphStateToQueryParams(state: FlamegraphState) {
+function encodeFlamegraphStateToQueryParams(state: FlamegraphState) {
   const highlightFrameToEncode: Record<string, string> = {};
 
   // For some frames we do not have a package (or name) if that happens we want to omit
