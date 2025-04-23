@@ -8,6 +8,8 @@ from sentry.models.project import Project
 from sentry.models.projectplatform import ProjectPlatform
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import issues_tasks
 
 
 def paginate_project_ids(paginate):
@@ -27,6 +29,9 @@ def paginate_project_ids(paginate):
     name="sentry.tasks.collect_project_platforms",
     queue="stats",
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+    ),
 )
 def collect_project_platforms(paginate=1000, **kwargs):
     now = timezone.now()

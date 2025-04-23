@@ -3307,12 +3307,22 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "taskworker.attachments.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "taskworker.seer.rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "taskworker.relay.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.issues.rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
