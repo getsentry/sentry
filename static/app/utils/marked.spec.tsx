@@ -52,7 +52,7 @@ describe('marked', function () {
     [
       [
         '[x<b>Bold</b>](https://evil.example.com)',
-        '<a href="https://evil.example.com">x&lt;b&gt;Bold&lt;/b&gt;</a>',
+        '<a href="https://evil.example.com">x<b>Bold</b></a>',
       ],
       [
         '[x](https://evil.example.com"class="foo)',
@@ -62,11 +62,8 @@ describe('marked', function () {
         '[x](https://evil.example.com "class=\\"bar")',
         '<a href="https://evil.example.com" title="class=&quot;bar">x</a>',
       ],
-      [
-        '<script> <img <script> src=x onerror=alert(1) />',
-        '&lt;script&gt; &lt;img &lt;script&gt; src=x onerror=alert(1) /&gt;',
-      ],
     ].forEach(expectMarkdown);
+    expect(marked('<script> <img <script> src=x onerror=alert(1) />')).toBe('');
   });
 
   it('limited renderer does not render images and hyperlinks as html', function () {

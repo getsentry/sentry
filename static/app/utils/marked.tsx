@@ -1,9 +1,9 @@
 import dompurify from 'dompurify';
-import type {MarkedOptions} from 'marked'; // eslint-disable-line no-restricted-imports
+import type {MarkedOptions, Tokens} from 'marked'; // eslint-disable-line no-restricted-imports
 import {marked} from 'marked'; // eslint-disable-line no-restricted-imports
+import {markedHighlight} from 'marked-highlight';
 import Prism from 'prismjs';
 
-import {NODE_ENV} from 'sentry/constants';
 import {loadPrismLanguage} from 'sentry/utils/prism';
 
 // Only https and mailto, (e.g. no javascript, vbscript, data protocols)
@@ -23,84 +23,98 @@ function isSafeHref(href: string, pattern: RegExp) {
  * Implementation of marked.Renderer which additonally sanitizes URLs.
  */
 class SafeRenderer extends marked.Renderer {
-  link(href: string, title: string, text: string) {
+  link({href, title, text, ...rest}: Tokens.Link) {
     // For a bad link, just return the plain text href
     if (!isSafeHref(href, safeLinkPattern)) {
       return href;
     }
 
-    const out = super.link(href, title, text);
+    const out = super.link({href, title, text, ...rest});
     return dompurify.sanitize(out);
   }
 
-  image(href: string, title: string, text: string) {
+  image({href, title, text, ...rest}: Tokens.Image) {
     // For a bad image, return an empty string
-    if (this.options.sanitize && !isSafeHref(href, safeImagePattern)) {
+    if (!isSafeHref(href, safeImagePattern)) {
       return '';
     }
 
-    return super.image(href, title, text);
+    return super.image({href, title, text, ...rest});
   }
 }
 
 class LimitedRenderer extends marked.Renderer {
-  link(href: string) {
+  link({href}: Tokens.Link) {
     return href;
   }
 
-  image(href: string) {
+  image({href}: Tokens.Image) {
     return href;
   }
 }
 
 class NoParagraphRenderer extends SafeRenderer {
-  paragraph(text: string) {
+  paragraph({text}: Tokens.Paragraph) {
     return text;
   }
 }
 
 marked.setOptions({
   renderer: new SafeRenderer(),
-  sanitize: true,
-
-  highlight: (code, lang, callback) => {
-    if (!lang) {
-      return code;
-    }
-
-    if (lang in Prism.languages) {
-      return Prism.highlight(code, Prism.languages[lang]!, lang);
-    }
-
-    loadPrismLanguage(lang, {
-      onLoad: () =>
-        callback?.(null!, Prism.highlight(code, Prism.languages[lang]!, lang)),
-      onError: error => callback?.(error, code),
-      suppressExistenceWarning: true,
-    });
-
-    return code;
-  },
-
-  // Silence sanitize deprecation warning in test / ci (CI sets NODE_NV
-  // to production, but specifies `CI`).
-  //
-  // [!!] This has the side effect of causing failed markdown content to render
-  //      as a html error, instead of throwing an exception, however none of
-  //      our tests are rendering failed markdown so this is likely a safe
-  //      tradeoff to turn off off the deprecation warning.
-  silent: NODE_ENV === 'test',
+  async: false,
 });
 
-const limitedMarked = (text: string, options: MarkedOptions = {}) =>
-  sanitizedMarked(text, {...options, renderer: new LimitedRenderer()});
+marked.use(
+  markedHighlight({
+    async: false,
+    highlight: (code, lang, _info): string => {
+      if (!lang) {
+        return code;
+      }
 
-const sanitizedMarked = (src: string, options?: MarkedOptions) => {
-  return dompurify.sanitize(marked(src, options));
+      if (lang in Prism.languages) {
+        try {
+          return Prism.highlight(code, Prism.languages[lang]!, lang);
+        } catch (e) {
+          return code;
+        }
+      }
+
+      // This is really hacky because the previous version had a callback that let you update code
+      // once the language was loaded. The new versioon makes the entire call to marked async, which
+      // requires a migration to the new API.
+      // This can cause the syntax highlight not to load if the component does not rerender after the language is loaded.
+      // The ideal solution would be to move to the async api
+      loadPrismLanguage(lang, {
+        onError: () => {},
+        onLoad: () => {},
+        suppressExistenceWarning: true,
+      });
+      return code;
+    },
+  })
+);
+
+type NonAsyncMarkedOptions = MarkedOptions & {async: false};
+
+const limitedMarked = (text: string, options: NonAsyncMarkedOptions = {async: false}) => {
+  return sanitizedMarked(text, {...options, renderer: new LimitedRenderer()});
 };
 
-const singleLineRenderer = (text: string, options: MarkedOptions = {}) =>
-  sanitizedMarked(text, {...options, renderer: new NoParagraphRenderer()});
+const sanitizedMarked = (
+  src: string,
+  options: NonAsyncMarkedOptions = {async: false}
+) => {
+  const rawHtml = marked(src, options);
+  return dompurify.sanitize(rawHtml);
+};
+
+const singleLineRenderer = (
+  text: string,
+  options: NonAsyncMarkedOptions = {async: false}
+) => {
+  return sanitizedMarked(text, {...options, renderer: new NoParagraphRenderer()});
+};
 
 export {singleLineRenderer, limitedMarked};
 export default sanitizedMarked;
