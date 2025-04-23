@@ -8,8 +8,6 @@ import {
 } from 'sentry/components/events/autofix/types';
 import {t} from 'sentry/locale';
 
-export const AUTOFIX_ROOT_CAUSE_STEP_ID = 'root_cause_analysis';
-
 export function getRootCauseDescription(autofixData: AutofixData) {
   const rootCause = autofixData.steps?.find(
     step => step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS
