@@ -143,7 +143,7 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
     event_metadata.update(event.get_event_metadata())
     event_metadata["title"] = occurrence.issue_title
     event_metadata["value"] = occurrence.subtitle
-    event_metadata["priority"] = occurrence.priority
+    event_metadata["initial_priority"] = occurrence.priority
 
     if occurrence.type == FeedbackGroup:
         # TODO: Should feedbacks be their own event type, so above call to event.get_event_medata
@@ -261,9 +261,6 @@ def save_issue_from_occurrence(
         return None
     else:
         group = primary_grouphash.group
-        if issue_kwargs["priority"] and group.priority != issue_kwargs["priority"]:
-            group.update(priority=issue_kwargs["priority"])
-
         if group.issue_category.value != occurrence.type.category:
             logger.error(
                 "save_issue_from_occurrence.category_mismatch",
@@ -279,6 +276,8 @@ def save_issue_from_occurrence(
         group_event.occurrence = occurrence
         is_regression = _process_existing_aggregate(group, group_event, issue_kwargs, release)
         group_info = GroupInfo(group=group, is_new=False, is_regression=is_regression)
+        if issue_kwargs["priority"] and group.priority != issue_kwargs["priority"]:
+            group.update(priority=issue_kwargs["priority"])
 
     additional_hashes = [f for f in occurrence.fingerprint if f != primary_grouphash.hash]
     for fingerprint_hash in additional_hashes:
