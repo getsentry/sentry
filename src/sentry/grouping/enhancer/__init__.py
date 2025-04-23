@@ -7,7 +7,7 @@ import zlib
 from collections import Counter
 from collections.abc import Sequence
 from functools import cached_property
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Any, Literal
 
 import msgpack
 import sentry_sdk
@@ -16,7 +16,6 @@ from sentry_ophio.enhancers import Cache as RustCache
 from sentry_ophio.enhancers import Component as RustFrame
 from sentry_ophio.enhancers import Enhancements as RustEnhancements
 
-from sentry import projectoptions
 from sentry.grouping.component import FrameGroupingComponent, StacktraceGroupingComponent
 from sentry.stacktraces.functions import set_in_app
 from sentry.utils.safe import get_path, set_path
@@ -24,7 +23,7 @@ from sentry.utils.safe import get_path, set_path
 from .exceptions import InvalidEnhancerConfig
 from .matchers import create_match_frame
 from .parser import parse_enhancements
-from .rules import EnhancementRule, EnhancementRuleDict
+from .rules import EnhancementRule
 
 logger = logging.getLogger(__name__)
 
@@ -134,13 +133,6 @@ def keep_profiling_rules(config: str) -> str:
     return "\n".join(filtered_rules)
 
 
-class EnhancementsDict(TypedDict):
-    id: str | None
-    bases: list[str]
-    latest: bool
-    rules: NotRequired[list[EnhancementRuleDict]]
-
-
 class Enhancements:
     # NOTE: You must add a version to ``VERSIONS`` any time attributes are added
     # to this class, s.t. no enhancements lacking these attributes are loaded
@@ -178,9 +170,10 @@ class Enhancements:
         """
         # TODO: Fix this type to list[MatchFrame] once it's fixed in ophio
         match_frames: list[Any] = [create_match_frame(frame, platform) for frame in frames]
+        rust_exception_data = make_rust_exception_data(exception_data)
 
         category_and_in_app_results = self.rust_enhancements.apply_modifications_to_frames(
-            match_frames, make_rust_exception_data(exception_data)
+            match_frames, rust_exception_data
         )
 
         for frame, (category, in_app) in zip(frames, category_and_in_app_results):
@@ -209,13 +202,14 @@ class Enhancements:
         match_frames: list[Any] = [create_match_frame(frame, platform) for frame in frames]
 
         rust_frames = [RustFrame(contributes=c.contributes) for c in frame_components]
+        rust_exception_data = make_rust_exception_data(exception_data)
 
         # Modify the rust frames by applying +group/-group rules and getting hints for both those
         # changes and the `in_app` changes applied by earlier in the ingestion process by
         # `apply_category_and_updated_in_app_to_frames`. Also, get `hint` and `contributes` values
         # for the overall stacktrace (returned in `rust_results`).
         rust_stacktrace_results = self.rust_enhancements.assemble_stacktrace_component(
-            match_frames, make_rust_exception_data(exception_data), rust_frames
+            match_frames, rust_exception_data, rust_frames
         )
 
         # Tally the number of each type of frame in the stacktrace. Later on, this will allow us to
@@ -292,19 +286,6 @@ class Enhancements:
 
         return stacktrace_component
 
-    def as_dict(self, with_rules: bool = False) -> EnhancementsDict:
-        rv: EnhancementsDict = {
-            "id": self.id,
-            "bases": self.bases,
-            "latest": projectoptions.lookup_well_known_key(
-                "sentry:grouping_enhancements_base"
-            ).get_default(epoch=projectoptions.LATEST_EPOCH)
-            == self.id,
-        }
-        if with_rules:
-            rv["rules"] = [x.as_dict() for x in self.rules]
-        return rv
-
     def _to_config_structure(self) -> list[Any]:
         # TODO: Can we switch this to a tuple so we can type it more exactly?
         return [
@@ -318,7 +299,9 @@ class Enhancements:
         """A base64 string representation of the enhancements object"""
         pickled = msgpack.dumps(self._to_config_structure())
         compressed_pickle = zstandard.compress(pickled)
-        return base64.urlsafe_b64encode(compressed_pickle).decode("ascii").strip("=")
+        base64_bytes = base64.urlsafe_b64encode(compressed_pickle).strip(b"=")
+        base64_str = base64_bytes.decode("ascii")
+        return base64_str
 
     @classmethod
     def _from_config_structure(
@@ -339,9 +322,12 @@ class Enhancements:
     @classmethod
     def from_base64_string(cls, base64_string: str | bytes) -> Enhancements:
         """Convert a base64 string into an `Enhancements` object"""
-        if isinstance(base64_string, str):
-            base64_string = base64_string.encode("ascii", "ignore")
-        padded_bytes = base64_string + b"=" * (4 - (len(base64_string) % 4))
+        bytes_str = (
+            base64_string.encode("ascii", "ignore")
+            if isinstance(base64_string, str)
+            else base64_string
+        )
+        padded_bytes = bytes_str + b"=" * (4 - (len(bytes_str) % 4))
         try:
             compressed_pickle = base64.urlsafe_b64decode(padded_bytes)
 
@@ -351,8 +337,9 @@ class Enhancements:
                 pickled = zlib.decompress(compressed_pickle)
 
             rust_enhancements = get_rust_enhancements("config_structure", pickled)
+            config_structure = msgpack.loads(pickled, raw=False)
 
-            return cls._from_config_structure(msgpack.loads(pickled, raw=False), rust_enhancements)
+            return cls._from_config_structure(config_structure, rust_enhancements)
         except (LookupError, AttributeError, TypeError, ValueError) as e:
             raise ValueError("invalid stack trace rule config: %s" % e)
 
