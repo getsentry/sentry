@@ -3,6 +3,8 @@ from sentry.taskworker.registry import taskregistry
 # Namespaces for taskworker tasks
 alerts_tasks = taskregistry.create_namespace("alerts")
 
+attachments_tasks = taskregistry.create_namespace("attachments")
+
 auth_tasks = taskregistry.create_namespace("auth")
 
 auth_control_tasks = taskregistry.create_namespace("auth.control")
@@ -46,6 +48,8 @@ options_tasks = taskregistry.create_namespace("options")
 
 options_control_tasks = taskregistry.create_namespace("options.control")
 
+profiling_tasks = taskregistry.create_namespace("profiling")
+
 replays_tasks = taskregistry.create_namespace("replays")
 
 sdk_tasks = taskregistry.create_namespace("sdk")
@@ -63,7 +67,10 @@ tempest_tasks = taskregistry.create_namespace("tempest")
 uptime_tasks = taskregistry.create_namespace("uptime")
 
 relocation_tasks = taskregistry.create_namespace("relocation")
+
 relocation_control_tasks = taskregistry.create_namespace("relocation.control")
+
+reports_tasks = taskregistry.create_namespace("reports")
 
 # Namespaces for testing taskworker tasks
 exampletasks = taskregistry.create_namespace(name="examples")
