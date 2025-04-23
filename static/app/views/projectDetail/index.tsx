@@ -1,9 +1,11 @@
 import Redirect from 'sentry/components/redirect';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
-import {getProjectDetailsRedirect} from 'sentry/views/insights/pages/platform/shared/projectDetailsRedirect';
+import {
+  hasLaravelInsightsFeature,
+  useIsLaravelInsightsAvailable,
+} from 'sentry/views/insights/pages/platform/laravel/features';
 
 import ProjectDetail from './projectDetail';
 
@@ -13,10 +15,11 @@ function ProjectDetailContainer(
     'projects' | 'loadingProjects' | 'selection'
   >
 ) {
-  const organization = useOrganization();
+  const {organization} = props;
   const {projects} = useProjects();
-  const project = projects.find(p => p.slug === props.params.projectId);
+  const isLaravelInsightsAvailable = useIsLaravelInsightsAvailable();
 
+  const project = projects.find(p => p.slug === props.params.projectId);
   useRouteAnalyticsParams(
     project
       ? {
@@ -26,9 +29,16 @@ function ProjectDetailContainer(
       : {}
   );
 
-  const redirect = project && getProjectDetailsRedirect(organization, project);
-  if (redirect) {
-    return <Redirect to={redirect} />;
+  if (
+    project?.platform === 'php-laravel' &&
+    hasLaravelInsightsFeature(organization) &&
+    isLaravelInsightsAvailable
+  ) {
+    return (
+      <Redirect
+        to={`/insights/backend/?project=${project.id}${project.isBookmarked ? '&starred=1' : ''}`}
+      />
+    );
   }
 
   return <ProjectDetail {...props} />;
