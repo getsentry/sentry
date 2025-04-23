@@ -84,7 +84,7 @@ export function NewNextJsExperienceButton() {
                 'Excluding bribes, what would make you excited to use the new UI?'
               ),
               tags: {
-                ['feedback.source']: 'NextJs-insights',
+                ['feedback.source']: 'nextjs-insights',
                 ['feedback.owner']: 'telemetry-experience',
               },
             });
