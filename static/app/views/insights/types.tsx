@@ -1,9 +1,3 @@
-export enum StarfishType {
-  BACKEND = 'backend',
-  MOBILE = 'mobile',
-  FRONTEND = 'frontend',
-}
-
 export enum ModuleName {
   HTTP = 'http',
   DB = 'db',
@@ -426,8 +420,6 @@ export type SpanIndexedProperty = keyof SpanIndexedResponse;
 
 // TODO: When convenient, remove this alias and use `IndexedResponse` everywhere
 export type SpanIndexedFieldTypes = SpanIndexedResponse;
-
-export type Op = SpanIndexedFieldTypes[SpanIndexedField.SPAN_OP];
 
 export enum SpanFunction {
   SPS = 'sps',

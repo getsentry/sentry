@@ -15,6 +15,8 @@ from sentry.models.project import Project
 from sentry.models.userreport import UserReport
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import issues_tasks
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
 
@@ -25,6 +27,9 @@ logger = logging.getLogger(__name__)
     name="sentry.tasks.update_user_reports",
     queue="update",
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+    ),
 )
 def update_user_reports(**kwargs: Any) -> None:
     now = timezone.now()

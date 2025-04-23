@@ -129,8 +129,6 @@ type FieldFormatters = {
   string: FieldFormatter;
 };
 
-export type FieldTypes = keyof FieldFormatters;
-
 const EmptyValueContainer = styled('span')`
   color: ${p => p.theme.subText};
 `;

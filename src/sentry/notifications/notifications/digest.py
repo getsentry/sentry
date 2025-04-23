@@ -211,7 +211,7 @@ class DigestNotification(ProjectNotification):
                 "user_ids": user_ids,
                 "notification_uuid": self.notification_uuid,
                 "number_of_rules": len(shared_context.get("rules_details", [])),
-                "group_count": shared_context.get("event_counts", 0),
+                "group_count": len(shared_context.get("counts", [])),
             },
         )
 

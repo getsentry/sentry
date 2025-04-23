@@ -112,7 +112,7 @@ class TestOccurrenceConsumer(TestCase, OccurrenceTestMixin):
         assert mock_save_issue_occurrence.call_count == 2
         occurrence_data = occurrence.to_dict()
         # need to modify some fields because they get mutated
-        occurrence_data["initial_issue_priority"] = PriorityLevel.LOW
+        occurrence_data["priority"] = PriorityLevel.LOW
         occurrence_data["fingerprint"] = ["cdfb5fbc0959e8e2f27a6e6027c6335b"]
         mock_save_issue_occurrence.assert_called_with(occurrence_data, mock.ANY)
 
@@ -289,11 +289,11 @@ class TestBatchedOccurrenceConsumer(
         occurrence_data2 = occurrence2.to_dict()
         occurrence_data3 = occurrence3.to_dict()
         # need to modify some fields because they get mutated
-        occurrence_data1["initial_issue_priority"] = PriorityLevel.LOW
+        occurrence_data1["priority"] = PriorityLevel.LOW
         occurrence_data1["fingerprint"] = ["28c8edde3d61a0411511d3b1866f0636"]
-        occurrence_data2["initial_issue_priority"] = PriorityLevel.LOW
+        occurrence_data2["priority"] = PriorityLevel.LOW
         occurrence_data2["fingerprint"] = ["665f644e43731ff9db3d341da5c827e1"]
-        occurrence_data3["initial_issue_priority"] = PriorityLevel.LOW
+        occurrence_data3["priority"] = PriorityLevel.LOW
         occurrence_data3["fingerprint"] = ["665f644e43731ff9db3d341da5c827e1"]
         assert any(
             call.args[0] == occurrence_data1 for call in mock_save_issue_occurrence.mock_calls
@@ -420,9 +420,9 @@ class TestBatchedOccurrenceConsumer(
         occurrence_data2 = occurrence2.to_dict()
 
         # need to modify some fields because they get mutated
-        occurrence_data1["initial_issue_priority"] = PriorityLevel.LOW
+        occurrence_data1["priority"] = PriorityLevel.LOW
         occurrence_data1["fingerprint"] = ["28c8edde3d61a0411511d3b1866f0636"]
-        occurrence_data2["initial_issue_priority"] = PriorityLevel.LOW
+        occurrence_data2["priority"] = PriorityLevel.LOW
         occurrence_data2["fingerprint"] = ["665f644e43731ff9db3d341da5c827e1"]
 
         assert any(

@@ -400,6 +400,28 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     );
   });
 
+  story('X Axis', () => {
+    return (
+      <Fragment>
+        <p>
+          In a <JSXNode name="TimeSeriesWidgetVisualization" />, the X axis is by
+          definition always time. The ticks and labels are automatically determined based
+          on the domain of the data set. You can, however, use the <code>showXAxis</code>{' '}
+          prop to hide the X axis in contexts where it would be too busy or distracting.
+          This might be the case in small sidebar charts, for example. Setting the{' '}
+          <code>showXAxis</code> prop to <code>"never"</code> will hide the X axis.
+        </p>
+
+        <SmallWidget>
+          <TimeSeriesWidgetVisualization
+            plottables={[new Line(sampleDurationTimeSeries)]}
+            showXAxis="never"
+          />
+        </SmallWidget>
+      </Fragment>
+    );
+  });
+
   story('Unit Alignment', () => {
     const millisecondsSeries = sampleDurationTimeSeries;
 

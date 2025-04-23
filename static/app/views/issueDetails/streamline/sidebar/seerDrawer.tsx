@@ -9,6 +9,7 @@ import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {DateTime} from 'sentry/components/dateTime';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixProgressBar} from 'sentry/components/events/autofix/autofixProgressBar';
 import {AutofixStartBox} from 'sentry/components/events/autofix/autofixStartBox';
@@ -108,9 +109,9 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
         />
       </SeerDrawerHeader>
       <SeerDrawerNavigator>
-        <Header>
-          {t('Autofix')}
-          <StyledFeatureBadge
+        <Flex align="center" gap={space(1)}>
+          <Header>{t('Autofix')}</Header>
+          <FeatureBadge
             type="beta"
             tooltipProps={{
               title: tct(
@@ -147,7 +148,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
             }
             size="sm"
           />
-        </Header>
+        </Flex>
         {!aiConfig.needsGenAIConsent && (
           <ButtonBarWrapper data-test-id="autofix-button-bar">
             <ButtonBar gap={1}>
@@ -160,8 +161,10 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
                   size="xs"
                   onClick={reset}
                   title={
-                    autofixData?.created_at
-                      ? `Last run at ${autofixData.created_at.split('T')[0]}`
+                    autofixData?.last_triggered_at
+                      ? tct('Last run at [date]', {
+                          date: <DateTime date={autofixData.last_triggered_at} />,
+                        })
                       : null
                   }
                   disabled={!autofixData}
@@ -290,11 +293,6 @@ const StyledCard = styled('div')`
   box-shadow: ${p => p.theme.dropShadowMedium};
 `;
 
-const StyledFeatureBadge = styled(FeatureBadge)`
-  margin-left: ${space(0.25)};
-  padding-bottom: 3px;
-`;
-
 const SeerDrawerContainer = styled('div')`
   height: 100%;
   display: grid;
@@ -335,9 +333,6 @@ const Header = styled('h3')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   font-weight: ${p => p.theme.fontWeightBold};
   margin: 0;
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const NavigationCrumbs = styled(NavigationBreadcrumbs)`

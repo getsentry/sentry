@@ -68,7 +68,7 @@ type ComponentData = React.ComponentProps<
   GenericPerformanceWidgetProps<DataType>['Visualizations'][0]['component']
 >;
 
-export function transformEventsChartRequest<T extends WidgetDataConstraint>(
+function transformEventsChartRequest<T extends WidgetDataConstraint>(
   widgetProps: WidgetPropUnion<T>,
   results: RenderProps,
   _: QueryDefinitionWithKey<T>
@@ -305,7 +305,8 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
             } as SeriesDataUnit;
           }) ?? [];
 
-        const color = isPrimary ? theme.chart.colors[3][0] : theme.chart.colors[3][1];
+        const colors = theme.chart.getColorPalette(3);
+        const color = isPrimary ? colors[0] : colors[1];
         transformedReleaseSeries[release] = {
           seriesName: formatVersion(label, true),
           color,
