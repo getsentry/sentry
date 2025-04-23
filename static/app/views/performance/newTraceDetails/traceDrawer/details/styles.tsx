@@ -537,16 +537,16 @@ function HighLightEAPOpsBreakdown({node}: {node: TraceTreeNode<TraceTree.EAPSpan
     return null;
   }
 
-  breakdown.sort((a, b) => b.count - a.count);
-  const totalCount = breakdown.reduce((acc, curr) => acc + curr.count, 0);
+  const sortedBreakdown = breakdown.toSorted((a, b) => b.count - a.count);
+  const totalCount = sortedBreakdown.reduce((acc, curr) => acc + curr.count, 0);
 
   const TOP_N = 3;
-  const displayOps = breakdown.slice(0, TOP_N).map(op => ({
+  const displayOps = sortedBreakdown.slice(0, TOP_N).map(op => ({
     op: op.op,
     percentage: (op.count / totalCount) * 100,
   }));
 
-  if (breakdown.length > TOP_N) {
+  if (sortedBreakdown.length > TOP_N) {
     const topNPercentage = displayOps.reduce((acc, curr) => acc + curr.percentage, 0);
     displayOps.push({
       op: t('Other'),
