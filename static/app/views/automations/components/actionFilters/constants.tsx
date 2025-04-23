@@ -91,9 +91,6 @@ export enum Attributes {
   APP_IN_FOREGROUND = 'app.in_foreground',
   OS_DISTRIBUTION_NAME = 'os.distribution_name',
   OS_DISTRIBUTION_VERSION = 'os.distribution_version',
-  EXPO_UPDATES_CHANNEL = 'expo_updates.channel',
-  EXPO_UPDATES_RUNTIME_VERSION = 'expo_updates.runtime_version',
-  EXPO_UPDATES_UPDATE_ID = 'expo_updates.update_id',
 }
 
 export enum Level {
@@ -133,13 +130,25 @@ export const PRIORITY_CHOICES = [
 ];
 
 export const AGE_COMPARISON_CHOICES = [
-  {value: AgeComparison.OLDER, label: t('older than')},
-  {value: AgeComparison.NEWER, label: t('newer than')},
+  {
+    value: AgeComparison.OLDER,
+    label: t('older than'),
+  },
+  {
+    value: AgeComparison.NEWER,
+    label: t('newer than'),
+  },
 ];
 
 export const MODEL_AGE_CHOICES = [
-  {value: ModelAge.OLDEST, label: t('oldest')},
-  {value: ModelAge.NEWEST, label: t('newest')},
+  {
+    value: ModelAge.OLDEST,
+    label: t('oldest'),
+  },
+  {
+    value: ModelAge.NEWEST,
+    label: t('newest'),
+  },
 ];
 
 export const LEVEL_MATCH_CHOICES = [
