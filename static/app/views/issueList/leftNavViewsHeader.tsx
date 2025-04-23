@@ -41,7 +41,7 @@ function PageTitle() {
   if (
     hasIssueViewSharing &&
     groupSearchView &&
-    canEditIssueView({groupSearchView, user})
+    canEditIssueView({groupSearchView, user, organization})
   ) {
     return <EditableIssueViewHeader view={groupSearchView} />;
   }
@@ -126,7 +126,7 @@ function IssueViewEditMenu() {
     return null;
   }
 
-  const canDeleteView = canEditIssueView({groupSearchView, user});
+  const canDeleteView = canEditIssueView({groupSearchView, organization, user});
 
   return (
     <DropdownMenu
