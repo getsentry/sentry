@@ -280,8 +280,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:performance-saved-queries", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable querying spans fields stats from comparative workflows project
     manager.add("organizations:performance-spans-fields-stats", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable linking to trace explorer from metrics
-    manager.add("organizations:performance-trace-explorer-with-metrics", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable FE/BE for tracing without performance
     manager.add("organizations:performance-tracing-without-performance", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=True)
     # Enable transaction name only search
@@ -385,8 +383,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:insights-related-issues-table", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable access to Mobile Screens insights module
     manager.add("organizations:insights-mobile-screens-module", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable access to insights uptime view
-    manager.add("organizations:insights-uptime", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Removes performance landing page from sidebar and updates transaction summary breadcrumbs for insights
     manager.add("organizations:insights-performance-landing-removal", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable new SentryApp webhook request endpoint
@@ -445,8 +441,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:view-hierarchy-scrubbing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable creating issues via the issue platform
     manager.add("organizations:uptime-create-issues", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enables uptime related settings for projects and orgs
-    manager.add('organizations:uptime-settings', OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables detailed logging for uptime results
     manager.add("organizations:uptime-detailed-logging", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:use-metrics-layer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
@@ -466,8 +460,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:visibility-explore-equations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the new explore page
     manager.add("organizations:visibility-explore-view", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable the dataset toggle on the new explore page
-    manager.add("organizations:visibility-explore-dataset", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable high date range options on new explore page
     manager.add("organizations:visibility-explore-range-high", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable medium date range options on new explore page
@@ -514,8 +506,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:ourlogs-ingestion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable our logs stats to be displayed in the UI.
     manager.add("organizations:ourlogs-stats", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable the graph in the logs UI.
-    manager.add("organizations:ourlogs-graph", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the visualize sidebar in the logs UI.
     manager.add("organizations:ourlogs-visualize-sidebar", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable logs in the dashboards UI.

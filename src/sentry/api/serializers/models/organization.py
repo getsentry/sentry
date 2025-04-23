@@ -46,11 +46,8 @@ from sentry.constants import (
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     RESERVED_ORGANIZATION_SLUGS,
     ROLLBACK_ENABLED_DEFAULT,
-    SAFE_FIELDS_DEFAULT,
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
-    SENSITIVE_FIELDS_DEFAULT,
-    STREAMLINE_UI_ONLY,
     TARGET_SAMPLE_RATE_DEFAULT,
     ObjectStatus,
 )
@@ -645,9 +642,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             "dataScrubberDefaults": bool(
                 obj.get_option("sentry:require_scrub_defaults", REQUIRE_SCRUB_DEFAULTS_DEFAULT)
             ),
-            "sensitiveFields": obj.get_option("sentry:sensitive_fields", SENSITIVE_FIELDS_DEFAULT)
-            or [],
-            "safeFields": obj.get_option("sentry:safe_fields", SAFE_FIELDS_DEFAULT) or [],
+            "sensitiveFields": obj.get_option("sentry:sensitive_fields", None) or [],
+            "safeFields": obj.get_option("sentry:safe_fields", None) or [],
             "storeCrashReports": convert_crashreport_count(
                 obj.get_option("sentry:store_crash_reports")
             ),
@@ -699,7 +695,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             "rollbackEnabled": bool(
                 obj.get_option("sentry:rollback_enabled", ROLLBACK_ENABLED_DEFAULT)
             ),
-            "streamlineOnly": obj.get_option("sentry:streamline_ui_only", STREAMLINE_UI_ONLY),
+            "streamlineOnly": obj.get_option("sentry:streamline_ui_only", None),
             "trustedRelays": [
                 # serialize trusted relays info into their external form
                 _relay_internal_to_external(raw)

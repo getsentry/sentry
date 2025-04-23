@@ -71,7 +71,7 @@ export function IssueViewsTable({
       emptyMessage={t('No saved views found')}
     >
       {views.map((view, index) => {
-        const canEdit = canEditIssueView({groupSearchView: view, user});
+        const canEdit = canEditIssueView({groupSearchView: view, user, organization});
 
         return (
           <SavedEntityTable.Row

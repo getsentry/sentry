@@ -27,6 +27,6 @@ social_auth: 0002_default_auto_field
 
 tempest: 0002_make_message_type_nullable
 
-uptime: 0034_uptime_backfill_uptime_status
+uptime: 0036_uptime_status_indexes
 
-workflow_engine: 0046_drop_metric_alert_fire_detectors
+workflow_engine: 0047_migrate_issue_alerts
