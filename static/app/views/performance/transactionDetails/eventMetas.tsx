@@ -262,7 +262,7 @@ type EventDetailHeaderProps = {
   type?: 'transaction' | 'event';
 };
 
-export function getEventDetailHeaderCols({
+function getEventDetailHeaderCols({
   hasReplay,
   isBackendProject,
   type,

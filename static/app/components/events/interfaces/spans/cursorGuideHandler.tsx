@@ -6,7 +6,7 @@ import clamp from 'sentry/utils/number/clamp';
 import type {DragManagerChildrenProps} from './dragManager';
 import type {ParsedTraceType} from './types';
 
-export type CursorGuideManagerChildrenProps = {
+type CursorGuideManagerChildrenProps = {
   displayCursorGuide: (mousePageX: number) => void;
   hideCursorGuide: () => void;
   mouseLeft: number | undefined;

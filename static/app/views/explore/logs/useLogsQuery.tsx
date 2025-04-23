@@ -1,4 +1,3 @@
-import type EventView from 'sentry/utils/discover/eventView';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   useLogsBaseSearch,
@@ -15,11 +14,6 @@ import {
 import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOurlogs} from 'sentry/views/insights/common/queries/useDiscover';
-
-export interface OurLogsTableResult {
-  eventView: EventView;
-  result: ReturnType<typeof useOurlogs>;
-}
 
 export type UseExploreLogsTableResult = ReturnType<typeof useExploreLogsTable>;
 

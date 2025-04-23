@@ -69,7 +69,7 @@ type VitalPillProps = {
   vital: Vital;
 };
 
-export function VitalPill({vital, score, meterValue}: VitalPillProps) {
+function VitalPill({vital, score, meterValue}: VitalPillProps) {
   const status = score === undefined || isNaN(score) ? 'none' : scoreToStatus(score);
   const webVitalsConfig = WEB_VITALS_METERS_CONFIG;
 

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from unittest.mock import patch
 
-from sentry.incidents.grouptype import MetricAlertFire
+from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.grouptype import (
     GroupCategory,
     GroupType,
@@ -40,7 +40,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
         @dataclass(frozen=True)
         class TestMetricGroupType(GroupType):
             type_id = 1
-            slug = MetricAlertFire.slug
+            slug = MetricIssue.slug
             description = "Metric alert"
             category = GroupCategory.METRIC_ALERT.value
             detector_settings = DetectorSettings(handler=MockDetectorHandler)
@@ -80,7 +80,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
     def test_simple(self):
         response = self.get_success_response(self.organization.slug, status_code=200)
         assert response.data == [
-            MetricAlertFire.slug,
+            MetricIssue.slug,
             MonitorIncidentType.slug,
             UptimeDomainCheckFailure.slug,
         ]

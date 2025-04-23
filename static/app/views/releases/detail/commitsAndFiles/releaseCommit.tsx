@@ -25,7 +25,7 @@ function formatCommitMessage(message: string | null) {
   return message.split(/\n/)[0];
 }
 
-export interface ReleaseCommitProps {
+interface ReleaseCommitProps {
   commit: Commit;
 }
 

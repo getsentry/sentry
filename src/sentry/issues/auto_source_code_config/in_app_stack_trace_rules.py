@@ -25,7 +25,12 @@ def save_in_app_stack_trace_rules(
     current_enhancements = project.get_option(DERIVED_ENHANCEMENTS_OPTION_KEY)
     current_rules = set(current_enhancements.split("\n")) if current_enhancements else set()
 
-    united_rules = rules_from_code_mappings.union(current_rules)
+    developer_enhancements = project.get_option("sentry:grouping_enhancements")
+    developer_rules = set(developer_enhancements.split("\n")) if developer_enhancements else set()
+
+    # We do not want to duplicate rules from the developer enhancements
+    united_rules = rules_from_code_mappings.union(current_rules).difference(developer_rules)
+
     dry_run = platform_config.is_dry_run_platform(project.organization)
     if not dry_run and united_rules != current_rules:
         project.update_option(DERIVED_ENHANCEMENTS_OPTION_KEY, "\n".join(sorted(united_rules)))
