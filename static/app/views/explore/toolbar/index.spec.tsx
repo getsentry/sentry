@@ -811,7 +811,7 @@ describe('ExploreToolbar', function () {
       query: expect.objectContaining({
         queries: [
           '{"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["count(span.duration)"]}',
-          '{"chartType":1,"fields":["id","span.duration"],"groupBys":[],"query":"","sortBys":["-span.duration"],"yAxes":["count(span.duration)"]}',
+          '{"chartType":1,"fields":["id","span.duration","timestamp"],"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["count(span.duration)"]}',
         ],
       }),
     });
