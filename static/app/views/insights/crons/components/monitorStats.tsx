@@ -163,7 +163,7 @@ export function MonitorStats({monitor, monitorEnvs}: Props) {
               useShortDate
               series={[duration]}
               height={height}
-              colors={[theme.chart.colors[theme.chart.colors.length - 1]![0]]}
+              colors={[theme.chart.getColorPalette(theme.chart.colors.length - 1)[0]]}
               yAxis={getYAxisOptions('duration')}
               grid={{
                 top: 6,

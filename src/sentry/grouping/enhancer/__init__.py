@@ -13,7 +13,7 @@ import msgpack
 import sentry_sdk
 import zstandard
 from sentry_ophio.enhancers import Cache as RustCache
-from sentry_ophio.enhancers import Component as RustComponent
+from sentry_ophio.enhancers import Component as RustFrame
 from sentry_ophio.enhancers import Enhancements as RustEnhancements
 
 from sentry import projectoptions
@@ -65,7 +65,7 @@ def merge_rust_enhancements(
     return merged_rust_enhancements
 
 
-def parse_rust_enhancements(
+def get_rust_enhancements(
     source: Literal["config_structure", "config_string"], input: str | bytes
 ) -> RustEnhancements:
     """
@@ -90,20 +90,22 @@ RustExceptionData = dict[str, bytes | None]
 def make_rust_exception_data(
     exception_data: dict[str, Any] | None,
 ) -> RustExceptionData:
-    e = exception_data or {}
-    e = {
-        "ty": e.get("type"),
-        "value": e.get("value"),
-        "mechanism": get_path(e, "mechanism", "type"),
+    exception_data = exception_data or {}
+    rust_data = {
+        "type": exception_data.get("type"),
+        "value": exception_data.get("value"),
+        "mechanism": get_path(exception_data, "mechanism", "type"),
     }
-    for key, value in e.items():
+
+    # Convert string values to bytes
+    for key, value in rust_data.items():
         if isinstance(value, str):
-            e[key] = value.encode("utf-8")
+            rust_data[key] = value.encode("utf-8")
 
     return RustExceptionData(
-        ty=e["ty"],
-        value=e["value"],
-        mechanism=e["mechanism"],
+        ty=rust_data["type"],
+        value=rust_data["value"],
+        mechanism=rust_data["mechanism"],
     )
 
 
@@ -206,14 +208,14 @@ class Enhancements:
         # TODO: Fix this type to list[MatchFrame] once it's fixed in ophio
         match_frames: list[Any] = [create_match_frame(frame, platform) for frame in frames]
 
-        rust_frame_components = [RustComponent(contributes=c.contributes) for c in frame_components]
+        rust_frames = [RustFrame(contributes=c.contributes) for c in frame_components]
 
-        # Modify the rust components by applying +group/-group rules and getting hints for both
-        # those changes and the `in_app` changes applied by earlier in the ingestion process by
+        # Modify the rust frames by applying +group/-group rules and getting hints for both those
+        # changes and the `in_app` changes applied by earlier in the ingestion process by
         # `apply_category_and_updated_in_app_to_frames`. Also, get `hint` and `contributes` values
         # for the overall stacktrace (returned in `rust_results`).
-        rust_results = self.rust_enhancements.assemble_stacktrace_component(
-            match_frames, make_rust_exception_data(exception_data), rust_frame_components
+        rust_stacktrace_results = self.rust_enhancements.assemble_stacktrace_component(
+            match_frames, make_rust_exception_data(exception_data), rust_frames
         )
 
         # Tally the number of each type of frame in the stacktrace. Later on, this will allow us to
@@ -222,12 +224,12 @@ class Enhancements:
         frame_counts: Counter[str] = Counter()
 
         # Update frame components with results from rust
-        for py_component, rust_component in zip(frame_components, rust_frame_components):
+        for frame_component, rust_frame in zip(frame_components, rust_frames):
             # TODO: Remove the first condition once we get rid of the legacy config
             if (
                 not (self.bases and self.bases[0].startswith("legacy"))
                 and variant_name == "app"
-                and not py_component.in_app
+                and not frame_component.in_app
             ):
                 # System frames should never contribute in the app variant, so force
                 # `contribtues=False`, regardless of the rust results. Use the rust hint if it
@@ -240,29 +242,27 @@ class Enhancements:
                 # order of stacktrace rules and the order of the actions within a stacktrace rule.
                 # Ideally we'd get both hints back.
                 hint = (
-                    rust_component.hint
-                    if rust_component.hint and rust_component.hint.startswith("marked out of app")
-                    else py_component.hint
+                    rust_frame.hint
+                    if rust_frame.hint and rust_frame.hint.startswith("marked out of app")
+                    else frame_component.hint
                 )
-                py_component.update(contributes=False, hint=hint)
+                frame_component.update(contributes=False, hint=hint)
             elif variant_name == "system":
                 # We don't need hints about marking frames in or out of app in the system stacktrace
                 # because such changes don't actually have an effect there
                 hint = (
-                    rust_component.hint
-                    if rust_component.hint
-                    and not rust_component.hint.startswith("marked in-app")
-                    and not rust_component.hint.startswith("marked out of app")
-                    else py_component.hint
+                    rust_frame.hint
+                    if rust_frame.hint
+                    and not rust_frame.hint.startswith("marked in-app")
+                    and not rust_frame.hint.startswith("marked out of app")
+                    else frame_component.hint
                 )
-                py_component.update(contributes=rust_component.contributes, hint=hint)
+                frame_component.update(contributes=rust_frame.contributes, hint=hint)
             else:
-                py_component.update(
-                    contributes=rust_component.contributes, hint=rust_component.hint
-                )
+                frame_component.update(contributes=rust_frame.contributes, hint=rust_frame.hint)
 
             # Add this frame to our tally
-            key = f"{"in_app" if py_component.in_app else "system"}_{"contributing" if py_component.contributes else "non_contributing"}_frames"
+            key = f"{"in_app" if frame_component.in_app else "system"}_{"contributing" if frame_component.contributes else "non_contributing"}_frames"
             frame_counts[key] += 1
 
         # Because of the special case above, in which we ignore the rust-derived `contributes` value
@@ -280,8 +280,8 @@ class Enhancements:
             stacktrace_contributes = False
             stacktrace_hint = None
         else:
-            stacktrace_contributes = rust_results.contributes
-            stacktrace_hint = rust_results.hint
+            stacktrace_contributes = rust_stacktrace_results.contributes
+            stacktrace_hint = rust_stacktrace_results.hint
 
         stacktrace_component = StacktraceGroupingComponent(
             values=frame_components,
@@ -316,9 +316,9 @@ class Enhancements:
     @cached_property
     def base64_string(self) -> str:
         """A base64 string representation of the enhancements object"""
-        encoded = msgpack.dumps(self._to_config_structure())
-        compressed = zstandard.compress(encoded)
-        return base64.urlsafe_b64encode(compressed).decode("ascii").strip("=")
+        pickled = msgpack.dumps(self._to_config_structure())
+        compressed_pickle = zstandard.compress(pickled)
+        return base64.urlsafe_b64encode(compressed_pickle).decode("ascii").strip("=")
 
     @classmethod
     def _from_config_structure(
@@ -337,32 +337,34 @@ class Enhancements:
         )
 
     @classmethod
-    def loads(cls, data: str | bytes) -> Enhancements:
-        if isinstance(data, str):
-            data = data.encode("ascii", "ignore")
-        padded = data + b"=" * (4 - (len(data) % 4))
+    def from_base64_string(cls, base64_string: str | bytes) -> Enhancements:
+        """Convert a base64 string into an `Enhancements` object"""
+        if isinstance(base64_string, str):
+            base64_string = base64_string.encode("ascii", "ignore")
+        padded_bytes = base64_string + b"=" * (4 - (len(base64_string) % 4))
         try:
-            compressed = base64.urlsafe_b64decode(padded)
+            compressed_pickle = base64.urlsafe_b64decode(padded_bytes)
 
-            if compressed.startswith(b"\x28\xb5\x2f\xfd"):
-                encoded = zstandard.decompress(compressed)
+            if compressed_pickle.startswith(b"\x28\xb5\x2f\xfd"):
+                pickled = zstandard.decompress(compressed_pickle)
             else:
-                encoded = zlib.decompress(compressed)
+                pickled = zlib.decompress(compressed_pickle)
 
-            rust_enhancements = parse_rust_enhancements("config_structure", encoded)
+            rust_enhancements = get_rust_enhancements("config_structure", pickled)
 
-            return cls._from_config_structure(msgpack.loads(encoded, raw=False), rust_enhancements)
+            return cls._from_config_structure(msgpack.loads(pickled, raw=False), rust_enhancements)
         except (LookupError, AttributeError, TypeError, ValueError) as e:
             raise ValueError("invalid stack trace rule config: %s" % e)
 
     @classmethod
     @sentry_sdk.tracing.trace
-    def from_config_string(
-        cls, s: str, bases: list[str] | None = None, id: str | None = None
+    def from_rules_text(
+        cls, rules_text: str, bases: list[str] | None = None, id: str | None = None
     ) -> Enhancements:
-        rust_enhancements = parse_rust_enhancements("config_string", s)
+        """Create an `Enhancements` object from a text blob containing stacktrace rules"""
+        rust_enhancements = get_rust_enhancements("config_string", rules_text)
 
-        rules = parse_enhancements(s)
+        rules = parse_enhancements(rules_text)
 
         return Enhancements(
             rules,
@@ -383,7 +385,7 @@ def _load_configs() -> dict[str, Enhancements]:
                 # We cannot use `:` in filenames on Windows but we already have ids with
                 # `:` in their names hence this trickery.
                 filename = filename.replace("@", ":")
-                enhancements = Enhancements.from_config_string(f.read(), id=filename)
+                enhancements = Enhancements.from_rules_text(f.read(), id=filename)
                 enhancement_bases[filename] = enhancements
     return enhancement_bases
 

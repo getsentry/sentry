@@ -27,6 +27,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -47,6 +48,8 @@ import {
   FRONTEND_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/frontend/settings';
+import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
+import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import type {EAPSpanProperty} from 'sentry/views/insights/types';
 import {
@@ -292,11 +295,21 @@ function EAPOverviewPage() {
 }
 
 function FrontendOverviewPageWithProviders() {
+  const organization = useOrganization();
+  const isNextJsPageAvailable = useIsNextJsInsightsAvailable();
   const useEap = useInsightsEap();
 
+  const {maxPickableDays} = limitMaxPickableDays(organization);
+
   return (
-    <DomainOverviewPageProviders>
-      {useEap ? <EAPOverviewPage /> : <OldFrontendOverviewPage />}
+    <DomainOverviewPageProviders maxPickableDays={maxPickableDays}>
+      {isNextJsPageAvailable ? (
+        <NextJsOverviewPage headerTitle={FRONTEND_LANDING_TITLE} />
+      ) : useEap ? (
+        <EAPOverviewPage />
+      ) : (
+        <OldFrontendOverviewPage />
+      )}
     </DomainOverviewPageProviders>
   );
 }

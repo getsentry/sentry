@@ -350,7 +350,7 @@ E.g. `['release', 'environment']`""",
             return value
 
         try:
-            Enhancements.from_config_string(value)
+            Enhancements.from_rules_text(value)
         except InvalidEnhancerConfig as e:
             raise serializers.ValidationError(str(e))
 

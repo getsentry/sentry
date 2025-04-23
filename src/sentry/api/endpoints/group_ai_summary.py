@@ -26,11 +26,9 @@ class GroupAiSummaryEndpoint(GroupAiEndpoint):
     enforce_rate_limit = True
     rate_limits = {
         "POST": {
-            RateLimitCategory.IP: RateLimit(limit=10, window=60),
-            RateLimitCategory.USER: RateLimit(limit=10, window=60),
-            RateLimitCategory.ORGANIZATION: RateLimit(
-                limit=30, window=60
-            ),  # TODO: Raise this limit when we move out of internal preview
+            RateLimitCategory.IP: RateLimit(limit=20, window=60),
+            RateLimitCategory.USER: RateLimit(limit=20, window=60),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=60),
         }
     }
 

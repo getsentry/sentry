@@ -82,7 +82,7 @@ type FormStateConfig<
 /**
  * Creates a form state object with fields and validation for a given set of form fields.
  */
-export const useFormState = <
+const useFormState = <
   FormFields extends Record<string, PlainValue>,
   FieldErrors extends Record<keyof FormFields, any>,
 >(

@@ -579,6 +579,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         props?.onLegendSelectionChange?.(event.selected);
       }}
       tooltip={{
+        appendToBody: true,
         trigger: 'axis',
         axisPointer: {
           type: 'cross',
