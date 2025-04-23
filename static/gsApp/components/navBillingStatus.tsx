@@ -31,7 +31,11 @@ import {
   type Subscription,
 } from 'getsentry/types';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/billing';
-import {listDisplayNames, sortCategoriesWithKeys} from 'getsentry/utils/dataCategory';
+import {
+  getSingularCategoryName,
+  listDisplayNames,
+  sortCategoriesWithKeys,
+} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 const ANIMATE_PROPS: MotionProps = {
@@ -80,7 +84,18 @@ function QuotaExceededContent({
         <HeaderTitle>{t('Billing Status')}</HeaderTitle>
       </Header>
       <Body>
-        <Title>{t('Quota Exceeded')}</Title>
+        <Title>
+          {exceededCategories.length === 1
+            ? tct('[category] Quota Exceeded', {
+                category: getSingularCategoryName({
+                  plan: subscription.planDetails,
+                  category: exceededCategories[0] as DataCategory,
+                  hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+                  title: true,
+                }),
+              })
+            : t('Quotas Exceeded')}
+        </Title>
         <Description>
           {tct(
             'You’ve run out of [exceededCategories] for this billing cycle. This means we are no longer monitoring or ingesting events and showing them in Sentry.',
