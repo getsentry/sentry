@@ -135,7 +135,6 @@ class NoGroupsHandler extends Component<Props, State> {
       'node',
       'javascript-nextjs',
       'android',
-
       'apple-ios',
       'dotnet',
       'dotnet-aspnetcore',
