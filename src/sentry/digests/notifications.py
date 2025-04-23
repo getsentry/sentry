@@ -177,15 +177,7 @@ def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
     # TODO(iamrajjoshi): This will only work during the dual write period of the rollout!
     if features.has("organizations:workflow-engine-trigger-actions", project.organization):
         for rule in rules.values():
-            try:
-                rule.data["actions"][0]["legacy_rule_id"] = get_key_from_rule_data(
-                    rule, "legacy_rule_id"
-                )
-            except Exception:
-                logger.warning("Failed to get legacy rule id for rule %s", rule.id)
-                # This means that this is an "old" rule that hasn't been flushed from redis yet
-                # We manually set the legacy rule id because we are under the feature flag
-                rule.data["actions"][0]["legacy_rule_id"] = rule.id
+            rule.data["actions"][0]["legacy_rule_id"] = rule.id
 
     for group_id, g in groups.items():
         assert g.project_id == project.id, "Group must belong to Project"

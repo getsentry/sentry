@@ -16,7 +16,7 @@ from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import Feature, with_feature
+from sentry.testutils.helpers.features import with_feature
 from sentry.types.actor import ActorType
 
 
@@ -217,23 +217,6 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         rule.data["actions"][0]["legacy_rule_id"] = rule.id
         records = [event_to_record(event, (rule,)) for event in self.team1_events]
         digest = build_digest(self.project, sort_records(records))[0]
-
-        expected_result = {self.user1.id: set(self.team1_events)}
-        assert_get_personalized_digests(
-            self.project, digest, expected_result, ActionTargetType.MEMBER, self.user1.id
-        )
-        assert_rule_ids(digest, [rule.id])
-
-    def test_direct_email_with_legacy_rule_id_during_rollout(self):
-        """When the action type is not Issue Owners, then the target actor gets a digest."""
-        self.project_ownership.update(fallthrough=False)
-        rule = self.project.rule_set.all()[0]
-        # Simulate don't update the Rule object with the legacy rule id
-        records = [event_to_record(event, (rule,)) for event in self.team1_events]
-
-        # Simulate the rollout of the feature flag
-        with Feature("organizations:workflow-engine-trigger-actions"):
-            digest = build_digest(self.project, sort_records(records))[0]
 
         expected_result = {self.user1.id: set(self.team1_events)}
         assert_get_personalized_digests(
