@@ -323,8 +323,8 @@ describe('ExploreToolbar', function () {
     await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[1]!);
     expect(visualizes).toEqual([new Visualize(['avg(span.duration)'], 'A')]);
 
-    // only one left so cant be deleted
-    expect(within(section).getByLabelText('Remove Overlay')).toBeDisabled();
+    // only one left so we hide the delete button
+    expect(within(section).queryByLabelText('Remove Overlay')).not.toBeInTheDocument();
   });
 
   it('allows changing visualizes equations', async function () {
@@ -488,8 +488,8 @@ describe('ExploreToolbar', function () {
     await userEvent.click(within(section).getByLabelText('Remove Column'));
     expect(groupBys).toEqual(['']);
 
-    // last one and it's empty
-    expect(within(section).getByLabelText('Remove Column')).toBeDisabled();
+    // last one so remove column button is hidden
+    expect(within(section).queryByLabelText('Remove Column')).not.toBeInTheDocument();
   });
 
   it('switches to aggregates mode when modifying group bys', async function () {
@@ -679,7 +679,7 @@ describe('ExploreToolbar', function () {
       query: expect.objectContaining({
         queries: [
           '{"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["count(span.duration)"]}',
-          '{"chartType":1,"fields":["id","span.duration"],"groupBys":[],"query":"","sortBys":["-span.duration"],"yAxes":["count(span.duration)"]}',
+          '{"chartType":1,"fields":["id","span.duration","timestamp"],"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["count(span.duration)"]}',
         ],
       }),
     });

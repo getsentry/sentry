@@ -389,6 +389,4 @@ class ResultGrid extends Component<Props, State> {
   }
 }
 
-export {ResultGrid};
-
 export default withApi(ResultGrid);

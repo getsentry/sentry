@@ -82,7 +82,7 @@ type SpanTabProps = {
   relativeOptions: Record<string, React.ReactNode>;
 };
 
-export function SpansTabContentImpl({
+function SpansTabContentImpl({
   defaultPeriod,
   maxPickableDays,
   relativeOptions,

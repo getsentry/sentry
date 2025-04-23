@@ -22,6 +22,9 @@ from sentry.seer.autofix import trigger_autofix
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import seer_tasks
+from sentry.taskworker.retry import Retry
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -35,6 +38,13 @@ logger = logging.getLogger(__name__)
     max_retries=1,
     soft_time_limit=60,  # 1 minute
     time_limit=65,
+    taskworker_config=TaskworkerConfig(
+        namespace=seer_tasks,
+        processing_deadline_duration=65,
+        retry=Retry(
+            times=1,
+        ),
+    ),
 )
 def _trigger_autofix_task(group_id: int, event_id: str, user_id: int | None, auto_run_source: str):
     """

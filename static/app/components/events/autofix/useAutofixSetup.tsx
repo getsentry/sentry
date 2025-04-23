@@ -24,7 +24,7 @@ type AutofixSetupResponse = {
   } | null;
 };
 
-export function makeAutofixSetupQueryKey(
+function makeAutofixSetupQueryKey(
   groupId: string,
   checkWriteAccess?: boolean
 ): ApiQueryKey {

@@ -65,7 +65,7 @@ export const EXPLORE_CHART_TYPE_OPTIONS = [
   },
 ];
 
-export const EXPLORE_CHART_GROUP = 'explore-charts_group';
+const EXPLORE_CHART_GROUP = 'explore-charts_group';
 
 export function ExploreCharts({
   canUsePreviousResults,
