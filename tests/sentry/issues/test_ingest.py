@@ -476,6 +476,25 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert group_info is not None
         assert group_info.group.priority == PriorityLevel.HIGH
 
+    def test_group_with_priority_locked(self) -> None:
+        occurrence = self.build_occurrence(priority=PriorityLevel.HIGH)
+        event = self.store_event(data={}, project_id=self.project.id)
+        group_info = save_issue_from_occurrence(occurrence, event, None)
+        assert group_info is not None
+        assert group_info.group.priority == PriorityLevel.HIGH
+        assert group_info.group.priority_locked_at is None
+
+        group_info.group.update(priority_locked_at=timezone.now(), priority=PriorityLevel.LOW)
+        assert group_info.group.priority == PriorityLevel.LOW
+        assert group_info.group.priority_locked_at is not None
+
+        occurrence = self.build_occurrence(priority=PriorityLevel.HIGH)
+        event = self.store_event(data={}, project_id=self.project.id)
+        group_info = save_issue_from_occurrence(occurrence, event, None)
+        assert group_info is not None
+        assert group_info.group.priority == PriorityLevel.LOW
+        assert group_info.group.priority_locked_at is not None
+
 
 class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:

@@ -276,7 +276,11 @@ def save_issue_from_occurrence(
         group_event.occurrence = occurrence
         is_regression = _process_existing_aggregate(group, group_event, issue_kwargs, release)
         group_info = GroupInfo(group=group, is_new=False, is_regression=is_regression)
-        if issue_kwargs["priority"] and group.priority != issue_kwargs["priority"]:
+        if (
+            issue_kwargs["priority"]
+            and group.priority != issue_kwargs["priority"]
+            and not group.priority_locked_at
+        ):
             group.update(priority=issue_kwargs["priority"])
 
     additional_hashes = [f for f in occurrence.fingerprint if f != primary_grouphash.hash]
