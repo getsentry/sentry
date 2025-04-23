@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
@@ -57,6 +57,12 @@ function AutofixRepoChange({
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
 }) {
+  const changeDescriptionHtml = useMemo(() => {
+    return {
+      __html: singleLineRenderer(change.description),
+    };
+  }, [change.description]);
+
   return (
     <Content>
       <RepoChangesHeader>
@@ -74,9 +80,7 @@ function AutofixRepoChange({
             <div>
               <PullRequestTitle>{change.repo_name}</PullRequestTitle>
               <Title>{change.title}</Title>
-              <p
-                dangerouslySetInnerHTML={{__html: singleLineRenderer(change.description)}}
-              />
+              <p dangerouslySetInnerHTML={changeDescriptionHtml} />
             </div>
           </AutofixHighlightWrapper>
         </div>
