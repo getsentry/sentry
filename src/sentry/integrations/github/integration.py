@@ -296,6 +296,22 @@ class GitHubIntegration(
         assert isinstance(resp, dict)
         return resp
 
+    def get_account_id(self):
+        github_account_id = self.model.metadata.get("account_id")
+
+        # Attempt to backfill the id if it does not exist
+        if github_account_id is None:
+            client: GitHubBaseClient = self.get_client()
+            installation_id: int = self.model.external_id
+            installation_data: Mapping[str, Any] = client.get(
+                f"/app/installations/{installation_id}"
+            )
+            github_account_id = installation_data["account"]["id"]
+            self.model.metadata.update({"account_id": github_account_id})
+            self.model.save()
+
+        return github_account_id
+
     # CommitContextIntegration methods
 
     def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
@@ -468,6 +484,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
                 "icon": installation["account"]["avatar_url"],
                 "domain_name": installation["account"]["html_url"].replace("https://", ""),
                 "account_type": installation["account"]["type"],
+                "account_id": installation["account"]["id"],
             },
         }
 
