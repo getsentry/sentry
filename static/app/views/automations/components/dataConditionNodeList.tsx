@@ -6,10 +6,14 @@ import type {
   DataConditionType,
   NewDataCondition,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
-import RuleNode from 'sentry/views/automations/components/ruleNode';
+import {
+  DataConditionNodeContext,
+  dataConditionNodesMap,
+  useDataConditionNodeContext,
+} from 'sentry/views/automations/components/dataConditionNodes';
+import RuleRow from 'sentry/views/automations/components/ruleRow';
 
-interface RuleNodeListProps {
+interface DataConditionNodeListProps {
   conditions: NewDataCondition[];
   dataConditionTypes: DataConditionType[];
   group: string;
@@ -19,7 +23,7 @@ interface RuleNodeListProps {
   updateCondition: (index: number, condition: Record<string, any>) => void;
 }
 
-export default function RuleNodeList({
+export default function DataConditionNodeList({
   dataConditionTypes,
   group,
   placeholder,
@@ -27,7 +31,7 @@ export default function RuleNodeList({
   onAddRow,
   onDeleteRow,
   updateCondition,
-}: RuleNodeListProps) {
+}: DataConditionNodeListProps) {
   const options = Array.from(dataConditionNodesMap.entries())
     .map(([value, {label}]) => ({value, label}))
     .filter(({value}) => dataConditionTypes.includes(value));
@@ -35,15 +39,17 @@ export default function RuleNodeList({
   return (
     <Fragment>
       {conditions.map((condition, i) => (
-        <RuleNode
-          key={`${group}.conditions.${i}`}
-          condition_id={`${group}.conditions.${i}`}
-          condition={condition}
-          onDelete={() => {
-            onDeleteRow(i);
-          }}
-          onUpdate={newCondition => updateCondition(i, newCondition)}
-        />
+        <RuleRow key={`${group}.conditions.${i}`} onDelete={() => onDeleteRow(i)}>
+          <DataConditionNodeContext.Provider
+            value={{
+              condition,
+              condition_id: `${group}.conditions.${i}`,
+              onUpdate: newCondition => updateCondition(i, newCondition),
+            }}
+          >
+            <Node />
+          </DataConditionNodeContext.Provider>
+        </RuleRow>
       ))}
       <StyledSelectControl
         options={options}
@@ -55,6 +61,14 @@ export default function RuleNodeList({
       />
     </Fragment>
   );
+}
+
+function Node() {
+  const {condition} = useDataConditionNodeContext();
+  const node = dataConditionNodesMap.get(condition.comparison_type);
+
+  const Component = node?.dataCondition;
+  return Component ? Component : node?.label;
 }
 
 const StyledSelectControl = styled(Select)`

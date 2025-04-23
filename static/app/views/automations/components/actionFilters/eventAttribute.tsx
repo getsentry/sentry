@@ -1,8 +1,3 @@
-import {
-  InlineInputField,
-  InlineSelectControl,
-  selectControlStyles,
-} from 'sentry/components/workflowEngine/ui/inlineFormFields';
 import {t, tct} from 'sentry/locale';
 import {
   Attributes,
@@ -10,6 +5,11 @@ import {
   type MatchType,
 } from 'sentry/views/automations/components/actionFilters/constants';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
+import {
+  InlineInputField,
+  InlineSelectControl,
+  selectControlStyles,
+} from 'sentry/views/automations/components/ruleRow';
 
 export default function EventAttributeNode() {
   return tct("The event's [attribute] [match] [value]", {
