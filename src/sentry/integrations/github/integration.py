@@ -30,6 +30,7 @@ from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RAT
 from sentry.integrations.github.tasks.link_all_repos import link_all_repos
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.source_code_management.commit_context import (
     CommitContextIntegration,
@@ -297,18 +298,22 @@ class GitHubIntegration(
         return resp
 
     def get_account_id(self):
-        github_account_id = self.model.metadata.get("account_id")
+        installation_metadata = self.model.metadata
+        github_account_id = installation_metadata.get("account_id")
 
         # Attempt to backfill the id if it does not exist
         if github_account_id is None:
             client: GitHubBaseClient = self.get_client()
             installation_id: int = self.model.external_id
-            installation_data: Mapping[str, Any] = client.get(
-                f"/app/installations/{installation_id}"
+            updated_installation_info: Mapping[str, Any] = client.get_installation_info(
+                installation_id
             )
-            github_account_id = installation_data["account"]["id"]
-            self.model.metadata.update({"account_id": github_account_id})
-            self.model.save()
+
+            github_account_id = updated_installation_info["account"]["id"]
+            installation_metadata["account_id"] = github_account_id
+            integration_service.update_integration(
+                integration_id=self.model.id, metadata=installation_metadata
+            )
 
         return github_account_id
 
@@ -459,7 +464,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
 
     def get_installation_info(self, installation_id: str) -> Mapping[str, Any]:
         client = self.get_client()
-        resp: Mapping[str, Any] = client.get(f"/app/installations/{installation_id}")
+        resp: Mapping[str, Any] = client.get_installation_info(installation_id)
         return resp
 
     def build_integration(self, state: Mapping[str, str]) -> IntegrationData:
