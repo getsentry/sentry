@@ -257,7 +257,7 @@ function WidgetBuilderQueryFilterBuilder({
 
 export default WidgetBuilderQueryFilterBuilder;
 
-export function DeleteButton({onDelete}: {onDelete: () => void}) {
+function DeleteButton({onDelete}: {onDelete: () => void}) {
   return (
     <Button
       size="zero"

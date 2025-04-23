@@ -44,9 +44,9 @@ class SystemToken:
 
     id = "<system>"
     token = "<system.secret-key>"
-    application = None
-    organization_id = None
-    scoping_organization_id = None
+    application: None = None
+    organization_id: None = None
+    scoping_organization_id: None = None
 
     @classmethod
     def from_request(cls, request: HttpRequest, token: str) -> SystemToken | None:

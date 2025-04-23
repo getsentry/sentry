@@ -1,4 +1,6 @@
+from collections.abc import Mapping
 from datetime import datetime
+from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock
 
@@ -55,24 +57,8 @@ class DummyErroringEndpoint(Endpoint):
     # class, so even though they're really meant to be instance attributes, we have to
     # add them here as class attributes first
     error: Exception = NotImplementedError()
-    handler_context_arg = None
-    scope_arg = None
-
-    def __init__(
-        self,
-        *args,
-        error: Exception,
-        handler_context_arg=None,
-        scope_arg=None,
-        **kwargs,
-    ):
-        # The error which will be thrown when a GET request is made
-        self.error = error
-        # The argumets which will be passed on to `Endpoint.handle_exception_with_details` via `super`
-        self.handler_context_arg = handler_context_arg
-        self.scope_arg = scope_arg
-
-        super().__init__(*args, **kwargs)
+    handler_context_arg: Mapping[str, Any] | None = None
+    scope_arg: Scope | None = None
 
     def get(self, request):
         raise self.error
