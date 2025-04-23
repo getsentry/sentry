@@ -341,9 +341,12 @@ class Enhancements:
     @classmethod
     def from_base64_string(cls, base64_string: str | bytes) -> Enhancements:
         """Convert a base64 string into an `Enhancements` object"""
-        if isinstance(base64_string, str):
-            base64_string = base64_string.encode("ascii", "ignore")
-        padded_bytes = base64_string + b"=" * (4 - (len(base64_string) % 4))
+        bytes_str = (
+            base64_string.encode("ascii", "ignore")
+            if isinstance(base64_string, str)
+            else base64_string
+        )
+        padded_bytes = bytes_str + b"=" * (4 - (len(bytes_str) % 4))
         try:
             compressed_pickle = base64.urlsafe_b64decode(padded_bytes)
 
