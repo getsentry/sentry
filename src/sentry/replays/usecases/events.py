@@ -41,6 +41,39 @@ def viewed_event(project_id: int, replay_id: str, viewed_by_id: int, timestamp: 
     )
 
 
+def ai_score_event(
+    project_id: int,
+    replay_id: str,
+    score_type: str,
+    score: int,
+    timestamp: float,
+) -> str:
+    """Create a "ai_score" message."""
+    return _replay_event(
+        project_id=project_id,
+        replay_id=replay_id,
+        event={
+            "type": "ai_score",
+            "score_type": score_type,
+            "timestamp": timestamp,
+            "score": score,
+        },
+    )
+
+
+def ai_summary_event(project_id: int, replay_id: str, summary: str, timestamp: float) -> str:
+    """Create a "ai_score" message."""
+    return _replay_event(
+        project_id=project_id,
+        replay_id=replay_id,
+        event={
+            "type": "ai_summary",
+            "timestamp": timestamp,
+            "summary": summary,
+        },
+    )
+
+
 def _replay_event(project_id: int, replay_id: str, event: dict[str, Any]) -> str:
     return json.dumps(
         {

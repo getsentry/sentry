@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import concurrent.futures as cf
 from typing import Any
+from uuid import UUID
 
 from google.cloud.exceptions import NotFound
 
@@ -109,3 +110,20 @@ def _delete_if_exists(filename: str) -> None:
         storage_kv.delete(filename)
     except NotFound:
         pass
+
+
+@instrumented_task
+def ai_analyze_replay(
+    analysis_type: int,
+    project_id: int,
+    timestamp: float,
+    replay_id: UUID,
+    start_segment: int,
+    end_segment: int,
+) -> None:
+    """
+    Send replay information to Seer for analysis. Start and end segment range is inclusive.
+    """
+    # from sentry.seer.replay import analyze
+    # response = analyze(analysis_type, replay_id, start_segment, end_segment)
+    # handle_response(analysis_type, project_id, timestamp, replay_id, response)

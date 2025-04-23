@@ -23,6 +23,7 @@ from sentry.replays.lib.storage import (
     make_recording_filename,
     storage_kv,
 )
+from sentry.replays.usecases.ai import request_replay_summary
 from sentry.replays.usecases.ingest.dom_index import ReplayActionsEvent, emit_replay_actions
 from sentry.replays.usecases.ingest.dom_index import log_canvas_size as log_canvas_size_old
 from sentry.replays.usecases.ingest.dom_index import parse_replay_actions
@@ -415,6 +416,9 @@ def commit_recording_message(recording: ProcessedRecordingMessage) -> None:
             recording.key_id,
             recording.received,
         )
+
+        if hash(recording.replay_id) % 100 == 0:
+            request_replay_summary(recording.project_id, time.time(), recording.replay_id)
 
     # Write to replay-event consumer.
     if recording.actions_event:
