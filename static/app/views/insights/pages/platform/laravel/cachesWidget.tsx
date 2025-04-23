@@ -21,9 +21,9 @@ import {
   SeriesColorIndicator,
   WidgetFooterTable,
 } from 'sentry/views/insights/pages/platform/laravel/styles';
-import {Toolbar} from 'sentry/views/insights/pages/platform/laravel/toolbar';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
+import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {HighestCacheMissRateTransactionsWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 function isCacheHitError(error: RequestError | null) {
