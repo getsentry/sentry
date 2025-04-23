@@ -82,6 +82,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             slug = "no_handler"
             description = "no handler"
             category = GroupCategory.METRIC_ALERT.value
+            category_v2 = GroupCategory.METRIC_ALERT.value
 
         class MockDetectorHandler(DetectorHandler[dict]):
             def evaluate(
@@ -111,6 +112,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             slug = "handler"
             description = "handler"
             category = GroupCategory.METRIC_ALERT.value
+            category_v2 = GroupCategory.PERFORMANCE_REGRESSION.value
             detector_settings = DetectorSettings(handler=MockDetectorHandler)
 
         class HandlerStateGroupType(GroupType):
@@ -118,6 +120,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             slug = "handler_with_state"
             description = "handler with state"
             category = GroupCategory.METRIC_ALERT.value
+            category_v2 = GroupCategory.PERFORMANCE_REGRESSION.value
             detector_settings = DetectorSettings(handler=MockDetectorStateHandler)
 
         class HandlerUpdateGroupType(GroupType):
@@ -125,6 +128,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             slug = "handler_update"
             description = "handler update"
             category = GroupCategory.METRIC_ALERT.value
+            category_v2 = GroupCategory.PERFORMANCE_REGRESSION.value
             detector_settings = DetectorSettings(handler=MockDetectorWithUpdateHandler)
 
         self.no_handler_type = NoHandlerGroupType
