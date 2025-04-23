@@ -147,7 +147,7 @@ class MetricIssueContext:
     def _get_new_status(cls, group: Group, occurrence: IssueOccurrence) -> IncidentStatus:
         if group.status == GroupStatus.RESOLVED:
             return IncidentStatus.CLOSED
-        elif occurrence.initial_issue_priority == PriorityLevel.MEDIUM.value:
+        elif occurrence.priority == PriorityLevel.MEDIUM.value:
             return IncidentStatus.WARNING
         else:
             return IncidentStatus.CRITICAL

@@ -104,7 +104,7 @@ def _build_occurrence_from_incident(
     event_data: dict[str, str | int],
     metric_value: float,
 ) -> IssueOccurrence:
-    initial_issue_priority = (
+    priority = (
         PriorityLevel.HIGH
         if incident.status == IncidentStatus.CRITICAL.value
         else PriorityLevel.MEDIUM
@@ -123,7 +123,7 @@ def _build_occurrence_from_incident(
         detection_time=incident.date_started,
         level="error",
         culprit="",
-        initial_issue_priority=initial_issue_priority,
+        priority=priority,
         # TODO(snigdha): Add more data here as needed
         evidence_data={"metric_value": metric_value, "alert_rule_id": incident.alert_rule.id},
         evidence_display=[],

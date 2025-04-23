@@ -100,6 +100,8 @@ class IssueArgs(TypedDict):
 def _create_issue_kwargs(
     occurrence: IssueOccurrence, event: Event, release: Release | None
 ) -> IssueArgs:
+    priority = occurrence.priority or occurrence.type.default_priority
+
     kwargs: IssueArgs = {
         "platform": event.platform,
         # TODO: Figure out what message should be. Or maybe we just implement a platform event and
@@ -113,11 +115,7 @@ def _create_issue_kwargs(
         "type": occurrence.type.type_id,
         "first_release": release,
         "data": materialize_metadata(occurrence, event),
-        "priority": (
-            occurrence.initial_issue_priority
-            if occurrence.initial_issue_priority is not None
-            else occurrence.type.default_priority
-        ),
+        "priority": priority,
     }
     kwargs["data"]["last_received"] = json.datetime_to_str(event.datetime)
     return kwargs
@@ -145,7 +143,7 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
     event_metadata.update(event.get_event_metadata())
     event_metadata["title"] = occurrence.issue_title
     event_metadata["value"] = occurrence.subtitle
-    event_metadata["initial_priority"] = occurrence.initial_issue_priority
+    event_metadata["initial_priority"] = occurrence.priority
 
     if occurrence.type == FeedbackGroup:
         # TODO: Should feedbacks be their own event type, so above call to event.get_event_medata
@@ -278,6 +276,8 @@ def save_issue_from_occurrence(
         group_event.occurrence = occurrence
         is_regression = _process_existing_aggregate(group, group_event, issue_kwargs, release)
         group_info = GroupInfo(group=group, is_new=False, is_regression=is_regression)
+        if issue_kwargs["priority"] and group.priority != issue_kwargs["priority"]:
+            group.update(priority=issue_kwargs["priority"])
 
     additional_hashes = [f for f in occurrence.fingerprint if f != primary_grouphash.hash]
     for fingerprint_hash in additional_hashes:

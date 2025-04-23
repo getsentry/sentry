@@ -3760,7 +3760,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         occurrence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"]
         assert occurrence.type == MetricIssuePOC
         assert occurrence.issue_title == incident.title
-        assert occurrence.initial_issue_priority == PriorityLevel.HIGH
+        assert occurrence.priority == PriorityLevel.HIGH
         assert occurrence.evidence_data["metric_value"] == trigger.alert_threshold + 1
 
     @with_feature("organizations:metric-issue-poc")
@@ -3795,7 +3795,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert mock_produce_occurrence_to_kafka.call_count == 1
         occurrence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"]
         assert occurrence.type == MetricIssuePOC
-        assert occurrence.initial_issue_priority == PriorityLevel.HIGH
+        assert occurrence.priority == PriorityLevel.HIGH
         assert occurrence.evidence_data["metric_value"] == trigger.alert_threshold + 1
         mock_produce_occurrence_to_kafka.reset_mock()
 
@@ -3823,7 +3823,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert mock_produce_occurrence_to_kafka.call_count == 2
         occurrence = mock_produce_occurrence_to_kafka.call_args_list[0][1]["occurrence"]
         assert occurrence.type == MetricIssuePOC
-        assert occurrence.initial_issue_priority == PriorityLevel.MEDIUM
+        assert occurrence.priority == PriorityLevel.MEDIUM
         assert occurrence.evidence_data["metric_value"] == rule.resolve_threshold - 1
 
         status_change = mock_produce_occurrence_to_kafka.call_args_list[1][1]["status_change"]
