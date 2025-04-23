@@ -172,9 +172,9 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
                   </RequestStateMessageContainer>
                 ) : null}
               </ProfileVisualizationContainer>
-              <div style={showSidePanel ? {} : {display: 'none'}}>
+              <AggregateFlamegraphSidePanelContainer visible={showSidePanel}>
                 <AggregateFlamegraphSidePanel scheduler={scheduler} />
-              </div>
+              </AggregateFlamegraphSidePanelContainer>
             </TransactionProfilesContentContainer>
           </FlamegraphProvider>
         </FlamegraphThemeProvider>
@@ -344,4 +344,9 @@ const ViewSelectContainer = styled('div')`
 
 const AggregateFlamegraphSearch = styled(FlamegraphSearch)`
   max-width: 300px;
+`;
+
+const AggregateFlamegraphSidePanelContainer = styled('div')<{visible: boolean}>`
+  overflow-y: scroll;
+  ${p => !p.visible && 'display: none;'}
 `;

@@ -277,9 +277,9 @@ export function LandingAggregateFlamegraph(): React.ReactNode {
                   />
                 )}
               </AggregateFlamegraphContainer>
-              <div style={showSidePanel ? {} : {display: 'none'}}>
+              <AggregateFlamegraphSidePanelContainer visible={showSidePanel}>
                 <AggregateFlamegraphSidePanel scheduler={scheduler} />
-              </div>
+              </AggregateFlamegraphSidePanelContainer>
             </AggregateFlamegraphLayout>
           </FlamegraphProvider>
         </FlamegraphThemeProvider>
@@ -337,4 +337,9 @@ const AggregateFlamegraphContainer = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1 1 100%;
+`;
+
+const AggregateFlamegraphSidePanelContainer = styled('div')<{visible: boolean}>`
+  overflow-y: scroll;
+  ${p => !p.visible && 'display: none;'}
 `;
