@@ -72,7 +72,7 @@ def spawn_clusterers(**kwargs: Any) -> None:
     time_limit=PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT + 2,  # extra 2s to emit metrics
     taskworker_config=TaskworkerConfig(
         namespace=performance_tasks,
-        processing_deadline_duration=PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT + 2,
+        processing_deadline_duration=int(PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT + 2),
         retry=Retry(times=5),
     ),
 )
