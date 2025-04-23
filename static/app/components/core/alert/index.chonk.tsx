@@ -152,6 +152,7 @@ export const TrailingItems = chonkStyled('div')<ChonkAlertProps>`
 export const Message = chonkStyled('div')`
   line-height: ${p => p.theme.text.lineHeightBody};
   place-content: center;
+  padding-block: ${p => p.theme.space.mini};
 `;
 
 export const IconWrapper = chonkStyled('div')<{type: AlertProps['type']}>`
