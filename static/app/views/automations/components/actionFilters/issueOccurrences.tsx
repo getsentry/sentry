@@ -1,8 +1,6 @@
+import {InlineNumberInput} from 'sentry/components/workflowEngine/ui/inlineFormFields';
 import {tct} from 'sentry/locale';
-import {
-  InlineNumberInput,
-  useDataConditionNodeContext,
-} from 'sentry/views/automations/components/dataConditionNodes';
+import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
 export default function IssueOccurrencesNode() {
   return tct('The issue has happened at least [value] times', {

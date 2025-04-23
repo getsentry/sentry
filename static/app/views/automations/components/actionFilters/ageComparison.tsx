@@ -1,14 +1,14 @@
+import {
+  InlineNumberInput,
+  InlineSelectControl,
+  selectControlStyles,
+} from 'sentry/components/workflowEngine/ui/inlineFormFields';
 import {tct} from 'sentry/locale';
 import {
   AGE_COMPARISON_CHOICES,
   type AgeComparison,
 } from 'sentry/views/automations/components/actionFilters/constants';
-import {
-  InlineNumberInput,
-  InlineSelectControl,
-  selectControlStyles,
-  useDataConditionNodeContext,
-} from 'sentry/views/automations/components/dataConditionNodes';
+import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
 export default function AgeComparisonNode() {
   return tct('The issue is [comparisonType] [value] [time]', {
