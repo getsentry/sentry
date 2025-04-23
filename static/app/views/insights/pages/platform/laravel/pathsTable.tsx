@@ -10,6 +10,7 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
+import Pagination from 'sentry/components/pagination';
 import Placeholder from 'sentry/components/placeholder';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -21,6 +22,7 @@ import type {QueryValue} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import useRouter from 'sentry/utils/useRouter';
 import CellAction, {Actions} from 'sentry/views/discover/table/cellAction';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
@@ -38,6 +40,7 @@ interface DiscoverQueryResponse {
     'sum(transaction.duration)': number;
     transaction: string;
   }>;
+  link?: string;
 }
 
 type SortableField = keyof DiscoverQueryResponse['data'][number];
@@ -144,6 +147,8 @@ export function PathsTable({
   showHttpMethodColumn = true,
 }: PathsTableProps) {
   const organization = useOrganization();
+  const location = useLocation();
+  const router = useRouter();
   const pageFilterChartParams = usePageFilterChartParams();
   const [columnOrder, setColumnOrder] = useState(() => {
     if (!showHttpMethodColumn) {
@@ -176,6 +181,7 @@ export function PathsTable({
           orderby: getOrderBy(sortField, sortOrder),
           useRpc: 1,
           per_page: PER_PAGE,
+          cursor: location.query.pathsCursor,
         },
       },
     ],
@@ -283,20 +289,33 @@ export function PathsTable({
     [handleAddTransactionFilter]
   );
 
+  const pathsTablePageLinks = transactionsRequest.getResponseHeader?.('Link');
+
   return (
-    <GridEditable
-      isLoading={transactionsRequest.isLoading}
-      error={transactionsRequest.error}
-      data={tableData}
-      columnOrder={columnOrder}
-      columnSortBy={EMPTY_ARRAY}
-      stickyHeader
-      grid={{
-        renderBodyCell,
-        renderHeadCell,
-        onResizeColumn: handleResizeColumn,
-      }}
-    />
+    <Fragment>
+      <GridEditable
+        isLoading={transactionsRequest.isLoading}
+        error={transactionsRequest.error}
+        data={tableData}
+        columnOrder={columnOrder}
+        columnSortBy={EMPTY_ARRAY}
+        stickyHeader
+        grid={{
+          renderBodyCell,
+          renderHeadCell,
+          onResizeColumn: handleResizeColumn,
+        }}
+      />
+      <Pagination
+        pageLinks={pathsTablePageLinks}
+        onCursor={(cursor, path, currentQuery) => {
+          router.push({
+            pathname: path,
+            query: {...currentQuery, pathsCursor: cursor},
+          });
+        }}
+      />
+    </Fragment>
   );
 }
 
