@@ -103,7 +103,7 @@ class DatabaseBackedAppService(AppService):
     ) -> list[RpcSentryAppInstallation]:
         installations = SentryAppInstallation.objects.get_installed_for_organization(
             organization_id
-        ).select_related("sentry_app")
+        ).select_related("sentry_app", "api_token")
         fq = self._AppServiceFilterQuery()
         return [fq.serialize_rpc(i) for i in installations]
 
