@@ -36,8 +36,7 @@ import {INGESTION_DELAY} from 'sentry/views/insights/settings';
 
 export interface InsightsTimeSeriesWidgetProps
   extends WidgetTitleProps,
-    Omit<LoadableChartWidgetProps, 'chartProperties'>,
-    Partial<Pick<LoadableChartWidgetProps, 'chartProperties'>> {
+    LoadableChartWidgetProps {
   error: Error | null;
   isLoading: boolean;
   series: DiscoverSeries[];
@@ -144,7 +143,6 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
             {...enableReleaseBubblesProps}
             legendSelection={props.legendSelection}
             onLegendSelectionChange={props.onLegendSelectionChange}
-            chartProperties={props.chartProperties}
             {...visualizationProps}
           />
         }
@@ -171,7 +169,6 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
                         legendSelection={props.legendSelection}
                         onLegendSelectionChange={props.onLegendSelectionChange}
                         releases={releases ?? []}
-                        chartProperties={props.chartProperties}
                       />
                     </ModalChartContainer>
                   ),
