@@ -1,11 +1,16 @@
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import issues_tasks
 from sentry.utils.safe import safe_execute
 
 
 @instrumented_task(
     name="sentry.tasks.user_report",
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+    ),
 )
 def user_report(report, project_id):
     """
