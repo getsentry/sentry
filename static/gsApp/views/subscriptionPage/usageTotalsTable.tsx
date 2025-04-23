@@ -9,15 +9,12 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {IconStack} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import type {BillingStatTotal, Subscription} from 'getsentry/types';
-import {formatUsageWithUnits} from 'getsentry/utils/billing';
-import {
-  getPlanCategoryName,
-  getSingularCategoryName,
-  isContinuousProfiling,
-} from 'getsentry/utils/dataCategory';
+import {formatUsageWithUnits, getCategoryInfoFromPlural} from 'getsentry/utils/billing';
+import {getPlanCategoryName, isContinuousProfiling} from 'getsentry/utils/dataCategory';
 import {StripedTable} from 'getsentry/views/subscriptionPage/styles';
 import {displayPercentage} from 'getsentry/views/subscriptionPage/usageTotals';
 
@@ -165,11 +162,11 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
               <TextOverflow>
                 {isEventBreakdown
                   ? tct('[singularName] Events', {
-                      singularName: getSingularCategoryName({
-                        plan: subscription.planDetails,
-                        category,
-                        title: true,
-                      }),
+                      singularName: toTitleCase(
+                        getCategoryInfoFromPlural(category as DataCategory)
+                          ?.displayName ?? category,
+                        {allowInnerUpperCase: true}
+                      ),
                     })
                   : categoryName}
               </TextOverflow>

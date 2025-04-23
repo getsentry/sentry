@@ -13,7 +13,6 @@ import type {
   RecurringCredit,
   Subscription,
 } from 'getsentry/types';
-import titleCase from 'getsentry/utils/titleCase';
 
 const DATA_CATEGORY_FEATURES: Record<string, string | null> = {
   [DataCategory.ERRORS]: null, // All plans have access to errors
@@ -91,7 +90,7 @@ export function getSingularCategoryName({
         ? displayNames.singular
         : category.substring(0, category.length - 1);
   return title
-    ? titleCase(categoryName)
+    ? toTitleCase(categoryName, {allowInnerUpperCase: true})
     : capitalize
       ? upperFirst(categoryName)
       : categoryName;
