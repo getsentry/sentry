@@ -261,7 +261,8 @@ def save_issue_from_occurrence(
         return None
     else:
         group = primary_grouphash.group
-        group.update(priority=issue_kwargs["priority"])
+        if issue_kwargs["priority"] and group.priority != issue_kwargs["priority"]:
+            group.update(priority=issue_kwargs["priority"])
 
         if group.issue_category.value != occurrence.type.category:
             logger.error(

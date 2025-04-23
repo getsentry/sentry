@@ -138,9 +138,7 @@ class IssueOccurrence:
 
         # When getting the priority, we fallback to the deprecated initial_issue_priority if specified.
         # This ensures we don't break existing uses of the `initial_issue_priority` field.
-        priority = data.get("priority")
-        if not priority:
-            priority = data.get("initial_issue_priority")
+        priority = cast(int | None, data.get("priority", data.get("initial_issue_priority", None)))
 
         assignee = None
         try:
