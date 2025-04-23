@@ -12,13 +12,13 @@ import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
-export type TraceItemSearchQueryBuilderProps = {
+type TraceItemSearchQueryBuilderProps = {
   itemType: TraceItemDataset.LOGS; // This should include TraceItemDataset.SPANS etc.
   numberAttributes: TagCollection;
   stringAttributes: TagCollection;
 } & Omit<EAPSpanSearchQueryBuilderProps, 'numberTags' | 'stringTags'>;
 
-export const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
+const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
   if (!supportedAggregates?.length) {
     return {};
   }

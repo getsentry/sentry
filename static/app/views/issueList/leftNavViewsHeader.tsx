@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
@@ -10,13 +9,18 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {EditableIssueViewHeader} from 'sentry/views/issueList/editableIssueViewHeader';
 import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
-import {canEditIssueView} from 'sentry/views/issueList/issueViews/utils';
+import {
+  canEditIssueView,
+  confirmDeleteIssueView,
+  isNewViewPage,
+} from 'sentry/views/issueList/issueViews/utils';
 import {useDeleteGroupSearchView} from 'sentry/views/issueList/mutations/useDeleteGroupSearchView';
 import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
 import {makeFetchGroupSearchViewKey} from 'sentry/views/issueList/queries/useFetchGroupSearchView';
@@ -29,6 +33,7 @@ type LeftNavViewsHeaderProps = {
 
 function PageTitle() {
   const organization = useOrganization();
+  const location = useLocation();
   const {data: groupSearchView} = useSelectedGroupSearchView();
   const user = useUser();
   const hasIssueViewSharing = organization.features.includes('issue-view-sharing');
@@ -36,13 +41,17 @@ function PageTitle() {
   if (
     hasIssueViewSharing &&
     groupSearchView &&
-    canEditIssueView({groupSearchView, user})
+    canEditIssueView({groupSearchView, user, organization})
   ) {
     return <EditableIssueViewHeader view={groupSearchView} />;
   }
 
   if (groupSearchView) {
     return <Layout.Title>{groupSearchView?.name ?? t('Issues')}</Layout.Title>;
+  }
+
+  if (isNewViewPage(location.pathname)) {
+    return <Layout.Title>{t('New View')}</Layout.Title>;
   }
 
   return <Layout.Title>{t('Issues')}</Layout.Title>;
@@ -117,7 +126,7 @@ function IssueViewEditMenu() {
     return null;
   }
 
-  const canDeleteView = canEditIssueView({groupSearchView, user});
+  const canDeleteView = canEditIssueView({groupSearchView, organization, user});
 
   return (
     <DropdownMenu
@@ -131,19 +140,10 @@ function IssueViewEditMenu() {
             ? undefined
             : t('You do not have permission to delete this view.'),
           onAction: () => {
-            openConfirmModal({
-              message: t(
-                'Are you sure you want to delete the view "%s"?',
-                groupSearchView.name
-              ),
-              isDangerous: true,
-              confirmText: t('Delete View'),
-              priority: 'danger',
-              onConfirm: () => {
+            confirmDeleteIssueView({
+              handleDelete: () =>
                 deleteIssueView(
-                  {
-                    id: groupSearchView.id,
-                  },
+                  {id: groupSearchView.id},
                   {
                     onSuccess: () => {
                       navigate(
@@ -151,8 +151,8 @@ function IssueViewEditMenu() {
                       );
                     },
                   }
-                );
-              },
+                ),
+              groupSearchView,
             });
           },
         },

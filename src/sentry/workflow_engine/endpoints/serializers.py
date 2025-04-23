@@ -1,12 +1,15 @@
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
+from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, NotRequired, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.group import BaseGroupSerializerResponse
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
 from sentry.rules.actions.notify_event_service import PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS
-from sentry.utils import json
 from sentry.workflow_engine.models import (
     Action,
     DataCondition,
@@ -16,6 +19,7 @@ from sentry.workflow_engine.models import (
     Detector,
     Workflow,
     WorkflowDataConditionGroup,
+    WorkflowFireHistory,
 )
 from sentry.workflow_engine.models.data_condition_group_action import DataConditionGroupAction
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
@@ -26,8 +30,8 @@ class ActionSerializerResponse(TypedDict):
     id: str
     type: str
     integration_id: int | None
-    data: str
-    config: str
+    data: dict
+    config: dict
 
 
 @register(Action)
@@ -37,8 +41,8 @@ class ActionSerializer(Serializer):
             "id": str(obj.id),
             "type": obj.type,
             "integration_id": obj.integration_id,
-            "data": json.dumps(obj.data),
-            "config": json.dumps(obj.config),
+            "data": obj.data,
+            "config": obj.config,
         }
 
 
@@ -162,9 +166,9 @@ class DataConditionSerializer(Serializer):
     def serialize(self, obj: DataCondition, *args, **kwargs) -> dict[str, Any]:
         return {
             "id": str(obj.id),
-            "condition": obj.type,
+            "type": obj.type,
             "comparison": obj.comparison,
-            "result": obj.condition_result,
+            "conditionResult": obj.condition_result,
         }
 
 
@@ -359,6 +363,43 @@ class WorkflowSerializer(Serializer):
             "actionFilters": attrs.get("actionFilters"),
             "environment": obj.environment.name if obj.environment else None,
             "config": obj.config,
+        }
+
+
+@dataclass(frozen=True)
+class WorkflowGroupHistory:
+    group: Group
+    count: int
+    last_triggered: datetime
+    event_id: str
+
+
+class WorkflowFireHistoryResponse(TypedDict):
+    group: BaseGroupSerializerResponse
+    count: int
+    lastTriggered: datetime
+    eventId: str
+
+
+class WorkflowGroupHistorySerializer(Serializer):
+    def get_attrs(
+        self, item_list: Sequence[WorkflowFireHistory], user: Any, **kwargs: Any
+    ) -> MutableMapping[Any, Any]:
+        serialized_groups = {
+            g["id"]: g for g in serialize([item.group for item in item_list], user)
+        }
+        return {
+            history: {"group": serialized_groups[str(history.group.id)]} for history in item_list
+        }
+
+    def serialize(
+        self, obj: WorkflowGroupHistory, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+    ) -> WorkflowFireHistoryResponse:
+        return {
+            "group": attrs["group"],
+            "count": obj.count,
+            "lastTriggered": obj.last_triggered,
+            "eventId": obj.event_id,
         }
 
 

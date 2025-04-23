@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from sentry.api.serializers import serialize
-from sentry.incidents.grouptype import MetricAlertFire
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.snuba.dataset import Dataset
@@ -18,7 +18,7 @@ from sentry.workflow_engine.types import DetectorPriorityLevel
 class TestDetectorSerializer(TestCase):
     def test_serialize_simple(self):
         detector = self.create_detector(
-            project_id=self.project.id, name="Test Detector", type=MetricAlertFire.slug
+            project_id=self.project.id, name="Test Detector", type=MetricIssue.slug
         )
         result = serialize(detector)
 
@@ -26,12 +26,12 @@ class TestDetectorSerializer(TestCase):
             "id": str(detector.id),
             "projectId": str(detector.project_id),
             "name": "Test Detector",
-            "type": MetricAlertFire.slug,
+            "type": MetricIssue.slug,
             "dateCreated": detector.date_added,
             "dateUpdated": detector.date_updated,
             "dataSources": None,
             "conditionGroup": None,
-            "config": default_detector_config_data[MetricAlertFire.slug],
+            "config": default_detector_config_data[MetricIssue.slug],
         }
 
     def test_serialize_full(self):
@@ -57,7 +57,7 @@ class TestDetectorSerializer(TestCase):
         detector = self.create_detector(
             project_id=self.project.id,
             name="Test Detector",
-            type=MetricAlertFire.slug,
+            type=MetricIssue.slug,
             workflow_condition_group=condition_group,
         )
         snuba_query = create_snuba_query(
@@ -85,7 +85,7 @@ class TestDetectorSerializer(TestCase):
             "id": str(detector.id),
             "projectId": str(detector.project_id),
             "name": "Test Detector",
-            "type": MetricAlertFire.slug,
+            "type": MetricIssue.slug,
             "dateCreated": detector.date_added,
             "dateUpdated": detector.date_updated,
             "dataSources": [
@@ -116,22 +116,22 @@ class TestDetectorSerializer(TestCase):
                 "conditions": [
                     {
                         "id": str(condition.id),
-                        "condition": Condition.GREATER.value,
+                        "type": Condition.GREATER.value,
                         "comparison": 100,
-                        "result": DetectorPriorityLevel.HIGH.value,
+                        "conditionResult": DetectorPriorityLevel.HIGH.value,
                     }
                 ],
                 "actions": [
                     {
                         "id": str(action.id),
                         "type": "email",
-                        "data": "{}",
+                        "data": {},
                         "integration_id": None,
-                        "config": '{"target_type":1,"target_identifier":"123"}',
+                        "config": {"target_type": 1, "target_identifier": "123"},
                     }
                 ],
             },
-            "config": default_detector_config_data[MetricAlertFire.slug],
+            "config": default_detector_config_data[MetricIssue.slug],
         }
 
     def test_serialize_bulk(self):
@@ -139,7 +139,7 @@ class TestDetectorSerializer(TestCase):
             self.create_detector(
                 project_id=self.project.id,
                 name=f"Test Detector {i}",
-                type=MetricAlertFire.slug,
+                type=MetricIssue.slug,
             )
             for i in range(2)
         ]
@@ -244,18 +244,18 @@ class TestDataConditionGroupSerializer(TestCase):
             "conditions": [
                 {
                     "id": str(condition.id),
-                    "condition": "gt",
+                    "type": "gt",
                     "comparison": 100,
-                    "result": DetectorPriorityLevel.HIGH,
+                    "conditionResult": DetectorPriorityLevel.HIGH,
                 }
             ],
             "actions": [
                 {
                     "id": str(action.id),
                     "type": "email",
-                    "data": "{}",
+                    "data": {},
                     "integration_id": None,
-                    "config": '{"target_type":1,"target_identifier":"123"}',
+                    "config": {"target_type": 1, "target_identifier": "123"},
                 }
             ],
         }
@@ -283,9 +283,9 @@ class TestActionSerializer(TestCase):
         assert result == {
             "id": str(action.id),
             "type": "plugin",
-            "data": "{}",
+            "data": {},
             "integration_id": None,
-            "config": "{}",
+            "config": {},
         }
 
     def test_serialize_with_integration(self):
@@ -305,9 +305,9 @@ class TestActionSerializer(TestCase):
         assert result == {
             "id": str(action.id),
             "type": "opsgenie",
-            "data": '{"priority":"P1"}',
+            "data": {"priority": "P1"},
             "integration_id": self.integration.id,
-            "config": '{"target_type":0,"target_identifier":"123"}',
+            "config": {"target_type": 0, "target_identifier": "123"},
         }
 
     def test_serialize_with_integration_and_config(self):
@@ -328,9 +328,13 @@ class TestActionSerializer(TestCase):
         assert result2 == {
             "id": str(action2.id),
             "type": "slack",
-            "data": '{"tags":"bar"}',
+            "data": {"tags": "bar"},
             "integration_id": self.integration.id,
-            "config": '{"target_type":0,"target_display":"freddy frog","target_identifier":"123-id"}',
+            "config": {
+                "target_type": 0,
+                "target_display": "freddy frog",
+                "target_identifier": "123-id",
+            },
         }
 
 
@@ -416,9 +420,9 @@ class TestWorkflowSerializer(TestCase):
                 "conditions": [
                     {
                         "id": str(trigger_condition.id),
-                        "condition": "first_seen_event",
+                        "type": "first_seen_event",
                         "comparison": True,
-                        "result": True,
+                        "conditionResult": True,
                     }
                 ],
                 "actions": [],
@@ -431,18 +435,18 @@ class TestWorkflowSerializer(TestCase):
                     "conditions": [
                         {
                             "id": str(condition.id),
-                            "condition": "gt",
+                            "type": "gt",
                             "comparison": 100,
-                            "result": DetectorPriorityLevel.HIGH.value,
+                            "conditionResult": DetectorPriorityLevel.HIGH.value,
                         }
                     ],
                     "actions": [
                         {
                             "id": str(action.id),
                             "type": "email",
-                            "data": "{}",
+                            "data": {},
                             "integration_id": None,
-                            "config": '{"target_type":1,"target_identifier":"123"}',
+                            "config": {"target_type": 1, "target_identifier": "123"},
                         }
                     ],
                 },

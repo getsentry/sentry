@@ -1,7 +1,7 @@
-import {useEffect, useMemo} from 'react';
+import {Fragment, useEffect} from 'react';
 
 import {Flex} from 'sentry/components/container/flex';
-import {OrderBy, SortBy} from 'sentry/components/events/featureFlags/utils';
+import type {OrderBy, SortBy} from 'sentry/components/events/featureFlags/utils';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
@@ -10,13 +10,10 @@ import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import SuspectTable from 'sentry/views/issueDetails/groupDistributions/suspectTable';
 import FlagDetailsLink from 'sentry/views/issueDetails/groupFeatureFlags/flagDetailsLink';
 import FlagDrawerCTA from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerCTA';
-import useGroupFeatureFlags from 'sentry/views/issueDetails/groupFeatureFlags/useGroupFeatureFlags';
-import {
-  type SuspectFlagScore,
-  useGroupSuspectFlagScores,
-} from 'sentry/views/issueDetails/groupFeatureFlags/useGroupSuspectFlagScores';
+import useGroupFlagDrawerData from 'sentry/views/issueDetails/groupFeatureFlags/useGroupFlagDrawerData';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {
   Container,
@@ -33,87 +30,33 @@ interface Props {
 }
 
 export default function FlagDrawerContent({
+  debugSuspectScores,
   environments,
   group,
   orderBy,
   search,
   sortBy,
-  debugSuspectScores,
 }: Props) {
   const organization = useOrganization();
 
   // If we're showing the suspect section at all
   const enableSuspectFlags = organization.features.includes('feature-flag-suspect-flags');
 
-  const {
-    data = [],
-    isPending,
-    isError,
-    refetch,
-  } = useGroupFeatureFlags({
-    groupId: group.id,
-    environment: environments,
-  });
-
-  // Flatten all the tag values together into a big string.
-  // Maybe for perf later, here we iterate over all tags&values once, (N*M) then
-  // later only iterate through each tag (N) as the search term changes.
-  const tagValues = useMemo(
-    () =>
-      data.reduce<Record<string, string>>((valueMap, tag) => {
-        valueMap[tag.key] = tag.topValues
-          .map(tv => tv.value)
-          .join(' ')
-          .toLowerCase();
-        return valueMap;
-      }, {}),
-    [data]
-  );
-
-  const filteredFlags = useMemo(() => {
-    const searchLower = search.toLowerCase();
-    return data.filter(flag => {
-      return (
-        flag.name.includes(searchLower) ||
-        flag.key.includes(searchLower) ||
-        tagValues[flag.key]?.includes(searchLower)
-      );
+  const {displayFlags, allGroupFlagCount, isPending, isError, refetch} =
+    useGroupFlagDrawerData({
+      environments,
+      group,
+      orderBy,
+      search,
+      sortBy,
     });
-  }, [data, search, tagValues]);
-
-  const {data: suspectScores} = useGroupSuspectFlagScores({
-    groupId: group.id,
-    environment: environments.length ? environments : undefined,
-    enabled: enableSuspectFlags || debugSuspectScores,
-  });
-  const suspectScoresMap = useMemo(
-    () =>
-      suspectScores
-        ? Object.fromEntries(suspectScores.data.map(score => [score.flag, score]))
-        : {},
-    [suspectScores]
-  );
-
-  const sortedFlags = useMemo(() => {
-    if (sortBy === SortBy.ALPHABETICAL) {
-      const sorted = filteredFlags.toSorted((a, b) => a.key.localeCompare(b.key));
-      return orderBy === OrderBy.A_TO_Z ? sorted : sorted.reverse();
-    }
-    if (sortBy === SortBy.SUSPICION) {
-      return filteredFlags.toSorted(
-        (a, b) =>
-          (suspectScoresMap[b.key]?.score ?? 0) - (suspectScoresMap[a.key]?.score ?? 0)
-      );
-    }
-    return filteredFlags;
-  }, [filteredFlags, orderBy, sortBy, suspectScoresMap]);
 
   // CTA logic
   const {projects} = useProjects();
   const project = projects.find(p => p.slug === group.project.slug)!;
 
   const showCTA =
-    data.length === 0 &&
+    allGroupFlagCount === 0 &&
     project &&
     !project.hasFlags &&
     featureFlagOnboardingPlatforms.includes(project.platform ?? 'other');
@@ -122,10 +65,10 @@ export default function FlagDrawerContent({
     if (!isPending && !isError && !showCTA) {
       trackAnalytics('flags.drawer_rendered', {
         organization,
-        numFlags: data.length,
+        numFlags: allGroupFlagCount,
       });
     }
-  }, [organization, data.length, isPending, isError, showCTA]);
+  }, [organization, allGroupFlagCount, isPending, isError, showCTA]);
 
   return isPending ? (
     <LoadingIndicator />
@@ -136,42 +79,50 @@ export default function FlagDrawerContent({
     />
   ) : showCTA ? (
     <FlagDrawerCTA projectPlatform={project.platform} />
-  ) : data.length === 0 ? (
+  ) : allGroupFlagCount === 0 ? (
     <StyledEmptyStateWarning withIcon>
       {t('No feature flags were found for this issue')}
     </StyledEmptyStateWarning>
-  ) : sortedFlags.length === 0 ? (
+  ) : displayFlags.length === 0 ? (
     <StyledEmptyStateWarning withIcon>
       {t('No feature flags were found for this search')}
     </StyledEmptyStateWarning>
   ) : (
-    <Container>
-      {sortedFlags.map(tag => (
-        <div key={tag.key}>
-          <FlagDetailsLink tag={tag} key={tag.key}>
-            <TagDistribution tag={tag} key={tag.key} />
-          </FlagDetailsLink>
-          {debugSuspectScores && (
-            <DebugSuspectScore scoreObj={suspectScoresMap[tag.key]} />
-          )}
-        </div>
-      ))}
-    </Container>
+    <Fragment>
+      {enableSuspectFlags ? (
+        <SuspectTable
+          debugSuspectScores={debugSuspectScores}
+          environments={environments}
+          group={group}
+        />
+      ) : null}
+      <Container>
+        {displayFlags.map(flag => (
+          <div key={flag.key}>
+            <FlagDetailsLink tag={flag} key={flag.key}>
+              <TagDistribution tag={flag} key={flag.key} />
+            </FlagDetailsLink>
+            {debugSuspectScores && <DebugSuspectScore {...flag.suspect} />}
+          </div>
+        ))}
+      </Container>
+    </Fragment>
   );
 }
 
-function DebugSuspectScore({scoreObj}: {scoreObj: undefined | SuspectFlagScore}) {
-  if (!scoreObj) {
-    return null;
-  }
+function DebugSuspectScore({
+  baselinePercent,
+  score,
+}: {
+  baselinePercent: undefined | number;
+  score: undefined | number;
+}) {
   return (
     <Flex justify="space-between" w="100%">
-      <span>Sus: {scoreObj.score.toFixed(5) ?? '_'}</span>
+      <span>Sus: {score?.toFixed(5) ?? '_'}</span>
       <span>
         Baseline:{' '}
-        {scoreObj.baseline_percent === undefined
-          ? '_'
-          : `${(scoreObj.baseline_percent * 100).toFixed(5)}%`}
+        {baselinePercent === undefined ? '_' : `${(baselinePercent * 100).toFixed(5)}%`}
       </span>
     </Flex>
   );
