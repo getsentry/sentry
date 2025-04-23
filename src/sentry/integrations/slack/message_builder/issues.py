@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
 from typing import Any, TypedDict
@@ -465,11 +466,12 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if self.issue_summary is not None:
             error_type = build_attachment_title(event_or_group)
             text = build_attachment_text(self.group, self.event) or ""
-            text = text.strip(" \n")
+            text = text.strip(" \r\n\u2028\u2029")
             text = escape_slack_markdown_text(text)
             text = text.lstrip(" ")
-            if "\n" in text:
-                text = text.strip().split("\n")[0] + "..."
+            linebreak_match = re.search(r"\r?\n|\u2028|\u2029", text)
+            if linebreak_match:
+                text = text[: linebreak_match.start()].strip() + "..."
             if len(text) > MAX_SUMMARY_HEADLINE_LENGTH:
                 text = text[:MAX_SUMMARY_HEADLINE_LENGTH] + "..."
             headline = f"{error_type}: {text}" if text else error_type
@@ -493,7 +495,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         title_emoji = title_emoji + " " if title_emoji else ""
         title_text = title_emoji + f"<{title_link}|*{escape_slack_text(title)}*>"
-
         return self.get_markdown_block(title_text)
 
     def get_issue_summary_text(self) -> str | None:
