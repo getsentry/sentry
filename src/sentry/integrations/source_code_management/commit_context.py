@@ -339,11 +339,7 @@ class CommitContextIntegration(ABC):
             pull_request_id=pr.id,
         ).capture():
             if pr_comment is None:
-                resp = client.create_pr_comment(
-                    repo=repo,
-                    pr_key=str(pr.key),
-                    data=comment_data,
-                )
+                resp = client.create_pr_comment(repo=repo, pr=pr, data=comment_data)
 
                 current_time = django_timezone.now()
                 comment = PullRequestComment.objects.create(
@@ -369,8 +365,8 @@ class CommitContextIntegration(ABC):
             else:
                 resp = client.update_pr_comment(
                     repo=repo,
-                    pr_key=str(pr.key),
-                    comment_id=pr_comment.external_id,
+                    pr=pr,
+                    pr_comment=pr_comment,
                     data=comment_data,
                 )
                 metrics.incr(
@@ -423,12 +419,16 @@ class CommitContextClient(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def create_pr_comment(self, repo: Repository, pr_key: str, data: dict[str, Any]) -> Any:
+    def create_pr_comment(self, repo: Repository, pr: PullRequest, data: dict[str, Any]) -> Any:
         raise NotImplementedError
 
     @abstractmethod
     def update_pr_comment(
-        self, repo: Repository, pr_key: str, comment_id: str, data: dict[str, Any]
+        self,
+        repo: Repository,
+        pr: PullRequest,
+        pr_comment: PullRequestComment,
+        data: dict[str, Any],
     ) -> Any:
         raise NotImplementedError
 

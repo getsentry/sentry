@@ -17,6 +17,7 @@ from sentry.integrations.source_code_management.commit_context import (
     SourceLineInfo,
 )
 from sentry.integrations.source_code_management.repository import RepositoryClient
+from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
@@ -246,17 +247,21 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             data=data,
         )
 
-    def create_pr_comment(self, repo: Repository, pr_key: str, data: dict[str, Any]) -> Any:
+    def create_pr_comment(self, repo: Repository, pr: PullRequest, data: dict[str, Any]) -> Any:
         project_id = repo.config["project_id"]
-        url = GitLabApiClientPath.create_pr_note.format(project=project_id, pr_key=pr_key)
+        url = GitLabApiClientPath.create_pr_note.format(project=project_id, pr_key=pr.key)
         return self.post(url, data=data)
 
     def update_pr_comment(
-        self, repo: Repository, pr_key: str, comment_id: str, data: dict[str, Any]
+        self,
+        repo: Repository,
+        pr: PullRequest,
+        pr_comment: PullRequestComment,
+        data: dict[str, Any],
     ) -> Any:
         project_id = repo.config["project_id"]
         url = GitLabApiClientPath.update_pr_note.format(
-            project=project_id, pr_key=pr_key, note_id=comment_id
+            project=project_id, pr_key=pr.key, note_id=pr_comment.external_id
         )
         return self.put(url, data=data)
 
