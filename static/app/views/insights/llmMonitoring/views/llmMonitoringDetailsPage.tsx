@@ -146,13 +146,13 @@ function LLMMonitoringPage({params}: Props) {
                   </HeaderContainer>
                 </ModuleLayout.Full>
                 <ModuleLayout.Third>
-                  <LlmTotalTokensUsedChartWidget chartProperties={{groupId}} />
+                  <LlmTotalTokensUsedChartWidget />
                 </ModuleLayout.Third>
                 <ModuleLayout.Third>
-                  <LlmNumberOfPipelinesChartWidget chartProperties={{groupId}} />
+                  <LlmNumberOfPipelinesChartWidget />
                 </ModuleLayout.Third>
                 <ModuleLayout.Third>
-                  <LlmPipelineDurationChartWidget chartProperties={{groupId}} />
+                  <LlmPipelineDurationChartWidget />
                 </ModuleLayout.Third>
                 <ModuleLayout.Full>
                   <PipelineSpansTable groupId={groupId} />
