@@ -24,10 +24,12 @@ from sentry.event_manager import (
 from sentry.eventstore.models import Event, GroupEvent, augment_message_with_occurrence
 from sentry.issues.grouptype import FeedbackGroup, should_create_group
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
+from sentry.issues.priority import PriorityChangeReason, update_priority
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphash import GroupHash
 from sentry.models.release import Release
 from sentry.ratelimits.sliding_windows import RedisSlidingWindowRateLimiter, RequestedQuota
+from sentry.types.group import PriorityLevel
 from sentry.utils import json, metrics, redis
 from sentry.utils.strings import truncatechars
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
@@ -276,12 +278,14 @@ def save_issue_from_occurrence(
         group_event.occurrence = occurrence
         is_regression = _process_existing_aggregate(group, group_event, issue_kwargs, release)
         group_info = GroupInfo(group=group, is_new=False, is_regression=is_regression)
-        if (
-            issue_kwargs["priority"]
-            and group.priority != issue_kwargs["priority"]
-            and not group.priority_locked_at
-        ):
-            group.update(priority=issue_kwargs["priority"])
+        if issue_kwargs["priority"] and group.priority != issue_kwargs["priority"]:
+            update_priority(
+                group=group,
+                priority=PriorityLevel(issue_kwargs["priority"]),
+                sender="save_issue_from_occurrence",
+                reason=PriorityChangeReason.ISSUE_PLATFORM,
+                project=project,
+            )
 
     additional_hashes = [f for f in occurrence.fingerprint if f != primary_grouphash.hash]
     for fingerprint_hash in additional_hashes:
