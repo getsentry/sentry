@@ -37,9 +37,7 @@ def http_within_sql_transaction() -> SpansOp:
         # span.op="http.client" span.duration>SETTINGS.duration_threshold
         OpAnd(
             OpEqLiteral("op", "http.client"),
-            # TODO: spans have a start_timestamp and timestamp, not a duration
-            OpTrue(),
-            # OpGtLiteral("duration", 100),
+            OpDurationGtLiteral(0.250),
         ),
         # ...
         # (span.op="db" span.description:COMMIT* OR
@@ -66,7 +64,9 @@ def http_within_sql_transaction_native() -> SpansOp:
                     continue
 
                 if not http_found:
-                    if span.get("op") == "http.client" and True:
+                    if span.get("op") == "http.client" and (
+                        (span["timestamp"] - span["start_timestamp"]) > 0.250
+                    ):
                         http_found = True
                     continue
 
@@ -147,6 +147,17 @@ class OpGtLiteral(SpanOp):
 
     def __str__(self):
         return f"GtLiteral({self.key}, {repr(self.value)})"
+
+
+class OpDurationGtLiteral(SpanOp):
+    def __init__(self, value: float):
+        self.value = value
+
+    def __call__(self, span: Span) -> bool:
+        return (span["timestamp"] - span["start_timestamp"]) > self.value
+
+    def __str__(self):
+        return f"DurationGtLiteral({repr(self.value)})"
 
 
 class OpPrecedes(SpansOp):

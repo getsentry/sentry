@@ -10,13 +10,20 @@ class DetectionTest(TestCase):
         # TODO: multi-line
         assert (
             str(f)
-            == "Precedes(And(EqLiteral(op, 'db'), PrefixLiteral(description, 'BEGIN')), And(EqLiteral(op, 'http.client'), True), And(EqLiteral(op, 'db'), Or(PrefixLiteral(description, 'COMMIT'), PrefixLiteral(description, 'ROLLBACK'))))"
+            == "Precedes(And(EqLiteral(op, 'db'), PrefixLiteral(description, 'BEGIN')), And(EqLiteral(op, 'http.client'), DurationGtLiteral(0.25)), And(EqLiteral(op, 'db'), Or(PrefixLiteral(description, 'COMMIT'), PrefixLiteral(description, 'ROLLBACK'))))"
         )
 
         assert f(
             [
                 create_span("db", 100, "BEGIN"),
                 create_span("http.client", 1000, "GET https://example.com/"),
+                create_span("db", 100, "COMMIT"),
+            ]
+        )
+        assert not f(
+            [
+                create_span("db", 100, "BEGIN"),
+                create_span("http.client", 100, "GET https://example.com/"),
                 create_span("db", 100, "COMMIT"),
             ]
         )
@@ -35,6 +42,13 @@ class DetectionTest(TestCase):
             [
                 create_span("db", 100, "BEGIN"),
                 create_span("http.client", 1000, "GET https://example.com/"),
+                create_span("db", 100, "COMMIT"),
+            ]
+        )
+        assert not f(
+            [
+                create_span("db", 100, "BEGIN"),
+                create_span("http.client", 100, "GET https://example.com/"),
                 create_span("db", 100, "COMMIT"),
             ]
         )
