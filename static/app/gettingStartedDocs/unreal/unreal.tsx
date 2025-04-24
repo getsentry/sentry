@@ -108,16 +108,14 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: (
-            <Fragment>
-              <p>
-                {tct(
-                  'By default, the SDK initializes automatically when the application starts. Alternatively, you can disable the [strong:Initialize SDK automatically] option, in which case you'll need to initialize the SDK manually',
-                  {
-                    strong: <strong />,
-                  }
-                )}
-              </p>
-            </Fragment>
+            <p>
+              {tct(
+                'By default, the SDK initializes automatically when the application starts. Alternatively, you can disable the [strong:Initialize SDK automatically] option, in which case you'll need to initialize the SDK manually',
+                {
+                  strong: <strong />,
+                }
+              )}
+            </p>
           ),
           language: 'cpp',
           code: getSettingsConfigureSnippet(params),
