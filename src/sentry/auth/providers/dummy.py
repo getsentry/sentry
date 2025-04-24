@@ -65,7 +65,7 @@ class DummySAML2Provider(SAML2Provider):
     name = "DummySAML2"
     key = "saml2_dummy"
 
-    def get_saml_setup_pipeline(self):
+    def get_saml_setup_pipeline(self) -> list[AuthView]:
         return []
 
     def build_config(self, state):
