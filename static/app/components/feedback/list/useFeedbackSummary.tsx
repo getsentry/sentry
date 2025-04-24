@@ -24,7 +24,7 @@ You are an AI assistant that analyzes customer feedback. Below is a list of user
 
 ${inputText}
 
-Figure out the top 4 specific sentiments in the messages. Be concise but also specific in the summary.
+Figure out the top 4 specific sentiments in the messages. These sentiments should be distinct from each other and not the same concept. Be concise but also specific in the summary.
 
 The summary should be at most 2 sentences, and complete the sentence "Users say...".
 
