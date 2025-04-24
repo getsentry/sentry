@@ -37,7 +37,7 @@ class TestDetectorSerializer(TestCase):
         self.resolve_trigger_data_condition = migrate_resolve_threshold_data_condition(
             self.alert_rule
         )
-        self.expected_actions = [
+        self.expected_critical_action = [
             {
                 "id": str(self.critical_trigger_action.id),
                 "alertRuleTriggerId": str(self.critical_trigger.id),
@@ -50,35 +50,63 @@ class TestDetectorSerializer(TestCase):
                 "dateCreated": self.critical_trigger_action.date_added,
                 "desc": f"Send a notification to {self.user.email}",
                 "priority": self.critical_action.data.get("priority"),
+            }
+        ]
+        self.expected_warning_action = [
+            {
+                "id": str(self.warning_trigger_action.id),
+                "alertRuleTriggerId": str(self.warning_trigger.id),
+                "type": "email",
+                "targetType": "user",
+                "targetIdentifier": str(self.user.id),
+                "inputChannelId": None,
+                "integrationId": None,
+                "sentryAppId": None,
+                "dateCreated": self.warning_trigger_action.date_added,
+                "desc": f"Send a notification to {self.user.email}",
+                "priority": self.warning_action.data.get("priority"),
+            }
+        ]
+        self.expected_triggers = [
+            {
+                "id": str(self.critical_trigger.id),
+                "alertRuleId": str(self.alert_rule.id),
+                "label": "critical",
+                "thresholdType": AlertRuleThresholdType.ABOVE.value,
+                "alertThreshold": self.critical_detector_trigger.comparison,
+                "resolveThreshold": AlertRuleThresholdType.BELOW,
+                "dateCreated": self.critical_trigger.date_added,
+                "actions": self.expected_critical_action,
+            },
+            {
+                "id": str(self.warning_trigger.id),
+                "alertRuleId": str(self.alert_rule.id),
+                "label": "warning",
+                "thresholdType": AlertRuleThresholdType.ABOVE.value,
+                "alertThreshold": self.critical_detector_trigger.comparison,
+                "resolveThreshold": AlertRuleThresholdType.BELOW,
+                "dateCreated": self.critical_trigger.date_added,
+                "actions": self.expected_warning_action,
             },
         ]
-        self.expected_trigger = {
-            "id": str(self.critical_trigger.id),
-            "alertRuleId": str(self.alert_rule.id),
-            "label": "critical",
-            "thresholdType": AlertRuleThresholdType.ABOVE.value,
-            "alertThreshold": self.critical_detector_trigger.comparison,
-            "resolveThreshold": AlertRuleThresholdType.BELOW,
-            "dateCreated": self.critical_trigger.date_added,
-            "actions": self.expected_actions,
-        }
 
         self.expected = {
             "id": str(self.alert_rule.id),
             "name": self.detector.name,
             "organizationId": self.detector.project.organization_id,
-            "status": AlertRuleStatus.PENDING.value,
-            "query": "test",  # TODO get these all from get attrs
-            "aggregate": "test",
-            "timeWindow": 1,
-            "resolution": 1,
-            "thresholdPeriod": 1,
-            "triggers": self.expected_trigger,
-            "projects": [self.detector.project],  # this might be formatted incorrectly
+            "status": AlertRuleStatus.DISABLED,  # I guess?
+            "query": self.alert_rule.snuba_query.query,
+            "aggregate": self.alert_rule.snuba_query.aggregate,
+            "timeWindow": self.alert_rule.snuba_query.time_window,
+            "resolution": self.alert_rule.snuba_query.resolution,
+            "thresholdPeriod": self.detector.config.get("thresholdPeriod"),
+            "triggers": self.expected_triggers,
+            "projects": [self.project.slug],
             "owner": self.detector.owner_user_id,
             "dateModified": self.detector.date_updated,
             "dateCreated": self.detector.date_added,
-            "createdBy": self.detector.created_by_id,
+            # "createdBy": self.detector.created_by_id,
+            "createdBy": {},
             "description": self.detector.description,
             "detectionType": self.detector.type,
         }

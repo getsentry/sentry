@@ -14,18 +14,19 @@ from sentry.incidents.models.alert_rule import AlertRuleStatus
 from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_component
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
+from sentry.snuba.models import SnubaQuery
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.models import (
     AlertRuleDetector,
     DataCondition,
-    DataConditionGroup,
     DataConditionGroupAction,
+    DataSourceDetector,
     Detector,
     DetectorState,
-    DetectorWorkflow,
 )
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
 class WorkflowEngineDetectorSerializer(Serializer):
@@ -41,19 +42,17 @@ class WorkflowEngineDetectorSerializer(Serializer):
         self, item_list: Sequence[Detector], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> defaultdict[str, Any]:
         detectors = {item.id: item for item in item_list}
-        detector_ids = list(detectors.keys())
         result: DefaultDict[Detector, dict[str, Any]] = defaultdict(dict)
 
-        workflow_dcg_ids = DataConditionGroup.objects.filter(
-            workflowdataconditiongroup__workflow__in=Subquery(
-                DetectorWorkflow.objects.filter(detector__in=detector_ids).values_list(
-                    "workflow_id", flat=True
-                )
-            )
-        ).values_list("id", flat=True)
-        data_conditions = DataCondition.objects.filter(condition_group__in=workflow_dcg_ids)
+        detector_workflow_condition_group_ids = [
+            detector.workflow_condition_group.id for detector in detectors.values()
+        ]
+        detector_trigger_data_conditions = DataCondition.objects.filter(
+            condition_group__in=detector_workflow_condition_group_ids,
+            condition_result__in=[DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM],
+        )
         dcgas = DataConditionGroupAction.objects.filter(
-            condition_group__in=workflow_dcg_ids
+            condition_group__in=detector_workflow_condition_group_ids
         ).select_related("action")
         actions = [dcga.action for dcga in dcgas]
 
@@ -78,11 +77,16 @@ class WorkflowEngineDetectorSerializer(Serializer):
 
         # build up trigger and action data
         serialized_data_conditions = serialize(
-            data_conditions, WorkflowEngineDataConditionSerializer(), **kwargs
+            list(detector_trigger_data_conditions),
+            user,
+            WorkflowEngineDataConditionSerializer(),
+            **kwargs,
         )
-        for data_condition, serialized in zip(data_conditions, serialized_data_conditions):
+        for data_condition, serialized in zip(
+            detector_trigger_data_conditions, serialized_data_conditions
+        ):
             errors = []
-            detector = detectors[data_condition.get("alertRuleId")]
+            detector = detectors[int(serialized.get("alertRuleId"))]
             alert_rule_triggers = result[detector].setdefault("triggers", [])
             for action in serialized.get("actions", []):
                 if action is None:
@@ -137,18 +141,21 @@ class WorkflowEngineDetectorSerializer(Serializer):
             for user in user_service.get_many_by_id(
                 ids=[
                     detector.created_by_id
-                    for detector in detectors
+                    for detector in detectors.values()
                     if detector.created_by_id is not None
                 ]
             )
         }
-        for detector in detectors:
+        for detector in detectors.values():
             # this is based on who created or updated it during dual write
             rpc_user = user_by_user_id.get(detector.created_by_id)
-            created_by = dict(
-                id=rpc_user.id, name=rpc_user.get_display_name(), email=rpc_user.email
-            )
-            result[detector]["created_by"] = created_by
+            if not rpc_user:
+                result[detector]["created_by"] = {}
+            else:
+                created_by = dict(
+                    id=rpc_user.id, name=rpc_user.get_display_name(), email=rpc_user.email
+                )
+                result[detector]["created_by"] = created_by
 
         # add owner
         for detector in detectors.values():
@@ -159,18 +166,20 @@ class WorkflowEngineDetectorSerializer(Serializer):
 
         # skipping snapshot data
 
-        # TODO fetch latest metric issue occurrence (open period?) if "latestIncident" in self.expand
-        # if "latestIncident" in self.expand:
-        #     incident_map = {}
-        #     for incident in Incident.objects.filter(
-        #         id__in=Incident.objects.filter(alert_rule__in=alert_rules)
-        #         .values("alert_rule_id")
-        #         .annotate(incident_id=Max("id"))
-        #         .values("incident_id")
-        #     ):
-        #         incident_map[incident.alert_rule_id] = serialize(incident, user=user)
-        #     for alert_rule in alert_rules.values():
-        #         result[alert_rule]["latestIncident"] = incident_map.get(alert_rule.id, None)
+        # TODO fetch incident group open period if "latestIncident" in self.expand, needs new incident serializer
+        # how to look this up?
+        if "latestIncident" in self.expand:
+            pass
+
+        # add information from snubaquery
+        for detector in detectors.values():
+            data_source_detector = Subquery(DataSourceDetector.objects.get(detector_id=detector.id))
+            snuba_query = SnubaQuery.objects.get(id=data_source_detector.data_source.source_id)
+            result[detector]["query"] = snuba_query.query
+            result[detector]["aggregate"] = snuba_query.aggregate
+            result[detector]["timeWindow"] = snuba_query.time_window
+            result[detector]["resolution"] = snuba_query.resolution
+
         return result
 
     def serialize(self, obj: Detector, attrs, user, **kwargs) -> AlertRuleSerializerResponse:
@@ -186,11 +195,11 @@ class WorkflowEngineDetectorSerializer(Serializer):
             "status": (
                 AlertRuleStatus.PENDING.value if active is True else AlertRuleStatus.DISABLED
             ),  # this is a rough first pass, need to handle other statuses
-            "query": "test",  # TODO get these all from get attrs
-            "aggregate": "test",
-            "timeWindow": 1,
-            "resolution": 1,
-            "thresholdPeriod": 1,
+            "query": attrs.get("query"),
+            "aggregate": attrs.get("aggregate"),
+            "timeWindow": attrs.get("timeWindow"),
+            "resolution": attrs.get("resolution"),
+            "thresholdPeriod": obj.config.get("thresholdPeriod"),
             "triggers": attrs.get("triggers", []),
             "projects": sorted(attrs.get("projects", [])),
             "owner": attrs.get("owner", None),
