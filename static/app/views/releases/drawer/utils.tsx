@@ -28,6 +28,7 @@ export const RELEASES_DRAWER_FIELD_MAP = {
   [ReleasesDrawerFields.COMMIT_CURSOR]: decodeScalar,
   [ReleasesDrawerFields.END]: decodeScalar,
   [ReleasesDrawerFields.ENVIRONMENT]: decodeList,
+  [ReleasesDrawerFields.FILES_CURSOR]: decodeScalar,
   [ReleasesDrawerFields.LIST_CURSOR]: decodeScalar,
   [ReleasesDrawerFields.PROJECT]: decodeList,
   [ReleasesDrawerFields.RELEASE]: decodeScalar,
@@ -49,25 +50,23 @@ export function cleanLocationQuery(
 }
 
 /**
- * Cleans location.query of all releases drawer params except for the base params (i.e. page filters params). This should be used whenever we navigate to another URL *inside* of the Releases Drawer.
+ * Cleans location.query of all releases drawer cursors
  *
  * @param query Location query object
- * @returns Location query object with the base release drawer params preserved
+ * @returns Location query object with all releases drawer cursors removed
  */
-export function preserveBaseReleaseDrawerQueryParams(
+export function cleanReleaseCursors(
   query: Record<string, string[] | string | null | undefined>
 ) {
   return omit(
     query,
-    RELEASES_DRAWER_FIELD_KEYS.filter(
-      key =>
-        ![
-          ReleasesDrawerFields.DRAWER,
-          ReleasesDrawerFields.PROJECT,
-          ReleasesDrawerFields.START,
-          ReleasesDrawerFields.END,
-          ReleasesDrawerFields.ENVIRONMENT,
-        ].includes(key as ReleasesDrawerFields)
+    RELEASES_DRAWER_FIELD_KEYS.filter(key =>
+      [
+        ReleasesDrawerFields.COMMIT_CURSOR,
+        ReleasesDrawerFields.FILES_CURSOR,
+        ReleasesDrawerFields.LIST_CURSOR,
+        ReleasesDrawerFields.ACTIVE_REPO,
+      ].includes(key as ReleasesDrawerFields)
     )
   );
 }

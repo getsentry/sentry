@@ -26,7 +26,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {
-  preserveBaseReleaseDrawerQueryParams,
+  cleanReleaseCursors,
   ReleasesDrawerFields,
 } from 'sentry/views/releases/drawer/utils';
 import {getReleaseNewIssuesUrl} from 'sentry/views/releases/utils';
@@ -136,7 +136,7 @@ export function ReleaseDrawerTable({
             }}
             to={{
               query: {
-                ...preserveBaseReleaseDrawerQueryParams(location.query),
+                ...cleanReleaseCursors(location.query),
                 [ReleasesDrawerFields.RELEASE]: value,
                 [ReleasesDrawerFields.PROJECT]: dataRow.project_id,
               },
