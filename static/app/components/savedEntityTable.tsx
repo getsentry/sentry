@@ -146,6 +146,10 @@ SavedEntityTable.Row = styled('div')<{isFirst: boolean; disableHover?: boolean}>
     border-bottom: 1px solid ${p => p.theme.innerBorder};
   }
 
+  &:last-child {
+    border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  }
+
   ${p =>
     !p.disableHover &&
     css`
