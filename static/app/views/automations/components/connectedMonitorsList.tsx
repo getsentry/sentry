@@ -7,7 +7,7 @@ import {defineColumns, SimpleTable} from 'sentry/components/workflowEngine/simpl
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Detector, DetectorType} from 'sentry/types/workflowEngine/detectors';
-import {MONITOR_ROUTES} from 'sentry/views/detectors/routes';
+import {MONITORS_BASE_URL} from 'sentry/views/detectors/routes';
 
 type Props = {
   monitors: Detector[];
@@ -26,7 +26,7 @@ export default function ConnectedMonitorsList({
     title: {
       name: monitor.name,
       projectId: monitor.projectId,
-      link: MONITOR_ROUTES.DETAILS(monitor.id),
+      link: `${MONITORS_BASE_URL}/${monitor.id}/`,
     },
     type: monitor.type,
     lastIssue: undefined, // TODO: call API to get last issue

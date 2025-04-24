@@ -18,7 +18,4 @@ export const detectorRoutes = (
   </Route>
 );
 
-export const MONITOR_ROUTES = {
-  LIST: () => '/issues/monitors/',
-  DETAILS: (monitorId: string) => `/issues/monitors/${monitorId}/`,
-};
+export const MONITORS_BASE_URL = '/issues/monitors';
