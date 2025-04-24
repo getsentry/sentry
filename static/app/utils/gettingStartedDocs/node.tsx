@@ -197,6 +197,10 @@ Sentry.init({
     profileLifecycle: 'trace',`
       : ''
   }
+
+  // Setting this option to true will send default PII data to Sentry.
+  // For example, automatic IP address collection on events
+  sendDefaultPii: true,
   });${
     params.isProfilingSelected &&
     params.profilingOptions?.defaultProfilingMode === 'continuous'
@@ -279,6 +283,10 @@ Sentry.init({
   // Set sampling rate for profiling - this is evaluated only once per SDK.init call
   profilesSampleRate: 1.0,`
   }
+
+  // Setting this option to true will send default PII data to Sentry.
+  // For example, automatic IP address collection on events
+  sendDefaultPii: true,
 });${
                 params.profilingOptions?.defaultProfilingMode === 'continuous' &&
                 profilingLifecycle === 'trace'
