@@ -11,19 +11,16 @@ import getDuration from 'sentry/utils/duration/getDuration';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {formatFloat} from 'sentry/utils/number/formatFloat';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import type {HistogramData} from 'sentry/utils/performance/histogram/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import type {AxisOption} from 'sentry/views/performance/data';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
-import type {Rectangle} from 'sentry/views/performance/transactionSummary/transactionVitals/types';
 import {
   platformToPerformanceType,
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
 
-export const LEFT_AXIS_QUERY_KEY = 'left';
-export const RIGHT_AXIS_QUERY_KEY = 'right';
+const LEFT_AXIS_QUERY_KEY = 'left';
+const RIGHT_AXIS_QUERY_KEY = 'right';
 
 type LandingDisplay = {
   field: LandingDisplayField;
@@ -149,15 +146,6 @@ export function handleLandingDisplayChange(
   });
 }
 
-export function getChartWidth(chartData: HistogramData, refPixelRect: Rectangle | null) {
-  const distance = refPixelRect ? refPixelRect.point2.x - refPixelRect.point1.x : 0;
-  const chartWidth = chartData.length * distance;
-
-  return {
-    chartWidth,
-  };
-}
-
 export function getDefaultDisplayFieldForPlatform(
   projects: Project[],
   eventView?: EventView
@@ -237,21 +225,6 @@ export const vitalCardDetails = (
     },
   };
 };
-
-export function getDisplayAxes(options: AxisOption[], location: Location) {
-  const leftDefault = options.find(opt => opt.isLeftDefault) || options[0];
-  const rightDefault = options.find(opt => opt.isRightDefault) || options[1];
-
-  const leftAxis =
-    options.find(opt => opt.value === location.query[LEFT_AXIS_QUERY_KEY]) || leftDefault;
-  const rightAxis =
-    options.find(opt => opt.value === location.query[RIGHT_AXIS_QUERY_KEY]) ||
-    rightDefault;
-  return {
-    leftAxis,
-    rightAxis,
-  };
-}
 
 export function checkIsReactNative(eventView: EventView) {
   // only react native should contain the stall percentage column
