@@ -40,9 +40,6 @@ export function useTraceSummary(traceSlug: string) {
   const queryClient = useQueryClient();
   const queryKey = makeTraceSummaryQueryKey(organization.slug, traceSlug);
 
-  // console.log(organization);
-
-  // console.log('Attempting to fetch data POST');
   const {data, isLoading, isFetching, isError, refetch} = useApiQuery<TraceSummaryData>(
     queryKey,
     {

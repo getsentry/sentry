@@ -28,14 +28,10 @@ type Props = {
 };
 
 export function TraceContextPanel({traceSlug, tree, rootEvent, onScrollToNode}: Props) {
-  // console.log(tree);
-  // console.log(traceSlug);
-
   const renderTags = useCallback(() => {
     if (!rootEvent.data) {
       return null;
     }
-    // console.log(rootEvent.data);
 
     return (
       <EventTagsTree
@@ -98,7 +94,6 @@ export function TraceContextPanel({traceSlug, tree, rootEvent, onScrollToNode}: 
       <Feature features={['single-trace-summary']}>
         <ContextRow>
           <TraceSummarySection traceSlug={traceSlug} />
-          {/* traceId={rootEvent.data?.contexts.trace?.trace_id} />  */}
         </ContextRow>
       </Feature>
     </Container>
