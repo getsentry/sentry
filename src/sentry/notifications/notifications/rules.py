@@ -35,6 +35,7 @@ from sentry.notifications.utils import (
     has_integrations,
 )
 from sentry.notifications.utils.links import (
+    create_link_to_workflow,
     get_group_settings_link,
     get_integration_link,
     get_issue_replay_link,
@@ -42,6 +43,7 @@ from sentry.notifications.utils.links import (
     get_snooze_url,
 )
 from sentry.notifications.utils.participants import get_owner_reason, get_send_to
+from sentry.notifications.utils.rules import get_key_from_rule_data
 from sentry.plugins.base.structs import Notification
 from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
@@ -248,11 +250,14 @@ class AlertRuleNotification(ProjectNotification):
                 },
             )
 
-        if len(self.rules) > 0:
-            context["snooze_alert"] = True
-            context["snooze_alert_url"] = get_snooze_url(
-                self.rules[0], self.organization, self.project, sentry_query_params
-            )
+        # We don't show the snooze alert if the organization has not enabled the workflow engine UI links
+        # This is because in the new UI/system a user can't individually disable a workflow
+        if not features.has("organizations:workflow-engine-ui-links", self.organization):
+            if len(self.rules) > 0:
+                context["snooze_alert"] = True
+                context["snooze_alert_url"] = get_snooze_url(
+                    self.rules[0], self.organization, self.project, sentry_query_params
+                )
 
         if isinstance(self.event, GroupEvent) and self.event.occurrence:
             context["issue_title"] = self.event.occurrence.issue_title
@@ -278,7 +283,14 @@ class AlertRuleNotification(ProjectNotification):
         title_str = "Alert triggered"
 
         if self.rules:
-            rule_url = build_rule_url(self.rules[0], self.group, self.project)
+            if features.has("organizations:workflow-engine-ui-links", self.organization):
+                rule_url = absolute_uri(
+                    create_link_to_workflow(
+                        self.organization.id, get_key_from_rule_data(self.rules[0], "workflow_id")
+                    )
+                )
+            else:
+                rule_url = build_rule_url(self.rules[0], self.group, self.project)
             title_str += (
                 f" {self.format_url(text=self.rules[0].label, url=rule_url, provider=provider)}"
             )
