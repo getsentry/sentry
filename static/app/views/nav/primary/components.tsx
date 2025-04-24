@@ -8,6 +8,7 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {linkStyles} from 'sentry/components/links/styles';
+import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -17,9 +18,10 @@ import {withChonk} from 'sentry/utils/theme/withChonk';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
-import {isLinkActive, makeLinkPropsFromTo} from 'sentry/views/nav/utils';
+import {isLinkActive} from 'sentry/views/nav/utils';
 
 interface SidebarItemLinkProps {
   analyticsKey: string;
@@ -128,14 +130,13 @@ export function SidebarLink({
   const organization = useOrganization();
   const location = useLocation();
   const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
-  const linkProps = makeLinkPropsFromTo(to);
-
   const {layout} = useNavContext();
 
   return (
     <SidebarItem label={label} showLabel>
       <NavLink
-        {...linkProps}
+        to={to}
+        state={{source: SIDEBAR_NAVIGATION_SOURCE}}
         onClick={() => recordPrimaryItemClick(analyticsKey, organization)}
         aria-selected={isActive}
         aria-current={isActive ? 'page' : undefined}
@@ -263,8 +264,6 @@ const baseNavItemStyles = (p: {isMobile: boolean; theme: Theme}) => css`
     padding: ${space(1)} 0;
     min-height: 42px;
     width: 46px;
-    letter-spacing: -0.02em;
-    font-size: 10px;
   `}
 `;
 
@@ -307,6 +306,7 @@ const NavLinkLabel = styled('div')`
   justify-content: center;
   font-size: ${p => p.theme.fontSizeExtraSmall};
   font-weight: ${p => p.theme.fontWeightBold};
+  letter-spacing: -0.05em;
 `;
 
 const ChonkNavLink = chonkStyled(Link, {
@@ -393,9 +393,10 @@ const StyledNavLink = styled(Link, {
   ${p =>
     !p.isMobile &&
     css`
-      width: 56px;
-      padding-top: ${space(0.75)};
-      padding-bottom: ${space(1.5)};
+      width: ${PRIMARY_SIDEBAR_WIDTH - 8}px;
+      padding-top: ${space(0.5)};
+      padding-bottom: ${space(1)};
+      gap: ${space(0.5)};
 
       &:hover {
         ${NavLinkIconContainer} {
