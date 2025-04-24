@@ -29,7 +29,7 @@ class RipplingSAML2Provider(SAML2Provider):
     name = "Rippling"
     key = "rippling"
 
-    def get_saml_setup_pipeline(self):
+    def get_saml_setup_pipeline(self) -> list[AuthView]:
         return [SelectIdP(), WaitForCompletion()]
 
     def attribute_mapping(self):

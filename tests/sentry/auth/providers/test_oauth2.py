@@ -16,10 +16,10 @@ class DummyOAuth2Provider(OAuth2Provider):
     name = "dummy"
     key = "oauth2_dummy"
 
-    def get_client_id(self):
+    def get_client_id(self) -> str:
         raise NotImplementedError
 
-    def get_client_secret(self):
+    def get_client_secret(self) -> str:
         raise NotImplementedError
 
     def get_refresh_token_url(self) -> str:

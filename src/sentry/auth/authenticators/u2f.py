@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 from base64 import urlsafe_b64encode
 from functools import cached_property
 from time import time
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
 import orjson
@@ -23,6 +26,9 @@ from sentry.utils.dates import to_datetime
 from sentry.utils.http import absolute_uri
 
 from .base import ActivationChallengeResult, AuthenticatorInterface
+
+if TYPE_CHECKING:
+    from sentry.users.models.user import User
 
 
 def decode_credential_id(device):
@@ -104,7 +110,7 @@ class U2fInterface(AuthenticatorInterface):
     def generate_new_config(self):
         return {}
 
-    def start_enrollment(self, user):
+    def start_enrollment(self, user: User):
         credentials = self.credentials()
         registration_data, state = self.webauthn_registration_server.register_begin(
             user={

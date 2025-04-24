@@ -26,10 +26,10 @@ class FlyOAuth2Provider(OAuth2Provider):
         self.org = org
         super().__init__(**config)
 
-    def get_client_id(self):
+    def get_client_id(self) -> str:
         return options.get("auth-fly.client-id")
 
-    def get_client_secret(self):
+    def get_client_secret(self) -> str:
         return options.get("auth-fly.client-secret")
 
     def get_configure_view(
