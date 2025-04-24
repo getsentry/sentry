@@ -249,14 +249,14 @@ class SAML2Provider(Provider, abc.ABC):
     required_feature = "organizations:sso-saml2"
     is_saml = True
 
-    def get_auth_pipeline(self):
+    def get_auth_pipeline(self) -> list[AuthView]:
         return [SAML2LoginView(), SAML2ACSView()]
 
     def get_setup_pipeline(self):
         return self.get_saml_setup_pipeline() + self.get_auth_pipeline()
 
     @abc.abstractmethod
-    def get_saml_setup_pipeline(self):
+    def get_saml_setup_pipeline(self) -> list[AuthView]:
         """
         Return a list of AuthViews to setup the SAML provider.
 
@@ -356,7 +356,7 @@ class SamlConfig(TypedDict):
     idp: NotRequired[_SamlConfigIdp]
 
 
-def build_saml_config(provider_config, org) -> SamlConfig:
+def build_saml_config(provider_config, org: str) -> SamlConfig:
     """
     Construct the SAML configuration dict to be passed into the OneLogin SAML
     library.
@@ -462,7 +462,7 @@ def handle_saml_single_logout(request):
     # Try/catch is needed because IdP may not support SLO and
     # will return an error
     try:
-        saml_config = build_saml_config(provider.config, org)
+        saml_config = build_saml_config(provider.config, org.slug)
         idp_auth = build_auth(request, saml_config)
         idp_slo_url = idp_auth.get_slo_url()
 
