@@ -18,16 +18,24 @@ import {TraceLinkNavigationButton} from 'sentry/views/performance/newTraceDetail
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {TraceViewLogsSection} from 'sentry/views/performance/newTraceDetails/traceOurlogs';
+import {TraceSummarySection} from 'sentry/views/performance/newTraceDetails/traceSummary';
 import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
 
 type Props = {
   logs: OurLogsResponseItem[] | undefined;
   onScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
+  traceSlug: string;
   tree: TraceTree;
 };
 
-export function TraceContextPanel({tree, rootEvent, onScrollToNode, logs}: Props) {
+export function TraceContextPanel({
+  traceSlug,
+  tree,
+  rootEvent,
+  onScrollToNode,
+  logs,
+}: Props) {
   const {hasProfiles, hasLogs, hasTags} = useTraceContextSections({
     tree,
     rootEvent,
@@ -93,6 +101,11 @@ export function TraceContextPanel({tree, rootEvent, onScrollToNode, logs}: Props
             <TraceViewLogsSection />
           </ContextRow>
         )}
+      </Feature>
+      <Feature features={['single-trace-summary']}>
+        <ContextRow>
+          <TraceSummarySection traceSlug={traceSlug} />
+        </ContextRow>
       </Feature>
     </Container>
   );
