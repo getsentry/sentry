@@ -35,17 +35,15 @@ def http_within_sql_transaction() -> SpansOp:
         OpAnd(OpEqLiteral("op", "db"), OpPrefixLiteral("description", "BEGIN")),
         # ...
         # span.op="http.client" span.duration>SETTINGS.duration_threshold
-        OpAnd(
-            OpEqLiteral("op", "http.client"),
-            OpDurationGtLiteral(0.250),
-        ),
+        OpAnd(OpEqLiteral("op", "http.client"), OpDurationGtLiteral(0.250)),
         # ...
         # (span.op="db" span.description:COMMIT* OR
         #  span.op="db" span.description:ROLLBACK*)
         OpAnd(
             OpEqLiteral("op", "db"),
             OpOr(
-                OpPrefixLiteral("description", "COMMIT"), OpPrefixLiteral("description", "ROLLBACK")
+                OpPrefixLiteral("description", "COMMIT"),
+                OpPrefixLiteral("description", "ROLLBACK"),
             ),
         ),
     )
