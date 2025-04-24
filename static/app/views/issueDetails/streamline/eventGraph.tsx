@@ -26,6 +26,7 @@ import type {ReactEchartsRef, SeriesDataUnit} from 'sentry/types/echarts';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
+import {ReleaseMetaBasic} from 'sentry/types/release';
 import type EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -34,6 +35,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
@@ -50,6 +52,7 @@ import {Tab} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
 import {useReleaseBubbles} from 'sentry/views/releases/releaseBubbles/useReleaseBubbles';
+import {makeReleaseDrawerPathname} from 'sentry/views/releases/utils/pathnames';
 
 enum EventGraphSeries {
   EVENT = 'event',
@@ -113,6 +116,7 @@ export function EventGraph({
 }: EventGraphProps) {
   const theme = useTheme();
   const organization = useOrganization();
+  const navigate = useNavigate();
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
   const location = useLocation();
   const [visibleSeries, setVisibleSeries] = useState<EventGraphSeries>(
@@ -261,9 +265,17 @@ export function EventGraph({
     }
   );
 
+  const handleReleaseLineClick = useCallback(
+    (release: ReleaseMetaBasic) => {
+      navigate(makeReleaseDrawerPathname({location, release: release.version}));
+    },
+    [location, navigate]
+  );
+
   const releaseSeries = useReleaseMarkLineSeries({
     group,
     releases: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? [] : releases,
+    onReleaseClick: handleReleaseLineClick,
   });
 
   // Do some manipulation to make sure the release buckets match up to `eventSeries`

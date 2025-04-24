@@ -46,7 +46,10 @@ import type {
 } from 'sentry/views/dashboards/widgets/common/types';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useReleaseBubbles} from 'sentry/views/releases/releaseBubbles/useReleaseBubbles';
-import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
+import {
+  makeReleaseDrawerPathname,
+  makeReleasesPathname,
+} from 'sentry/views/releases/utils/pathnames';
 
 import {formatTooltipValue} from './formatters/formatTooltipValue';
 import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
@@ -158,13 +161,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           props.releases,
           function onReleaseClick(release: Release) {
             if (organization.features.includes('release-bubbles-ui')) {
-              navigate({
-                query: {
-                  ...location.query,
-                  rd: 'show',
-                  rdRelease: release.version,
-                },
-              });
+              navigate(makeReleaseDrawerPathname({location, release: release.version}));
               return;
             }
             navigate(
