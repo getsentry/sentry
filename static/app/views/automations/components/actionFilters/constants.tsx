@@ -42,12 +42,6 @@ export enum MatchType {
   STARTS_WITH = 'sw',
 }
 
-export enum Priority {
-  LOW = 25,
-  MEDIUM = 50,
-  HIGH = 75,
-}
-
 export enum AgeComparison {
   OLDER = 'older',
   NEWER = 'newer',
@@ -85,15 +79,6 @@ export enum Attributes {
   APP_IN_FOREGROUND = 'app.in_foreground',
   OS_DISTRIBUTION_NAME = 'os.distribution_name',
   OS_DISTRIBUTION_VERSION = 'os.distribution_version',
-}
-
-export enum Level {
-  FATAL = 50,
-  ERROR = 40,
-  WARNING = 30,
-  INFO = 20,
-  DEBUG = 10,
-  SAMPLING = 0,
 }
 
 export const MATCH_CHOICES = [

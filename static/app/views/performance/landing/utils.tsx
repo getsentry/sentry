@@ -7,13 +7,8 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
-import getDuration from 'sentry/utils/duration/getDuration';
-import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {formatFloat} from 'sentry/utils/number/formatFloat';
-import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 import {
   platformToPerformanceType,
   ProjectPerformanceType,
@@ -146,10 +141,7 @@ export function handleLandingDisplayChange(
   });
 }
 
-export function getDefaultDisplayFieldForPlatform(
-  projects: Project[],
-  eventView?: EventView
-) {
+function getDefaultDisplayFieldForPlatform(projects: Project[], eventView?: EventView) {
   if (!eventView) {
     return LandingDisplayField.ALL;
   }
@@ -167,64 +159,6 @@ export function getDefaultDisplayFieldForPlatform(
     LandingDisplayField.ALL;
   return landingField;
 }
-
-type VitalCardDetail = {
-  formatter: (value: number) => string | number;
-  title: string;
-  tooltip: string;
-};
-
-export const vitalCardDetails = (
-  organization: Organization
-): Record<string, VitalCardDetail | undefined> => {
-  return {
-    'p75(transaction.duration)': {
-      title: t('Duration (p75)'),
-      tooltip: getTermHelp(organization, PerformanceTerm.P75),
-      formatter: value => getDuration(value / 1000, value >= 1000 ? 3 : 0, true),
-    },
-    'tpm()': {
-      title: t('Throughput'),
-      tooltip: getTermHelp(organization, PerformanceTerm.THROUGHPUT),
-      formatter: (value: number | string) => formatAbbreviatedNumber(value),
-    },
-    'failure_rate()': {
-      title: t('Failure Rate'),
-      tooltip: getTermHelp(organization, PerformanceTerm.FAILURE_RATE),
-      formatter: value => formatPercentage(value, 2),
-    },
-    'apdex()': {
-      title: t('Apdex'),
-      tooltip: getTermHelp(organization, PerformanceTerm.APDEX),
-      formatter: value => formatFloat(value, 4),
-    },
-    'p75(measurements.frames_slow_rate)': {
-      title: t('Slow Frames (p75)'),
-      tooltip: getTermHelp(organization, PerformanceTerm.SLOW_FRAMES),
-      formatter: value => formatPercentage(value, 2),
-    },
-    'p75(measurements.frames_frozen_rate)': {
-      title: t('Frozen Frames (p75)'),
-      tooltip: getTermHelp(organization, PerformanceTerm.FROZEN_FRAMES),
-      formatter: value => formatPercentage(value, 2),
-    },
-    'p75(measurements.app_start_cold)': {
-      title: t('Cold Start (p75)'),
-      tooltip: getTermHelp(organization, PerformanceTerm.APP_START_COLD),
-      formatter: value => getDuration(value / 1000, value >= 1000 ? 3 : 0, true),
-    },
-    'p75(measurements.app_start_warm)': {
-      title: t('Warm Start (p75)'),
-      tooltip: getTermHelp(organization, PerformanceTerm.APP_START_WARM),
-      formatter: value => getDuration(value / 1000, value >= 1000 ? 3 : 0, true),
-    },
-    'p75(measurements.stall_percentage)': {
-      title: t('Stall Percentage (p75)'),
-      tooltip: getTermHelp(organization, PerformanceTerm.STALL_PERCENTAGE),
-      formatter: value => formatPercentage(value, 2),
-    },
-  };
-};
 
 export function checkIsReactNative(eventView: EventView) {
   // only react native should contain the stall percentage column
