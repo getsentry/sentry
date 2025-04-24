@@ -1,6 +1,5 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
@@ -13,6 +12,8 @@ import {DatabaseSpanSummaryPage} from 'sentry/views/insights/database/views/data
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useParams');
 jest.mock('sentry/utils/usePageFilters');
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 
 jest.mock('sentry/utils/useReleaseStats');
@@ -171,7 +172,7 @@ describe('DatabaseSpanSummaryPage', function () {
 
     render(
       <DatabaseSpanSummaryPage {...RouteComponentPropsFixture({params: {groupId}})} />,
-      {organization}
+      {organization, deprecatedRouterMocks: true}
     );
 
     // Metrics ribbon

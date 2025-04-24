@@ -191,7 +191,7 @@ describe('messageSpanSamplesPanel', () => {
           project: [],
           query:
             'span.op:[queue.process,queue.publish] messaging.destination.name:event-queue transaction:sentry.tasks.store.save_event',
-          statsPeriod: '10d',
+          statsPeriod: '14d',
         }),
       })
     );
@@ -218,7 +218,7 @@ describe('messageSpanSamplesPanel', () => {
             'span.op:queue.process transaction:sentry.tasks.store.save_event messaging.destination.name:event-queue',
           referrer: undefined,
           secondBound: 5333.333333333333,
-          statsPeriod: '10d',
+          statsPeriod: '14d',
           upperBound: 8000,
         }),
       })
@@ -288,7 +288,7 @@ describe('messageSpanSamplesPanel', () => {
           project: [],
           query:
             'span.op:[queue.process,queue.publish] messaging.destination.name:event-queue transaction:sentry.tasks.store.save_event',
-          statsPeriod: '10d',
+          statsPeriod: '14d',
         }),
       })
     );
@@ -315,7 +315,7 @@ describe('messageSpanSamplesPanel', () => {
             'span.op:queue.publish transaction:sentry.tasks.store.save_event messaging.destination.name:event-queue',
           referrer: undefined,
           secondBound: 5333.333333333333,
-          statsPeriod: '10d',
+          statsPeriod: '14d',
           upperBound: 8000,
         }),
       })

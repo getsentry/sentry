@@ -63,6 +63,7 @@ describe('useProgressiveQuery', function () {
         url: '/test',
         body: 'test',
       });
+
       const selection = {
         datetime: {
           period: '14d',
