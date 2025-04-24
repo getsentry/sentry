@@ -9,7 +9,6 @@ from pydantic import BaseModel
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -54,11 +53,6 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
     }
 
     def post(self, request: Request, project: Project) -> Response:
-        if not features.has(
-            "organizations:autofix-seer-preferences", project.organization, actor=request.user
-        ):
-            return Response("Feature flag not enabled", status=403)
-
         data = orjson.loads(request.body)
 
         path = "/v1/project-preference/set"
@@ -88,11 +82,6 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
         return Response(status=204)
 
     def get(self, request: Request, project: Project) -> Response:
-        if not features.has(
-            "organizations:autofix-seer-preferences", project.organization, actor=request.user
-        ):
-            return Response("Feature flag not enabled", status=403)
-
         path = "/v1/project-preference"
         body = orjson.dumps(
             {
