@@ -448,7 +448,7 @@ def get_detector_field_values(
     user: RpcUser | None = None,
 ) -> dict[str, Any]:
     detector_field_values = {
-        "name": alert_rule.name,
+        "name": alert_rule.name if len(alert_rule.name) < 200 else alert_rule.name[:197] + "...",
         "description": alert_rule.description,
         "workflow_condition_group": data_condition_group,
         "owner_user_id": alert_rule.user_id,
