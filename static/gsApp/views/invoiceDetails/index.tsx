@@ -55,11 +55,6 @@ function InvoiceDetails({params}: Props) {
       />
     );
   }
-  const isAnnual =
-    !isInvoiceLoading &&
-    invoice?.customer &&
-    'billingInterval' in invoice.customer &&
-    invoice.customer.billingInterval === 'annual';
 
   return (
     <Fragment>
@@ -107,9 +102,17 @@ function InvoiceDetails({params}: Props) {
             <InvoiceDetailsContents invoice={invoice} billingDetails={billingDetails} />
             <FinePrint>
               {tct(
-                'Your subscription will automatically renew on or about the same day each [period] and your credit card on file will be charged the recurring subscription fees set forth above. In addition to recurring subscription fees, you may also be charged for monthly pay-as-you-go fees. You may cancel your subscription at any time [here:here].',
+                'Your subscription will automatically renew on or about the same day each [period] and your credit card on file will be charged the recurring subscription fees set forth above. In addition to recurring subscription fees, you may also be charged for monthly [budgetTerm] fees. You may cancel your subscription at any time [here:here].',
                 {
-                  period: isAnnual ? 'year' : 'month',
+                  budgetTerm:
+                    'planDetails' in invoice.customer
+                      ? invoice.customer.planDetails.budgetTerm
+                      : 'pay-as-you-go',
+                  period:
+                    'billingInterval' in invoice.customer &&
+                    invoice.customer.billingInterval === 'annual'
+                      ? 'year'
+                      : 'month',
                   here: <ExternalLink href="/settings/billing/cancel" />,
                 }
               )}
