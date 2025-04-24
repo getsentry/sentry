@@ -18,6 +18,7 @@ export const enum TraceContextSectionKeys {
   WEB_VITALS = 'trace-context-web-vitals',
   LOGS = 'trace-context-logs',
   PROFILES = 'trace-context-profiles',
+  SUMMARY = 'trace-context-summary',
 }
 
 const sectionLabels: Partial<Record<TraceContextSectionKeys, string>> = {
@@ -25,6 +26,7 @@ const sectionLabels: Partial<Record<TraceContextSectionKeys, string>> = {
   [TraceContextSectionKeys.WEB_VITALS]: t('Web Vitals'),
   [TraceContextSectionKeys.LOGS]: t('Logs'),
   [TraceContextSectionKeys.PROFILES]: t('Profiles'),
+  [TraceContextSectionKeys.SUMMARY]: t('Summary'),
 };
 
 function SectionLink({
@@ -93,6 +95,9 @@ function ScrollToSectionLinks({
         {hasLogs && (
           <SectionLink sectionKey={TraceContextSectionKeys.LOGS} location={location} />
         )}
+      </Feature>
+      <Feature features={['single-trace-summary']}>
+        <SectionLink sectionKey={TraceContextSectionKeys.SUMMARY} location={location} />
       </Feature>
     </Wrapper>
   ) : null;
