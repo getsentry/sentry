@@ -132,7 +132,8 @@ def fix_for_issue_platform(event_data: dict[str, Any]) -> dict[str, Any]:
     ret_event["platform"] = event_data.get("platform", "other")
     ret_event["level"] = event_data.get("level", "info")
 
-    ret_event["environment"] = event_data.get("environment", "production")
+    environment = event_data.get("environment")
+    ret_event["environment"] = "production" if environment is None else environment
     if event_data.get("sdk"):
         ret_event["sdk"] = event_data["sdk"]
     ret_event["request"] = event_data.get("request", {})
