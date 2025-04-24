@@ -3357,17 +3357,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "taskworker.ingest.errors.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "taskworker.ingest.profiling.rollout",
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.ingest.transactions.rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

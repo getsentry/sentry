@@ -1469,7 +1469,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.on_demand_metrics",
     "sentry.tasks.options",
     "sentry.tasks.ping",
-    "sentry.tasks.post_process",
     "sentry.tasks.process_buffer",
     "sentry.tasks.release_registry",
     "sentry.tasks.repository",
