@@ -73,11 +73,11 @@ function LogsTabDefaultSetter() {
     const target: Location = {...location, query: {...location.query}};
     if (!target.query[LOGS_FIELDS_KEY] && persistedParams?.fields?.length > 0) {
       target.query[LOGS_FIELDS_KEY] = persistedParams.fields;
-      changedSomething = true;
+      changedSomething = !!target.query[LOGS_FIELDS_KEY];
     }
     if (!target.query[LOGS_SORT_BYS_KEY] && persistedParams?.sortBys?.length > 0) {
       updateLocationWithLogSortBys(target, persistedParams.sortBys);
-      changedSomething = true;
+      changedSomething = !!target.query[LOGS_SORT_BYS_KEY];
     }
     if (changedSomething) {
       navigate(target);
