@@ -277,6 +277,9 @@ class IntegrationPipelineViewType(StrEnum):
     # Azure DevOps
     ACCOUNT_CONFIG = "account_config"
 
+    # Jira Server
+    WEBHOOK_CREATION = "webhook_creation"
+
 
 class IntegrationPipelineErrorReason(StrEnum):
     # OAuth identity
