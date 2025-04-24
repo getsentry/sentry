@@ -12,9 +12,17 @@ class SpansOp(ABC):
 
 
 class SpanOp(ABC):
+    # TODO
+    # @abstractmethod
+    # def eval(self, ctx Context, span: Span) -> bool:
+    #     pass
+
     @abstractmethod
     def __call__(self, span: Span) -> bool:
         pass
+
+    def dumps(self, indent: int = 0) -> str:
+        return " " * indent + str(self)
 
 
 # def build_filter(spans_filter: str) -> SpansOp:
@@ -176,3 +184,19 @@ class OpPrecedes(SpansOp):
     def __str__(self):
         ops = ", ".join([str(op) for op in self.ops])
         return f"Precedes({ops})"
+
+    def dumps(self, indent: int = 0) -> str:
+        prefix = " " * indent
+        output = prefix + "Precedes(\n"
+
+        indent += 2
+        prefix = " " * indent
+        for op in self.ops:
+            output += op.dumps(indent=indent)
+            output += ",\n"
+
+        indent -= 2
+        prefix = " " * indent
+        output += prefix + ")"
+
+        return output
