@@ -12,8 +12,8 @@ from sentry.types.group import GroupSubStatus
 
 
 class BackfillGroupOpenPeriodsTest(TestMigrations):
-    migrate_from = "0866_grouptype_index"
-    migrate_to = "0867_backfill_open_periods"
+    migrate_from = "0868_delete_group_open_periods"
+    migrate_to = "0869_backfill_open_periods"
 
     def setup_before_migration(self, app):
         now = timezone.now()

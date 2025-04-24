@@ -193,7 +193,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "0866_grouptype_index"),
+        ("sentry", "0868_delete_group_open_periods"),
     ]
 
     operations = [
