@@ -776,6 +776,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Whether to store single-file SourceMap uploads as `ArtifactBundle`
+register(
+    "sourcemaps.upload.single_file_as_artifact_bundle", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+
+
 # Transaction events
 # True => kill switch to disable ingestion of transaction events for internal project.
 register(

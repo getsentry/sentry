@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import logging
 import re
+import tempfile
+import uuid
+import zipfile
+from typing import BinaryIO
 
+import orjson
 from django.db import IntegrityError, router
 from django.db.models import Q
 from django.db.models.query import QuerySet
@@ -21,7 +26,9 @@ from sentry.models.distribution import Distribution
 from sentry.models.files.file import File
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile, read_artifact_index
+from sentry.options.rollout import in_random_rollout
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
+from sentry.tasks.assemble import ArtifactBundlePostAssembler, AssembleResult
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
 from sentry.utils.rollback_metrics import incr_rollback_metrics
@@ -108,7 +115,7 @@ class ReleaseFilesMixin(BaseEndpointMixin):
         )
 
     @staticmethod
-    def post_releasefile(request, release, logger):
+    def post_releasefile(request, release: Release, logger):
         if "file" not in request.data:
             return Response({"detail": "Missing uploaded file"}, status=400)
 
@@ -119,7 +126,6 @@ class ReleaseFilesMixin(BaseEndpointMixin):
             return Response({"detail": "File name must be specified"}, status=400)
 
         name = full_name.rsplit("/", 1)[-1]
-
         if _filename_re.search(name):
             return Response(
                 {"detail": "File name must not contain special whitespace characters"}, status=400
@@ -141,40 +147,116 @@ class ReleaseFilesMixin(BaseEndpointMixin):
 
         dist_name = request.data.get("dist")
 
-        dist = None
-        if dist_name:
-            dist = release.add_dist(dist_name)
+        if not in_random_rollout("sourcemaps.upload.single_file_as_artifact_bundle"):
+            return upload_as_single_file(
+                request, release, dist_name, full_name, name, fileobj, headers
+            )
 
-        # Quickly check for the presence of this file before continuing with
-        # the costly file upload process.
-        if ReleaseFile.objects.filter(
-            organization_id=release.organization_id,
-            release_id=release.id,
-            name=full_name,
-            dist_id=dist.id if dist else dist,
-        ).exists():
-            return Response({"detail": ERR_FILE_EXISTS}, status=409)
+        file = upload_as_artifact_bundle(release, dist_name, full_name, name, fileobj, headers)
+        return Response(
+            {
+                "id": "0",
+                "name": full_name,
+                "dist": dist_name,
+                "headers": headers,
+                "size": file.size,
+                "sha1": file.checksum,
+                "dateCreated": file.timestamp,
+            },
+            status=201,
+        )
 
-        file = File.objects.create(name=name, type="release.file", headers=headers)
-        file.putfile(fileobj, logger=logger)
 
-        metrics.incr("sourcemaps.upload.single_release_file")
+def upload_as_single_file(
+    request: Request,
+    release: Release,
+    dist_name: str | None,
+    full_name: str,
+    name: str,
+    fileobj: BinaryIO,
+    headers: dict[str, str],
+) -> Response:
+    dist = None
+    if dist_name:
+        dist = release.add_dist(dist_name)
 
-        try:
-            with atomic_transaction(using=router.db_for_write(ReleaseFile)):
-                releasefile = ReleaseFile.objects.create(
-                    organization_id=release.organization_id,
-                    release_id=release.id,
-                    file=file,
-                    name=full_name,
-                    dist_id=dist.id if dist else dist,
-                )
-        except IntegrityError:
-            incr_rollback_metrics(ReleaseFile)
-            file.delete()
-            return Response({"detail": ERR_FILE_EXISTS}, status=409)
+    # Quickly check for the presence of this file before continuing with
+    # the costly file upload process.
+    if ReleaseFile.objects.filter(
+        organization_id=release.organization_id,
+        release_id=release.id,
+        name=full_name,
+        dist_id=dist.id if dist else dist,
+    ).exists():
+        return Response({"detail": ERR_FILE_EXISTS}, status=409)
 
-        return Response(serialize(releasefile, request.user), status=201)
+    file = File.objects.create(name=name, type="release.file", headers=headers)
+    file.putfile(fileobj, logger=logger)
+
+    metrics.incr("sourcemaps.upload.single_release_file")
+
+    try:
+        with atomic_transaction(using=router.db_for_write(ReleaseFile)):
+            releasefile = ReleaseFile.objects.create(
+                organization_id=release.organization_id,
+                release_id=release.id,
+                file=file,
+                name=full_name,
+                dist_id=dist.id if dist else dist,
+            )
+    except IntegrityError:
+        incr_rollback_metrics(ReleaseFile)
+        file.delete()
+        return Response({"detail": ERR_FILE_EXISTS}, status=409)
+
+    return Response(serialize(releasefile, request.user), status=201)
+
+
+def upload_as_artifact_bundle(
+    release: Release,
+    dist_name: str | None,
+    full_name: str,
+    name: str,
+    fileobj: BinaryIO,
+    headers: dict[str, str],
+) -> File:
+    temp_file = tempfile.NamedTemporaryFile()
+    temp_file.write(b"SYSB")
+
+    with zipfile.ZipFile(temp_file, "a") as zip_file:
+        zip_file.writestr(f"files/{name}", bytes(fileobj.read()))
+        file_meta = {
+            "url": full_name,
+            "type": "???TODO???",
+            "headers": headers,
+        }
+        zip_file.writestr(
+            "manifest.json",
+            orjson.dumps({"files": {f"files/{name}": file_meta}}),
+        )
+    temp_file.seek(0)
+
+    file = File.objects.create(
+        name=f"bundle-artifacts-{uuid.uuid4().hex}.zip", type="artifact.bundle"
+    )
+    file.putfile(temp_file, logger=logger)
+    temp_file.seek(0)
+
+    assemble_result = AssembleResult(bundle=file, bundle_temp_file=temp_file)
+
+    project_ids = [project.id for project in release.projects.all()]
+    post_assembler = ArtifactBundlePostAssembler(
+        assemble_result=assemble_result,
+        organization=release.organization,
+        release=release.version,
+        dist=dist_name,
+        project_ids=project_ids,
+        is_release_bundle_migration=True,
+    )
+    with post_assembler:
+        post_assembler.post_assemble()
+
+    return file
 
 
 class ArtifactSource:
