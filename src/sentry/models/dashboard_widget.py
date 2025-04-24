@@ -173,7 +173,7 @@ class DashboardWidgetQuery(Model):
     date_added = models.DateTimeField(default=timezone.now)
     date_modified = models.DateTimeField(default=timezone.now)
     # Whether this query is hidden from the UI, used by metric widgets
-    is_hidden = models.BooleanField(default=False)
+    is_hidden = models.BooleanField(default=False, db_default=False)
     # Used by Big Number to select aggregate displayed
     selected_aggregate = models.IntegerField(null=True)
 
@@ -278,7 +278,9 @@ class DashboardWidget(Model):
 
     # The method of which the discover split datasets was decided
     dataset_source = BoundedPositiveIntegerField(
-        choices=DatasetSourcesTypes.as_choices(), default=DatasetSourcesTypes.UNKNOWN.value
+        choices=DatasetSourcesTypes.as_choices(),
+        default=DatasetSourcesTypes.UNKNOWN.value,
+        db_default=DatasetSourcesTypes.UNKNOWN.value,
     )
 
     class Meta:
