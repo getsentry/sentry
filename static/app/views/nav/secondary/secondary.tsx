@@ -7,6 +7,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link, {type LinkProps} from 'sentry/components/links/link';
+import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -126,6 +127,7 @@ SecondaryNav.Item = function SecondaryNavItem({
 
   return (
     <Item
+      state={{source: SIDEBAR_NAVIGATION_SOURCE}}
       {...linkProps}
       to={to}
       aria-current={isActive ? 'page' : undefined}

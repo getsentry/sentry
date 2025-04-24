@@ -490,20 +490,18 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         result: CheckResult,
         metric_tags: dict[str, str],
     ):
+        uptime_status = project_subscription.uptime_status
+        result_status = result["status"]
+
         redis = _get_cluster()
         delete_status = (
-            CHECKSTATUS_FAILURE if result["status"] == CHECKSTATUS_SUCCESS else CHECKSTATUS_SUCCESS
+            CHECKSTATUS_FAILURE if result_status == CHECKSTATUS_SUCCESS else CHECKSTATUS_SUCCESS
         )
         # Delete any consecutive results we have for the opposing status, since we received this status
         redis.delete(build_active_consecutive_status_key(project_subscription, delete_status))
 
-        if (
-            project_subscription.uptime_status == UptimeStatus.OK
-            and result["status"] == CHECKSTATUS_FAILURE
-        ):
-            if not has_reached_status_threshold(
-                project_subscription, result["status"], metric_tags
-            ):
+        if uptime_status == UptimeStatus.OK and result_status == CHECKSTATUS_FAILURE:
+            if not has_reached_status_threshold(project_subscription, result_status, metric_tags):
                 return
 
             issue_creation_flag_enabled = features.has(
@@ -511,7 +509,6 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 project_subscription.project.organization,
             )
 
-            # Do not create uptime issue occurences for
             restricted_host_provider_ids = options.get(
                 "uptime.restrict-issue-creation-by-hosting-provider-id"
             )
@@ -551,13 +548,8 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             project_subscription.uptime_subscription.update(
                 uptime_status=UptimeStatus.FAILED, uptime_status_update_date=django_timezone.now()
             )
-        elif (
-            project_subscription.uptime_status == UptimeStatus.FAILED
-            and result["status"] == CHECKSTATUS_SUCCESS
-        ):
-            if not has_reached_status_threshold(
-                project_subscription, result["status"], metric_tags
-            ):
+        elif uptime_status == UptimeStatus.FAILED and result_status == CHECKSTATUS_SUCCESS:
+            if not has_reached_status_threshold(project_subscription, result_status, metric_tags):
                 return
 
             if features.has(

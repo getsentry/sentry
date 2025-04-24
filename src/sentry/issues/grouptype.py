@@ -88,7 +88,6 @@ class GroupTypeRegistry:
     _registry: dict[int, type[GroupType]] = field(default_factory=dict)
     _slug_lookup: dict[str, type[GroupType]] = field(default_factory=dict)
     _category_lookup: dict[int, set[int]] = field(default_factory=lambda: defaultdict(set))
-    _category_lookup_v2: dict[int, set[int]] = field(default_factory=lambda: defaultdict(set))
 
     def add(self, group_type: type[GroupType]) -> None:
         if self._registry.get(group_type.type_id):
@@ -98,7 +97,7 @@ class GroupTypeRegistry:
         self._registry[group_type.type_id] = group_type
         self._slug_lookup[group_type.slug] = group_type
         self._category_lookup[group_type.category].add(group_type.type_id)
-        self._category_lookup_v2[group_type.category_v2].add(group_type.type_id)
+        self._category_lookup[group_type.category_v2].add(group_type.type_id)
 
     def all(self) -> list[type[GroupType]]:
         return list(self._registry.values())
@@ -134,9 +133,6 @@ class GroupTypeRegistry:
 
     def get_by_category(self, category: int) -> set[int]:
         return self._category_lookup[category]
-
-    def get_by_category_v2(self, category: int) -> set[int]:
-        return self._category_lookup_v2[category]
 
     def get_by_slug(self, slug: str) -> type[GroupType] | None:
         if slug not in self._slug_lookup:
@@ -380,6 +376,17 @@ class PerformanceNPlusOneAPICallsGroupType(GroupType):
     category_v2 = GroupCategory.PERFORMANCE_BEST_PRACTICE.value
     default_priority = PriorityLevel.LOW
     released = True
+
+
+@dataclass(frozen=True)
+class PerformanceNPlusOneAPICallsExperimentalGroupType(GroupType):
+    type_id = 1910
+    slug = "performance_n_plus_one_api_calls_experimental"
+    description = "N+1 API Call (Experimental)"
+    category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.PERFORMANCE_BEST_PRACTICE.value
+    default_priority = PriorityLevel.LOW
+    released = False
 
 
 @dataclass(frozen=True)
