@@ -98,6 +98,16 @@ export interface TimeSeriesWidgetVisualizationProps
    * Default: `auto`
    */
   showLegend?: 'auto' | 'never';
+
+  /**
+   * Defines the X axis visibility. Note that hiding the X axis also hides release bubbles.
+   *
+   * - `auto`: Show the X axis.
+   * - `never`: Hide the X axis.
+   *
+   * Default: `auto`
+   */
+  showXAxis?: 'auto' | 'never';
 }
 
 export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizationProps) {
@@ -429,6 +439,34 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const yAxes: YAXisComponentOption[] = [leftYAxis, rightYAxis].filter(axis => !!axis);
 
+  const showXAxisProp = props.showXAxis ?? 'auto';
+  const showXAxis = showXAxisProp === 'auto';
+
+  const xAxis = showXAxis
+    ? {
+        animation: false,
+        axisLabel: {
+          padding: [0, 10, 0, 10],
+          width: 60,
+          formatter: (value: number) => {
+            const string = formatXAxisTimestamp(value, {utc: utc ?? undefined});
+
+            // Adding whitespace around the label is equivalent to padding.
+            // ECharts doesn't respect padding when calculating overlaps, but it
+            // does respect whitespace. This prevents overlapping X axis labels
+            return ` ${string} `;
+          },
+        },
+        splitNumber: 5,
+        ...releaseBubbleXAxis,
+      }
+    : HIDDEN_X_AXIS;
+
+  // Hiding the X axis removes all chart elements under the X axis line. This
+  // will cut off the bottom of the lowest Y axis label. To create space for
+  // that label, add some grid padding.
+  const xAxisGrid = showXAxis ? {} : {bottom: 5};
+
   let visibleSeriesCount = props.plottables.length;
   if (releaseSeries) {
     visibleSeriesCount += 1;
@@ -567,6 +605,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         bottom: 0,
         containLabel: true,
         ...releaseBubbleGrid,
+        ...xAxisGrid,
       }}
       legend={
         showLegend
@@ -598,23 +637,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         },
         formatter: formatTooltip,
       }}
-      xAxis={{
-        animation: false,
-        axisLabel: {
-          padding: [0, 10, 0, 10],
-          width: 60,
-          formatter: (value: number) => {
-            const string = formatXAxisTimestamp(value, {utc: utc ?? undefined});
-
-            // Adding whitespace around the label is equivalent to padding.
-            // ECharts doesn't respect padding when calculating overlaps, but it
-            // does respect whitespace. This prevents overlapping X axis labels
-            return ` ${string} `;
-          },
-        },
-        splitNumber: 5,
-        ...releaseBubbleXAxis,
-      }}
+      xAxis={xAxis}
       yAxes={yAxes}
       {...chartZoomProps}
       onDataZoom={props.onZoom ?? onDataZoom}
@@ -668,6 +691,16 @@ function getPlottableEventDataIndex(
 
   return dataIndexOffset + dataIndex;
 }
+
+// Hide every part of the axis so ECharts will remove those elements and also
+// remove the visual space they would take up if they were there.
+const HIDDEN_X_AXIS = {
+  show: false,
+  splitLine: {show: false},
+  axisLine: {show: false},
+  axisTick: {show: false},
+  axisLabel: {show: false},
+};
 
 const LoadingPlaceholder = styled('div')`
   position: absolute;

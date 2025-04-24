@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
@@ -18,47 +18,6 @@ import {space} from 'sentry/styles/space';
 import marked, {singleLineRenderer} from 'sentry/utils/marked';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
-
-export function ExpandableInsightContext({
-  children,
-  title,
-  icon,
-  rounded,
-  expandByDefault = false,
-}: {
-  children: React.ReactNode;
-  title: string;
-  expandByDefault?: boolean;
-  icon?: React.ReactNode;
-  rounded?: boolean;
-}) {
-  const [expanded, setExpanded] = useState(expandByDefault);
-
-  const toggleExpand = () => {
-    setExpanded(oldState => !oldState);
-  };
-
-  return (
-    <ExpandableContext isRounded={rounded}>
-      <ContextHeader
-        onClick={toggleExpand}
-        name={title}
-        isRounded={rounded}
-        isExpanded={expanded}
-        size="sm"
-      >
-        <ContextHeaderWrapper>
-          <ContextHeaderLeftAlign>
-            {icon}
-            <ContextHeaderText>{title}</ContextHeaderText>
-          </ContextHeaderLeftAlign>
-          <IconChevron size="xs" direction={expanded ? 'down' : 'right'} />
-        </ContextHeaderWrapper>
-      </ContextHeader>
-      {expanded && <ContextBody>{children}</ContextBody>}
-    </ExpandableContext>
-  );
-}
 
 interface AutofixInsightCardProps {
   groupId: string;
@@ -123,18 +82,31 @@ function AutofixInsightCard({
 
   const insightCardAboveIndex = index - 1 >= 0 ? index - 1 : null;
 
-  let truncatedTitle = displayedInsightTitle;
   const newlineIndex = displayedInsightTitle.indexOf('\n');
-  if (newlineIndex !== -1 && newlineIndex < displayedInsightTitle.length - 1) {
-    truncatedTitle = displayedInsightTitle.substring(0, newlineIndex) + '...';
-  }
 
-  let fullJustification = isUserMessage ? '' : insight.justification;
-  if (newlineIndex !== -1) {
-    const excludedText = displayedInsightTitle.substring(newlineIndex + 1);
-    const excludedTextWithEllipsis = excludedText ? '...' + excludedText : '';
-    fullJustification = excludedTextWithEllipsis + '\n\n' + fullJustification;
-  }
+  const truncatedTitleHtml = useMemo(() => {
+    let truncatedTitle = displayedInsightTitle;
+    if (newlineIndex !== -1 && newlineIndex < displayedInsightTitle.length - 1) {
+      truncatedTitle = displayedInsightTitle.substring(0, newlineIndex) + '...';
+    }
+    return {
+      __html: singleLineRenderer(truncatedTitle),
+    };
+  }, [displayedInsightTitle, newlineIndex]);
+
+  const hasFullJustification = !isUserMessage && !insight.justification;
+
+  const fullJustificationHtml = useMemo(() => {
+    let fullJustification = isUserMessage ? '' : insight.justification;
+    if (newlineIndex !== -1) {
+      const excludedText = displayedInsightTitle.substring(newlineIndex + 1);
+      const excludedTextWithEllipsis = excludedText ? '...' + excludedText : '';
+      fullJustification = excludedTextWithEllipsis + '\n\n' + fullJustification;
+    }
+    return {
+      __html: marked(replaceHeadersWithBold(fullJustification || t('No details here.'))),
+    };
+  }, [displayedInsightTitle, isUserMessage, insight.justification, newlineIndex]);
 
   return (
     <ContentWrapper>
@@ -200,11 +172,7 @@ function AutofixInsightCard({
                   stepIndex={stepIndex}
                   retainInsightCardIndex={insightCardAboveIndex}
                 >
-                  <MiniHeader
-                    dangerouslySetInnerHTML={{
-                      __html: singleLineRenderer(truncatedTitle),
-                    }}
-                  />
+                  <MiniHeader dangerouslySetInnerHTML={truncatedTitleHtml} />
                 </AutofixHighlightWrapper>
 
                 <RightSection>
@@ -251,16 +219,8 @@ function AutofixInsightCard({
                     retainInsightCardIndex={insightCardAboveIndex}
                   >
                     <ContextBody>
-                      {fullJustification || !insight.change_diff ? (
-                        <p
-                          dangerouslySetInnerHTML={{
-                            __html: marked(
-                              replaceHeadersWithBold(
-                                fullJustification || t('No details here.')
-                              )
-                            ),
-                          }}
-                        />
+                      {hasFullJustification || !insight.change_diff ? (
+                        <p dangerouslySetInnerHTML={fullJustificationHtml} />
                       ) : (
                         <DiffContainer>
                           <AutofixDiff
@@ -436,7 +396,7 @@ function AutofixInsightCards({
   );
 }
 
-export function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: string}) {
+function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
@@ -656,46 +616,6 @@ const MiniHeader = styled('p')`
   margin: 0;
   flex: 1;
   word-break: break-word;
-`;
-
-const ExpandableContext = styled('div')<{isRounded?: boolean}>`
-  width: 100%;
-  border-radius: ${p => (p.isRounded ? p.theme.borderRadius : 0)};
-`;
-
-const ContextHeader = styled(Button)<{isExpanded?: boolean; isRounded?: boolean}>`
-  width: 100%;
-  box-shadow: none;
-  margin: 0;
-  border: none;
-  font-weight: normal;
-  background: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => {
-    if (!p.isRounded) {
-      return 0;
-    }
-    if (p.isExpanded) {
-      return `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`;
-    }
-    return p.theme.borderRadius;
-  }};
-`;
-
-const ContextHeaderLeftAlign = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
-const ContextHeaderWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-`;
-
-const ContextHeaderText = styled('p')`
-  height: 0;
 `;
 
 const ContextBody = styled('div')`
