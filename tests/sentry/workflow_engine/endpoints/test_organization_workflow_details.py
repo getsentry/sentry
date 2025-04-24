@@ -54,7 +54,9 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
     def test_simple(self):
         self.valid_workflow["name"] = "Updated Workflow"
-        response = self.get_success_response(self.organization.slug, self.workflow.id, raw_data=self.valid_workflow)
+        response = self.get_success_response(
+            self.organization.slug, self.workflow.id, raw_data=self.valid_workflow
+        )
         updated_workflow = Workflow.objects.get(id=response.data.get("id"))
 
         assert response.status_code == 200
