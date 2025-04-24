@@ -12,7 +12,7 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.group import Group
 from sentry.notifications.notifications.rules import get_key_from_rule_data
 from sentry.notifications.utils.links import create_link_to_workflow
-from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
+from sentry.shared_integrations.exceptions import ApiError
 
 OPSGENIE_API_VERSION = "v2"
 # Defaults to P3 if null, but we can be explicit - https://docs.opsgenie.com/docs/alert-api
@@ -120,7 +120,7 @@ class OpsgenieClient(ApiClient):
         with record_event(OnCallInteractionType.CREATE).capture() as lifecycle:
             try:
                 return self.post("/alerts", data=data, headers=headers)
-            except (ApiUnauthorized, ApiError) as e:
+            except ApiError as e:
                 record_lifecycle_termination_level(lifecycle=lifecycle, error=e)
                 raise
 
@@ -139,7 +139,7 @@ class OpsgenieClient(ApiClient):
                         params={"identifierType": "alias"},
                         headers=headers,
                     )
-                except (ApiUnauthorized, ApiError) as e:
+                except ApiError as e:
                     record_lifecycle_termination_level(lifecycle=lifecycle, error=e)
                     raise
 
@@ -147,6 +147,6 @@ class OpsgenieClient(ApiClient):
         with record_event(OnCallInteractionType.CREATE).capture() as lifecycle:
             try:
                 return self.post("/alerts", data=data, headers=headers)
-            except (ApiUnauthorized, ApiError) as e:
+            except ApiError as e:
                 record_lifecycle_termination_level(lifecycle=lifecycle, error=e)
                 raise
