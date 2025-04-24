@@ -6,12 +6,6 @@ import pick from 'lodash/pick';
 import trimStart from 'lodash/trimStart';
 import * as qs from 'query-string';
 
-import WidgetArea from 'sentry-images/dashboard/widget-area.svg';
-import WidgetBar from 'sentry-images/dashboard/widget-bar.svg';
-import WidgetBigNumber from 'sentry-images/dashboard/widget-big-number.svg';
-import WidgetLine from 'sentry-images/dashboard/widget-line-1.svg';
-import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
-
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
 import type {Fidelity} from 'sentry/components/charts/utils';
 import {
@@ -185,23 +179,6 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
     }
   }
   return undefined;
-}
-
-export function miniWidget(displayType: DisplayType): string {
-  switch (displayType) {
-    case DisplayType.BAR:
-      return WidgetBar;
-    case DisplayType.AREA:
-    case DisplayType.TOP_N:
-      return WidgetArea;
-    case DisplayType.BIG_NUMBER:
-      return WidgetBigNumber;
-    case DisplayType.TABLE:
-      return WidgetTable;
-    case DisplayType.LINE:
-    default:
-      return WidgetLine;
-  }
 }
 
 export function getWidgetInterval(
@@ -441,12 +418,6 @@ export function isCustomMeasurementWidget(widget: Widget) {
       );
     })
   );
-}
-
-export function getCustomMeasurementQueryParams() {
-  return {
-    dataset: 'metrics',
-  };
 }
 
 export function isWidgetUsingTransactionName(widget: Widget) {
