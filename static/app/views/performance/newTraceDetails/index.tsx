@@ -123,6 +123,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
                   tree={tree}
                   rootEvent={rootEvent}
                   onScrollToNode={traceWaterfallScroll.onScrollToNode}
+                  logs={logsTableData.logsData?.data}
                 />
               )}
             </TraceInnerLayout>

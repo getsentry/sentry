@@ -5,9 +5,13 @@ import Feature from 'sentry/components/acl/feature';
 import {LinkButton} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {EventTransaction} from 'sentry/types/event';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
-import {treeHasValidVitals} from 'sentry/views/performance/newTraceDetails/traceContextVitals';
+import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
 
 export const enum TraceContextSectionKeys {
   TAGS = 'trace-context-tags',
@@ -56,32 +60,47 @@ function SectionLink({
   );
 }
 
-function ScrollToSectionLinks({tree}: {tree: TraceTree}) {
+function ScrollToSectionLinks({
+  rootEvent,
+  tree,
+  logs,
+}: {
+  logs: OurLogsResponseItem[];
+  rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
+  tree: TraceTree;
+}) {
   const location = useLocation();
-  const hasValidVitals = treeHasValidVitals(tree);
-  const hasProfiles = tree.profiled_events.size > 0;
+  const {hasVitals, hasProfiles, hasLogs, hasTags} = useTraceContextSections({
+    tree,
+    rootEvent,
+    logs,
+  });
 
-  return (
+  return hasVitals || hasTags || hasProfiles || hasLogs ? (
     <Wrapper>
       <div aria-hidden>{t('Jump to:')}</div>
-      {hasValidVitals && (
+      {hasVitals && (
         <SectionLink
           sectionKey={TraceContextSectionKeys.WEB_VITALS}
           location={location}
         />
       )}
-      <SectionLink sectionKey={TraceContextSectionKeys.TAGS} location={location} />
+      {hasTags && (
+        <SectionLink sectionKey={TraceContextSectionKeys.TAGS} location={location} />
+      )}
       {hasProfiles && (
         <SectionLink sectionKey={TraceContextSectionKeys.PROFILES} location={location} />
       )}
       <Feature features={['ourlogs-enabled']}>
-        <SectionLink sectionKey={TraceContextSectionKeys.LOGS} location={location} />
+        {hasLogs && (
+          <SectionLink sectionKey={TraceContextSectionKeys.LOGS} location={location} />
+        )}
       </Feature>
       <Feature features={['single-trace-summary']}>
         <SectionLink sectionKey={TraceContextSectionKeys.SUMMARY} location={location} />
       </Feature>
     </Wrapper>
-  );
+  ) : null;
 }
 
 const Wrapper = styled('div')`
