@@ -16,12 +16,10 @@ import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modul
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import LlmGroupNumberOfPipelinesChartWidget from 'sentry/views/insights/common/components/widgets/llmGroupNumberOfPipelinesChartWidget';
+import LlmGroupPipelineDurationChartWidget from 'sentry/views/insights/common/components/widgets/llmGroupPipelineDurationChartWidget';
+import LlmGroupTotalTokensUsedChartWidget from 'sentry/views/insights/common/components/widgets/llmGroupTotalTokensUsedChartWidget';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import {
-  NumberOfPipelinesChart,
-  PipelineDurationChart,
-  TotalTokensUsedChart,
-} from 'sentry/views/insights/llmMonitoring/components/charts/llmMonitoringCharts';
 import {PipelineSpansTable} from 'sentry/views/insights/llmMonitoring/components/tables/pipelineSpansTable';
 import {RELEASE_LEVEL} from 'sentry/views/insights/llmMonitoring/settings';
 import {AiHeader} from 'sentry/views/insights/pages/ai/aiPageHeader';
@@ -148,13 +146,13 @@ function LLMMonitoringPage({params}: Props) {
                   </HeaderContainer>
                 </ModuleLayout.Full>
                 <ModuleLayout.Third>
-                  <TotalTokensUsedChart groupId={groupId} />
+                  <LlmGroupTotalTokensUsedChartWidget />
                 </ModuleLayout.Third>
                 <ModuleLayout.Third>
-                  <NumberOfPipelinesChart groupId={groupId} />
+                  <LlmGroupNumberOfPipelinesChartWidget />
                 </ModuleLayout.Third>
                 <ModuleLayout.Third>
-                  <PipelineDurationChart groupId={groupId} />
+                  <LlmGroupPipelineDurationChartWidget />
                 </ModuleLayout.Third>
                 <ModuleLayout.Full>
                   <PipelineSpansTable groupId={groupId} />
