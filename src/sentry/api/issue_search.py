@@ -190,7 +190,6 @@ def convert_category_value(
         if not group_category:
             raise InvalidSearchQuery(f"Invalid category value of '{category}'")
         results.extend(GROUP_TYPE_REGISTRY.get_by_category(group_category.value))
-        results.extend(GROUP_TYPE_REGISTRY.get_by_category_v2(group_category.value))
     return results
 
 
