@@ -26,11 +26,8 @@ from sentry.notifications.utils.digest import (
     send_as_alert_notification,
     should_send_as_alert_notification,
 )
-from sentry.notifications.utils.links import (
-    NotificationRuleDetails,
-    get_email_link_extra_params,
-    get_integration_link,
-)
+from sentry.notifications.utils.links import get_email_link_extra_params, get_integration_link
+from sentry.notifications.utils.types import NotificationRuleDetails
 from sentry.types.actor import Actor
 
 if TYPE_CHECKING:
