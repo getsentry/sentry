@@ -136,7 +136,7 @@ class OnDemandSummary extends Component<Props, State> {
   }
 
   renderNeedsPaymentSource() {
-    const {organization} = this.props;
+    const {organization, subscription} = this.props;
 
     return (
       <FieldGroup
@@ -150,6 +150,7 @@ class OnDemandSummary extends Component<Props, State> {
             onClick={() =>
               openEditCreditCard({
                 organization,
+                subscription,
                 onSuccess: (data: Subscription) => {
                   SubscriptionStore.set(organization.slug, data);
                 },

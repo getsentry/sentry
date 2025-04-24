@@ -102,6 +102,7 @@ class OnDemandBudgets extends Component<Props> {
           onClick={() =>
             openEditCreditCard({
               organization,
+              subscription,
               onSuccess: (data: Subscription) => {
                 SubscriptionStore.set(organization.slug, data);
               },

@@ -849,6 +849,11 @@ export type PaymentSetupCreateResponse = {
   status: string;
 };
 
+export enum FTCConsentLocation {
+  CHECKOUT = 0,
+  BILLING_DETAILS = 1,
+}
+
 export enum AddressType {
   STRUCTURED = 'structured',
   UNSTRUCTURED = 'unstructured',
