@@ -2761,6 +2761,14 @@ SENTRY_PROFILING_ENABLED = os.environ.get("SENTRY_PROFILING_ENABLED", SPOTLIGHT)
 # to operate under the continuous profiling model.
 SENTRY_CONTINUOUS_PROFILING_ENABLED = os.environ.get("SENTRY_CONTINUOUS_PROFILING_ENABLED", False)
 
+# The sample rate to use for continuous profile sessions. This sample rate is
+# evaluated once per process and the decision is used for the remainer of the session.
+SENTRY_PROFILE_SESSION_SAMPLE_RATE = 1 if DEBUG else 0
+
+# Tells the sentry sdk to run under the trace lifecycle mode which
+# ensures the profiler is running whenever there is an active trace.
+SENTRY_PROFILE_LIFECYCLE: Literal["manual", "trace"] = "trace"
+
 # Callable to bind additional context for the Sentry SDK
 #
 # def get_org_context(scope, organization, **kwargs):
