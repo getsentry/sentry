@@ -2046,8 +2046,6 @@ class Factories:
         mode: ProjectUptimeSubscriptionMode,
         name: str | None,
         owner: Actor | None,
-        uptime_status: UptimeStatus,
-        uptime_status_update_date: datetime,
         id: int | None,
     ):
         if name is None:
@@ -2069,8 +2067,6 @@ class Factories:
             name=name,
             owner_team_id=owner_team_id,
             owner_user_id=owner_user_id,
-            uptime_status=uptime_status,
-            uptime_status_update_date=uptime_status_update_date,
             pk=id,
         )
 
