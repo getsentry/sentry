@@ -2,13 +2,13 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {space} from 'sentry/styles/space';
-import {EventTransaction} from 'sentry/types/event';
+import type {EventTransaction} from 'sentry/types/event';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import type {Vital} from 'sentry/utils/performance/vitals/types';
-import {UseApiQueryResult} from 'sentry/utils/queryClient';
-import RequestError from 'sentry/utils/requestError/requestError';
-import {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
+import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {VITAL_DESCRIPTIONS} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
 import {WEB_VITALS_METERS_CONFIG} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
