@@ -43,7 +43,6 @@ export function NewNextJsExperienceButton() {
 
     return (
       <ToggleButton
-        enabled={isNextJsInsightsEnabled}
         size="sm"
         icon={<IconLab isSolid={isNextJsInsightsEnabled} />}
         title={label}
@@ -60,7 +59,6 @@ export function NewNextJsExperienceButton() {
       trigger={triggerProps => (
         <StyledDropdownButton
           {...triggerProps}
-          enabled={isNextJsInsightsEnabled}
           size="sm"
           aria-label={t('Switch issue experience')}
         >
@@ -96,18 +94,17 @@ export function NewNextJsExperienceButton() {
   );
 }
 
-const StyledDropdownButton = styled(DropdownButton)<{enabled: boolean}>`
-  color: ${p => (p.enabled ? p.theme.button.primary.background : 'inherit')};
+const StyledDropdownButton = styled(DropdownButton)`
+  color: ${p => p.theme.button.primary.background};
   :hover {
-    color: ${p => (p.enabled ? p.theme.button.primary.background : 'inherit')};
+    color: ${p => p.theme.button.primary.background};
   }
 `;
 
-const ToggleButton = styled(Button)<{enabled: boolean}>`
-  color: ${p => (p.enabled ? p.theme.button.primary.background : p.theme.white)};
-  background: ${p =>
-    p.enabled ? 'inherit' : `linear-gradient(90deg, #3468D8, #248574)`};
+const ToggleButton = styled(Button)`
+  color: ${p => p.theme.white};
+  background: linear-gradient(90deg, #3468d8, #248574);
   :hover {
-    color: ${p => (p.enabled ? p.theme.button.primary.background : p.theme.white)};
+    color: ${p => p.theme.white};
   }
 `;

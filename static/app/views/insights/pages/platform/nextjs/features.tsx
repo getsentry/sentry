@@ -31,9 +31,7 @@ export function useIsNextJsInsightsEnabled() {
   const user = useUser();
   const isAvailable = useIsNextJsInsightsAvailable();
 
-  const isEnabled = Boolean(
-    isAvailable && (user.options.prefersNextjsInsightsOverview ?? true)
-  );
+  const isEnabled = isAvailable && (user.options.prefersNextjsInsightsOverview ?? true);
 
   const {mutate: mutateUserOptions} = useMutateUserOptions();
 
