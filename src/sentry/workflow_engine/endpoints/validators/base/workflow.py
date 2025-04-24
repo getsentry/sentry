@@ -85,7 +85,6 @@ class WorkflowValidator(CamelSnakeSerializer):
         instance: DataConditionGroup | None = None,
     ) -> DataConditionGroup:
         validator = BaseDataConditionGroupValidator(context=self.context)
-        actions: list = []
 
         condition_group_id = condition_group_data.get("id")
         if instance and condition_group_id and condition_group_id != str(instance.id):
