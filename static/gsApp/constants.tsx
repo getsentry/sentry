@@ -1,4 +1,4 @@
-import {DataCategory, DataCategoryExact} from 'sentry/types/core';
+import {DataCategory} from 'sentry/types/core';
 
 import {PlanTier} from 'getsentry/types';
 
@@ -51,10 +51,10 @@ export enum AllocationTargetTypes {
   ORGANIZATION = 'Organization',
 }
 
-export const ALLOCATION_SUPPORTED_CATEGORIES: DataCategoryExact[] = [
-  DataCategoryExact.ERROR,
-  DataCategoryExact.TRANSACTION,
-  DataCategoryExact.ATTACHMENT,
+export const ALLOCATION_SUPPORTED_CATEGORIES: DataCategory[] = [
+  DataCategory.ERRORS,
+  DataCategory.TRANSACTIONS,
+  DataCategory.ATTACHMENTS,
 ];
 
 export const PRODUCT_TRIAL_CATEGORIES: DataCategory[] = [
