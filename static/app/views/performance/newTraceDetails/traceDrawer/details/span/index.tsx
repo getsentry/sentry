@@ -16,10 +16,12 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
-import type {Organization} from 'sentry/types/organization';
+import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import EventView from 'sentry/utils/discover/eventView';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
@@ -28,9 +30,11 @@ import {
   useLogsPageData,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LogsTable} from 'sentry/views/explore/logs/logsTable';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {useSpansQueryWithoutPageFilters} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
@@ -45,6 +49,7 @@ import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasT
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
+import {SpanDescription as EAPSpanDescription} from './eapSections/description';
 import Alerts from './sections/alerts';
 import {SpanDescription} from './sections/description';
 import {GeneralInfo} from './sections/generalInfo';
@@ -203,7 +208,11 @@ function LogDetails() {
     return null;
   }
   return (
-    <FoldSection sectionKey={SectionKey.LOGS} title={t('Logs')}>
+    <FoldSection
+      sectionKey={SectionKey.LOGS}
+      title={t('Logs')}
+      disableCollapsePersistence
+    >
       <LogsTable tableData={logsData} showHeader={false} />
     </FoldSection>
   );
@@ -293,7 +302,9 @@ export function SpanNodeDetails(
     return [...node.errors, ...node.occurrences];
   }, [node.errors, node.occurrences]);
 
-  const project = projects.find(proj => proj.slug === node.event?.projectSlug);
+  const project = projects.find(
+    proj => proj.slug === (node.value.project_slug ?? node.event?.projectSlug)
+  );
   const profileMeta = getProfileMeta(node.event) || '';
   const profileId =
     typeof profileMeta === 'string' ? profileMeta : profileMeta.profiler_id;
@@ -368,6 +379,43 @@ export function SpanNodeDetails(
   );
 }
 
+function useAvgSpanDuration(
+  span: TraceTree.EAPSpan,
+  location: Location
+): number | undefined {
+  const dataset = useExploreDataset();
+
+  const eventView = useMemo(() => {
+    const search = new MutableSearch('');
+
+    search.addFilterValue('span.op', span.op);
+    search.addFilterValue('span.description', span.description ?? '');
+
+    const discoverQuery: NewQuery = {
+      id: undefined,
+      name: 'Trace View - Span Avg Duration',
+      fields: ['avg(span.duration)'],
+      query: search.formatString(),
+      projects: [span.project_id],
+      version: 2,
+      range: '24h',
+      dataset,
+    };
+
+    return EventView.fromNewQueryWithLocation(discoverQuery, location);
+  }, [span, location, dataset]);
+
+  const result = useSpansQueryWithoutPageFilters({
+    enabled: !!span.description && !!span.op,
+    eventView,
+    initialData: [],
+    referrer: 'api.explore.spans-aggregates-table', // TODO: replace with trace span details referrer
+    trackResponseAnalytics: false,
+  });
+
+  return result.data?.[0]?.['avg(span.duration)'];
+}
+
 type EAPSpanNodeDetailsProps = TraceTreeNodeDetailsProps<
   TraceTreeNode<TraceTree.EAPSpan>
 > & {
@@ -397,6 +445,8 @@ function EAPSpanNodeDetails({
     referrer: 'api.explore.log-item-details', // TODO: change to span details
     enabled: true,
   });
+
+  const avgSpanDuration = useAvgSpanDuration(node.value, location);
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -428,7 +478,19 @@ function EAPSpanNodeDetails({
             {issues.length > 0 ? (
               <IssueList organization={organization} issues={issues} node={node} />
             ) : null}
-            <FoldSection sectionKey={SectionKey.SPAN_ATTRIBUTES} title={t('Attributes')}>
+            <EAPSpanDescription
+              node={node}
+              project={project}
+              organization={organization}
+              location={location}
+              attributes={attributes}
+              avgSpanDuration={avgSpanDuration}
+            />
+            <FoldSection
+              sectionKey={SectionKey.SPAN_ATTRIBUTES}
+              title={t('Attributes')}
+              disableCollapsePersistence
+            >
               <AttributesTree
                 attributes={attributes}
                 rendererExtra={{
