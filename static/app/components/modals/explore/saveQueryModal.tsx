@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -207,11 +206,6 @@ const StyledButtonBar = styled(ButtonBar)`
       width: 100%;
     }
   }
-`;
-
-export const modalCss = css`
-  max-width: 700px;
-  margin: 70px auto;
 `;
 
 const SectionHeader = styled('h6')`

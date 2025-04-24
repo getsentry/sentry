@@ -37,7 +37,7 @@ import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 
-export const SCHEMA_HINTS_DRAWER_WIDTH = '350px';
+const SCHEMA_HINTS_DRAWER_WIDTH = '350px';
 
 interface SchemaHintsListProps extends SchemaHintsPageParams {
   numberTags: TagCollection;
@@ -102,8 +102,8 @@ function SchemaHintsList({
   const schemaHintsContainerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const organization = useOrganization();
-  const {openDrawer, isDrawerOpen} = useDrawer();
-  const {dispatch, query} = useSearchQueryBuilder();
+  const {openDrawer, isDrawerOpen, panelRef} = useDrawer();
+  const {dispatch, query, wrapperRef: searchBarWrapperRef} = useSearchQueryBuilder();
 
   // Create a ref to hold the latest query for the drawer
   const queryRef = useRef(query);
@@ -237,6 +237,25 @@ function SchemaHintsList({
     return () => resizeObserver.disconnect();
   }, [filterTagsSorted, isDrawerOpen, isLoading, tagListState]);
 
+  // ensures the search bar is the correct width when the drawer is open
+  useEffect(() => {
+    const adjustSearchBarWidth = () => {
+      if (isDrawerOpen && searchBarWrapperRef.current && panelRef.current) {
+        searchBarWrapperRef.current.style.width = `calc(100% - ${panelRef.current.clientWidth}px)`;
+      }
+    };
+
+    adjustSearchBarWidth();
+
+    const resizeObserver = new ResizeObserver(adjustSearchBarWidth);
+
+    if (panelRef.current) {
+      resizeObserver.observe(panelRef.current);
+    }
+
+    return () => resizeObserver.disconnect();
+  }, [isDrawerOpen, panelRef, searchBarWrapperRef]);
+
   const onHintClick = useCallback(
     (hint: Tag) => {
       if (hint.key === seeFullListTag.key) {
@@ -273,6 +292,9 @@ function SchemaHintsList({
                   drawer_open: true,
                   organization,
                 });
+                if (searchBarWrapperRef.current) {
+                  searchBarWrapperRef.current.style.minWidth = '20%';
+                }
               },
 
               onClose: () => {
@@ -280,6 +302,10 @@ function SchemaHintsList({
                   drawer_open: false,
                   organization,
                 });
+                if (searchBarWrapperRef.current) {
+                  searchBarWrapperRef.current.style.width = '100%';
+                  searchBarWrapperRef.current.style.minWidth = '';
+                }
               },
             }
           );
@@ -315,6 +341,7 @@ function SchemaHintsList({
       dispatch,
       organization,
       isDrawerOpen,
+      searchBarWrapperRef,
       openDrawer,
       filterTagsSorted,
       location.pathname,

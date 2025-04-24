@@ -1,6 +1,5 @@
 import type {ReactNode} from 'react';
 import {Fragment, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -91,9 +90,3 @@ const Instruction = styled('div')`
 `;
 
 export default SamplingModal;
-
-export const modalCss = css`
-  width: 100%;
-  max-width: 650px;
-  margin: 70px auto;
-`;
