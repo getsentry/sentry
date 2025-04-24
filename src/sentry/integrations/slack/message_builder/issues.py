@@ -268,12 +268,7 @@ def get_suggested_assignees(
     project: Project, event: Event | GroupEvent, current_assignee: RpcUser | Team | None
 ) -> list[str]:
     """Get suggested assignees as a list of formatted strings"""
-    suggested_assignees = []
-    issue_owners, _ = ProjectOwnership.get_owners(project.id, event.data)
-    if (
-        issue_owners != ProjectOwnership.Everyone
-    ):  # we don't want every user in the project to be a suggested assignee
-        suggested_assignees = issue_owners
+    suggested_assignees, _ = ProjectOwnership.get_owners(project.id, event.data)
     try:
         suspect_commit_users = Actor.many_from_object(get_suspect_commit_users(project, event))
         suggested_assignees.extend(suspect_commit_users)
