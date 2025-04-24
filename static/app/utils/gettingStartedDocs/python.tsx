@@ -27,7 +27,7 @@ export function getPythonInstallSnippet({
 }
 
 export function getPythonInstallConfig({
-  packageName = 'sentry-sdk',
+  packageName = "'sentry-sdk'",
   description,
 }: {
   description?: React.ReactNode;

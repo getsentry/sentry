@@ -204,7 +204,7 @@ const onboarding: OnboardingConfig = {
       description: tct('Install our Python SDK:', {
         code: <code />,
       }),
-      configurations: getPythonInstallConfig({packageName: "'sentry-sdk'"}),
+      configurations: getPythonInstallConfig(),
     },
   ],
   configure: (params: Params) => [

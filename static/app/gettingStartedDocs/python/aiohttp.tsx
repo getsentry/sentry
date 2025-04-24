@@ -75,12 +75,7 @@ const onboarding: OnboardingConfig = {
       description: tct('Install [code:sentry-sdk] from PyPI:', {
         code: <code />,
       }),
-      configurations: [
-        ...getPythonInstallConfig({
-          packageName: "'sentry-sdk'",
-        }),
-        ...getPythonAiocontextvarsConfig(),
-      ],
+      configurations: [...getPythonInstallConfig(), ...getPythonAiocontextvarsConfig()],
     },
   ],
   configure: (params: Params) => [
