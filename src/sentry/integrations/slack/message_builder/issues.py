@@ -465,7 +465,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         title = summary_headline or build_attachment_title(event_or_group)
         title_emoji = self.get_title_emoji(has_action)
 
-        title_text = title_emoji + f"<{title_link}|*{escape_slack_text(title)}*>"
+        title_text = f"{title_emoji}<{title_link}|*{escape_slack_text(title)}*>"
         return self.get_markdown_block(title_text)
 
     def get_title_emoji(self, has_action: bool) -> str | None:
