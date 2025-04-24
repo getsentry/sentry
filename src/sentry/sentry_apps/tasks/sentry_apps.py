@@ -134,24 +134,24 @@ def synchronize_service_hooks_with_sentry_apps() -> None:
     installations = SentryAppInstallation.objects.filter(
         status=SentryAppInstallationStatus.INSTALLED
     )
-    
+
     for installation in installations:
         try:
             service_hook = ServiceHook.objects.get(
                 organization_id=installation.organization_id,
                 actor_id=installation.id,
             )
-            
+
             app_events = set(installation.sentry_app.events)
             hook_events = set(service_hook.events)
-            
+
             if app_events != hook_events:
                 create_or_update_service_hooks_for_installation(
                     installation=installation,
                     webhook_url=installation.sentry_app.webhook_url,
                     events=list(app_events),
                 )
-                
+
         except ServiceHook.DoesNotExist:
             if installation.sentry_app.events and installation.sentry_app.webhook_url:
                 create_or_update_service_hooks_for_installation(
@@ -272,24 +272,24 @@ def synchronize_service_hooks_with_sentry_apps() -> None:
     installations = SentryAppInstallation.objects.filter(
         status=SentryAppInstallationStatus.INSTALLED
     )
-    
+
     for installation in installations:
         try:
             service_hook = ServiceHook.objects.get(
                 organization_id=installation.organization_id,
                 actor_id=installation.id,
             )
-            
+
             app_events = set(installation.sentry_app.events)
             hook_events = set(service_hook.events)
-            
+
             if app_events != hook_events:
                 create_or_update_service_hooks_for_installation(
                     installation=installation,
                     webhook_url=installation.sentry_app.webhook_url,
                     events=list(app_events),
                 )
-                
+
         except ServiceHook.DoesNotExist:
             if installation.sentry_app.events and installation.sentry_app.webhook_url:
                 create_or_update_service_hooks_for_installation(
@@ -426,7 +426,9 @@ def _is_project_allowed(installation: RpcSentryAppInstallation, project_id: int)
     ],
     recalculate=False,
 )
-def _load_service_hook(organization_id: int | None, installation_id: int, force_refresh: bool = False) -> ServiceHook | None:
+def _load_service_hook(
+    organization_id: int | None, installation_id: int, force_refresh: bool = False
+) -> ServiceHook | None:
     if force_refresh:
         _load_service_hook.invalidate((organization_id, installation_id))
     try:
@@ -480,24 +482,24 @@ def synchronize_service_hooks_with_sentry_apps() -> None:
     installations = SentryAppInstallation.objects.filter(
         status=SentryAppInstallationStatus.INSTALLED
     )
-    
+
     for installation in installations:
         try:
             service_hook = ServiceHook.objects.get(
                 organization_id=installation.organization_id,
                 actor_id=installation.id,
             )
-            
+
             app_events = set(installation.sentry_app.events)
             hook_events = set(service_hook.events)
-            
+
             if app_events != hook_events:
                 create_or_update_service_hooks_for_installation(
                     installation=installation,
                     webhook_url=installation.sentry_app.webhook_url,
                     events=list(app_events),
                 )
-                
+
         except ServiceHook.DoesNotExist:
             if installation.sentry_app.events and installation.sentry_app.webhook_url:
                 create_or_update_service_hooks_for_installation(
@@ -532,24 +534,24 @@ def synchronize_service_hooks_with_sentry_apps() -> None:
     installations = SentryAppInstallation.objects.filter(
         status=SentryAppInstallationStatus.INSTALLED
     )
-    
+
     for installation in installations:
         try:
             service_hook = ServiceHook.objects.get(
                 organization_id=installation.organization_id,
                 actor_id=installation.id,
             )
-            
+
             app_events = set(installation.sentry_app.events)
             hook_events = set(service_hook.events)
-            
+
             if app_events != hook_events:
                 create_or_update_service_hooks_for_installation(
                     installation=installation,
                     webhook_url=installation.sentry_app.webhook_url,
                     events=list(app_events),
                 )
-                
+
         except ServiceHook.DoesNotExist:
             if installation.sentry_app.events and installation.sentry_app.webhook_url:
                 create_or_update_service_hooks_for_installation(
@@ -602,24 +604,24 @@ def synchronize_service_hooks_with_sentry_apps() -> None:
     installations = SentryAppInstallation.objects.filter(
         status=SentryAppInstallationStatus.INSTALLED
     )
-    
+
     for installation in installations:
         try:
             service_hook = ServiceHook.objects.get(
                 organization_id=installation.organization_id,
                 actor_id=installation.id,
             )
-            
+
             app_events = set(installation.sentry_app.events)
             hook_events = set(service_hook.events)
-            
+
             if app_events != hook_events:
                 create_or_update_service_hooks_for_installation(
                     installation=installation,
                     webhook_url=installation.sentry_app.webhook_url,
                     events=list(app_events),
                 )
-                
+
         except ServiceHook.DoesNotExist:
             if installation.sentry_app.events and installation.sentry_app.webhook_url:
                 create_or_update_service_hooks_for_installation(
@@ -686,24 +688,24 @@ def synchronize_service_hooks_with_sentry_apps() -> None:
     installations = SentryAppInstallation.objects.filter(
         status=SentryAppInstallationStatus.INSTALLED
     )
-    
+
     for installation in installations:
         try:
             service_hook = ServiceHook.objects.get(
                 organization_id=installation.organization_id,
                 actor_id=installation.id,
             )
-            
+
             app_events = set(installation.sentry_app.events)
             hook_events = set(service_hook.events)
-            
+
             if app_events != hook_events:
                 create_or_update_service_hooks_for_installation(
                     installation=installation,
                     webhook_url=installation.sentry_app.webhook_url,
                     events=list(app_events),
                 )
-                
+
         except ServiceHook.DoesNotExist:
             if installation.sentry_app.events and installation.sentry_app.webhook_url:
                 create_or_update_service_hooks_for_installation(
@@ -755,24 +757,24 @@ def synchronize_service_hooks_with_sentry_apps() -> None:
     installations = SentryAppInstallation.objects.filter(
         status=SentryAppInstallationStatus.INSTALLED
     )
-    
+
     for installation in installations:
         try:
             service_hook = ServiceHook.objects.get(
                 organization_id=installation.organization_id,
                 actor_id=installation.id,
             )
-            
+
             app_events = set(installation.sentry_app.events)
             hook_events = set(service_hook.events)
-            
+
             if app_events != hook_events:
                 create_or_update_service_hooks_for_installation(
                     installation=installation,
                     webhook_url=installation.sentry_app.webhook_url,
                     events=list(app_events),
                 )
-                
+
         except ServiceHook.DoesNotExist:
             if installation.sentry_app.events and installation.sentry_app.webhook_url:
                 create_or_update_service_hooks_for_installation(
@@ -863,24 +865,24 @@ def synchronize_service_hooks_with_sentry_apps() -> None:
     installations = SentryAppInstallation.objects.filter(
         status=SentryAppInstallationStatus.INSTALLED
     )
-    
+
     for installation in installations:
         try:
             service_hook = ServiceHook.objects.get(
                 organization_id=installation.organization_id,
                 actor_id=installation.id,
             )
-            
+
             app_events = set(installation.sentry_app.events)
             hook_events = set(service_hook.events)
-            
+
             if app_events != hook_events:
                 create_or_update_service_hooks_for_installation(
                     installation=installation,
                     webhook_url=installation.sentry_app.webhook_url,
                     events=list(app_events),
                 )
-                
+
         except ServiceHook.DoesNotExist:
             if installation.sentry_app.events and installation.sentry_app.webhook_url:
                 create_or_update_service_hooks_for_installation(
@@ -1040,24 +1042,24 @@ def synchronize_service_hooks_with_sentry_apps() -> None:
     installations = SentryAppInstallation.objects.filter(
         status=SentryAppInstallationStatus.INSTALLED
     )
-    
+
     for installation in installations:
         try:
             service_hook = ServiceHook.objects.get(
                 organization_id=installation.organization_id,
                 actor_id=installation.id,
             )
-            
+
             app_events = set(installation.sentry_app.events)
             hook_events = set(service_hook.events)
-            
+
             if app_events != hook_events:
                 create_or_update_service_hooks_for_installation(
                     installation=installation,
                     webhook_url=installation.sentry_app.webhook_url,
                     events=list(app_events),
                 )
-                
+
         except ServiceHook.DoesNotExist:
             if installation.sentry_app.events and installation.sentry_app.webhook_url:
                 create_or_update_service_hooks_for_installation(
