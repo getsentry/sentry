@@ -397,8 +397,8 @@ PROJECT_SUMMARY = {
         },
     ],
     "id": "6758470122493650",
-    "name": "the-spoiled-yoghurt",
-    "slug": "The Spoiled Yoghurt",
+    "slug": "the-spoiled-yoghurt",
+    "name": "The Spoiled Yoghurt",
     "isBookmarked": False,
     "isMember": True,
     "access": [
@@ -546,7 +546,7 @@ class ProjectExamples:
     CREATE_PROJECT = [
         OpenApiExample(
             "Project successfully created",
-            value=PROJECT_SUMMARY,
+            value=BASE_PROJECT,
             status_codes=["201"],
             response_only=True,
         ),
