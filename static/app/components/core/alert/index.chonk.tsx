@@ -2,7 +2,6 @@ import type {SerializedStyles} from '@emotion/react';
 import {css} from '@emotion/react';
 
 import type {AlertProps} from 'sentry/components/core/alert';
-import {IconCheckmark, IconInfo, IconNot, IconWarning} from 'sentry/icons';
 import {chonkStyled, type useChonkTheme} from 'sentry/utils/theme/theme.chonk';
 import type {ChonkPropMapping} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -172,24 +171,6 @@ export const ExpandContainer = chonkStyled('div')<{
     grid-row: ${p => (p.showTrailingItems ? 3 : 2)};
   }
 `;
-
-export function AlertIcon(props: {type: AlertProps['type']}) {
-  switch (props.type) {
-    case 'warning':
-      return <IconWarning />;
-    case 'success':
-      return <IconCheckmark />;
-    case 'error':
-      return <IconNot />;
-    case 'info':
-    case 'muted':
-      return <IconInfo />;
-    default:
-      unreachable(props.type);
-  }
-
-  return null;
-}
 
 function getAlertGridLayout(p: ChonkAlertProps) {
   if (p.showIcon) {
