@@ -4,13 +4,14 @@ import type {Location} from 'history';
 
 import {LinkButton} from 'sentry/components/core/button';
 import GridEditable from 'sentry/components/gridEditable';
-import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {Organization} from 'sentry/types/organization';
-import EventView, {EventsMetaType} from 'sentry/utils/discover/eventView';
+import type {Organization} from 'sentry/types/organization';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {Theme} from 'sentry/utils/theme';
+import type {Theme} from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -24,8 +25,8 @@ import {ModuleName} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {
   SERVICE_ENTRY_SPANS_COLUMN_ORDER,
-  ServiceEntrySpansColumn,
-  ServiceEntrySpansRow,
+  type ServiceEntrySpansColumn,
+  type ServiceEntrySpansRow,
 } from 'sentry/views/performance/otlp/types';
 import {useServiceEntrySpansQuery} from 'sentry/views/performance/otlp/useServiceEntrySpansQuery';
 import {SERVICE_ENTRY_SPANS_CURSOR} from 'sentry/views/performance/otlp/utils';
@@ -85,10 +86,6 @@ export function OverviewSpansTable({eventView, totalValues, transactionName}: Pr
     sort: {
       field: 'span.duration',
       kind: 'desc',
-    },
-    selected: {
-      label: 'Duration',
-      value: 'span.duration',
     },
     transactionName,
     p95,
