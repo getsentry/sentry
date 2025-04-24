@@ -6,6 +6,9 @@ from sentry.http import safe_urlopen
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import sentryapp_tasks
+from sentry.taskworker.retry import Retry
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import json
 
@@ -34,6 +37,7 @@ def get_payload_v0(event):
     default_retry_delay=60 * 5,
     max_retries=5,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(namespace=sentryapp_tasks, retry=Retry(times=3)),
 )
 @retry
 def process_service_hook(servicehook_id, event, **kwargs):
