@@ -266,14 +266,15 @@ def get_top_hosting_provider_names(limit: int) -> set[str]:
     recalculate=False,
     cache_ttl=timedelta(hours=4),
 )
-def get_project_subscriptions_for_uptime_subscription(
+def get_project_subscription_for_uptime_subscription(
     uptime_subscription_id: int,
-) -> list[ProjectUptimeSubscription]:
-    return list(
-        ProjectUptimeSubscription.objects.filter(
-            uptime_subscription_id=uptime_subscription_id
-        ).select_related("project", "project__organization")
-    )
+) -> ProjectUptimeSubscription | None:
+    try:
+        return ProjectUptimeSubscription.objects.select_related(
+            "project", "project__organization"
+        ).get(uptime_subscription_id=uptime_subscription_id)
+    except ProjectUptimeSubscription.DoesNotExist:
+        return None
 
 
 @cache_func_for_models(
