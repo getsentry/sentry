@@ -1,9 +1,8 @@
 import Redirect from 'sentry/components/redirect';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
-import {getProjectDetailsRedirect} from 'sentry/views/insights/pages/platform/shared/projectDetailsRedirect';
+import {useProjectDetailsRedirect} from 'sentry/views/insights/pages/platform/shared/projectDetailsRedirect';
 
 import ProjectDetail from './projectDetail';
 
@@ -13,7 +12,6 @@ function ProjectDetailContainer(
     'projects' | 'loadingProjects' | 'selection'
   >
 ) {
-  const organization = useOrganization();
   const {projects} = useProjects();
   const project = projects.find(p => p.slug === props.params.projectId);
 
@@ -26,8 +24,8 @@ function ProjectDetailContainer(
       : {}
   );
 
-  const redirect = project && getProjectDetailsRedirect(organization, project);
-  if (redirect) {
+  const redirect = useProjectDetailsRedirect(project);
+  if (project && redirect) {
     return <Redirect to={redirect} />;
   }
 

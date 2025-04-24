@@ -49,7 +49,8 @@ import {
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/frontend/settings';
 import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
-import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
+import {useIsNextJsInsightsEnabled} from 'sentry/views/insights/pages/platform/nextjs/features';
+import {NewNextJsExperienceButton} from 'sentry/views/insights/pages/platform/nextjs/newNextjsExperienceToggle';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import type {EAPSpanProperty} from 'sentry/views/insights/types';
 import {
@@ -241,7 +242,10 @@ function EAPOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <FrontendHeader headerTitle={FRONTEND_LANDING_TITLE} />
+      <FrontendHeader
+        headerTitle={FRONTEND_LANDING_TITLE}
+        headerActions={<NewNextJsExperienceButton />}
+      />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
@@ -296,14 +300,14 @@ function EAPOverviewPage() {
 
 function FrontendOverviewPageWithProviders() {
   const organization = useOrganization();
-  const isNextJsPageAvailable = useIsNextJsInsightsAvailable();
+  const [isNextJsPageEnabled] = useIsNextJsInsightsEnabled();
   const useEap = useInsightsEap();
 
   const {maxPickableDays} = limitMaxPickableDays(organization);
 
   return (
     <DomainOverviewPageProviders maxPickableDays={maxPickableDays}>
-      {isNextJsPageAvailable ? (
+      {isNextJsPageEnabled ? (
         <NextJsOverviewPage headerTitle={FRONTEND_LANDING_TITLE} />
       ) : useEap ? (
         <EAPOverviewPage />
