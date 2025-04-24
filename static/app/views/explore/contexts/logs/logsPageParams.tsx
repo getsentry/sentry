@@ -89,7 +89,7 @@ export function LogsPageParamsProvider({
     : getLogFieldsFromLocation(location);
   const sortBys = isTableEditingFrozen
     ? [logsTimestampDescendingSortBy]
-    : getLogSortBysFromLocation(location);
+    : getLogSortBysFromLocation(location, fields);
   const projectIds = isOnEmbeddedView
     ? (limitToProjectIds ?? [-1])
     : decodeProjects(location);
