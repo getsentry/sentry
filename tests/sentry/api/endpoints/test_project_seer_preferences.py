@@ -8,10 +8,8 @@ from django.urls import reverse
 from sentry.api.endpoints.project_seer_preferences import PreferenceResponse, SeerProjectPreference
 from sentry.seer.models import SeerRepoDefinition
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import apply_feature_flag_on_cls
 
 
-@apply_feature_flag_on_cls("organizations:autofix-seer-preferences")
 class ProjectSeerPreferencesEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-seer-preferences"
 
