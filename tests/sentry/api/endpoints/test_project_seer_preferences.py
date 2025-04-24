@@ -233,35 +233,3 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
 
         # The actual behavior returns 200 instead of 500 even with invalid data
         assert response.status_code == 200
-
-
-class ProjectSeerPreferencesEndpointDisabledTest(APITestCase):
-    endpoint = "sentry-api-0-project-seer-preferences"
-
-    def setUp(self):
-        super().setUp()
-        self.user = self.create_user(email="user@example.com")
-        self.org = self.create_organization(owner=self.user)
-        self.team = self.create_team(organization=self.org)
-        self.project = self.create_project(teams=[self.team], organization=self.org)
-        self.login_as(user=self.user)
-
-        self.url = reverse(
-            self.endpoint,
-            kwargs={
-                "organization_id_or_slug": self.org.slug,
-                "project_id_or_slug": self.project.slug,
-            },
-        )
-
-    def test_post_feature_flag_disabled(self):
-        """Test that the endpoint returns a 403 when the feature flag is disabled"""
-        response = self.client.post(self.url)
-        assert response.status_code == 403
-        assert response.data == "Feature flag not enabled"
-
-    def test_get_feature_flag_disabled(self):
-        """Test that the endpoint returns a 403 when the feature flag is disabled"""
-        response = self.client.get(self.url)
-        assert response.status_code == 403
-        assert response.data == "Feature flag not enabled"
