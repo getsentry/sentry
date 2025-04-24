@@ -1,4 +1,3 @@
-import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
@@ -80,9 +79,6 @@ export function truncationFormatter(
 export function computeShortInterval(datetimeObj: DateTimeObject): boolean {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
   return diffInMinutes <= TWENTY_FOUR_HOURS;
-}
-export function useShortInterval(datetimeObj: DateTimeObject): boolean {
-  return computeShortInterval(datetimeObj);
 }
 
 type GranularityStep = [timeDiff: number, interval: string];
@@ -485,15 +481,6 @@ export function computeEchartsAriaLabels(
     enabled: true,
     label: {description: [title].concat(seriesDescriptions).join('. ')},
   };
-}
-
-export function useEchartsAriaLabels(
-  {series, useUTC}: {series: unknown; useUTC: boolean | undefined},
-  isGroupedByDate: boolean
-) {
-  return useMemo(() => {
-    return computeEchartsAriaLabels({series, useUTC}, isGroupedByDate);
-  }, [series, useUTC, isGroupedByDate]);
 }
 
 export function isEmptySeries(series: Series) {
