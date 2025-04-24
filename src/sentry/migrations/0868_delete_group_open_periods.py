@@ -28,7 +28,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "0866_grouptype_index"),
+        ("sentry", "0867_fix_drift_default_to_db_default"),
     ]
 
     operations = [

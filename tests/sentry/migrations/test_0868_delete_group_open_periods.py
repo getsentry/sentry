@@ -7,8 +7,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class DeleteGroupOpenPeriodsTest(TestMigrations):
-    migrate_from = "0866_grouptype_index"
-    migrate_to = "0867_delete_group_open_periods"
+    migrate_from = "0867_fix_drift_default_to_db_default"
+    migrate_to = "0868_delete_group_open_periods"
 
     def setup_initial_state(self):
         self.organization = Organization.objects.create(name="test", slug="test")
