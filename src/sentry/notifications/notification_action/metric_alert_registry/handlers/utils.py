@@ -4,8 +4,8 @@ from sentry.incidents.endpoints.serializers.incident import (
     DetailedIncidentSerializerResponse,
     IncidentSerializerResponse,
 )
-from sentry.incidents.endpoints.serializers.workflow_engine_alert_rule import (
-    WorkflowEngineAlertRuleSerializer,
+from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
+    WorkflowEngineDetectorSerializer,
 )
 from sentry.incidents.endpoints.serializers.workflow_engine_incident import (
     WorkflowEngineDetailedIncidentSerializer,
@@ -16,7 +16,7 @@ from sentry.workflow_engine.models import Detector
 
 
 def get_alert_rule_serializer(detector: Detector) -> AlertRuleSerializerResponse:
-    return serialize(detector, None, WorkflowEngineAlertRuleSerializer())
+    return serialize(detector, None, WorkflowEngineDetectorSerializer())
 
 
 def get_detailed_incident_serializer(
