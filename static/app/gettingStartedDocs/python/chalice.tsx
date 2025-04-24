@@ -88,7 +88,6 @@ const onboarding: OnboardingConfig = {
       }),
     },
   ],
-
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
