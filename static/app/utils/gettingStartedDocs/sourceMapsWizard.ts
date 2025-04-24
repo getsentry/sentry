@@ -7,7 +7,6 @@ export function getSourceMapsWizardSnippet(params: DocsParams) {
   const {isSelfHosted, organization, projectSlug} = params;
   const urlParam = isSelfHosted ? '' : '--saas';
 
-  // Include org and project slugs in the command
   const commandWithFlags = `sourcemaps ${urlParam} --org ${organization.slug} --project ${projectSlug}`;
 
   return {
