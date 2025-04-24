@@ -80,7 +80,7 @@ export function ReleasesDrawerDetails({
     {label: formatVersion(release)},
   ];
 
-  if (!projectSlug) {
+  if (!isLoadingMeta && !projectSlug) {
     return (
       <EventDrawerContainer>
         <EventDrawerHeader>
