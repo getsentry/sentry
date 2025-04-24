@@ -1,6 +1,6 @@
 import math
 
-from sentry.seer.vendored import entr
+from sentry.seer.vendored import entr, rel_entr
 
 
 def laplace_smooth(probabilities: list[float], alpha: float = 1e-3) -> list[float]:
@@ -45,18 +45,8 @@ def entropy(xs: list[float]) -> float:
 
 
 def relative_entropy(a: list[float], b: list[float]) -> list[float]:
-    def _rel_entr(x: float, y: float):
-        if math.isnan(x) or math.isnan(y):
-            return math.nan
-        elif x > 0 and y > 0:
-            return x * math.log(x / y)
-        elif x == 0 and y >= 0:
-            return 0
-        else:
-            return math.inf
-
     assert len(a) == len(b), "Mismatched distribution lengths"
-    return [_rel_entr(x, y) for (x, y) in zip(a, b) if a != 0]
+    return [rel_entr(x, y) for (x, y) in zip(a, b) if a != 0]
 
 
 def kl_divergence(a: list[float], b: list[float]) -> float:

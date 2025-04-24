@@ -41,3 +41,14 @@ def entr(x: float) -> float:
         return 0
     else:
         return -math.inf
+
+
+def rel_entr(x: float, y: float):
+    if math.isnan(x) or math.isnan(y):
+        return math.nan
+    elif x > 0 and y > 0:
+        return x * math.log(x / y)
+    elif x == 0 and y >= 0:
+        return 0
+    else:
+        return math.inf
