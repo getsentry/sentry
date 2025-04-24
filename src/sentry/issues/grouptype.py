@@ -133,10 +133,10 @@ class GroupTypeRegistry:
         return {type.type_id for type in self._registry.values()}
 
     def get_by_category(self, category: int) -> set[int]:
-        return self._category_lookup[category]
+        return self._category_lookup.get(category, set())
 
     def get_by_category_v2(self, category: int) -> set[int]:
-        return self._category_lookup_v2[category]
+        return self._category_lookup_v2.get(category, set())
 
     def get_by_slug(self, slug: str) -> type[GroupType] | None:
         if slug not in self._slug_lookup:
