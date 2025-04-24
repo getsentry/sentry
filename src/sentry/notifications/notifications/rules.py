@@ -29,16 +29,18 @@ from sentry.notifications.types import (
 from sentry.notifications.utils import (
     get_commits,
     get_generic_data,
-    get_group_settings_link,
-    get_integration_link,
     get_interface_list,
-    get_issue_replay_link,
     get_performance_issue_alert_subtitle,
     get_replay_id,
     get_rules,
     get_transaction_data,
     has_alert_integration,
     has_integrations,
+)
+from sentry.notifications.utils.links import (
+    get_group_settings_link,
+    get_integration_link,
+    get_issue_replay_link,
 )
 from sentry.notifications.utils.participants import get_owner_reason, get_send_to
 from sentry.plugins.base.structs import Notification
