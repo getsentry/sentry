@@ -61,6 +61,7 @@ function CreateDashboard(props: Props) {
       <ErrorBoundary>
         <DashboardDetail
           {...props}
+          key={dashboard.id}
           theme={theme}
           initialState={initialState}
           dashboard={dashboard}
