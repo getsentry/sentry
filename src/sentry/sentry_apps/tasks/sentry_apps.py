@@ -122,6 +122,46 @@ def _webhook_event_data(
 
 
 @instrumented_task(
+    name="sentry.sentry_apps.tasks.sentry_apps.synchronize_service_hooks_with_sentry_apps",
+    taskworker_config=TaskworkerConfig(namespace=sentryapp_control_tasks, retry=Retry(times=3)),
+    **CONTROL_TASK_OPTIONS,
+)
+def synchronize_service_hooks_with_sentry_apps() -> None:
+    """
+    Periodic task to synchronize service hooks with their Sentry App configurations.
+    This ensures that service hooks have the correct events registered.
+    """
+    installations = SentryAppInstallation.objects.filter(
+        status=SentryAppInstallationStatus.INSTALLED
+    )
+    
+    for installation in installations:
+        try:
+            service_hook = ServiceHook.objects.get(
+                organization_id=installation.organization_id,
+                actor_id=installation.id,
+            )
+            
+            app_events = set(installation.sentry_app.events)
+            hook_events = set(service_hook.events)
+            
+            if app_events != hook_events:
+                create_or_update_service_hooks_for_installation(
+                    installation=installation,
+                    webhook_url=installation.sentry_app.webhook_url,
+                    events=list(app_events),
+                )
+                
+        except ServiceHook.DoesNotExist:
+            if installation.sentry_app.events and installation.sentry_app.webhook_url:
+                create_or_update_service_hooks_for_installation(
+                    installation=installation,
+                    webhook_url=installation.sentry_app.webhook_url,
+                    events=list(installation.sentry_app.events),
+                )
+
+
+@instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook_v2",
     taskworker_config=TaskworkerConfig(namespace=sentryapp_tasks, retry=Retry(times=3)),
     **TASK_OPTIONS,
@@ -217,6 +257,46 @@ def send_alert_webhook_v2(
             sentry_app_id=sentry_app_id,
             event=SentryAppEventType.EVENT_ALERT_TRIGGERED,
         )
+
+
+@instrumented_task(
+    name="sentry.sentry_apps.tasks.sentry_apps.synchronize_service_hooks_with_sentry_apps",
+    taskworker_config=TaskworkerConfig(namespace=sentryapp_control_tasks, retry=Retry(times=3)),
+    **CONTROL_TASK_OPTIONS,
+)
+def synchronize_service_hooks_with_sentry_apps() -> None:
+    """
+    Periodic task to synchronize service hooks with their Sentry App configurations.
+    This ensures that service hooks have the correct events registered.
+    """
+    installations = SentryAppInstallation.objects.filter(
+        status=SentryAppInstallationStatus.INSTALLED
+    )
+    
+    for installation in installations:
+        try:
+            service_hook = ServiceHook.objects.get(
+                organization_id=installation.organization_id,
+                actor_id=installation.id,
+            )
+            
+            app_events = set(installation.sentry_app.events)
+            hook_events = set(service_hook.events)
+            
+            if app_events != hook_events:
+                create_or_update_service_hooks_for_installation(
+                    installation=installation,
+                    webhook_url=installation.sentry_app.webhook_url,
+                    events=list(app_events),
+                )
+                
+        except ServiceHook.DoesNotExist:
+            if installation.sentry_app.events and installation.sentry_app.webhook_url:
+                create_or_update_service_hooks_for_installation(
+                    installation=installation,
+                    webhook_url=installation.sentry_app.webhook_url,
+                    events=list(installation.sentry_app.events),
+                )
 
 
 @instrumented_task(
@@ -346,7 +426,9 @@ def _is_project_allowed(installation: RpcSentryAppInstallation, project_id: int)
     ],
     recalculate=False,
 )
-def _load_service_hook(organization_id: int | None, installation_id: int) -> ServiceHook | None:
+def _load_service_hook(organization_id: int | None, installation_id: int, force_refresh: bool = False) -> ServiceHook | None:
+    if force_refresh:
+        _load_service_hook.invalidate((organization_id, installation_id))
     try:
         service_hook = ServiceHook.objects.get(
             organization_id=organization_id,
@@ -386,6 +468,46 @@ def _does_project_filter_allow_project(service_hook_id: int, project_id: int) ->
 
 
 @instrumented_task(
+    name="sentry.sentry_apps.tasks.sentry_apps.synchronize_service_hooks_with_sentry_apps",
+    taskworker_config=TaskworkerConfig(namespace=sentryapp_control_tasks, retry=Retry(times=3)),
+    **CONTROL_TASK_OPTIONS,
+)
+def synchronize_service_hooks_with_sentry_apps() -> None:
+    """
+    Periodic task to synchronize service hooks with their Sentry App configurations.
+    This ensures that service hooks have the correct events registered.
+    """
+    installations = SentryAppInstallation.objects.filter(
+        status=SentryAppInstallationStatus.INSTALLED
+    )
+    
+    for installation in installations:
+        try:
+            service_hook = ServiceHook.objects.get(
+                organization_id=installation.organization_id,
+                actor_id=installation.id,
+            )
+            
+            app_events = set(installation.sentry_app.events)
+            hook_events = set(service_hook.events)
+            
+            if app_events != hook_events:
+                create_or_update_service_hooks_for_installation(
+                    installation=installation,
+                    webhook_url=installation.sentry_app.webhook_url,
+                    events=list(app_events),
+                )
+                
+        except ServiceHook.DoesNotExist:
+            if installation.sentry_app.events and installation.sentry_app.webhook_url:
+                create_or_update_service_hooks_for_installation(
+                    installation=installation,
+                    webhook_url=installation.sentry_app.webhook_url,
+                    events=list(installation.sentry_app.events),
+                )
+
+
+@instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound",
     taskworker_config=TaskworkerConfig(namespace=sentryapp_tasks, retry=Retry(times=3)),
     **TASK_OPTIONS,
@@ -395,6 +517,46 @@ def process_resource_change_bound(
     action: str, sender: str, instance_id: int, **kwargs: Any
 ) -> None:
     _process_resource_change(action=action, sender=sender, instance_id=instance_id, **kwargs)
+
+
+@instrumented_task(
+    name="sentry.sentry_apps.tasks.sentry_apps.synchronize_service_hooks_with_sentry_apps",
+    taskworker_config=TaskworkerConfig(namespace=sentryapp_control_tasks, retry=Retry(times=3)),
+    **CONTROL_TASK_OPTIONS,
+)
+def synchronize_service_hooks_with_sentry_apps() -> None:
+    """
+    Periodic task to synchronize service hooks with their Sentry App configurations.
+    This ensures that service hooks have the correct events registered.
+    """
+    installations = SentryAppInstallation.objects.filter(
+        status=SentryAppInstallationStatus.INSTALLED
+    )
+    
+    for installation in installations:
+        try:
+            service_hook = ServiceHook.objects.get(
+                organization_id=installation.organization_id,
+                actor_id=installation.id,
+            )
+            
+            app_events = set(installation.sentry_app.events)
+            hook_events = set(service_hook.events)
+            
+            if app_events != hook_events:
+                create_or_update_service_hooks_for_installation(
+                    installation=installation,
+                    webhook_url=installation.sentry_app.webhook_url,
+                    events=list(app_events),
+                )
+                
+        except ServiceHook.DoesNotExist:
+            if installation.sentry_app.events and installation.sentry_app.webhook_url:
+                create_or_update_service_hooks_for_installation(
+                    installation=installation,
+                    webhook_url=installation.sentry_app.webhook_url,
+                    events=list(installation.sentry_app.events),
+                )
 
 
 @instrumented_task(
@@ -425,6 +587,46 @@ def installation_webhook(installation_id: int, user_id: int, *args: Any, **kwarg
     SentryAppInstallationNotifier(
         sentry_app_installation=install, user=user, action="created"
     ).run()
+
+
+@instrumented_task(
+    name="sentry.sentry_apps.tasks.sentry_apps.synchronize_service_hooks_with_sentry_apps",
+    taskworker_config=TaskworkerConfig(namespace=sentryapp_control_tasks, retry=Retry(times=3)),
+    **CONTROL_TASK_OPTIONS,
+)
+def synchronize_service_hooks_with_sentry_apps() -> None:
+    """
+    Periodic task to synchronize service hooks with their Sentry App configurations.
+    This ensures that service hooks have the correct events registered.
+    """
+    installations = SentryAppInstallation.objects.filter(
+        status=SentryAppInstallationStatus.INSTALLED
+    )
+    
+    for installation in installations:
+        try:
+            service_hook = ServiceHook.objects.get(
+                organization_id=installation.organization_id,
+                actor_id=installation.id,
+            )
+            
+            app_events = set(installation.sentry_app.events)
+            hook_events = set(service_hook.events)
+            
+            if app_events != hook_events:
+                create_or_update_service_hooks_for_installation(
+                    installation=installation,
+                    webhook_url=installation.sentry_app.webhook_url,
+                    events=list(app_events),
+                )
+                
+        except ServiceHook.DoesNotExist:
+            if installation.sentry_app.events and installation.sentry_app.webhook_url:
+                create_or_update_service_hooks_for_installation(
+                    installation=installation,
+                    webhook_url=installation.sentry_app.webhook_url,
+                    events=list(installation.sentry_app.events),
+                )
 
 
 @instrumented_task(
@@ -472,6 +674,46 @@ def clear_region_cache(sentry_app_id: int, region_name: str) -> None:
 
 
 @instrumented_task(
+    name="sentry.sentry_apps.tasks.sentry_apps.synchronize_service_hooks_with_sentry_apps",
+    taskworker_config=TaskworkerConfig(namespace=sentryapp_control_tasks, retry=Retry(times=3)),
+    **CONTROL_TASK_OPTIONS,
+)
+def synchronize_service_hooks_with_sentry_apps() -> None:
+    """
+    Periodic task to synchronize service hooks with their Sentry App configurations.
+    This ensures that service hooks have the correct events registered.
+    """
+    installations = SentryAppInstallation.objects.filter(
+        status=SentryAppInstallationStatus.INSTALLED
+    )
+    
+    for installation in installations:
+        try:
+            service_hook = ServiceHook.objects.get(
+                organization_id=installation.organization_id,
+                actor_id=installation.id,
+            )
+            
+            app_events = set(installation.sentry_app.events)
+            hook_events = set(service_hook.events)
+            
+            if app_events != hook_events:
+                create_or_update_service_hooks_for_installation(
+                    installation=installation,
+                    webhook_url=installation.sentry_app.webhook_url,
+                    events=list(app_events),
+                )
+                
+        except ServiceHook.DoesNotExist:
+            if installation.sentry_app.events and installation.sentry_app.webhook_url:
+                create_or_update_service_hooks_for_installation(
+                    installation=installation,
+                    webhook_url=installation.sentry_app.webhook_url,
+                    events=list(installation.sentry_app.events),
+                )
+
+
+@instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.workflow_notification",
     taskworker_config=TaskworkerConfig(namespace=sentryapp_tasks, retry=Retry(times=3)),
     **TASK_OPTIONS,
@@ -498,6 +740,46 @@ def workflow_notification(
         group_id=issue_id,
         installation_id=installation_id,
     )
+
+
+@instrumented_task(
+    name="sentry.sentry_apps.tasks.sentry_apps.synchronize_service_hooks_with_sentry_apps",
+    taskworker_config=TaskworkerConfig(namespace=sentryapp_control_tasks, retry=Retry(times=3)),
+    **CONTROL_TASK_OPTIONS,
+)
+def synchronize_service_hooks_with_sentry_apps() -> None:
+    """
+    Periodic task to synchronize service hooks with their Sentry App configurations.
+    This ensures that service hooks have the correct events registered.
+    """
+    installations = SentryAppInstallation.objects.filter(
+        status=SentryAppInstallationStatus.INSTALLED
+    )
+    
+    for installation in installations:
+        try:
+            service_hook = ServiceHook.objects.get(
+                organization_id=installation.organization_id,
+                actor_id=installation.id,
+            )
+            
+            app_events = set(installation.sentry_app.events)
+            hook_events = set(service_hook.events)
+            
+            if app_events != hook_events:
+                create_or_update_service_hooks_for_installation(
+                    installation=installation,
+                    webhook_url=installation.sentry_app.webhook_url,
+                    events=list(app_events),
+                )
+                
+        except ServiceHook.DoesNotExist:
+            if installation.sentry_app.events and installation.sentry_app.webhook_url:
+                create_or_update_service_hooks_for_installation(
+                    installation=installation,
+                    webhook_url=installation.sentry_app.webhook_url,
+                    events=list(installation.sentry_app.events),
+                )
 
 
 @instrumented_task(
@@ -566,6 +848,46 @@ def get_webhook_data(
             )
 
     return (install, issue, user)
+
+
+@instrumented_task(
+    name="sentry.sentry_apps.tasks.sentry_apps.synchronize_service_hooks_with_sentry_apps",
+    taskworker_config=TaskworkerConfig(namespace=sentryapp_control_tasks, retry=Retry(times=3)),
+    **CONTROL_TASK_OPTIONS,
+)
+def synchronize_service_hooks_with_sentry_apps() -> None:
+    """
+    Periodic task to synchronize service hooks with their Sentry App configurations.
+    This ensures that service hooks have the correct events registered.
+    """
+    installations = SentryAppInstallation.objects.filter(
+        status=SentryAppInstallationStatus.INSTALLED
+    )
+    
+    for installation in installations:
+        try:
+            service_hook = ServiceHook.objects.get(
+                organization_id=installation.organization_id,
+                actor_id=installation.id,
+            )
+            
+            app_events = set(installation.sentry_app.events)
+            hook_events = set(service_hook.events)
+            
+            if app_events != hook_events:
+                create_or_update_service_hooks_for_installation(
+                    installation=installation,
+                    webhook_url=installation.sentry_app.webhook_url,
+                    events=list(app_events),
+                )
+                
+        except ServiceHook.DoesNotExist:
+            if installation.sentry_app.events and installation.sentry_app.webhook_url:
+                create_or_update_service_hooks_for_installation(
+                    installation=installation,
+                    webhook_url=installation.sentry_app.webhook_url,
+                    events=list(installation.sentry_app.events),
+                )
 
 
 @instrumented_task(
@@ -656,9 +978,24 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
             )
             raise SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_SERVICEHOOK)
         if event not in servicehook.events:
-            raise SentryAppSentryError(
-                message=SentryAppWebhookFailureReason.EVENT_NOT_IN_SERVCEHOOK
-            )
+            if event in installation.sentry_app.events:
+                create_or_update_service_hooks_for_installation(
+                    installation=installation,
+                    webhook_url=installation.sentry_app.webhook_url,
+                    events=installation.sentry_app.events,
+                )
+                # Reload the service hook after updating
+                servicehook = _load_service_hook(
+                    installation.organization_id, installation.id, force_refresh=True
+                )
+                if not servicehook or event not in servicehook.events:
+                    raise SentryAppSentryError(
+                        message=SentryAppWebhookFailureReason.EVENT_NOT_IN_SERVCEHOOK
+                    )
+            else:
+                raise SentryAppSentryError(
+                    message=SentryAppWebhookFailureReason.EVENT_NOT_IN_SERVCEHOOK
+                )
 
         # TODO(nola): This is disabled for now, because it could potentially affect internal integrations w/ error.created
         # # If the event is error.created & the request is going out to the Org that owns the Sentry App,
@@ -688,6 +1025,46 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
         request_data,
         installation.sentry_app.webhook_url,
     )
+
+
+@instrumented_task(
+    name="sentry.sentry_apps.tasks.sentry_apps.synchronize_service_hooks_with_sentry_apps",
+    taskworker_config=TaskworkerConfig(namespace=sentryapp_control_tasks, retry=Retry(times=3)),
+    **CONTROL_TASK_OPTIONS,
+)
+def synchronize_service_hooks_with_sentry_apps() -> None:
+    """
+    Periodic task to synchronize service hooks with their Sentry App configurations.
+    This ensures that service hooks have the correct events registered.
+    """
+    installations = SentryAppInstallation.objects.filter(
+        status=SentryAppInstallationStatus.INSTALLED
+    )
+    
+    for installation in installations:
+        try:
+            service_hook = ServiceHook.objects.get(
+                organization_id=installation.organization_id,
+                actor_id=installation.id,
+            )
+            
+            app_events = set(installation.sentry_app.events)
+            hook_events = set(service_hook.events)
+            
+            if app_events != hook_events:
+                create_or_update_service_hooks_for_installation(
+                    installation=installation,
+                    webhook_url=installation.sentry_app.webhook_url,
+                    events=list(app_events),
+                )
+                
+        except ServiceHook.DoesNotExist:
+            if installation.sentry_app.events and installation.sentry_app.webhook_url:
+                create_or_update_service_hooks_for_installation(
+                    installation=installation,
+                    webhook_url=installation.sentry_app.webhook_url,
+                    events=list(installation.sentry_app.events),
+                )
 
 
 @instrumented_task(
