@@ -26,6 +26,8 @@ from sentry.snuba.metrics import format_mri_field, format_mri_field_value, is_mr
 from sentry.snuba.models import SnubaQuery
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
+from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
+from sentry.workflow_engine.models.incident_groupopenperiod import IncidentGroupOpenPeriod
 
 QUERY_AGGREGATION_DISPLAY = {
     "count()": "events",
@@ -217,9 +219,31 @@ def incident_attachment_info(
     if notification_uuid:
         title_link_params["notification_uuid"] = notification_uuid
 
-    if features.has("organizations:workflow-engine-trigger-actions", organization) and features.has(
-        "organizations:workflow-engine-ui-links", organization
-    ):
+    if features.has("organizations:workflow-engine-trigger-actions", organization):
+        try:
+            alert_rule_detector = AlertRuleDetector.objects.get(
+                detector_id=alert_context.action_identifier_id
+            )
+        except AlertRuleDetector.DoesNotExist:
+            raise ValueError("Alert rule detector not found when querying for AlertRuleDetector")
+
+        try:
+            open_period_incident = IncidentGroupOpenPeriod.objects.get(
+                group_open_period_id=metric_issue_context.open_period_identifier
+            )
+        except IncidentGroupOpenPeriod.DoesNotExist:
+            raise ValueError(
+                "Incident group open period not found when querying for IncidentGroupOpenPeriod"
+            )
+
+        workflow_engine_params = title_link_params.copy()
+        workflow_engine_params["alert"] = str(open_period_incident.incident_id)
+
+        title_link = build_title_link(
+            alert_rule_detector.alert_rule_id, organization, workflow_engine_params
+        )
+
+    elif features.has("organizations:workflow-engine-ui-links", organization):
         if metric_issue_context.group is None:
             raise ValueError("Group is required for workflow engine UI links")
 

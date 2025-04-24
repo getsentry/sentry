@@ -14,7 +14,7 @@ from sentry.incidents.models.alert_rule import (
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group, GroupStatus
-from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.models.groupopenperiod import GroupOpenPeriod, get_open_periods_for_group
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.types.group import PriorityLevel
@@ -179,13 +179,18 @@ class MetricIssueContext:
         occurrence = group_event.occurrence
         if occurrence is None:
             raise ValueError("Occurrence is required for alert context")
+
+        open_periods = get_open_periods_for_group(group, limit=1)
+        if len(open_periods) == 0:
+            raise ValueError("No open periods found for group")
+        open_period = open_periods[0]
+
         return cls(
             # TODO(iamrajjoshi): Replace with something once we know how we want to build the link
             # If we store open periods in the database, we can use the id from that
             # Otherwise, we can use the issue id
             id=group.id,
-            # TODO(iamrajjoshi): This should probably be the id of the latest open period
-            open_period_identifier=group.id,
+            open_period_identifier=open_period.id,
             snuba_query=cls._get_snuba_query(occurrence),
             subscription=cls._get_subscription(occurrence),
             new_status=cls._get_new_status(group, occurrence),
