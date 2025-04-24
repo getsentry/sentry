@@ -226,11 +226,11 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
             if payload.get("culprit"):
                 occurrence_data["culprit"] = payload["culprit"]
 
-            if payload.get("initial_issue_priority") is not None:
-                occurrence_data["initial_issue_priority"] = payload["initial_issue_priority"]
+            if payload.get("priority") is not None:
+                occurrence_data["priority"] = payload["priority"]
             else:
                 group_type = get_group_type_by_type_id(occurrence_data["type"])
-                occurrence_data["initial_issue_priority"] = group_type.default_priority
+                occurrence_data["priority"] = group_type.default_priority
 
             if "event" in payload:
                 event_payload = payload["event"]
@@ -388,7 +388,7 @@ def process_occurrence_message(
 @sentry_sdk.tracing.trace
 @metrics.wraps("occurrence_consumer.process_message")
 def _process_message(
-    message: Mapping[str, Any]
+    message: Mapping[str, Any],
 ) -> tuple[IssueOccurrence | None, GroupInfo | None] | None:
     """
     :raises InvalidEventPayloadError: when the message is invalid

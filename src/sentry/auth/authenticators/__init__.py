@@ -1,19 +1,12 @@
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
-
-from .base import AuthenticatorInterface
+from .base import AuthenticatorInterface  # NOQA
 from .recovery_code import RecoveryCodeInterface
 from .sms import SmsInterface
 from .totp import TotpInterface
 from .u2f import U2fInterface
 
-if TYPE_CHECKING:
-    from django.utils.functional import _StrPromise
-
-AUTHENTICATOR_INTERFACES: dict[str, type[AuthenticatorInterface]] = {}
-AUTHENTICATOR_INTERFACES_BY_TYPE: dict[int, type[AuthenticatorInterface]] = {}
-AUTHENTICATOR_CHOICES: list[tuple[int, str | _StrPromise]] = []
+AUTHENTICATOR_INTERFACES = {}
+AUTHENTICATOR_INTERFACES_BY_TYPE = {}
+AUTHENTICATOR_CHOICES = []
 
 
 def register_authenticator(cls: type[AuthenticatorInterface]) -> None:

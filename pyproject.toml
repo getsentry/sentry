@@ -62,7 +62,6 @@ warn_unused_configs = true
 warn_unused_ignores = true
 warn_redundant_casts = true
 enable_error_code = ["ignore-without-code", "redundant-self"]
-local_partial_types = true  # compat with dmypy
 
 [tool.django-stubs]
 django_settings_module = "sentry.conf.server_mypy"
@@ -130,7 +129,6 @@ module = [
     "sentry.integrations.github.client",
     "sentry.integrations.github.integration",
     "sentry.integrations.gitlab.issues",
-    "sentry.integrations.jira.integration",
     "sentry.integrations.pagerduty.actions.form",
     "sentry.integrations.pipeline",
     "sentry.integrations.slack.message_builder.notifications.issues",
