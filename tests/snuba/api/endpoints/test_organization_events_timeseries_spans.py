@@ -1677,7 +1677,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 "yAxis": "count()",
                 "project": self.project.id,
                 "dataset": "spans",
-                "sampling": "NORMAL",
+                "sampling": "BEST_EFFORT",
             },
         )
 
@@ -1767,7 +1767,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 "yAxis": "count()",
                 "project": self.project.id,
                 "dataset": "spans",
-                "sampling": "NORMAL",
+                "sampling": "BEST_EFFORT",
             },
         )
 
