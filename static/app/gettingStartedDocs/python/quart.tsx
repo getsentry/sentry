@@ -2,7 +2,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   type Docs,
-  DocsPageLocation,
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -18,7 +17,6 @@ import {
 import {t, tct} from 'sentry/locale';
 import {
   getPythonInstallConfig,
-  getPythonProfilingMinVersionMessage,
   getPythonProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/python';
 
@@ -68,7 +66,7 @@ const onboarding: OnboardingConfig = {
     tct('The Quart integration adds support for the [link:Quart Web Framework].', {
       link: <ExternalLink href="https://quart.palletsprojects.com/" />,
     }),
-  install: (params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
       description: tct(
@@ -77,13 +75,7 @@ const onboarding: OnboardingConfig = {
           code: <code />,
         }
       ),
-      configurations: getPythonInstallConfig({
-        packageName: "'sentry-sdk[quart]'",
-        description:
-          params.docsLocation === DocsPageLocation.PROFILING_PAGE
-            ? getPythonProfilingMinVersionMessage()
-            : undefined,
-      }),
+      configurations: getPythonInstallConfig({packageName: "'sentry-sdk[quart]'"}),
     },
   ],
   configure: (params: Params) => [

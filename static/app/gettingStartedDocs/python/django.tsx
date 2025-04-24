@@ -2,7 +2,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   type Docs,
-  DocsPageLocation,
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -18,7 +17,6 @@ import {
 import {t, tct} from 'sentry/locale';
 import {
   getPythonInstallConfig,
-  getPythonProfilingMinVersionMessage,
   getPythonProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/python';
 
@@ -61,7 +59,7 @@ sentry_sdk.init(
 `;
 
 const onboarding: OnboardingConfig = {
-  install: (params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
       description: tct(
@@ -70,13 +68,7 @@ const onboarding: OnboardingConfig = {
           code: <code />,
         }
       ),
-      configurations: getPythonInstallConfig({
-        packageName: "'sentry-sdk[django]'",
-        description:
-          params.docsLocation === DocsPageLocation.PROFILING_PAGE
-            ? getPythonProfilingMinVersionMessage()
-            : undefined,
-      }),
+      configurations: getPythonInstallConfig({packageName: "'sentry-sdk[django]'"}),
     },
   ],
   configure: (params: Params) => [

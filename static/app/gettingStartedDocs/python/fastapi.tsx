@@ -4,7 +4,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   type Docs,
-  DocsPageLocation,
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -20,7 +19,6 @@ import {
 import {t, tct} from 'sentry/locale';
 import {
   getPythonInstallConfig,
-  getPythonProfilingMinVersionMessage,
   getPythonProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/python';
 
@@ -68,7 +66,7 @@ const onboarding: OnboardingConfig = {
     tct('The FastAPI integration adds support for the [link:FastAPI Framework].', {
       link: <ExternalLink href="https://fastapi.tiangolo.com/" />,
     }),
-  install: (params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
       description: tct(
@@ -77,13 +75,7 @@ const onboarding: OnboardingConfig = {
           code: <code />,
         }
       ),
-      configurations: getPythonInstallConfig({
-        packageName: "'sentry-sdk[fastapi]'",
-        description:
-          params.docsLocation === DocsPageLocation.PROFILING_PAGE
-            ? getPythonProfilingMinVersionMessage()
-            : undefined,
-      }),
+      configurations: getPythonInstallConfig({packageName: "'sentry-sdk[fastapi]'"}),
     },
   ],
   configure: (params: Params) => [

@@ -9,7 +9,6 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   type Docs,
-  DocsPageLocation,
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -19,10 +18,7 @@ import {
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  getPythonInstallConfig,
-  getPythonProfilingMinVersionMessage,
-} from 'sentry/utils/gettingStartedDocs/python';
+import {getPythonInstallConfig} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
@@ -74,18 +70,12 @@ sentry_sdk.init(
   ],
 )`;
 
-const installStep = (params: Params): StepProps => ({
+const installStep = (): StepProps => ({
   type: StepType.INSTALL,
   description: tct('Install [code:sentry-sdk] from PyPI with the [code:django] extra:', {
     code: <code />,
   }),
-  configurations: getPythonInstallConfig({
-    packageName: "'sentry-sdk'",
-    description:
-      params.docsLocation === DocsPageLocation.PROFILING_PAGE
-        ? getPythonProfilingMinVersionMessage()
-        : undefined,
-  }),
+  configurations: getPythonInstallConfig(),
 });
 
 const configureStep = (params: Params): StepProps => ({
@@ -125,7 +115,7 @@ const onboarding: OnboardingConfig = {
         ),
       }
     ),
-  install: (params: Params) => [installStep(params)],
+  install: () => [installStep()],
   configure: (params: Params) => [
     configureStep(params),
     {
@@ -171,7 +161,7 @@ const onboarding: OnboardingConfig = {
 };
 
 const profilingOnboarding: OnboardingConfig = {
-  install: (params: Params) => [installStep(params)],
+  install: () => [installStep()],
   configure: (params: Params) => [configureStep(params)],
   verify: () => [],
 };

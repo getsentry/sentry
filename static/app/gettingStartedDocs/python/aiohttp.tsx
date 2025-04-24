@@ -2,7 +2,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   type Docs,
-  DocsPageLocation,
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -19,7 +18,6 @@ import {t, tct} from 'sentry/locale';
 import {
   getPythonAiocontextvarsConfig,
   getPythonInstallConfig,
-  getPythonProfilingMinVersionMessage,
   getPythonProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/python';
 
@@ -71,7 +69,7 @@ const onboarding: OnboardingConfig = {
         link: <ExternalLink href="https://docs.aiohttp.org/en/stable/web.html" />,
       }
     ),
-  install: (params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
       description: tct('Install [code:sentry-sdk] from PyPI:', {
@@ -80,10 +78,6 @@ const onboarding: OnboardingConfig = {
       configurations: [
         ...getPythonInstallConfig({
           packageName: "'sentry-sdk'",
-          description:
-            params.docsLocation === DocsPageLocation.PROFILING_PAGE
-              ? getPythonProfilingMinVersionMessage()
-              : undefined,
         }),
         ...getPythonAiocontextvarsConfig(),
       ],

@@ -6,7 +6,6 @@ import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStarted
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   type Docs,
-  DocsPageLocation,
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -18,7 +17,6 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
   getPythonInstallConfig,
-  getPythonProfilingMinVersionMessage,
   getPythonProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/python';
 
@@ -65,7 +63,7 @@ const onboarding: OnboardingConfig = {
     tct('The celery integration adds support for the [link:Celery Task Queue System].', {
       link: <ExternalLink href="https://docs.celeryq.dev/en/stable/" />,
     }),
-  install: (params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
       description: tct(
@@ -74,13 +72,7 @@ const onboarding: OnboardingConfig = {
           code: <code />,
         }
       ),
-      configurations: getPythonInstallConfig({
-        packageName: "'sentry-sdk[celery]'",
-        description:
-          params.docsLocation === DocsPageLocation.PROFILING_PAGE
-            ? getPythonProfilingMinVersionMessage()
-            : undefined,
-      }),
+      configurations: getPythonInstallConfig({packageName: "'sentry-sdk[celery]'"}),
     },
   ],
   configure: (params: Params) => [

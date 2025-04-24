@@ -6,7 +6,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   type Docs,
-  DocsPageLocation,
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -18,7 +17,6 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
   getPythonInstallConfig,
-  getPythonProfilingMinVersionMessage,
   getPythonProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/python';
 
@@ -73,18 +71,13 @@ sentry_sdk.init(
 )`;
 
 const onboarding: OnboardingConfig = {
-  install: (params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
       description: tct('Install [code:sentry-sdk] from PyPI:', {
         code: <code />,
       }),
-      configurations: getPythonInstallConfig({
-        description:
-          params.docsLocation === DocsPageLocation.PROFILING_PAGE
-            ? getPythonProfilingMinVersionMessage()
-            : undefined,
-      }),
+      configurations: getPythonInstallConfig(),
     },
   ],
   configure: (params: Params) => [
