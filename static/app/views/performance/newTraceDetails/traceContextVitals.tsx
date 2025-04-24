@@ -1,10 +1,14 @@
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {space} from 'sentry/styles/space';
+import {EventTransaction} from 'sentry/types/event';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import type {Vital} from 'sentry/utils/performance/vitals/types';
+import {UseApiQueryResult} from 'sentry/utils/queryClient';
+import RequestError from 'sentry/utils/requestError/requestError';
+import {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {VITAL_DESCRIPTIONS} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
 import {WEB_VITALS_METERS_CONFIG} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
@@ -17,22 +21,18 @@ import {
   STATUS_TEXT,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
 
 type Props = {
+  logs: OurLogsResponseItem[] | undefined;
+  rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
   tree: TraceTree;
 };
 
-export function treeHasValidVitals(tree: TraceTree) {
-  const allowedVitals = Object.keys(VITAL_DETAILS);
-  return Array.from(tree.vitals.values()).some(vitalGroup =>
-    vitalGroup.some(vital => allowedVitals.includes(`measurements.${vital.key}`))
-  );
-}
+export function TraceContextVitals({rootEvent, tree, logs}: Props) {
+  const {hasVitals} = useTraceContextSections({tree, rootEvent, logs});
 
-export function TraceContextVitals({tree}: Props) {
-  const hasValidVitals = treeHasValidVitals(tree);
-
-  if (!hasValidVitals) {
+  if (!hasVitals) {
     return null;
   }
 
@@ -69,7 +69,7 @@ type VitalPillProps = {
   vital: Vital;
 };
 
-export function VitalPill({vital, score, meterValue}: VitalPillProps) {
+function VitalPill({vital, score, meterValue}: VitalPillProps) {
   const status = score === undefined || isNaN(score) ? 'none' : scoreToStatus(score);
   const webVitalsConfig = WEB_VITALS_METERS_CONFIG;
 

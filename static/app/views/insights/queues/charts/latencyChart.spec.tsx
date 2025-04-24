@@ -44,7 +44,11 @@ describe('latencyChart', () => {
   });
   it('renders', async () => {
     render(
-      <LatencyChart destination="events" referrer={Referrer.QUEUES_SUMMARY_CHARTS} />,
+      <LatencyChart
+        id="latency-chart-test"
+        destination="events"
+        referrer={Referrer.QUEUES_SUMMARY_CHARTS}
+      />,
       {organization}
     );
     screen.getByText('Average Duration');

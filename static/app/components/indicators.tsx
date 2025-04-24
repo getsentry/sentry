@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
-import {removeIndicator} from 'sentry/actionCreators/indicator';
 import {Toast} from 'sentry/components/core/toast';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -22,7 +21,11 @@ function Indicators(props: Props) {
        */}
       <AnimatePresence mode="wait">
         {items.map(indicator => (
-          <Toast key={indicator.id} onDismiss={removeIndicator} indicator={indicator} />
+          <Toast
+            key={indicator.id}
+            onDismiss={() => IndicatorStore.remove(indicator)}
+            indicator={indicator}
+          />
         ))}
       </AnimatePresence>
     </Toasts>

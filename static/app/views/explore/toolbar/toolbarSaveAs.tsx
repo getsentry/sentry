@@ -119,9 +119,16 @@ export function ToolbarSaveAs() {
     key: 'save-query',
     label: <span>{t('A New Query')}</span>,
     onAction: () => {
+      trackAnalytics('trace_explorer.save_query_modal', {
+        action: 'open',
+        save_type: 'save_new_query',
+        ui_source: 'toolbar',
+        organization,
+      });
       openSaveQueryModal({
         organization,
         saveQuery,
+        source: 'toolbar',
       });
     },
   });
@@ -210,7 +217,7 @@ export function ToolbarSaveAs() {
       !valueIsEqual(locationSortByString, singleQuery?.orderby),
       !valueIsEqual(fields, singleQuery?.fields),
       !valueIsEqual(
-        visualizes.map(({chartType, yAxes}) => ({chartType, yAxes})),
+        visualizes.map(visualize => visualize.toJSON()),
         singleQuery?.visualize,
         true
       ),
@@ -298,7 +305,7 @@ const DisabledText = styled('span')`
 
 const StyledToolbarSection = styled(ToolbarSection)`
   border-top: 1px solid ${p => p.theme.border};
-  padding-top: ${space(2)};
+  padding-top: ${space(3)};
 `;
 
 const SaveAsButton = styled(Button)`

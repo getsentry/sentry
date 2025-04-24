@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
-import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import toPercent from 'sentry/utils/number/toPercent';
 import toRoundedPercent from 'sentry/utils/number/toRoundedPercent';
@@ -14,7 +14,7 @@ interface BreakdownGroup {
   name: string;
 }
 
-export function TooltipContents({
+function TooltipContents({
   row,
   total,
   breakdownGroups,

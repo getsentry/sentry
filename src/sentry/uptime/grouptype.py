@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
+from sentry.uptime.types import ProjectUptimeSubscriptionMode
 from sentry.workflow_engine.types import DetectorSettings
 
 
@@ -14,6 +15,7 @@ class UptimeDomainCheckFailure(GroupType):
     slug = "uptime_domain_failure"
     description = "Uptime Domain Monitor Failure"
     category = GroupCategory.UPTIME.value
+    category_v2 = GroupCategory.OUTAGE.value
     creation_quota = Quota(3600, 60, 1000)  # 1000 per hour, sliding window of 60 seconds
     default_priority = PriorityLevel.HIGH
     enable_auto_resolve = False
@@ -27,10 +29,9 @@ class UptimeDomainCheckFailure(GroupType):
             "properties": {
                 "mode": {
                     "type": ["integer"],
-                    # TODO: Enable this when we can move this grouptype out of this file
-                    # "enum": [mode.value for mode in ProjectUptimeSubscriptionMode],
+                    "enum": [mode.value for mode in ProjectUptimeSubscriptionMode],
                 },
-                "environment": {"type": ["string"]},
+                "environment": {"type": ["string", "null"]},
             },
             "additionalProperties": False,
         },

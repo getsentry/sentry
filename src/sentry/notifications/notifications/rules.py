@@ -29,16 +29,18 @@ from sentry.notifications.types import (
 from sentry.notifications.utils import (
     get_commits,
     get_generic_data,
-    get_group_settings_link,
-    get_integration_link,
     get_interface_list,
-    get_issue_replay_link,
     get_performance_issue_alert_subtitle,
     get_replay_id,
     get_rules,
     get_transaction_data,
     has_alert_integration,
     has_integrations,
+)
+from sentry.notifications.utils.links import (
+    get_group_settings_link,
+    get_integration_link,
+    get_issue_replay_link,
 )
 from sentry.notifications.utils.participants import get_owner_reason, get_send_to
 from sentry.plugins.base.structs import Notification
@@ -149,19 +151,13 @@ class AlertRuleNotification(ProjectNotification):
         }
 
     def get_image_url(self) -> str | None:
-        if features.has(
-            "organizations:email-performance-regression-image", self.group.organization
-        ):
-            image_builder = IssueAlertImageBuilder(
-                group=self.group, provider=ExternalProviderEnum.EMAIL
-            )
-            return image_builder.get_image_url()
-        return None
+        image_builder = IssueAlertImageBuilder(
+            group=self.group, provider=ExternalProviderEnum.EMAIL
+        )
+        return image_builder.get_image_url()
 
     def is_new_design(self) -> bool:
-        return features.has(
-            "organizations:email-performance-regression-image", self.group.organization
-        ) and self.group.issue_type in [
+        return self.group.issue_type in [
             PerformanceP95EndpointRegressionGroupType,
             ProfileFunctionRegressionType,
         ]

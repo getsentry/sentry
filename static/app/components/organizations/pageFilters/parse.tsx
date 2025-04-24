@@ -10,7 +10,7 @@ import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 
 import type {CodecovPageFiltersState, PageFiltersState} from './types';
 
-export type StatsPeriodType = 'h' | 'd' | 's' | 'm' | 'w';
+type StatsPeriodType = 'h' | 'd' | 's' | 'm' | 'w';
 
 type SingleParamValue = string | undefined | null;
 type ParamValue = string[] | SingleParamValue;
@@ -342,4 +342,16 @@ export function getDatetimeFromState(state: PageFiltersState) {
   return Object.fromEntries(
     Object.entries(state).filter(([key]) => DATE_TIME_KEYS.includes(key))
   ) as PageFilters['datetime'];
+}
+
+/**
+ * Translates a pageFilters object to a location query object using our
+ * standard query params.
+ */
+export function pageFiltersToQueryParams(pageFilters: PageFilters) {
+  return {
+    [URL_PARAM.PROJECT]: pageFilters.projects ?? [],
+    [URL_PARAM.ENVIRONMENT]: pageFilters.environments ?? [],
+    ...normalizeDateTimeParams(pageFilters.datetime),
+  };
 }

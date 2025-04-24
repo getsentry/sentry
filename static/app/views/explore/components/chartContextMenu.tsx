@@ -21,7 +21,7 @@ function ChartContextMenu({
   interval: string;
   query: string;
   visualizeIndex: number;
-  visualizeYAxes: string[];
+  visualizeYAxes: readonly string[];
 }) {
   const {addToDashboard} = useAddToDashboard();
   const organization = useOrganization();

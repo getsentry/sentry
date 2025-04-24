@@ -125,8 +125,6 @@ export interface DataCategoryInfo {
   snakeCasePlural?: string;
 }
 
-export type EventType = 'error' | 'transaction' | 'attachment';
-
 export enum Outcome {
   ACCEPTED = 'accepted',
   FILTERED = 'filtered',
