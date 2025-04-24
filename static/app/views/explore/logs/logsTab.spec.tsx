@@ -11,6 +11,7 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -155,16 +156,7 @@ describe('LogsTabContent', function () {
           environment: [],
           statsPeriod: '14d',
           dataset: 'ourlogs',
-          field: [
-            'sentry.item_id',
-            'project.id',
-            'trace',
-            'severity_number',
-            'severity',
-            'timestamp',
-            'message',
-            'sentry.message.parameters.0',
-          ],
+          field: [...AlwaysPresentLogFields, 'message', 'sentry.message.parameters.0'],
           sort: 'sentry.message.parameters.0',
         }),
       })
