@@ -2,7 +2,6 @@ import type {ReactNode} from 'react';
 import {useCallback, useState} from 'react';
 
 import {Tag} from 'sentry/components/core/badge/tag';
-import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {WIDGET_MAP_DENY_LIST} from 'sentry/views/performance/landing/widgets/utils';
@@ -25,8 +24,6 @@ const [_MEPDataProvider, _useMEPDataContext, _Context] =
     name: 'MetricsEnhancedPerformanceDataContext',
   });
 
-export const MEPDataConsumer = _Context.Consumer;
-export const MEPDataContext = _Context;
 export function MEPDataProvider({
   children,
   chartSetting,
@@ -163,22 +160,4 @@ export function useExtractionStatus(props: {
     return 'not-extracted';
   }
   return 'extracted';
-}
-
-export function ExtractedMetricsTag(props: {queryKey: MetricsResultsMetaMapKey}) {
-  const extractionStatus = useExtractionStatus(props);
-
-  if (extractionStatus === 'extracted') {
-    return (
-      <Tag type="info" data-test-id="has-metrics-data-tag">
-        {t('extracted')}
-      </Tag>
-    );
-  }
-
-  if (extractionStatus === 'not-extracted') {
-    return <Tag style={{opacity: 0.25}}>{t('not extracted')}</Tag>;
-  }
-
-  return null;
 }
