@@ -6,6 +6,7 @@ from django.urls import reverse
 
 from fixtures.integrations.stub_service import StubService
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import control_silo_test
 
 
@@ -181,3 +182,49 @@ class JiraSearchEndpointTest(APITestCase):
         assert resp.data == {
             "detail": "Unable to fetch autocomplete for customfield_0123 from Jira"
         }
+
+    @responses.activate
+    @with_feature("organizations:jira-paginated-projects")
+    def test_project_search_with_pagination(self):
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project/search",
+            json={
+                "values": [
+                    {"id": "10000", "key": "EX", "name": "Example"},
+                ],
+                "total": 2,
+            },
+        )
+
+        self.login_as(self.user)
+
+        path = reverse(
+            "sentry-extensions-jira-search", args=[self.organization.slug, self.integration.id]
+        )
+
+        resp = self.client.get(f"{path}?field=project&query=example")
+        assert resp.status_code == 200
+        assert resp.data == [
+            {"label": "EX - Example", "value": "10000"},
+        ]
+
+    @responses.activate
+    @with_feature("organizations:jira-paginated-projects")
+    def test_project_search_error_with_pagination(self):
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project/search",
+            status=500,
+            body="susge",
+        )
+
+        self.login_as(self.user)
+
+        path = reverse(
+            "sentry-extensions-jira-search", args=[self.organization.slug, self.integration.id]
+        )
+
+        resp = self.client.get(f"{path}?field=project&query=example")
+        assert resp.status_code == 400
+        assert resp.data == {"detail": "Unable to fetch projects from Jira"}
