@@ -18,6 +18,7 @@ import {withChonk} from 'sentry/utils/theme/withChonk';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
 import {isLinkActive} from 'sentry/views/nav/utils';
@@ -263,8 +264,6 @@ const baseNavItemStyles = (p: {isMobile: boolean; theme: Theme}) => css`
     padding: ${space(1)} 0;
     min-height: 42px;
     width: 46px;
-    letter-spacing: -0.02em;
-    font-size: 10px;
   `}
 `;
 
@@ -307,6 +306,7 @@ const NavLinkLabel = styled('div')`
   justify-content: center;
   font-size: ${p => p.theme.fontSizeExtraSmall};
   font-weight: ${p => p.theme.fontWeightBold};
+  letter-spacing: -0.05em;
 `;
 
 const ChonkNavLink = chonkStyled(Link, {
@@ -393,9 +393,10 @@ const StyledNavLink = styled(Link, {
   ${p =>
     !p.isMobile &&
     css`
-      width: 56px;
-      padding-top: ${space(0.75)};
-      padding-bottom: ${space(1.5)};
+      width: ${PRIMARY_SIDEBAR_WIDTH - 8}px;
+      padding-top: ${space(0.5)};
+      padding-bottom: ${space(1)};
+      gap: ${space(0.5)};
 
       &:hover {
         ${NavLinkIconContainer} {
