@@ -12,7 +12,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.middleware.customer_domain import CustomerDomainMiddleware
-from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.cases import APITestCase, TestCase, override_options
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import all_silo_test, create_test_regions, no_silo_test
 from sentry.web.frontend.auth_logout import AuthLogoutView
@@ -171,6 +171,30 @@ class CustomerDomainMiddlewareTest(TestCase):
         assert response.redirect_chain == [
             ("http://albertos-apples.testserver/settings/billing/checkout/?querystring=value", 302)
         ]
+
+    @with_feature("system:multi-region")
+    @override_options({"demo-mode.enabled": True, "demo-mode.orgs": [2]})
+    def test_no_activeorg_when_demo_org(self):
+        self.create_organization(name="sandbox", id=2)
+        request = RequestFactory().get("/")
+        request.subdomain = "sandbox"
+        request.session = _session({})
+        response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
+
+        assert "activeorg" not in request.session
+        assert response == mock.sentinel.response
+
+    @with_feature("system:multi-region")
+    @override_options({"demo-mode.enabled": True, "demo-mode.orgs": [2]})
+    def test_activeorg_when_not_demo_org(self):
+        self.create_organization(name="other", id=3)
+        request = RequestFactory().get("/")
+        request.subdomain = "other"
+        request.session = _session({})
+        response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
+
+        assert request.session["activeorg"] == "other"
+        assert response == mock.sentinel.response
 
 
 class OrganizationTestEndpoint(Endpoint):
