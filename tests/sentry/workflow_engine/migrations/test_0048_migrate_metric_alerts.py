@@ -170,7 +170,7 @@ class MigrateMetricAlertTest(TestMigrations):
         assert detector.description == self.valid_rule.description
         assert detector.owner_user_id == self.valid_rule.user_id
         assert detector.owner_team == self.valid_rule.team
-        assert detector.type == "metric_alert_fire"
+        assert detector.type == "metric_issue"
         assert detector.config == {
             "threshold_period": self.valid_rule.threshold_period,
             "sensitivity": None,
@@ -226,7 +226,7 @@ class MigrateMetricAlertTest(TestMigrations):
         )
 
         assert action_filter.condition_result is True
-        assert action_filter.type == Condition.ISSUE_PRIORITY_EQUALS
+        assert action_filter.type == Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL
 
         assert WorkflowDataConditionGroup.objects.filter(
             condition_group=action_filter.condition_group
@@ -250,7 +250,7 @@ class MigrateMetricAlertTest(TestMigrations):
         )
 
         assert action_filter.condition_result is True
-        assert action_filter.type == Condition.ISSUE_PRIORITY_EQUALS
+        assert action_filter.type == Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL
 
         assert WorkflowDataConditionGroup.objects.filter(
             condition_group=action_filter.condition_group

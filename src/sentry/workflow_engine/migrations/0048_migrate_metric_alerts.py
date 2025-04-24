@@ -61,7 +61,7 @@ class Condition(StrEnum):
     GREATER = "gt"
     LESS_OR_EQUAL = "lte"
     LESS = "lt"
-    ISSUE_PRIORITY_EQUALS = "issue_priority_equals"
+    ISSUE_PRIORITY_GREATER_OR_EQUAL = "issue_priority_greater_or_equal"
 
 
 class AlertRuleActivityType(Enum):
@@ -457,7 +457,7 @@ def _get_workflow_name(apps: Apps, alert_rule: Any) -> str:
     include_label = False if triggers.count() == 1 else True
 
     actions = AlertRuleTriggerAction.objects.filter(
-        alert_rule_trigger_id__in=[trigger.id for trigger in triggers]
+        alert_rule_trigger_id__in=[trigger.id for trigger in triggers], status=0
     )
     actions_counter = 0
 
@@ -519,12 +519,15 @@ def _migrate_trigger(apps: Apps, trigger: Any, detector: Any, alert_rule_workflo
     action_filter = DataCondition.objects.create(
         comparison=PRIORITY_MAP.get(trigger.label, DetectorPriorityLevel.HIGH),
         condition_result=True,
-        type=Condition.ISSUE_PRIORITY_EQUALS,
+        type=Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL,
         condition_group=data_condition_group,
     )
 
     trigger_actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
     for trigger_action in trigger_actions:
+        # 0 is active status
+        if trigger_action.status != 0:
+            continue
         _migrate_trigger_action(apps, trigger_action, action_filter.condition_group.id)
 
 
@@ -659,7 +662,7 @@ def _create_detector(
         created_by_id=create_activity.user_id if create_activity else None,
         name=alert_rule.name if len(alert_rule.name) < 200 else alert_rule.name[:197] + "...",
         workflow_condition_group=data_condition_group,
-        type="metric_alert_fire",
+        type="metric_issue",
         description=alert_rule.description,
         owner_user_id=alert_rule.user_id,
         owner_team=alert_rule.team,
@@ -786,7 +789,7 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                         project = alert_rule.projects.first()
                         if not project:
                             logger.info(
-                                "alert rule missing query subscription, skipping",
+                                "alert rule missing project, skipping",
                                 extra={"alert_rule_id": alert_rule.id},
                             )
                             continue
@@ -826,6 +829,8 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                             when_condition_group=None,
                             enabled=True,
                             created_by_id=create_activity.user_id if create_activity else None,
+                            owner_user_id=alert_rule.user_id,
+                            owner_team=alert_rule.team,
                             config={},
                         )
                         Workflow.objects.filter(id=workflow.id).update(
@@ -863,7 +868,6 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                         "error when migrating alert rule",
                         extra={"error": str(e), "alert_rule_id": alert_rule.id},
                     )
-                    continue
 
 
 class Migration(CheckedMigration):
