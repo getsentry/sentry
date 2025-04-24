@@ -657,4 +657,8 @@ const AttributeLinkText = styled('span')`
   &:focus {
     text-decoration: none;
   }
+
+  div {
+    white-space: normal;
+  }
 `;
