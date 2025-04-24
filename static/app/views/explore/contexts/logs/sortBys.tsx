@@ -12,18 +12,31 @@ export const logsTimestampDescendingSortBy: Sort = {
   kind: 'desc' as const,
 };
 
-function defaultLogSortBys(): Sort[] {
-  return [logsTimestampDescendingSortBy];
-}
-
-export function getLogSortBysFromLocation(location: Location): Sort[] {
+export function getLogSortBysFromLocation(location: Location, fields: string[]): Sort[] {
   const sortBys = decodeSorts(location.query[LOGS_SORT_BYS_KEY]);
 
   if (sortBys.length > 0) {
-    return sortBys;
+    if (sortBys.every(sortBy => fields.includes(sortBy.field))) {
+      return sortBys;
+    }
   }
 
-  return defaultLogSortBys();
+  if (fields.includes(OurLogKnownFieldKey.TIMESTAMP)) {
+    return [logsTimestampDescendingSortBy];
+  }
+
+  if (!fields[0]) {
+    throw new Error(
+      'fields should not be empty - did you somehow delete all of the fields?'
+    );
+  }
+
+  return [
+    {
+      field: fields[0],
+      kind: 'desc' as const,
+    },
+  ];
 }
 
 export function updateLocationWithLogSortBys(
