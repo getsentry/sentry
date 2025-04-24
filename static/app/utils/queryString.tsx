@@ -4,6 +4,8 @@ import {escapeDoubleQuotes} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {safeURL} from 'sentry/utils/url/safeURL';
 
+export const TAG_VALUE_ESCAPE_CHARS = /[:\s\(\)\\"]/g;
+
 // remove leading and trailing whitespace and remove double spaces
 function formatQueryString(query: string): string {
   return query.trim().replace(/\s+/g, ' ');
@@ -46,7 +48,7 @@ export function appendTagCondition(
       ? query
       : '';
 
-  if (typeof value === 'string' && /[:\s\(\)\\"]/g.test(value)) {
+  if (typeof value === 'string' && TAG_VALUE_ESCAPE_CHARS.test(value)) {
     value = `"${escapeDoubleQuotes(value)}"`;
   }
   if (currentQuery) {

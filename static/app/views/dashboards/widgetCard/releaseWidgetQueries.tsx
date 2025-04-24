@@ -13,11 +13,11 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
-import {defined} from 'sentry/utils';
+import {defined, escapeDoubleQuotes} from 'sentry/utils';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
-import {appendTagCondition} from 'sentry/utils/queryString';
+import {TAG_VALUE_ESCAPE_CHARS} from 'sentry/utils/queryString';
 import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
@@ -64,17 +64,12 @@ function getReleasesQuery(releases: Release[]): {
   releaseQueryString: string;
   releasesUsed: string[];
 } {
-  let releaseCondition = '';
   const releasesArray: string[] = [];
-  releaseCondition +=
-    'release:[' + appendTagCondition('', '', releases[0]!.version).replace(/^:/, '');
   releasesArray.push(releases[0]!.version);
   for (let i = 1; i < releases.length; i++) {
-    releaseCondition +=
-      ',' + appendTagCondition('', '', releases[i]!.version).replace(/^:/, '');
     releasesArray.push(releases[i]!.version);
   }
-  releaseCondition += ']';
+  const releaseCondition = `release:[${releasesArray.map(v => (TAG_VALUE_ESCAPE_CHARS.test(v) ? `"${escapeDoubleQuotes(v)}"` : v))}]`;
   if (releases.length < 10) {
     return {releaseQueryString: releaseCondition, releasesUsed: releasesArray};
   }
