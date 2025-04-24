@@ -167,15 +167,16 @@ function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDraw
         <HeaderContainer>
           <SchemaHintsHeader>{t('Filter Attributes')}</SchemaHintsHeader>
           <StyledInputGroup>
+            <InputGroup.LeadingItems disablePointerEvents>
+              <IconSearch size="sm" />
+            </InputGroup.LeadingItems>
             <SearchInput
               size="sm"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               aria-label={t('Search attributes')}
+              placeholder={t('Search')}
             />
-            <InputGroup.TrailingItems disablePointerEvents>
-              <IconSearch size="md" />
-            </InputGroup.TrailingItems>
           </StyledInputGroup>
         </HeaderContainer>
         <StyledMultipleCheckbox name={t('Filter keys')} value={selectedFilterKeys}>
@@ -213,10 +214,9 @@ const StyledDrawerBody = styled(DrawerBody)`
 
 const HeaderContainer = styled('div')`
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
   margin-bottom: ${space(2)};
-  gap: ${space(1.5)};
+  gap: ${space(1)};
 `;
 
 const CheckboxLabelContainer = styled('div')`
