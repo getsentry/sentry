@@ -288,11 +288,3 @@ export function useChartZoom({
 
   return renderProps;
 }
-
-function ChartZoom(props: Props) {
-  const renderProps = useChartZoom(props);
-
-  return props.children(renderProps);
-}
-
-export default ChartZoom;
