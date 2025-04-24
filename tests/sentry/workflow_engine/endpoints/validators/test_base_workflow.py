@@ -437,7 +437,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         # Setup the test
         assert self.workflow.when_condition_group
         assert self.workflow.when_condition_group.conditions.count() == 1
-        self.workflow.when_condition_group.conditions.create(
+        dc = self.workflow.when_condition_group.conditions.create(
             type=Condition.EQUAL,
             comparison=2,
             condition_result=False,
@@ -453,3 +453,9 @@ class TestWorkflowValidatorUpdate(TestCase):
         validator = WorkflowValidator(data=self.valid_saved_data, context=self.context)
         assert validator.is_valid() is True
         validator.update(self.workflow, validator.validated_data)
+        self.workflow.refresh_from_db()
+
+        # Check the results
+        assert self.workflow.when_condition_group
+        assert self.workflow.when_condition_group.conditions.count() == 1
+        assert self.workflow.when_condition_group.conditions.first() == dc
