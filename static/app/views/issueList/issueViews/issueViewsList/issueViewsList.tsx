@@ -151,13 +151,18 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
       <Pagination
         pageLinks={pageLinks}
         onCursor={newCursor => {
-          navigate({
-            pathname: location.pathname,
-            query: {
-              ...location.query,
-              [cursorQueryParam]: newCursor,
+          navigate(
+            {
+              pathname: location.pathname,
+              query: {
+                ...location.query,
+                [cursorQueryParam]: newCursor,
+              },
             },
-          });
+            {
+              preventScrollReset: true,
+            }
+          );
         }}
       />
     </Fragment>

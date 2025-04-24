@@ -124,7 +124,10 @@ export function InsightsSecondaryNav() {
           {projectsToDisplay.map(project => (
             <SecondaryNav.Item
               key={project.id}
-              to={`${baseUrl}/projects/${project.slug}/`}
+              to={{
+                pathname: `${baseUrl}/projects/${project.slug}/`,
+                search: '?source=sidebar',
+              }}
               isActive={
                 isProjectDetailsRedirectActive
                   ? isProjectSelectedExclusively(project)

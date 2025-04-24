@@ -98,12 +98,14 @@ interface DrawerContextType {
     renderer: DrawerConfig['renderer'],
     options: DrawerConfig['options']
   ) => void;
+  panelRef: React.RefObject<HTMLDivElement | null>;
 }
 
 const DrawerContext = createContext<DrawerContextType>({
   openDrawer: () => {},
   isDrawerOpen: false,
   closeDrawer: () => {},
+  panelRef: {current: null},
 });
 
 export function GlobalDrawer({children}: any) {
@@ -198,7 +200,7 @@ export function GlobalDrawer({children}: any) {
     : null;
 
   return (
-    <DrawerContext value={{closeDrawer, isDrawerOpen, openDrawer}}>
+    <DrawerContext value={{closeDrawer, isDrawerOpen, openDrawer, panelRef}}>
       <ErrorBoundary mini message={t('There was a problem rendering the drawer.')}>
         <AnimatePresence>
           {isDrawerOpen && (
