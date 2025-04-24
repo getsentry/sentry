@@ -52,6 +52,8 @@ performance_tasks = taskregistry.create_namespace("performance")
 
 profiling_tasks = taskregistry.create_namespace("profiling")
 
+release_health_tasks = taskregistry.create_namespace("releasehealth")
+
 replays_tasks = taskregistry.create_namespace("replays")
 
 sdk_tasks = taskregistry.create_namespace("sdk")
@@ -61,6 +63,8 @@ sdk_control_tasks = taskregistry.create_namespace("sdk.control")
 seer_tasks = taskregistry.create_namespace("seer")
 
 selfhosted_tasks = taskregistry.create_namespace("selfhosted")
+
+symbolication_tasks = taskregistry.create_namespace("symbolication")
 
 tempest_tasks = taskregistry.create_namespace("tempest")
 

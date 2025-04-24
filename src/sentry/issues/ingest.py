@@ -24,10 +24,12 @@ from sentry.event_manager import (
 from sentry.eventstore.models import Event, GroupEvent, augment_message_with_occurrence
 from sentry.issues.grouptype import FeedbackGroup, should_create_group
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
+from sentry.issues.priority import PriorityChangeReason, update_priority
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphash import GroupHash
 from sentry.models.release import Release
 from sentry.ratelimits.sliding_windows import RedisSlidingWindowRateLimiter, RequestedQuota
+from sentry.types.group import PriorityLevel
 from sentry.utils import json, metrics, redis
 from sentry.utils.strings import truncatechars
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
@@ -100,6 +102,8 @@ class IssueArgs(TypedDict):
 def _create_issue_kwargs(
     occurrence: IssueOccurrence, event: Event, release: Release | None
 ) -> IssueArgs:
+    priority = occurrence.priority or occurrence.type.default_priority
+
     kwargs: IssueArgs = {
         "platform": event.platform,
         # TODO: Figure out what message should be. Or maybe we just implement a platform event and
@@ -113,11 +117,7 @@ def _create_issue_kwargs(
         "type": occurrence.type.type_id,
         "first_release": release,
         "data": materialize_metadata(occurrence, event),
-        "priority": (
-            occurrence.initial_issue_priority
-            if occurrence.initial_issue_priority is not None
-            else occurrence.type.default_priority
-        ),
+        "priority": priority,
     }
     kwargs["data"]["last_received"] = json.datetime_to_str(event.datetime)
     return kwargs
@@ -145,7 +145,7 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
     event_metadata.update(event.get_event_metadata())
     event_metadata["title"] = occurrence.issue_title
     event_metadata["value"] = occurrence.subtitle
-    event_metadata["initial_priority"] = occurrence.initial_issue_priority
+    event_metadata["initial_priority"] = occurrence.priority
 
     if occurrence.type == FeedbackGroup:
         # TODO: Should feedbacks be their own event type, so above call to event.get_event_medata
@@ -278,6 +278,18 @@ def save_issue_from_occurrence(
         group_event.occurrence = occurrence
         is_regression = _process_existing_aggregate(group, group_event, issue_kwargs, release)
         group_info = GroupInfo(group=group, is_new=False, is_regression=is_regression)
+        if (
+            issue_kwargs["priority"]
+            and group.priority != issue_kwargs["priority"]
+            and group.priority_locked_at is None
+        ):
+            update_priority(
+                group=group,
+                priority=PriorityLevel(issue_kwargs["priority"]),
+                sender="save_issue_from_occurrence",
+                reason=PriorityChangeReason.ISSUE_PLATFORM,
+                project=project,
+            )
 
     additional_hashes = [f for f in occurrence.fingerprint if f != primary_grouphash.hash]
     for fingerprint_hash in additional_hashes:
