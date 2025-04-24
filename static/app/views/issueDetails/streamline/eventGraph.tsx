@@ -26,6 +26,7 @@ import type {ReactEchartsRef, SeriesDataUnit} from 'sentry/types/echarts';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
+import type EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -48,7 +49,7 @@ import {Tab} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useReleaseBubbles} from 'sentry/views/releases/releaseBubbles/useReleaseBubbles';
 
-const enum EventGraphSeries {
+enum EventGraphSeries {
   EVENT = 'event',
   USER = 'user',
 }
@@ -64,6 +65,7 @@ interface EventGraphProps {
    * chart).
    */
   disableZoomNavigation?: boolean;
+  eventView?: EventView;
   ref?: React.Ref<ReactEchartsRef>;
   /**
    * Configures showing releases on the chart as bubbles or lines. This is used
@@ -100,6 +102,7 @@ function createSeriesAndCount(stats: EventsStats) {
 export function EventGraph({
   group,
   event,
+  eventView: eventViewProps,
   disableZoomNavigation = false,
   showReleasesAs,
   showSummary = true,
@@ -131,7 +134,8 @@ export function EventGraph({
     ref: chartContainerRef,
     onResize,
   });
-  const eventView = useIssueDetailsEventView({group, isSmallContainer});
+  const eventViewHook = useIssueDetailsEventView({group, isSmallContainer});
+  const eventView = eventViewProps || eventViewHook;
 
   const {
     data: groupStats = {},
@@ -447,18 +451,22 @@ export function EventGraph({
   if (isLoadingStats || isPendingUniqueUsersCount) {
     return (
       <GraphWrapper {...styleProps}>
-        <SummaryContainer>
-          <GraphButton
-            isActive={visibleSeries === EventGraphSeries.EVENT}
-            disabled
-            label={t('Events')}
-          />
-          <GraphButton
-            isActive={visibleSeries === EventGraphSeries.USER}
-            disabled
-            label={t('Users')}
-          />
-        </SummaryContainer>
+        {showSummary ? (
+          <SummaryContainer>
+            <GraphButton
+              isActive={visibleSeries === EventGraphSeries.EVENT}
+              disabled
+              label={t('Events')}
+            />
+            <GraphButton
+              isActive={visibleSeries === EventGraphSeries.USER}
+              disabled
+              label={t('Users')}
+            />
+          </SummaryContainer>
+        ) : (
+          <div />
+        )}
         <LoadingChartContainer ref={chartContainerRef}>
           <Placeholder height="96px" testId="event-graph-loading" />
         </LoadingChartContainer>
@@ -561,7 +569,11 @@ function GraphButton({
   label,
   count,
   ...props
-}: {isActive: boolean; label: string; count?: string} & Partial<ButtonProps>) {
+}: {
+  isActive: boolean;
+  label: string;
+  count?: string;
+} & Partial<ButtonProps>) {
   return (
     <CalloutButton
       isActive={isActive}
