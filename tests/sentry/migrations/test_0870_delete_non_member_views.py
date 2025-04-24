@@ -1,3 +1,4 @@
+from sentry.models.groupsearchview import GroupSearchView
 from sentry.testutils.cases import TestMigrations
 
 
@@ -11,13 +12,10 @@ class DeleteNonMemberViewsTest(TestMigrations):
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
 
-        GroupSearchView = self.apps.get_model("sentry", "GroupSearchView")
-
         # View for the member user
         self.member_view = GroupSearchView.objects.create(
             user_id=self.user.id,
             organization_id=self.org.id,
-            project=self.project,
             name="Member's View",
             query="",
         )
@@ -26,7 +24,6 @@ class DeleteNonMemberViewsTest(TestMigrations):
         self.non_member_view = GroupSearchView.objects.create(
             user_id=self.non_member_user.id,
             organization_id=self.org.id,
-            project=self.project,
             name="Non-Member's View",
             query="",
         )
