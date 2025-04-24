@@ -403,7 +403,9 @@ class SearchResolver:
 
         value = term.value.value
         if self.params.is_timeseries_request and context_definition is not None:
-            resolved_column, value = self.map_context_to_original_column(term, context_definition)
+            resolved_column, value = self.map_search_term_context_to_original_column(
+                term, context_definition
+            )
             context_definition = None
 
         if not isinstance(resolved_column.proto_definition, AttributeKey):
@@ -502,6 +504,32 @@ class SearchResolver:
         )
 
     def map_context_to_original_column(
+        self,
+        context_definition: VirtualColumnDefinition,
+    ):
+        """
+        Time series request do not support virtual column contexts, so we have to remap the value back to the original column.
+        (see https://github.com/getsentry/eap-planning/issues/236)
+        """
+        context = context_definition.constructor(self.params)
+
+        is_number_column = (
+            context.from_column_name in SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS["number"]
+        )
+
+        public_alias = (
+            SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS["number"].get(context.from_column_name)
+            if is_number_column
+            else context.from_column_name
+        )
+
+        if public_alias is None:
+            raise InvalidSearchQuery(f"Cannot map {context.from_column_name} to a public alias")
+
+        resolved_column, _ = self.resolve_column(public_alias)
+        return resolved_column
+
+    def map_search_term_context_to_original_column(
         self,
         term: event_search.SearchFilter,
         context_definition: VirtualColumnDefinition,

@@ -2568,6 +2568,32 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[0]["device.class"] == "Unknown"
         assert meta["dataset"] == self.dataset
 
+    def test_device_class_filter_rpc(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"device.class": "1"}}, start_ts=self.ten_mins_ago
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["device.class", "count()"],
+                "query": "",
+                "orderby": "count()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["device.class"] == "low"
+        assert meta["dataset"] == self.dataset
+
     def test_http_response_count(self):
         self.store_spans(
             [
