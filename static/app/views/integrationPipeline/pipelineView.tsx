@@ -9,6 +9,7 @@ import {
   QueryClient,
   QueryClientProvider,
 } from 'sentry/utils/queryClient';
+import GithubInstallationSelect from 'sentry/views/integrationPipeline/githubInstallationSelect';
 
 import AwsLambdaCloudformation from './awsLambdaCloudformation';
 import AwsLambdaFailureDetails from './awsLambdaFailureDetails';
@@ -20,6 +21,7 @@ const pipelineMapper: Record<string, [React.ComponentType<any>, string]> = {
   awsLambdaFunctionSelect: [AwsLambdaFunctionSelect, 'AWS Lambda Select Lambdas'],
   awsLambdaCloudformation: [AwsLambdaCloudformation, 'AWS Lambda Create Cloudformation'],
   awsLambdaFailureDetails: [AwsLambdaFailureDetails, 'AWS Lambda View Failures'],
+  githubInstallationSelect: [GithubInstallationSelect, 'Github Select Installation'],
 };
 
 type Props = {
