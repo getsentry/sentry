@@ -17,7 +17,7 @@ from jsonschema import ValidationError, validate
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils import redis
 from sentry.utils.iterators import chunked
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
+from sentry.utils.query import RangeQuerySetWrapper, RangeQuerySetWrapperWithProgressBarApprox
 
 logger = logging.getLogger(__name__)
 
@@ -2189,7 +2189,7 @@ def migrate_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) ->
                 with transaction.atomic(router.db_for_write(Rule)):
                     rules = Rule.objects.select_for_update().filter(project_id=project_id)
 
-                    for rule in RangeQuerySetWrapperWithProgressBarApprox(rules):
+                    for rule in RangeQuerySetWrapper(rules):
                         try:
                             with transaction.atomic(router.db_for_write(Workflow)):
                                 # make sure rule is not already migrated
