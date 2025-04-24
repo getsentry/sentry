@@ -8,24 +8,12 @@ import {
 import LoadingError from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
 import {getDateFromTimestamp} from 'sentry/utils/dates';
-import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ReleasesDrawerDetails} from 'sentry/views/releases/drawer/releasesDrawerDetails';
 import {ReleasesDrawerList} from 'sentry/views/releases/drawer/releasesDrawerList';
 
-const RELEASES_DRAWER_FIELD_MAP = {
-  rd: decodeScalar,
-  rdChart: decodeScalar,
-  rdCiCursor: decodeScalar,
-  rdEnd: decodeScalar,
-  rdEnv: decodeList,
-  rdListCursor: decodeScalar,
-  rdProject: decodeList,
-  rdRelease: decodeScalar,
-  rdReleaseProjectId: decodeScalar,
-  rdStart: decodeScalar,
-};
+import {RELEASES_DRAWER_FIELD_MAP} from './utils';
 
 /**
  * The container for the Releases Drawer. Handles displaying either the
