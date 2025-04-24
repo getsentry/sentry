@@ -9,7 +9,11 @@ from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerialize
 from sentry.incidents.endpoints.serializers.workflow_engine_data_condition import (
     WorkflowEngineDataConditionSerializer,
 )
+from sentry.incidents.endpoints.serializers.workflow_engine_incident import (
+    WorkflowEngineIncidentSerializer,
+)
 from sentry.incidents.models.alert_rule import AlertRuleStatus
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_component
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
@@ -19,6 +23,7 @@ from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.models import (
     Action,
+    ActionGroupStatus,
     AlertRuleDetector,
     DataCondition,
     DataConditionGroupAction,
@@ -152,6 +157,51 @@ class WorkflowEngineDetectorSerializer(Serializer):
                 if actor:
                     result[detector]["owner"] = actor.identifier
 
+    def add_latest_incident(
+        self,
+        result: DefaultDict[Detector, dict[str, Any]],
+        user: User | RpcUser | AnonymousUser,
+        detectors: dict[int, Detector],
+        data_condition_group_actions: Sequence[DataConditionGroupAction],
+    ) -> None:
+        # create a mapping from detector to action
+        detector_to_workflow_condition_group = {
+            detector.id: detector.workflow_condition_group.id for detector in detectors.values()
+        }
+        detector_to_actions: DefaultDict[Detector, Action] = defaultdict()
+        for dcga in data_condition_group_actions:
+            for detector, condition_group_id in detector_to_workflow_condition_group.items():
+                if dcga.condition_group.id == condition_group_id:
+                    detector_to_actions[detector] = dcga.action
+                    break
+
+        for detector in detectors.values():
+            group_ids = None
+            open_period = None
+            incident_id = None
+
+            try:
+                group_ids = ActionGroupStatus.objects.values_list("group_id", flat=True).get(
+                    action_id=detector_to_actions[detector.id]
+                )
+            except ActionGroupStatus.DoesNotExist:
+                continue
+
+            if group_ids:
+                try:
+                    open_period = GroupOpenPeriod.objects.get(group=group_ids)
+                except GroupOpenPeriod.DoesNotExist:
+                    continue
+
+            if incident_id:
+                result[detector]["latestIncident"] = incident_id
+
+            # TODO: this serializer is half baked
+            serialized_group_open_period = serialize(
+                open_period, user, WorkflowEngineIncidentSerializer()
+            )
+            result[detector]["latestIncident"] = serialized_group_open_period
+
     def get_attrs(
         self, item_list: Sequence[Detector], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> defaultdict[str, Any]:
@@ -195,10 +245,8 @@ class WorkflowEngineDetectorSerializer(Serializer):
         self.add_owner(result, detectors.values())
         # skipping snapshot data
 
-        # TODO fetch incident group open period if "latestIncident" in self.expand, needs new incident serializer
-        # how to look this up?
         if "latestIncident" in self.expand:
-            pass
+            self.add_latest_incident(result, user, detectors, dcgas)
 
         # add information from snubaquery
         for detector in detectors.values():
@@ -219,7 +267,11 @@ class WorkflowEngineDetectorSerializer(Serializer):
             "id": str(alert_rule_detector_id),
             "name": obj.name,
             "organizationId": obj.project.organization_id,
-            "status": AlertRuleStatus.PENDING.value,  # TODO look into how other statuses translate
+            "status": (
+                AlertRuleStatus.PENDING.value
+                if obj.enabled is True
+                else AlertRuleStatus.DISABLED.value
+            ),
             "query": attrs.get("query"),
             "aggregate": attrs.get("aggregate"),
             "timeWindow": attrs.get("timeWindow"),

@@ -3,6 +3,8 @@ from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
     WorkflowEngineDetectorSerializer,
 )
 from sentry.incidents.models.alert_rule import AlertRuleStatus, AlertRuleThresholdType
+from sentry.incidents.models.incident import IncidentTrigger, TriggerStatus
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.workflow_engine.migration_helpers.alert_rule import (
@@ -11,6 +13,7 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_metric_data_conditions,
     migrate_resolve_threshold_data_condition,
 )
+from sentry.workflow_engine.models import ActionGroupStatus
 
 
 @freeze_time("2018-12-11 03:21:34")
@@ -115,3 +118,20 @@ class TestDetectorSerializer(TestCase):
             self.detector, self.user, WorkflowEngineDetectorSerializer()
         )
         assert serialized_detector == self.expected
+
+    def test_latest_incident(self) -> None:
+        incident = self.create_incident(alert_rule=self.alert_rule)
+        IncidentTrigger.objects.create(
+            incident=incident,
+            alert_rule_trigger=self.critical_trigger,
+            status=TriggerStatus.ACTIVE.value,
+        )
+        ActionGroupStatus.objects.create(action=self.critical_action, group=self.group)
+        GroupOpenPeriod.objects.create(group=self.group, project=self.detector.project)
+
+        serialized_detector = serialize(
+            self.detector,
+            self.user,
+            WorkflowEngineDetectorSerializer(expand=["latestIncident"]),
+        )
+        assert serialized_detector["latestIncident"] is not None
