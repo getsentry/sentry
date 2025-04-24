@@ -94,7 +94,7 @@ class TestDetectorSerializer(TestCase):
             "id": str(self.alert_rule.id),
             "name": self.detector.name,
             "organizationId": self.detector.project.organization_id,
-            "status": AlertRuleStatus.PENDING,
+            "status": AlertRuleStatus.PENDING.value,
             "query": self.alert_rule.snuba_query.query,
             "aggregate": self.alert_rule.snuba_query.aggregate,
             "timeWindow": self.alert_rule.snuba_query.time_window,

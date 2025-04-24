@@ -3,7 +3,6 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any, DefaultDict
 
 from django.contrib.auth.models import AnonymousUser
-from django.db.models import Subquery
 
 from sentry.api.serializers import Serializer, serialize
 from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
@@ -19,6 +18,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.models import (
+    Action,
     AlertRuleDetector,
     DataCondition,
     DataConditionGroupAction,
@@ -37,27 +37,10 @@ class WorkflowEngineDetectorSerializer(Serializer):
         self.expand = expand or []
         self.prepare_component_fields = prepare_component_fields
 
-    def get_attrs(
-        self, item_list: Sequence[Detector], user: User | RpcUser | AnonymousUser, **kwargs: Any
-    ) -> defaultdict[str, Any]:
-        detectors = {item.id: item for item in item_list}
-        result: DefaultDict[Detector, dict[str, Any]] = defaultdict(dict)
-
-        detector_workflow_condition_group_ids = [
-            detector.workflow_condition_group.id for detector in detectors.values()
-        ]
-        detector_trigger_data_conditions = DataCondition.objects.filter(
-            condition_group__in=detector_workflow_condition_group_ids,
-            condition_result__in=[DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM],
-        )
-        dcgas = DataConditionGroupAction.objects.filter(
-            condition_group__in=detector_workflow_condition_group_ids
-        ).select_related("action")
-        actions = [dcga.action for dcga in dcgas]
-
-        # get sentry app data
+    def get_sentry_app_installations_by_sentry_app_id(
+        self, actions: list[Action], organization_id: int
+    ) -> Mapping[str, RpcSentryAppComponentContext]:
         sentry_app_installations_by_sentry_app_id: Mapping[str, RpcSentryAppComponentContext] = {}
-        organization_ids = [detector.project.organization_id for detector in detectors.values()]
         if self.prepare_component_fields:
             sentry_app_ids = [
                 action.config.get("sentry_app_id")
@@ -65,7 +48,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
                 if action.config.get("sentry_app_id")
             ]
             install_contexts = app_service.get_component_contexts(
-                filter={"app_ids": sentry_app_ids, "organization_id": organization_ids[0]},
+                filter={"app_ids": sentry_app_ids, "organization_id": organization_id},
                 component_type="alert-rule-action",
             )
             sentry_app_installations_by_sentry_app_id = {
@@ -73,17 +56,17 @@ class WorkflowEngineDetectorSerializer(Serializer):
                 for context in install_contexts
                 if context.installation.sentry_app
             }
+        return sentry_app_installations_by_sentry_app_id
 
-        # build up trigger and action data
-        serialized_data_conditions = serialize(
-            list(detector_trigger_data_conditions),
-            user,
-            WorkflowEngineDataConditionSerializer(),
-            **kwargs,
-        )
-        for data_condition, serialized in zip(
-            detector_trigger_data_conditions, serialized_data_conditions
-        ):
+    def get_triggers_and_actions(
+        self,
+        result: DefaultDict[Detector, dict[str, Any]],
+        detectors: dict[int, Detector],
+        sentry_app_installations_by_sentry_app_id: Mapping[str, RpcSentryAppComponentContext],
+        data_conditions: list[DataCondition],
+        serialized_data_conditions: dict[str, Any],
+    ) -> None:
+        for data_condition, serialized in zip(data_conditions, serialized_data_conditions):
             errors = []
             detector = detectors[int(serialized.get("alertRuleId"))]
             alert_rule_triggers = result[detector].setdefault("triggers", [])
@@ -124,6 +107,45 @@ class WorkflowEngineDetectorSerializer(Serializer):
             if errors:
                 result[detector]["errors"] = errors
             alert_rule_triggers.append(serialized)
+
+    def get_attrs(
+        self, item_list: Sequence[Detector], user: User | RpcUser | AnonymousUser, **kwargs: Any
+    ) -> defaultdict[str, Any]:
+        detectors = {item.id: item for item in item_list}
+        result: DefaultDict[Detector, dict[str, Any]] = defaultdict(dict)
+
+        detector_workflow_condition_group_ids = [
+            detector.workflow_condition_group.id for detector in detectors.values()
+        ]
+        detector_trigger_data_conditions = DataCondition.objects.filter(
+            condition_group__in=detector_workflow_condition_group_ids,
+            condition_result__in=[DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM],
+        )
+        dcgas = DataConditionGroupAction.objects.filter(
+            condition_group__in=detector_workflow_condition_group_ids
+        ).select_related("action")
+        actions = [dcga.action for dcga in dcgas]
+
+        # get sentry app data
+        organization_id = [detector.project.organization_id for detector in detectors.values()][0]
+        sentry_app_installations_by_sentry_app_id = (
+            self.get_sentry_app_installations_by_sentry_app_id(actions, organization_id)
+        )
+
+        # build up trigger and action data
+        serialized_data_conditions = serialize(
+            list(detector_trigger_data_conditions),
+            user,
+            WorkflowEngineDataConditionSerializer(),
+            **kwargs,
+        )
+        self.get_triggers_and_actions(
+            result,
+            detectors,
+            sentry_app_installations_by_sentry_app_id,
+            detector_trigger_data_conditions,
+            serialized_data_conditions,
+        )
 
         # add projects
         detector_projects = set()
@@ -172,7 +194,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
 
         # add information from snubaquery
         for detector in detectors.values():
-            data_source_detector = Subquery(DataSourceDetector.objects.get(detector_id=detector.id))
+            data_source_detector = DataSourceDetector.objects.get(detector_id=detector.id)
             snuba_query = SnubaQuery.objects.get(id=data_source_detector.data_source.source_id)
             result[detector]["query"] = snuba_query.query
             result[detector]["aggregate"] = snuba_query.aggregate
