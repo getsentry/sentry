@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
 from enum import StrEnum
 from typing import Any
 
 from sentry_sdk import set_tag, set_user
 
-from sentry import eventstore
+from sentry import eventstore, options
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration.model import RpcOrganizationIntegration
@@ -16,7 +15,6 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionType,
 )
 from sentry.issues.auto_source_code_config.code_mapping import CodeMapping, CodeMappingTreesHelper
-from sentry.issues.auto_source_code_config.constants import UNINTENDED_RULES
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -74,14 +72,11 @@ def process_event(
 
     platform = event.platform
     assert platform is not None
+    set_tag("platform", platform)
 
     platform_config = PlatformConfig(platform)
     if not platform_config.is_supported():
         return [], []
-
-    # This is a temporary solution to remove unintended rules across the board
-    if platform_config.creates_in_app_stack_trace_rules():
-        remove_unintended_rules(project)
 
     frames_to_process = get_frames_to_process(event.data, platform)
     if not frames_to_process:
@@ -191,11 +186,11 @@ def create_configurations(
 
     dry_run = platform_config.is_dry_run_platform(project.organization)
     platform = platform_config.platform
-    tags: Mapping[str, str | bool] = {"platform": platform, "dry_run": dry_run}
+    tags: dict[str, str | bool] = {"platform": platform, "dry_run": dry_run}
     with metrics.timer(f"{METRIC_PREFIX}.create_configurations.duration", tags=tags):
         for code_mapping in code_mappings:
             repository = create_repository(code_mapping.repo.name, org_integration, tags)
-            create_code_mapping(code_mapping, repository, project, org_integration, tags)
+            create_or_update_code_mapping(code_mapping, repository, project, org_integration, tags)
 
     in_app_stack_trace_rules: list[str] = []
     if platform_config.creates_in_app_stack_trace_rules():
@@ -208,44 +203,79 @@ def create_configurations(
     return code_mappings, in_app_stack_trace_rules
 
 
-def remove_unintended_rules(project: Project) -> None:
-    """
-    Remove unintended rules from the project's automatic grouping enhancements.
-    """
-    key = "sentry:automatic_grouping_enhancements"
-    in_app_stack_trace_rules = project.get_option(key, default="").split("\n")
-    if not in_app_stack_trace_rules:
-        return
-
-    # Remove rules that are not in the code mappings
-    for rule in in_app_stack_trace_rules:
-        if rule in UNINTENDED_RULES:
-            in_app_stack_trace_rules.remove(rule)
-
-    project.update_option(key, "\n".join(in_app_stack_trace_rules))
-
-
-def create_code_mapping(
+def create_or_update_code_mapping(
     code_mapping: CodeMapping,
     repository: Repository | None,
     project: Project,
     org_integration: RpcOrganizationIntegration,
-    tags: Mapping[str, str | bool],
+    tags: dict[str, str | bool],
 ) -> None:
     created = False
     if not tags["dry_run"] and repository is not None:
-        _, created = RepositoryProjectPathConfig.objects.get_or_create(
-            project=project,
-            stack_root=code_mapping.stacktrace_root,
-            defaults={
-                "repository": repository,
-                "organization_integration_id": org_integration.id,
-                "integration_id": org_integration.integration_id,
-                "organization_id": org_integration.organization_id,
-                "source_root": code_mapping.source_path,
-                "default_branch": code_mapping.repo.branch,
-                "automatically_generated": True,
-            },
-        )
+        try:
+            code_mapping_config = RepositoryProjectPathConfig.objects.get(
+                project=project, stack_root=code_mapping.stacktrace_root
+            )
+            if code_mapping_config.automatically_generated:
+                update_code_mapping_if_needed(code_mapping_config, code_mapping, tags)
+
+        except RepositoryProjectPathConfig.DoesNotExist:
+            _, created = RepositoryProjectPathConfig.objects.update_or_create(
+                project=project,
+                stack_root=code_mapping.stacktrace_root,
+                # The values in defaults are the ones not needed for uniqueness
+                defaults={
+                    "repository": repository,
+                    "organization_integration_id": org_integration.id,
+                    "integration_id": org_integration.integration_id,
+                    "organization_id": org_integration.organization_id,
+                    "default_branch": code_mapping.repo.branch,
+                    "source_root": code_mapping.source_path,
+                    "automatically_generated": True,
+                },
+            )
+
     if created or tags["dry_run"]:
         metrics.incr(key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0)
+
+
+def update_code_mapping_if_needed(
+    code_mapping_config: RepositoryProjectPathConfig,
+    code_mapping: CodeMapping,
+    tags: dict[str, str | bool],
+) -> None:
+    updated = False
+    update_reasons: list[str] = []
+    # The code has been moved to a new location or the automation
+    # may have created the code mapping with the wrong source path
+    if code_mapping_config.source_root != code_mapping.source_path:
+        logger.info(
+            "Updating code mapping.",
+            extra={
+                "old_source_root": code_mapping_config.source_root,
+                "new_source_root": code_mapping.source_path,
+            },
+        )
+        code_mapping_config.source_root = code_mapping.source_path
+
+        update_reasons.append("source_root_changed")
+        updated = True
+
+    if code_mapping_config.default_branch != code_mapping.repo.branch:
+        logger.info(
+            "Updating code mapping.",
+            extra={
+                "old_default_branch": code_mapping_config.default_branch,
+                "new_default_branch": code_mapping.repo.branch,
+            },
+        )
+        code_mapping_config.default_branch = code_mapping.repo.branch
+        update_reasons.append("default_branch_changed")
+        updated = True
+
+    if updated:
+        if options.get("issues.auto_source_code_config.update_code_mapping_if_needed"):
+            code_mapping_config.save()
+        for reason in update_reasons:
+            tags["reason"] = reason
+            metrics.incr(key=f"{METRIC_PREFIX}.code_mapping.updated", tags=tags, sample_rate=1.0)

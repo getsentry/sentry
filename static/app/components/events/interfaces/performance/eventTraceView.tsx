@@ -6,8 +6,9 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import {type Group, IssueCategory} from 'sentry/types/group';
+import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -29,6 +30,7 @@ import {
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import {useTraceEventView} from 'sentry/views/performance/newTraceDetails/useTraceEventView';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
+import {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
 
 const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   drawer: {
@@ -75,39 +77,31 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
   const shouldLoadTraceRoot = !trace.isPending && trace.data;
 
   const rootEvent = useTraceRootEvent(shouldLoadTraceRoot ? trace.data : null);
-  const preferences = useMemo(
-    () =>
-      loadTraceViewPreferences('issue-details-trace-view-preferences') ||
-      DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES,
-    []
-  );
 
   const traceEventView = useTraceEventView(traceId, params);
+
+  const traceWaterfallModels = useTraceWaterfallModels();
 
   if (!traceId) {
     return null;
   }
 
   return (
-    <TraceStateProvider
-      initialPreferences={preferences}
-      preferencesStorageKey="issue-details-view-preferences"
-    >
-      <IssuesTraceContainer>
-        <IssuesTraceWaterfall
-          tree={tree}
-          trace={trace}
-          traceSlug={traceId}
-          rootEvent={rootEvent}
-          organization={organization}
-          traceEventView={traceEventView}
-          meta={meta}
-          source="issues"
-          replay={null}
-          event={event}
-        />
-      </IssuesTraceContainer>
-    </TraceStateProvider>
+    <IssuesTraceContainer>
+      <IssuesTraceWaterfall
+        tree={tree}
+        trace={trace}
+        traceSlug={traceId}
+        rootEvent={rootEvent}
+        organization={organization}
+        traceEventView={traceEventView}
+        meta={meta}
+        source="issues"
+        replay={null}
+        event={event}
+        traceWaterfallModels={traceWaterfallModels}
+      />
+    </IssuesTraceContainer>
   );
 }
 
@@ -140,9 +134,18 @@ interface EventTraceViewProps {
 export function EventTraceView({group, event, organization}: EventTraceViewProps) {
   const traceId = event.contexts.trace?.trace_id;
   const location = useLocation();
+  const issueTypeConfig = getConfigForIssueType(group, group.project);
+
+  // Span Evidence section contains the trace view already
+  const preferences = useMemo(
+    () =>
+      loadTraceViewPreferences('issue-details-trace-view-preferences') ||
+      DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES,
+    []
+  );
 
   // Performance issues have a Span Evidence section that contains the trace view
-  if (!traceId || group.issueCategory === IssueCategory.PERFORMANCE) {
+  if (!traceId || issueTypeConfig.spanEvidence.enabled) {
     return null;
   }
 
@@ -184,11 +187,16 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
     >
       <OneOtherIssueEvent event={event} />
       {hasTracePreviewFeature && (
-        <EventTraceViewInner
-          event={event}
-          organization={organization}
-          traceId={traceId}
-        />
+        <TraceStateProvider
+          initialPreferences={preferences}
+          preferencesStorageKey="issue-details-view-preferences"
+        >
+          <EventTraceViewInner
+            event={event}
+            organization={organization}
+            traceId={traceId}
+          />
+        </TraceStateProvider>
       )}
     </InterimSection>
   );

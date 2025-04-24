@@ -4,10 +4,10 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -76,7 +76,7 @@ export function SamplingBreakdown({
 
   const getSpanRate = (spanCount: any) => (total === 0 ? 0 : spanCount / total);
   const otherRate = getSpanRate(otherSpanCount);
-  const palette = theme.chart.colors[ITEMS_TO_SHOW - 1]!;
+  const palette = theme.chart.getColorPalette(ITEMS_TO_SHOW - 1);
 
   return (
     <StyledPanel {...props}>

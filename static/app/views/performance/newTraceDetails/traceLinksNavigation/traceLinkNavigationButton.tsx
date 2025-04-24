@@ -1,13 +1,13 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {
   SpanLink,
   TraceContextType,
 } from 'sentry/components/events/interfaces/spans/types';
 import Link from 'sentry/components/links/link';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

@@ -4,7 +4,7 @@ import {
   type EventGroupVariant,
   EventGroupVariantType,
 } from 'sentry/types/event';
-import {type Group, IssueCategory} from 'sentry/types/group';
+import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -59,10 +59,7 @@ export function useEventGroupingInfo({
 }) {
   const organization = useOrganization();
 
-  const hasPerformanceGrouping =
-    event.occurrence &&
-    event.type === 'transaction' &&
-    group?.issueCategory === IssueCategory.PERFORMANCE;
+  const hasPerformanceGrouping = event.occurrence && event.type === 'transaction';
 
   const {data, isPending, isError, isSuccess} = useApiQuery<EventGroupingInfoResponse>(
     [

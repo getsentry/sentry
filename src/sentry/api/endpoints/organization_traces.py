@@ -163,6 +163,9 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
             return Response(serializer.errors, status=400)
         serialized = serializer.validated_data
 
+        use_rpc = bool(serialized["useRpc"])
+        sentry_sdk.set_tag("performance.use_rpc", use_rpc)
+
         executor = TracesExecutor(
             dataset=serialized["dataset"],
             snuba_params=snuba_params,
@@ -177,7 +180,7 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
                 project_slugs=None,
                 include_all_accessible=True,
             ),
-            use_rpc=bool(serialized["useRpc"]),
+            use_rpc=use_rpc,
         )
 
         return self.paginate(
@@ -397,7 +400,8 @@ class TracesExecutor:
         if not rpc_response.traces:
             return []
 
-        traces = [format_trace_result(trace, all_projects) for trace in rpc_response.traces]
+        projects_map: dict[int, str] = {project.id: project.slug for project in all_projects}
+        traces = [format_trace_result(trace, projects_map) for trace in rpc_response.traces]
 
         with handle_span_query_errors():
             snuba_params = self.params_with_all_projects()
@@ -552,9 +556,10 @@ class TracesExecutor:
 
         for trace in traces:
             info = get_trace_info(trace["trace"])
-            trace["project"] = info[0]
-            trace["name"] = info[1]
-            trace["rootDuration"] = info[2]
+            if info[0] is not None and info[1] is not None:
+                trace["project"] = info[0]
+                trace["name"] = info[1]
+                trace["rootDuration"] = info[2]
 
             trace["numErrors"] = traces_errors.get(trace["trace"], 0)
             trace["numOccurrences"] = traces_occurrences.get(trace["trace"], 0)
@@ -631,6 +636,18 @@ class TracesExecutor:
                 TraceAttribute(key=TraceAttribute.Key.KEY_END_TIMESTAMP),
                 TraceAttribute(key=TraceAttribute.Key.KEY_TOTAL_ITEM_COUNT),
                 TraceAttribute(key=TraceAttribute.Key.KEY_FILTERED_ITEM_COUNT),
+                # earliest span
+                TraceAttribute(key=TraceAttribute.Key.KEY_EARLIEST_SPAN_PROJECT_ID),
+                TraceAttribute(key=TraceAttribute.Key.KEY_EARLIEST_SPAN_NAME),
+                TraceAttribute(key=TraceAttribute.Key.KEY_EARLIEST_SPAN_DURATION_MS),
+                # frontend span
+                TraceAttribute(key=TraceAttribute.Key.KEY_EARLIEST_FRONTEND_SPAN_PROJECT_ID),
+                TraceAttribute(key=TraceAttribute.Key.KEY_EARLIEST_FRONTEND_SPAN),
+                TraceAttribute(key=TraceAttribute.Key.KEY_EARLIEST_FRONTEND_SPAN_DURATION_MS),
+                # root span
+                TraceAttribute(key=TraceAttribute.Key.KEY_ROOT_SPAN_PROJECT_ID),
+                TraceAttribute(key=TraceAttribute.Key.KEY_ROOT_SPAN_NAME),
+                TraceAttribute(key=TraceAttribute.Key.KEY_ROOT_SPAN_DURATION_MS),
             ],
         )
 
@@ -1908,12 +1925,15 @@ def process_rpc_user_queries(
     config = SearchResolverConfig(auto_fields=True)
     resolver = spans_rpc.get_resolver(snuba_params, config)
 
+    # Filter out empty queries as they do not do anything to change the results.
+    user_queries = [user_query for user_query in user_queries if len(user_query) > 0]
+
+    # ensure at least 1 user query exists as the environment filter is AND'ed to it
+    if not user_queries:
+        user_queries.append("")
+
     for user_query in user_queries:
         user_query = user_query.strip()
-
-        # Filter out empty queries as they do not do anything to change the results.
-        if not user_query:
-            continue
 
         # We want to ignore all the aggregate conditions here because we're strictly
         # searching on span attributes, not aggregates
@@ -1993,7 +2013,7 @@ class TraceInfo:
 
 def format_trace_result(
     trace: GetTracesResponse.Trace,
-    projects: list[Project],
+    projects_map: dict[int, str],
 ) -> TraceResult:
     result: TraceResult = {
         "trace": "",
@@ -2010,6 +2030,10 @@ def format_trace_result(
         "breakdowns": [],
     }
 
+    earliest_span = TraceInfo()
+    frontend_span = TraceInfo()
+    root_span = TraceInfo()
+
     for attribute in trace.attributes:
         if attribute.key == TraceAttribute.Key.KEY_TRACE_ID:
             result["trace"] = get_attr_val_str(attribute)
@@ -2021,6 +2045,31 @@ def format_trace_result(
             result["numSpans"] = get_attr_val_int(attribute)
         elif attribute.key == TraceAttribute.Key.KEY_FILTERED_ITEM_COUNT:
             result["matchingSpans"] = get_attr_val_int(attribute)
+
+        # earliest span
+        elif attribute.key == TraceAttribute.Key.KEY_EARLIEST_SPAN_PROJECT_ID:
+            earliest_span.project = get_attr_val_int(attribute)
+        elif attribute.key == TraceAttribute.Key.KEY_EARLIEST_SPAN_NAME:
+            earliest_span.name = get_attr_val_str(attribute)
+        elif attribute.key == TraceAttribute.Key.KEY_EARLIEST_SPAN_DURATION_MS:
+            earliest_span.duration = float(get_attr_val_int(attribute))
+
+        # frontend span
+        elif attribute.key == TraceAttribute.Key.KEY_EARLIEST_FRONTEND_SPAN_PROJECT_ID:
+            frontend_span.project = get_attr_val_int(attribute)
+        elif attribute.key == TraceAttribute.Key.KEY_EARLIEST_FRONTEND_SPAN:
+            frontend_span.name = get_attr_val_str(attribute)
+        elif attribute.key == TraceAttribute.Key.KEY_EARLIEST_FRONTEND_SPAN_DURATION_MS:
+            frontend_span.duration = float(get_attr_val_int(attribute))
+
+        # root span
+        elif attribute.key == TraceAttribute.Key.KEY_ROOT_SPAN_PROJECT_ID:
+            root_span.project = get_attr_val_int(attribute)
+        elif attribute.key == TraceAttribute.Key.KEY_ROOT_SPAN_NAME:
+            root_span.name = get_attr_val_str(attribute)
+        elif attribute.key == TraceAttribute.Key.KEY_ROOT_SPAN_DURATION_MS:
+            root_span.duration = float(get_attr_val_int(attribute))
+
         else:
             raise ValueError(f"Unexpected attribute found: {attribute.key}")
 
@@ -2030,6 +2079,15 @@ def format_trace_result(
         raise ValueError(f"Expected {TraceAttribute.Key.KEY_END_TIMESTAMP} to be present")
 
     result["duration"] = result["end"] - result["start"]
+
+    # if we see any of these spans, use them to fill in the result
+    # on a best-effort basis
+    for span in [root_span, frontend_span, earliest_span]:
+        if span.project in projects_map and span.name:
+            result["project"] = projects_map[span.project]
+            result["name"] = span.name
+            result["rootDuration"] = span.duration
+            break
 
     return result
 

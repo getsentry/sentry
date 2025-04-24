@@ -1,6 +1,7 @@
 import time
 from typing import TypedDict
 
+import sentry_sdk
 from django.db import IntegrityError, router, transaction
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
@@ -10,11 +11,12 @@ from rest_framework.response import Response
 from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import EnvironmentMixin, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.helpers.default_inbound_filters import set_default_inbound_filters
 from sentry.api.helpers.default_symbol_sources import set_default_symbol_sources
+from sentry.api.helpers.environments import get_environment_id
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import ProjectSummarySerializer, serialize
 from sentry.api.serializers.models.project import OrganizationProjectResponse, ProjectSerializer
@@ -95,7 +97,7 @@ class AuditData(TypedDict):
 
 @extend_schema(tags=["Teams"])
 @region_silo_endpoint
-class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
+class TeamProjectsEndpoint(TeamEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
@@ -147,9 +149,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
                 x,
                 request.user,
                 ProjectSummarySerializer(
-                    environment_id=self._get_environment_id_from_request(
-                        request, team.organization.id
-                    ),
+                    environment_id=get_environment_id(request, team.organization.id),
                     stats_period=stats_period,
                 ),
             ),
@@ -211,7 +211,8 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
                         organization=team.organization,
                         platform=result.get("platform"),
                     )
-            except (IntegrityError, MaxSnowflakeRetryError):
+            except (IntegrityError, MaxSnowflakeRetryError) as e:
+                sentry_sdk.capture_exception(e)
                 return Response({"detail": "A project with this slug already exists."}, status=409)
             else:
                 project.add_team(team)

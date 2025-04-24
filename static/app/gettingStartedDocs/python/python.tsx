@@ -136,7 +136,12 @@ sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
   },
 };
 
-const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
+const getInstallSnippet = (packageManager?: 'pip' | 'uv') => {
+  if (packageManager === 'uv') {
+    return `uv add sentry-sdk`;
+  }
+  return `pip install --upgrade sentry-sdk`;
+};
 
 const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
@@ -201,7 +206,7 @@ const onboarding: OnboardingConfig = {
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      description: tct('Install our Python SDK using [code:pip]:', {
+      description: tct('Install our Python SDK:', {
         code: <code />,
       }),
       configurations: [
@@ -216,7 +221,20 @@ const onboarding: OnboardingConfig = {
                 )
               : undefined,
           language: 'bash',
-          code: getInstallSnippet(),
+          code: [
+            {
+              label: 'pip',
+              value: 'pip',
+              language: 'bash',
+              code: getInstallSnippet('pip'),
+            },
+            {
+              label: 'uv',
+              value: 'uv',
+              language: 'bash',
+              code: getInstallSnippet('uv'),
+            },
+          ],
         },
       ],
     },
@@ -288,7 +306,7 @@ export const performanceOnboarding: OnboardingConfig = {
       configurations: [
         {
           description: tct(
-            "Once this is done, Sentry's Python SDK captures all unhandled exceptions and transactions. Note that [code:enable_tracing] is available in Sentry Python SDK version [code:≥ 1.16.0]. To enable tracing in older SDK versions ([code:≥ 0.11.2]), use [code:traces_sample_rate=1.0].",
+            "Once this is done, Sentry's Python SDK captures all unhandled exceptions and transactions. To enable tracing, use [code:traces_sample_rate=1.0] in the sentry_sdk.init() call.",
             {code: <code />}
           ),
           language: 'python',
@@ -296,8 +314,10 @@ export const performanceOnboarding: OnboardingConfig = {
 import sentry_sdk
 
 sentry_sdk.init(
-  dsn="${params.dsn.public}",
-  traces_sample_rate=1.0,
+    dsn="${params.dsn.public}",
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for tracing.
+    traces_sample_rate=1.0,
 )`,
           additionalInfo: tct(
             'Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to [linkSampleTransactions:sample transactions].',
@@ -380,6 +400,12 @@ export const featureFlagOnboarding: OnboardingConfig = {
                 value: 'pip',
                 language: 'bash',
                 code: `pip install --upgrade ${packageName}`,
+              },
+              {
+                label: 'uv',
+                value: 'uv',
+                language: 'bash',
+                code: `uv pip install --upgrade ${packageName}`,
               },
             ],
           },

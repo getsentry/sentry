@@ -385,14 +385,16 @@ function ContinuousProfilingBetaAlertBannerInner({
 
   return (
     <Alert.Container>
-      <StyledAlert
+      <Alert
         type="warning"
+        system
         showIcon
         trailingItems={
           <AddEventsCTA
             organization={organization}
             subscription={subscription}
             buttonProps={{
+              priority: 'default',
               size: 'xs',
             }}
             eventTypes={eventTypes}
@@ -426,7 +428,7 @@ function ContinuousProfilingBetaAlertBannerInner({
                   '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a pay-as-you-go budget after this date.',
                   {bold: <b />}
                 )}
-      </StyledAlert>
+      </Alert>
     </Alert.Container>
   );
 }
@@ -455,7 +457,7 @@ export function ContinuousProfilingBetaSDKAlertBanner() {
 
   return (
     <Alert.Container>
-      <StyledAlert type="warning" showIcon>
+      <Alert system type="warning" showIcon>
         {tct(
           '[bold:Action Needed: Profiling beta period ends May 19, 2025.] Your SDK is out of date. To continue using profiling without interruption, upgrade to the latest version:',
           {
@@ -476,7 +478,7 @@ export function ContinuousProfilingBetaSDKAlertBanner() {
             );
           })}
         </SDKDeprecationsContainer>
-      </StyledAlert>
+      </Alert>
     </Alert.Container>
   );
 }
@@ -525,9 +527,4 @@ const Dot = styled('span')`
   width: ${space(0.5)};
   height: ${space(0.5)};
   background-color: ${p => p.theme.textColor};
-`;
-
-const StyledAlert = styled(Alert)`
-  margin: 0 !important;
-  border-radius: 0;
 `;
