@@ -14,23 +14,65 @@ export function IssuesSecondaryNav() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const baseUrl = `/organizations/${organization.slug}/issues`;
 
+  const hasIssueTaxonomy = organization.features.includes('issue-taxonomy');
+
   return (
     <SecondaryNav>
       <SecondaryNav.Header>
         {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.ISSUES].label}
       </SecondaryNav.Header>
       <SecondaryNav.Body>
-        <SecondaryNav.Section>
-          <SecondaryNav.Item to={`${baseUrl}/`} end analyticsItemName="issues_feed">
-            {t('Feed')}
-          </SecondaryNav.Item>
-          <SecondaryNav.Item
-            to={`${baseUrl}/feedback/`}
-            analyticsItemName="issues_feedback"
-          >
-            {t('Feedback')}
-          </SecondaryNav.Item>
-        </SecondaryNav.Section>
+        {!hasIssueTaxonomy && (
+          <SecondaryNav.Section>
+            <SecondaryNav.Item to={`${baseUrl}/`} end analyticsItemName="issues_feed">
+              {t('Feed')}
+            </SecondaryNav.Item>
+            <SecondaryNav.Item
+              to={`${baseUrl}/feedback/`}
+              analyticsItemName="issues_feedback"
+            >
+              {t('Feedback')}
+            </SecondaryNav.Item>
+          </SecondaryNav.Section>
+        )}
+        {hasIssueTaxonomy && (
+          <Fragment>
+            <SecondaryNav.Section>
+              <SecondaryNav.Item to={`${baseUrl}/`} end analyticsItemName="issues_feed">
+                {t('Feed')}
+              </SecondaryNav.Item>
+            </SecondaryNav.Section>
+            <SecondaryNav.Section>
+              <SecondaryNav.Item
+                to={`${baseUrl}/errors-outages/`}
+                end
+                analyticsItemName="issues_types_errors_outages"
+              >
+                {t('Errors & Outages')}
+              </SecondaryNav.Item>
+              <SecondaryNav.Item
+                to={`${baseUrl}/metrics/`}
+                end
+                analyticsItemName="issues_types_metrics"
+              >
+                {t('Metrics')}
+              </SecondaryNav.Item>
+              <SecondaryNav.Item
+                to={`${baseUrl}/best-practices/`}
+                end
+                analyticsItemName="issues_types_best_practices"
+              >
+                {t('Best Practices')}
+              </SecondaryNav.Item>
+              <SecondaryNav.Item
+                to={`${baseUrl}/feedback/`}
+                analyticsItemName="issues_feedback"
+              >
+                {t('Feedback')}
+              </SecondaryNav.Item>
+            </SecondaryNav.Section>
+          </Fragment>
+        )}
         {organization.features.includes('issue-stream-custom-views') && (
           <IssueViewNavItems sectionRef={sectionRef} baseUrl={baseUrl} />
         )}
