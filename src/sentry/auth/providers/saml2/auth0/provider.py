@@ -13,7 +13,7 @@ class Auth0SAML2Provider(SAML2Provider):
     def get_saml_setup_pipeline(self) -> list[AuthView]:
         return [SelectIdP()]
 
-    def attribute_mapping(self):
+    def attribute_mapping(self) -> dict[str, str | None]:
         return {
             Attributes.IDENTIFIER: "user_id",
             Attributes.USER_EMAIL: "email",
