@@ -1439,6 +1439,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.replays.tasks",
     "sentry.rules.processing.delayed_processing",
     "sentry.sentry_apps.tasks.sentry_apps",
+    "sentry.sentry_apps.tasks.service_hooks",
     "sentry.snuba.tasks",
     "sentry.tasks.assemble",
     "sentry.tasks.auth.auth",
