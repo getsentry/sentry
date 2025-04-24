@@ -774,7 +774,9 @@ class Group(Model):
                     status = GroupStatus.UNRESOLVED
 
         if status == GroupStatus.UNRESOLVED and self.is_over_resolve_age():
-            return GroupStatus.RESOLVED
+            # Only auto-resolve if this group type has auto-resolve enabled
+            if self.issue_type.enable_auto_resolve:
+                return GroupStatus.RESOLVED
         return status
 
     def get_share_id(self):

@@ -424,8 +424,10 @@ class GroupSerializerBase(Serializer, ABC):
                 status = GroupStatus.UNRESOLVED
         if status == GroupStatus.UNRESOLVED and obj.is_over_resolve_age():
             # When an issue is over the auto-resolve age but the task has not yet run
-            status = GroupStatus.RESOLVED
-            status_details["autoResolved"] = True
+            # Only show as auto-resolved if this group type has auto-resolve enabled
+            if obj.issue_type.enable_auto_resolve:
+                status = GroupStatus.RESOLVED
+                status_details["autoResolved"] = True
         if status == GroupStatus.RESOLVED:
             status_label = "resolved"
             if attrs["resolution_type"] == "release":
