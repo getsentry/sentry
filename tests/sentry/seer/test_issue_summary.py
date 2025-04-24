@@ -1,4 +1,6 @@
 import datetime
+import threading
+import time
 from typing import Any
 from unittest.mock import ANY, Mock, call, patch
 
@@ -17,6 +19,7 @@ from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
+from sentry.utils.locking import UnableToAcquireLock
 
 pytestmark = [requires_snuba]
 
@@ -407,3 +410,107 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
             ]
         )
         mock_serialize.assert_called_once()
+
+    @patch("sentry.seer.issue_summary._generate_summary")
+    @patch("sentry.seer.issue_summary.locks")
+    def test_get_issue_summary_concurrent_wait_for_lock(self, mock_locks, mock_generate_summary):
+        """Test that a second request waits for the lock and reads from cache."""
+        lock_instance = mock_locks.get.return_value
+        mock_acquire = Mock()
+        # Simulate lock being held initially, then acquired, then released by context manager
+        mock_acquire.side_effect = [UnableToAcquireLock, Mock(__enter__=Mock(), __exit__=Mock())]
+        lock_instance.blocking_acquire.return_value = mock_acquire
+
+        # Mock summary generation to take time and cache the result
+        generated_summary = {"headline": "Generated Summary", "event_id": "gen_event"}
+        cache_key = f"ai-group-summary-v2:{self.group.id}"
+
+        def side_effect_generate(*args, **kwargs):
+            time.sleep(0.2)  # Simulate work
+            cache.set(cache_key, generated_summary, timeout=60)
+            return generated_summary, 200
+
+        mock_generate_summary.side_effect = side_effect_generate
+
+        results = {}
+
+        def target(req_id):
+            summary_data, status_code = get_issue_summary(self.group, self.user)
+            results[req_id] = (summary_data, status_code)
+
+        # Start two threads concurrently
+        thread1 = threading.Thread(target=target, args=(1,))
+        thread2 = threading.Thread(target=target, args=(2,))
+
+        thread1.start()
+        time.sleep(0.05)  # Ensure thread1 likely starts first and acquires lock
+        thread2.start()
+
+        thread1.join(timeout=2)
+        thread2.join(timeout=2)
+
+        # Assertions
+        assert 1 in results
+        assert 2 in results
+        # Both should succeed and get the same summary
+        assert results[1][1] == 200
+        assert results[2][1] == 200
+        assert results[1][0] == convert_dict_key_case(generated_summary, snake_to_camel_case)
+        assert results[2][0] == convert_dict_key_case(generated_summary, snake_to_camel_case)
+
+        # Check that _generate_summary was only called once (by the first thread)
+        mock_generate_summary.assert_called_once()
+        # Lock should have been acquired twice (once failed, once succeeded)
+        assert lock_instance.blocking_acquire.call_count == 2
+
+    @patch("sentry.seer.issue_summary._generate_summary")
+    @patch("sentry.seer.issue_summary.locks")
+    def test_get_issue_summary_concurrent_force_event_id_bypasses_lock(
+        self, mock_locks, mock_generate_summary
+    ):
+        """Test that force_event_id bypasses lock waiting."""
+        lock_instance = mock_locks.get.return_value
+        # Make acquiring the lock always fail initially to simulate it being held
+        lock_instance.blocking_acquire.side_effect = UnableToAcquireLock
+
+        # Mock summary generation
+        forced_summary = {"headline": "Forced Summary", "event_id": "force_event"}
+        mock_generate_summary.return_value = (forced_summary, 200)
+
+        # Call with force_event_id=True
+        summary_data, status_code = get_issue_summary(
+            self.group, self.user, force_event_id="some_event"
+        )
+
+        assert status_code == 200
+        assert summary_data == convert_dict_key_case(forced_summary, snake_to_camel_case)
+        # Ensure lock acquisition wasn't even attempted because force_event_id was true
+        mock_locks.get.assert_not_called()
+        lock_instance.blocking_acquire.assert_not_called()
+        # Ensure generation was called directly
+        mock_generate_summary.assert_called_once()
+
+    @patch("sentry.seer.issue_summary.cache.get")
+    @patch("sentry.seer.issue_summary._generate_summary")
+    @patch("sentry.seer.issue_summary.locks")
+    def test_get_issue_summary_lock_timeout(
+        self, mock_locks, mock_generate_summary, mock_cache_get
+    ):
+        """Test that a timeout waiting for the lock returns 503."""
+        lock_instance = mock_locks.get.return_value
+        # Simulate lock acquisition always failing
+        lock_instance.blocking_acquire.side_effect = UnableToAcquireLock
+        # Simulate cache miss even after timeout
+        mock_cache_get.return_value = None
+
+        summary_data, status_code = get_issue_summary(self.group, self.user)
+
+        assert status_code == 503
+        assert summary_data == {"detail": "Timeout waiting for summary generation lock"}
+        # Ensure lock acquisition was attempted
+        mock_locks.get.assert_called_once()
+        lock_instance.blocking_acquire.assert_called_once()
+        # Ensure generation was NOT called
+        mock_generate_summary.assert_not_called()
+        # Ensure cache was checked twice (once initially, once after lock failure)
+        assert mock_cache_get.call_count == 2
