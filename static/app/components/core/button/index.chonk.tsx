@@ -56,7 +56,7 @@ export function getChonkButtonStyles(
     border: 'none',
     color: getChonkButtonTheme(type, p.theme).color,
 
-    transform: 'translateY(2px)',
+    transform: 'translateY(0px)',
     background: 'none',
 
     height:
