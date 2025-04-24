@@ -119,6 +119,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
               />
               {hasTraceNewUi && (
                 <TraceContextPanel
+                  traceSlug={traceSlug}
                   tree={tree}
                   rootEvent={rootEvent}
                   onScrollToNode={traceWaterfallScroll.onScrollToNode}
