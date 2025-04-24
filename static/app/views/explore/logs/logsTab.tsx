@@ -1,5 +1,6 @@
-import {useCallback} from 'react';
+import {useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
+import type {Location} from 'history';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
@@ -16,6 +17,8 @@ import {space} from 'sentry/styles/space';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import SchemaHintsList, {
   SchemaHintsSection,
@@ -27,11 +30,17 @@ import {
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {
+  LOGS_FIELDS_KEY,
   useLogsFields,
   useLogsSearch,
+  usePersistedLogsPageParams,
   useSetLogsFields,
   useSetLogsPageParams,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {
+  LOGS_SORT_BYS_KEY,
+  updateLocationWithLogSortBys,
+} from 'sentry/views/explore/contexts/logs/sortBys';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useLogAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {getIntervalOptionsForPageFilter} from 'sentry/views/explore/hooks/useChartInterval';
@@ -50,6 +59,33 @@ type LogsTabProps = {
   maxPickableDays: MaxPickableDays;
   relativeOptions: Record<string, React.ReactNode>;
 };
+
+/**
+ *
+ * This is a react component which sets the table columns and sorts from storage if they are unset.
+ */
+function LogsTabDefaultSetter() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [persistedParams] = usePersistedLogsPageParams();
+  useEffect(() => {
+    let changedSomething = false;
+    const target: Location = {...location, query: {...location.query}};
+    if (!target.query[LOGS_FIELDS_KEY] && persistedParams?.fields?.length > 0) {
+      target.query[LOGS_FIELDS_KEY] = persistedParams.fields;
+      changedSomething = true;
+    }
+    if (!target.query[LOGS_SORT_BYS_KEY] && persistedParams?.sortBys?.length > 0) {
+      updateLocationWithLogSortBys(target, persistedParams.sortBys);
+      changedSomething = true;
+    }
+    if (changedSomething) {
+      navigate(target);
+    }
+  }, [location, navigate, persistedParams]);
+
+  return null;
+}
 
 export function LogsTabContent({
   defaultPeriod,
@@ -130,6 +166,7 @@ export function LogsTabContent({
   return (
     <SearchQueryBuilderProvider {...searchQueryBuilderProps}>
       <Layout.Body noRowGap>
+        <LogsTabDefaultSetter />
         <Layout.Main fullWidth>
           <FilterBarContainer>
             <PageFilterBar condensed>
