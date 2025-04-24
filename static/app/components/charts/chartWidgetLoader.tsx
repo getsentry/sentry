@@ -4,6 +4,7 @@ import {useQuery} from '@tanstack/react-query';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
+import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/streamline/eventGraphWidget';
 
 interface Props extends LoadableChartWidgetProps {
   /**
@@ -26,7 +27,13 @@ interface Props extends LoadableChartWidgetProps {
 export function ChartWidgetLoader(props: Props) {
   const query = useQuery<{default: React.FC<LoadableChartWidgetProps>}>({
     queryKey: [`widget-${props.id}`],
-    queryFn: () => import(`sentry/views/insights/common/components/widgets/${props.id}`),
+    queryFn: () => {
+      if (props.id === EVENT_GRAPH_WIDGET_ID) {
+        return import('sentry/views/issueDetails/streamline/eventGraphWidget');
+      }
+
+      return import(`sentry/views/insights/common/components/widgets/${props.id}`);
+    },
   });
 
   if (query.isPending) {
