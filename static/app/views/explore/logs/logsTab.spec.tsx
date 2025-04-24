@@ -177,6 +177,8 @@ describe('LogsTabContent', function () {
           environment: [],
           statsPeriod: '14d',
           dataset: 'ourlogs',
+          yAxis: 'count(message)',
+          interval: '1h',
         }),
       })
     );
