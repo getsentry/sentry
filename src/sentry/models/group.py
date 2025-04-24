@@ -1039,6 +1039,10 @@ class Group(Model):
     def issue_category(self):
         return GroupCategory(self.issue_type.category)
 
+    @property
+    def issue_category_v2(self):
+        return GroupCategory(self.issue_type.category_v2)
+
 
 @receiver(pre_save, sender=Group, dispatch_uid="pre_save_group_default_substatus", weak=False)
 def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
