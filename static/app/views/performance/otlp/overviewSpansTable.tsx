@@ -1,41 +1,78 @@
-import EventView from 'sentry/utils/discover/eventView';
+import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
+import type {Location} from 'history';
+
+import {LinkButton} from 'sentry/components/core/button';
+import GridEditable from 'sentry/components/gridEditable';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import {IconPlay, IconProfiling} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {Organization} from 'sentry/types/organization';
+import EventView, {EventsMetaType} from 'sentry/utils/discover/eventView';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {Theme} from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
+import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
+import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {ModuleName} from 'sentry/views/insights/types';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {
+  SERVICE_ENTRY_SPANS_COLUMN_ORDER,
+  ServiceEntrySpansColumn,
+  ServiceEntrySpansRow,
+} from 'sentry/views/performance/otlp/types';
 import {useServiceEntrySpansQuery} from 'sentry/views/performance/otlp/useServiceEntrySpansQuery';
-import {getOTelTransactionsListSort} from 'sentry/views/performance/otlp/utils';
+import {SERVICE_ENTRY_SPANS_CURSOR} from 'sentry/views/performance/otlp/utils';
 
 const LIMIT = 50;
 
 type Props = {
   eventView: EventView;
-  handleDropdownChange: (k: string) => void;
   totalValues: Record<string, number> | null;
   transactionName: string;
-  showViewSampledEventsButton?: boolean;
-  supportsInvestigationRule?: boolean;
 };
 
-export function OverviewSpansTable({
-  eventView,
-  handleDropdownChange,
-  totalValues,
-  transactionName,
-  showViewSampledEventsButton,
-  supportsInvestigationRule,
-}: Props) {
+export function OverviewSpansTable({eventView, totalValues, transactionName}: Props) {
   const {selection} = usePageFilters();
   const location = useLocation();
-  const projects = useProjects();
-  const projectSlug = projects.find(p => p.id === `${eventView.project}`)?.slug;
-  const cursor = decodeScalar(location.query?.[CURSOR_NAME]);
-  const spanCategory = decodeScalar(location.query?.[SpanIndexedField.SPAN_CATEGORY]);
+  const {projects} = useProjects();
+  const navigate = useNavigate();
+  const theme = useTheme();
+  const organization = useOrganization();
 
-  const {selected, options} = getOTelTransactionsListSort(location, spanCategory);
+  const projectSlug = projects.find(p => p.id === `${eventView.project}`)?.slug;
 
   const p95 = totalValues?.['p95()'] ?? 0;
-  const query = new MutableSearch('');
+  const defaultQuery = new MutableSearch('');
+  defaultQuery.addFilterValue('is_transaction', '1');
+  defaultQuery.addFilterValue('transaction', transactionName);
+
+  const countQuery = new MutableSearch('');
+  countQuery.addFilterValue('is_transaction', '1');
+  countQuery.addFilterValue('transaction', transactionName);
+
+  const {data: numEvents, error: numEventsError} = useEAPSpans(
+    {
+      search: countQuery,
+      fields: ['count()'],
+      pageFilters: selection,
+    },
+    'api.performance.service-entry-spans-table-count'
+  );
+
+  const paginationCaption = tct(
+    'Showing [pageEventsCount] of [totalEventsCount] events',
+    {
+      pageEventsCount: LIMIT.toLocaleString(),
+      totalEventsCount: numEvents[0]?.['count()']?.toLocaleString() ?? '...',
+    }
+  );
 
   const {
     data: tableData,
@@ -44,18 +81,137 @@ export function OverviewSpansTable({
     meta,
     error,
   } = useServiceEntrySpansQuery({
-    query: query.formatString(),
-    sort: selected.sort,
+    query: defaultQuery.formatString(),
+    sort: {
+      field: 'span.duration',
+      kind: 'desc',
+    },
+    selected: {
+      label: 'Duration',
+      value: 'span.duration',
+    },
     transactionName,
     p95,
-    selected,
     limit: LIMIT,
   });
 
-  // <Pagination
-  //         pageLinks={pageLinks}
-  //         onCursor={handleCursor}
-  //         size="md"
-  //         caption={numEventsError ? undefined : paginationCaption}
-  //       />
+  const consolidatedData = tableData?.map(row => {
+    const user =
+      row['user.username'] || row['user.email'] || row['user.ip'] || row['user.id'];
+    return {
+      ...row,
+      'user.display': user,
+    };
+  });
+
+  const handleCursor: CursorHandler = (_cursor, pathname, query) => {
+    navigate({
+      pathname,
+      query: {...query, [SERVICE_ENTRY_SPANS_CURSOR]: _cursor},
+    });
+  };
+
+  return (
+    <Fragment>
+      <GridEditable
+        isLoading={isLoading}
+        error={error}
+        data={consolidatedData}
+        columnOrder={SERVICE_ENTRY_SPANS_COLUMN_ORDER}
+        columnSortBy={[]}
+        grid={{
+          renderHeadCell: column =>
+            renderHeadCell({
+              column,
+            }),
+          renderBodyCell: (column, row) =>
+            renderBodyCell(column, row, meta, projectSlug, location, organization, theme),
+        }}
+      />
+      <Pagination
+        pageLinks={pageLinks}
+        onCursor={handleCursor}
+        size="md"
+        caption={numEventsError ? undefined : paginationCaption}
+      />
+    </Fragment>
+  );
+}
+
+function renderBodyCell(
+  column: ServiceEntrySpansColumn,
+  row: ServiceEntrySpansRow,
+  meta: EventsMetaType | undefined,
+  projectSlug: string | undefined,
+  location: Location,
+  organization: Organization,
+  theme: Theme
+) {
+  if (column.key === 'span_id') {
+    return (
+      <SpanIdCell
+        moduleName={ModuleName.OTHER}
+        projectSlug={projectSlug ?? ''}
+        traceId={row.trace}
+        timestamp={row.timestamp}
+        transactionId={row.span_id}
+        spanId={row.span_id}
+        source={TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY}
+        location={location}
+      />
+    );
+  }
+
+  if (column.key === 'profile.id') {
+    return (
+      <div>
+        <LinkButton
+          size="xs"
+          icon={<IconProfiling size="xs" />}
+          to={{
+            pathname: `/organizations/${organization.slug}/profiling/profile/${projectSlug}/${row['profile.id']}/flamegraph/`,
+            query: {
+              referrer: 'performance',
+            },
+          }}
+          aria-label={t('View Profile')}
+          disabled={!row['profile.id']}
+        />
+      </div>
+    );
+  }
+
+  if (column.key === 'replayId') {
+    return (
+      <div>
+        <LinkButton
+          size="xs"
+          icon={<IconPlay size="xs" />}
+          to={{
+            pathname: `/organizations/${organization.slug}/replays/${row.replayId}/`,
+            query: {
+              referrer: 'performance',
+            },
+          }}
+          disabled={!row.replayId}
+          aria-label={t('View Replay')}
+        />
+      </div>
+    );
+  }
+
+  if (!meta || !meta?.fields) {
+    return row[column.key];
+  }
+
+  const renderer = getFieldRenderer(column.key, meta.fields, false);
+
+  const rendered = renderer(row, {
+    location,
+    organization,
+    theme,
+    unit: meta.units?.[column.key],
+  });
+
+  return rendered;
 }

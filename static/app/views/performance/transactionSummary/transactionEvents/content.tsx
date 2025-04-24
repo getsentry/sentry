@@ -26,7 +26,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {ServiceEntrySpansTable} from 'sentry/views/performance/otlp/serviceEntrySpansTable';
+import {OverviewSpansTable} from 'sentry/views/performance/otlp/overviewSpansTable';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import Filter, {
   filterToSearchConditions,
@@ -164,13 +164,10 @@ function EventsContent(props: Props) {
   const isEAP = organization.features.includes('performance-transaction-summary-eap');
 
   const table = isEAP ? (
-    <ServiceEntrySpansTable
+    <OverviewSpansTable
       eventView={eventView}
-      handleDropdownChange={() => {}}
       totalValues={null}
       transactionName={transactionName}
-      supportsInvestigationRule={false}
-      fullPageMode
     />
   ) : (
     <EventsTable
