@@ -3,30 +3,24 @@ import styled from '@emotion/styled';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
+import type {SettingsBreadcrumbProps} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 
 import BreadcrumbDropdown from './breadcrumbDropdown';
 import findFirstRouteWithoutRouteParam from './findFirstRouteWithoutRouteParam';
 import MenuItem from './menuItem';
 import {CrumbLink} from '.';
 
-type Props = RouteComponentProps<{projectId?: string}> & {
-  organization: Organization;
-  project: Project;
-  projects: Project[];
-};
-
-function ProjectCrumb({params, routes, route, ...props}: Props) {
+function ProjectCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
   const navigate = useNavigate();
   const {projects} = useProjects();
   const organization = useOrganization();
+  const params = useParams();
   const handleSelect = (item: {value: string}) => {
     // We have to make exceptions for routes like "Project Alerts Rule Edit" or "Client Key Details"
     // Since these models are project specific, we need to traverse up a route when switching projects

@@ -11,8 +11,6 @@ import type {SelectValue} from 'sentry/types/core';
 import type EventView from 'sentry/utils/discover/eventView';
 import {TOP_EVENT_MODES} from 'sentry/utils/discover/types';
 
-export const PROCESSED_BASELINE_TOGGLE_KEY = 'show-processed-baseline';
-
 type Props = {
   displayMode: string;
   displayOptions: Array<SelectValue<string>>;

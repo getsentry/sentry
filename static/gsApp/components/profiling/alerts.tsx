@@ -384,50 +384,51 @@ function ContinuousProfilingBetaAlertBannerInner({
   const eventTypes: EventType[] = ['profileDuration', 'profileDurationUI'];
 
   return (
-    <Alert.Container>
-      <StyledAlert
-        type="warning"
-        showIcon
-        trailingItems={
-          <AddEventsCTA
-            organization={organization}
-            subscription={subscription}
-            buttonProps={{
-              size: 'xs',
-            }}
-            eventTypes={eventTypes}
-            notificationType="overage_critical"
-            referrer={`overage-alert-${eventTypes.join('-')}`}
-            source="continuous-profiling-beta-trial-banner"
-          />
-        }
-      >
-        {subscription.isFree
-          ? isAm2Plan(subscription.plan)
+    <Alert
+      type="warning"
+      system
+      showIcon
+      trailingItems={
+        <AddEventsCTA
+          organization={organization}
+          subscription={subscription}
+          buttonProps={{
+            priority: 'default',
+            size: 'xs',
+            style: {marginBlock: `-${space(0.25)}`},
+          }}
+          eventTypes={eventTypes}
+          notificationType="overage_critical"
+          referrer={`overage-alert-${eventTypes.join('-')}`}
+          source="continuous-profiling-beta-trial-banner"
+        />
+      }
+    >
+      {subscription.isFree
+        ? isAm2Plan(subscription.plan)
+          ? tct(
+              '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a on-demand budget after this date. To avoid disruptions, upgrade to a paid plan.',
+              {bold: <b />}
+            )
+          : tct(
+              '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a pay-as-you-go budget after this date. To avoid disruptions, upgrade to a paid plan.',
+              {bold: <b />}
+            )
+        : isEnterprise(subscription)
+          ? tct(
+              '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. To avoid disruptions, contact your account manager before then to add it to your plan.',
+              {bold: <b />}
+            )
+          : isAm2Plan(subscription.plan)
             ? tct(
-                '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a on-demand budget after this date. To avoid disruptions, upgrade to a paid plan.',
+                '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require an on-demand budget after this date.',
                 {bold: <b />}
               )
             : tct(
-                '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a pay-as-you-go budget after this date. To avoid disruptions, upgrade to a paid plan.',
+                '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a pay-as-you-go budget after this date.',
                 {bold: <b />}
-              )
-          : isEnterprise(subscription)
-            ? tct(
-                '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. To avoid disruptions, contact your account manager before then to add it to your plan.',
-                {bold: <b />}
-              )
-            : isAm2Plan(subscription.plan)
-              ? tct(
-                  '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require an on-demand budget after this date.',
-                  {bold: <b />}
-                )
-              : tct(
-                  '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a pay-as-you-go budget after this date.',
-                  {bold: <b />}
-                )}
-      </StyledAlert>
-    </Alert.Container>
+              )}
+    </Alert>
   );
 }
 
@@ -455,7 +456,7 @@ export function ContinuousProfilingBetaSDKAlertBanner() {
 
   return (
     <Alert.Container>
-      <StyledAlert type="warning" showIcon>
+      <Alert system type="warning" showIcon>
         {tct(
           '[bold:Action Needed: Profiling beta period ends May 19, 2025.] Your SDK is out of date. To continue using profiling without interruption, upgrade to the latest version:',
           {
@@ -476,7 +477,7 @@ export function ContinuousProfilingBetaSDKAlertBanner() {
             );
           })}
         </SDKDeprecationsContainer>
-      </StyledAlert>
+      </Alert>
     </Alert.Container>
   );
 }
@@ -525,9 +526,4 @@ const Dot = styled('span')`
   width: ${space(0.5)};
   height: ${space(0.5)};
   background-color: ${p => p.theme.textColor};
-`;
-
-const StyledAlert = styled(Alert)`
-  margin: 0 !important;
-  border-radius: 0;
 `;

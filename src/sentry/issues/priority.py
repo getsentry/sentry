@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 class PriorityChangeReason(Enum):
     ESCALATING = "escalating"
     ONGOING = "ongoing"
+    ISSUE_PLATFORM = "issue_platform"
 
 
 PRIORITY_TO_GROUP_HISTORY_STATUS = {

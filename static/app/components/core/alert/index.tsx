@@ -102,7 +102,6 @@ export function Alert({
         )}
         {isExpanded && (
           <Fragment>
-            {showIcon && <IconWrapper type={type} style={{zIndex: 0}} />}
             <ExpandContainer
               ref={expandRef}
               showIcon={!!showIcon}
@@ -274,11 +273,14 @@ const TrailingItems = withChonk(
   ChonkAlert.TrailingItems
 );
 
-const ExpandIconWrap = styled('div')`
-  display: flex;
-  align-items: center;
-  margin-left: ${space(0.5)};
-`;
+const ExpandIconWrap = withChonk(
+  styled('div')`
+    display: flex;
+    align-items: center;
+    margin-left: ${space(0.5)};
+  `,
+  ChonkAlert.ExpandIconWrap
+);
 
 const ExpandContainer = withChonk(
   styled('div')<{showIcon: boolean; showTrailingItems: boolean}>`

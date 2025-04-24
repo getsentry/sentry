@@ -133,8 +133,6 @@ def child_process(
         processing_pool_name: str,
         process_type: str,
     ) -> None:
-        # print("!!!!!! STARTING WORKER !!!!!!!")
-
         processed_task_count = 0
 
         def handle_alarm(signum: int, frame: FrameType | None) -> None:
@@ -328,7 +326,7 @@ def child_process(
         execution_duration = completion_time - start_time
         execution_latency = completion_time - task_added_time
 
-        logger.info(
+        logger.debug(
             "taskworker.task_execution",
             extra={
                 "taskname": activation.taskname,

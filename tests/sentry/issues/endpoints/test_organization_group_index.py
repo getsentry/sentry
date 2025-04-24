@@ -4690,6 +4690,46 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert open_period.resolution_activity == activity
 
     @with_feature("organizations:issue-open-periods")
+    def test_set_resolved_in_current_release_without_open_period(self) -> None:
+        release = Release.objects.create(organization_id=self.project.organization_id, version="a")
+        release.add_project(self.project)
+
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+        GroupOpenPeriod.objects.all().delete()
+
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(
+            qs_params={"id": group.id}, status="resolved", statusDetails={"inRelease": "latest"}
+        )
+        assert response.data["status"] == "resolved"
+        assert response.data["statusDetails"]["inRelease"] == release.version
+        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.RESOLVED
+
+        resolution = GroupResolution.objects.get(group=group)
+        assert resolution.release == release
+        assert resolution.type == GroupResolution.Type.in_release
+        assert resolution.status == GroupResolution.Status.resolved
+        assert resolution.actor_id == self.user.id
+
+        assert GroupSubscription.objects.filter(
+            user_id=self.user.id, group=group, is_active=True
+        ).exists()
+
+        activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+        )
+        assert activity.data["version"] == release.version
+        assert GroupHistory.objects.filter(
+            group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_RELEASE
+        ).exists()
+
+        assert GroupOpenPeriod.objects.filter(group=group).count() == 0
+
+    @with_feature("organizations:issue-open-periods")
     def test_set_resolved_in_explicit_release(self) -> None:
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
         release.add_project(self.project)
