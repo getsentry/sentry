@@ -47,7 +47,6 @@ const onboarding: OnboardingConfig = {
       configurations: getPythonInstallConfig(),
     },
   ],
-
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
