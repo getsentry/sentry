@@ -17,7 +17,7 @@ from jsonschema import ValidationError, validate
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils import redis
 from sentry.utils.iterators import chunked
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
+from sentry.utils.query import RangeQuerySetWrapper, RangeQuerySetWrapperWithProgressBarApprox
 
 logger = logging.getLogger(__name__)
 
@@ -1878,6 +1878,7 @@ def migrate_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) ->
     Workflow = apps.get_model("workflow_engine", "Workflow")
     WorkflowDataConditionGroup = apps.get_model("workflow_engine", "WorkflowDataConditionGroup")
     Action = apps.get_model("workflow_engine", "Action")
+    Environment = apps.get_model("sentry", "Environment")
 
     def _translate_rule_data_actions_to_notification_actions(
         actions: list[dict[str, Any]]
@@ -2119,6 +2120,13 @@ def migrate_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) ->
             enabled = False
 
         config = {"frequency": rule.data.get("frequency") or 30}  # Workflow.DEFAULT_FREQUENCY
+
+        if rule.environment_id:
+            try:
+                Environment.objects.get(id=rule.environment_id)
+            except Environment.DoesNotExist:
+                raise Exception("Invalid environment")
+
         kwargs = {
             "organization": organization,
             "name": rule.label,
@@ -2185,11 +2193,10 @@ def migrate_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) ->
                 project_id=project_id,
                 defaults={"config": {}, "name": "Error Detector"},
             )
-
             with transaction.atomic(router.db_for_write(Rule)):
                 rules = Rule.objects.select_for_update().filter(project_id=project_id)
 
-                for rule in RangeQuerySetWrapperWithProgressBarApprox(rules):
+                for rule in RangeQuerySetWrapper(rules):
                     try:
                         with transaction.atomic(router.db_for_write(Workflow)):
                             # make sure rule is not already migrated
