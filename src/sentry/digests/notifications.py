@@ -6,7 +6,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any, NamedTuple, TypeAlias
 
 from sentry import features, tsdb
-from sentry.digests.types import Notification, Record, RecordWithRuleObjects
+from sentry.digests.types import IdentifierKey, Notification, Record, RecordWithRuleObjects
 from sentry.eventstore.models import Event
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
@@ -14,6 +14,7 @@ from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.notifications.utils.rules import get_key_from_rule_data
 from sentry.tsdb.base import TSDBModel
+from sentry.workflow_engine.models import Workflow
 
 logger = logging.getLogger("sentry.digests")
 
@@ -70,16 +71,21 @@ def event_to_record(
         logger.warning("Creating record for %s that does not contain any rules!", event)
 
     rule_ids = []
+    identifier_key = IdentifierKey.RULE
     # TODO(iamrajjoshi): This will only work during the dual write period of the rollout!
     if features.has("organizations:workflow-engine-trigger-actions", event.organization):
         for rule in rules:
             rule_ids.append(int(get_key_from_rule_data(rule, "legacy_rule_id")))
+    elif features.has("organizations:workflow-engine-ui-links", event.organization):
+        identifier_key = IdentifierKey.WORKFLOW
+        for rule in rules:
+            rule_ids.append(int(get_key_from_rule_data(rule, "workflow_id")))
     else:
         for rule in rules:
             rule_ids.append(rule.id)
     return Record(
         event.event_id,
-        Notification(event, rule_ids, notification_uuid),
+        Notification(event, rule_ids, notification_uuid, identifier_key),
         event.datetime.timestamp(),
     )
 
@@ -170,14 +176,41 @@ def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
     start = records[-1].datetime
     end = records[0].datetime
 
+    rule_ids = set()
+    workflow_ids = set()
+
+    for record in records:
+        identifier_key = getattr(record.value, "identifier_key", IdentifierKey.RULE)
+        # record.value is Notification, record.value.rules is Sequence[int]
+        ids_to_add = getattr(record.value, "rules", [])
+        if identifier_key == IdentifierKey.RULE:
+            rule_ids.update(ids_to_add)
+        elif identifier_key == IdentifierKey.WORKFLOW:
+            workflow_ids.update(ids_to_add)
+
     groups = Group.objects.in_bulk(record.value.event.group_id for record in records)
     group_ids = list(groups)
     rules = Rule.objects.in_bulk(rule_id for record in records for rule_id in record.value.rules)
 
-    # TODO(iamrajjoshi): This will only work during the dual write period of the rollout!
     if features.has("organizations:workflow-engine-trigger-actions", project.organization):
         for rule in rules.values():
             rule.data["actions"][0]["legacy_rule_id"] = rule.id
+    # We are only proccessing the workflows in the digest if under the new flag
+    # This should be ok since we should only add workflow_ids to redis when under this flag
+    if features.has("organizations:workflow-engine-ui-links", project.organization):
+        for workflow_id in workflow_ids:
+            workflow = Workflow.objects.get(id=workflow_id)
+            assert (
+                workflow.organization_id == project.organization_id
+            ), "Workflow must belong to Organization"
+            rules[workflow_id] = Rule(
+                label=workflow.name,
+                id=workflow_id,
+                project_id=project.id,
+                organization_id=project.organization_id,
+                # We need to do this so that the links are built correctly downstream
+                data={"actions": [{"workflow_id": workflow_id}]},
+            )
 
     for group_id, g in groups.items():
         assert g.project_id == project.id, "Group must belong to Project"

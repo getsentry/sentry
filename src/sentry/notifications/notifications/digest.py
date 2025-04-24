@@ -117,14 +117,17 @@ class DigestNotification(ProjectNotification):
 
         sentry_query_params = self.get_sentry_query_params(ExternalProviders.EMAIL)
 
-        snooze_alert = len(rule_details) > 0
-        snooze_alert_urls = {
-            rule.id: f"{rule.status_url}{sentry_query_params}&{urlencode({'mute': '1'})}"
-            for rule in rule_details
-        }
+        if not features.has("organizations:workflow-engine-ui-links", self.project.organization):
+            # TODO(iamrajjoshi): This actually mutes a rule for a user, something we have not ported over in the new system
+            # By not including this context, the template will not show the mute button
+            snooze_alert = len(rule_details) > 0
+            snooze_alert_urls = {
+                rule.id: f"{rule.status_url}{sentry_query_params}&{urlencode({'mute': '1'})}"
+                for rule in rule_details
+            }
 
-        context["snooze_alert"] = snooze_alert
-        context["snooze_alert_urls"] = snooze_alert_urls
+            context["snooze_alert"] = snooze_alert
+            context["snooze_alert_urls"] = snooze_alert_urls
 
         return context
 
