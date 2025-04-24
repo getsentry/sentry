@@ -174,28 +174,28 @@ class CustomerDomainMiddlewareTest(TestCase):
         ]
 
     @with_feature("system:multi-region")
-    @override_options({"demo-mode.enabled": True, "demo-mode.orgs": [2]})
     def test_no_activeorg_when_demo_org(self):
-        self.create_organization(name="sandbox", id=2)
-        request = RequestFactory().get("/")
-        request.subdomain = "sandbox"
-        request.session = _session({})
-        response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
+        org = self.create_organization(name="sandbox")
+        with override_options({"demo-mode.enabled": True, "demo-mode.orgs": [org.id]}):
+            request = RequestFactory().get("/")
+            request.subdomain = "sandbox"
+            request.session = _session({})
+            response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
 
-        assert "activeorg" not in request.session
-        assert response == mock.sentinel.response
+            assert "activeorg" not in request.session
+            assert response == mock.sentinel.response
 
     @with_feature("system:multi-region")
-    @override_options({"demo-mode.enabled": True, "demo-mode.orgs": [2]})
     def test_activeorg_when_not_demo_org(self):
-        self.create_organization(name="other", id=3)
-        request = RequestFactory().get("/")
-        request.subdomain = "other"
-        request.session = _session({})
-        response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
+        org = self.create_organization(name="other")
+        with override_options({"demo-mode.enabled": True, "demo-mode.orgs": [org.id + 1]}):
+            request = RequestFactory().get("/")
+            request.subdomain = "other"
+            request.session = _session({})
+            response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
 
-        assert request.session["activeorg"] == "other"
-        assert response == mock.sentinel.response
+            assert request.session["activeorg"] == "other"
+            assert response == mock.sentinel.response
 
 
 class OrganizationTestEndpoint(Endpoint):
