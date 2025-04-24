@@ -78,15 +78,10 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Install [code:sentry-sdk] from PyPI with the [code:tryton] extra:',
-        {
-          code: <code />,
-        }
-      ),
-      configurations: getPythonInstallConfig({
-        packageName: "'sentry-sdk[tryton]'",
+      description: tct('Install [code:sentry-sdk] from PyPI:', {
+        code: <code />,
       }),
+      configurations: getPythonInstallConfig(),
     },
   ],
   configure: (params: Params) => [
