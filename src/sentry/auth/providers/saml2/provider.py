@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from typing import NotRequired, TypedDict
+from typing import NotRequired, TypedDict, _TypedDict
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -9,13 +9,14 @@ from django.contrib import messages
 from django.contrib.auth import logout
 from django.http import HttpResponse, HttpResponseServerError
 from django.http.request import HttpRequest
-from django.http.response import HttpResponseRedirect
+from django.http.response import HttpResponseBase, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from onelogin.saml2.auth import OneLogin_Saml2_Auth, OneLogin_Saml2_Settings
 from onelogin.saml2.constants import OneLogin_Saml2_Constants
+from rest_framework.request import Request
 
 from sentry import features, options
 from sentry.auth.exceptions import IdentityNotValid
@@ -85,7 +86,7 @@ class SAML2LoginView(AuthView):
 @control_silo_view
 class SAML2AcceptACSView(BaseView):
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, organization_slug):
+    def dispatch(self, request: HttpRequest, organization_slug: str) -> HttpResponseBase:
         from sentry.auth.helper import AuthHelper
 
         helper = AuthHelper.get_for_request(request)
@@ -150,7 +151,7 @@ class SAML2ACSView(AuthView):
 
 class SAML2SLSView(BaseView):
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, organization_slug):
+    def dispatch(self, request: HttpRequest, organization_slug: str) -> HttpResponseRedirect:
         provider = get_provider(organization_slug)
         if provider is None:
             messages.add_message(request, messages.ERROR, ERR_NO_SAML_SSO)
@@ -176,7 +177,7 @@ class SAML2SLSView(BaseView):
 
 
 class SAML2MetadataView(BaseView):
-    def dispatch(self, request: HttpRequest, organization_slug):
+    def dispatch(self, request: HttpRequest, organization_slug: str) -> HttpResponse:
         provider = get_provider(organization_slug)
         config = provider.config if provider else {}
 
@@ -252,7 +253,7 @@ class SAML2Provider(Provider, abc.ABC):
     def get_auth_pipeline(self) -> list[AuthView]:
         return [SAML2LoginView(), SAML2ACSView()]
 
-    def get_setup_pipeline(self):
+    def get_setup_pipeline(self) -> list[AuthView]:
         return self.get_saml_setup_pipeline() + self.get_auth_pipeline()
 
     @abc.abstractmethod
@@ -420,7 +421,7 @@ def build_saml_config(provider_config, org: str) -> SamlConfig:
     return saml_config
 
 
-def build_auth(request, saml_config):
+def build_auth(request: HttpRequest, saml_config: _TypedDict) -> OneLogin_Saml2_Auth:
     """
     Construct a OneLogin_Saml2_Auth object for the current request.
     """
@@ -437,7 +438,7 @@ def build_auth(request, saml_config):
     return OneLogin_Saml2_Auth(saml_request, saml_config)
 
 
-def handle_saml_single_logout(request):
+def handle_saml_single_logout(request: Request) -> OneLogin_Saml2_Auth:
     """
     This method will attempt to call the backend of the IdP. However, not
     all IdP will invalidate the user session from their end.

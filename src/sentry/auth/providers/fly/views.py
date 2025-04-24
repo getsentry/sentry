@@ -20,12 +20,12 @@ class FlyOAuth2Login(OAuth2Login):
     authorize_url = AUTHORIZE_URL
     scope = SCOPE
 
-    def __init__(self, client_id):
+    def __init__(self, client_id: str) -> None:
         super().__init__(client_id=client_id)
 
 
 class FetchUser(AuthView):
-    def __init__(self, org=None, *args, **kwargs):
+    def __init__(self, org=None, *args, **kwargs) -> None:
         """
         NOTE: org/args are configured via provider `build_config` method and provided at SSO time
         """

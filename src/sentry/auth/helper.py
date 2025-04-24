@@ -475,7 +475,7 @@ class AuthIdentityHandler:
             initial={"username": self._app_user and self._app_user.username},
         )
 
-    def _build_confirmation_response(self, is_new_account):
+    def _build_confirmation_response(self, is_new_account: bool) -> HttpResponse:
         existing_user, template = self._dispatch_to_confirmation(is_new_account)
         context = {
             "identity": self.identity,
