@@ -231,7 +231,7 @@ describe('AddPaymentMethod', function () {
     const customerEndpoint = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,
       method: 'PUT',
-      body: OrganizationFixture(),
+      body: organization,
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/payments/setup/`,
