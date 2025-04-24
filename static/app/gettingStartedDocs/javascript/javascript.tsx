@@ -255,7 +255,12 @@ const getDynamicParts = (params: Params): string[] => {
 const getSdkSetupSnippet = (params: Params) => {
   const config = buildSdkConfig({
     params,
-    staticParts: [`dsn: "${params.dsn.public}"`],
+    staticParts: [
+      `dsn: "${params.dsn.public}"`,
+      `// Setting this option to true will send default PII data to Sentry.
+      // For example, automatic IP address collection on events
+      sendDefaultPii: true`,
+    ],
     getIntegrations,
     getDynamicParts,
   });
@@ -728,6 +733,9 @@ Sentry.init({
   tracesSampleRate: 1.0,
   // Set \`tracePropagationTargets\` to control for which URLs distributed tracing should be enabled
   tracePropagationTargets: ["localhost", /^https:\/\/yourserver\.io\/api/],
+  // Setting this option to true will send default PII data to Sentry.
+  // For example, automatic IP address collection on events
+  sendDefaultPii: true,
 });
 `,
           additionalInfo: tct(
@@ -762,6 +770,9 @@ Sentry.init({
   dsn: "${params.dsn.public}",
   integrations: [Sentry.browserTracingIntegration()],
   tracePropagationTargets: ["https://myproject.org", /^\/api\//],
+  // Setting this option to true will send default PII data to Sentry.
+  // For example, automatic IP address collection on events
+  sendDefaultPii: true,
 });
 `,
         },
