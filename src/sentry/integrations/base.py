@@ -120,6 +120,7 @@ class IntegrationFeatures(StrEnum):
     TICKET_RULES = "ticket-rules"
     STACKTRACE_LINK = "stacktrace-link"
     CODEOWNERS = "codeowners"
+    USER_MAPPING = "user-mapping"
 
     # features currently only existing on plugins:
     DATA_FORWARDING = "data-forwarding"
