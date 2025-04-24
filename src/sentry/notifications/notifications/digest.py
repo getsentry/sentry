@@ -20,17 +20,16 @@ from sentry.integrations.types import ExternalProviders
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.notify import notify
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, UnsubscribeContext
-from sentry.notifications.utils import (
-    NotificationRuleDetails,
-    get_email_link_extra_params,
-    get_integration_link,
-    get_rules,
-    has_alert_integration,
-)
+from sentry.notifications.utils import get_rules, has_alert_integration
 from sentry.notifications.utils.digest import (
     get_digest_subject,
     send_as_alert_notification,
     should_send_as_alert_notification,
+)
+from sentry.notifications.utils.links import (
+    NotificationRuleDetails,
+    get_email_link_extra_params,
+    get_integration_link,
 )
 from sentry.types.actor import Actor
 
