@@ -1,10 +1,10 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import {
-  Configuration,
+  type Configuration,
   StepType,
 } from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
-  type DocsParams,
+import type {
+  DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {AlternativeConfiguration} from 'sentry/gettingStartedDocs/python/python';
