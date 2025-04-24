@@ -1,4 +1,11 @@
-import {useMarked} from './useMarked';
+import {useLayoutEffect, useMemo, useState} from 'react';
+
+import {
+  asyncSanitizedMarked,
+  sanitizedMarked,
+  singleLineRenderer,
+} from 'sentry/utils/marked/marked';
+import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
 
 interface BaseMarkedTextProps<T extends React.ElementType> {
   /**
@@ -23,7 +30,6 @@ const defaultElement = 'div';
 
 /**
  * A component that renders sanitized markdown text.
- * Displays a placeholder while syntax highlighting is loading.
  *
  * ```tsx
  * <MarkedText text="**Hello, world!**" />
@@ -33,18 +39,29 @@ export function MarkedText<T extends React.ElementType = typeof defaultElement>(
   as,
   text,
   inline,
-  ref,
-  ...rest
+  ...props
 }: MarkedTextProps<T>) {
-  const {data: markdownData} = useMarked({text, inline});
+  const [renderedHtml, setRenderedHtml] = useState(() =>
+    inline ? singleLineRenderer(text) : sanitizedMarked(text)
+  );
+  const isMountedRef = useIsMountedRef();
+
+  // This could use react 19's "use" hook with suspsense but currently throws act warnings in tests
+  // https://github.com/testing-library/react-testing-library/issues/1375
+  const markedHtmlPromise = useMemo(
+    () => asyncSanitizedMarked(text, inline),
+    [text, inline]
+  );
+
+  useLayoutEffect(() => {
+    markedHtmlPromise.then(html => {
+      if (isMountedRef.current) {
+        setRenderedHtml(html);
+      }
+    });
+  }, [markedHtmlPromise, text, inline, isMountedRef]);
 
   const Component = as || defaultElement;
 
-  return (
-    <Component
-      ref={ref}
-      dangerouslySetInnerHTML={{__html: markdownData ?? ''}}
-      {...rest}
-    />
-  );
+  return <Component dangerouslySetInnerHTML={{__html: renderedHtml}} {...props} />;
 }

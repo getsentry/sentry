@@ -125,7 +125,7 @@ export const asyncSanitizedMarked = (src: string, inline?: boolean): Promise<str
 
 /**
  * Renders markdown and sanitizes the output.
- * Does not apply any syntax highlighting.
+ * WARNING: Does not apply any syntax highlighting.
  */
 export const sanitizedMarked = (src: string): string => {
   return noHighlightingMarked.parse(src, {async: false});
