@@ -184,13 +184,21 @@ class GroupRegistryTest(BaseGroupTypeTest):
                 ErrorGroupType,
             }
 
-    def test_get_by_category_v2(self) -> None:
+    def test_get_by_category(self) -> None:
         registry = GroupTypeRegistry()
         registry.add(ErrorGroupType)
         registry.add(PerformanceSlowDBQueryGroupType)
         registry.add(PerformanceNPlusOneGroupType)
-        assert registry.get_by_category_v2(GroupCategory.ERROR.value) == {ErrorGroupType.type_id}
-        assert registry.get_by_category_v2(GroupCategory.PERFORMANCE_BEST_PRACTICE.value) == {
+
+        # Works for old category mapping
+        assert registry.get_by_category(GroupCategory.ERROR.value) == {ErrorGroupType.type_id}
+        assert registry.get_by_category(GroupCategory.PERFORMANCE.value) == {
+            PerformanceSlowDBQueryGroupType.type_id,
+            PerformanceNPlusOneGroupType.type_id,
+        }
+
+        # Works for new category mapping
+        assert registry.get_by_category(GroupCategory.PERFORMANCE_BEST_PRACTICE.value) == {
             PerformanceSlowDBQueryGroupType.type_id,
             PerformanceNPlusOneGroupType.type_id,
         }

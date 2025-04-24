@@ -22,7 +22,8 @@ from sentry.api.issue_search import (
     value_converters,
 )
 from sentry.exceptions import InvalidSearchQuery
-from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
+from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import registry as GROUP_TYPE_REGISTRY
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOICES, GroupStatus
 from sentry.models.release import ReleaseStatus
 from sentry.search.utils import get_teams_for_users
@@ -401,8 +402,8 @@ class ConvertFirstReleaseValueTest(TestCase):
 
 class ConvertCategoryValueTest(TestCase):
     def test(self):
-        error_group_types = get_group_types_by_category(GroupCategory.ERROR.value)
-        perf_group_types = get_group_types_by_category(GroupCategory.PERFORMANCE.value)
+        error_group_types = GROUP_TYPE_REGISTRY.get_by_category(GroupCategory.ERROR.value)
+        perf_group_types = GROUP_TYPE_REGISTRY.get_by_category(GroupCategory.PERFORMANCE.value)
         assert (
             set(convert_category_value(["error"], [self.project], self.user, None))
             == error_group_types
@@ -415,6 +416,16 @@ class ConvertCategoryValueTest(TestCase):
             set(convert_category_value(["error", "performance"], [self.project], self.user, None))
             == error_group_types | perf_group_types
         )
+
+        # Also works with new categories
+        assert set(
+            convert_category_value(["outage"], [self.project], self.user, None)
+        ) == GROUP_TYPE_REGISTRY.get_by_category(GroupCategory.OUTAGE.value)
+        assert set(
+            convert_category_value(["performance_best_practice"], [self.project], self.user, None)
+        ) == GROUP_TYPE_REGISTRY.get_by_category(GroupCategory.PERFORMANCE_BEST_PRACTICE.value)
+
+        # Should raise an error for invalid values
         with pytest.raises(InvalidSearchQuery):
             convert_category_value(["hellboy"], [self.project], self.user, None)
 
