@@ -37,4 +37,5 @@ class BaseActionValidator(CamelSnakeSerializer):
         return Action.objects.create(**validated_value)
 
     def update(self, instance: Action, validated_value: dict[str, Any]) -> Action:
-        return instance.update(**validated_value)
+        instance.update(**validated_value)
+        return instance
