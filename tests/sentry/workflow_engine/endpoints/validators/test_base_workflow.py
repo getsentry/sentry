@@ -459,3 +459,106 @@ class TestWorkflowValidatorUpdate(TestCase):
         assert self.workflow.when_condition_group
         assert self.workflow.when_condition_group.conditions.count() == 1
         assert self.workflow.when_condition_group.conditions.first() == dc
+
+    def test_update__add_new_action(self):
+        self.valid_saved_data["actionFilters"][0]["actions"].append(
+            {
+                "type": Action.Type.SLACK,
+                "config": {
+                    "target_identifier": "foo",
+                    "target_display": "bar",
+                    "target_type": 0,
+                },
+                "data": {},
+                "integrationId": 1,
+            }
+        )
+
+        validator = WorkflowValidator(data=self.valid_saved_data, context=self.context)
+        assert validator.is_valid() is True
+        validator.update(self.workflow, validator.validated_data)
+
+    def test_update__modify_action(self):
+        workflow_condition_group = self.workflow.workflowdataconditiongroup_set.first()
+        assert workflow_condition_group is not None
+        action_condition_group = (
+            workflow_condition_group.condition_group.dataconditiongroupaction_set.first()
+        )
+        assert action_condition_group is not None
+
+        action = action_condition_group.action
+        assert action.type == Action.Type.SLACK
+
+        # Update the data for the action
+        self.valid_saved_data["actionFilters"][0]["actions"] = [
+            {
+                "id": action.id,
+                "type": Action.Type.EMAIL,
+                "config": {
+                    "target_identifier": "foo",
+                    "target_type": 0,
+                },
+                "data": {},
+            }
+        ]
+
+        validator = WorkflowValidator(data=self.valid_saved_data, context=self.context)
+        assert validator.is_valid() is True
+        validator.update(self.workflow, validator.validated_data)
+        self.workflow.refresh_from_db()
+
+        assert self.workflow.workflowdataconditiongroup_set.count() == 1
+
+        workflow_condition_group = self.workflow.workflowdataconditiongroup_set.first()
+        assert workflow_condition_group is not None
+        action_condition_group = (
+            workflow_condition_group.condition_group.dataconditiongroupaction_set.first()
+        )
+        assert action_condition_group is not None
+
+        updated_action = action_condition_group.action
+        assert updated_action.id == action.id
+        assert updated_action.type == Action.Type.EMAIL
+
+    def test_update__remove_one_action(self):
+        workflow_condition_group = self.workflow.workflowdataconditiongroup_set.first()
+        assert workflow_condition_group is not None
+        new_action = Action.objects.create(
+            type=Action.Type.EMAIL,
+            config={
+                "target_identifier": "foo",
+                "target_type": 0,
+            },
+            data={},
+            integration_id=1,
+        )
+
+        workflow_condition_group.condition_group.dataconditiongroupaction_set.create(
+            action=new_action,
+        )
+
+        # confirm there are two actions for this condition group
+        assert workflow_condition_group.condition_group.dataconditiongroupaction_set.count() == 2
+
+        # remove new_action from the groups actions
+        validator = WorkflowValidator(data=self.valid_saved_data, context=self.context)
+        assert validator.is_valid() is True
+        validator.update(self.workflow, validator.validated_data)
+
+        assert workflow_condition_group.condition_group.dataconditiongroupaction_set.count() == 1
+        action_condition_group = (
+            workflow_condition_group.condition_group.dataconditiongroupaction_set.first()
+        )
+        assert action_condition_group is not None
+        assert action_condition_group.action.id != new_action.id
+        assert action_condition_group.action.type == Action.Type.SLACK
+
+    def test_update__remove_all_actions(self):
+        self.valid_saved_data["actionFilters"][0]["actions"] = []
+        validator = WorkflowValidator(data=self.valid_saved_data, context=self.context)
+        assert validator.is_valid() is True
+        validator.update(self.workflow, validator.validated_data)
+
+        workflow_condition_group = self.workflow.workflowdataconditiongroup_set.first()
+        assert workflow_condition_group is not None
+        assert workflow_condition_group.condition_group.dataconditiongroupaction_set.count() == 0

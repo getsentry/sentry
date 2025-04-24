@@ -56,20 +56,28 @@ class WorkflowValidator(CamelSnakeSerializer):
 
         return value
 
-    def update_or_create_actions(self, actions_data):
-        actions: list[Action] = []
+    def update_or_create_actions(
+        self,
+        actions_data: ActionData,
+        condition_group: DataConditionGroup,
+    ) -> None:
         validator = BaseActionValidator(context=self.context)
+
+        action_ids = {int(action["id"]) for action in actions_data if action.get("id") is not None}
+        saved_action_ids = set(
+            condition_group.dataconditiongroupaction_set.values_list("action__id", flat=True)
+        )
+
+        has_action_removal = action_ids != saved_action_ids
+        if has_action_removal:
+            condition_group.dataconditiongroupaction_set.exclude(action__id__in=action_ids).delete()
 
         for action in actions_data:
             if action.get("id") is None:
-                result = validator.create(action)
+                validator.create(action)
             else:
                 action_instance = Action.objects.get(id=action["id"])
-                result = validator.update(action_instance, action)
-
-            actions.append(result)
-
-        return actions
+                validator.update(action_instance, action)
 
     def update_or_create_data_condition_group(
         self,
@@ -88,15 +96,15 @@ class WorkflowValidator(CamelSnakeSerializer):
         actions = condition_group_data.pop("actions", None)
 
         if condition_group_id is None:
-            result = validator.create(condition_group_data)
+            condition_group = validator.create(condition_group_data)
         else:
-            condition_group = DataConditionGroup.objects.get(id=condition_group_data["id"])
-            result = validator.update(condition_group, condition_group_data)
+            stored_condition_group = DataConditionGroup.objects.get(id=condition_group_data["id"])
+            condition_group = validator.update(stored_condition_group, condition_group_data)
 
-        if actions:
-            self.update_or_create_actions(actions)
+        if actions is not None:
+            self.update_or_create_actions(actions, condition_group)
 
-        return result
+        return condition_group
 
     def update_action_filters(
         self,
