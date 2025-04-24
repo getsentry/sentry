@@ -448,7 +448,7 @@ def get_detector_field_values(
     user: RpcUser | None = None,
 ) -> dict[str, Any]:
     detector_field_values = {
-        "name": alert_rule.name if len(alert_rule.name) < 200 else alert_rule.name[:197] + "...",
+        "name": alert_rule.name,
         "description": alert_rule.description,
         "workflow_condition_group": data_condition_group,
         "owner_user_id": alert_rule.user_id,
@@ -536,7 +536,7 @@ def migrate_alert_rule(
     data_source.detectors.set([detector])
     detector_state = DetectorState.objects.create(
         detector=detector,
-        active=False,
+        active=True if open_incident else False,
         state=state,
     )
     alert_rule_detector, alert_rule_workflow, detector_workflow = create_metric_alert_lookup_tables(
