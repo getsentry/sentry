@@ -10,8 +10,8 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
-import {treeHasValidVitals} from 'sentry/views/performance/newTraceDetails/traceContextVitals';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
 
 export const enum TraceContextSectionKeys {
   TAGS = 'trace-context-tags',
@@ -68,18 +68,16 @@ function ScrollToSectionLinks({
   tree: TraceTree;
 }) {
   const location = useLocation();
-  const hasValidVitals = treeHasValidVitals(tree);
-  const hasProfiles = tree.type === 'trace' && tree.profiled_events.size > 0;
-  const hasLogs = logs && logs.length > 0;
-  const hasTags =
-    rootEvent.data &&
-    rootEvent.data.tags.length > 0 &&
-    !(tree.type === 'empty' && hasLogs); // We don't show tags for only logs trace views
+  const {hasVitals, hasProfiles, hasLogs, hasTags} = useTraceContextSections({
+    tree,
+    rootEvent,
+    logs,
+  });
 
-  return hasValidVitals || hasTags || hasProfiles || hasLogs ? (
+  return hasVitals || hasTags || hasProfiles || hasLogs ? (
     <Wrapper>
       <div aria-hidden>{t('Jump to:')}</div>
-      {hasValidVitals && (
+      {hasVitals && (
         <SectionLink
           sectionKey={TraceContextSectionKeys.WEB_VITALS}
           location={location}

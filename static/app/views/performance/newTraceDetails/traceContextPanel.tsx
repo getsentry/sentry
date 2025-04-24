@@ -18,6 +18,7 @@ import {TraceLinkNavigationButton} from 'sentry/views/performance/newTraceDetail
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {TraceViewLogsSection} from 'sentry/views/performance/newTraceDetails/traceOurlogs';
+import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
 
 type Props = {
   logs: OurLogsResponseItem[] | undefined;
@@ -27,12 +28,11 @@ type Props = {
 };
 
 export function TraceContextPanel({tree, rootEvent, onScrollToNode, logs}: Props) {
-  const hasProfiles = tree.type === 'trace' && tree.profiled_events.size > 0;
-  const hasLogs = logs && logs?.length > 0;
-  const hasTags =
-    rootEvent.data &&
-    rootEvent.data.tags.length > 0 &&
-    !(tree.type === 'empty' && hasLogs); // We don't show tags for only logs trace views
+  const {hasProfiles, hasLogs, hasTags} = useTraceContextSections({
+    tree,
+    rootEvent,
+    logs,
+  });
 
   const organization = useOrganization();
   const showLinkedTraces = organization?.features.includes('trace-view-linked-traces');
@@ -64,9 +64,9 @@ export function TraceContextPanel({tree, rootEvent, onScrollToNode, logs}: Props
       )}
 
       <VitalMetersContainer id={TraceContextSectionKeys.WEB_VITALS}>
-        <TraceContextVitals tree={tree} />
+        <TraceContextVitals rootEvent={rootEvent} tree={tree} logs={logs} />
       </VitalMetersContainer>
-      {hasTags && (
+      {hasTags && rootEvent.data && (
         <ContextRow>
           <FoldSection
             sectionKey={TraceContextSectionKeys.TAGS as string as SectionKey}

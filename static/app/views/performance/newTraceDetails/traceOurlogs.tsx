@@ -16,8 +16,8 @@ import {
   useSetLogsQuery,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogsTable} from 'sentry/views/explore/logs/logsTable';
-import {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
+import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceContextSectionKeys} from 'sentry/views/performance/newTraceDetails/traceHeader/scrollToSectionLinks';
 
