@@ -290,7 +290,7 @@ def sync_status_inbound(
             analytics.record(
                 "issue.resolved",
                 project_id=group.project.id,
-                default_user_id=None,
+                default_user_id="Sentry Jira",
                 organization_id=organization_id,
                 group_id=group.id,
                 resolution_type="with_third_party_app",

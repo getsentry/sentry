@@ -552,7 +552,7 @@ class IssueSyncIntegrationWebhookTest(TestCase):
             mock_record.assert_called_with(
                 "issue.resolved",
                 project_id=self.group.project.id,
-                default_user_id=str(self.group.organization.default_owner_id),
+                default_user_id="Sentry Jira",
                 organization_id=self.group.organization.id,
                 group_id=self.group.id,
                 resolution_type="with_third_party_app",
