@@ -32,7 +32,7 @@ class SpanOp(ABC):
 def http_within_sql_transaction() -> SpansOp:
     return OpPrecedes(
         # span.op="db" span.description:BEGIN*
-        OpAnd(OpEqLiteral("op", "db"), OpEqLiteral("description", "BEGIN")),
+        OpAnd(OpEqLiteral("op", "db"), OpPrefixLiteral("description", "BEGIN")),
         # ...
         # span.op="http.client" span.duration>SETTINGS.duration_threshold
         OpAnd(
@@ -46,9 +46,39 @@ def http_within_sql_transaction() -> SpansOp:
         #  span.op="db" span.description:ROLLBACK*)
         OpAnd(
             OpEqLiteral("op", "db"),
-            OpOr(OpEqLiteral("description", "COMMIT"), OpEqLiteral("description", "ROLLBACK")),
+            OpOr(
+                OpPrefixLiteral("description", "COMMIT"), OpPrefixLiteral("description", "ROLLBACK")
+            ),
         ),
     )
+
+
+# TODO: Same implementation as above
+def http_within_sql_transaction_native() -> SpansOp:
+    class HttpWithinSqlTransactionNative(SpansOp):
+        def __call__(self, spans: Iterable[Span]) -> bool:
+            begin_found = False
+            http_found = False
+            for span in spans:
+                if not begin_found:
+                    if span.get("op") == "db" and span.get("description").startswith("BEGIN"):
+                        begin_found = True
+                    continue
+
+                if not http_found:
+                    if span.get("op") == "http.client" and True:
+                        http_found = True
+                    continue
+
+                if span.get("op") == "db" and (
+                    span.get("description").startswith("COMMIT")
+                    or span.get("description").startswith("ROLLBACK")
+                ):
+                    return True
+
+            return False
+
+    return HttpWithinSqlTransactionNative()
 
 
 class OpTrue(SpanOp):
@@ -93,6 +123,18 @@ class OpEqLiteral(SpanOp):
 
     def __str__(self):
         return f"EqLiteral({self.key}, {repr(self.value)})"
+
+
+class OpPrefixLiteral(SpanOp):
+    def __init__(self, key: str, prefix: str):
+        self.key = key
+        self.prefix = prefix
+
+    def __call__(self, span: Span) -> bool:
+        return span.get(self.key).startswith(self.prefix)
+
+    def __str__(self):
+        return f"PrefixLiteral({self.key}, {repr(self.prefix)})"
 
 
 class OpGtLiteral(SpanOp):
