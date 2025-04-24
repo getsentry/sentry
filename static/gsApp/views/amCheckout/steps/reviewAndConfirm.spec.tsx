@@ -270,7 +270,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     // No DOM updates to wait on, but we can use this.
     await waitFor(() =>
       expect(browserHistory.push).toHaveBeenCalledWith(
-        `/settings/${organization.slug}/billing/overview/?open_codecov_modal=1&referrer=checkout`
+        `/settings/${organization.slug}/billing/overview/?referrer=billing`
       )
     );
 
@@ -367,7 +367,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     // No DOM updates to wait on, but we can use this.
     await waitFor(() =>
       expect(browserHistory.push).toHaveBeenCalledWith(
-        `/settings/${partnerOrg.slug}/billing/overview/?open_codecov_modal=1&referrer=checkout`
+        `/settings/${partnerOrg.slug}/billing/overview/?referrer=billing`
       )
     );
 
@@ -462,7 +462,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     // No DOM updates to wait on, but we can use this.
     await waitFor(() =>
       expect(browserHistory.push).toHaveBeenCalledWith(
-        `/settings/${partnerOrg.slug}/billing/overview/?open_codecov_modal=1&referrer=checkout`
+        `/settings/${partnerOrg.slug}/billing/overview/?referrer=billing`
       )
     );
 
@@ -671,7 +671,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     // No DOM updates to wait on, but we can use this.
     await waitFor(() =>
       expect(browserHistory.push).toHaveBeenCalledWith(
-        `/settings/${organization.slug}/billing/overview/?open_codecov_modal=1&referrer=checkout`
+        `/settings/${organization.slug}/billing/overview/?referrer=billing`
       )
     );
 
@@ -735,7 +735,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     // No DOM updates to wait on, but we can use this.
     await waitFor(() =>
       expect(browserHistory.push).toHaveBeenCalledWith(
-        `/settings/${organization.slug}/billing/overview/?open_codecov_modal=1&referrer=checkout`
+        `/settings/${organization.slug}/billing/overview/?referrer=billing`
       )
     );
 
@@ -785,7 +785,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     // No DOM updates to wait on, but we can use this.
     await waitFor(() =>
       expect(browserHistory.push).toHaveBeenCalledWith(
-        `/settings/${organization.slug}/billing/overview/?open_codecov_modal=1&referrer=checkout`
+        `/settings/${organization.slug}/billing/overview/?referrer=billing`
       )
     );
   });
@@ -888,7 +888,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     // Wait for URL to change as that signals completion.
     await waitFor(() =>
       expect(browserHistory.push).toHaveBeenCalledWith(
-        `/settings/${organization.slug}/billing/overview/?open_codecov_modal=1&referrer=checkout`
+        `/settings/${organization.slug}/billing/overview/?referrer=billing`
       )
     );
 
