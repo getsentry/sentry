@@ -50,7 +50,6 @@ def upload_bundle(bundle_file, project, release=None, dist=None):
         dist=dist,
         checksum=total_checksum,
         chunks=[blob1.checksum],
-        upload_as_artifact_bundle=True,
     )
 
 
