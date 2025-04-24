@@ -46,12 +46,8 @@ from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.notifications.rules import get_group_substatus_text
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.notifications.utils import (
-    get_group_settings_link,
-    get_interface_list,
-    get_issue_replay_link,
-    get_rules,
-)
+from sentry.notifications.utils import get_interface_list, get_rules
+from sentry.notifications.utils.links import get_group_settings_link, get_issue_replay_link
 from sentry.testutils.helpers.datetime import before_now  # NOQA:S007
 from sentry.testutils.helpers.notifications import (  # NOQA:S007
     SAMPLE_TO_OCCURRENCE_MAP,

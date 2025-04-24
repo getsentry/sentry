@@ -1,4 +1,4 @@
-import {type FormEvent, useEffect, useRef, useState} from 'react';
+import {type FormEvent, startTransition, useEffect, useRef, useState} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
@@ -18,6 +18,77 @@ import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 
+function StreamContentText({stream}: {stream: string}) {
+  const [displayedText, setDisplayedText] = useState('');
+
+  const accumulatedTextRef = useRef('');
+  const previousStreamPropRef = useRef('');
+  const currentIndexRef = useRef(0);
+
+  // Animation for stream text
+  useEffect(() => {
+    const newText = stream;
+    const previousStream = previousStreamPropRef.current;
+    const separator = '\n\n==========\n\n';
+
+    const currentSegmentDisplayed = displayedText.slice(
+      accumulatedTextRef.current.length
+    );
+    const isReset =
+      newText !== previousStream && !newText.startsWith(currentSegmentDisplayed);
+
+    if (isReset) {
+      if (displayedText === previousStream) {
+        accumulatedTextRef.current = displayedText + separator;
+        currentIndexRef.current = accumulatedTextRef.current.length;
+      } else {
+        const fullPreviousTextWithSeparator = previousStream + separator;
+        startTransition(() => {
+          setDisplayedText(fullPreviousTextWithSeparator);
+        });
+        accumulatedTextRef.current = fullPreviousTextWithSeparator;
+        currentIndexRef.current = fullPreviousTextWithSeparator.length;
+      }
+    }
+
+    previousStreamPropRef.current = newText;
+
+    const combinedText = accumulatedTextRef.current + newText;
+
+    if (currentIndexRef.current > combinedText.length) {
+      currentIndexRef.current = combinedText.length;
+      if (displayedText !== combinedText) {
+        startTransition(() => {
+          setDisplayedText(combinedText);
+        });
+      }
+    }
+
+    let intervalId: number | undefined;
+    if (currentIndexRef.current < combinedText.length) {
+      intervalId = window.setInterval(() => {
+        if (currentIndexRef.current < combinedText.length) {
+          startTransition(() => {
+            setDisplayedText(combinedText.slice(0, currentIndexRef.current + 1));
+          });
+          currentIndexRef.current++;
+        } else {
+          window.clearInterval(intervalId);
+          intervalId = undefined;
+        }
+      }, 1);
+    }
+
+    return () => {
+      if (intervalId) {
+        window.clearInterval(intervalId);
+      }
+    };
+  }, [stream, displayedText]);
+
+  return <StreamContent>{displayedText}</StreamContent>;
+}
+
 interface Props {
   groupId: string;
   runId: string;
@@ -26,15 +97,6 @@ interface Props {
   isProcessing?: boolean;
   responseRequired?: boolean;
 }
-
-const shimmer = keyframes`
-  0% {
-    background-position: -1000px 0;
-  }
-  100% {
-    background-position: 1000px 0;
-  }
-`;
 
 export function AutofixOutputStream({
   stream,
@@ -46,13 +108,8 @@ export function AutofixOutputStream({
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
-  const [displayedText, setDisplayedText] = useState('');
   const [message, setMessage] = useState('');
   const seerIconRef = useRef<HTMLDivElement>(null);
-
-  const accumulatedTextRef = useRef('');
-  const previousStreamPropRef = useRef('');
-  const currentIndexRef = useRef(0);
 
   const isInitializingRun = activeLog === 'Ingesting Sentry data...';
 
@@ -83,61 +140,6 @@ export function AutofixOutputStream({
       addErrorMessage(t('Something went wrong when sending Autofix your message.'));
     },
   });
-
-  // Animation for stream text
-  useEffect(() => {
-    const newText = stream;
-    const previousStream = previousStreamPropRef.current;
-    const separator = '\n\n==========\n\n';
-
-    const currentSegmentDisplayed = displayedText.slice(
-      accumulatedTextRef.current.length
-    );
-    const isReset =
-      newText !== previousStream && !newText.startsWith(currentSegmentDisplayed);
-
-    if (isReset) {
-      if (displayedText === previousStream) {
-        accumulatedTextRef.current = displayedText + separator;
-        currentIndexRef.current = accumulatedTextRef.current.length;
-      } else {
-        const fullPreviousTextWithSeparator = previousStream + separator;
-        setDisplayedText(fullPreviousTextWithSeparator);
-        accumulatedTextRef.current = fullPreviousTextWithSeparator;
-        currentIndexRef.current = fullPreviousTextWithSeparator.length;
-      }
-    }
-
-    previousStreamPropRef.current = newText;
-
-    const combinedText = accumulatedTextRef.current + newText;
-
-    if (currentIndexRef.current > combinedText.length) {
-      currentIndexRef.current = combinedText.length;
-      if (displayedText !== combinedText) {
-        setDisplayedText(combinedText);
-      }
-    }
-
-    let intervalId: number | undefined;
-    if (currentIndexRef.current < combinedText.length) {
-      intervalId = window.setInterval(() => {
-        if (currentIndexRef.current < combinedText.length) {
-          setDisplayedText(combinedText.slice(0, currentIndexRef.current + 1));
-          currentIndexRef.current++;
-        } else {
-          window.clearInterval(intervalId);
-          intervalId = undefined;
-        }
-      }, 1);
-    }
-
-    return () => {
-      if (intervalId) {
-        window.clearInterval(intervalId);
-      }
-    };
-  }, [stream, displayedText]);
 
   const handleSend = (e: FormEvent) => {
     e.preventDefault();
@@ -195,9 +197,7 @@ export function AutofixOutputStream({
                 />
               </ActiveLogWrapper>
             )}
-            {!responseRequired && stream && (
-              <StreamContent>{displayedText}</StreamContent>
-            )}
+            {!responseRequired && stream && <StreamContentText stream={stream} />}
             <InputWrapper onSubmit={handleSend}>
               <StyledInput
                 autosize
@@ -248,6 +248,15 @@ const ScaleContainer = styled(motion.div)`
   align-items: flex-start;
   transform-origin: top left;
   padding-left: ${space(2)};
+`;
+
+const shimmer = keyframes`
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
 `;
 
 const Container = styled(motion.div)<{required: boolean}>`
