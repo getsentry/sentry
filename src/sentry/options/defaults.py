@@ -3381,7 +3381,11 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
+register(
+    "taskworker.ingest.errors.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Orgs for which compression should be disabled in the chunk upload endpoint.
 # This is intended to circumvent sporadic 503 errors reported by some customers.
 register("chunk-upload.no-compression", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
