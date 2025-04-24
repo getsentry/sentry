@@ -1,11 +1,14 @@
 from datetime import datetime, timezone
 
+import pytest
+
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip(reason="Migration has been run")
 class DeleteGroupOpenPeriodsTest(TestMigrations):
     migrate_from = "0867_fix_drift_default_to_db_default"
     migrate_to = "0868_delete_group_open_periods"
