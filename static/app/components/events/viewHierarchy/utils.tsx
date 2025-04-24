@@ -1,8 +1,14 @@
 import {useLayoutEffect, useState} from 'react';
 import {mat3, vec2} from 'gl-matrix';
 
-import type {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
+import type {
+  ViewHierarchyNodeField,
+  ViewHierarchyWindow,
+} from 'sentry/components/events/viewHierarchy';
 import type {ViewNode} from 'sentry/components/events/viewHierarchy/wireframe';
+import {t} from 'sentry/locale';
+import type {Event} from 'sentry/types/event';
+import type {PlatformKey, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {watchForResize} from 'sentry/utils/profiling/gl/utils';
 import {Rect} from 'sentry/utils/profiling/speedscope';
@@ -120,4 +126,70 @@ export function getDeepestNodeAtPoint(
   }
 
   return clickedNode;
+}
+
+type ViewConfig = {
+  emptyMessage: string;
+  nodeField: ViewHierarchyNodeField;
+  showWireframe: boolean;
+  title: string;
+};
+
+const defaultViewConfig: ViewConfig = {
+  title: t('View Hierarchy'),
+  emptyMessage: t('There is no view hierarchy data to visualize'),
+  nodeField: 'type',
+  showWireframe: true,
+};
+
+export function getPlatformViewConfig(platform?: string): ViewConfig {
+  if (!platform) {
+    return defaultViewConfig;
+  }
+
+  switch (platform) {
+    case 'godot':
+      return {
+        title: t('Scene Tree'),
+        emptyMessage: t('There is no scene tree data to visualize'),
+        nodeField: 'name',
+        showWireframe: false,
+      };
+    case 'unity':
+      return {
+        ...defaultViewConfig,
+        showWireframe: false,
+      };
+    default:
+      return defaultViewConfig;
+  }
+}
+
+/**
+ * Retrieves the platform from the event or project. A project may use one platform (e.g., 'javascript-react'),
+ * but events may come from a different SDK (e.g., python). Currently supports Unity and Godot, but a general sdk-to-platform
+ * mapping would be ideal.
+ */
+export function getPlatform({
+  event,
+  project,
+}: {
+  event: Event;
+  project: Project;
+}): PlatformKey | undefined {
+  const platform = event.sdk?.name ?? project.platform;
+
+  if (!platform) {
+    return undefined;
+  }
+
+  if (platform.endsWith('unity')) {
+    return 'unity';
+  }
+
+  if (platform.endsWith('godot')) {
+    return 'godot';
+  }
+
+  return project.platform;
 }
