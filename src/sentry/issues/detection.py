@@ -31,10 +31,10 @@ class SpanOp(ABC):
 #  span.op="db" span.description:ROLLBACK*)
 def http_within_sql_transaction() -> SpansOp:
     return OpPrecedes(
-        # BEGIN
+        # span.op="db" span.description:BEGIN*
         OpAnd(OpEqLiteral("op", "db"), OpEqLiteral("description", "BEGIN")),
         # ...
-        # HTTP request
+        # span.op="http.client" span.duration>SETTINGS.duration_threshold
         OpAnd(
             OpEqLiteral("op", "http.client"),
             # TODO: spans have a start_timestamp and timestamp, not a duration
@@ -42,7 +42,8 @@ def http_within_sql_transaction() -> SpansOp:
             # OpGtLiteral("duration", 100),
         ),
         # ...
-        # COMMIT/ROLLBACK
+        # (span.op="db" span.description:COMMIT* OR
+        #  span.op="db" span.description:ROLLBACK*)
         OpAnd(
             OpEqLiteral("op", "db"),
             OpOr(OpEqLiteral("description", "COMMIT"), OpEqLiteral("description", "ROLLBACK")),
