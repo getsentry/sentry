@@ -37,7 +37,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
         self.expand = expand or []
         self.prepare_component_fields = prepare_component_fields
 
-    def get_sentry_app_installations_by_sentry_app_id(
+    def add_sentry_app_installations_by_sentry_app_id(
         self, actions: list[Action], organization_id: int
     ) -> Mapping[str, RpcSentryAppComponentContext]:
         sentry_app_installations_by_sentry_app_id: Mapping[str, RpcSentryAppComponentContext] = {}
@@ -58,7 +58,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             }
         return sentry_app_installations_by_sentry_app_id
 
-    def get_triggers_and_actions(
+    def add_triggers_and_actions(
         self,
         result: DefaultDict[Detector, dict[str, Any]],
         detectors: dict[int, Detector],
@@ -108,6 +108,50 @@ class WorkflowEngineDetectorSerializer(Serializer):
                 result[detector]["errors"] = errors
             alert_rule_triggers.append(serialized)
 
+    def add_projects(
+        self, result: DefaultDict[Detector, dict[str, Any]], detectors: dict[int, Detector]
+    ) -> None:
+        detector_projects = set()
+        for detector in detectors.values():
+            detector_projects.add((detector.id, detector.project.slug))
+
+        for detector_id, project_slug in detector_projects:
+            rule_result = result[detectors[detector_id]].setdefault("projects", [])
+            rule_result.append(project_slug)
+
+    def add_created_by(
+        self, result: DefaultDict[Detector, dict[str, Any]], detectors: Sequence[Detector]
+    ) -> None:
+        user_by_user_id: MutableMapping[int, RpcUser] = {
+            user.id: user
+            for user in user_service.get_many_by_id(
+                ids=[
+                    detector.created_by_id
+                    for detector in detectors
+                    if detector.created_by_id is not None
+                ]
+            )
+        }
+        for detector in detectors:
+            # this is based on who created or updated it during dual write
+            rpc_user = user_by_user_id.get(detector.created_by_id)
+            if not rpc_user:
+                result[detector]["created_by"] = {}
+            else:
+                created_by = dict(
+                    id=rpc_user.id, name=rpc_user.get_display_name(), email=rpc_user.email
+                )
+                result[detector]["created_by"] = created_by
+
+    def add_owner(
+        self, result: DefaultDict[Detector, dict[str, Any]], detectors: Sequence[Detector]
+    ) -> None:
+        for detector in detectors:
+            if detector.owner_user_id or detector.owner_team_id:
+                actor = detector.owner
+                if actor:
+                    result[detector]["owner"] = actor.identifier
+
     def get_attrs(
         self, item_list: Sequence[Detector], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> defaultdict[str, Any]:
@@ -126,65 +170,29 @@ class WorkflowEngineDetectorSerializer(Serializer):
         ).select_related("action")
         actions = [dcga.action for dcga in dcgas]
 
-        # get sentry app data
+        # add sentry app data
         organization_id = [detector.project.organization_id for detector in detectors.values()][0]
         sentry_app_installations_by_sentry_app_id = (
-            self.get_sentry_app_installations_by_sentry_app_id(actions, organization_id)
+            self.add_sentry_app_installations_by_sentry_app_id(actions, organization_id)
         )
 
-        # build up trigger and action data
+        # add trigger and action data
         serialized_data_conditions = serialize(
             list(detector_trigger_data_conditions),
             user,
             WorkflowEngineDataConditionSerializer(),
             **kwargs,
         )
-        self.get_triggers_and_actions(
+        self.add_triggers_and_actions(
             result,
             detectors,
             sentry_app_installations_by_sentry_app_id,
             detector_trigger_data_conditions,
             serialized_data_conditions,
         )
-
-        # add projects
-        detector_projects = set()
-        for detector in detectors.values():
-            detector_projects.add((detector.id, detector.project.slug))
-
-        for detector_id, project_slug in detector_projects:
-            rule_result = result[detectors[detector_id]].setdefault("projects", [])
-            rule_result.append(project_slug)
-
-        # add created_by
-        user_by_user_id: MutableMapping[int, RpcUser] = {
-            user.id: user
-            for user in user_service.get_many_by_id(
-                ids=[
-                    detector.created_by_id
-                    for detector in detectors.values()
-                    if detector.created_by_id is not None
-                ]
-            )
-        }
-        for detector in detectors.values():
-            # this is based on who created or updated it during dual write
-            rpc_user = user_by_user_id.get(detector.created_by_id)
-            if not rpc_user:
-                result[detector]["created_by"] = {}
-            else:
-                created_by = dict(
-                    id=rpc_user.id, name=rpc_user.get_display_name(), email=rpc_user.email
-                )
-                result[detector]["created_by"] = created_by
-
-        # add owner
-        for detector in detectors.values():
-            if detector.owner_user_id or detector.owner_team_id:
-                actor = detector.owner
-                if actor:
-                    result[detector]["owner"] = actor.identifier
-
+        self.add_projects(result, detectors)
+        self.add_created_by(result, detectors.values())
+        self.add_owner(result, detectors.values())
         # skipping snapshot data
 
         # TODO fetch incident group open period if "latestIncident" in self.expand, needs new incident serializer
