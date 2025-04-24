@@ -1104,8 +1104,13 @@ class JiraServerIntegration(IssueSyncIntegration):
         client: JiraServerClient,
         external_issue_key: str,
         user: RpcUser,
-        logging_context: dict[str, Any],
+        integration_id: int,
     ) -> dict[str, Any] | None:
+        logging_context = {
+            "integration_id": integration_id,
+            "organization_id": self.organization.id,
+            "issue_key": external_issue_key,
+        }
         external_actors = ExternalActor.objects.filter(
             organization_id=self.organization.id,
             integration_id=self.model.id,
@@ -1132,7 +1137,11 @@ class JiraServerIntegration(IssueSyncIntegration):
         )
 
         for possible_user in possible_users:
-            if possible_user.get("name").lower() == external_actor.external_name.lower():
+            name = possible_user.get("name")
+            if name is None:
+                continue
+
+            if name.lower() == external_actor.external_name.lower():
                 return possible_user
 
         return None
@@ -1142,11 +1151,15 @@ class JiraServerIntegration(IssueSyncIntegration):
         external_issue_key: str,
         client: JiraServerClient,
         user: RpcUser,
-        logging_context: dict[str, Any],
+        integration_id: int,
     ) -> dict[str, Any] | None:
-        local_logging_context = {**logging_context}
-        local_logging_context["user_id"] = user.id
-        local_logging_context["user_email_count"] = len(user.emails)
+        logging_context = {
+            "integration_id": integration_id,
+            "organization_id": self.organization_id,
+            "issue_key": external_issue_key,
+        }
+        logging_context["user_id"] = user.id
+        logging_context["user_email_count"] = len(user.emails)
 
         jira_user = None
         for ue in user.emails:
@@ -1157,15 +1170,15 @@ class JiraServerIntegration(IssueSyncIntegration):
                 logger.info(
                     "jira.user-search-unauthorized",
                     extra={
-                        **local_logging_context,
+                        **logging_context,
                     },
                 )
                 continue
             except ApiError as e:
-                logger.info(
+                logger.warning(
                     "jira.user-search-request-error",
                     extra={
-                        **local_logging_context,
+                        **logging_context,
                         "error": str(e),
                     },
                 )
@@ -1191,13 +1204,13 @@ class JiraServerIntegration(IssueSyncIntegration):
         client: JiraServerClient,
         external_issue_key: str,
         user: RpcUser,
-        logging_context: dict[str, Any],
+        integration_id: int,
     ) -> dict[str, Any] | None:
         possible_user = self._get_matching_jira_server_user_by_external_actor(
             client=client,
             external_issue_key=external_issue_key,
             user=user,
-            logging_context=logging_context,
+            integration_id=integration_id,
         )
 
         if possible_user is not None:
@@ -1207,7 +1220,7 @@ class JiraServerIntegration(IssueSyncIntegration):
             client=client,
             external_issue_key=external_issue_key,
             user=user,
-            logging_context=logging_context,
+            integration_id=integration_id,
         )
 
         return possible_user
@@ -1238,7 +1251,7 @@ class JiraServerIntegration(IssueSyncIntegration):
                 external_issue_key=external_issue.key,
                 client=client,
                 user=user,
-                logging_context=logging_context,
+                integration_id=external_issue.integration_id,
             )
 
             if jira_user is None:

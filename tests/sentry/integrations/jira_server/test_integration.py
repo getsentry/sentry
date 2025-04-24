@@ -939,7 +939,7 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
                 client=self.installation.get_client(),
                 external_issue_key="APP-123",
                 user=rpc_user,
-                logging_context={"integration_id": self.integration.id},
+                integration_id=self.integration.id,
             )
 
         assert result is None
@@ -953,7 +953,7 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
             client=self.installation.get_client(),
             external_issue_key="APP-123",
             user=rpc_user,
-            logging_context={"integration_id": self.integration.id},
+            integration_id=self.integration.id,
         )
 
         mock_search_users_for_issue.return_value = [
@@ -984,7 +984,7 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
             client=self.installation.get_client(),
             external_issue_key="APP-123",
             user=rpc_user,
-            logging_context={"integration_id": self.integration.id},
+            integration_id=self.integration.id,
         )
 
         assert result is None
@@ -1020,7 +1020,7 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
             client=self.installation.get_client(),
             external_issue_key="APP-123",
             user=rpc_user,
-            logging_context={"integration_id": self.integration.id},
+            integration_id=self.integration.id,
         )
 
         assert result == mock_jira_user
