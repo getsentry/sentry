@@ -12,10 +12,12 @@ import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackListHeader from 'sentry/components/feedback/list/feedbackListHeader';
 import FeedbackListItem from 'sentry/components/feedback/list/feedbackListItem';
+import SentimentOverTimeChart from 'sentry/components/feedback/list/sentimentOverTimeChart';
 import {
   getSentimentIcon,
   getSentimentType,
@@ -78,6 +80,7 @@ export default function FeedbackList({
   const [selectedSentiment, setSelectedSentiment] = useState<string | null>(null);
   // keyword used for search when a sentiment is selected
   const {keyword} = useSentimentKeyword({sentiment: selectedSentiment});
+  const [selectValue, setSelectValue] = useState<string>('summary');
 
   const prevKeywordRef = useRef(keyword);
   const prevSelectedSentimentRef = useRef(selectedSentiment);
@@ -158,54 +161,67 @@ export default function FeedbackList({
     <Fragment>
       <Summary>
         <SummaryHeader>
-          {t('Feedback Summary')}
-          <Thumbs>
-            {
-              <Button
-                title={t('This summary is helpful')}
-                borderless
-                size="xs"
-                onClick={() => setIsHelpful(true)}
-              >
-                <IconThumb color={isHelpful ? 'green400' : undefined} direction="up" />
-              </Button>
-            }
-            {
-              <Button
-                title={t('This summary is not helpful. Click to update.')}
-                borderless
-                size="xs"
-                onClick={() => setIsHelpful(false)}
-              >
-                <IconThumb
-                  color={isHelpful === false ? 'red400' : undefined}
-                  direction="down"
-                />
-              </Button>
-            }
-          </Thumbs>
-        </SummaryHeader>
-        {summaryLoading ? (
-          <Placeholder height="200px" />
-        ) : (
-          <Fragment>
-            <div>{summary}</div>
-            <KeySentiments>
-              {keySentiments.map(sentiment => (
-                <SentimentTag
-                  key={sentiment.value}
-                  icon={getSentimentIcon(sentiment.type)}
-                  type={getSentimentType(sentiment.type)}
-                  onClick={e => {
-                    const targetSentiment = (e.target as HTMLElement).textContent ?? '';
-                    setSelectedSentiment(targetSentiment);
-                  }}
+          <StyledCompactSelect
+            options={[
+              {value: 'summary', label: t('Feedback Summary')},
+              {value: 'sentimentOverTime', label: t('Sentiment Over Time')},
+            ]}
+            onChange={option => setSelectValue(String(option.value))}
+            value={selectValue}
+          />
+          {selectValue === 'summary' && (
+            <Thumbs>
+              {
+                <Button
+                  title={t('This summary is helpful')}
+                  borderless
+                  size="xs"
+                  onClick={() => setIsHelpful(true)}
                 >
-                  {sentiment.value}
-                </SentimentTag>
-              ))}
-            </KeySentiments>
-          </Fragment>
+                  <IconThumb color={isHelpful ? 'green400' : undefined} direction="up" />
+                </Button>
+              }
+              {
+                <Button
+                  title={t('This summary is not helpful. Click to update.')}
+                  borderless
+                  size="xs"
+                  onClick={() => setIsHelpful(false)}
+                >
+                  <IconThumb
+                    color={isHelpful === false ? 'red400' : undefined}
+                    direction="down"
+                  />
+                </Button>
+              }
+            </Thumbs>
+          )}
+        </SummaryHeader>
+        {selectValue === 'summary' ? (
+          summaryLoading ? (
+            <Placeholder height="200px" />
+          ) : (
+            <Fragment>
+              <div>{summary}</div>
+              <KeySentiments>
+                {keySentiments.map(sentiment => (
+                  <SentimentTag
+                    key={sentiment.value}
+                    icon={getSentimentIcon(sentiment.type)}
+                    type={getSentimentType(sentiment.type)}
+                    onClick={e => {
+                      const targetSentiment = (e.target as HTMLElement).textContent ?? '';
+                      setSelectedSentiment(targetSentiment);
+                    }}
+                  >
+                    {sentiment.value}
+                  </SentimentTag>
+                ))}
+              </KeySentiments>
+            </Fragment>
+          )
+        ) : (
+          <SentimentOverTimeChart />
         )}
       </Summary>
       <FeedbackListHeader {...checkboxState} />
@@ -330,5 +346,13 @@ const EmptyMessage = styled('div')`
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     font-size: ${p => p.theme.fontSizeExtraLarge};
+  }
+`;
+
+const StyledCompactSelect = styled(CompactSelect)`
+  > button {
+    border: none;
+    border-color: transparent;
+    box-shadow: none;
   }
 `;

@@ -2,31 +2,28 @@ import {useEffect, useMemo, useRef, useState} from 'react';
 
 import useFeedbackMessages from 'sentry/components/feedback/list/useFeedbackMessages';
 import useOpenAIKey from 'sentry/components/feedback/list/useOpenAIKey';
+import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 
-const KEYWORD_REGEX = /Keyword:(.*)/;
-
-async function getSentimentSearchKeyword({
-  messages,
+async function getSentimentOverTime({
+  messagesWithTime,
   apiKey,
-  sentiment,
 }: {
   apiKey: string;
-  messages: string[];
-  sentiment: string;
+  messagesWithTime: Array<{message: string; time: string}>;
 }) {
-  const inputText = messages.map(msg => `- ${msg}`).join('\n');
+  const inputText = messagesWithTime.map(msg => `${msg.message}: ${msg.time}`).join('\n');
   const prompt = `
-You are an AI assistant that analyzes customer feedback. Below is a list of user messages.
+You are an AI assistant that analyzes customer feedback. Below is a list of user messages and the time they were sent.
 
 ${inputText}
 
-This is the sentiment we are looking for: ${sentiment}
-
-Find the messages that are most related to the sentiment, and return one keyword such that a search for that keyword returns the most relevant messages. The keyword should be present in at least one of the messages.
+For each day, output a number from 1 to 10 indcating how positive or negative the overall messages are on that day. 1 is most negative and 10 is most positive. Return each day as a unix timestamp.
 
 The output format should be:
-
-Keyword: <keyword>
+<day1>: <number>
+<day2>: <number>
+<day3>: <number>
+...
 `;
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -46,36 +43,27 @@ Keyword: <keyword>
   return data.choices[0].message.content;
 }
 
-export default function useSentimentKeyword({sentiment}: {sentiment: string | null}): {
+export default function useSentimentOverTime(): {
   error: Error | null;
-  keyword: string | null;
   loading: boolean;
+  series: DiscoverSeries[];
 } {
   const apiKey = useOpenAIKey();
-  const {messages} = useFeedbackMessages();
+  const {messagesWithTime} = useFeedbackMessages();
 
   const [response, setResponse] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const requestMadeRef = useRef(false);
-  const previousSentimentRef = useRef<string | null>(null);
 
   const finalResultRef = useRef<{
-    keyword: string | null;
+    series: DiscoverSeries[];
   }>({
-    keyword: null,
+    series: [],
   });
 
-  // Reset request ref when sentiment changes to a different value
   useEffect(() => {
-    if (sentiment !== previousSentimentRef.current) {
-      requestMadeRef.current = false;
-      previousSentimentRef.current = sentiment;
-    }
-  }, [sentiment]);
-
-  useEffect(() => {
-    if (!apiKey || !messages.length || requestMadeRef.current || !sentiment) {
+    if (!apiKey || !messagesWithTime.length || requestMadeRef.current) {
       return;
     }
 
@@ -83,34 +71,50 @@ export default function useSentimentKeyword({sentiment}: {sentiment: string | nu
     setError(null);
     requestMadeRef.current = true;
 
-    getSentimentSearchKeyword({messages, apiKey, sentiment})
+    getSentimentOverTime({messagesWithTime, apiKey})
       .then(result => {
         setResponse(result);
       })
       .catch(err => {
         setError(
-          err instanceof Error ? err : new Error('Failed to get sentiment keyword')
+          err instanceof Error ? err : new Error('Failed to get sentiment over time')
         );
       })
       .finally(() => {
         setLoading(false);
       });
-  }, [apiKey, messages, sentiment]);
+  }, [apiKey, messagesWithTime]);
 
   const parsedResults = useMemo(() => {
     if (!response) {
       return finalResultRef.current;
     }
 
-    let keyword: string | null = null;
-    const keywordMatch = response.match(KEYWORD_REGEX);
-
-    if (keywordMatch?.[1]) {
-      keyword = keywordMatch[1].trim();
-    }
+    // parse response into a series
+    const seriesData = response.split('\n').map(line => {
+      const [day, score] = line.split(': ');
+      return {
+        name: day ?? '',
+        value: parseInt(score ?? '1', 10),
+      };
+    });
 
     finalResultRef.current = {
-      keyword,
+      series: [
+        {
+          data: seriesData,
+          seriesName: 'Sentiment Over Time',
+          meta: {
+            fields: {
+              day: 'date',
+              sentiment: 'integer',
+            },
+            units: {
+              day: 'days',
+            },
+          },
+        },
+      ],
     };
 
     return finalResultRef.current;
@@ -118,7 +122,7 @@ export default function useSentimentKeyword({sentiment}: {sentiment: string | nu
 
   if (loading) {
     return {
-      keyword: null,
+      series: [],
       loading: true,
       error: null,
     };
@@ -126,14 +130,14 @@ export default function useSentimentKeyword({sentiment}: {sentiment: string | nu
 
   if (error) {
     return {
-      keyword: null,
+      series: [],
       loading: false,
       error,
     };
   }
 
   return {
-    keyword: parsedResults.keyword,
+    series: parsedResults.series,
     loading: false,
     error: null,
   };

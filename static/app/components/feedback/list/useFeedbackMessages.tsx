@@ -31,10 +31,15 @@ export default function useFeedbackMessages() {
   );
 
   if (isPending || isError) {
-    return [];
+    return {messages: [], messagesWithTime: []};
   }
 
-  return data.map(feedback => {
-    return feedback.metadata.message;
-  });
+  return {
+    messages: data.map(feedback => {
+      return feedback.metadata.message;
+    }),
+    messagesWithTime: data.map(feedback => {
+      return {message: feedback.metadata.message, time: feedback.firstSeen};
+    }),
+  };
 }

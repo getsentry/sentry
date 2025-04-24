@@ -64,7 +64,7 @@ export default function useFeedbackSummary({isHelpful}: {isHelpful: boolean | nu
   summary: string | null;
 } {
   const apiKey = useOpenAIKey();
-  const messages = useFeedbackMessages();
+  const {messages} = useFeedbackMessages();
 
   const [response, setResponse] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
