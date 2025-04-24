@@ -74,11 +74,11 @@ function CodeBody({
           let label = 'line';
           if (isHighlighted) {
             label = 'highlighted line';
-          } else if (coverage.get(lineNumber)?.coverage === 'H') {
+          } else if (coverage[lineNumber] === 'H') {
             label = 'covered line';
-          } else if (coverage.get(lineNumber)?.coverage === 'M') {
+          } else if (coverage[lineNumber] === 'M') {
             label = 'missed line';
-          } else if (coverage.get(lineNumber)?.coverage === 'P') {
+          } else if (coverage[lineNumber] === 'P') {
             label = 'partial line';
           }
 
@@ -86,7 +86,7 @@ function CodeBody({
             <LineNumber
               ariaLabel={label}
               key={virtualItem.key}
-              coverage={coverage.get(lineNumber)?.coverage}
+              coverage={coverage[lineNumber]}
               lineNumber={lineNumber}
               virtualItem={virtualItem}
               virtualizer={virtualizer}
