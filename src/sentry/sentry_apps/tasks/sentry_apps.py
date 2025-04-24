@@ -44,7 +44,7 @@ from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError,
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.config import TaskworkerConfig
-from sentry.taskworker.namespaces import integrations_tasks
+from sentry.taskworker.namespaces import sentryapp_control_tasks, sentryapp_tasks
 from sentry.taskworker.retry import Retry, retry_task
 from sentry.types.rules import RuleFuture
 from sentry.users.services.user.model import RpcUser
@@ -122,7 +122,9 @@ def _webhook_event_data(
 
 
 @instrumented_task(
-    name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook_v2", **TASK_OPTIONS
+    name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook_v2",
+    taskworker_config=TaskworkerConfig(namespace=sentryapp_tasks, retry=Retry(times=3)),
+    **TASK_OPTIONS,
 )
 @retry_decorator
 def send_alert_webhook_v2(
@@ -217,7 +219,11 @@ def send_alert_webhook_v2(
         )
 
 
-@instrumented_task(name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook", **TASK_OPTIONS)
+@instrumented_task(
+    name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook",
+    taskworker_config=TaskworkerConfig(namespace=sentryapp_tasks, retry=Retry(times=3)),
+    **TASK_OPTIONS,
+)
 @retry_decorator
 def send_alert_webhook(
     rule: str,
@@ -380,7 +386,9 @@ def _does_project_filter_allow_project(service_hook_id: int, project_id: int) ->
 
 
 @instrumented_task(
-    "sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound", **TASK_OPTIONS
+    name="sentry.sentry_apps.tasks.sentry_apps.process_resource_change_bound",
+    taskworker_config=TaskworkerConfig(namespace=sentryapp_tasks, retry=Retry(times=3)),
+    **TASK_OPTIONS,
 )
 @retry_decorator
 def process_resource_change_bound(
@@ -390,7 +398,9 @@ def process_resource_change_bound(
 
 
 @instrumented_task(
-    name="sentry.sentry_apps.tasks.sentry_apps.installation_webhook", **CONTROL_TASK_OPTIONS
+    name="sentry.sentry_apps.tasks.sentry_apps.installation_webhook",
+    taskworker_config=TaskworkerConfig(namespace=sentryapp_control_tasks, retry=Retry(times=3)),
+    **CONTROL_TASK_OPTIONS,
 )
 @retry_decorator
 def installation_webhook(installation_id: int, user_id: int, *args: Any, **kwargs: Any) -> None:
@@ -418,7 +428,9 @@ def installation_webhook(installation_id: int, user_id: int, *args: Any, **kwarg
 
 
 @instrumented_task(
-    name="sentry.sentry_apps.tasks.sentry_apps.clear_region_cache", **CONTROL_TASK_OPTIONS
+    name="sentry.sentry_apps.tasks.sentry_apps.clear_region_cache",
+    taskworker_config=TaskworkerConfig(namespace=sentryapp_control_tasks, retry=Retry(times=3)),
+    **CONTROL_TASK_OPTIONS,
 )
 def clear_region_cache(sentry_app_id: int, region_name: str) -> None:
     try:
@@ -460,7 +472,9 @@ def clear_region_cache(sentry_app_id: int, region_name: str) -> None:
 
 
 @instrumented_task(
-    name="sentry.sentry_apps.tasks.sentry_apps.workflow_notification", **TASK_OPTIONS
+    name="sentry.sentry_apps.tasks.sentry_apps.workflow_notification",
+    taskworker_config=TaskworkerConfig(namespace=sentryapp_tasks, retry=Retry(times=3)),
+    **TASK_OPTIONS,
 )
 @retry_decorator
 def workflow_notification(
@@ -487,7 +501,9 @@ def workflow_notification(
 
 
 @instrumented_task(
-    name="sentry.sentry_apps.tasks.sentry_apps.build_comment_webhook", **TASK_OPTIONS
+    name="sentry.sentry_apps.tasks.sentry_apps.build_comment_webhook",
+    taskworker_config=TaskworkerConfig(namespace=sentryapp_tasks, retry=Retry(times=3)),
+    **TASK_OPTIONS,
 )
 @retry_decorator
 def build_comment_webhook(
@@ -553,7 +569,9 @@ def get_webhook_data(
 
 
 @instrumented_task(
-    "sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook", **TASK_OPTIONS
+    name="sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook",
+    taskworker_config=TaskworkerConfig(namespace=sentryapp_tasks, retry=Retry(times=3)),
+    **TASK_OPTIONS,
 )
 @retry_decorator
 def send_resource_change_webhook(
@@ -674,11 +692,8 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
 
 @instrumented_task(
     "sentry.sentry_apps.tasks.sentry_apps.create_or_update_service_hooks_for_sentry_app",
+    taskworker_config=TaskworkerConfig(namespace=sentryapp_control_tasks, retry=Retry(times=3)),
     **CONTROL_TASK_OPTIONS,
-    taskworker_config=TaskworkerConfig(
-        namespace=integrations_tasks,
-        retry=Retry(times=3),
-    ),
 )
 def create_or_update_service_hooks_for_sentry_app(
     sentry_app_id: int, webhook_url: str, events: list[str], **kwargs: dict
