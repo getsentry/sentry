@@ -79,7 +79,11 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
         """
         validator = WorkflowValidator(
             data=request.data,
-            context={"organization": organization, "request": request},
+            context={
+                "organization": organization,
+                "request": request,
+                "workflow": workflow,
+            },
         )
 
         validator.is_valid(raise_exception=True)
