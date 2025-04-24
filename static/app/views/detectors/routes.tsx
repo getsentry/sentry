@@ -17,3 +17,5 @@ export const detectorRoutes = (
     </Route>
   </Route>
 );
+
+export const MONITORS_BASE_URL = '/issues/monitors';
