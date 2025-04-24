@@ -336,9 +336,8 @@ def configure_sdk():
         sentry_saas_transport = None
 
     if settings.SENTRY_CONTINUOUS_PROFILING_ENABLED:
-        sdk_options.setdefault("_experiments", {}).update(
-            continuous_profiling_auto_start=True,
-        )
+        sdk_options["profile_session_sample_rate"] = settings.SENTRY_PROFILE_SESSION_SAMPLE_RATE
+        sdk_options["profile_lifecycle"] = settings.SENTRY_PROFILE_LIFECYCLE
     elif settings.SENTRY_PROFILING_ENABLED:
         sdk_options["profiles_sampler"] = profiles_sampler
         sdk_options["profiler_mode"] = settings.SENTRY_PROFILER_MODE
