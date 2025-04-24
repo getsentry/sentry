@@ -45,7 +45,7 @@ export default function DetectorDetail() {
                 <IssuesList />
               </Section>
               <Section title={t('Connected Automations')}>
-                <ConnectedAutomationsList />
+                <ConnectedAutomationsList automations={[]} />
               </Section>
             </DetailLayout.Main>
             <DetailLayout.Sidebar>

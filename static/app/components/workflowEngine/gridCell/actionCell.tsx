@@ -4,21 +4,12 @@ import {Flex} from 'sentry/components/container/flex';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconCircledNumber} from 'sentry/components/iconCircledNumber';
 import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
-import {IconMail} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
+import {ActionMetadata} from 'sentry/components/workflowEngine/ui/actionMetadata';
 import {space} from 'sentry/styles/space';
-
-const ActionMetadata = {
-  slack: {name: t('Slack'), icon: <PluginIcon pluginId="slack" size={20} />},
-  discord: {name: t('Discord'), icon: <PluginIcon pluginId={'discord'} size={20} />},
-  email: {name: t('Email'), icon: <IconMail size="md" />},
-};
-
-export type Action = keyof typeof ActionMetadata;
+import type {ActionType} from 'sentry/types/workflowEngine/actions';
 
 type ActionCellProps = {
-  actions: Action[];
+  actions: ActionType[];
   disabled?: boolean;
 };
 
@@ -26,15 +17,22 @@ export function ActionCell({actions, disabled}: ActionCellProps) {
   if (!actions || actions.length === 0) {
     return <EmptyCell />;
   }
+
   if (actions.length === 1 && actions[0]) {
+    const {name, icon} = ActionMetadata[actions[0]]!;
     return (
       <Flex align="center" gap={space(0.75)}>
-        <IconContainer>{ActionMetadata[actions[0]].icon}</IconContainer>
-        {ActionMetadata[actions[0]].name}
+        <IconContainer>{icon}</IconContainer>
+        {name}
       </Flex>
     );
   }
-  const actionsList = actions.map(action => ActionMetadata[action].name).join(', ');
+
+  const actionsList = actions
+    .map(action => ActionMetadata[action]?.name)
+    .filter(x => x)
+    .join(', ');
+
   return (
     <ActionContainer align="center" gap={space(0.75)}>
       <IconContainer>
@@ -48,17 +46,17 @@ export function ActionCell({actions, disabled}: ActionCellProps) {
 }
 
 const ActionContainer = styled(Flex)`
-  /* overflow: hidden;
-  white-space: nowrap; */
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 `;
 
 const ActionsList = styled('span')`
   ${p => p.theme.tooltipUnderline()};
-  text-overflow: ellipsis;
-  display: flex;
   overflow: hidden;
   white-space: nowrap;
-  max-width: 100%;
+  text-overflow: ellipsis;
+  display: flex;
 `;
 
 const IconContainer = styled('div')`
