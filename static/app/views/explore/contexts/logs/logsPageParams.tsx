@@ -25,7 +25,7 @@ import {
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 const LOGS_PARAMS_VERSION = 1;
-const LOGS_QUERY_KEY = 'logsQuery'; // Logs may exist on other pages.
+export const LOGS_QUERY_KEY = 'logsQuery'; // Logs may exist on other pages.
 export const LOGS_CURSOR_KEY = 'logsCursor';
 export const LOGS_FIELDS_KEY = 'logsFields';
 

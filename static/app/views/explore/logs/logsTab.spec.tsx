@@ -7,6 +7,7 @@ import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent
 import {useLocation} from 'sentry/utils/useLocation';
 import {
   LOGS_FIELDS_KEY,
+  LOGS_QUERY_KEY,
   LogsPageParamsProvider,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
@@ -35,6 +36,7 @@ describe('LogsTabContent', function () {
         query: {
           [LOGS_FIELDS_KEY]: ['message', 'sentry.message.parameters.0'],
           [LOGS_SORT_BYS_KEY]: ['sentry.message.parameters.0'],
+          [LOGS_QUERY_KEY]: 'severity:error',
         },
       })
     );
@@ -158,6 +160,7 @@ describe('LogsTabContent', function () {
           dataset: 'ourlogs',
           field: [...AlwaysPresentLogFields, 'message', 'sentry.message.parameters.0'],
           sort: 'sentry.message.parameters.0',
+          query: 'severity:error',
         }),
       })
     );
@@ -171,6 +174,7 @@ describe('LogsTabContent', function () {
           dataset: 'ourlogs',
           yAxis: 'count(message)',
           interval: '1h',
+          query: 'severity:error',
         }),
       })
     );
