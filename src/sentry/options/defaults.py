@@ -2853,6 +2853,13 @@ register(
     default=250,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Limits the total duration of profile chunks to aggregate in flamegraphs
+register(
+    "profiling.continuous-profiling.flamegraph.max-seconds",
+    type=Int,
+    default=10 * 60,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Enable orjson in the occurrence_consumer.process_[message|batch]
 register(
@@ -3317,6 +3324,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "taskworker.relay.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "taskworker.sentryapp.rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -3363,6 +3375,11 @@ register(
 )
 register(
     "taskworker.reports.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.ingest.profiling.rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
