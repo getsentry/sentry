@@ -27,6 +27,7 @@ jest.mock('sentry/components/searchQueryBuilder/context', () => ({
     query: '',
     getTagValues: () => Promise.resolve(['tagValue1', 'tagValue2']),
     dispatch: mockDispatch,
+    wrapperRef: {current: null},
   }),
   SearchQueryBuilderProvider: ({children}: {children: React.ReactNode}) => children,
 }));
