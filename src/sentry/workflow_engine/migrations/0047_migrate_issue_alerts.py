@@ -1878,6 +1878,7 @@ def migrate_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) ->
     Workflow = apps.get_model("workflow_engine", "Workflow")
     WorkflowDataConditionGroup = apps.get_model("workflow_engine", "WorkflowDataConditionGroup")
     Action = apps.get_model("workflow_engine", "Action")
+    Environment = apps.get_model("sentry", "Environment")
 
     def _translate_rule_data_actions_to_notification_actions(
         actions: list[dict[str, Any]]
@@ -2119,6 +2120,13 @@ def migrate_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) ->
             enabled = False
 
         config = {"frequency": rule.data.get("frequency") or 30}  # Workflow.DEFAULT_FREQUENCY
+
+        if rule.environment_id:
+            try:
+                Environment.objects.get(id=rule.environment_id)
+            except Environment.DoesNotExist:
+                raise Exception("Invalid environment")
+
         kwargs = {
             "organization": organization,
             "name": rule.label,
@@ -2185,61 +2193,52 @@ def migrate_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) ->
                 project_id=project_id,
                 defaults={"config": {}, "name": "Error Detector"},
             )
-            try:
-                with transaction.atomic(router.db_for_write(Rule)):
-                    rules = Rule.objects.select_for_update().filter(project_id=project_id)
+            with transaction.atomic(router.db_for_write(Rule)):
+                rules = Rule.objects.select_for_update().filter(project_id=project_id)
 
-                    for rule in RangeQuerySetWrapper(rules):
-                        try:
-                            with transaction.atomic(router.db_for_write(Workflow)):
-                                # make sure rule is not already migrated
-                                _, created = AlertRuleDetector.objects.get_or_create(
-                                    detector_id=error_detector.id, rule_id=rule.id
-                                )
-                                if not created:
-                                    raise Exception("Rule already migrated")
-
-                                data = rule.data
-                                user_id = None
-                                created_activity = RuleActivity.objects.filter(
-                                    rule=rule, type=1  # created
-                                ).first()
-                                if created_activity:
-                                    user_id = getattr(created_activity, "user_id")
-
-                                conditions, filters = split_conditions_and_filters(
-                                    data["conditions"]
-                                )
-                                action_match = data.get("action_match") or "all"
-                                workflow = _create_workflow_and_lookup(
-                                    rule=rule,
-                                    user_id=int(user_id) if user_id else None,
-                                    conditions=conditions,
-                                    filters=filters,
-                                    action_match=action_match,
-                                    detector=error_detector,
-                                )
-                                filter_match = data.get("filter_match") or "all"
-                                if_dcg = _create_if_dcg(
-                                    rule=rule,
-                                    filter_match=filter_match,
-                                    workflow=workflow,
-                                    conditions=conditions,
-                                    filters=filters,
-                                )
-                                _create_workflow_actions(if_dcg=if_dcg, actions=data["actions"])
-                        except Exception as e:
-                            logger.exception(
-                                "Error migrating issue alert",
-                                extra={"rule_id": rule.id, "error": str(e)},
+                for rule in RangeQuerySetWrapper(rules):
+                    try:
+                        with transaction.atomic(router.db_for_write(Workflow)):
+                            # make sure rule is not already migrated
+                            _, created = AlertRuleDetector.objects.get_or_create(
+                                detector_id=error_detector.id, rule_id=rule.id
                             )
-                            sentry_sdk.capture_exception(e)
-            except Exception as e:
-                logger.exception(
-                    "Error migrating issue alert",
-                    extra={"rule_id": rule.id, "error": str(e)},
-                )
-                sentry_sdk.capture_exception(e)
+                            if not created:
+                                raise Exception("Rule already migrated")
+
+                            data = rule.data
+                            user_id = None
+                            created_activity = RuleActivity.objects.filter(
+                                rule=rule, type=1  # created
+                            ).first()
+                            if created_activity:
+                                user_id = getattr(created_activity, "user_id")
+
+                            conditions, filters = split_conditions_and_filters(data["conditions"])
+                            action_match = data.get("action_match") or "all"
+                            workflow = _create_workflow_and_lookup(
+                                rule=rule,
+                                user_id=int(user_id) if user_id else None,
+                                conditions=conditions,
+                                filters=filters,
+                                action_match=action_match,
+                                detector=error_detector,
+                            )
+                            filter_match = data.get("filter_match") or "all"
+                            if_dcg = _create_if_dcg(
+                                rule=rule,
+                                filter_match=filter_match,
+                                workflow=workflow,
+                                conditions=conditions,
+                                filters=filters,
+                            )
+                            _create_workflow_actions(if_dcg=if_dcg, actions=data["actions"])
+                    except Exception as e:
+                        logger.exception(
+                            "Error migrating issue alert",
+                            extra={"rule_id": rule.id, "error": str(e)},
+                        )
+                        sentry_sdk.capture_exception(e)
 
     for projects in chunked(
         RangeQuerySetWrapperWithProgressBarApprox(
