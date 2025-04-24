@@ -215,7 +215,7 @@ export function initializeUrlState({
   // Use period from default if we don't have a period set
   pageFilters.datetime.period ??= defaultDatetime.period;
 
-  const {...codecovDefaultFilters} = getCodecovDefaultSelection();
+  const codecovDefaultFilters = getCodecovDefaultSelection();
   const codecovPageFilters: CodecovPageFilters = {...codecovDefaultFilters};
 
   // Do not set a period if we have absolute start and end
@@ -328,7 +328,6 @@ export function initializeUrlState({
   }
 
   const {projects, environments: environment, datetime} = pageFilters;
-  const {repository} = codecovPageFilters;
 
   let newProject: number[] | null = null;
   let project = projects;
@@ -429,10 +428,14 @@ export function initializeUrlState({
       };
 
   if (!skipInitializeUrlParams) {
-    updateParams({project, environment, ...newDatetime, repository}, router, {
-      replace: true,
-      keepCursor: true,
-    });
+    updateParams(
+      {project, environment, ...newDatetime, repository: codecovPageFilters.repository},
+      router,
+      {
+        replace: true,
+        keepCursor: true,
+      }
+    );
   }
 }
 

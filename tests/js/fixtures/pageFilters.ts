@@ -45,19 +45,8 @@ export function PageFilterStateFixture(params: Partial<PageFiltersState> = {}) {
     desyncedFilters: new Set<PinnedPageFilter>(),
     pinnedFilters: new Set<PinnedPageFilter>(),
     shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '14d',
-        start: null,
-        end: null,
-        utc: false,
-      },
-      environments: [],
-      projects: [],
-    },
-    codecovSelection: {
-      ...CodecovPageFiltersFixture(),
-    },
+    selection: PageFiltersFixture(),
+    codecovSelection: CodecovPageFiltersFixture(),
     ...params
   }
 }

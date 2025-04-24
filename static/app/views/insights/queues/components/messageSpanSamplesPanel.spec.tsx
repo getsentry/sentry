@@ -18,7 +18,17 @@ describe('messageSpanSamplesPanel', () => {
   let samplesRequestMock: jest.Mock;
   let spanFieldTagsMock: jest.Mock;
 
-  jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
+  const selection = {
+    datetime: {
+      period: '10d',
+      start: null,
+      end: null,
+      utc: false,
+    },
+    environments: [],
+    projects: [],
+  };
+  jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture({selection}));
 
   jest.mocked(useLocation).mockReturnValue({
     pathname: '',
@@ -181,7 +191,7 @@ describe('messageSpanSamplesPanel', () => {
           project: [],
           query:
             'span.op:[queue.process,queue.publish] messaging.destination.name:event-queue transaction:sentry.tasks.store.save_event',
-          statsPeriod: '14d',
+          statsPeriod: '10d',
         }),
       })
     );
@@ -208,7 +218,7 @@ describe('messageSpanSamplesPanel', () => {
             'span.op:queue.process transaction:sentry.tasks.store.save_event messaging.destination.name:event-queue',
           referrer: undefined,
           secondBound: 5333.333333333333,
-          statsPeriod: '14d',
+          statsPeriod: '10d',
           upperBound: 8000,
         }),
       })
@@ -278,7 +288,7 @@ describe('messageSpanSamplesPanel', () => {
           project: [],
           query:
             'span.op:[queue.process,queue.publish] messaging.destination.name:event-queue transaction:sentry.tasks.store.save_event',
-          statsPeriod: '14d',
+          statsPeriod: '10d',
         }),
       })
     );
@@ -305,7 +315,7 @@ describe('messageSpanSamplesPanel', () => {
             'span.op:queue.publish transaction:sentry.tasks.store.save_event messaging.destination.name:event-queue',
           referrer: undefined,
           secondBound: 5333.333333333333,
-          statsPeriod: '14d',
+          statsPeriod: '10d',
           upperBound: 8000,
         }),
       })

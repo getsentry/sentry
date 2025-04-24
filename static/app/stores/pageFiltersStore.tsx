@@ -45,7 +45,9 @@ function datetimeHasSameValue(
 
 export interface PageFiltersState {
   /**
-   * The current page filter selection
+   * The current page filter selection for Codecov properties. This was added to
+   * keep a separation between Sentry selection values of type PageFilters and instead
+   * create a dedicated CodecovPageFilters type for Codecov values
    */
   codecovSelection: CodecovPageFilters;
   /**
