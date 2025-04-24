@@ -109,15 +109,18 @@ export function TraceLinkNavigationButton({
         position="right"
         delay={400}
         isHoverable
-        title={tct(`[link:Read the docs] to learn more about previous trace links.`, {
-          link: (
-            <ExternalLink
-              href={
-                'https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces'
-              }
-            />
-          ),
-        })}
+        title={tct(
+          `This links to the previous trace within the same session. To learn more, [link:read the docs].`,
+          {
+            link: (
+              <ExternalLink
+                href={
+                  'https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces'
+                }
+              />
+            ),
+          }
+        )}
       >
         <TraceLink
           color="gray500"
@@ -143,15 +146,18 @@ export function TraceLinkNavigationButton({
         position="left"
         delay={400}
         isHoverable
-        title={tct(`[link:Read the docs] to learn more about next trace links.`, {
-          link: (
-            <ExternalLink
-              href={
-                'https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces'
-              }
-            />
-          ),
-        })}
+        title={tct(
+          `This links to the next trace within the same session. To learn more, [link:read the docs].`,
+          {
+            link: (
+              <ExternalLink
+                href={
+                  'https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces'
+                }
+              />
+            ),
+          }
+        )}
       >
         <TraceLink
           color="gray500"
@@ -196,10 +202,14 @@ const StyledTooltip = styled(Tooltip)`
 
 const TraceLink = styled(Link)`
   font-weight: ${p => p.theme.fontWeightNormal};
-  color: ${p => p.theme.subText};
   padding: ${space(0.25)} ${space(0.5)};
   display: flex;
   align-items: center;
+
+  color: ${p => p.theme.subText};
+  :hover {
+    color: ${p => p.theme.subText};
+  }
 `;
 
 const TraceLinkText = styled('span')`
