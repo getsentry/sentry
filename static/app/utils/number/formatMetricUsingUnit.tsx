@@ -53,15 +53,15 @@ function formatDuration(seconds: number): string {
   }
 
   return `${formatNumberWithDynamicDecimalPoints(value)}${
-    unit === 'month' ? 'mo' : METRIC_UNIT_TO_SHORT[unit]
+    unit === 'month' ? 'mo' : formattingSupportedMetricUnits[unit]
   }`;
 }
 
 // The metric units that we have support for in the UI
 // others will still be displayed, but will not have any effect on formatting
-type FormattingSupportedMetricUnit = keyof typeof METRIC_UNIT_TO_SHORT;
+type FormattingSupportedMetricUnit = keyof typeof formattingSupportedMetricUnits;
 
-const METRIC_UNIT_TO_SHORT = {
+const formattingSupportedMetricUnits = {
   nanosecond: 'ns',
   nanoseconds: 'ns',
   microsecond: 'μs',
