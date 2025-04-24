@@ -117,7 +117,7 @@ function TriggerDescription({
           <TriggerText>
             {thresholdText}
             {rule.detectionType === AlertRuleComparisonType.DYNAMIC ? (
-              <FeatureBadge
+              <StyledFeatureBadge
                 type="beta"
                 tooltipProps={{
                   title: t(
@@ -457,4 +457,9 @@ const TriggerText = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};
   width: 100%;
   font-weight: ${p => p.theme.fontWeightNormal};
+`;
+
+const StyledFeatureBadge = styled(FeatureBadge)`
+  margin-left: ${space(0.25)};
+  padding-bottom: 3px;
 `;
