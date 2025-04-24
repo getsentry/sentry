@@ -32,6 +32,7 @@ AVAILABLE_PROVIDERS = {
     ExternalProviders.GITLAB,
     ExternalProviders.SLACK,
     ExternalProviders.MSTEAMS,
+    ExternalProviders.JIRA_SERVER,
     ExternalProviders.CUSTOM,
 }
 
