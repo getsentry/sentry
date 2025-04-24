@@ -16,34 +16,13 @@ import {
 } from 'sentry/views/explore/components/table';
 import {SeverityLevel} from 'sentry/views/explore/logs/utils';
 
-export const StyledPanel = styled(Panel)`
+const StyledPanel = styled(Panel)`
   margin-bottom: 0;
 `;
 
 export const LogDetailPanelItem = styled(PanelItem)`
   padding: ${space(1)} ${space(1)};
   display: auto;
-`;
-
-export const StyledPanelItem = styled(PanelItem)<{
-  align?: 'left' | 'center' | 'right';
-  overflow?: boolean;
-  span?: number;
-}>`
-  align-items: center;
-  padding: ${space(1)} ${space(1)};
-  ${p => (p.align === 'left' ? 'justify-content: flex-start;' : null)}
-  ${p => (p.align === 'right' ? 'justify-content: flex-end;' : null)}
-  ${p => (p.overflow ? p.theme.overflowEllipsis : null)};
-  ${p =>
-    p.align === 'center'
-      ? `
-  justify-content: space-around;`
-      : p.align === 'left' || p.align === 'right'
-        ? `text-align: ${p.align};`
-        : undefined}
-  ${p => p.span && `grid-column: auto / span ${p.span};`}
-  white-space: nowrap;
 `;
 
 export const LogTableRow = styled(TableRow)`
@@ -115,12 +94,6 @@ export const DetailsContent = styled(StyledPanel)`
   flex-direction: column;
   width: 100%;
   padding: ${space(1)} ${space(2)};
-`;
-
-export const LogDetailsTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
-  user-select: none;
 `;
 
 export const LogFirstCellContent = styled('div')`
