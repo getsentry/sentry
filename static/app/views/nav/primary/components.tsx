@@ -8,6 +8,7 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {linkStyles} from 'sentry/components/links/styles';
+import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -19,7 +20,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
-import {isLinkActive, makeLinkPropsFromTo} from 'sentry/views/nav/utils';
+import {isLinkActive} from 'sentry/views/nav/utils';
 
 interface SidebarItemLinkProps {
   analyticsKey: string;
@@ -36,6 +37,7 @@ interface SidebarItemDropdownProps {
   label: string;
   children?: React.ReactNode;
   forceLabel?: boolean;
+  onOpen?: MouseEventHandler<HTMLButtonElement>;
 }
 
 interface SidebarButtonProps {
@@ -62,7 +64,7 @@ interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
 export function SidebarItem({children, label, showLabel, ...props}: SidebarItemProps) {
   const {layout} = useNavContext();
   return (
-    <IconDefaultsProvider legacySize={layout === NavLayout.MOBILE ? '14px' : '21px'}>
+    <IconDefaultsProvider legacySize={layout === NavLayout.MOBILE ? '16px' : '21px'}>
       <Tooltip title={label} disabled={showLabel} position="right" skipWrapper delay={0}>
         <SidebarListItem {...props}>{children}</SidebarListItem>
       </Tooltip>
@@ -76,6 +78,7 @@ export function SidebarMenu({
   analyticsKey,
   label,
   forceLabel,
+  onOpen,
 }: SidebarItemDropdownProps) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -87,6 +90,7 @@ export function SidebarMenu({
     <DropdownMenu
       position={layout === NavLayout.MOBILE ? 'bottom' : 'right-end'}
       shouldApplyMinWidth={false}
+      minMenuWidth={200}
       trigger={(props, isOpen) => {
         return (
           <SidebarItem label={label} showLabel={showLabel}>
@@ -96,6 +100,7 @@ export function SidebarMenu({
               onClick={event => {
                 recordPrimaryItemClick(analyticsKey, organization);
                 props.onClick?.(event);
+                onOpen?.(event);
               }}
               isMobile={layout === NavLayout.MOBILE}
             >
@@ -124,14 +129,13 @@ export function SidebarLink({
   const organization = useOrganization();
   const location = useLocation();
   const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
-  const linkProps = makeLinkPropsFromTo(to);
-
   const {layout} = useNavContext();
 
   return (
     <SidebarItem label={label} showLabel>
       <NavLink
-        {...linkProps}
+        to={to}
+        state={{source: SIDEBAR_NAVIGATION_SOURCE}}
         onClick={() => recordPrimaryItemClick(analyticsKey, organization)}
         aria-selected={isActive}
         aria-current={isActive ? 'page' : undefined}
@@ -185,9 +189,15 @@ export function SidebarButton({
   );
 }
 
-export function SeparatorItem() {
+export function SeparatorItem({
+  className,
+  hasMargin,
+}: {
+  className?: string;
+  hasMargin?: boolean;
+}) {
   return (
-    <SeparatorListItem aria-hidden>
+    <SeparatorListItem aria-hidden className={className} hasMargin={hasMargin}>
       <Separator />
     </SeparatorListItem>
   );
@@ -199,10 +209,15 @@ const SidebarListItem = styled('li')`
   justify-content: center;
 `;
 
-const SeparatorListItem = styled('li')`
+const SeparatorListItem = styled('li')<{hasMargin?: boolean}>`
   list-style: none;
   width: 100%;
   padding: 0 ${space(1.5)};
+  ${p =>
+    p.hasMargin &&
+    css`
+      margin: ${space(0.5)} 0;
+    `}
 `;
 
 const Separator = styled('hr')`
@@ -412,7 +427,7 @@ const StyledNavLink = styled(Link, {
     `}
 `;
 
-export const NavLink = withChonk(StyledNavLink, ChonkNavLink);
+const NavLink = withChonk(StyledNavLink, ChonkNavLink);
 
 const ChonkNavButton = styled(Button, {
   shouldForwardProp: prop => prop !== 'isMobile',

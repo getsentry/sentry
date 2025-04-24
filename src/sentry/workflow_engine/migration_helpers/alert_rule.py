@@ -5,7 +5,7 @@ from typing import Any
 from django.db import router, transaction
 from django.forms import ValidationError
 
-from sentry.incidents.grouptype import MetricAlertFire
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleThresholdType,
@@ -309,7 +309,7 @@ def migrate_metric_data_conditions(
     action_filter = DataCondition.objects.create(
         comparison=PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH),
         condition_result=True,
-        type=Condition.ISSUE_PRIORITY_EQUALS,
+        type=Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL,
         condition_group=data_condition_group,
     )
     return detector_trigger, action_filter
@@ -341,9 +341,9 @@ def get_resolve_threshold(detector_data_condition_group: DataConditionGroup) -> 
     return resolve_threshold
 
 
-def migrate_resolve_threshold_data_conditions(
+def migrate_resolve_threshold_data_condition(
     alert_rule: AlertRule,
-) -> tuple[DataCondition, DataCondition]:
+) -> DataCondition:
     """
     Create data conditions for the old world's "resolve" threshold. If a resolve threshold
     has been explicitly set on the alert rule, then use this as our comparison value. Otherwise,
@@ -382,22 +382,7 @@ def migrate_resolve_threshold_data_conditions(
         condition_group=detector_data_condition_group,
     )
 
-    data_condition_group = DataConditionGroup.objects.create(
-        organization_id=alert_rule.organization_id
-    )
-    alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=alert_rule.id)
-    WorkflowDataConditionGroup.objects.create(
-        condition_group=data_condition_group,
-        workflow=alert_rule_workflow.workflow,
-    )
-
-    action_filter = DataCondition.objects.create(
-        comparison=DetectorPriorityLevel.OK,
-        condition_result=True,
-        type=Condition.ISSUE_PRIORITY_EQUALS,
-        condition_group=data_condition_group,
-    )
-    return detector_trigger, action_filter
+    return detector_trigger
 
 
 def create_metric_alert_lookup_tables(
@@ -463,7 +448,7 @@ def get_detector_field_values(
     user: RpcUser | None = None,
 ) -> dict[str, Any]:
     detector_field_values = {
-        "name": alert_rule.name,
+        "name": alert_rule.name if len(alert_rule.name) < 200 else alert_rule.name[:197] + "...",
         "description": alert_rule.description,
         "workflow_condition_group": data_condition_group,
         "owner_user_id": alert_rule.user_id,
@@ -483,7 +468,7 @@ def get_detector_field_values(
                 "project_id": project_id,
                 "enabled": True,
                 "created_by_id": user.id if user else None,
-                "type": MetricAlertFire.slug,
+                "type": MetricIssue.slug,
             }
         )
     return detector_field_values
@@ -586,7 +571,7 @@ def dual_write_alert_rule(alert_rule: AlertRule, user: RpcUser | None = None) ->
             for trigger_action in trigger_actions:
                 migrate_metric_action(trigger_action)
         # step 4: migrate alert rule resolution
-        migrate_resolve_threshold_data_conditions(alert_rule)
+        migrate_resolve_threshold_data_condition(alert_rule)
 
 
 def dual_update_alert_rule(alert_rule: AlertRule) -> None:
@@ -834,39 +819,31 @@ def dual_delete_migrated_alert_rule(alert_rule: AlertRule) -> None:
             "DataSource does not exist",
             extra={"alert_rule_id": alert_rule.id},
         )
+    with transaction.atomic(router.db_for_write(Detector)):
+        triggers_to_dual_delete = AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
+        for trigger in triggers_to_dual_delete:
+            dual_delete_migrated_alert_rule_trigger(trigger)
 
-    triggers_to_dual_delete = AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
-    for trigger in triggers_to_dual_delete:
-        dual_delete_migrated_alert_rule_trigger(trigger)
+        if data_condition_group:
+            # we need to delete the "resolve" dataconditions here as well
+            data_conditions = DataCondition.objects.filter(condition_group=data_condition_group)
+            resolve_detector_trigger = data_conditions.get(
+                condition_result=DetectorPriorityLevel.OK
+            )
 
-    if data_condition_group:
-        # we need to delete the "resolve" dataconditions here as well
-        data_conditions = DataCondition.objects.filter(condition_group=data_condition_group)
-        resolve_detector_trigger = data_conditions.get(condition_result=DetectorPriorityLevel.OK)
-        workflow_dcgs = DataConditionGroup.objects.filter(
-            workflowdataconditiongroup__workflow=workflow
-        )
-        resolve_action_filter = DataCondition.objects.get(
-            condition_group__in=workflow_dcgs,
-            comparison=DetectorPriorityLevel.OK,
-        )
-        resolve_action_filter_dcg = resolve_action_filter.condition_group
+            resolve_detector_trigger.delete()
 
-        resolve_detector_trigger.delete()
-        resolve_action_filter.delete()
-        resolve_action_filter_dcg.delete()
-
-    # NOTE: for migrated alert rules, each workflow is associated with a single detector
-    # make sure there are no other detectors associated with the workflow, then delete it if so
-    if DetectorWorkflow.objects.filter(workflow=workflow).count() == 1:
-        # also deletes alert_rule_workflow
-        workflow.delete()
-    # also deletes alert_rule_detector, detector_workflow (if not already deleted), detector_state
-    detector.delete()
-    if data_condition_group:
-        data_condition_group.delete()
-    if data_source:
-        data_source.delete()
+        # NOTE: for migrated alert rules, each workflow is associated with a single detector
+        # make sure there are no other detectors associated with the workflow, then delete it if so
+        if DetectorWorkflow.objects.filter(workflow=workflow).count() == 1:
+            # also deletes alert_rule_workflow
+            workflow.delete()
+        # also deletes alert_rule_detector, detector_workflow (if not already deleted), detector_state
+        detector.delete()
+        if data_condition_group:
+            data_condition_group.delete()
+        if data_source:
+            data_source.delete()
 
     return
 
@@ -886,16 +863,17 @@ def dual_delete_migrated_alert_rule_trigger(alert_rule_trigger: AlertRuleTrigger
     actions_to_dual_delete = AlertRuleTriggerAction.objects.filter(
         alert_rule_trigger_id=alert_rule_trigger.id
     )
-    for trigger_action in actions_to_dual_delete:
-        aarta = ActionAlertRuleTriggerAction.objects.get(
-            alert_rule_trigger_action_id=trigger_action.id
-        )
-        action = aarta.action
-        action.delete()
+    with transaction.atomic(router.db_for_write(DataCondition)):
+        for trigger_action in actions_to_dual_delete:
+            aarta = ActionAlertRuleTriggerAction.objects.get(
+                alert_rule_trigger_action_id=trigger_action.id
+            )
+            action = aarta.action
+            action.delete()
 
-    detector_trigger.delete()
-    action_filter.delete()
-    action_filter_dcg.delete()
+        detector_trigger.delete()
+        action_filter.delete()
+        action_filter_dcg.delete()
 
     return None
 
@@ -912,6 +890,7 @@ def dual_delete_migrated_alert_rule_trigger_action(trigger_action: AlertRuleTrig
         )
         return None
     aarta = ActionAlertRuleTriggerAction.objects.get(alert_rule_trigger_action_id=trigger_action.id)
-    action = aarta.action
-    action.delete()
+    with transaction.atomic(router.db_for_write(Action)):
+        action = aarta.action
+        action.delete()
     return None

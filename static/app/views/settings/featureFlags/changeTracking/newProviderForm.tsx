@@ -28,12 +28,12 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeFetchSecretQueryKey} from 'sentry/views/settings/featureFlags/changeTracking';
 
-export type CreateSecretQueryVariables = {
+type CreateSecretQueryVariables = {
   provider: string;
   secret: string;
 };
 
-export type CreateSecretResponse = string;
+type CreateSecretResponse = string;
 
 export default function NewProviderForm({
   onCreatedSecret,

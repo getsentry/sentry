@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from unittest.mock import patch
 
-from sentry.incidents.grouptype import MetricAlertFire
+from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.grouptype import (
     GroupCategory,
     GroupType,
@@ -40,9 +40,10 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
         @dataclass(frozen=True)
         class TestMetricGroupType(GroupType):
             type_id = 1
-            slug = MetricAlertFire.slug
+            slug = MetricIssue.slug
             description = "Metric alert"
             category = GroupCategory.METRIC_ALERT.value
+            category_v2 = GroupCategory.PERFORMANCE_REGRESSION.value
             detector_settings = DetectorSettings(handler=MockDetectorHandler)
             released = True
 
@@ -52,6 +53,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             slug = MonitorIncidentType.slug
             description = "Crons"
             category = GroupCategory.CRON.value
+            category_v2 = GroupCategory.OUTAGE.value
             detector_settings = DetectorSettings(handler=MockDetectorHandler)
             released = True
 
@@ -61,6 +63,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             slug = UptimeDomainCheckFailure.slug
             description = "Uptime"
             category = GroupCategory.UPTIME.value
+            category_v2 = GroupCategory.OUTAGE.value
             detector_settings = DetectorSettings(handler=MockDetectorHandler)
             released = True
 
@@ -71,6 +74,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             slug = PerformanceSlowDBQueryGroupType.slug
             description = "Performance"
             category = GroupCategory.PERFORMANCE.value
+            category_v2 = GroupCategory.PERFORMANCE_BEST_PRACTICE.value
             released = True
 
     def tearDown(self):
@@ -80,7 +84,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
     def test_simple(self):
         response = self.get_success_response(self.organization.slug, status_code=200)
         assert response.data == [
-            MetricAlertFire.slug,
+            MetricIssue.slug,
             MonitorIncidentType.slug,
             UptimeDomainCheckFailure.slug,
         ]

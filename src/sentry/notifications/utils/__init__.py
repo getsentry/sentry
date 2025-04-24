@@ -21,6 +21,7 @@ from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.services.integration import integration_service
 from sentry.issues.grouptype import (
     PerformanceConsecutiveDBQueriesGroupType,
+    PerformanceNPlusOneAPICallsExperimentalGroupType,
     PerformanceNPlusOneAPICallsGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
 )
@@ -336,7 +337,7 @@ def occurrence_perf_to_email_html(context: Any) -> str:
 
 
 def get_spans(
-    entries: list[dict[str, list[dict[str, str | float]] | str]]
+    entries: list[dict[str, list[dict[str, str | float]] | str]],
 ) -> list[dict[str, str | float]] | None:
     """Get the given event's spans"""
     if not len(entries):
@@ -496,7 +497,10 @@ class PerformanceProblemContext:
         spans: list[dict[str, str | float]] | None,
         event: Event | None = None,
     ) -> PerformanceProblemContext:
-        if problem.type == PerformanceNPlusOneAPICallsGroupType:
+        if problem.type in (
+            PerformanceNPlusOneAPICallsGroupType,
+            PerformanceNPlusOneAPICallsExperimentalGroupType,
+        ):
             return NPlusOneAPICallProblemContext(problem, spans, event)
         if problem.type == PerformanceConsecutiveDBQueriesGroupType:
             return ConsecutiveDBQueriesProblemContext(problem, spans, event)

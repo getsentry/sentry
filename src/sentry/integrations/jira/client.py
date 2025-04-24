@@ -7,6 +7,7 @@ from urllib.parse import parse_qs, urlparse, urlsplit
 from requests import PreparedRequest
 
 from sentry.integrations.client import ApiClient
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.utils.atlassian_connect import get_query_hash
 from sentry.shared_integrations.exceptions import ApiError
@@ -51,7 +52,7 @@ class JiraCloudClient(ApiClient):
 
     def __init__(
         self,
-        integration: RpcIntegration,
+        integration: RpcIntegration | Integration,
         verify_ssl: bool,
         logging_context: Any | None = None,
     ):

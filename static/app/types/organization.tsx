@@ -288,19 +288,13 @@ export interface SavedQuery extends NewQuery {
   id: string;
 }
 
-export type SavedQueryState = {
-  hasError: boolean;
-  isLoading: boolean;
-  savedQueries: SavedQuery[];
-};
-
 export type Confidence = 'high' | 'low' | null;
 
 export type EventsStatsData = Array<
   [number, Array<{count: number; comparisonCount?: number}>]
 >;
 
-export type ConfidenceStatsData = Array<[number, Array<{count: Confidence}>]>;
+type ConfidenceStatsData = Array<[number, Array<{count: Confidence}>]>;
 
 type AccuracyStatsItem<T> = {
   timestamp: number;

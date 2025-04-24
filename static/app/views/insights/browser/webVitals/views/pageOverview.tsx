@@ -43,7 +43,7 @@ import {
 } from 'sentry/views/insights/types';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-export enum LandingDisplayField {
+enum LandingDisplayField {
   OVERVIEW = 'overview',
   SPANS = 'spans',
 }
@@ -56,7 +56,7 @@ function getCurrentTabSelection(selectedTab: any) {
   return LandingDisplayField.OVERVIEW;
 }
 
-export function PageOverview() {
+function PageOverview() {
   const navigate = useNavigate();
   const moduleURL = useModuleURL('vital');
   const organization = useOrganization();

@@ -45,12 +45,11 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
             return
 
         data = span.get("data", None)
-        # TODO(nar): `Encoded Body Size` can be removed once SDK adoption has increased and
-        # we are receiving `http.response_content_length` consistently, likely beyond October 2023
-        encoded_body_size = data and (
-            data.get("http.response_content_length", None) or data.get("Encoded Body Size")
-        )
-        if not (encoded_body_size):
+        if not data:
+            return
+
+        encoded_body_size = data.get("http.response_content_length", None)
+        if not encoded_body_size:
             return
 
         payload_size_threshold = self.settings.get("payload_size_threshold")
