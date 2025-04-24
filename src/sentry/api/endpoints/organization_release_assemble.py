@@ -63,20 +63,12 @@ class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
         checksum = data.get("checksum", None)
         chunks = data.get("chunks", [])
 
-        upload_as_artifact_bundle = True
-        is_release_bundle_migration = True
         # NOTE: this list of projects can be further refined based on the
         # `project` embedded in the bundle manifest.
         project_ids = [project.id for project in release.projects.all()]
         metrics.incr("sourcemaps.upload.release_as_artifact_bundle")
 
-        assemble_task = (
-            AssembleTask.ARTIFACT_BUNDLE
-            if upload_as_artifact_bundle
-            else AssembleTask.RELEASE_BUNDLE
-        )
-
-        state, detail = get_assemble_status(assemble_task, organization.id, checksum)
+        state, detail = get_assemble_status(AssembleTask.ARTIFACT_BUNDLE, organization.id, checksum)
         if state == ChunkFileState.OK:
             return Response({"state": state, "detail": None, "missingChunks": []}, status=200)
         elif state is not None:
@@ -88,7 +80,9 @@ class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
         if not chunks:
             return Response({"state": ChunkFileState.NOT_FOUND, "missingChunks": []}, status=200)
 
-        set_assemble_status(assemble_task, organization.id, checksum, ChunkFileState.CREATED)
+        set_assemble_status(
+            AssembleTask.ARTIFACT_BUNDLE, organization.id, checksum, ChunkFileState.CREATED
+        )
 
         from sentry.tasks.assemble import assemble_artifacts
 
@@ -101,8 +95,7 @@ class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
                 # NOTE: The `dist` is embedded in the Bundle manifest and optional here.
                 # It will be backfilled from the manifest within the `assemble_artifacts` task.
                 "project_ids": project_ids,
-                "upload_as_artifact_bundle": upload_as_artifact_bundle,
-                "is_release_bundle_migration": is_release_bundle_migration,
+                "is_release_bundle_migration": True,
             }
         )
 

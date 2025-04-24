@@ -57,7 +57,7 @@ def make_compressed_zip_file(files):
     return compressed.getvalue()
 
 
-def upload_bundle(bundle_file, project, release=None, dist=None, upload_as_artifact_bundle=True):
+def upload_bundle(bundle_file, project, release=None, dist=None):
     blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), project.organization)
     total_checksum = sha1(bundle_file).hexdigest()
 
@@ -68,7 +68,6 @@ def upload_bundle(bundle_file, project, release=None, dist=None, upload_as_artif
         dist=dist,
         checksum=total_checksum,
         chunks=[blob1.checksum],
-        upload_as_artifact_bundle=upload_as_artifact_bundle,
     )
 
 

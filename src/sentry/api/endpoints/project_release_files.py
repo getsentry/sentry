@@ -125,21 +125,6 @@ class ReleaseFilesMixin(BaseEndpointMixin):
                 {"detail": "File name must not contain special whitespace characters"}, status=400
             )
 
-        dist_name = request.data.get("dist")
-        dist = None
-        if dist_name:
-            dist = release.add_dist(dist_name)
-
-        # Quickly check for the presence of this file before continuing with
-        # the costly file upload process.
-        if ReleaseFile.objects.filter(
-            organization_id=release.organization_id,
-            release_id=release.id,
-            name=full_name,
-            dist_id=dist.id if dist else dist,
-        ).exists():
-            return Response({"detail": ERR_FILE_EXISTS}, status=409)
-
         headers = {"Content-Type": fileobj.content_type}
         for headerval in request.data.getlist("header") or ():
             try:
@@ -153,6 +138,22 @@ class ReleaseFilesMixin(BaseEndpointMixin):
                         status=400,
                     )
                 headers[k] = v.strip()
+
+        dist_name = request.data.get("dist")
+
+        dist = None
+        if dist_name:
+            dist = release.add_dist(dist_name)
+
+        # Quickly check for the presence of this file before continuing with
+        # the costly file upload process.
+        if ReleaseFile.objects.filter(
+            organization_id=release.organization_id,
+            release_id=release.id,
+            name=full_name,
+            dist_id=dist.id if dist else dist,
+        ).exists():
+            return Response({"detail": ERR_FILE_EXISTS}, status=409)
 
         file = File.objects.create(name=name, type="release.file", headers=headers)
         file.putfile(fileobj, logger=logger)
