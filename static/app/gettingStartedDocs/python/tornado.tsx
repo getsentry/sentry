@@ -17,6 +17,7 @@ import {
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {
+  getPythonAiocontextvarsConfig,
   getPythonProfilingMinVersionMessage,
   getPythonProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/python';
@@ -84,16 +85,7 @@ const onboarding: OnboardingConfig = {
           language: 'bash',
           code: getInstallSnippet(),
         },
-        {
-          description: tct(
-            "If you're on Python 3.6, you also need the [code:aiocontextvars] package:",
-            {
-              code: <code />,
-            }
-          ),
-          language: 'bash',
-          code: 'pip install --upgrade aiocontextvars',
-        },
+        getPythonAiocontextvarsConfig(),
       ],
     },
   ],

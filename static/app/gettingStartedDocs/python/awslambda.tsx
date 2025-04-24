@@ -74,24 +74,19 @@ sentry_sdk.init(
   ],
 )`;
 
-const installStep = (params: Params) => [
-  {
-    type: StepType.INSTALL,
-    description: tct(
-      'Install [code:sentry-sdk] from PyPI with the [code:django] extra:',
-      {
-        code: <code />,
-      }
-    ),
-    configurations: getPythonInstallConfig({
-      packageName: "'sentry-sdk'",
-      description:
-        params.docsLocation === DocsPageLocation.PROFILING_PAGE
-          ? getPythonProfilingMinVersionMessage()
-          : undefined,
-    }),
-  },
-];
+const installStep = (params: Params): StepProps => ({
+  type: StepType.INSTALL,
+  description: tct('Install [code:sentry-sdk] from PyPI with the [code:django] extra:', {
+    code: <code />,
+  }),
+  configurations: getPythonInstallConfig({
+    packageName: "'sentry-sdk'",
+    description:
+      params.docsLocation === DocsPageLocation.PROFILING_PAGE
+        ? getPythonProfilingMinVersionMessage()
+        : undefined,
+  }),
+});
 
 const configureStep = (params: Params): StepProps => ({
   type: StepType.CONFIGURE,

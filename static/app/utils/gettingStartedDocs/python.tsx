@@ -66,6 +66,18 @@ export function getPythonProfilingMinVersionMessage() {
     }
   );
 }
+export function getPythonAiocontextvarsConfig() {
+  return {
+    description: tct(
+      "If you're on Python 3.6, you also need the [code:aiocontextvars] package:",
+      {
+        code: <code />,
+      }
+    ),
+    language: 'bash',
+    code: 'pip install --upgrade aiocontextvars',
+  };
+}
 
 export const getPythonProfilingOnboarding = ({
   basePackage = 'sentry-sdk',
