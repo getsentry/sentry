@@ -24,6 +24,8 @@ class SdkConfig(TypedDict):
     profiles_sample_rate: NotRequired[float]
     profiles_sampler: NotRequired[Callable[[dict[str, Any]], float]]
     profiler_mode: NotRequired[Literal["sleep", "thread", "gevent", "unknown"]]
+    profile_session_sample_rate: NotRequired[float]
+    profile_lifecycle: NotRequired[Literal["manual", "trace"]]
     enable_db_query_source: NotRequired[bool]
     db_query_source_threshold_ms: NotRequired[int]
     _experiments: NotRequired[Any]  # TODO
