@@ -90,7 +90,7 @@ describe('InvoiceDetails > Payment Form', function () {
     ).toBeInTheDocument();
     expect(
       screen.queryByText(
-        /, you authorize Sentry to automatically charge you recurring subscription fees and applicable pay-as-you-go fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for pay-as-you-go fees. You may cancel your subscription at any time/
+        /, you authorize Sentry to automatically charge you recurring subscription fees and applicable on-demand fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for on-demand fees. You may cancel your subscription at any time/
       )
     ).not.toBeInTheDocument();
   });

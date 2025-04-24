@@ -6,6 +6,7 @@ import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLooku
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription as SubscriptionType} from 'getsentry/types';
 import {FTCConsentLocation, PlanTier} from 'getsentry/types';
@@ -259,8 +260,36 @@ describe('AddPaymentMethod', function () {
     );
   });
 
-  it('displays fine print text', async function () {
+  it('displays fine print text on-demand', async function () {
     const sub = {...subscription, paymentSource: null};
+    const props = {...stepProps, subscription: sub};
+
+    render(<AddPaymentMethod {...props} />);
+
+    await waitFor(() => expect(setupIntent).toHaveBeenCalled());
+
+    expect(
+      screen.getByText(/Payments are processed securely through/)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /, you authorize Sentry to automatically charge you recurring subscription fees and applicable on-demand fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for on-demand fees. You may cancel your subscription at any time/
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('displays fine print text pay-as-you-go', async function () {
+    const sub = {
+      ...subscription,
+      paymentSource: null,
+      planDetails: PlanFixture({
+        name: 'Team',
+        contractInterval: 'annual',
+        billingInterval: 'annual',
+        onDemandCategories: ['errors', 'transactions', 'attachments'],
+        budgetTerm: 'pay-as-you-go',
+      }),
+    };
     const props = {...stepProps, subscription: sub};
 
     render(<AddPaymentMethod {...props} />);

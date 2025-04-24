@@ -45,6 +45,10 @@ type Props = {
    */
   onSubmit: (data: SubmitData) => void;
   /**
+   * budget mode text for fine print, if any.
+   */
+  budgetModeText?: string;
+  /**
    * Text for the submit button.
    */
   buttonText?: string;
@@ -99,6 +103,7 @@ function CreditCardForm({
   footerClassName = 'form-actions',
   referrer,
   location,
+  budgetModeText,
 }: Props) {
   const theme = useTheme();
   const [busy, setBusy] = useState(false);
@@ -240,9 +245,10 @@ function CreditCardForm({
           {location !== null && location !== undefined && (
             <FinePrint>
               {tct(
-                'By clicking [buttonText], you authorize Sentry to automatically charge you recurring subscription fees and applicable pay-as-you-go fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for pay-as-you-go fees. You may cancel your subscription at any time [here:here].',
+                'By clicking [buttonText], you authorize Sentry to automatically charge you recurring subscription fees and applicable [budgetModeText] fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for [budgetModeText] fees. You may cancel your subscription at any time [here:here].',
                 {
                   buttonText: <b>{buttonText}</b>,
+                  budgetModeText,
                   here: (
                     <ExternalLink href="https://sentry.io/settings/billing/cancel/" />
                   ),

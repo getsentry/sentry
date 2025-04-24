@@ -48,6 +48,7 @@ function AddPaymentMethod({
         onSuccess={onPaymentAccepted}
         buttonText="Continue"
         location={FTCConsentLocation.CHECKOUT}
+        budgetModeText={subscription.planDetails.budgetTerm}
       />
     );
 

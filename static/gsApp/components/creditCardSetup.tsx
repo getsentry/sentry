@@ -16,6 +16,7 @@ import type {
 type Props = {
   onSuccess: (data: Subscription) => void;
   organization: Organization;
+  budgetModeText?: string;
   buttonText?: string;
   cancelButtonText?: string;
   className?: string;
@@ -38,6 +39,7 @@ function CreditCardSetup({
   cancelButtonText = t('Cancel'),
   referrer,
   location,
+  budgetModeText,
 }: Props) {
   const api = useApi();
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
@@ -152,6 +154,7 @@ function CreditCardSetup({
       onSubmit={handleSubmit}
       referrer={referrer}
       location={location}
+      budgetModeText={budgetModeText}
     />
   );
 }
