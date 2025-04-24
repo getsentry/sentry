@@ -131,7 +131,7 @@ class Team(ReplicatedRegionModel):
         ),
         default=TeamStatus.ACTIVE,
     )
-    idp_provisioned = models.BooleanField(default=False)
+    idp_provisioned = models.BooleanField(default=False, db_default=False)
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
     objects: ClassVar[TeamManager] = TeamManager(cache_fields=("pk", "slug"))

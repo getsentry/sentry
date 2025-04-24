@@ -73,7 +73,7 @@ class ApiApplication(Model):
     )
     # ApiApplication by default provides user level access
     # This field is true if a certain application is limited to access only a specific org
-    requires_org_level_access = models.BooleanField(default=False)
+    requires_org_level_access = models.BooleanField(default=False, db_default=False)
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("client_id",))
 
