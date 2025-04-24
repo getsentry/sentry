@@ -77,7 +77,6 @@ const onboarding: OnboardingConfig = {
       ),
       configurations: [
         ...getPythonInstallConfig({
-          packageName: "'sentry-sdk[tornado]'",
           description:
             params.docsLocation === DocsPageLocation.PROFILING_PAGE
               ? getPythonProfilingMinVersionMessage()
