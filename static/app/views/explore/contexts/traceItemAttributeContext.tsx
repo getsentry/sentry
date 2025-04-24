@@ -23,7 +23,7 @@ type TypedTraceItemAttributesStatus = {
 type TypedTraceItemAttributesResult = TypedTraceItemAttributes &
   TypedTraceItemAttributesStatus;
 
-export const TraceItemAttributeContext = createContext<
+const TraceItemAttributeContext = createContext<
   TypedTraceItemAttributesResult | undefined
 >(undefined);
 
@@ -118,13 +118,6 @@ export function useTraceItemAttributes(type?: 'number' | 'string') {
     attributes: typedAttributesResult.string,
     isLoading: typedAttributesResult.stringAttributesLoading,
   };
-}
-
-export function useTraceItemAttribute(key: string) {
-  const {attributes: numberAttributes} = useTraceItemAttributes('number');
-  const {attributes: stringAttributes} = useTraceItemAttributes('string');
-
-  return stringAttributes[key] ?? numberAttributes[key] ?? null;
 }
 
 function getDefaultStringAttributes(itemType: TraceItemDataset) {

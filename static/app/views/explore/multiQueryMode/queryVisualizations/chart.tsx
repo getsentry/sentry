@@ -53,8 +53,6 @@ interface MultiQueryChartProps {
   samplingMode?: SamplingMode;
 }
 
-export const EXPLORE_CHART_GROUP = 'multi-query-charts_group';
-
 export function MultiQueryModeChart({
   index,
   query: queryParts,
