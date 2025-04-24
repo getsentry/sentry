@@ -72,11 +72,11 @@ selfhosted_tasks = taskregistry.create_namespace("selfhosted")
 
 sentryapp_tasks = taskregistry.create_namespace("sentryapp")
 
+sentryapp_control_tasks = taskregistry.create_namespace("sentryapp.control")
+
 symbolication_tasks = taskregistry.create_namespace("symbolication")
 
-tempest_tasks = taskregistry.create_namespace("tempest")
-
-sentryapp_control_tasks = taskregistry.create_namespace("sentryapp.control")
+telemetry_experience_tasks = taskregistry.create_namespace("telemetry-experience")
 
 tempest_tasks = taskregistry.create_namespace("tempest")
 
