@@ -42,6 +42,7 @@ export function MarkedText<T extends React.ElementType = typeof defaultElement>(
   ...props
 }: MarkedTextProps<T>) {
   const [renderedHtml, setRenderedHtml] = useState(() =>
+    // Initialize placeholder without syntax highlighting
     inline ? singleLineRenderer(text) : sanitizedMarked(text)
   );
   const isMountedRef = useIsMountedRef();
