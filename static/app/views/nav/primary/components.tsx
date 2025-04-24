@@ -8,6 +8,7 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {linkStyles} from 'sentry/components/links/styles';
+import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -19,7 +20,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
-import {isLinkActive, makeLinkPropsFromTo} from 'sentry/views/nav/utils';
+import {isLinkActive} from 'sentry/views/nav/utils';
 
 interface SidebarItemLinkProps {
   analyticsKey: string;
@@ -128,14 +129,13 @@ export function SidebarLink({
   const organization = useOrganization();
   const location = useLocation();
   const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
-  const linkProps = makeLinkPropsFromTo(to);
-
   const {layout} = useNavContext();
 
   return (
     <SidebarItem label={label} showLabel>
       <NavLink
-        {...linkProps}
+        to={to}
+        state={{source: SIDEBAR_NAVIGATION_SOURCE}}
         onClick={() => recordPrimaryItemClick(analyticsKey, organization)}
         aria-selected={isActive}
         aria-current={isActive ? 'page' : undefined}
