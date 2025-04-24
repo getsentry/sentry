@@ -21,7 +21,7 @@ export function getPythonInstallSnippet({
   packageName: string;
 }) {
   if (packageManager === 'uv') {
-    return `uv add ${packageName}`;
+    return `uv add --upgrade ${packageName}`;
   }
   return `pip install --upgrade ${packageName}`;
 }
