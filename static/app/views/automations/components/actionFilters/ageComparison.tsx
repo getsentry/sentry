@@ -1,14 +1,11 @@
+import InlineNumberField from 'sentry/components/workflowEngine/form/inlineNumberField';
+import InlineSelectField from 'sentry/components/workflowEngine/form/inlineSelectField';
 import {tct} from 'sentry/locale';
 import {
   AGE_COMPARISON_CHOICES,
   type AgeComparison,
 } from 'sentry/views/automations/components/actionFilters/constants';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
-import {
-  InlineNumberInput,
-  InlineSelectControl,
-  selectControlStyles,
-} from 'sentry/views/automations/components/ruleRow';
 
 export default function AgeComparisonNode() {
   return tct('The issue is [comparisonType] [value] [time]', {
@@ -21,8 +18,7 @@ export default function AgeComparisonNode() {
 function ComparisonField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
-    <InlineSelectControl
-      styles={selectControlStyles}
+    <InlineSelectField
       name={`${condition_id}.comparison.type`}
       value={condition.comparison.type}
       options={AGE_COMPARISON_CHOICES}
@@ -38,7 +34,7 @@ function ComparisonField() {
 function ValueField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
-    <InlineNumberInput
+    <InlineNumberField
       name={`${condition_id}.comparison.value`}
       value={condition.comparison.value}
       min={0}
@@ -55,8 +51,7 @@ function ValueField() {
 function TimeField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
-    <InlineSelectControl
-      styles={selectControlStyles}
+    <InlineSelectField
       name={`${condition_id}.comparison.time`}
       value={condition.comparison.time}
       options={[

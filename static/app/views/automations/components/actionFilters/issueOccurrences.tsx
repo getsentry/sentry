@@ -1,6 +1,6 @@
+import InlineNumberField from 'sentry/components/workflowEngine/form/inlineNumberField';
 import {tct} from 'sentry/locale';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
-import {InlineNumberInput} from 'sentry/views/automations/components/ruleRow';
 
 export default function IssueOccurrencesNode() {
   return tct('The issue has happened at least [value] times', {
@@ -11,7 +11,7 @@ export default function IssueOccurrencesNode() {
 function ValueField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
-    <InlineNumberInput
+    <InlineNumberField
       name={`${condition_id}.comparison.value`}
       value={condition.comparison.value}
       min={1}
