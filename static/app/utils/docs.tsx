@@ -72,13 +72,3 @@ export function getConfigurePerformanceDocsLink(
     ? null // this platform does not support performance
     : `https://docs.sentry.io/platforms/${docsPlatform}/tracing/`;
 }
-
-export function getConfigureIntegrationsDocsLink(
-  project: AvatarProject | undefined
-): string | null {
-  const platform = project?.platform ?? null;
-  const docsPlatform = platform ? getDocsPlatform(platform, true) : null;
-  return docsPlatform === null
-    ? null // this platform does not support performance
-    : `https://docs.sentry.io/platforms/${docsPlatform}/configuration/integrations`;
-}

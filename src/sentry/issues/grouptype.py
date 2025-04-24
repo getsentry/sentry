@@ -56,6 +56,7 @@ class GroupCategory(IntEnum):
     Metric alert types will move to the PERFORMANCE_REGRESSION category
     """
     METRIC_ALERT = 8
+    TEST_NOTIFICATION = 9
 
     # New issue categories (under the organizations:issue-taxonomy flag)
     OUTAGE = 9
@@ -379,6 +380,17 @@ class PerformanceNPlusOneAPICallsGroupType(GroupType):
     category_v2 = GroupCategory.PERFORMANCE_BEST_PRACTICE.value
     default_priority = PriorityLevel.LOW
     released = True
+
+
+@dataclass(frozen=True)
+class PerformanceNPlusOneAPICallsExperimentalGroupType(GroupType):
+    type_id = 1910
+    slug = "performance_n_plus_one_api_calls_experimental"
+    description = "N+1 API Call (Experimental)"
+    category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.PERFORMANCE_BEST_PRACTICE.value
+    default_priority = PriorityLevel.LOW
+    released = False
 
 
 @dataclass(frozen=True)

@@ -11,9 +11,10 @@ from sentry import analytics
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues import grouptype
 from sentry.models.activity import Activity
-from sentry.models.group import Group, GroupStatus, update_group_open_period
+from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
+from sentry.models.groupopenperiod import update_group_open_period
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.signals import issue_resolved

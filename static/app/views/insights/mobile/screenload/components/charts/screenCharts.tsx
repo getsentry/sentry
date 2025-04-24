@@ -3,7 +3,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import {Alert} from 'sentry/components/core/alert';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
@@ -389,10 +388,6 @@ const StyledRow = styled('div')`
 
 const ChartsContainerItem = styled('div')`
   flex: 1;
-`;
-
-export const Spacer = styled('div')`
-  margin-top: ${space(3)};
 `;
 
 const Container = styled('div')`

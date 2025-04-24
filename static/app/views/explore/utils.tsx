@@ -126,7 +126,7 @@ export function getExploreUrlFromSavedQueryUrl({
   });
 }
 
-export function getExploreMultiQueryUrl({
+function getExploreMultiQueryUrl({
   organization,
   selection,
   interval,
@@ -272,13 +272,6 @@ export function limitMaxPickableDays(organization: Organization): {
       ...Object.fromEntries(enabledOptions),
     },
   };
-}
-
-export function showConfidence(isSampled: boolean | null | undefined) {
-  if (defined(isSampled) && isSampled === false) {
-    return false;
-  }
-  return true;
 }
 
 export function getDefaultExploreRoute(organization: Organization) {
