@@ -9,12 +9,12 @@ import {
   CurrencyUnit,
   DurationUnit,
   fieldAlignment,
-  prettifyTagKey,
 } from 'sentry/utils/discover/fields';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
+import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LogAttributesHumanLabel} from 'sentry/views/explore/logs/constants';
 import {
-  type LogAttributeItem,
   type LogAttributeUnits,
   type LogRowItem,
   type OurLogFieldKey,
@@ -131,23 +131,15 @@ export function logsFieldAlignment(...args: Parameters<typeof fieldAlignment>) {
   return fieldAlignment(...args);
 }
 
-function removePrefixes(key: string) {
-  return key.replace('log.', '').replace('sentry.', '');
-}
-
-export function prettifyAttributeName(name: string) {
-  return removePrefixes(prettifyTagKey(name));
-}
-
-export function adjustAliases(key: string) {
-  switch (key) {
+export function adjustAliases(attribute: TraceItemResponseAttribute) {
+  switch (attribute.name) {
     case 'sentry.project_id':
       warn(
-        fmt`Field ${key} is deprecated. Please use ${OurLogKnownFieldKey.PROJECT_ID} instead.`
+        fmt`Field ${attribute.name} is deprecated. Please use ${OurLogKnownFieldKey.PROJECT_ID} instead.`
       );
       return OurLogKnownFieldKey.PROJECT_ID; // Public alias since int<->string alias reversing is broken. Should be removed in the future.
     default:
-      return key;
+      return attribute.name;
   }
 }
 
@@ -190,16 +182,6 @@ export function getLogRowItem(
       ? (meta?.units?.[field] as LogAttributeUnits)
       : null,
     value: dataRow[field] ?? '',
-  };
-}
-
-export function getLogAttributeItem(
-  field: OurLogFieldKey,
-  value: OurLogsResponseItem[OurLogFieldKey] | null
-): LogAttributeItem {
-  return {
-    fieldKey: field,
-    value,
   };
 }
 
