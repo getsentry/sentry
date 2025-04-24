@@ -2853,6 +2853,13 @@ register(
     default=250,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Limits the total duration of profile chunks to aggregate in flamegraphs
+register(
+    "profiling.continuous-profiling.flamegraph.max-seconds",
+    type=Int,
+    default=10 * 60,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Enable orjson in the occurrence_consumer.process_[message|batch]
 register(
