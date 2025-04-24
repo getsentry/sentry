@@ -1,9 +1,9 @@
-import {EventTransaction} from 'sentry/types/event';
+import type {EventTransaction} from 'sentry/types/event';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
-import {UseApiQueryResult} from 'sentry/utils/queryClient';
-import RequestError from 'sentry/utils/requestError/requestError';
-import {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
+import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 export function useTraceContextSections({
   tree,
