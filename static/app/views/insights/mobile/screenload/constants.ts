@@ -43,20 +43,6 @@ export const YAXIS_COLUMNS: Readonly<Record<YAxis, string>> = {
   [YAxis.FRAMES_DELAY]: 'avg(mobile.frames_delay)',
 };
 
-export const READABLE_YAXIS_LABELS: Readonly<Record<YAxis, string>> = {
-  [YAxis.WARM_START]: 'avg(app_start_warm)',
-  [YAxis.COLD_START]: 'avg(app_start_cold)',
-  [YAxis.TTID]: 'avg(time_to_initial_display)',
-  [YAxis.TTFD]: 'avg(time_to_full_display)',
-  [YAxis.SLOW_FRAME_RATE]: 'avg(frames_slow_rate)',
-  [YAxis.FROZEN_FRAME_RATE]: 'avg(frames_frozen_rate)',
-  [YAxis.THROUGHPUT]: 'tpm()',
-  [YAxis.COUNT]: 'count()',
-  [YAxis.SLOW_FRAMES]: 'avg(mobile.slow_frames)',
-  [YAxis.FROZEN_FRAMES]: 'avg(mobile.frozen_frames)',
-  [YAxis.FRAMES_DELAY]: 'avg(mobile.frames_delay)',
-};
-
 export const CHART_TITLES: Readonly<Record<YAxis, string>> = {
   [YAxis.WARM_START]: t('Warm Start'),
   [YAxis.COLD_START]: t('Cold Start'),
