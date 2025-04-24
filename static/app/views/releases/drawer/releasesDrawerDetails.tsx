@@ -36,7 +36,10 @@ interface ReleasesDrawerDetailsProps {
   release: string;
 }
 
-export function ReleasesDrawerDetails({release, projectId}: ReleasesDrawerDetailsProps) {
+export function ReleasesDrawerDetails({
+  release,
+  projectId: projectIdParam,
+}: ReleasesDrawerDetailsProps) {
   const {
     isLoading: isLoadingMeta,
     isError: isMetaError,
@@ -45,7 +48,16 @@ export function ReleasesDrawerDetails({release, projectId}: ReleasesDrawerDetail
   const location = useLocation();
   const organization = useOrganization();
   const releaseDetailsQuery = useReleaseDetails({release});
-  const project = useProjectFromId({project_id: projectId});
+
+  // TODO: Handle the case when there are multiple projects
+  const projectId =
+    projectIdParam ||
+    (releaseMeta?.projects[0]?.id ? String(releaseMeta?.projects[0]?.id) : undefined);
+
+  // projectId can come from url or from the release meta
+  const project = useProjectFromId({
+    project_id: projectId,
+  });
   const projectSlug = project?.slug;
   const {
     [ReleasesDrawerFields.RELEASE]: _release,
@@ -68,7 +80,7 @@ export function ReleasesDrawerDetails({release, projectId}: ReleasesDrawerDetail
     {label: formatVersion(release)},
   ];
 
-  if (!projectId || !projectSlug) {
+  if (!projectSlug) {
     return (
       <EventDrawerContainer>
         <EventDrawerHeader>
