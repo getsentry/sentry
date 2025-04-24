@@ -24,7 +24,6 @@ from sentry.workflow_engine.models import (
     DataConditionGroupAction,
     DataSourceDetector,
     Detector,
-    DetectorState,
 )
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -186,15 +185,11 @@ class WorkflowEngineDetectorSerializer(Serializer):
         alert_rule_detector_id = AlertRuleDetector.objects.values_list(
             "alert_rule_id", flat=True
         ).get(detector=obj)
-        active = DetectorState.objects.values_list("active", flat=True).get(detector=obj)
-
         return {
             "id": str(alert_rule_detector_id),
             "name": obj.name,
             "organizationId": obj.project.organization_id,
-            "status": (
-                AlertRuleStatus.PENDING.value if active is True else AlertRuleStatus.DISABLED
-            ),  # this is a rough first pass, need to handle other statuses
+            "status": AlertRuleStatus.PENDING.value,  # TODO look into how other statuses translate
             "query": attrs.get("query"),
             "aggregate": attrs.get("aggregate"),
             "timeWindow": attrs.get("timeWindow"),
@@ -205,7 +200,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             "owner": attrs.get("owner", None),
             "dateModified": obj.date_updated,
             "dateCreated": obj.date_added,
-            "createdBy": attrs.get("created_by", None),
+            "createdBy": attrs.get("created_by"),
             "description": obj.description,
             "detectionType": obj.type,
         }

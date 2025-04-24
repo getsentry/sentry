@@ -94,7 +94,7 @@ class TestDetectorSerializer(TestCase):
             "id": str(self.alert_rule.id),
             "name": self.detector.name,
             "organizationId": self.detector.project.organization_id,
-            "status": AlertRuleStatus.DISABLED,  # I guess?
+            "status": AlertRuleStatus.PENDING,
             "query": self.alert_rule.snuba_query.query,
             "aggregate": self.alert_rule.snuba_query.aggregate,
             "timeWindow": self.alert_rule.snuba_query.time_window,
@@ -105,7 +105,6 @@ class TestDetectorSerializer(TestCase):
             "owner": self.detector.owner_user_id,
             "dateModified": self.detector.date_updated,
             "dateCreated": self.detector.date_added,
-            # "createdBy": self.detector.created_by_id,
             "createdBy": {},
             "description": self.detector.description,
             "detectionType": self.detector.type,
