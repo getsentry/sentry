@@ -48,7 +48,7 @@ enum Assignee {
   MEMBER = 'Member',
 }
 
-export enum Priority {
+enum Priority {
   LOW = 25,
   MEDIUM = 50,
   HIGH = 75,
@@ -93,7 +93,7 @@ export enum Attributes {
   OS_DISTRIBUTION_VERSION = 'os.distribution_version',
 }
 
-export enum Level {
+enum Level {
   FATAL = 50,
   ERROR = 40,
   WARNING = 30,
