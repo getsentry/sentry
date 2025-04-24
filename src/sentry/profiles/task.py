@@ -38,8 +38,9 @@ from sentry.search.utils import DEVICE_CLASS
 from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.config import Retry, TaskworkerConfig
+from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import ingest_profiling_tasks
+from sentry.taskworker.retry import Retry
 from sentry.utils import json, metrics
 from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
