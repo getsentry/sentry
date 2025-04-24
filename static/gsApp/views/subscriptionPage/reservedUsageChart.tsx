@@ -20,8 +20,8 @@ import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   type CategoryOption,
   CHART_OPTIONS_DATACATEGORY,
@@ -452,6 +452,7 @@ function ReservedUsageChart({
     plan: subscription.planDetails,
     hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
   });
+  const navigate = useNavigate();
   const category = selectedCategory(location, categoryOptions);
   const transform = selectedTransform(location);
 
@@ -578,14 +579,14 @@ function ReservedUsageChart({
   }
 
   function handleSelectDataCategory(value: ChartDataTransform) {
-    browserHistory.push({
+    navigate({
       pathname: location.pathname,
       query: {...location.query, transform: value},
     });
   }
 
   function handleSelectDataTransform(value: DataCategory) {
-    browserHistory.push({
+    navigate({
       pathname: location.pathname,
       query: {...location.query, category: value},
     });
@@ -689,7 +690,7 @@ function ReservedUsageChart({
                 barMinHeight: 1,
                 stack: 'usage',
                 legendHoverLink: false,
-                color: theme.chart.colors[5][0],
+                color: theme.chart.getColorPalette(5)[0],
               }),
               barSeries({
                 name: displayBudgetName(subscription.planDetails, {title: true}),
@@ -697,7 +698,7 @@ function ReservedUsageChart({
                 barMinHeight: 1,
                 stack: 'usage',
                 legendHoverLink: false,
-                color: theme.chart.colors[5][1],
+                color: theme.chart.getColorPalette(5)[1],
               }),
             ]
           : []),

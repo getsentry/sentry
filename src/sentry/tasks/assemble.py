@@ -34,15 +34,17 @@ from sentry.models.artifactbundle import (
     ReleaseArtifactBundle,
 )
 from sentry.models.files.file import File
+from sentry.models.files.utils import MAX_FILE_SIZE
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseArchive, ReleaseFile, update_artifact_index
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import attachments_tasks
 from sentry.utils import metrics, redis
 from sentry.utils.db import atomic_transaction
-from sentry.utils.files import get_max_file_size
 from sentry.utils.rollback_metrics import incr_rollback_metrics
 from sentry.utils.sdk import Scope, bind_organization_context
 
@@ -106,14 +108,13 @@ def assemble_file(task, org_or_project, name, checksum, chunks, file_type) -> As
 
     # Reject all files that exceed the maximum allowed size for this organization.
     file_size = sum(size for _, _, size in file_blobs if size is not None)
-    max_file_size = get_max_file_size(organization)
-    if file_size > max_file_size:
+    if file_size > MAX_FILE_SIZE:
         set_assemble_status(
             task,
             org_or_project.id,
             checksum,
             ChunkFileState.ERROR,
-            detail=f"File {name} exceeds maximum size ({file_size} > {max_file_size})",
+            detail=f"File {name} exceeds maximum size ({file_size} > {MAX_FILE_SIZE})",
         )
 
         return None
@@ -231,6 +232,9 @@ def delete_assemble_status(task, scope, checksum):
     name="sentry.tasks.assemble.assemble_dif",
     queue="assemble",
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=attachments_tasks,
+    ),
 )
 def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     """
@@ -791,6 +795,9 @@ def prepare_post_assembler(
     name="sentry.tasks.assemble.assemble_artifacts",
     queue="assemble",
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=attachments_tasks,
+    ),
 )
 def assemble_artifacts(
     org_id,

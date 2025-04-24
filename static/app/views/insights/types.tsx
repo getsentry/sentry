@@ -1,9 +1,3 @@
-export enum StarfishType {
-  BACKEND = 'backend',
-  MOBILE = 'mobile',
-  FRONTEND = 'frontend',
-}
-
 export enum ModuleName {
   HTTP = 'http',
   DB = 'db',
@@ -75,14 +69,16 @@ export enum SpanMetricsField {
 // TODO: This will be the final field type for eap spans
 export enum SpanFields {
   IS_TRANSACTION = 'is_transaction',
+  CACHE_HIT = 'cache.hit',
   IS_STARRED_TRANSACTION = 'is_starred_transaction',
 }
 
-export type SpanBooleanFields =
+type SpanBooleanFields =
+  | SpanFields.CACHE_HIT
   | SpanFields.IS_TRANSACTION
   | SpanFields.IS_STARRED_TRANSACTION;
 
-export type SpanNumberFields =
+type SpanNumberFields =
   | SpanMetricsField.AI_TOTAL_COST
   | SpanMetricsField.AI_TOTAL_TOKENS_USED
   | SpanMetricsField.SPAN_SELF_TIME
@@ -100,7 +96,7 @@ export type SpanNumberFields =
   | SpanMetricsField.MOBILE_SLOW_FRAMES
   | DiscoverNumberFields;
 
-export type SpanStringFields =
+type SpanStringFields =
   | SpanMetricsField.RESOURCE_RENDER_BLOCKING_STATUS
   | 'id'
   | 'span_id'
@@ -119,6 +115,7 @@ export type SpanStringFields =
   | 'transaction.id'
   | 'transaction.method'
   | 'release'
+  | 'request.method'
   | 'os.name'
   | 'span.status_code'
   | 'span.ai.pipeline.group'
@@ -144,7 +141,7 @@ export type SpanIndexedQueryFilters = Partial<Record<SpanStringFields, string>> 
   [SpanIndexedField.PROJECT_ID]?: string;
 };
 
-export type SpanStringArrayFields = 'span.domain';
+type SpanStringArrayFields = 'span.domain';
 
 export const COUNTER_AGGREGATES = ['sum', 'avg', 'min', 'max', 'p100'] as const;
 export const DISTRIBUTION_AGGREGATES = ['p50', 'p75', 'p90', 'p95', 'p99'] as const;
@@ -153,7 +150,7 @@ export const AGGREGATES = [...COUNTER_AGGREGATES, ...DISTRIBUTION_AGGREGATES] as
 
 export type Aggregate = (typeof AGGREGATES)[number];
 
-export type ConditionalAggregate =
+type ConditionalAggregate =
   | `avg_if`
   | `count_op`
   | 'trace_status_rate'
@@ -245,7 +242,6 @@ export type EAPSpanResponse = {
       | `${Property}(${string},${string},${string})`]: number;
   } & {
     [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
-    [SpanIndexedField.SPAN_AI_PIPELINE_GROUP_TAG]: string;
   };
 
 export type EAPSpanProperty = keyof EAPSpanResponse;
@@ -266,11 +262,11 @@ export enum SpanIndexedField {
   SPAN_ID = 'span_id',
   SPAN_ACTION = 'span.action',
   SPAN_AI_PIPELINE_GROUP = 'span.ai.pipeline.group',
-  SPAN_AI_PIPELINE_GROUP_TAG = 'ai_pipeline_group',
   SDK_NAME = 'sdk.name',
   SDK_VERSION = 'sdk.version',
   TRACE = 'trace',
-  TRANSACTION_ID = 'transaction.id',
+  TRANSACTION_ID = 'transaction.id', // TODO - remove this with `useInsightsEap`
+  TRANSACTION_SPAN_ID = 'transaction.span_id',
   TRANSACTION_METHOD = 'transaction.method',
   TRANSACTION_OP = 'transaction.op',
   SPAN_DOMAIN = 'span.domain',
@@ -363,6 +359,7 @@ export type SpanIndexedResponse = {
   [SpanIndexedField.TRACE]: string;
   [SpanIndexedField.TRANSACTION]: string;
   [SpanIndexedField.TRANSACTION_ID]: string;
+  [SpanIndexedField.TRANSACTION_SPAN_ID]: string;
   [SpanIndexedField.TRANSACTION_METHOD]: string;
   [SpanIndexedField.TRANSACTION_OP]: string;
   [SpanIndexedField.SPAN_DOMAIN]: string[];
@@ -424,8 +421,6 @@ export type SpanIndexedProperty = keyof SpanIndexedResponse;
 // TODO: When convenient, remove this alias and use `IndexedResponse` everywhere
 export type SpanIndexedFieldTypes = SpanIndexedResponse;
 
-export type Op = SpanIndexedFieldTypes[SpanIndexedField.SPAN_OP];
-
 export enum SpanFunction {
   SPS = 'sps',
   EPM = 'epm',
@@ -485,7 +480,7 @@ export enum MetricsFields {
   RELEASE = 'release',
 }
 
-export type MetricsNumberFields =
+type MetricsNumberFields =
   | MetricsFields.TRANSACTION_DURATION
   | MetricsFields.SPAN_DURATION
   | MetricsFields.LCP_SCORE
@@ -510,7 +505,7 @@ export type MetricsNumberFields =
   | MetricsFields.TIME_TO_INITIAL_DISPLAY
   | MetricsFields.TIME_TO_FULL_DISPLAY;
 
-export type MetricsStringFields =
+type MetricsStringFields =
   | MetricsFields.TRANSACTION
   | MetricsFields.PROJECT
   | MetricsFields.ID
@@ -520,7 +515,7 @@ export type MetricsStringFields =
   | MetricsFields.RELEASE
   | MetricsFields.TIMESTAMP;
 
-export type MetricsFunctions = (typeof METRICS_FUNCTIONS)[number];
+type MetricsFunctions = (typeof METRICS_FUNCTIONS)[number];
 
 export type MetricsResponse = {
   [Property in MetricsNumberFields as `${Aggregate}(${Property})`]: number;
@@ -536,7 +531,7 @@ export type MetricsResponse = {
   ['project.id']: number;
 };
 
-export enum DiscoverFields {
+enum DiscoverFields {
   ID = 'id',
   TRACE = 'trace',
   USER_DISPLAY = 'user.display',
@@ -571,7 +566,7 @@ export enum DiscoverFields {
 
 export type MetricsProperty = keyof MetricsResponse;
 
-export type DiscoverNumberFields =
+type DiscoverNumberFields =
   | DiscoverFields.CLS
   | DiscoverFields.FCP
   | DiscoverFields.LCP
@@ -595,7 +590,7 @@ export type DiscoverNumberFields =
   | DiscoverFields.SCORE_RATIO_TTFB
   | DiscoverFields.SCORE_RATIO_INP;
 
-export type DiscoverStringFields =
+type DiscoverStringFields =
   | DiscoverFields.ID
   | DiscoverFields.TRACE
   | DiscoverFields.USER_DISPLAY

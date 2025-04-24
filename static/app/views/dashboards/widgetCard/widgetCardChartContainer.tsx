@@ -113,6 +113,7 @@ export function WidgetCardChartContainer({
         timeseriesResultsTypes,
         confidence,
         sampleCount,
+        isSampled,
       }) => {
         if (widget.widgetType === WidgetType.ISSUE) {
           return (
@@ -172,6 +173,7 @@ export function WidgetCardChartContainer({
               confidence={confidence}
               sampleCount={sampleCount}
               minTableColumnWidth={minTableColumnWidth}
+              isSampled={isSampled}
             />
           </Fragment>
         );
@@ -188,7 +190,7 @@ const StyledTransparentLoadingMask = styled((props: any) => (
   align-items: center;
 `;
 
-export function LoadingScreen({loading}: {loading: boolean}) {
+function LoadingScreen({loading}: {loading: boolean}) {
   if (!loading) {
     return null;
   }

@@ -50,7 +50,14 @@ describe('messageSpanSamplesPanel', () => {
       method: 'GET',
       body: {
         data: [[1699907700, [{count: 7810}]]],
-        meta: {},
+        meta: {
+          fields: {
+            count: 'number',
+          },
+          units: {
+            count: 'millisecond',
+          },
+        },
       },
     });
 
@@ -111,6 +118,10 @@ describe('messageSpanSamplesPanel', () => {
             'span.duration': 320.300102,
           },
         ],
+        meta: {
+          fields: {},
+          units: {},
+        },
       },
     });
 
@@ -131,6 +142,11 @@ describe('messageSpanSamplesPanel', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/recent-searches/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/stats/',
       body: [],
     });
   });
@@ -188,6 +204,7 @@ describe('messageSpanSamplesPanel', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           additionalFields: [
+            'id',
             'trace',
             'span.description',
             'measurements.messaging.message.body.size',
@@ -196,6 +213,7 @@ describe('messageSpanSamplesPanel', () => {
             'messaging.message.id',
             'trace.status',
             'span.duration',
+            'transaction.span_id',
           ],
           firstBound: 2666.6666666666665,
           lowerBound: 0,
@@ -283,6 +301,7 @@ describe('messageSpanSamplesPanel', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           additionalFields: [
+            'id',
             'trace',
             'span.description',
             'measurements.messaging.message.body.size',
@@ -291,6 +310,7 @@ describe('messageSpanSamplesPanel', () => {
             'messaging.message.id',
             'trace.status',
             'span.duration',
+            'transaction.span_id',
           ],
           firstBound: 2666.6666666666665,
           lowerBound: 0,

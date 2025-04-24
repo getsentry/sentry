@@ -127,7 +127,7 @@ const MOST_TIME_PERIODS: readonly TimePeriod[] = [
  * TimeWindow determines data available in TimePeriod
  * If TimeWindow is small, lower TimePeriod to limit data points
  */
-export const AVAILABLE_TIME_PERIODS: Record<TimeWindow, readonly TimePeriod[]> = {
+const AVAILABLE_TIME_PERIODS: Record<TimeWindow, readonly TimePeriod[]> = {
   [TimeWindow.ONE_MINUTE]: [
     TimePeriod.SIX_HOURS,
     TimePeriod.ONE_DAY,
@@ -243,11 +243,10 @@ class TriggersChart extends PureComponent<Props, State> {
 
   componentDidMount() {
     const {aggregate, showTotalCount} = this.props;
-    if (showTotalCount && !isSessionAggregate(aggregate)) {
-      this.fetchTotalCount();
-    }
     if (this.props.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
       this.fetchExtrapolationSampleCount();
+    } else if (showTotalCount && !isSessionAggregate(aggregate)) {
+      this.fetchTotalCount();
     }
   }
 
@@ -262,11 +261,10 @@ class TriggersChart extends PureComponent<Props, State> {
       !isEqual(prevProps.timeWindow, timeWindow) ||
       !isEqual(prevState.statsPeriod, statsPeriod)
     ) {
-      if (showTotalCount && !isSessionAggregate(aggregate)) {
-        this.fetchTotalCount();
-      }
       if (this.props.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
         this.fetchExtrapolationSampleCount();
+      } else if (showTotalCount && !isSessionAggregate(aggregate)) {
+        this.fetchTotalCount();
       }
     }
   }

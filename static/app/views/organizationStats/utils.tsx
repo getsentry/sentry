@@ -53,8 +53,9 @@ export function formatUsageWithUnits(
     Number.isFinite(usageQuantity)
   ) {
     // Profile duration is in milliseconds, convert to hours
-    return (usageQuantity / 1000 / 60 / 60).toLocaleString(undefined, {
-      maximumFractionDigits: 2,
+    const hours = usageQuantity / 1000 / 60 / 60;
+    return hours.toLocaleString(undefined, {
+      maximumFractionDigits: hours < 0.01 ? 3 : 2,
     });
   }
 
@@ -89,7 +90,7 @@ export function getFormatUsageOptions(
  * If you are not displaying usage numbers, it might be better to use
  * `formatAbbreviatedNumber` in 'sentry/utils/formatters'
  */
-export function abbreviateUsageNumber(n: number) {
+function abbreviateUsageNumber(n: number) {
   if (n >= BILLION) {
     return (n / BILLION).toLocaleString(undefined, {maximumFractionDigits: 2}) + 'B';
   }

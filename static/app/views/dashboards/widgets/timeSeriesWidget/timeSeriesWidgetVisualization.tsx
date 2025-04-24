@@ -23,6 +23,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {
   EChartClickHandler,
   EChartDataZoomHandler,
+  EChartDownplayHandler,
   EChartHighlightHandler,
   ReactEchartsRef,
 } from 'sentry/types/echarts';
@@ -42,6 +43,7 @@ import type {
   LegendSelection,
   Release,
 } from 'sentry/views/dashboards/widgets/common/types';
+import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useReleaseBubbles} from 'sentry/views/releases/releaseBubbles/useReleaseBubbles';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
@@ -55,7 +57,8 @@ import {TimeSeriesWidgetYAxis} from './timeSeriesWidgetYAxis';
 
 const {error, warn, info} = Sentry.logger;
 
-export interface TimeSeriesWidgetVisualizationProps {
+export interface TimeSeriesWidgetVisualizationProps
+  extends Partial<LoadableChartWidgetProps> {
   /**
    * An array of `Plottable` objects. This can be any object that implements the `Plottable` interface.
    */
@@ -95,10 +98,16 @@ export interface TimeSeriesWidgetVisualizationProps {
    * Default: `auto`
    */
   showLegend?: 'auto' | 'never';
+
   /**
-   * Show releases as either lines per release or a bubble for a group of releases.
+   * Defines the X axis visibility. Note that hiding the X axis also hides release bubbles.
+   *
+   * - `auto`: Show the X axis.
+   * - `never`: Hide the X axis.
+   *
+   * Default: `auto`
    */
-  showReleaseAs?: 'bubble' | 'line';
+  showXAxis?: 'auto' | 'never';
 }
 
 export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizationProps) {
@@ -114,7 +123,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const {register: registerWithWidgetSyncContext} = useWidgetSyncContext();
 
   const pageFilters = usePageFilters();
-  const {start, end, period, utc} = pageFilters.selection.datetime;
+  const {start, end, period, utc} =
+    props.pageFilters?.datetime || pageFilters.selection.datetime;
 
   const theme = useTheme();
   const organization = useOrganization();
@@ -429,6 +439,34 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const yAxes: YAXisComponentOption[] = [leftYAxis, rightYAxis].filter(axis => !!axis);
 
+  const showXAxisProp = props.showXAxis ?? 'auto';
+  const showXAxis = showXAxisProp === 'auto';
+
+  const xAxis = showXAxis
+    ? {
+        animation: false,
+        axisLabel: {
+          padding: [0, 10, 0, 10],
+          width: 60,
+          formatter: (value: number) => {
+            const string = formatXAxisTimestamp(value, {utc: utc ?? undefined});
+
+            // Adding whitespace around the label is equivalent to padding.
+            // ECharts doesn't respect padding when calculating overlaps, but it
+            // does respect whitespace. This prevents overlapping X axis labels
+            return ` ${string} `;
+          },
+        },
+        splitNumber: 5,
+        ...releaseBubbleXAxis,
+      }
+    : HIDDEN_X_AXIS;
+
+  // Hiding the X axis removes all chart elements under the X axis line. This
+  // will cut off the bottom of the lowest Y axis label. To create space for
+  // that label, add some grid padding.
+  const xAxisGrid = showXAxis ? {} : {bottom: 5};
+
   let visibleSeriesCount = props.plottables.length;
   if (releaseSeries) {
     visibleSeriesCount += 1;
@@ -507,41 +545,48 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);
 
-  const handleClick: EChartClickHandler = event => {
-    const affectedRange = seriesIndexToPlottableRangeMap.getRange(event.seriesIndex);
+  const runHandler = (
+    batch: {dataIndex: number; seriesIndex: number},
+    handlerName: 'onClick' | 'onHighlight' | 'onDownplay'
+  ): void => {
+    const affectedRange = seriesIndexToPlottableRangeMap.getRange(batch.seriesIndex);
     const affectedPlottable = affectedRange?.value;
 
     if (
       !defined(affectedRange) ||
       !defined(affectedPlottable) ||
-      !defined(affectedPlottable.onClick)
+      !defined(affectedPlottable[handlerName])
     ) {
       return;
     }
 
-    affectedPlottable.onClick(
-      getPlottableEventDataIndex(allSeries, event, affectedRange)
+    affectedPlottable[handlerName](
+      getPlottableEventDataIndex(allSeries, batch, affectedRange)
     );
+  };
+
+  const handleClick: EChartClickHandler = event => {
+    runHandler(event, 'onClick');
   };
 
   const handleHighlight: EChartHighlightHandler = event => {
     // Unlike click events, highlights happen to potentially more than one
     // series at a time. We have to iterate each item in the batch
     for (const batch of event.batch ?? []) {
-      const affectedRange = seriesIndexToPlottableRangeMap.getRange(batch.seriesIndex);
-      const affectedPlottable = affectedRange?.value;
+      runHandler(batch, 'onHighlight');
+    }
+  };
 
-      if (
-        !defined(affectedRange) ||
-        !defined(affectedPlottable) ||
-        !defined(affectedPlottable.onHighlight)
-      ) {
-        continue;
+  const handleDownplay: EChartDownplayHandler = event => {
+    // Unlike click events, downplays happen to potentially more than one
+    // series at a time. We have to iterate each item in the batch
+    for (const batch of event.batch ?? []) {
+      // Downplay events sometimes trigger for the entire series, rather than
+      // for individual points. We are ignoring these. It's not clear why or
+      // when they are called, but they appear to be redundant.
+      if (defined(batch.dataIndex) && defined(batch.seriesIndex)) {
+        runHandler(batch, 'onDownplay');
       }
-
-      affectedPlottable.onHighlight(
-        getPlottableEventDataIndex(allSeries, batch, affectedRange)
-      );
     }
   };
 
@@ -560,6 +605,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         bottom: 0,
         containLabel: true,
         ...releaseBubbleGrid,
+        ...xAxisGrid,
       }}
       legend={
         showLegend
@@ -584,29 +630,14 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         props?.onLegendSelectionChange?.(event.selected);
       }}
       tooltip={{
+        appendToBody: true,
         trigger: 'axis',
         axisPointer: {
           type: 'cross',
         },
         formatter: formatTooltip,
       }}
-      xAxis={{
-        animation: false,
-        axisLabel: {
-          padding: [0, 10, 0, 10],
-          width: 60,
-          formatter: (value: number) => {
-            const string = formatXAxisTimestamp(value, {utc: utc ?? undefined});
-
-            // Adding whitespace around the label is equivalent to padding.
-            // ECharts doesn't respect padding when calculating overlaps, but it
-            // does respect whitespace. This prevents overlapping X axis labels
-            return ` ${string} `;
-          },
-        },
-        splitNumber: 5,
-        ...releaseBubbleXAxis,
-      }}
+      xAxis={xAxis}
       yAxes={yAxes}
       {...chartZoomProps}
       onDataZoom={props.onZoom ?? onDataZoom}
@@ -617,6 +648,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       period={period}
       utc={utc ?? undefined}
       onHighlight={handleHighlight}
+      onDownplay={handleDownplay}
       onClick={handleClick}
     />
   );
@@ -659,6 +691,16 @@ function getPlottableEventDataIndex(
 
   return dataIndexOffset + dataIndex;
 }
+
+// Hide every part of the axis so ECharts will remove those elements and also
+// remove the visual space they would take up if they were there.
+const HIDDEN_X_AXIS = {
+  show: false,
+  splitLine: {show: false},
+  axisLine: {show: false},
+  axisTick: {show: false},
+  axisLabel: {show: false},
+};
 
 const LoadingPlaceholder = styled('div')`
   position: absolute;

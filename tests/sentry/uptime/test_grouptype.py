@@ -3,7 +3,7 @@ from jsonschema import ValidationError
 
 from sentry.testutils.cases import TestCase
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
-from sentry.uptime.models import ProjectUptimeSubscriptionMode
+from sentry.uptime.types import ProjectUptimeSubscriptionMode
 
 
 class TestUptimeDomainCheckFailureDetectorConfig(TestCase):
@@ -50,6 +50,17 @@ class TestUptimeDomainCheckFailureDetectorConfig(TestCase):
                 config={
                     "mode": ProjectUptimeSubscriptionMode.MANUAL,
                     "environment": 1,
+                },
+            )
+
+        with pytest.raises(ValidationError):
+            self.create_detector(
+                name=self.uptime_monitor.name,
+                project_id=self.project.id,
+                type=UptimeDomainCheckFailure.slug,
+                config={
+                    "mode": 0,
+                    "environment": "hi",
                 },
             )
         with pytest.raises(ValidationError):

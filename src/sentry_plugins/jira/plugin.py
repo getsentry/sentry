@@ -398,7 +398,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
 
         return Response({field: users})
 
-    def message_from_error(self, exc):
+    def message_from_error(self, exc: Exception) -> str:
         if isinstance(exc, ApiUnauthorized):
             return "Unauthorized: either your username and password were invalid or you do not have access"
         return super().message_from_error(exc)

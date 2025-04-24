@@ -1090,9 +1090,7 @@ function buildRoutes() {
       />
       <Route
         path=":projectId/getting-started/"
-        component={make(
-          () => import('sentry/views/projectInstall/platformOrIntegration')
-        )}
+        component={make(() => import('sentry/views/projectInstall/gettingStarted'))}
       />
     </Fragment>
   );
@@ -2204,6 +2202,10 @@ function buildRoutes() {
         component={make(
           () => import('sentry/views/issueList/issueViews/issueViewsList/issueViewsList')
         )}
+      />
+      <Route
+        path="views/new/"
+        component={make(() => import('sentry/views/issueList/newViewPage'))}
       />
       <Route path="views/:viewId/" component={errorHandler(OverviewWrapper)} />
       <Route path="searches/:searchId/" component={errorHandler(OverviewWrapper)} />

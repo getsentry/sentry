@@ -13,14 +13,14 @@ interface Props {
 
 export function StarredSegmentCell({segmentName, initialIsStarred, projectSlug}: Props) {
   const {projects} = useProjects();
+  const project = projects.find(p => p.slug === projectSlug);
 
   const {toggleStarredTransaction, isPending, isStarred} = useStarredSegment({
     initialIsStarred,
-    projectSlug,
+    projectId: project?.id,
     segmentName,
   });
 
-  const project = projects.find(p => p.slug === projectSlug);
   const disabled = !project || !segmentName || isPending;
 
   return (

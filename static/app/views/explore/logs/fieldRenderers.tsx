@@ -2,11 +2,12 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';
-import {Tooltip} from 'sentry/components/tooltip';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {stripLogParamsFromLocation} from 'sentry/views/explore/contexts/logs/logsPageParams';
@@ -74,7 +75,7 @@ function SeverityCircle(props: {
   );
 }
 
-export function SeverityTextRenderer(props: LogFieldRendererProps) {
+function SeverityTextRenderer(props: LogFieldRendererProps) {
   const attribute_value = props.item.value as string;
   const _severityNumber = props.tableResultLogRow?.[OurLogKnownFieldKey.SEVERITY_NUMBER];
   const severityNumber = _severityNumber ? Number(_severityNumber) : null;
@@ -93,7 +94,7 @@ export function SeverityCircleRenderer(props: Omit<LogFieldRendererProps, 'item'
   if (!props.tableResultLogRow) {
     return null;
   }
-  const attribute_value = props.tableResultLogRow?.[OurLogKnownFieldKey.SEVERITY_TEXT];
+  const attribute_value = props.tableResultLogRow?.[OurLogKnownFieldKey.SEVERITY];
   const _severityNumber = props.tableResultLogRow?.[OurLogKnownFieldKey.SEVERITY_NUMBER];
 
   const severityNumber = _severityNumber ? Number(_severityNumber) : null;
@@ -112,7 +113,7 @@ export function SeverityCircleRenderer(props: Omit<LogFieldRendererProps, 'item'
   );
 }
 
-export function TimestampRenderer(props: LogFieldRendererProps) {
+function TimestampRenderer(props: LogFieldRendererProps) {
   return (
     <LogDate align={props.extra.align}>
       <DateTime seconds date={props.item.value} />
@@ -140,7 +141,7 @@ export function LogBodyRenderer(props: LogFieldRendererProps) {
   // TODO: Allow more than one highlight term to be highlighted at once.
   return (
     <WrappingText wrap={props.extra.wrapBody}>
-      <LogsHighlight text={highlightTerm}>{attribute_value}</LogsHighlight>
+      <LogsHighlight text={highlightTerm}>{stripAnsi(attribute_value)}</LogsHighlight>
     </WrappingText>
   );
 }
@@ -192,12 +193,12 @@ export const LogAttributesRendererMap: Record<
   [OurLogKnownFieldKey.TIMESTAMP]: props => {
     return TimestampRenderer(props);
   },
-  [OurLogKnownFieldKey.SEVERITY_TEXT]: SeverityTextRenderer,
+  [OurLogKnownFieldKey.SEVERITY]: SeverityTextRenderer,
   [OurLogKnownFieldKey.MESSAGE]: LogBodyRenderer,
   [OurLogKnownFieldKey.TRACE_ID]: TraceIDRenderer,
 };
 
-export function getLogFieldRenderer(field: OurLogFieldKey) {
+function getLogFieldRenderer(field: OurLogFieldKey) {
   return LogAttributesRendererMap[field];
 }
 

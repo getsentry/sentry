@@ -16,7 +16,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {SeerIcon} from 'sentry/components/ai/SeerIcon';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
+import {TextArea} from 'sentry/components/core/textarea';
 import {
   makeAutofixQueryKey,
   useAutofixData,
@@ -309,12 +309,22 @@ function AutofixHighlightPopupContent({
       {commentThread?.is_completed !== true && (
         <InputWrapper onSubmit={handleSubmit}>
           <StyledInput
-            placeholder={t('Questions? Instructions?')}
+            placeholder={
+              isAgentComment ? t('Share your context...') : t('Questions? Instructions?')
+            }
             value={comment}
             onChange={e => setComment(e.target.value)}
             maxLength={4096}
             size="sm"
             autoFocus
+            maxRows={5}
+            autosize
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSubmit(e);
+              }
+            }}
           />
           <StyledButton
             size="zero"
@@ -383,8 +393,12 @@ function AutofixHighlightPopup(props: Props) {
     }
 
     const updatePosition = () => {
+      if (!referenceElement || !popupRef.current) {
+        return;
+      }
+
       const referenceRect = referenceElement.getBoundingClientRect();
-      const popupRect = popupRef.current!.getBoundingClientRect();
+      const popupRect = popupRef.current.getBoundingClientRect();
       const viewportWidth = window.innerWidth;
 
       const drawerElement = document.querySelector('.drawer-panel');
@@ -474,9 +488,7 @@ function AutofixHighlightPopup(props: Props) {
   );
 }
 
-const Wrapper = styled(motion.div)<
-  {isFocused?: boolean} & React.HTMLAttributes<HTMLDivElement>
->`
+const Wrapper = styled(motion.div)<{isFocused?: boolean}>`
   z-index: ${p => (p.isFocused ? p.theme.zIndex.tooltip + 1 : p.theme.zIndex.tooltip)};
   display: flex;
   flex-direction: column;
@@ -500,9 +512,9 @@ const ScaleContainer = styled(motion.div)<{isFocused?: boolean}>`
   transition: transform 200ms ease;
 `;
 
-const Container = styled(motion.div)<
-  React.HTMLAttributes<HTMLDivElement> & {isFocused?: boolean}
->`
+const Container = styled(motion.div, {
+  shouldForwardProp: prop => prop !== 'isFocused',
+})<{isFocused?: boolean}>`
   position: relative;
   width: 100%;
   border-radius: ${p => p.theme.borderRadius};
@@ -534,12 +546,15 @@ const InputWrapper = styled('form')`
   position: relative;
 `;
 
-const StyledInput = styled(Input)`
+const StyledInput = styled(TextArea)`
   flex-grow: 1;
   background: ${p => p.theme.background}
     linear-gradient(to left, ${p => p.theme.background}, ${p => p.theme.pink400}20);
   border-color: ${p => p.theme.innerBorder};
   padding-right: ${space(4)};
+  padding-top: ${space(0.75)};
+  padding-bottom: ${space(0.75)};
+  resize: none;
 
   &:hover {
     border-color: ${p => p.theme.border};
@@ -618,6 +633,7 @@ const MessageContent = styled('div')`
   color: ${p => p.theme.textColor};
   word-break: break-word;
   overflow-wrap: break-word;
+  white-space: pre-wrap;
 `;
 
 const CircularSeerIcon = styled('div')`

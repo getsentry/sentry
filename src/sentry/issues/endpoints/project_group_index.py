@@ -6,8 +6,9 @@ from rest_framework.response import Response
 from sentry import analytics, eventstore
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import EnvironmentMixin, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
+from sentry.api.helpers.environments import get_environment_func
 from sentry.api.helpers.group_index import (
     delete_groups,
     get_by_short_id,
@@ -32,7 +33,7 @@ ERR_HASHES_AND_OTHER_QUERY = "Cannot use 'hashes' with 'query'"
 
 
 @region_silo_endpoint
-class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
+class ProjectGroupIndexEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
@@ -98,7 +99,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
             stats_period = None
 
         serializer = StreamGroupSerializer(
-            environment_func=self._get_environment_func(request, project.organization_id),
+            environment_func=get_environment_func(request, project.organization_id),
             stats_period=stats_period,
         )
 
@@ -163,7 +164,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 return response
 
         try:
-            cursor_result, query_kwargs = prep_search(self, request, project, {"count_hits": True})
+            cursor_result, query_kwargs = prep_search(request, project, {"count_hits": True})
         except ValidationError as exc:
             return Response({"detail": str(exc)}, status=400)
 
@@ -260,7 +261,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         :auth: required
         """
 
-        search_fn = functools.partial(prep_search, self, request, project)
+        search_fn = functools.partial(prep_search, request, project)
         return update_groups_with_search_fn(
             request,
             request.GET.getlist("id"),
@@ -297,5 +298,5 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                                      belong to.
         :auth: required
         """
-        search_fn = functools.partial(prep_search, self, request, project)
+        search_fn = functools.partial(prep_search, request, project)
         return delete_groups(request, [project], project.organization_id, search_fn)

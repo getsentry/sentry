@@ -1,10 +1,8 @@
 import type {Query} from 'history';
 
-import type {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
 import type {Category} from 'sentry/components/platformPicker';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 
-import type {Organization} from './organization';
 import type {PlatformIntegration, PlatformKey, Project} from './project';
 
 export enum OnboardingTaskGroup {
@@ -31,18 +29,6 @@ export enum OnboardingTaskKey {
   PERFORMANCE_GUIDE = 'performance_guide',
 }
 
-export type OnboardingSupplementComponentProps = {
-  task: OnboardingTask;
-  onCompleteTask?: () => void;
-};
-
-export type OnboardingCustomComponentProps = {
-  onboardingContext: OnboardingContextProps;
-  organization: Organization;
-  projects: Project[];
-  task: OnboardingTask;
-};
-
 interface OnboardingTaskDescriptorBase {
   description: string;
   /**
@@ -56,14 +42,9 @@ interface OnboardingTaskDescriptorBase {
   task: OnboardingTaskKey;
   title: string;
   /**
-   * An extra component that may be rendered within the onboarding task item.
-   */
-  SupplementComponent?: React.ComponentType<OnboardingSupplementComponentProps>;
-  /**
    * The group that this task belongs to, e.g. basic and level up
    */
   group?: OnboardingTaskGroup;
-  pendingTitle?: string;
   /**
    * Joins with this task id for server-side onboarding state.
    * This allows you to create alias for exising onboarding tasks or create multiple
@@ -93,11 +74,11 @@ export type OnboardingTaskDescriptor =
   | OnboardingTypeDescriptorWithAppLink;
 
 export interface OnboardingTaskStatus {
-  status: 'skipped' | 'pending' | 'complete';
   task: OnboardingTaskKey;
   completionSeen?: string | boolean;
   data?: Record<string, string>;
   dateCompleted?: string;
+  status?: 'skipped' | 'complete';
 }
 
 interface OnboardingTaskWithAction
@@ -136,5 +117,3 @@ export type OnboardingRecentCreatedProject = {
   isProjectActive: boolean | undefined;
   project: Project | undefined;
 };
-
-export type OnboardingPlatformDoc = {html: string; link: string};

@@ -68,7 +68,7 @@ class BuildOccurrenceFromResultTest(UptimeTestCase):
             detection_time=datetime.datetime.now(datetime.UTC),
             level="error",
             culprit="",
-            initial_issue_priority=None,
+            priority=None,
             assignee=None,
         )
 
@@ -119,7 +119,7 @@ class ResolveUptimeIssueTest(UptimeTestCase):
             uptime_subscription=subscription
         )
         result = self.create_uptime_result(subscription.subscription_id)
-        with self.feature(UptimeDomainCheckFailure.build_ingest_flagpole_feature_name()):
+        with self.feature(UptimeDomainCheckFailure.build_ingest_feature_name()):
             create_issue_platform_occurrence(result, project_subscription)
         hashed_fingerprint = md5(str(project_subscription.id).encode("utf-8")).hexdigest()
         group = Group.objects.get(grouphash__hash=hashed_fingerprint)

@@ -10,6 +10,7 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
+import {SolutionEventItem} from 'sentry/components/events/autofix/autofixSolutionEventItem';
 import AutofixThumbsUpDownButtons from 'sentry/components/events/autofix/autofixThumbsUpDownButtons';
 import {
   type AutofixFeedback,
@@ -24,28 +25,18 @@ import {
   useAutofixRepos,
 } from 'sentry/components/events/autofix/useAutofix';
 import {Timeline} from 'sentry/components/timeline';
-import {
-  IconAdd,
-  IconChevron,
-  IconClose,
-  IconCode,
-  IconDelete,
-  IconFix,
-  IconLab,
-  IconUser,
-} from 'sentry/icons';
+import {IconAdd, IconFix} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
-import type {Color} from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import {Divider} from 'sentry/views/issueDetails/divider';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
 
-export function useSelectSolution({groupId, runId}: {groupId: string; runId: string}) {
+function useSelectSolution({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi();
   const queryClient = useQueryClient();
 
@@ -71,7 +62,7 @@ export function useSelectSolution({groupId, runId}: {groupId: string; runId: str
         queryClient,
         makeAutofixQueryKey(groupId),
         data => {
-          if (!data || !data.autofix) {
+          if (!data?.autofix) {
             return data;
           }
 
@@ -222,29 +213,6 @@ function SolutionEventList({
   stepIndex = 0,
   retainInsightCardIndex = null,
 }: SolutionEventListProps) {
-  // Track which events are expanded
-  const [expandedItems, setExpandedItems] = useState<number[]>([]);
-
-  const toggleItem = useCallback((index: number) => {
-    setExpandedItems(current =>
-      current.includes(index) ? current.filter(i => i !== index) : [...current, index]
-    );
-  }, []);
-
-  // Wrap onToggleActive to also handle expanded state
-  const handleToggleActive = useCallback(
-    (index: number) => {
-      onToggleActive(index);
-      // If we're disabling an item (toggling from active to inactive),
-      // we need to remove it from expanded items
-      const event = events[index];
-      if (event && event.is_active !== false) {
-        setExpandedItems(current => current.filter(i => i !== index));
-      }
-    },
-    [events, onToggleActive]
-  );
-
   if (!events?.length) {
     return null;
   }
@@ -253,143 +221,24 @@ function SolutionEventList({
     <Timeline.Container>
       {events.map((event, index) => {
         const isSelected = event.is_active !== false; // Default to true if is_active is undefined
-        const isActive = event.is_most_important_event && index !== events.length - 1;
-        const isExpanded = expandedItems.includes(index);
-        const isHumanAction = event.timeline_item_type === 'human_instruction';
-
-        const handleItemClick = () => {
-          if (!isSelected) {
-            // If item is disabled, re-enable it instead of toggling expansion
-            handleToggleActive(index);
-            return;
-          }
-          if (!isHumanAction && event.code_snippet_and_analysis) {
-            toggleItem(index);
-          }
-        };
 
         return (
-          <Timeline.Item
+          <SolutionEventItem
             key={index}
-            title={
-              <StyledTimelineHeader
-                onClick={handleItemClick}
-                isActive={isActive}
-                isSelected={isSelected}
-                data-test-id={`autofix-solution-timeline-item-${index}`}
-              >
-                <AutofixHighlightWrapper
-                  groupId={groupId}
-                  runId={runId}
-                  stepIndex={stepIndex}
-                  retainInsightCardIndex={retainInsightCardIndex}
-                >
-                  <div
-                    dangerouslySetInnerHTML={{
-                      __html: singleLineRenderer(event.title),
-                    }}
-                  />
-                </AutofixHighlightWrapper>
-                <IconWrapper>
-                  {!isHumanAction && event.code_snippet_and_analysis && isSelected && (
-                    <StyledIconChevron
-                      direction={isExpanded ? 'down' : 'right'}
-                      size="xs"
-                    />
-                  )}
-                  <SelectionButtonWrapper>
-                    <SelectionButton
-                      onClick={e => {
-                        e.stopPropagation();
-                        if (isHumanAction) {
-                          onDeleteItem(index);
-                        } else {
-                          handleToggleActive(index);
-                        }
-                      }}
-                      aria-label={isSelected ? t('Deselect item') : t('Select item')}
-                    >
-                      {isHumanAction ? (
-                        <IconDelete size="xs" color="red400" />
-                      ) : isSelected ? (
-                        <IconClose size="xs" color="red400" />
-                      ) : (
-                        <IconAdd size="xs" color="green400" />
-                      )}
-                    </SelectionButton>
-                  </SelectionButtonWrapper>
-                </IconWrapper>
-              </StyledTimelineHeader>
-            }
-            isActive={isActive}
-            icon={getEventIcon(event.timeline_item_type)}
-            colorConfig={getEventColor(isActive, isSelected)}
-          >
-            {event.code_snippet_and_analysis && (
-              <AnimatePresence>
-                {isExpanded && (
-                  <AnimatedContent
-                    initial={{height: 0, opacity: 0}}
-                    animate={{height: 'auto', opacity: 1}}
-                    exit={{height: 0, opacity: 0}}
-                    transition={{duration: 0.2}}
-                  >
-                    <Timeline.Text>
-                      <AutofixHighlightWrapper
-                        groupId={groupId}
-                        runId={runId}
-                        stepIndex={stepIndex}
-                        retainInsightCardIndex={retainInsightCardIndex}
-                      >
-                        <StyledSpan
-                          dangerouslySetInnerHTML={{
-                            __html: singleLineRenderer(event.code_snippet_and_analysis),
-                          }}
-                        />
-                      </AutofixHighlightWrapper>
-                    </Timeline.Text>
-                  </AnimatedContent>
-                )}
-              </AnimatePresence>
-            )}
-          </Timeline.Item>
+            event={event}
+            index={index}
+            isSelected={isSelected}
+            groupId={groupId}
+            runId={runId}
+            stepIndex={stepIndex}
+            retainInsightCardIndex={retainInsightCardIndex}
+            onDeleteItem={onDeleteItem}
+            onToggleActive={onToggleActive}
+          />
         );
       })}
     </Timeline.Container>
   );
-}
-
-function getEventIcon(eventType: string) {
-  const iconProps = {
-    style: {
-      margin: 3,
-    },
-  };
-
-  switch (eventType) {
-    case 'internal_code':
-      return <IconCode {...iconProps} />;
-    case 'human_instruction':
-      return <IconUser {...iconProps} />;
-    case 'repro_test':
-      return <IconLab {...iconProps} />;
-    default:
-      return <IconCode {...iconProps} />;
-  }
-}
-
-interface ColorConfig {
-  icon: Color;
-  iconBorder: Color;
-  title: Color;
-}
-
-function getEventColor(isActive?: boolean, isSelected?: boolean): ColorConfig {
-  return {
-    title: isActive && isSelected ? 'gray400' : 'gray400',
-    icon: isSelected ? (isActive ? 'green400' : 'gray400') : 'gray200',
-    iconBorder: isSelected ? (isActive ? 'green400' : 'gray400') : 'gray200',
-  };
 }
 
 export function formatSolutionText(
@@ -618,7 +467,7 @@ function AutofixSolutionDisplay({
                   : null
               }
               isAgentComment
-              blockName={t('Solution')}
+              blockName={t('Autofix is uncertain of the solution...')}
             />
           )}
         </AnimatePresence>
@@ -733,103 +582,10 @@ const CustomSolutionPadding = styled('div')`
   padding: ${space(1)} ${space(0.25)} ${space(2)} ${space(0.25)};
 `;
 
-const AnimatedContent = styled(motion.div)`
-  overflow: hidden;
-`;
-
-const StyledSpan = styled('span')`
-  & code {
-    font-size: ${p => p.theme.fontSizeExtraSmall};
-    display: inline-block;
-  }
-`;
-
 const HeaderIconWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-`;
-
-const StyledTimelineHeader = styled('div')<{isSelected: boolean; isActive?: boolean}>`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: ${space(0.25)};
-  border-radius: ${p => p.theme.borderRadius};
-  cursor: pointer;
-  font-weight: ${p => (p.isActive ? p.theme.fontWeightBold : p.theme.fontWeightNormal)};
-  gap: ${space(1)};
-  opacity: ${p => (p.isSelected ? 1 : 0.6)};
-  text-decoration: ${p => (p.isSelected ? 'none' : 'line-through')};
-  transition: opacity 0.2s ease;
-
-  & > div:first-of-type {
-    flex: 1;
-    min-width: 0;
-    margin-right: ${space(1)};
-  }
-
-  &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
-  }
-`;
-
-const IconWrapper = styled('div')`
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-`;
-
-const SelectionButtonWrapper = styled('div')`
-  position: absolute;
-  background: none;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  height: 100%;
-  right: 0;
-`;
-
-const SelectionButton = styled('button')`
-  background: none;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: ${p => p.theme.subText};
-  opacity: 0;
-  transition:
-    opacity 0.2s ease,
-    color 0.2s ease,
-    background-color 0.2s ease;
-  border-radius: 5px;
-  padding: 4px;
-
-  ${StyledTimelineHeader}:hover & {
-    opacity: 1;
-  }
-
-  &:hover {
-    color: ${p => p.theme.gray500};
-    background-color: ${p => p.theme.background};
-  }
-`;
-
-const StyledIconChevron = styled(IconChevron)`
-  color: ${p => p.theme.subText};
-  flex-shrink: 0;
-  opacity: 1;
-  transition: opacity 0.2s ease;
-  margin-right: ${space(0.25)};
-
-  ${StyledTimelineHeader}:hover & {
-    opacity: 0;
-  }
 `;
 
 const InstructionsInputWrapper = styled('form')`

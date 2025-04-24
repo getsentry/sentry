@@ -46,7 +46,7 @@ class User(Interface):
         for key in ("id", "email", "username", "ip_address", "name", "geo", "data"):
             data.setdefault(key, None)
         if data["geo"] is not None:
-            data["geo"] = Geo.to_python_subpath(data, ["geo"], **kwargs)
+            data["geo"] = Geo.to_python(data["geo"], **kwargs)
 
         return super().to_python(data, **kwargs)
 

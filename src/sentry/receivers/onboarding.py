@@ -7,7 +7,7 @@ import sentry_sdk
 from django.db.models import F
 from django.utils import timezone as django_timezone
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.constants import InsightModules
 from sentry.integrations.base import IntegrationDomain, get_integration_types
 from sentry.integrations.services.integration import RpcIntegration, integration_service
@@ -91,9 +91,6 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
         origin=origin,
         project_id=project.id,
         platform=project.platform,
-        updated_empty_state=features.has(
-            "organizations:issue-stream-empty-state", project.organization
-        ),
     )
 
     _, created = OrganizationOnboardingTask.objects.update_or_create(
@@ -366,6 +363,7 @@ def record_first_insight_span(project, module, **kwargs):
 first_insight_span_received.connect(record_first_insight_span, weak=False)
 
 
+# TODO (mifu67): update this to use the new org member invite model
 @member_invited.connect(weak=False, dispatch_uid="onboarding.record_member_invited")
 def record_member_invited(member, user, **kwargs):
     OrganizationOnboardingTask.objects.get_or_create(
