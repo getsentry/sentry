@@ -49,7 +49,7 @@ const onboarding: OnboardingConfig = {
       ),
       configurations: [
         ...getPythonInstallConfig({packageName: "'sentry-sdk[sanic]'"}),
-        getPythonAiocontextvarsConfig(),
+        ...getPythonAiocontextvarsConfig(),
       ],
     },
   ],

@@ -81,26 +81,10 @@ export function getPythonAiocontextvarsConfig({
     }
   );
 
-  return [
-    {
-      description: description ?? defaultDescription,
-      language: 'bash',
-      code: [
-        {
-          label: 'pip',
-          value: 'pip',
-          language: 'bash',
-          code: "pip install --upgrade 'aiocontextvars'",
-        },
-        {
-          label: 'uv',
-          value: 'uv',
-          language: 'bash',
-          code: "uv add 'aiocontextvars'",
-        },
-      ],
-    },
-  ];
+  return getPythonInstallConfig({
+    packageName: "'aiocontextvars'",
+    description: description ?? defaultDescription,
+  });
 }
 
 export const getPythonProfilingOnboarding = ({
