@@ -16,9 +16,9 @@ import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modul
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import LlmNumberOfPipelinesChartWidget from 'sentry/views/insights/common/components/widgets/llmNumberOfPipelinesChartWidget';
-import LlmPipelineDurationChartWidget from 'sentry/views/insights/common/components/widgets/llmPipelineDurationChartWidget';
-import LlmTotalTokensUsedChartWidget from 'sentry/views/insights/common/components/widgets/llmTotalTokensUsedChartWidget';
+import LlmGroupNumberOfPipelinesChartWidget from 'sentry/views/insights/common/components/widgets/llmGroupNumberOfPipelinesChartWidget';
+import LlmGroupPipelineDurationChartWidget from 'sentry/views/insights/common/components/widgets/llmGroupPipelineDurationChartWidget';
+import LlmGroupTotalTokensUsedChartWidget from 'sentry/views/insights/common/components/widgets/llmGroupTotalTokensUsedChartWidget';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {PipelineSpansTable} from 'sentry/views/insights/llmMonitoring/components/tables/pipelineSpansTable';
 import {RELEASE_LEVEL} from 'sentry/views/insights/llmMonitoring/settings';
@@ -146,13 +146,13 @@ function LLMMonitoringPage({params}: Props) {
                   </HeaderContainer>
                 </ModuleLayout.Full>
                 <ModuleLayout.Third>
-                  <LlmTotalTokensUsedChartWidget />
+                  <LlmGroupTotalTokensUsedChartWidget />
                 </ModuleLayout.Third>
                 <ModuleLayout.Third>
-                  <LlmNumberOfPipelinesChartWidget />
+                  <LlmGroupNumberOfPipelinesChartWidget />
                 </ModuleLayout.Third>
                 <ModuleLayout.Third>
-                  <LlmPipelineDurationChartWidget />
+                  <LlmGroupPipelineDurationChartWidget />
                 </ModuleLayout.Third>
                 <ModuleLayout.Full>
                   <PipelineSpansTable groupId={groupId} />

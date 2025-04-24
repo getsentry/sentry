@@ -2,25 +2,19 @@ import {useTheme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useParams} from 'sentry/utils/useParams';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 
-export default function BaseLlmNumberOfPipelinesChartWidget({
-  groupId,
-  ...props
-}: {
-  error?: Error | null;
-  groupId?: string;
-  isLoading?: boolean;
-} & LoadableChartWidgetProps) {
+export default function LlmGroupTotalTokensUsedChartWidget(
+  props: LoadableChartWidgetProps
+) {
+  const {groupId} = useParams<{groupId: string}>();
   const theme = useTheme();
-  const aggregate = 'count()';
+  const aggregate = 'sum(ai.total_tokens.used)';
 
-  let query = 'span.category:"ai.pipeline"';
-  if (groupId) {
-    query = `${query} span.group:"${groupId}"`;
-  }
+  const query = `span.category:"ai" span.group:"${groupId}"`;
   const {data, isPending, error} = useSpanMetricsSeries(
     {
       yAxis: [aggregate],
@@ -34,11 +28,12 @@ export default function BaseLlmNumberOfPipelinesChartWidget({
   const colors = theme.chart.getColorPalette(2);
   return (
     <InsightsLineChartWidget
+      {...props}
+      id="llmGroupTotalTokensUsedChartWidget"
+      title={t('Total tokens used')}
+      series={[{...data[aggregate], color: colors[1]}]}
       isLoading={isPending}
       error={error}
-      {...props}
-      title={t('Number of AI pipelines')}
-      series={[{...data[aggregate], color: colors[1]}]}
     />
   );
 }
