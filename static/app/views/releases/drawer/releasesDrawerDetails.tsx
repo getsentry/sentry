@@ -49,7 +49,7 @@ export function ReleasesDrawerDetails({release, projectId}: ReleasesDrawerDetail
   const projectSlug = project?.slug;
   const {
     [ReleasesDrawerFields.RELEASE]: _release,
-    [ReleasesDrawerFields.PROJECT]: _releaseProject,
+    [ReleasesDrawerFields.RELEASE_PROJECT_ID]: _releaseProjectId,
     ...locationQueryWithoutRelease
   } = location.query;
 

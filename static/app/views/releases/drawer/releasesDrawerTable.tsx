@@ -138,7 +138,7 @@ export function ReleaseDrawerTable({
               query: {
                 ...cleanReleaseCursors(location.query),
                 [ReleasesDrawerFields.RELEASE]: value,
-                [ReleasesDrawerFields.PROJECT]: dataRow.project_id,
+                [ReleasesDrawerFields.RELEASE_PROJECT_ID]: dataRow.project_id,
               },
             }}
           >
