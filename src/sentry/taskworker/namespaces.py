@@ -50,6 +50,10 @@ options_control_tasks = taskregistry.create_namespace("options.control")
 
 relay_tasks = taskregistry.create_namespace("relay")
 
+profiling_tasks = taskregistry.create_namespace("profiling")
+
+release_health_tasks = taskregistry.create_namespace("releasehealth")
+
 replays_tasks = taskregistry.create_namespace("replays")
 
 sdk_tasks = taskregistry.create_namespace("sdk")
@@ -60,12 +64,17 @@ seer_tasks = taskregistry.create_namespace("seer")
 
 selfhosted_tasks = taskregistry.create_namespace("selfhosted")
 
+symbolication_tasks = taskregistry.create_namespace("symbolication")
+
 tempest_tasks = taskregistry.create_namespace("tempest")
 
 uptime_tasks = taskregistry.create_namespace("uptime")
 
 relocation_tasks = taskregistry.create_namespace("relocation")
+
 relocation_control_tasks = taskregistry.create_namespace("relocation.control")
+
+reports_tasks = taskregistry.create_namespace("reports")
 
 # Namespaces for testing taskworker tasks
 exampletasks = taskregistry.create_namespace(name="examples")
