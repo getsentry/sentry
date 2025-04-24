@@ -103,8 +103,16 @@ const StyledDropdownButton = styled(DropdownButton)`
 
 const ToggleButton = styled(Button)`
   color: ${p => p.theme.white};
-  background: linear-gradient(90deg, #3468d8, #248574);
   :hover {
     color: ${p => p.theme.white};
   }
+
+  ${p =>
+    p.theme.isChonk
+      ? `
+  ::after {
+    background: linear-gradient(90deg, #3468d8, #248574);
+  }`
+      : `
+  background: linear-gradient(90deg, #3468d8, #248574);`};
 `;
