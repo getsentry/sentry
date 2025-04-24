@@ -26,7 +26,7 @@ class DetectorOccurrence:
     type: type[GroupType]
     level: str
     culprit: str
-    initial_issue_priority: int | None = None
+    priority: int | None = None
     assignee: Actor | None = None
 
     def to_issue_occurrence(
@@ -53,7 +53,7 @@ class DetectorOccurrence:
             detection_time=detection_time,
             level=self.level,
             culprit=self.culprit,
-            initial_issue_priority=self.initial_issue_priority or status,
+            priority=self.priority or status,
             assignee=self.assignee,
         )
 

@@ -1459,12 +1459,6 @@ const CardValueText = styled('span')`
   overflow-wrap: anywhere;
 `;
 
-export const CardContentSubject = styled('div')`
-  grid-column: span 1;
-  font-family: ${p => p.theme.text.familyMono};
-  word-wrap: break-word;
-`;
-
 const TraceDrawerComponents = {
   DetailContainer,
   BodyContainer,

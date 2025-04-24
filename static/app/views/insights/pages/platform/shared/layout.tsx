@@ -19,6 +19,7 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
+import {NewNextJsExperienceButton} from 'sentry/views/insights/pages/platform/nextjs/newNextjsExperienceToggle';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 import {ProjectPerformanceType} from 'sentry/views/performance/utils';
@@ -71,6 +72,7 @@ export function PlatformLandingPageLayout({
         headerActions={
           <Fragment>
             <ViewTrendsButton />
+            <NewNextJsExperienceButton />
           </Fragment>
         }
       />

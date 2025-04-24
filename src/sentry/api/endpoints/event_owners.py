@@ -35,11 +35,6 @@ class EventOwnersEndpoint(ProjectEndpoint):
 
         owners, rules = ProjectOwnership.get_owners(project.id, event.data)
 
-        # For sake of the API, we don't differentiate between
-        # the implicit "everyone" and no owners
-        if owners == ProjectOwnership.Everyone:
-            owners = []
-
         serialized_owners = serialize(Actor.resolve_many(owners), request.user, ActorSerializer())
 
         # Make sure the serialized owners are in the correct order

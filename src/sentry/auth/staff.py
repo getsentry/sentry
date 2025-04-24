@@ -5,6 +5,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.core.signing import BadSignature
 from django.http import HttpRequest
 from django.utils import timezone as django_timezone
@@ -14,6 +15,7 @@ from rest_framework.request import Request
 from sentry import options
 from sentry.auth.elevated_mode import ElevatedMode, InactiveReason
 from sentry.auth.system import is_system_auth
+from sentry.users.models.user import User
 from sentry.utils.auth import has_completed_sso
 
 logger = logging.getLogger("sentry.staff")
@@ -50,7 +52,7 @@ def is_active_staff(request: HttpRequest | Request) -> bool:
 
 
 # TODO(schew2381): Delete after staff is GA'd and the options are removed
-def has_staff_option(user) -> bool:
+def has_staff_option(user: User | AnonymousUser) -> bool:
     """
     This checks two options, the first being whether or not staff has been GA'd.
     If not, it falls back to checking the second option which by email specifies which
@@ -115,7 +117,7 @@ class Staff(ElevatedMode):
             return False, InactiveReason.INVALID_IP
         return True, InactiveReason.NONE
 
-    def get_session_data(self, current_datetime=None):
+    def get_session_data(self, current_datetime: datetime | None = None):
         """
         Return the current session data, with native types coerced.
         """
@@ -271,7 +273,7 @@ class Staff(ElevatedMode):
         self.is_valid = False
         self.request.session.pop(SESSION_KEY, None)
 
-    def set_logged_in(self, user, current_datetime=None) -> None:
+    def set_logged_in(self, user: User | AnonymousUser, current_datetime=None) -> None:
         """
         Mark a session as staff-enabled.
         """
@@ -290,7 +292,7 @@ class Staff(ElevatedMode):
             extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": user.id},
         )
 
-    def set_logged_out(self):
+    def set_logged_out(self) -> None:
         """
         Mark a session as staff-disabled.
         """

@@ -19,6 +19,7 @@ from typing import Any
 
 import orjson
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.core.signing import BadSignature
 from django.http import HttpRequest
 from django.utils import timezone as django_timezone
@@ -34,6 +35,7 @@ from sentry.auth.system import is_system_auth
 from sentry.data_secrecy.data_secrecy_logic import should_allow_superuser_access
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcUserOrganizationContext
+from sentry.users.models.user import User
 from sentry.utils import metrics
 from sentry.utils.auth import has_completed_sso
 from sentry.utils.settings import is_self_hosted
@@ -185,7 +187,7 @@ class Superuser(ElevatedMode):
         self._populate(current_datetime=current_datetime)
 
     @staticmethod
-    def _needs_validation():
+    def _needs_validation() -> bool:
         self_hosted = is_self_hosted()
         logger.info(
             "superuser.needs-validation",
@@ -403,8 +405,8 @@ class Superuser(ElevatedMode):
 
     def set_logged_in(
         self,
-        user,
-        current_datetime=None,
+        user: User | AnonymousUser,
+        current_datetime: datetime | None = None,
         prefilled_su_modal=None,
     ) -> None:
         """

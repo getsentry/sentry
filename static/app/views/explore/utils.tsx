@@ -13,7 +13,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {newExploreTarget} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -35,7 +35,7 @@ export function getExploreUrl({
   interval: string;
   organization: Organization;
   selection: PageFilters;
-  visualize: Array<Omit<Visualize, 'label'>>;
+  visualize: BaseVisualize[];
   field?: string[];
   groupBy?: string[];
   id?: number;
@@ -126,7 +126,7 @@ export function getExploreUrlFromSavedQueryUrl({
   });
 }
 
-export function getExploreMultiQueryUrl({
+function getExploreMultiQueryUrl({
   organization,
   selection,
   interval,
@@ -272,13 +272,6 @@ export function limitMaxPickableDays(organization: Organization): {
       ...Object.fromEntries(enabledOptions),
     },
   };
-}
-
-export function showConfidence(isSampled: boolean | null | undefined) {
-  if (defined(isSampled) && isSampled === false) {
-    return false;
-  }
-  return true;
 }
 
 export function getDefaultExploreRoute(organization: Organization) {

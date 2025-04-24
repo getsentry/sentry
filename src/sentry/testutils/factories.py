@@ -2009,6 +2009,8 @@ class Factories:
         headers,
         body,
         date_updated: datetime,
+        uptime_status: UptimeStatus,
+        uptime_status_update_date: datetime,
         trace_sampling: bool = False,
     ):
         if url is None:
@@ -2031,6 +2033,8 @@ class Factories:
             headers=headers,
             body=body,
             trace_sampling=trace_sampling,
+            uptime_status=uptime_status,
+            uptime_status_update_date=uptime_status_update_date,
         )
 
     @staticmethod
