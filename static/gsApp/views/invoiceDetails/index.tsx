@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {DateTime} from 'sentry/components/dateTime';
+import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -54,6 +55,11 @@ function InvoiceDetails({params}: Props) {
       />
     );
   }
+  const isAnnual =
+    !isInvoiceLoading &&
+    invoice?.customer &&
+    'billingInterval' in invoice.customer &&
+    invoice.customer.billingInterval === 'annual';
 
   return (
     <Fragment>
@@ -99,6 +105,15 @@ function InvoiceDetails({params}: Props) {
             </SenderContainer>
             <hr />
             <InvoiceDetailsContents invoice={invoice} billingDetails={billingDetails} />
+            <FinePrint>
+              {tct(
+                'Your subscription will automatically renew on or about the same day each [period] and your credit card on file will be charged the recurring subscription fees set forth above. In addition to recurring subscription fees, you may also be charged for monthly pay-as-you-go fees. You may cancel your subscription at any time [here:here].',
+                {
+                  period: isAnnual ? 'year' : 'month',
+                  here: <ExternalLink href="/settings/billing/cancel" />,
+                }
+              )}
+            </FinePrint>
           </PanelBody>
         )}
       </Panel>
@@ -322,4 +337,10 @@ const RefundRow = styled('tr')`
   th {
     background: ${p => p.theme.alert.warning.backgroundLight};
   }
+`;
+
+const FinePrint = styled('div')`
+  margin-top: ${space(1)};
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  color: ${p => p.theme.gray300};
 `;
