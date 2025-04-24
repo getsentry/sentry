@@ -1,5 +1,5 @@
-import InlineNumberField from 'sentry/components/workflowEngine/form/inlineNumberField';
-import InlineSelectField from 'sentry/components/workflowEngine/form/inlineSelectField';
+import AutomationBuilderNumberField from 'sentry/components/workflowEngine/form/automationBuilderNumberField';
+import AutomationBuilderSelectField from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
 import {tct} from 'sentry/locale';
 import {
   AGE_COMPARISON_CHOICES,
@@ -18,9 +18,9 @@ export default function AgeComparisonNode() {
 function ComparisonField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
-    <InlineSelectField
-      name={`${condition_id}.comparison.type`}
-      value={condition.comparison.type}
+    <AutomationBuilderSelectField
+      name={`${condition_id}.comparison.comparison_type`}
+      value={condition.comparison.comparison_type}
       options={AGE_COMPARISON_CHOICES}
       onChange={(value: AgeComparison) => {
         onUpdate({
@@ -34,7 +34,7 @@ function ComparisonField() {
 function ValueField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
-    <InlineNumberField
+    <AutomationBuilderNumberField
       name={`${condition_id}.comparison.value`}
       value={condition.comparison.value}
       min={0}
@@ -51,7 +51,7 @@ function ValueField() {
 function TimeField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
-    <InlineSelectField
+    <AutomationBuilderSelectField
       name={`${condition_id}.comparison.time`}
       value={condition.comparison.time}
       options={[

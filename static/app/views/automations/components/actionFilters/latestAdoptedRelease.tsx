@@ -1,4 +1,4 @@
-import InlineSelectField from 'sentry/components/workflowEngine/form/inlineSelectField';
+import AutomationBuilderSelectField from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
 import {t, tct} from 'sentry/locale';
 import type {Environment} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -25,9 +25,9 @@ export default function LatestAdoptedReleaseNode() {
 function ReleaseAgeTypeField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
-    <InlineSelectField
-      name={`${condition_id}.comparison.releaseAgeType`}
-      value={condition.comparison.match}
+    <AutomationBuilderSelectField
+      name={`${condition_id}.comparison.release_age_type`}
+      value={condition.comparison.release_age_type}
       options={MODEL_AGE_CHOICES}
       onChange={(value: ModelAge) => {
         onUpdate({
@@ -41,9 +41,9 @@ function ReleaseAgeTypeField() {
 function AgeComparisonField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
-    <InlineSelectField
-      name={`${condition_id}.comparison.ageComparison`}
-      value={condition.comparison.match}
+    <AutomationBuilderSelectField
+      name={`${condition_id}.comparison.age_comparison`}
+      value={condition.comparison.age_comparison}
       options={AGE_COMPARISON_CHOICES}
       onChange={(value: AgeComparison) => {
         onUpdate({
@@ -64,7 +64,7 @@ function EnvironmentField() {
   }));
 
   return (
-    <InlineSelectField
+    <AutomationBuilderSelectField
       name={`${condition_id}.comparison.environment`}
       value={condition.comparison.environment}
       options={environmentOptions}

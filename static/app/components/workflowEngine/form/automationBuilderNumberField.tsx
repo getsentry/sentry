@@ -5,13 +5,21 @@ import NumberField from 'sentry/components/forms/fields/numberField';
 
 type NumberFieldProps = ComponentProps<typeof NumberField>;
 
-export default function InlineNumberField(props: NumberFieldProps) {
-  return <StyledNumberField style={{height: '28px', minHeight: '28px'}} {...props} />;
+export default function AutomationBuilderNumberField(props: NumberFieldProps) {
+  return (
+    <StyledNumberField
+      flexibleControlStateSize
+      hideLabel
+      inline
+      style={{height: '28px', minHeight: '28px'}}
+      {...props}
+    />
+  );
 }
 
 const StyledNumberField = styled(NumberField)`
   padding: 0;
-  width: 180px;
+  width: 90px;
   > div {
     padding-left: 0;
   }

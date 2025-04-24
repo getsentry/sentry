@@ -6,12 +6,12 @@ import type {
   DataConditionType,
   NewDataCondition,
 } from 'sentry/types/workflowEngine/dataConditions';
+import AutomationBuilderRow from 'sentry/views/automations/components/automationBuilderRow';
 import {
   DataConditionNodeContext,
   dataConditionNodesMap,
   useDataConditionNodeContext,
 } from 'sentry/views/automations/components/dataConditionNodes';
-import RuleRow from 'sentry/views/automations/components/ruleRow';
 
 interface DataConditionNodeListProps {
   conditions: NewDataCondition[];
@@ -39,7 +39,10 @@ export default function DataConditionNodeList({
   return (
     <Fragment>
       {conditions.map((condition, i) => (
-        <RuleRow key={`${group}.conditions.${i}`} onDelete={() => onDeleteRow(i)}>
+        <AutomationBuilderRow
+          key={`${group}.conditions.${i}`}
+          onDelete={() => onDeleteRow(i)}
+        >
           <DataConditionNodeContext.Provider
             value={{
               condition,
@@ -49,7 +52,7 @@ export default function DataConditionNodeList({
           >
             <Node />
           </DataConditionNodeContext.Provider>
-        </RuleRow>
+        </AutomationBuilderRow>
       ))}
       <StyledSelectControl
         options={options}

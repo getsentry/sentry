@@ -5,12 +5,12 @@ import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-interface RuleRowProps {
+interface RowProps {
   children: React.ReactNode;
   onDelete: () => void;
 }
 
-export default function RuleRow({onDelete, children}: RuleRowProps) {
+export default function AutomationBuilderRow({onDelete, children}: RowProps) {
   return (
     <RowContainer>
       <Row>

@@ -5,8 +5,16 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 
 type SelectFieldProps = ComponentProps<typeof SelectField>;
 
-export default function InlineSelectField(props: SelectFieldProps) {
-  return <StyledSelectField styles={selectControlStyles} {...props} />;
+export default function AutomationBuilderSelectField(props: SelectFieldProps) {
+  return (
+    <StyledSelectField
+      flexibleControlStateSize
+      hideLabel
+      inline
+      styles={selectControlStyles}
+      {...props}
+    />
+  );
 }
 
 const StyledSelectField = styled(SelectField)`

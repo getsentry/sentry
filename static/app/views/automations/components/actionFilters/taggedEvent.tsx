@@ -1,5 +1,5 @@
-import InlineInputField from 'sentry/components/workflowEngine/form/inlineInputField';
-import InlineSelectField from 'sentry/components/workflowEngine/form/inlineSelectField';
+import AutomationBuilderInputField from 'sentry/components/workflowEngine/form/automationBuilderInputField';
+import AutomationBuilderSelectField from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
 import {t, tct} from 'sentry/locale';
 import {
   MATCH_CHOICES,
@@ -18,7 +18,7 @@ export default function TaggedEventNode() {
 function KeyField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
-    <InlineInputField
+    <AutomationBuilderInputField
       name={`${condition_id}.comparison.key`}
       placeholder={t('tag')}
       value={condition.comparison.key}
@@ -34,7 +34,7 @@ function KeyField() {
 function MatchField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
-    <InlineSelectField
+    <AutomationBuilderSelectField
       name={`${condition_id}.comparison.match`}
       value={condition.comparison.match}
       options={MATCH_CHOICES}
@@ -50,7 +50,7 @@ function MatchField() {
 function ValueField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
-    <InlineInputField
+    <AutomationBuilderInputField
       name={`${condition_id}.comparison.value`}
       placeholder={t('value')}
       value={condition.comparison.value}

@@ -1,4 +1,4 @@
-import InlineNumberField from 'sentry/components/workflowEngine/form/inlineNumberField';
+import AutomationBuilderNumberField from 'sentry/components/workflowEngine/form/automationBuilderNumberField';
 import {tct} from 'sentry/locale';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
@@ -11,7 +11,7 @@ export default function IssueOccurrencesNode() {
 function ValueField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
-    <InlineNumberField
+    <AutomationBuilderNumberField
       name={`${condition_id}.comparison.value`}
       value={condition.comparison.value}
       min={1}
