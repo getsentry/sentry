@@ -3,7 +3,6 @@ import * as Sentry from '@sentry/react';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
   type ColumnValueType,
@@ -12,7 +11,6 @@ import {
   fieldAlignment,
 } from 'sentry/utils/discover/fields';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import type {TableColumn} from 'sentry/views/discover/table/types';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LogAttributesHumanLabel} from 'sentry/views/explore/logs/constants';
@@ -157,7 +155,7 @@ export function getTableHeaderLabel(
   );
 }
 
-export function isLogAttributeUnit(unit: string | null): unit is LogAttributeUnits {
+function isLogAttributeUnit(unit: string | null): unit is LogAttributeUnits {
   return (
     unit === null ||
     Object.values(DurationUnit).includes(unit as DurationUnit) ||
@@ -184,21 +182,6 @@ export function getLogRowItem(
       ? (meta?.units?.[field] as LogAttributeUnits)
       : null,
     value: dataRow[field] ?? '',
-  };
-}
-
-export function logRowItemToTableColumn(
-  item: LogRowItem
-): TableColumn<keyof TableDataRow> {
-  return {
-    key: item.fieldKey,
-    name: item.fieldKey,
-    column: {
-      field: item.fieldKey,
-      kind: 'field',
-    },
-    isSortable: false,
-    type: item.metaFieldType,
   };
 }
 

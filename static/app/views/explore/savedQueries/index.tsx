@@ -1,9 +1,12 @@
 import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SavedQueriesLandingContent} from 'sentry/views/explore/savedQueries/savedQueriesLandingContent';
+import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 export default function SavedQueriesView() {
   const organization = useOrganization();
@@ -17,7 +20,7 @@ export default function SavedQueriesView() {
               crumbs={[
                 {
                   label: t('Explore'),
-                  to: `/organizations/${organization.slug}/traces/`,
+                  to: makeTracesPathname({organization, path: '/'}),
                 },
                 {
                   label: t('All Queries'),
@@ -27,6 +30,11 @@ export default function SavedQueriesView() {
             />
             <Layout.Title>{t('All Queries')}</Layout.Title>
           </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              <FeedbackWidgetButton />
+            </ButtonBar>
+          </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body>
           <Layout.Main fullWidth>
