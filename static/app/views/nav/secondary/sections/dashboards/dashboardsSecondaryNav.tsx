@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
@@ -8,7 +8,6 @@ import {PrimaryNavGroup} from 'sentry/views/nav/types';
 
 export function DashboardsSecondaryNav() {
   const organization = useOrganization();
-  const queryClient = useQueryClient();
   const baseUrl = `/organizations/${organization.slug}/dashboards`;
 
   const starredDashboards = useApiQuery<DashboardListItem[]>(
@@ -24,13 +23,6 @@ export function DashboardsSecondaryNav() {
       staleTime: Infinity,
     }
   );
-
-  queryClient.invalidateQueries({
-    queryKey: [
-      `/organizations/${organization.slug}/dashboards/`,
-      {query: {filter: 'onlyFavorites'}},
-    ],
-  });
 
   return (
     <SecondaryNav>
