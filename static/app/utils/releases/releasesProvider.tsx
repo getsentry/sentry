@@ -117,6 +117,4 @@ function useReleases() {
   return releasesContext;
 }
 
-const ReleasesConsumer = ReleasesContext.Consumer;
-
-export {ReleasesContext, ReleasesConsumer, ReleasesProvider, useReleases};
+export {ReleasesContext, ReleasesProvider, useReleases};
