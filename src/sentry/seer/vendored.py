@@ -32,7 +32,7 @@ import math
 
 
 # https://github.com/scipy/scipy/blob/ce4b43097356dfc42504d81d6164b73ee0896c71/scipy/special/_convex_analysis.pxd#L8-L16
-def _entr(x: float) -> float:
+def entr(x: float) -> float:
     if math.isnan(x):
         return x
     elif x > 0:

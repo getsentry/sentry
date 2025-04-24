@@ -1,6 +1,13 @@
 import math
 
-from sentry.seer.math import entropy, kl_divergence, laplace_smooth, relative_entropy, rrf_score
+from sentry.seer.math import (
+    entropy,
+    kl_divergence,
+    laplace_smooth,
+    rank_min,
+    relative_entropy,
+    rrf_score,
+)
 
 
 def test_laplace_smooth():
@@ -78,3 +85,8 @@ def test_rrf_score():
     assert math.isclose(rrf_scores[0], 0.01612, rel_tol=1e-3)  # Rank 2.
     assert math.isclose(rrf_scores[1], 0.01639, rel_tol=1e-3)  # Rank 1.
     assert math.isclose(rrf_scores[2], 0.01587, rel_tol=1e-3)  # Rank 3.
+
+
+def test_rank_min():
+    assert rank_min(xs=[1, 2, 2, 2, 3], ascending=False) == [3, 2, 2, 2, 1]
+    assert rank_min(xs=[1, 2, 2, 2, 3], ascending=True) == [1, 2, 2, 2, 3]

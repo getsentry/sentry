@@ -1,6 +1,6 @@
 import math
 
-from sentry.seer.scipy import _entr
+from sentry.seer.vendored import entr
 
 
 def laplace_smooth(probabilities: list[float], alpha: float = 1e-3) -> list[float]:
@@ -41,7 +41,7 @@ def entropy(xs: list[float]) -> float:
     # One quirk of this is that negative totals flip the sign of negative members. If you provide
     # an array full of negatives it will behave identically to an array of positives. This is how
     # scipy does it so we copy the behavior here.
-    return sum(_entr(x / total) for x in xs)
+    return sum(entr(x / total) for x in xs)
 
 
 def relative_entropy(a: list[float], b: list[float]) -> list[float]:
@@ -87,12 +87,12 @@ def rrf_score(
     return [
         _rrf(kl_rank, e_rank)
         for kl_rank, e_rank in zip(
-            _min_rank(kl_scores, ascending=False),
-            _min_rank(entropy_scores, ascending=True),
+            rank_min(kl_scores, ascending=False),
+            rank_min(entropy_scores, ascending=True),
         )
     ]
 
 
-def _min_rank(xs: list[float], ascending: bool = False):
+def rank_min(xs: list[float], ascending: bool = False):
     ranks = {x: rank for rank, x in enumerate(sorted(set(xs), reverse=not ascending), 1)}
     return [ranks[x] for x in xs]
