@@ -57,8 +57,10 @@ from sentry.constants import (
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     ROLLBACK_ENABLED_DEFAULT,
+    SAFE_FIELDS_DEFAULT,
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
+    SENSITIVE_FIELDS_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
     ObjectStatus,
 )
@@ -122,8 +124,8 @@ ORG_OPTIONS = (
         ACCOUNT_RATE_LIMIT_DEFAULT,
     ),
     ("dataScrubber", "sentry:require_scrub_data", bool, REQUIRE_SCRUB_DATA_DEFAULT),
-    ("sensitiveFields", "sentry:sensitive_fields", list, None),
-    ("safeFields", "sentry:safe_fields", list, None),
+    ("sensitiveFields", "sentry:sensitive_fields", list, SENSITIVE_FIELDS_DEFAULT),
+    ("safeFields", "sentry:safe_fields", list, SAFE_FIELDS_DEFAULT),
     (
         "scrapeJavaScript",
         "sentry:scrape_javascript",
