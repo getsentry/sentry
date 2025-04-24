@@ -388,6 +388,7 @@ class PerformanceNPlusOneAPICallsExperimentalGroupType(GroupType):
     slug = "performance_n_plus_one_api_calls_experimental"
     description = "N+1 API Call (Experimental)"
     category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.PERFORMANCE_BEST_PRACTICE.value
     default_priority = PriorityLevel.LOW
     released = False
 
