@@ -65,6 +65,8 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     spans: undefined,
   };
 
+  eapSpanOpsBreakdown: TraceTree.OpsBreakdown = [];
+
   event: EventTransaction | null = null;
 
   // Events associated with the node, these are inferred from the node value.
