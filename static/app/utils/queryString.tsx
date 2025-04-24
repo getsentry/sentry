@@ -6,7 +6,7 @@ import {safeURL} from 'sentry/utils/url/safeURL';
 
 // Create a string representation of the regex so we need to create a new regex
 // for each use to avoid carrying over state
-export const TAG_VALUE_ESCAPE_PATTERN = '[:\\s\\(\\)\\"]';
+export const TAG_VALUE_ESCAPE_PATTERN = '[:\\s\\(\\)\\\\"]';
 
 // remove leading and trailing whitespace and remove double spaces
 function formatQueryString(query: string): string {
