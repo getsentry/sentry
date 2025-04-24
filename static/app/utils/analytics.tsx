@@ -184,16 +184,6 @@ export const rawTrackAnalyticsEvent: Hooks['analytics:raw-track-event'] = (
   options
 ) => HookStore.get('analytics:raw-track-event').forEach(cb => cb(data, options));
 
-/**
- * This should be used to log when a `organization.experiments` experiment
- * variant is checked in the application.
- *
- * Refer for the backend implementation provided through HookStore for more
- * details.
- */
-export const logExperiment: Hooks['analytics:log-experiment'] = options =>
-  HookStore.get('analytics:log-experiment').forEach(cb => cb(options));
-
 type RecordMetric = Hooks['metrics:event'] & {
   endSpan: (opts: {
     /**
