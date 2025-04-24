@@ -6,7 +6,7 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {INGESTION_DELAY} from 'sentry/views/explore/settings';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
-export interface LogsGraphProps {
+interface LogsGraphProps {
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
 }
 

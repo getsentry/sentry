@@ -3544,9 +3544,8 @@ describe('Customer Details', function () {
       })[0]!
     );
 
-    const item = screen.getByTestId(`gift-${DataCategory.SPANS_INDEXED}`);
-    expect(item).toBeInTheDocument();
-    expect(item).toHaveAttribute('aria-disabled', 'true');
+    const item = screen.queryByTestId(`gift-${DataCategory.SPANS_INDEXED}`);
+    expect(item).not.toBeInTheDocument();
   });
 
   it('can gift events - MONITOR SEATS', async function () {
@@ -4022,7 +4021,11 @@ describe('Gift Categories Availability', function () {
       organization,
       planDetails: {
         ...SubscriptionFixture({organization}).planDetails,
-        checkoutCategories: [DataCategory.ERRORS, DataCategory.REPLAYS],
+        checkoutCategories: [
+          DataCategory.ERRORS,
+          DataCategory.REPLAYS,
+          DataCategory.SPANS,
+        ],
         onDemandCategories: [DataCategory.ERRORS, DataCategory.PROFILE_DURATION],
         categories: [
           DataCategory.ERRORS,
@@ -4106,9 +4109,9 @@ describe('Gift Categories Availability', function () {
     expect(giftCategories[DataCategory.SPANS]?.disabled).toBe(true);
   });
 
-  it('disables categories in neither checkoutCategories nor onDemandCategories', function () {
+  it('filters out categories in neither checkoutCategories nor onDemandCategories', function () {
     const giftCategories = customerDetails.giftCategories;
     // PROFILE_DURATION_UI is not in either checkoutCategories or onDemandCategories
-    expect(giftCategories[DataCategory.PROFILE_DURATION_UI]?.disabled).toBe(true);
+    expect(Object.keys(giftCategories)).not.toContain(DataCategory.PROFILE_DURATION_UI);
   });
 });
