@@ -596,7 +596,7 @@ describe('DELETE spend allocation', () => {
       statusCode: 200,
       match: [
         MockApiClient.matchQuery({
-          billing_metric: 'error',
+          billing_metric: 'errors',
           target_id: 1,
           target_type: 'Project',
         }),
