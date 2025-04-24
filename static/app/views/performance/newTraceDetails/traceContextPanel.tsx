@@ -29,8 +29,13 @@ type Props = {
   tree: TraceTree;
 };
 
-
-export function TraceContextPanel({traceSlug, tree, rootEvent, onScrollToNode, logs}: Props) {
+export function TraceContextPanel({
+  traceSlug,
+  tree,
+  rootEvent,
+  onScrollToNode,
+  logs,
+}: Props) {
   const {hasProfiles, hasLogs, hasTags} = useTraceContextSections({
     tree,
     rootEvent,
