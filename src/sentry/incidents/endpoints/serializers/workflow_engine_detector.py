@@ -5,7 +5,7 @@ from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerialize
 from sentry.workflow_engine.models import Detector
 
 
-class WorkflowEngineAlertRuleSerializer(Serializer):
+class WorkflowEngineDetectorSerializer(Serializer):
     def serialize(self, obj: Detector, attrs, user, **kwargs) -> AlertRuleSerializerResponse:
         # TODO: Implement this
         return {
