@@ -616,7 +616,7 @@ def get_path_from_module(module: str, abs_path: str) -> tuple[str, str]:
 
         if parts[1] in SECOND_LEVEL_TLDS:
             # uk.co.example.foo.bar.Baz$InnerClass, Baz.kt ->
-            #    stack_root: uk/co/example/
+            #    stack_root: uk/co/example/foo/
             #    file_path:  uk/co/example/foo/bar/Baz.kt
             granularity = STACK_ROOT_MAX_LEVEL
 
