@@ -27,6 +27,6 @@ social_auth: 0002_default_auto_field
 
 tempest: 0002_make_message_type_nullable
 
-uptime: 0037_fix_drift_default_to_db_default
+uptime: 0038_uptime_drop_project_subscription_uptime_status
 
 workflow_engine: 0054_clean_up_orphaned_metric_alert_objects

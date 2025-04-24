@@ -173,11 +173,6 @@ class ProjectUptimeSubscription(DefaultFieldsModelExisting):
         default=ProjectUptimeSubscriptionMode.MANUAL.value,
         db_default=ProjectUptimeSubscriptionMode.MANUAL.value,
     )
-    uptime_status = models.PositiveSmallIntegerField(
-        default=UptimeStatus.OK.value, db_default=UptimeStatus.OK.value
-    )
-    # (Likely) temporary column to keep track of the current uptime status of this monitor
-    uptime_status_update_date = models.DateTimeField(db_default=Now())
     # Date of the last time we updated the status for this monitor
     name = models.TextField()
     owner_user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
@@ -193,7 +188,6 @@ class ProjectUptimeSubscription(DefaultFieldsModelExisting):
 
         indexes = [
             models.Index(fields=("project", "mode")),
-            models.Index(fields=("uptime_status", "uptime_status_update_date")),
         ]
 
         constraints = [
