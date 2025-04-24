@@ -14,7 +14,7 @@ export default function LlmGroupTotalTokensUsedChartWidget(
   const theme = useTheme();
   const aggregate = 'sum(ai.total_tokens.used)';
 
-  const query = `span.category:"ai" span.group:"${groupId}"`;
+  const query = `span.category:"ai" span.ai.pipeline.group:"${groupId}"`;
   const {data, isPending, error} = useSpanMetricsSeries(
     {
       yAxis: [aggregate],
@@ -31,7 +31,7 @@ export default function LlmGroupTotalTokensUsedChartWidget(
       {...props}
       id="llmGroupTotalTokensUsedChartWidget"
       title={t('Total tokens used')}
-      series={[{...data[aggregate], color: colors[1]}]}
+      series={[{...data[aggregate], color: colors[0]}]}
       isLoading={isPending}
       error={error}
     />

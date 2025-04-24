@@ -31,7 +31,7 @@ export default function LlmGroupPipelineDurationChartWidget(
       {...props}
       id="llmGroupPipelineDurationChartWidget"
       title={t('Pipeline duration')}
-      series={[{...data[aggregate], color: colors[1]}]}
+      series={[{...data[aggregate], color: colors[2]}]}
       isLoading={isPending}
       error={error}
     />
