@@ -1,5 +1,6 @@
 import {useTheme} from '@emotion/react';
 
+import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useParams} from 'sentry/utils/useParams';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
@@ -29,6 +30,7 @@ export default function LlmEventNumberOfPipelinesChartWidget(
       yAxis: [aggregate],
       search: new MutableSearch(query),
       transformAliasToInputFormat: true,
+      enabled: !!groupId,
     },
     'api.ai-pipelines.view',
     props.pageFilters
