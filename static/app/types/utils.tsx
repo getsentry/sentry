@@ -8,10 +8,6 @@ import type {Organization, SharedViewOrganization} from './organization';
 // value is true:
 export function assert(_value: unknown): asserts _value {}
 
-// This declares a function which asserts that the expression called
-// value is of type Type:
-export function assertType<Type>(_value: unknown): asserts _value is Type {}
-
 export function isNotSharedOrganization(
   maybe: Organization | SharedViewOrganization
 ): maybe is Organization {
