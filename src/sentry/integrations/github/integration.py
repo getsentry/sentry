@@ -17,7 +17,6 @@ from sentry import features, options
 from sentry.constants import ObjectStatus
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.identity.github import GitHubIdentityProvider, get_user_info
-from sentry.identity.github.provider import get_user_info_installations
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -440,7 +439,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
         )
 
     def get_pipeline_views(self) -> list[PipelineView | Callable[[], PipelineView]]:
-        return [OAuthLoginView(), GithubOrganizationSelection(), GitHubInstallation()]
+        return [OAuthLoginView(), GitHubInstallation()]
 
     def get_installation_info(self, installation_id: str) -> Mapping[str, Any]:
         client = self.get_client()
@@ -563,13 +562,6 @@ class OAuthLoginView(PipelineView):
 
             authenticated_user_info = get_user_info(payload["access_token"])
 
-            resp = get_user_info_installations(payload["access_token"])
-            # print(f"instllations {resp}")
-            installation_id = resp["installations"][0]["id"]
-            installation_info = [
-                {"id": installation.get("id"), "login": installation.get("account").get("login")}
-                for installation in resp["installations"]
-            ]
             if "login" not in authenticated_user_info:
                 lifecycle.record_failure(GitHubInstallationError.MISSING_LOGIN)
                 return error(
@@ -577,9 +569,6 @@ class OAuthLoginView(PipelineView):
                     self.active_organization,
                     error_short=GitHubInstallationError.MISSING_LOGIN,
                 )
-
-            pipeline.bind_state("mutl_org_install_id", installation_id)
-            pipeline.bind_state("existing_installation_info", installation_info)
 
             pipeline.bind_state("github_authenticated_user", authenticated_user_info["login"])
             return pipeline.next_step()
@@ -592,10 +581,6 @@ class GitHubInstallation(PipelineView):
 
     def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.GITHUB_INSTALLATION).capture() as lifecycle:
-            chosen_installation = pipeline.fetch_state("chosen_installation")
-            if chosen_installation is not None:
-                pipeline.bind_state("installation_id", chosen_installation)
-                return pipeline.next_step()
 
             installation_id = request.GET.get(
                 "installation_id", pipeline.fetch_state("installation_id")
@@ -651,16 +636,3 @@ class GitHubInstallation(PipelineView):
                 )
 
             return pipeline.next_step()
-
-
-class GithubOrganizationSelection(PipelineView):
-    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
-        if "installation_id" in request.GET:
-            chosen_installation_id = request.GET["installation_id"]
-            pipeline.bind_state("chosen_installation", chosen_installation_id)
-            return pipeline.next_step()
-
-        installation_info = pipeline.fetch_state("existing_installation_info")
-        return self.render_react_view(
-            request, "githubInstallationSelect", {"installation_info": installation_info}
-        )
