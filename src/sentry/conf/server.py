@@ -20,6 +20,7 @@ import sentry.utils.types as env_types
 from sentry.conf.api_pagination_allowlist_do_not_modify import (
     SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
 )
+from sentry.conf.types.bgtask import BgTaskConfig
 from sentry.conf.types.celery import SplitQueueSize, SplitQueueTaskRoute
 from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
@@ -30,7 +31,6 @@ from sentry.conf.types.sentry_config import SentryMode
 from sentry.conf.types.service_options import ServiceOptions
 from sentry.conf.types.taskworker import ScheduleConfigMap
 from sentry.conf.types.uptime import UptimeRegionConfig
-from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import make_split_task_queues
 
 
@@ -769,6 +769,7 @@ CELERY_IMPORTS = (
     "sentry.hybridcloud.tasks.backfill_outboxes",
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.incidents.tasks",
+    "sentry.integrations.source_code_management.tasks",
     "sentry.integrations.github.tasks",
     "sentry.integrations.github.tasks.pr_comment",
     "sentry.integrations.jira.tasks",
@@ -1373,7 +1374,7 @@ TIMEDELTA_ALLOW_LIST = {
     "schedule-digests",
 }
 
-BGTASKS = {
+BGTASKS: dict[str, BgTaskConfig] = {
     "sentry.bgtasks.clean_dsymcache:clean_dsymcache": {"interval": 5 * 60, "roles": ["worker"]},
     "sentry.bgtasks.clean_releasefilecache:clean_releasefilecache": {
         "interval": 5 * 60,
@@ -1399,9 +1400,12 @@ TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 # Like celery, taskworkers need to import task modules to make tasks
 # accessible to the worker.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
+    "sentry.tasks.assemble",
+    "sentry.debug_files.tasks",
     "sentry.deletions.tasks.hybrid_cloud",
     "sentry.deletions.tasks.scheduled",
     "sentry.demo_mode.tasks",
+    "sentry.data_export.tasks",
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.incidents.tasks",
@@ -1424,29 +1428,66 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.tasks.update_comment",
     "sentry.integrations.vsts.tasks.kickoff_subscription_check",
     "sentry.integrations.vsts.tasks.subscription_check",
+    "sentry.issues.forecasts",
     "sentry.middleware.integrations.tasks",
     "sentry.monitors.tasks.clock_pulse",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
     "sentry.notifications.utils.tasks",
+    "sentry.release_health.tasks",
     "sentry.relocation.tasks.process",
     "sentry.relocation.tasks.transfer",
     "sentry.replays.tasks",
+    "sentry.rules.processing.delayed_processing",
     "sentry.sentry_apps.tasks.sentry_apps",
     "sentry.snuba.tasks",
     "sentry.tasks.auth.auth",
     "sentry.tasks.auth.check_auth",
+    "sentry.tasks.autofix",
     "sentry.tasks.auto_enable_codecov",
+    "sentry.tasks.auto_ongoing_issues",
+    "sentry.tasks.auto_remove_inbox",
+    "sentry.tasks.auto_resolve_issues",
+    "sentry.tasks.auto_source_code_config",
+    "sentry.tasks.autofix",
+    "sentry.tasks.beacon",
+    "sentry.tasks.check_new_issue_threshold_met",
+    "sentry.tasks.clear_expired_resolutions",
+    "sentry.tasks.clear_expired_rulesnoozes",
+    "sentry.tasks.clear_expired_snoozes",
+    "sentry.tasks.codeowners.code_owners_auto_sync",
+    "sentry.tasks.codeowners.update_code_owners_schema",
+    "sentry.tasks.collect_project_platforms",
+    "sentry.tasks.commit_context",
+    "sentry.tasks.commits",
+    "sentry.tasks.delete_seer_grouping_records",
     "sentry.tasks.digests",
+    "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
     "sentry.tasks.email",
+    "sentry.tasks.groupowner",
+    "sentry.tasks.merge",
+    "sentry.tasks.process_buffer",
     "sentry.tasks.release_registry",
     "sentry.tempest.tasks",
     "sentry.tasks.beacon",
     "sentry.tasks.options",
     "sentry.tasks.ping",
+    "sentry.tasks.release_registry",
     "sentry.tasks.repository",
+    "sentry.tasks.reprocessing2",
+    "sentry.tasks.statistical_detectors",
+    "sentry.tasks.summaries.weekly_reports",
+    "sentry.tasks.summaries.daily_summary",
+    "sentry.tasks.store",
+    "sentry.tasks.symbolication",
+    "sentry.tasks.unmerge",
+    "sentry.tasks.update_user_reports",
+    "sentry.tasks.user_report",
+    "sentry.tasks.weekly_escalating_forecast",
+    "sentry.tempest.tasks",
     "sentry.uptime.detectors.tasks",
-    "sentry.uptime.subscriptions.tasks",
     "sentry.uptime.rdap.tasks",
+    "sentry.uptime.subscriptions.tasks",
+    "sentry.workflow_engine.processors.delayed_workflow",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )

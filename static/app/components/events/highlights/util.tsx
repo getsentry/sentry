@@ -174,12 +174,12 @@ export function getHighlightTagData({
 
 /**
  * Returns a label that can be used in the Event Highlight Summary.
- * Currently only used for JavaScript-based events.
+ * Currently only used for JavaScript-based error events.
  */
 export function getRuntimeLabelAndTooltip(
   event: Event
 ): {label: string; tooltip: string} | null {
-  if (!event.sdk?.name.includes('javascript')) {
+  if (event.type !== 'error' || !event.sdk?.name?.includes('javascript')) {
     return null;
   }
 

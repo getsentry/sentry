@@ -7,10 +7,11 @@ import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
 import {Button} from 'sentry/components/core/button';
 import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {
@@ -86,7 +87,7 @@ export function ToolbarVisualize({equationSupport}: ToolbarVisualizeProps) {
   const shouldRenderLabel = visualizes.length > 1;
 
   return (
-    <ToolbarSection data-test-id="section-visualizes">
+    <StyledToolbarSection data-test-id="section-visualizes">
       <ToolbarHeader>
         <Tooltip
           position="right"
@@ -154,7 +155,7 @@ export function ToolbarVisualize({equationSupport}: ToolbarVisualizeProps) {
           );
         })}
       </div>
-    </ToolbarSection>
+    </StyledToolbarSection>
   );
 }
 
@@ -253,14 +254,15 @@ function VisualizeDropdown({
         onChange={setChartField}
         disabled={lockOptions}
       />
-      <Button
-        borderless
-        icon={<IconDelete />}
-        size="zero"
-        disabled={!canDelete}
-        onClick={() => deleteOverlay(group, index)}
-        aria-label={t('Remove Overlay')}
-      />
+      {canDelete ? (
+        <Button
+          borderless
+          icon={<IconDelete />}
+          size="zero"
+          onClick={() => deleteOverlay(group, index)}
+          aria-label={t('Remove Overlay')}
+        />
+      ) : null}
     </ToolbarRow>
   );
 }
@@ -372,4 +374,8 @@ const AggregateCompactSelect = styled(CompactSelect)`
   > button {
     width: 100%;
   }
+`;
+
+const StyledToolbarSection = styled(ToolbarSection)`
+  margin-bottom: ${space(1)};
 `;

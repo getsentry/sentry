@@ -6,11 +6,13 @@ export enum OrderBy {
   OLDEST = 'oldest',
   A_TO_Z = 'a-z',
   Z_TO_A = 'z-a',
+  HIGH_TO_LOW = 'high to low',
 }
 
 export enum SortBy {
   EVAL_ORDER = 'eval',
   ALPHABETICAL = 'alphabetical',
+  SUSPICION = 'suspicion',
 }
 
 export const getSelectionType = (selection: string) => {
@@ -43,6 +45,8 @@ const getSortByLabel = (sort: string) => {
   switch (sort) {
     case SortBy.ALPHABETICAL:
       return t('Alphabetical');
+    case SortBy.SUSPICION:
+      return t('Suspiciousness');
     case SortBy.EVAL_ORDER:
     default:
       return t('Evaluation Order');
@@ -50,7 +54,16 @@ const getSortByLabel = (sort: string) => {
 };
 
 export const getDefaultOrderBy = (sortBy: SortBy) => {
-  return sortBy === SortBy.EVAL_ORDER ? OrderBy.NEWEST : OrderBy.A_TO_Z;
+  if (sortBy === SortBy.EVAL_ORDER) {
+    return OrderBy.NEWEST;
+  }
+  if (sortBy === SortBy.ALPHABETICAL) {
+    return OrderBy.A_TO_Z;
+  }
+  if (sortBy === SortBy.SUSPICION) {
+    return OrderBy.HIGH_TO_LOW;
+  }
+  return OrderBy.A_TO_Z;
 };
 
 export const SORT_BY_OPTIONS = [
@@ -88,7 +101,7 @@ export const enum FlagControlOptions {
   SORT = 'sort',
 }
 
-export const handleSortAlphabetical = (flags: KeyValueDataContentProps[]) => {
+const handleSortAlphabetical = (flags: KeyValueDataContentProps[]) => {
   return [...flags].sort((a, b) => {
     return a.item.key.localeCompare(b.item.key);
   });

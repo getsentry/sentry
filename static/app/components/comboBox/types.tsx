@@ -1,6 +1,6 @@
 import type {SelectValue} from 'sentry/types/core';
 
-export type SelectKey = string | number;
+type SelectKey = string | number;
 
 export interface ComboBoxOption<Value extends SelectKey> extends SelectValue<Value> {
   label: string;
@@ -13,7 +13,7 @@ export interface ComboBoxOption<Value extends SelectKey> extends SelectValue<Val
   hideCheck?: boolean;
 }
 
-export interface ComboBoxSection<Value extends SelectKey> {
+interface ComboBoxSection<Value extends SelectKey> {
   options: Array<ComboBoxOption<Value>>;
   /**
    * When true, all options inside this section will be disabled.
@@ -39,8 +39,7 @@ export type ComboBoxOptionOrSection<Value extends SelectKey> =
   | ComboBoxOption<Value>
   | ComboBoxSection<Value>;
 
-export interface ComboBoxOptionWithKey<Value extends SelectKey>
-  extends ComboBoxOption<Value> {
+interface ComboBoxOptionWithKey<Value extends SelectKey> extends ComboBoxOption<Value> {
   /**
    * Key to identify this section. If not specified, the section's index will
    * be used.
@@ -48,8 +47,7 @@ export interface ComboBoxOptionWithKey<Value extends SelectKey>
   key: SelectKey;
 }
 
-export interface ComboBoxSectionWithKey<Value extends SelectKey>
-  extends ComboBoxSection<Value> {
+interface ComboBoxSectionWithKey<Value extends SelectKey> extends ComboBoxSection<Value> {
   /**
    * Key to identify this section. If not specified, the section's index will
    * be used.

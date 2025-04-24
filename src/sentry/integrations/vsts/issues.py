@@ -34,6 +34,7 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
     issue_fields = frozenset(["id", "title", "url"])
     done_categories = frozenset(["Resolved", "Completed", "Closed"])
 
+    @property
     def instance(self) -> str:
         raise NotImplementedError
 
