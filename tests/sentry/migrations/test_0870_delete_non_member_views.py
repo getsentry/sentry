@@ -34,8 +34,6 @@ class DeleteNonMemberViewsTest(TestMigrations):
         assert GroupSearchView.objects.filter(user_id=self.non_member_user.id).exists()
 
     def test_deletes_non_member_views(self):
-        GroupSearchView = self.apps.get_model("sentry", "GroupSearchView")
-
         assert GroupSearchView.objects.count() == 2
 
         # Non-member view should be deleted
