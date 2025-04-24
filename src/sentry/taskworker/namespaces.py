@@ -54,6 +54,8 @@ relocation_tasks = taskregistry.create_namespace("relocation")
 
 relocation_control_tasks = taskregistry.create_namespace("relocation.control")
 
+release_health_tasks = taskregistry.create_namespace("releasehealth")
+
 replays_tasks = taskregistry.create_namespace("replays")
 
 reports_tasks = taskregistry.create_namespace("reports")
@@ -67,6 +69,10 @@ seer_tasks = taskregistry.create_namespace("seer")
 selfhosted_tasks = taskregistry.create_namespace("selfhosted")
 
 sentryapp_tasks = taskregistry.create_namespace("sentryapp")
+
+symbolication_tasks = taskregistry.create_namespace("symbolication")
+
+tempest_tasks = taskregistry.create_namespace("tempest")
 
 sentryapp_control_tasks = taskregistry.create_namespace("sentryapp.control")
 

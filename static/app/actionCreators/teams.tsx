@@ -31,22 +31,6 @@ export async function fetchUserTeams(api: Client, params: OrgSlug) {
   TeamStore.loadUserTeams(teams);
 }
 
-export function fetchTeamDetails(
-  api: Client,
-  params: OrgAndTeamSlug,
-  options?: CallbackOptions
-) {
-  return api.request(`/teams/${params.orgId}/${params.teamId}/`, {
-    success: data => {
-      TeamStore.onUpdateSuccess(params.teamId, data);
-      doCallback(options, 'success', data);
-    },
-    error: error => {
-      doCallback(options, 'error', error);
-    },
-  });
-}
-
 export function updateTeamSuccess(teamId: OrgAndTeamSlug['teamId'], data: Team) {
   TeamStore.onUpdateSuccess(teamId, data);
 }
