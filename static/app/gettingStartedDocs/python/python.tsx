@@ -3,6 +3,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   type Docs,
+  DocsPageLocation,
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -14,6 +15,7 @@ import {
 import {t, tct} from 'sentry/locale';
 import {
   getPythonInstallConfig,
+  getPythonProfilingMinVersionMessage,
   getPythonProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/python';
 
@@ -198,7 +200,7 @@ sentry_sdk.profiler.stop_profiler()`
 }`;
 
 const onboarding: OnboardingConfig = {
-  install: () => [
+  install: (params: Params) => [
     {
       type: StepType.INSTALL,
       description: tct('Install our Python SDK:', {
@@ -206,6 +208,10 @@ const onboarding: OnboardingConfig = {
       }),
       configurations: getPythonInstallConfig({
         packageName: 'sentry-sdk',
+        description:
+          params.docsLocation === DocsPageLocation.PROFILING_PAGE
+            ? getPythonProfilingMinVersionMessage()
+            : undefined,
       }),
     },
   ],
