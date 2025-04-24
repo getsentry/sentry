@@ -57,7 +57,8 @@ import {
 import {LaravelOverviewPage} from 'sentry/views/insights/pages/platform/laravel';
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
 import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
-import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
+import {useIsNextJsInsightsEnabled} from 'sentry/views/insights/pages/platform/nextjs/features';
+import {NewNextJsExperienceButton} from 'sentry/views/insights/pages/platform/nextjs/newNextjsExperienceToggle';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import type {EAPSpanProperty} from 'sentry/views/insights/types';
 import {
@@ -102,12 +103,12 @@ export const BACKEND_COLUMN_TITLES = [
 function BackendOverviewPage() {
   useOverviewPageTrackPageload();
   const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
-  const isNextJsPageAvailable = useIsNextJsInsightsAvailable();
+  const [isNextJsPageEnabled] = useIsNextJsInsightsEnabled();
   const useEap = useInsightsEap();
   if (isLaravelPageAvailable) {
     return <LaravelOverviewPage />;
   }
-  if (isNextJsPageAvailable) {
+  if (isNextJsPageEnabled) {
     return <NextJsOverviewPage headerTitle={BACKEND_LANDING_TITLE} />;
   }
   if (useEap) {
@@ -290,7 +291,10 @@ function EAPBackendOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <BackendHeader headerTitle={BACKEND_LANDING_TITLE} />
+      <BackendHeader
+        headerTitle={BACKEND_LANDING_TITLE}
+        headerActions={<NewNextJsExperienceButton />}
+      />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
@@ -346,14 +350,14 @@ function EAPBackendOverviewPage() {
 function BackendOverviewPageWithProviders() {
   const organization = useOrganization();
   const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
-  const isNextJsPageAvailable = useIsNextJsInsightsAvailable();
+  const [isNextJsPageEnabled] = useIsNextJsInsightsEnabled();
 
   const {maxPickableDays} = limitMaxPickableDays(organization);
 
   return (
     <DomainOverviewPageProviders
       maxPickableDays={
-        isLaravelPageAvailable || isNextJsPageAvailable ? maxPickableDays : undefined
+        isLaravelPageAvailable || isNextJsPageEnabled ? maxPickableDays : undefined
       }
     >
       <BackendOverviewPage />
