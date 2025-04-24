@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
+from sentry.api.helpers.group_index.update import handle_priority
 from sentry.constants import LOG_LEVELS_MAP, MAX_CULPRIT_LENGTH
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import (
@@ -485,7 +486,13 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert group.priority == PriorityLevel.HIGH
         assert group.priority_locked_at is None
 
-        group_info.group.update(priority_locked_at=timezone.now(), priority=PriorityLevel.LOW)
+        handle_priority(
+            priority=PriorityLevel.LOW.to_str(),
+            group_list=[group],
+            acting_user=None,
+            project_lookup={self.project.id: self.project},
+        )
+
         occurrence = self.build_occurrence(priority=PriorityLevel.HIGH)
         event = self.store_event(data={}, project_id=self.project.id)
         save_issue_from_occurrence(occurrence, event, None)
