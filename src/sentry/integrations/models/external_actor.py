@@ -40,6 +40,7 @@ class ExternalActor(ReplicatedRegionModel):
             (ExternalProviders.GITHUB, "github"),
             (ExternalProviders.GITHUB_ENTERPRISE, "github_enterprise"),
             (ExternalProviders.GITLAB, "gitlab"),
+            (ExternalProviders.JIRA_SERVER, "jira_server"),
             # TODO: do migration to delete this from database
             (ExternalProviders.CUSTOM, "custom_scm"),
         ),
