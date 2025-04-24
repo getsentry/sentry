@@ -21,7 +21,10 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.processors.workflow import WorkflowDataConditionGroupType
+from sentry.workflow_engine.processors.workflow import (
+    WorkflowDataConditionGroupType,
+    delete_workflow,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -183,32 +186,6 @@ def update_dcg(
         bulk_create_data_conditions(conditions=conditions, filters=filters, dcg=dcg)
 
     return dcg
-
-
-def delete_workflow(workflow: Workflow) -> None:
-    # delete all associated IF DCGs and their conditions
-    workflow_dcgs = WorkflowDataConditionGroup.objects.filter(workflow=workflow)
-    for workflow_dcg in workflow_dcgs:
-        if_dcg = workflow_dcg.condition_group
-        if_dcg.conditions.all().delete()
-        delete_workflow_actions(if_dcg=if_dcg)
-        if_dcg.delete()
-
-    if not workflow.when_condition_group:
-        # OK, this shouldn't happen but should not prevent deletion
-        logger.error(
-            "workflow_engine.issue_alert.deleted.error",
-            extra={
-                "workflow_id": workflow.id,
-                "error": "Workflow does not have a when_condition_group",
-            },
-        )
-    else:
-        when_dcg = workflow.when_condition_group
-        when_dcg.conditions.all().delete()
-        when_dcg.delete()
-
-    workflow.delete()
 
 
 def delete_migrated_issue_alert(rule: Rule) -> int | None:
