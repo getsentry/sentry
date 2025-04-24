@@ -1125,6 +1125,47 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             expected_truncated = long_text[:MAX_SUMMARY_HEADLINE_LENGTH] + "..."
             assert expected_truncated in title_text
 
+        # Test cases for other line breaks
+        line_break_test_cases = [
+            ("crlf", "CRLF Line1\r\nCRLF Line2", "CRLF Line1..."),
+            ("ls", "LS Line1\u2028LS Line2", "LS Line1..."),
+            ("ps", "PS Line1\u2029PS Line2", "PS Line1..."),
+            ("strip_before_ellipsis", "Space Line1  \r\nSpace Line2", "Space Line1..."),
+        ]
+
+        for name, text_with_break, expected_headline_part in line_break_test_cases:
+            event_lb = self.store_event(
+                data={
+                    "event_id": "c" * 32,
+                    "message": "IntegrationError",
+                    "fingerprint": [f"group-lb-{name}"],
+                    "exception": {
+                        "values": [
+                            {
+                                "type": "IntegrationError",
+                                "value": text_with_break,
+                            }
+                        ]
+                    },
+                    "level": "error",
+                    "timestamp": before_now(minutes=1).isoformat(),
+                },
+                project_id=self.project.id,
+            )
+            assert event_lb.group
+            group_lb = event_lb.group
+            group_lb.type = ErrorGroupType.type_id
+            group_lb.save()
+
+            with (
+                patch(patch_path) as mock_get_summary,
+                patch(serializer_path, serializer_mock),
+            ):
+                mock_get_summary.return_value = (mock_summary, 200)
+                blocks = SlackIssuesMessageBuilder(group_lb, event_lb.for_group(group_lb)).build()
+                title_block = blocks["blocks"][0]["text"]["text"]
+                assert f": {expected_headline_part}*>" in title_block, f"Failed for {name}"
+
 
 class BuildGroupAttachmentReplaysTest(TestCase):
     @patch("sentry.models.group.Group.has_replays")
