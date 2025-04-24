@@ -241,7 +241,11 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
             organization={props.organization}
           />
           <Flex>
-            <ScrollToSectionLinks tree={props.tree} />
+            <ScrollToSectionLinks
+              rootEvent={props.rootEventResults}
+              tree={props.tree}
+              logs={props.logs}
+            />
             <Projects projects={projects} logs={props.logs} tree={props.tree} />
           </Flex>
         </TraceHeaderComponents.HeaderRow>
