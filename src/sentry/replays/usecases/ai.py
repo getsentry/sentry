@@ -1,10 +1,23 @@
+from dataclasses import dataclass
 from enum import Enum
-from typing import Any
+from typing import Any, Protocol
 
 from sentry.replays.tasks import ai_analyze_replay
 from sentry.replays.usecases.events import ai_score_event, ai_summary_event
 
 # AI request initiators.
+
+
+class TaskProtocol(Protocol):
+    analysis_type: int
+    countdown: int
+    project_id: int
+    replay_id: str
+    segment_id: int
+    segment_range: tuple[int, int]
+    timestamp: float
+
+    def delay(self) -> None: ...
 
 
 class AnalysisType(Enum):
@@ -13,30 +26,55 @@ class AnalysisType(Enum):
     SPINNER_IMPACT = 2
 
 
-def request_impact_analysis_error(replay_id: str, segment_id: int) -> None:
-    start_segment = max(segment_id - 5, 0)
-    end_segment = min(segment_id + 5, 1000)
+@dataclass(frozen=True)
+class Task:
+    project_id: int
+    replay_id: str
+    segment_id: int
+    timestamp: float
 
+    def delay(self) -> None:
+        return request_analysis_task(self)
+
+
+@dataclass(frozen=True)
+class ErrorImpactAnalysis(Task):
+    analysis_type = AnalysisType.ERROR_IMPACT.value
+    countdown = 60
+
+    @property
+    def segment_range(self) -> tuple[int, int]:
+        return (max(self.segment_id - 5, 0), min(self.segment_id + 5, 1000))
+
+
+@dataclass(frozen=True)
+class SpinnerImpactAnalysis(Task):
+    analysis_type = AnalysisType.SPINNER_IMPACT.value
+    countdown = 0
+
+    @property
+    def segment_range(self) -> tuple[int, int]:
+        return (self.segment_id, self.segment_id)
+
+
+@dataclass(frozen=True)
+class SummaryTask(Task):
+    analysis_type = AnalysisType.SUMMARIZE.value
+    countdown = 3600
+    segment_range = (0, 1000)
+
+
+def request_analysis_task(task: TaskProtocol) -> None:
     ai_analyze_replay.apply_async(
-        (AnalysisType.ERROR_IMPACT.value, replay_id, start_segment, end_segment),
-        countdown=60,
-    )
-
-
-def request_impact_analysis_spinner(replay_id: str, segment_id: int) -> None:
-    ai_analyze_replay.apply_async(
-        (AnalysisType.SPINNER_IMPACT.value, replay_id, segment_id, segment_id)
-    )
-
-
-def request_replay_summary(
-    project_id: int,
-    timestamp: float,
-    replay_id: str,
-) -> None:
-    ai_analyze_replay.apply_async(
-        (AnalysisType.SUMMARIZE.value, project_id, timestamp, replay_id, 0, 1000),
-        countdown=60 * 60,
+        (
+            task.analysis_type,
+            task.project_id,
+            task.timestamp,
+            task.replay_id,
+            task.segment_range[0],
+            task.segment_range[1],
+        ),
+        countdown=task.countdown,
     )
 
 
