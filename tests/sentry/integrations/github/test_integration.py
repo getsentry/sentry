@@ -213,6 +213,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 "id": self.installation_id,
                 "app_id": self.app_id,
                 "account": {
+                    "id": 60591805,
                     "login": "Test Organization",
                     "avatar_url": "http://example.com/avatar.png",
                     "html_url": "https://github.com/Test-Organization",
@@ -317,6 +318,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             "icon": "http://example.com/avatar.png",
             "domain_name": "github.com/Test-Organization",
             "account_type": "Organization",
+            "account_id": 60591805,
         }
         oi = OrganizationIntegration.objects.get(
             integration=integration, organization_id=self.organization.id
@@ -1162,3 +1164,33 @@ class GitHubIntegrationTest(IntegrationTestCase):
             source_url
             == "https://github.com/Test-Organization/foo/blob/master/src/components/%5Bid%5D/test.py"
         )
+
+    @responses.activate
+    def test_get_account_id(self):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+        assert installation.get_account_id() == 60591805
+
+    @responses.activate
+    def test_get_account_id_backfill_missing(self):
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        del integration.metadata["account_id"]
+        integration.save()
+
+        integration_id = integration.id
+
+        # Checking that the account_id doesn't exist before we "backfill" it
+        integration = Integration.objects.get(id=integration_id)
+        assert integration.metadata.get("account_id") is None
+
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+        assert installation.get_account_id() == 60591805
+
+        integration = Integration.objects.get(id=integration_id)
+        assert integration.metadata["account_id"] == 60591805

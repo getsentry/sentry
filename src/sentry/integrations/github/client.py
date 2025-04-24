@@ -227,6 +227,12 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         """
         return self.get_cached(f"/repos/{repo}/commits/{sha}")
 
+    def get_installation_info(self, installation_id: int) -> Any:
+        """
+        https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-an-installation-for-the-authenticated-app
+        """
+        return self.get(f"/app/installations/{installation_id}")
+
     def get_merge_commit_sha_from_commit(self, repo: Repository, sha: str) -> str | None:
         """
         Get the merge commit sha from a commit sha.
