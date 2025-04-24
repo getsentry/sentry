@@ -1,11 +1,13 @@
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -17,6 +19,19 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.workflow_engine.endpoints.serializers import WorkflowSerializer
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.models import Workflow
+
+
+class OrganizationWorkflowEndpoint(OrganizationEndpoint):
+    def convert_args(self, request: Request, workflow_id, *args, **kwargs):
+        args, kwargs = super().convert_args(request, *args, **kwargs)
+        try:
+            kwargs["workflow"] = Workflow.objects.get(
+                organization=kwargs["organization"], id=workflow_id
+            )
+        except Workflow.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        return args, kwargs
 
 
 @region_silo_endpoint

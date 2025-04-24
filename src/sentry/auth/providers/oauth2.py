@@ -26,8 +26,8 @@ def _get_redirect_url() -> str:
 
 
 class OAuth2Login(AuthView):
-    authorize_url = None
-    client_id = None
+    authorize_url: str | None = None
+    client_id: str | None = None
     scope = ""
 
     def __init__(self, authorize_url=None, client_id=None, scope=None, *args, **kwargs):
@@ -71,9 +71,9 @@ class OAuth2Login(AuthView):
 
 
 class OAuth2Callback(AuthView):
-    access_token_url = None
-    client_id = None
-    client_secret = None
+    access_token_url: str | None = None
+    client_id: str | None = None
+    client_secret: str | None = None
 
     def __init__(self, access_token_url=None, client_id=None, client_secret=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -137,11 +137,11 @@ class OAuth2Provider(Provider, abc.ABC):
     is_partner = False
 
     @abc.abstractmethod
-    def get_client_id(self):
+    def get_client_id(self) -> str:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_client_secret(self):
+    def get_client_secret(self) -> str:
         raise NotImplementedError
 
     def get_auth_pipeline(self):

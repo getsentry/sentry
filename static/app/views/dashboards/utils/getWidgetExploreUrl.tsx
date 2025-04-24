@@ -40,11 +40,13 @@ export function getWidgetExploreUrl(
   const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
   locationQueryParams.yAxes = [
     ...new Set(
-      widget.queries[0]!.aggregates.filter(aggregate => yAxisOptions.includes(aggregate))
+      (widget.displayType === DisplayType.TABLE
+        ? widget.queries[0]!.fields?.filter(isAggregateFieldOrEquation)
+        : widget.queries[0]!.aggregates
+      )?.filter(aggregate => yAxisOptions.includes(aggregate))
     ),
   ].slice(0, 3);
 
-  // Visualization specific transforms
   let exploreMode: Mode | undefined = undefined;
   let chartType: ChartType = ChartType.LINE;
   switch (widget.displayType) {
@@ -62,7 +64,11 @@ export function getWidgetExploreUrl(
       break;
     case DisplayType.TABLE:
     case DisplayType.BIG_NUMBER:
-      exploreMode = Mode.SAMPLES;
+      if (locationQueryParams.yAxes.length > 0) {
+        exploreMode = Mode.AGGREGATE;
+      } else {
+        exploreMode = Mode.SAMPLES;
+      }
       break;
     default:
       break;
@@ -77,8 +83,8 @@ export function getWidgetExploreUrl(
   const query = widget.queries[0]!;
   const queryFields =
     defined(query.fields) && widget.displayType === DisplayType.TABLE
-      ? query.fields
-      : [...query.columns, ...query.aggregates];
+      ? query.fields.filter(field => !isAggregateFieldOrEquation(field))
+      : [...query.columns];
 
   // Updates fields by adding any individual terms from equation fields as a column
   getFieldsFromEquations(queryFields).forEach(term => {
@@ -130,8 +136,8 @@ export function getWidgetExploreUrl(
           ]
         : []),
     ],
-    groupBy,
-    field: decodeList(locationQueryParams.field),
+    groupBy: exploreMode === Mode.SAMPLES ? undefined : groupBy,
+    field: exploreMode === Mode.SAMPLES ? decodeList(queryFields) : undefined,
     query: decodeScalar(locationQueryParams.query),
     sort: locationQueryParams.sort || undefined,
     interval:
