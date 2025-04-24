@@ -1130,6 +1130,10 @@ class JiraServerIntegration(IssueSyncIntegration):
 
         external_actor: ExternalActor | None = external_actors.first()
         if external_actor is None:
+            logger.debug(
+                "jira_server.user_external_actor.no_actor",
+                extra={**logging_context, "user_id": user.id},
+            )
             return None
 
         possible_users: list[dict[str, Any]] = client.search_users_for_issue(
@@ -1164,25 +1168,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         jira_user = None
         for ue in user.emails:
             assert ue, "Expected a valid user email, received falsy value"
-            try:
-                possible_users = client.search_users_for_issue(external_issue_key, ue)
-            except ApiUnauthorized:
-                logger.info(
-                    "jira.user-search-unauthorized",
-                    extra={
-                        **logging_context,
-                    },
-                )
-                continue
-            except ApiError as e:
-                logger.warning(
-                    "jira.user-search-request-error",
-                    extra={
-                        **logging_context,
-                        "error": str(e),
-                    },
-                )
-                continue
+            possible_users = client.search_users_for_issue(external_issue_key, ue)
 
             for possible_user in possible_users:
                 # Continue matching on email address, since we can't guarantee
@@ -1206,24 +1192,47 @@ class JiraServerIntegration(IssueSyncIntegration):
         user: RpcUser,
         integration_id: int,
     ) -> dict[str, Any] | None:
-        possible_user = self._get_matching_jira_server_user_by_external_actor(
-            client=client,
-            external_issue_key=external_issue_key,
-            user=user,
-            integration_id=integration_id,
-        )
+        logging_context = {
+            "integration_id": integration_id,
+            "organization_id": self.organization_id,
+            "issue_key": external_issue_key,
+        }
 
-        if possible_user is not None:
+        try:
+            possible_user = self._get_matching_jira_server_user_by_external_actor(
+                client=client,
+                external_issue_key=external_issue_key,
+                user=user,
+                integration_id=integration_id,
+            )
+
+            if possible_user is not None:
+                return possible_user
+
+            possible_user = self._get_matching_jira_server_user_by_email(
+                client=client,
+                external_issue_key=external_issue_key,
+                user=user,
+                integration_id=integration_id,
+            )
+
             return possible_user
-
-        possible_user = self._get_matching_jira_server_user_by_email(
-            client=client,
-            external_issue_key=external_issue_key,
-            user=user,
-            integration_id=integration_id,
-        )
-
-        return possible_user
+        except ApiUnauthorized:
+            logger.info(
+                "jira.user-search.unauthorized",
+                extra={
+                    **logging_context,
+                },
+            )
+        except ApiError as e:
+            logger.warning(
+                "jira.user-search.request-error",
+                extra={
+                    **logging_context,
+                    "error": str(e),
+                },
+            )
+        return None
 
     def sync_assignee_outbound(
         self,
