@@ -17,7 +17,7 @@ import {defined, escapeDoubleQuotes} from 'sentry/utils';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
-import {TAG_VALUE_ESCAPE_CHARS} from 'sentry/utils/queryString';
+import {TAG_VALUE_ESCAPE_PATTERN} from 'sentry/utils/queryString';
 import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
@@ -69,7 +69,7 @@ function getReleasesQuery(releases: Release[]): {
   for (let i = 1; i < releases.length; i++) {
     releasesArray.push(releases[i]!.version);
   }
-  const releaseCondition = `release:[${releasesArray.map(v => (TAG_VALUE_ESCAPE_CHARS.test(v) ? `"${escapeDoubleQuotes(v)}"` : v))}]`;
+  const releaseCondition = `release:[${releasesArray.map(v => (new RegExp(TAG_VALUE_ESCAPE_PATTERN, 'g').test(v) ? `"${escapeDoubleQuotes(v)}"` : v))}]`;
   if (releases.length < 10) {
     return {releaseQueryString: releaseCondition, releasesUsed: releasesArray};
   }
