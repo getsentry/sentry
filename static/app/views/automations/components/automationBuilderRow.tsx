@@ -13,16 +13,14 @@ interface RowProps {
 export default function AutomationBuilderRow({onDelete, children}: RowProps) {
   return (
     <RowContainer>
-      <Row>
-        <Rule>{children}</Rule>
-        <DeleteButton
-          aria-label={t('Delete Node')}
-          size="sm"
-          icon={<IconDelete />}
-          borderless
-          onClick={onDelete}
-        />
-      </Row>
+      <RowLine>{children}</RowLine>
+      <DeleteButton
+        aria-label={t('Delete Node')}
+        size="sm"
+        icon={<IconDelete />}
+        borderless
+        onClick={onDelete}
+      />
     </RowContainer>
   );
 }
@@ -32,20 +30,8 @@ const RowContainer = styled('div')<{incompatible?: boolean}>`
   border-radius: ${p => p.theme.borderRadius};
   border: 1px ${p => p.theme.innerBorder} solid;
   border-color: ${p => (p.incompatible ? p.theme.red200 : 'none')};
-`;
-
-const Row = styled('div')`
   position: relative;
   padding: ${space(1)} ${space(1.5)};
-`;
-
-const Rule = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  flex: 1;
-  flex-wrap: wrap;
-  gap: ${space(1)};
 `;
 
 const DeleteButton = styled(Button)`
@@ -60,3 +46,18 @@ const DeleteButton = styled(Button)`
     opacity: 1;
   }
 `;
+
+export const RowLine = styled('div')`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex: 1;
+  gap: ${space(1)};
+`;
+
+export const OptionalRowLine = styled(RowLine)`
+  border-top: 1px solid ${p => p.theme.innerBorder};
+  padding-top: ${space(1)};
+`;
+
+export const ICON_SIZE = 24;
