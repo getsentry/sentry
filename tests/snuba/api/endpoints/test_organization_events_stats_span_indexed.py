@@ -1367,8 +1367,8 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         rows = low[0:6]
         for i, test in enumerate(zip(event_counts, rows)):
             test_data, row = test
-            count = test_data[1] if test_data[0] == "low" else 0.0
-            assert row[1][0]["count"] == count
+            test_count = test_data[1] if test_data[0] == "low" else 0.0
+            assert row[1][0]["count"] == test_count
 
         medium = response.data["medium"]["data"]
         assert len(medium) == 6
@@ -1376,8 +1376,8 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         rows = medium[0:6]
         for i, test in enumerate(zip(event_counts, rows)):
             test_data, row = test
-            count = test_data[1] if test_data[0] == "medium" else 0.0
-            assert row[1][0]["count"] == count
+            test_count = test_data[1] if test_data[0] == "medium" else 0.0
+            assert row[1][0]["count"] == test_count
 
     def test_top_events_filters_out_groupby_even_when_its_just_one_row(self):
         self.store_spans(
