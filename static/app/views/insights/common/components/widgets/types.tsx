@@ -14,6 +14,8 @@ export interface LoadableChartWidgetProps {
   // TODO(billy): This should be required when all chart widgets are converted
   /**
    * Unique ID for the widget
+   *
+   * TODO(billy): This should be required when all chart widgets are converted
    */
   id?: string;
 
