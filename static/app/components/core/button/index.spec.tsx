@@ -47,6 +47,10 @@ describe('LinkButton', function () {
         Disabled Link
       </LinkButton>
     );
-    expect(screen.getByRole('button', {name: 'Disabled Link'})).toBeDisabled();
+
+    const element = screen.getByRole('button', {name: 'Disabled Link'});
+
+    expect(element).not.toHaveAttribute('href');
+    expect(element).toHaveAttribute('aria-disabled', 'true');
   });
 });
