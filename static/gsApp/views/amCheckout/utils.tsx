@@ -512,7 +512,6 @@ export async function submitCheckout(
   onSubmitting?: (b: boolean) => void,
   intentId?: string,
   referrer = 'billing',
-  codecovReferrer = 'checkout',
   shouldUpdateOnDemand = true
 ) {
   const endpoint = `/customers/${organization.slug}/subscription/`;
@@ -556,7 +555,7 @@ export async function submitCheckout(
     SubscriptionStore.loadData(organization.slug);
     browserHistory.push(
       normalizeUrl(
-        `/settings/${organization.slug}/billing/overview/?open_codecov_modal=1&referrer=${codecovReferrer}`
+        `/settings/${organization.slug}/billing/overview/?referrer=${referrer}`
       )
     );
   } catch (error) {
