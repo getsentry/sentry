@@ -7,7 +7,8 @@ import {
   usePersistedLogsPageParams,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
-import {LogsTabParamPersister} from 'sentry/views/explore/logs/logsTabParamPersister';
+
+import {usePersistentLogsPageParameters} from './usePersistentLogsPageParameters';
 
 jest.mock('sentry/utils/useLocation', () => ({
   ...jest.requireActual('sentry/utils/useLocation'),
@@ -24,7 +25,7 @@ jest.mock('sentry/views/explore/contexts/logs/logsPageParams', () => ({
   usePersistedLogsPageParams: jest.fn(),
 }));
 
-describe('LogsTabParamPersister', () => {
+describe('usePersistentLogsPageParameters', () => {
   const navigateMock = jest.fn();
 
   beforeEach(() => {
@@ -45,7 +46,12 @@ describe('LogsTabParamPersister', () => {
       },
     ]);
 
-    render(<LogsTabParamPersister />);
+    function Main() {
+      usePersistentLogsPageParameters();
+      return <div>main</div>;
+    }
+
+    render(<Main />);
 
     expect(navigateMock).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -73,7 +79,12 @@ describe('LogsTabParamPersister', () => {
       },
     ]);
 
-    render(<LogsTabParamPersister />);
+    function Main() {
+      usePersistentLogsPageParameters();
+      return <div>main</div>;
+    }
+
+    render(<Main />);
 
     expect(navigateMock).not.toHaveBeenCalled();
   });

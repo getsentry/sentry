@@ -16,7 +16,7 @@ import {
  *
  * This is a react component which sets the table columns and sorts from storage if they are unset.
  */
-export function LogsTabParamPersister() {
+export function usePersistentLogsPageParameters() {
   const location = useLocation();
   const navigate = useNavigate();
   const [persistedParams] = usePersistedLogsPageParams();
@@ -35,6 +35,4 @@ export function LogsTabParamPersister() {
       navigate(target);
     }
   }, [location, navigate, persistedParams]);
-
-  return null;
 }
