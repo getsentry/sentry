@@ -257,7 +257,9 @@ def test_ignore_handle_draw_frame(mock_sdk_crash_reporter, mock_random, store_ev
 
 
 @decorators
-def test_ignore_flutter_error_integration(mock_sdk_crash_reporter, mock_random, store_event, configs):
+def test_ignore_flutter_error_integration(
+    mock_sdk_crash_reporter, mock_random, store_event, configs
+):
     event_data = get_crash_event(sdk_function="FlutterErrorIntegration.call.<fn>")
     event = store_event(data=event_data)
 
