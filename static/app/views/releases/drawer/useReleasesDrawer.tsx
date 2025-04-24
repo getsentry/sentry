@@ -7,7 +7,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {ReleasesDrawer} from 'sentry/views/releases/drawer/releasesDrawer';
 
-import {cleanLocationQuery, RELEASES_DRAWER_FIELD_MAP} from './utils';
+import {
+  cleanLocationQuery,
+  RELEASES_DRAWER_FIELD_MAP,
+  ReleasesDrawerFields,
+} from './utils';
 
 export function useReleasesDrawer() {
   const {rd} = useLocationQuery({
@@ -21,7 +25,7 @@ export function useReleasesDrawer() {
     if (rd === 'show') {
       openDrawer(() => <ReleasesDrawer />, {
         shouldCloseOnLocationChange: nextLocation => {
-          return nextLocation.query.rd !== 'show';
+          return nextLocation.query[ReleasesDrawerFields.DRAWER] !== 'show';
         },
         ariaLabel: t('Releases drawer'),
         transitionProps: {stiffness: 1000},

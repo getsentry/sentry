@@ -3,7 +3,10 @@ import {Location} from 'history';
 import type {Organization} from 'sentry/types/organization';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
-import {ReleasesDrawerFields} from 'sentry/views/releases/drawer/utils';
+import {
+  cleanReleaseCursors,
+  ReleasesDrawerFields,
+} from 'sentry/views/releases/drawer/utils';
 
 const LEGACY_RELEASES_BASE_PATHNAME = 'releases';
 const RELEASES_BASE_PATHNAME = 'explore/releases';
@@ -31,7 +34,7 @@ export function makeReleaseDrawerPathname({
 }) {
   return {
     query: {
-      ...location.query,
+      ...cleanReleaseCursors(location.query),
       [ReleasesDrawerFields.DRAWER]: 'show',
       [ReleasesDrawerFields.RELEASE]: release,
     },

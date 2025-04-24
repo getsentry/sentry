@@ -32,7 +32,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
-import {ReleasesDrawerFields} from 'sentry/views/releases/drawer/utils';
+import {
+  cleanReleaseCursors,
+  ReleasesDrawerFields,
+} from 'sentry/views/releases/drawer/utils';
 import {
   BUBBLE_AREA_SERIES_ID,
   BUBBLE_SERIES_ID,
@@ -440,7 +443,7 @@ export function useReleaseBubbles({
 
         navigate({
           query: {
-            ...location.query,
+            ...cleanReleaseCursors(location.query),
             [ReleasesDrawerFields.DRAWER]: 'show',
             [ReleasesDrawerFields.CHART]: chartId,
             [ReleasesDrawerFields.START]: new Date(data.start).toISOString(),
