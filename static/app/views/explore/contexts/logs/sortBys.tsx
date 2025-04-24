@@ -3,9 +3,10 @@ import type {Location} from 'history';
 import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
+import {LOGS_CURSOR_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
-const LOGS_SORT_BYS_KEY = 'logsSortBys';
+export const LOGS_SORT_BYS_KEY = 'logsSortBys';
 
 export const logsTimestampDescendingSortBy: Sort = {
   field: OurLogKnownFieldKey.TIMESTAMP,
@@ -41,8 +42,7 @@ export function getLogSortBysFromLocation(location: Location, fields: string[]):
 
 export function updateLocationWithLogSortBys(
   location: Location,
-  sortBys: Sort[] | null | undefined,
-  cursorUrlParam: string
+  sortBys: Sort[] | null | undefined
 ) {
   if (defined(sortBys)) {
     location.query[LOGS_SORT_BYS_KEY] = sortBys.map(sortBy =>
@@ -50,7 +50,7 @@ export function updateLocationWithLogSortBys(
     );
 
     // make sure to clear the cursor every time the query is updated
-    delete location.query[cursorUrlParam];
+    delete location.query[LOGS_CURSOR_KEY];
   } else if (sortBys === null) {
     delete location.query[LOGS_SORT_BYS_KEY];
   }
