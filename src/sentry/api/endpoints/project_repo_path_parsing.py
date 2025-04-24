@@ -12,10 +12,7 @@ from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.services.integration import RpcIntegration, integration_service
-from sentry.issues.auto_source_code_config.code_mapping import find_roots
-from sentry.issues.auto_source_code_config.derived_code_mappings_endpoint import (
-    get_frame_info_from_request,
-)
+from sentry.issues.auto_source_code_config.code_mapping import FrameInfo, find_roots
 from sentry.models.repository import Repository
 
 
@@ -134,3 +131,12 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
                 "defaultBranch": branch,
             }
         )
+
+
+def get_frame_info_from_request(request: Request) -> FrameInfo:
+    frame = {
+        "abs_path": request.data.get("absPath"),
+        "filename": request.data["stackPath"],
+        "module": request.data.get("module"),
+    }
+    return FrameInfo(frame, request.data.get("platform"))
