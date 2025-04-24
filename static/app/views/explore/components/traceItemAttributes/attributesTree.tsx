@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useMemo, useRef, useState} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -10,33 +10,19 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import {
+  getFieldRenderer,
+  type RenderFunctionBaggage,
+} from 'sentry/utils/discover/fieldRenderers';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {
-  useLogsFields,
-  useLogsIsTableEditingFrozen,
-  useLogsSearch,
-  useSetLogsFields,
-  useSetLogsSearch,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
-import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import type {
-  LogAttributesRendererMap,
-  RendererExtra,
-} from 'sentry/views/explore/logs/fieldRenderers';
-import {
-  type OurLogFieldKey,
-  OurLogKnownFieldKey,
-  type OurLogsResponseItem,
-} from 'sentry/views/explore/logs/types';
-import {
-  adjustAliases,
-  adjustLogTraceID,
-  getLogAttributeItem,
+  getAttributeItem,
   prettifyAttributeName,
-} from 'sentry/views/explore/logs/utils';
+} from 'sentry/views/explore/components/traceItemAttributes/utils';
+import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 
 const MAX_TREE_DEPTH = 4;
 const INVALID_BRANCH_REGEX = /\.{2,}/;
@@ -47,38 +33,58 @@ interface Attribute {
   original_attribute_key: string;
 }
 
-type AttributeTree = Record<string, AttributeTreeContent>;
+type AttributesTree = Record<string, AttributesTreeContent>;
 
-interface AttributeTreeContent {
-  subtree: AttributeTree;
+export interface AttributesTreeContent {
+  subtree: AttributesTree;
   value: string | number | null;
+  config?: AttributesTreeRowConfig;
   // These will be omitted on pseudo attributes (see addToAttributeTree)
   meta?: Record<any, any>;
   originalAttribute?: Attribute;
 }
 
-interface AttributeTreeColumnData {
+interface AttributesTreeColumnData {
   columns: React.ReactNode[];
   runningTotal: number;
   startIndex: number;
 }
 
-interface LogAttributeFieldRender {
-  renderExtra: RendererExtra;
-  tableResultLogRow: OurLogsResponseItem;
-  renderers?: typeof LogAttributesRendererMap;
+type AttributeItem = {
+  fieldKey: string;
+  value: string | number | null;
+};
+
+export type AttributesFieldRendererProps<RendererExtra extends RenderFunctionBaggage> = {
+  extra: RendererExtra;
+  item: AttributeItem;
+  basicRendered?: React.ReactNode;
+  meta?: EventsMetaType;
+};
+
+interface AttributesFieldRender<RendererExtra extends RenderFunctionBaggage> {
+  rendererExtra: RendererExtra;
+  renderers?: Record<
+    string,
+    (props: AttributesFieldRendererProps<RendererExtra>) => React.ReactNode
+  >;
 }
 
-interface LogFieldsTreeProps extends LogAttributeFieldRender {
+interface AttributesTreeProps<RendererExtra extends RenderFunctionBaggage>
+  extends AttributesFieldRender<RendererExtra> {
   attributes: TraceItemResponseAttribute[];
-  hiddenAttributes?: OurLogFieldKey[];
+  config?: AttributesTreeRowConfig;
+  getAdjustedAttributeKey?: (attribute: TraceItemResponseAttribute) => string;
+  getCustomActions?: (content: AttributesTreeContent) => MenuItemProps[];
+  hiddenAttributes?: string[];
 }
 
-interface LogFieldsTreeColumnsProps extends LogFieldsTreeProps {
+interface AttributesTreeColumnsProps<RendererExtra extends RenderFunctionBaggage>
+  extends AttributesTreeProps<RendererExtra> {
   columnCount: number;
 }
 
-interface LogFieldsTreeRowConfig {
+interface AttributesTreeRowConfig {
   // Omits the dropdown of actions applicable to this attribute
   disableActions?: boolean;
   // Omit error styling from being displayed, even if context is invalid
@@ -87,21 +93,22 @@ interface LogFieldsTreeRowConfig {
   disableRichValue?: boolean;
 }
 
-interface LogFieldsTreeRowProps extends LogAttributeFieldRender {
+interface AttributesTreeRowProps<RendererExtra extends RenderFunctionBaggage>
+  extends AttributesFieldRender<RendererExtra> {
   attributeKey: string;
-  content: AttributeTreeContent;
-  tableResultLogRow: OurLogsResponseItem;
-  config?: LogFieldsTreeRowConfig;
+  content: AttributesTreeContent;
+  config?: AttributesTreeRowConfig;
+  getCustomActions?: (content: AttributesTreeContent) => MenuItemProps[];
   isLast?: boolean;
   spacerCount?: number;
 }
 
 function addToAttributeTree(
-  tree: AttributeTree,
+  tree: AttributesTree,
   attribute: Attribute,
   meta: Record<any, any>,
   originalAttribute: Attribute
-): AttributeTree {
+): AttributesTree {
   const BRANCH_MATCHES_REGEX = /\./g;
   if (!defined(attribute.attribute_key)) {
     return tree;
@@ -149,66 +156,69 @@ function addToAttributeTree(
 /**
  * Function to recursively create a flat list of all rows to be rendered for a given AttributeTree
  * @param props The props for rendering the root of the AttributeTree
- * @returns A list of LogFieldsTreeRow components to be rendered in this tree
+ * @returns A list of TreeRow components to be rendered in this tree
  */
-function getAttributeTreeRows({
+function getAttributesTreeRows<RendererExtra extends RenderFunctionBaggage>({
   attributeKey,
   content,
   spacerCount = 0,
   uniqueKey,
   renderers = {},
-  renderExtra,
-  tableResultLogRow,
+  rendererExtra,
   isLast = false,
-}: LogFieldsTreeRowProps &
-  LogAttributeFieldRender & {
+  config = {},
+  getCustomActions,
+}: AttributesTreeRowProps<RendererExtra> &
+  AttributesFieldRender<RendererExtra> & {
     uniqueKey: string;
   }): React.ReactNode[] {
   const subtreeAttributes = Object.keys(content.subtree);
   const subtreeRows = subtreeAttributes.reduce(
     (rows: React.ReactNode[], attribute, i) => {
-      const branchRows = getAttributeTreeRows({
+      const branchRows = getAttributesTreeRows<RendererExtra>({
         attributeKey: attribute,
         content: content.subtree[attribute]!,
         spacerCount: spacerCount + 1,
         isLast: i === subtreeAttributes.length - 1,
         uniqueKey: `${uniqueKey}-${i}`,
         renderers,
-        renderExtra,
-        tableResultLogRow,
+        rendererExtra,
       });
       return rows.concat(branchRows);
     },
     []
   );
   return [
-    <LogFieldsTreeRow
+    <AttributesTreeRow
       key={`${attributeKey}-${spacerCount}-${uniqueKey}`}
       attributeKey={attributeKey}
       content={content}
       spacerCount={spacerCount}
       data-test-id="attribute-tree-row"
       renderers={renderers}
-      renderExtra={renderExtra}
+      rendererExtra={rendererExtra}
       isLast={isLast}
-      tableResultLogRow={tableResultLogRow}
+      config={config}
+      getCustomActions={getCustomActions}
     />,
     ...subtreeRows,
   ];
 }
 
 /**
- * Component to render proportional columns for log fields. The columns will not separate
+ * Component to render proportional columns for attributes. The columns will not separate
  * branch attributes from their roots, and attempt to be as evenly distributed as possible.
  */
-function LogFieldsTreeColumns({
+function AttributesTreeColumns<RendererExtra extends RenderFunctionBaggage>({
   attributes,
   columnCount,
   hiddenAttributes = [],
   renderers = {},
-  renderExtra,
-  tableResultLogRow,
-}: LogFieldsTreeColumnsProps) {
+  rendererExtra: renderExtra,
+  config = {},
+  getCustomActions,
+  getAdjustedAttributeKey,
+}: AttributesTreeColumnsProps<RendererExtra>) {
   const assembledColumns = useMemo(() => {
     if (!attributes) {
       return [];
@@ -216,31 +226,32 @@ function LogFieldsTreeColumns({
 
     // Convert attributes record to the format expected by addToAttributeTree
     const visibleAttributes = attributes
-      .map(key => getAttribute(key, hiddenAttributes))
-      .filter(defined)
-      .sort((a, b) => ((a.attribute_key ?? '') < (b.attribute_key ?? '') ? -1 : 1));
+      .map(key => getAttribute(key, hiddenAttributes, getAdjustedAttributeKey))
+      .filter(defined);
 
     // Create the AttributeTree data structure using all the given attributes
-    const attributeTree = visibleAttributes.reduce<AttributeTree>(
+    const attributesTree = visibleAttributes.reduce<AttributesTree>(
       (tree, attribute) => addToAttributeTree(tree, attribute, {}, attribute),
       {}
     );
 
     // Create a list of AttributeTreeRow lists, containing every row to be rendered. They are grouped by
     // root parent so that we do not split up roots/branches when forming columns
-    const attributeTreeRowGroups: React.ReactNode[][] = Object.entries(attributeTree).map(
-      ([attributeKey, content], i) =>
-        getAttributeTreeRows({
-          attributeKey,
-          content,
-          uniqueKey: `${i}`,
-          renderers,
-          renderExtra,
-          tableResultLogRow,
-        })
+    const attributeTreeRowGroups: React.ReactNode[][] = Object.entries(
+      attributesTree
+    ).map(([attributeKey, content], i) =>
+      getAttributesTreeRows({
+        attributeKey,
+        content,
+        uniqueKey: `${i}`,
+        renderers,
+        rendererExtra: renderExtra,
+        config,
+        getCustomActions,
+      })
     );
 
-    // Get the total number of LogFieldsTreeRow components to be rendered, and a goal size for each column
+    // Get the total number of TreeRow components to be rendered, and a goal size for each column
     const attributeTreeRowTotal = attributeTreeRowGroups.reduce(
       (sum, group) => sum + group.length,
       0
@@ -248,7 +259,7 @@ function LogFieldsTreeColumns({
     const columnRowGoal = Math.ceil(attributeTreeRowTotal / columnCount);
 
     // Iterate through the row groups, splitting rows into columns when we exceed the goal size
-    const data = attributeTreeRowGroups.reduce<AttributeTreeColumnData>(
+    const data = attributeTreeRowGroups.reduce<AttributesTreeColumnData>(
       ({startIndex, runningTotal, columns}, rowList, index) => {
         // If it's the last entry, create a column with the remaining rows
         if (index === attributeTreeRowGroups.length - 1) {
@@ -281,35 +292,39 @@ function LogFieldsTreeColumns({
     hiddenAttributes,
     renderers,
     renderExtra,
-    tableResultLogRow,
+    config,
+    getCustomActions,
+    getAdjustedAttributeKey,
   ]);
 
   return <Fragment>{assembledColumns}</Fragment>;
 }
 
-export function LogFieldsTree(props: LogFieldsTreeProps) {
+export function AttributesTree<RendererExtra extends RenderFunctionBaggage>(
+  props: AttributesTreeProps<RendererExtra>
+) {
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
   return (
     <TreeContainer
       ref={containerRef}
       columnCount={columnCount}
-      data-test-id="log-fields-tree"
+      data-test-id="fields-tree"
     >
-      <LogFieldsTreeColumns columnCount={columnCount} {...props} />
+      <AttributesTreeColumns columnCount={columnCount} {...props} />
     </TreeContainer>
   );
 }
 
-function LogFieldsTreeRow({
+function AttributesTreeRow<RendererExtra extends RenderFunctionBaggage>({
   content,
   attributeKey,
   spacerCount = 0,
   isLast = false,
   config = {},
-  tableResultLogRow,
+  getCustomActions,
   ...props
-}: LogFieldsTreeRowProps) {
+}: AttributesTreeRowProps<RendererExtra>) {
   const theme = useTheme();
   const originalAttribute = content.originalAttribute;
   const hasErrors = false; // No error handling in this simplified version
@@ -333,7 +348,7 @@ function LogFieldsTreeRow({
   }
 
   const attributeActions = config?.disableActions ? null : (
-    <LogFieldsTreeRowDropdown content={content} />
+    <AttributesTreeRowDropdown content={content} getCustomActions={getCustomActions} />
   );
 
   return (
@@ -356,13 +371,12 @@ function LogFieldsTreeRow({
       </TreeKeyTrunk>
       <TreeValueTrunk>
         <TreeValue hasErrors={hasErrors}>
-          <LogFieldsTreeValue
+          <AttributesTreeValue
             config={config}
             content={content}
             renderers={props.renderers}
-            renderExtra={props.renderExtra}
+            rendererExtra={props.rendererExtra}
             theme={theme}
-            tableResultLogRow={tableResultLogRow}
           />
         </TreeValue>
         {attributeActions}
@@ -371,73 +385,25 @@ function LogFieldsTreeRow({
   );
 }
 
-function LogFieldsTreeRowDropdown({content}: {content: AttributeTreeContent}) {
+function AttributesTreeRowDropdown({
+  content,
+  getCustomActions,
+}: {
+  content: AttributesTreeContent;
+  getCustomActions?: (content: AttributesTreeContent) => MenuItemProps[];
+}) {
   const {onClick: handleCopy} = useCopyToClipboard({
     text: String(content.value),
   });
-  const setLogsSearch = useSetLogsSearch();
-  const search = useLogsSearch();
-  const fields = useLogsFields();
-  const setLogFields = useSetLogsFields();
-  const isTableEditingFrozen = useLogsIsTableEditingFrozen();
   const [isVisible, setIsVisible] = useState(false);
-  const originalAttribute = content.originalAttribute;
-  const addSearchFilter = useCallback(
-    ({negated}: {negated?: boolean} = {}) => {
-      if (!originalAttribute) {
-        return;
-      }
-      const newSearch = search.copy();
-      newSearch.addFilterValue(
-        `${negated ? '!' : ''}${originalAttribute.original_attribute_key}`,
-        String(content.value)
-      );
-      setLogsSearch(newSearch);
-    },
-    [originalAttribute, content.value, setLogsSearch, search]
-  );
 
-  const addColumn = useCallback(() => {
-    if (!originalAttribute) {
-      return;
-    }
-    const newFields = [...fields];
-    if (newFields[newFields.length - 1] === OurLogKnownFieldKey.TIMESTAMP) {
-      newFields.splice(-1, 0, originalAttribute.original_attribute_key);
-    } else {
-      newFields.push(originalAttribute.original_attribute_key);
-    }
-    setLogFields(newFields);
-  }, [originalAttribute, setLogFields, fields]);
-
-  if (!originalAttribute) {
-    return null;
+  let customActions: MenuItemProps[] = [];
+  if (getCustomActions) {
+    customActions = getCustomActions(content);
   }
 
   const items: MenuItemProps[] = [
-    {
-      key: 'search-for-value',
-      label: t('Search for this value'),
-      onAction: () => {
-        addSearchFilter();
-      },
-    },
-    {
-      key: 'search-for-negated-value',
-      label: t('Exclude this value'),
-      onAction: () => {
-        addSearchFilter({negated: true});
-      },
-    },
-    {
-      key: 'add-column',
-      label: t('Add this as table column'),
-      hidden: isTableEditingFrozen,
-      disabled: fields.includes(originalAttribute.original_attribute_key),
-      onAction: () => {
-        addColumn();
-      },
-    },
+    ...customActions,
     {
       key: 'copy-value',
       label: t('Copy attribute value to clipboard'),
@@ -474,18 +440,16 @@ function LogFieldsTreeRowDropdown({content}: {content: AttributeTreeContent}) {
   );
 }
 
-function LogFieldsTreeValue({
+function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>({
   config,
   content,
   renderers = {},
-  renderExtra,
+  rendererExtra: renderExtra,
   theme,
-  tableResultLogRow,
 }: {
-  content: AttributeTreeContent;
-  tableResultLogRow: OurLogsResponseItem;
-  config?: LogFieldsTreeRowConfig;
-} & LogAttributeFieldRender & {theme: Theme}) {
+  content: AttributesTreeContent;
+  config?: AttributesTreeRowConfig;
+} & AttributesFieldRender<RendererExtra> & {theme: Theme}) {
   const {originalAttribute} = content;
   if (!originalAttribute) {
     return null;
@@ -495,31 +459,26 @@ function LogFieldsTreeValue({
   const attributeKey = originalAttribute.original_attribute_key;
   const renderer = renderers[attributeKey];
   const basicRenderer = getFieldRenderer(attributeKey, {}, false);
-  const adjustedValue =
-    attributeKey === OurLogKnownFieldKey.TRACE_ID
-      ? adjustLogTraceID(content.value as string)
-      : content.value;
 
   const basicRendered = basicRenderer(
-    {[attributeKey]: adjustedValue},
+    {[attributeKey]: content.value},
     {...renderExtra, theme}
   );
-  const defaultValue = <span>{String(adjustedValue)}</span>;
+  const defaultValue = <span>{String(content.value)}</span>;
 
   if (config?.disableRichValue) {
-    return String(adjustedValue);
+    return String(content.value);
   }
 
   if (renderer) {
     return renderer({
-      item: getLogAttributeItem(attributeKey, adjustedValue),
-      extra: renderExtra,
+      item: getAttributeItem(attributeKey, content.value),
       basicRendered,
-      tableResultLogRow,
+      extra: renderExtra,
     });
   }
 
-  return isUrl(String(adjustedValue)) ? (
+  return isUrl(String(content.value)) ? (
     <AttributeLinkText>
       <ExternalLink
         onClick={e => {
@@ -540,7 +499,8 @@ function LogFieldsTreeValue({
  */
 function getAttribute(
   attribute: TraceItemResponseAttribute,
-  hiddenAttributes: OurLogFieldKey[]
+  hiddenAttributes: string[],
+  getAdjustedAttributeKey?: (attribute: TraceItemResponseAttribute) => string
 ): Attribute | undefined {
   // Filter out hidden attributes
   if (hiddenAttributes.includes(attribute.name)) {
@@ -557,7 +517,9 @@ function getAttribute(
   return {
     attribute_key: prettifyAttributeName(attribute.name),
     attribute_value: attributeValue,
-    original_attribute_key: adjustAliases(attribute.name),
+    original_attribute_key: getAdjustedAttributeKey
+      ? getAdjustedAttributeKey(attribute)
+      : attribute.name,
   };
 }
 
@@ -566,8 +528,6 @@ const TreeContainer = styled('div')<{columnCount: number}>`
   grid-template-columns: repeat(${p => p.columnCount}, 1fr);
   align-items: start;
   white-space: normal;
-  width: 100%;
-  flex: 1 1 100%;
 `;
 
 const TreeColumn = styled('div')`
