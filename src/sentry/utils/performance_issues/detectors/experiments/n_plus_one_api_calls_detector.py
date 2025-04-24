@@ -10,7 +10,7 @@ from urllib.parse import parse_qs, urlparse
 
 from django.utils.encoding import force_bytes
 
-from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
+from sentry.issues.grouptype import PerformanceNPlusOneAPICallsExperimentalGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -28,7 +28,7 @@ from sentry.utils.performance_issues.performance_problem import PerformanceProbl
 from sentry.utils.performance_issues.types import PerformanceProblemsMap, Span
 
 
-class NPlusOneAPICallsDetector(PerformanceDetector):
+class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
     """
     Detect parallel network calls to the same endpoint.
 
@@ -53,7 +53,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         self.span_hashes: dict[str, str | None] = {}
 
     def visit_span(self, span: Span) -> None:
-        if not NPlusOneAPICallsDetector.is_span_eligible(span):
+        if not NPlusOneAPICallsExperimentalDetector.is_span_eligible(span):
             return
 
         op = span.get("op", None)
@@ -167,7 +167,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             fingerprint=fingerprint,
             op=last_span["op"],
             desc=os.path.commonprefix([span.get("description", "") or "" for span in self.spans]),
-            type=PerformanceNPlusOneAPICallsGroupType,
+            type=PerformanceNPlusOneAPICallsExperimentalGroupType,
             cause_span_ids=[],
             parent_span_ids=[last_span.get("parent_span_id", None)],
             offender_span_ids=offender_span_ids,
@@ -237,7 +237,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
         fingerprint = fingerprint_http_spans([self.spans[0]])
 
-        return f"1-{PerformanceNPlusOneAPICallsGroupType.type_id}-{fingerprint}"
+        return f"1-{PerformanceNPlusOneAPICallsExperimentalGroupType.type_id}-{fingerprint}"
 
     def _spans_are_concurrent(self, span_a: Span, span_b: Span) -> bool:
         span_a_start: int = span_a.get("start_timestamp", 0) or 0
