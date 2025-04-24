@@ -17,6 +17,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {ReactEchartsRef, SeriesDataUnit} from 'sentry/types/echarts';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/streamline/eventGraphWidget';
 
 import {ReleaseDrawerTable} from './releasesDrawerTable';
 
@@ -81,7 +82,7 @@ const unhighlightMarkLines = createMarkLineUpdater({});
 export function ReleasesDrawerList({chart, pageFilters}: ReleasesDrawerListProps) {
   const {releases} = useReleaseStats(pageFilters);
   const chartRef = useRef<ReactEchartsRef | null>(null);
-  const chartHeight = '220px'; // TODO: this will change based on chart id
+  const chartHeight = chart === EVENT_GRAPH_WIDGET_ID ? 'auto' : '220px';
 
   const handleMouseOverRelease = useCallback((release: string) => {
     if (!chartRef.current) {
