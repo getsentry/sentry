@@ -18,13 +18,12 @@ import {
 import {t, tct} from 'sentry/locale';
 import {
   getPythonAiocontextvarsConfig,
+  getPythonInstallConfig,
   getPythonProfilingMinVersionMessage,
   getPythonProfilingOnboarding,
 } from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
-
-const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
 
 const getSdkSetupSnippet = (params: Params) => `
 from aiohttp import web
@@ -79,15 +78,14 @@ const onboarding: OnboardingConfig = {
         code: <code />,
       }),
       configurations: [
-        {
+        ...getPythonInstallConfig({
+          packageName: "'sentry-sdk'",
           description:
             params.docsLocation === DocsPageLocation.PROFILING_PAGE
               ? getPythonProfilingMinVersionMessage()
               : undefined,
-          language: 'bash',
-          code: getInstallSnippet(),
-        },
-        getPythonAiocontextvarsConfig(),
+        }),
+        ...getPythonAiocontextvarsConfig(),
       ],
     },
   ],

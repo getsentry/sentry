@@ -1,5 +1,8 @@
 import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {
+  Configuration,
+  StepType,
+} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   type DocsParams,
   OnboardingConfig,
@@ -29,7 +32,7 @@ export function getPythonInstallConfig({
 }: {
   description?: React.ReactNode;
   packageName?: string;
-} = {}) {
+} = {}): Configuration[] {
   return [
     {
       description,
@@ -66,17 +69,38 @@ export function getPythonProfilingMinVersionMessage() {
     }
   );
 }
-export function getPythonAiocontextvarsConfig() {
-  return {
-    description: tct(
-      "If you're on Python 3.6, you also need the [code:aiocontextvars] package:",
-      {
-        code: <code />,
-      }
-    ),
-    language: 'bash',
-    code: 'pip install --upgrade aiocontextvars',
-  };
+export function getPythonAiocontextvarsConfig({
+  description,
+}: {
+  description?: React.ReactNode;
+} = {}): Configuration[] {
+  const defaultDescription = tct(
+    "If you're on Python 3.6, you also need the [code:aiocontextvars] package:",
+    {
+      code: <code />,
+    }
+  );
+
+  return [
+    {
+      description: description ?? defaultDescription,
+      language: 'bash',
+      code: [
+        {
+          label: 'pip',
+          value: 'pip',
+          language: 'bash',
+          code: "pip install --upgrade 'aiocontextvars'",
+        },
+        {
+          label: 'uv',
+          value: 'uv',
+          language: 'bash',
+          code: "uv add 'aiocontextvars'",
+        },
+      ],
+    },
+  ];
 }
 
 export const getPythonProfilingOnboarding = ({
