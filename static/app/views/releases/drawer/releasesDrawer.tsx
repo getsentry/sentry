@@ -7,8 +7,10 @@ import {
 } from 'sentry/components/events/eventDrawer';
 import LoadingError from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDateFromTimestamp} from 'sentry/utils/dates';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ReleasesDrawerDetails} from 'sentry/views/releases/drawer/releasesDrawerDetails';
 import {ReleasesDrawerList} from 'sentry/views/releases/drawer/releasesDrawerList';
@@ -27,6 +29,7 @@ export function ReleasesDrawer() {
   const start = getDateFromTimestamp(rdStart);
   const end = getDateFromTimestamp(rdEnd);
   const defaultPageFilters = usePageFilters();
+  const organization = useOrganization();
   const pageFilters = {
     projects: Array.isArray(rdProject)
       ? rdProject.map(Number)
@@ -44,6 +47,15 @@ export function ReleasesDrawer() {
           }
         : defaultPageFilters.selection.datetime,
   };
+
+  useEffect(() => {
+    if (rd === 'show' && organization) {
+      trackAnalytics('releases.drawer_opened', {
+        release: Boolean(rdRelease),
+        organization: organization.id,
+      });
+    }
+  }, [organization, rd, rdProject, rdRelease]);
 
   useEffect(() => {
     if (rd === 'show' && !rdRelease && !rdStart && !rdEnd) {
