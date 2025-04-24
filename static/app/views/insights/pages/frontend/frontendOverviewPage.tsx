@@ -3,14 +3,12 @@ import styled from '@emotion/styled';
 import Feature from 'sentry/components/acl/feature';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {NoAccess} from 'sentry/components/noAccess';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
-import {tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
@@ -53,10 +51,7 @@ import {useIsNextJsInsightsEnabled} from 'sentry/views/insights/pages/platform/n
 import {NewNextJsExperienceButton} from 'sentry/views/insights/pages/platform/nextjs/newNextjsExperienceToggle';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import type {EAPSpanProperty} from 'sentry/views/insights/types';
-import {
-  generateFrontendOtherPerformanceEventView,
-  USER_MISERY_TOOLTIP,
-} from 'sentry/views/performance/data';
+import {generateFrontendOtherPerformanceEventView} from 'sentry/views/performance/data';
 import {
   DoubleChartRow,
   TripleChartRow,
@@ -68,27 +63,6 @@ import {
   getTransactionSearchQuery,
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
-
-const DURATION_TOOLTIP = tct(
-  'A heuristic measuring when a pageload or navigation completes. Based on whether the initial load of the webpage has become idle. [link:Learn more.]',
-  {
-    link: (
-      <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/instrumentation/automatic-instrumentation/#idletimeout" />
-    ),
-  }
-);
-
-export const FRONTEND_COLUMN_TITLES = [
-  {title: 'transaction'},
-  {title: 'operation'},
-  {title: 'project'},
-  {title: 'tpm'},
-  {title: 'p50()', tooltip: DURATION_TOOLTIP},
-  {title: 'p75()', tooltip: DURATION_TOOLTIP},
-  {title: 'p95()', tooltip: DURATION_TOOLTIP},
-  {title: 'users'},
-  {title: 'user misery', tooltip: USER_MISERY_TOOLTIP},
-];
 
 function EAPOverviewPage() {
   useOverviewPageTrackPageload();

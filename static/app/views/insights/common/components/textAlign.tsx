@@ -6,11 +6,6 @@ export const TextAlignRight = styled('span')`
   display: inline-block;
 `;
 
-export const TextAlignLeft = styled('span')`
-  text-align: left;
-  width: 100%;
-`;
-
 export const OverflowEllipsisTextContainer = styled('span')`
   text-overflow: ellipsis;
   overflow: hidden;

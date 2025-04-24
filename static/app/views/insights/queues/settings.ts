@@ -5,8 +5,6 @@ export const BASE_URL = 'queues';
 export const DATA_TYPE = t('Queue');
 export const DATA_TYPE_PLURAL = t('Queues');
 
-export const CHART_HEIGHT = 160;
-
 export const DESTINATION_TITLE = t('Destination Summary');
 
 export const DEFAULT_QUERY_FILTER = 'span.op:[queue.process,queue.publish]';
@@ -47,9 +45,6 @@ export enum MessageActorType {
   CONSUMER = 'consumer',
 }
 
-export const MODULE_DESCRIPTION = t(
-  'Understand the health and performance impact that queues have on your application and diagnose errors tied to jobs.'
-);
 export const MODULE_DOC_LINK =
   'https://docs.sentry.io/product/insights/backend/queue-monitoring/';
 

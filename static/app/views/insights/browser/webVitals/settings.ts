@@ -5,9 +5,6 @@ export const BASE_URL = 'pageloads';
 export const DATA_TYPE = t('Web Vitals');
 export const DATA_TYPE_PLURAL = t('Web Vitals');
 
-export const MODULE_DESCRIPTION = t(
-  'Measure the quality of real user experience in your web applications using industry standard quality signals.'
-);
 export const MODULE_DOC_LINK =
   'https://docs.sentry.io/product/insights/frontend/web-vitals/';
 
