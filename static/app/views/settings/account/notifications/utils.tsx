@@ -11,10 +11,6 @@ const notificationsByProject = ['alerts', 'email', 'workflow', 'spikeProtection'
 export const isGroupedByProject = (notificationType: string): boolean =>
   notificationsByProject.includes(notificationType);
 
-export const getParentKey = (notificationType: string): string => {
-  return isGroupedByProject(notificationType) ? 'project' : 'organization';
-};
-
 export const groupByOrganization = (
   projects: Project[]
 ): Record<string, {organization: OrganizationSummary; projects: Project[]}> => {

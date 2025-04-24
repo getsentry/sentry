@@ -3,25 +3,6 @@ import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {NewQuery, SavedQuery} from 'sentry/types/organization';
 
-export function fetchSavedQueries(
-  api: Client,
-  orgId: string,
-  query = ''
-): Promise<SavedQuery[]> {
-  const promise: Promise<SavedQuery[]> = api.requestPromise(
-    `/organizations/${orgId}/discover/saved/`,
-    {
-      method: 'GET',
-      query: {query: `version:2 ${query}`.trim()},
-    }
-  );
-
-  promise.catch(() => {
-    addErrorMessage(t('Unable to load saved queries'));
-  });
-  return promise;
-}
-
 export function fetchSavedQuery(
   api: Client,
   orgId: string,
