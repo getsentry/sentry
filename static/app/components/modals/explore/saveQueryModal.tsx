@@ -105,10 +105,18 @@ function SaveQueryModal({
         <Wrapper>
           <SectionHeader>{t('Name')}</SectionHeader>
           <Input
-            placeholder={t('Enter a name for your saved query')}
+            placeholder={
+              defined(initialName)
+                ? t('Enter a name for your query')
+                : t('Enter a name for your new query')
+            }
             onChange={e => setName(e.target.value)}
             value={name}
-            title={t('Enter a name for your saved query')}
+            title={
+              defined(initialName)
+                ? t('Enter a name for your query')
+                : t('Enter a name for your new query')
+            }
           />
         </Wrapper>
         {initialName === undefined && (
