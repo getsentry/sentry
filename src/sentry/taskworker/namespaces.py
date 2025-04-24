@@ -50,6 +50,8 @@ options_tasks = taskregistry.create_namespace("options")
 
 options_control_tasks = taskregistry.create_namespace("options.control")
 
+relay_tasks = taskregistry.create_namespace("relay")
+
 performance_tasks = taskregistry.create_namespace("performance")
 
 profiling_tasks = taskregistry.create_namespace("profiling")
