@@ -1488,6 +1488,12 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.uptime.rdap.tasks",
     "sentry.uptime.subscriptions.tasks",
     "sentry.workflow_engine.processors.delayed_workflow",
+    "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
+    "sentry.dynamic_sampling.tasks.recalibrate_orgs",
+    "sentry.dynamic_sampling.tasks.custom_rule_notifications",
+    "sentry.dynamic_sampling.tasks.sliding_window_org",
+    "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
+    "sentry.tasks.check_am2_compatibility",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
