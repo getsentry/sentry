@@ -75,10 +75,10 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # The url to check
     url = models.CharField(max_length=255)
     # The domain of the url, extracted via TLDExtract
-    url_domain = models.CharField(max_length=255, db_index=True, default="")
+    url_domain = models.CharField(max_length=255, db_index=True, default="", db_default="")
     # The suffix of the url, extracted via TLDExtract. This can be a public
     # suffix, such as com, gov.uk, com.au, or a private suffix, such as vercel.dev
-    url_domain_suffix = models.CharField(max_length=255, db_index=True, default="")
+    url_domain_suffix = models.CharField(max_length=255, db_index=True, default="", db_default="")
     # A unique identifier for the provider hosting the domain
     host_provider_id = models.CharField(max_length=255, db_index=True, null=True)
     # The name of the provider hosting this domain
@@ -101,7 +101,7 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     body = models.TextField(null=True)
     # How to sample traces for this monitor. Note that we always send a trace_id, so any errors will
     # be associated, this just controls the span sampling.
-    trace_sampling = models.BooleanField(default=False)
+    trace_sampling = models.BooleanField(default=False, db_default=False)
     # Tracks the curernt status of this subscrioption. This is possibly going
     # to be replaced in the future with open-periods as we replace
     # ProjectUptimeSubscription with Detectors.
@@ -169,8 +169,13 @@ class ProjectUptimeSubscription(DefaultFieldsModelExisting):
     status = BoundedPositiveBigIntegerField(
         choices=ObjectStatus.as_choices(), db_default=ObjectStatus.ACTIVE
     )
-    mode = models.SmallIntegerField(default=ProjectUptimeSubscriptionMode.MANUAL.value)
-    uptime_status = models.PositiveSmallIntegerField(default=UptimeStatus.OK.value)
+    mode = models.SmallIntegerField(
+        default=ProjectUptimeSubscriptionMode.MANUAL.value,
+        db_default=ProjectUptimeSubscriptionMode.MANUAL.value,
+    )
+    uptime_status = models.PositiveSmallIntegerField(
+        default=UptimeStatus.OK.value, db_default=UptimeStatus.OK.value
+    )
     # (Likely) temporary column to keep track of the current uptime status of this monitor
     uptime_status_update_date = models.DateTimeField(db_default=Now())
     # Date of the last time we updated the status for this monitor

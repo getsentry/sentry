@@ -155,7 +155,7 @@ class Organization(ReplicatedRegionModel):
     )
     date_added = models.DateTimeField(default=timezone.now)
     default_role = models.CharField(max_length=32, default=str(roles.get_default().id))
-    is_test = models.BooleanField(default=False)
+    is_test = models.BooleanField(default=False, db_default=False)
 
     class flags(TypedClassBitField):
         # WARNING: Only add flags to the bottom of this list
