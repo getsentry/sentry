@@ -17,7 +17,12 @@ export default function NewViewPage(props: Props) {
       <IssueListContainer>
         <PageFiltersContainer skipLoadLastUsed disablePersistence skipInitializeUrlParams>
           <NoProjectMessage organization={organization}>
-            <IssueListOverview {...props} shouldFetchOnMount={false} initialQuery="" />
+            <IssueListOverview
+              {...props}
+              shouldFetchOnMount={false}
+              initialQuery=""
+              title={t('New View')}
+            />
           </NoProjectMessage>
         </PageFiltersContainer>
       </IssueListContainer>
