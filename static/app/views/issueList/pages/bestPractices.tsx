@@ -10,7 +10,7 @@ import IssueListOverview from 'sentry/views/issueList/overview';
 
 type Props = RouteComponentProps;
 
-const TITLE = t('Code Smell');
+const TITLE = t('Best Practices');
 const QUERY =
   'is:unresolved issue.category:[user_experience,responsiveness,performance_best_practice]';
 

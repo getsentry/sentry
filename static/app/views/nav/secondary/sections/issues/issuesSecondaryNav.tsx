@@ -55,11 +55,11 @@ export function IssuesSecondaryNav() {
               {t('Metrics')}
             </SecondaryNav.Item>
             <SecondaryNav.Item
-              to={`${baseUrl}/code-smell/`}
+              to={`${baseUrl}/best-practices/`}
               end
-              analyticsItemName="issues_types_code_smell"
+              analyticsItemName="issues_types_best_practices"
             >
-              {t('Code Smell')}
+              {t('Best Practices')}
             </SecondaryNav.Item>
             <SecondaryNav.Item
               to={`${baseUrl}/feedback/`}

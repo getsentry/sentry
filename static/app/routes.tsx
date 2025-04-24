@@ -2206,8 +2206,8 @@ function buildRoutes() {
         component={make(() => import('sentry/views/issueList/pages/metrics'))}
       />
       <Route
-        path="code-smell/"
-        component={make(() => import('sentry/views/issueList/pages/codeSmell'))}
+        path="best-practices/"
+        component={make(() => import('sentry/views/issueList/pages/bestPractices'))}
       />
       <Route
         path="views/"
