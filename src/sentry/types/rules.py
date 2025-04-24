@@ -6,6 +6,10 @@ RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])
 
 @dataclass
 class NotificationRuleDetails:
+    """
+    Dataclass to pass around rule details.
+    """
+
     id: int
     label: str
     url: str
