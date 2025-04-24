@@ -9,8 +9,10 @@ from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowVa
 from sentry.workflow_engine.models import (
     Action,
     Condition,
+    DataCondition,
     DataConditionGroup,
     DataConditionGroupAction,
+    Workflow,
 )
 from tests.sentry.workflow_engine.test_base import MockActionHandler
 
@@ -404,3 +406,50 @@ class TestWorkflowValidatorUpdate(TestCase):
         self.workflow.refresh_from_db()
 
         assert self.workflow.workflowdataconditiongroup_set.count() == 1
+
+    def _get_first_trigger_condition(self, workflow: Workflow) -> DataCondition:
+        if workflow.when_condition_group is None:
+            raise AssertionError("Cannot find initial condition")
+
+        first_condition = workflow.when_condition_group.conditions.first()
+        if first_condition is None:
+            raise AssertionError("Cannot find initial condition")
+
+        return first_condition
+
+    def test_update__data_condition(self):
+        first_condition = self._get_first_trigger_condition(self.workflow)
+        assert first_condition.comparison == 1
+
+        updated_condition = self.valid_saved_data["triggers"]["conditions"][0]
+        updated_condition["comparison"] = 2
+        self.valid_saved_data["triggers"]["conditions"][0] = updated_condition
+
+        validator = WorkflowValidator(data=self.valid_saved_data, context=self.context)
+        assert validator.is_valid() is True
+        validator.update(self.workflow, validator.validated_data)
+        self.workflow.refresh_from_db()
+
+        first_condition = self._get_first_trigger_condition(self.workflow)
+        assert first_condition.comparison == updated_condition["comparison"]
+
+    def test_update__remove_one_data_condition(self):
+        # Setup the test
+        assert self.workflow.when_condition_group
+        assert self.workflow.when_condition_group.conditions.count() == 1
+        self.workflow.when_condition_group.conditions.create(
+            type=Condition.EQUAL,
+            comparison=2,
+            condition_result=False,
+        )
+        assert self.workflow.when_condition_group.conditions.count() == 2
+        serializer = WorkflowSerializer()
+        attrs = serializer.get_attrs([self.workflow], self.user)
+        self.valid_saved_data = serializer.serialize(self.workflow, attrs[self.workflow], self.user)
+
+        # Make the update
+        self.valid_saved_data["triggers"]["conditions"].pop(0)
+
+        validator = WorkflowValidator(data=self.valid_saved_data, context=self.context)
+        assert validator.is_valid() is True
+        validator.update(self.workflow, validator.validated_data)

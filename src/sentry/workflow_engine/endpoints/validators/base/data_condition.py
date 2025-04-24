@@ -100,6 +100,9 @@ class BaseDataConditionValidator(
                 f"Value, {value}, does not match JSON Schema for condition result"
             )
 
+    def update(self, instance: DataCondition, validated_data: dict[str, Any]) -> Any:
+        return instance.update(**validated_data)
+
     def create(self, validated_data: dict[str, Any]) -> Any:
         """
         Create a DataCondition object from the validated data.

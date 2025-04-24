@@ -5,7 +5,7 @@ from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.workflow_engine.endpoints.validators.base import BaseDataConditionValidator
-from sentry.workflow_engine.models import DataConditionGroup
+from sentry.workflow_engine.models import DataCondition, DataConditionGroup
 
 
 class BaseDataConditionGroupValidator(CamelSnakeSerializer):
@@ -22,6 +22,22 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer):
 
         return conditions
 
+    def update_or_create_condition(self, condition_data: dict[str, Any]) -> DataCondition:
+        validator = BaseDataConditionValidator(data=condition_data)
+        condition_id = condition_data.get("id")
+
+        if condition_id:
+            try:
+                condition = DataCondition.objects.get(id=condition_id)
+            except DataConditionGroup.DoesNotExist:
+                raise serializers.ValidationError(f"Condition with id {condition_id} not found.")
+
+            condition = validator.update(condition, condition_data)
+        else:
+            condition = validator.create(**condition_data)
+
+        return condition
+
     def update(
         self,
         instance: DataConditionGroup,
@@ -36,10 +52,16 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer):
         )
 
         if has_condition_removal:
+            # Remove conditions that were not included in the update
             instance.conditions.exclude(id__in=condition_ids).delete()
 
-        # Create / Update Conditions
-        validated_data.pop("conditions", None)
+        conditions = validated_data.pop("conditions", None)
+        if conditions:
+            for condition_data in conditions:
+                if not condition_data.get("condition_group_id"):
+                    condition_data["condition_group_id"] = instance.id
+
+                self.update_or_create_condition(condition_data)
 
         # update the condition group
         instance.update(**validated_data)

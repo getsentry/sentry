@@ -85,11 +85,7 @@ class WorkflowValidator(CamelSnakeSerializer):
                 f"Invalid Condition Group ID {condition_group_data.get('id')}"
             )
 
-        if condition_group_data.get("actions") is not None:
-            actions, condition_group_data = self._split_action_and_condition_group(
-                condition_group_data
-            )
-            condition_group_data.pop("actions")
+        actions = condition_group_data.pop("actions", None)
 
         if condition_group_id is None:
             result = validator.create(condition_group_data)
@@ -102,7 +98,10 @@ class WorkflowValidator(CamelSnakeSerializer):
 
         return result
 
-    def update_action_filters(self, action_filters: dict[str, Any]) -> list[DataConditionGroup]:
+    def update_action_filters(
+        self,
+        action_filters: list[dict[str, Any]],
+    ) -> list[DataConditionGroup]:
         instance = self.context["workflow"]
         filters: list[DataConditionGroup] = []
 
@@ -110,14 +109,17 @@ class WorkflowValidator(CamelSnakeSerializer):
             # If the action filter is set to an empty list, delete all the actions
             instance.workflowdataconditiongroup_set.all().delete()
 
-        action_filter_ids = {af["id"] for af in action_filters if af.get("id") is not None}
-        has_action_filter_removal = set(action_filter_ids) != set(
-            instance.workflowdataconditiongroup_set.values_list("id", flat=True)
+        action_filter_ids = {int(af["id"]) for af in action_filters if af.get("id") is not None}
+        condition_group_ids = instance.workflowdataconditiongroup_set.values_list(
+            "condition_group__id", flat=True
         )
+        has_action_filter_removal = action_filter_ids != condition_group_ids
 
         if has_action_filter_removal:
-            # Remove the action filters that are not in the new list
-            instance.workflowdataconditiongroup_set.exclude(id__in=action_filter_ids).delete()
+            # Remove the action filters that are not in the update
+            instance.workflowdataconditiongroup_set.exclude(
+                condition_group__id__in=action_filter_ids
+            ).delete()
 
         for action_filter in action_filters:
             condition_group = self.update_or_create_data_condition_group(action_filter)
