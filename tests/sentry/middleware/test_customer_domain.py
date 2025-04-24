@@ -12,8 +12,9 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.middleware.customer_domain import CustomerDomainMiddleware
-from sentry.testutils.cases import APITestCase, TestCase, override_options
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import all_silo_test, create_test_regions, no_silo_test
 from sentry.web.frontend.auth_logout import AuthLogoutView
 
