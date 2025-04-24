@@ -25,6 +25,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import {
+  preserveBaseReleaseDrawerQueryParams,
+  ReleasesDrawerFields,
+} from 'sentry/views/releases/drawer/utils';
 import {getReleaseNewIssuesUrl} from 'sentry/views/releases/utils';
 
 type ReleaseHealthItem = {
@@ -73,7 +77,7 @@ export function ReleaseDrawerTable({
         query: {
           project: projects,
           environment: environments,
-          cursor: location.query.rdListCursor,
+          cursor: location.query[ReleasesDrawerFields.LIST_CURSOR],
           ...normalizeDateTimeParams(datetime),
           per_page: 15,
         },
@@ -132,9 +136,9 @@ export function ReleaseDrawerTable({
             }}
             to={{
               query: {
-                ...location.query,
-                rdRelease: value,
-                rdReleaseProjectId: dataRow.project_id,
+                ...preserveBaseReleaseDrawerQueryParams(location.query),
+                [ReleasesDrawerFields.RELEASE]: value,
+                [ReleasesDrawerFields.PROJECT]: dataRow.project_id,
               },
             }}
           >
@@ -209,7 +213,7 @@ export function ReleaseDrawerTable({
         onCursor={(cursor, path, searchQuery) => {
           navigate({
             pathname: path,
-            query: {...searchQuery, rdListCursor: cursor},
+            query: {...searchQuery, [ReleasesDrawerFields.LIST_CURSOR]: cursor},
           });
         }}
       />

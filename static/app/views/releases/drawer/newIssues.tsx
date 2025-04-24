@@ -45,7 +45,7 @@ export function NewIssues({release, projectId, withChart = false}: Props) {
       queryFilterDescription={queryFilterDescription}
       withChart={withChart}
       renderEmptyMessage={renderEmptyMessage}
-      withPagination={false}
+      withPagination
       source="release-drawer"
     />
   );

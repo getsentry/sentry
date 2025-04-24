@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Badge} from 'sentry/components/core/badge';
-import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button';
 import {
   EventDrawerBody,
   EventDrawerContainer,
@@ -26,6 +26,7 @@ import {DeploysCard} from 'sentry/views/releases/drawer/deploysCard';
 import {FoldSection, SectionDivider} from 'sentry/views/releases/drawer/foldSection';
 import {GeneralCard} from 'sentry/views/releases/drawer/generalCard';
 import {NewIssues} from 'sentry/views/releases/drawer/newIssues';
+import {ReleasesDrawerFields} from 'sentry/views/releases/drawer/utils';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 import {useReleaseDetails} from 'sentry/views/releases/utils/useReleaseDetails';
 import {useReleaseMeta} from 'sentry/views/releases/utils/useReleaseMeta';
@@ -47,15 +48,10 @@ export function ReleasesDrawerDetails({release, projectId}: ReleasesDrawerDetail
   const project = useProjectFromId({project_id: projectId});
   const projectSlug = project?.slug;
   const {
-    rdRelease: _release,
-    rdReleaseProjectId: _releaseProject,
+    [ReleasesDrawerFields.RELEASE]: _release,
+    [ReleasesDrawerFields.PROJECT]: _releaseProject,
     ...locationQueryWithoutRelease
   } = location.query;
-
-  if (!projectId || !projectSlug) {
-    // TODO: Error handling... not sure when this would happen
-    return <Alert type="error">{t('Project not found')}</Alert>;
-  }
 
   const crumbs = [
     {
@@ -72,6 +68,19 @@ export function ReleasesDrawerDetails({release, projectId}: ReleasesDrawerDetail
     {label: formatVersion(release)},
   ];
 
+  if (!projectId || !projectSlug) {
+    return (
+      <EventDrawerContainer>
+        <EventDrawerHeader>
+          <NavigationCrumbs crumbs={crumbs} />
+        </EventDrawerHeader>
+        <EventDrawerBody>
+          <Alert type="error">{t('Project not found')}</Alert>
+        </EventDrawerBody>
+      </EventDrawerContainer>
+    );
+  }
+
   return (
     <EventDrawerContainer>
       <EventDrawerHeader>
@@ -86,7 +95,7 @@ export function ReleasesDrawerDetails({release, projectId}: ReleasesDrawerDetail
             {formatVersion(release)}
           </ReleaseWithPlatform>
 
-          <Button
+          <LinkButton
             to={normalizeUrl({
               pathname: makeReleasesPathname({
                 path: `/${encodeURIComponent(release)}/`,
@@ -105,7 +114,7 @@ export function ReleasesDrawerDetails({release, projectId}: ReleasesDrawerDetail
             }}
           >
             {t('View Full Details')}
-          </Button>
+          </LinkButton>
         </HeaderToolbar>
       </EventNavigator>
       <EventDrawerBody>

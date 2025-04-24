@@ -32,6 +32,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
+import {ReleasesDrawerFields} from 'sentry/views/releases/drawer/utils';
 import {
   BUBBLE_AREA_SERIES_ID,
   BUBBLE_SERIES_ID,
@@ -440,12 +441,12 @@ export function useReleaseBubbles({
         navigate({
           query: {
             ...location.query,
-            rd: 'show',
-            rdChart: chartId,
-            rdStart: new Date(data.start).toISOString(),
-            rdEnd: new Date(data.end).toISOString(),
-            rdProject: projects ?? selection.projects,
-            rdEnv: environments ?? selection.environments,
+            [ReleasesDrawerFields.DRAWER]: 'show',
+            [ReleasesDrawerFields.CHART]: chartId,
+            [ReleasesDrawerFields.START]: new Date(data.start).toISOString(),
+            [ReleasesDrawerFields.END]: new Date(data.end).toISOString(),
+            [ReleasesDrawerFields.PROJECT]: projects ?? selection.projects,
+            [ReleasesDrawerFields.ENVIRONMENT]: environments ?? selection.environments,
           },
         });
       };

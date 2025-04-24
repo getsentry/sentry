@@ -2,10 +2,14 @@ import omit from 'lodash/omit';
 
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 
-enum ReleasesDrawerFields {
+export enum ReleasesDrawerFields {
   DRAWER = 'rd',
+
+  // TODO: Namespace this so it doesn't collide with parent page's query params
+  ACTIVE_REPO = 'activeRepo',
   CHART = 'rdChart',
   COMMIT_CURSOR = 'rdCiCursor',
+  FILES_CURSOR = 'rdFilesCursor',
   END = 'rdEnd',
   ENVIRONMENT = 'rdEnv',
   LIST_CURSOR = 'rdListCursor',
@@ -15,6 +19,9 @@ enum ReleasesDrawerFields {
   START = 'rdStart',
 }
 
+/**
+ * For use with `useLocationQuery` to decode the releases drawer query parameters.
+ */
 export const RELEASES_DRAWER_FIELD_MAP = {
   [ReleasesDrawerFields.DRAWER]: decodeScalar,
   [ReleasesDrawerFields.CHART]: decodeScalar,
@@ -39,4 +46,28 @@ export function cleanLocationQuery(
   query: Record<string, string[] | string | null | undefined>
 ) {
   return omit(query, RELEASES_DRAWER_FIELD_KEYS);
+}
+
+/**
+ * Cleans location.query of all releases drawer params except for the base params (i.e. page filters params). This should be used whenever we navigate to another URL *inside* of the Releases Drawer.
+ *
+ * @param query Location query object
+ * @returns Location query object with the base release drawer params preserved
+ */
+export function preserveBaseReleaseDrawerQueryParams(
+  query: Record<string, string[] | string | null | undefined>
+) {
+  return omit(
+    query,
+    RELEASES_DRAWER_FIELD_KEYS.filter(
+      key =>
+        ![
+          ReleasesDrawerFields.DRAWER,
+          ReleasesDrawerFields.PROJECT,
+          ReleasesDrawerFields.START,
+          ReleasesDrawerFields.END,
+          ReleasesDrawerFields.ENVIRONMENT,
+        ].includes(key as ReleasesDrawerFields)
+    )
+  );
 }
