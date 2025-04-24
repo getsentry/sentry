@@ -1,5 +1,7 @@
 import math
 
+from sentry.seer.scipy import _entr
+
 
 def laplace_smooth(probabilities: list[float], alpha: float = 1e-3) -> list[float]:
     """
@@ -26,19 +28,6 @@ def entropy(xs: list[float]) -> float:
     Parameters:
         probabilities: A list of non-negative floating point values which sum to 1.
     """
-
-    # This is the scipy implementation. Copied from here:
-    # https://github.com/scipy/scipy/blob/ce4b43097356dfc42504d81d6164b73ee0896c71/scipy/special/_convex_analysis.pxd#L8-L16
-    def _entr(x: float) -> float:
-        if math.isnan(x):
-            return x
-        elif x > 0:
-            return -x * math.log(x)
-        elif x == 0:
-            return 0
-        else:
-            return -math.inf
-
     total = sum(xs)
 
     # Eagerly exit to prevent division by 0.
