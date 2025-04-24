@@ -1825,7 +1825,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "yAxis": "count()",
                 "project": self.project.id,
                 "dataset": self.dataset,
-                "sampling": "BEST_EFFORT",
+                "sampling": "NORMAL",
             },
         )
 
@@ -1889,7 +1889,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "yAxis": "count()",
                 "project": self.project.id,
                 "dataset": self.dataset,
-                "sampling": "BEST_EFFORT",
+                "sampling": "NORMAL",
             },
         )
 

@@ -97,7 +97,7 @@ def make_rpc_request(
         interval=snuba_params.granularity_secs,
         start=snuba_params.start.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
         end=snuba_params.end.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-        sampling="BEST_EFFORT",
+        sampling="NORMAL",
     )
     api_call = organization.absolute_url(path, query)
     sentry_sdk.set_extra("eap_call", api_call)

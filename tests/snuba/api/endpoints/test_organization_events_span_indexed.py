@@ -3900,7 +3900,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
                 "project": self.project.id,
                 "dataset": self.dataset,
                 "statsPeriod": "1h",
-                "sampling": "BEST_EFFORT",
+                "sampling": "NORMAL",
             }
         )
 
