@@ -34,13 +34,12 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.silo.base import region_silo_function
+from sentry.types.rules import NotificationRuleDetails
 from sentry.users.services.user import RpcUser
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.performance_issues.base import get_url_from_span
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.web.helpers import render_to_string
-
-from .types import NotificationRuleDetails
 
 if TYPE_CHECKING:
     from sentry.notifications.notifications.activity.base import ActivityNotification

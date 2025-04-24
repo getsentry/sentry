@@ -13,8 +13,7 @@ from django.utils.http import urlencode
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.models.group import Group
 from sentry.models.organization import Organization
-
-from .types import NotificationRuleDetails
+from sentry.types.rules import NotificationRuleDetails
 
 
 def create_link_to_workflow(organization_id: int, workflow_id: str) -> str:
