@@ -2568,7 +2568,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[0]["device.class"] == "Unknown"
         assert meta["dataset"] == self.dataset
 
-    def test_device_class_filter_rpc(self):
+    def test_device_class_column(self):
         self.store_spans(
             [
                 self.create_span(
