@@ -1,5 +1,6 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -16,22 +17,17 @@ describe('SpanOpSelector', function () {
   const project = ProjectFixture();
   let mockEventsRequest: jest.Mock;
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
-      },
-      environments: [],
-      projects: [parseInt(project.id, 10)],
+  const selection = {
+    datetime: {
+      period: '14d',
+      start: null,
+      end: null,
+      utc: false,
     },
-  });
+    environments: [],
+    projects: [parseInt(project.id, 10)],
+  };
+  jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture({selection}));
 
   jest.mocked(useLocation).mockReturnValue(LocationFixture());
 

@@ -1,5 +1,6 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
@@ -20,22 +21,17 @@ describe('DatabaseSpanSummaryPage', function () {
   });
   const group = GroupFixture();
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: null,
-      },
-      environments: [],
-      projects: [],
+  const selection = {
+    datetime: {
+      period: '10d',
+      start: null,
+      end: null,
+      utc: false,
     },
-  });
+    environments: [],
+    projects: [],
+  };
+  jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture({selection}));
 
   jest.mocked(useLocation).mockReturnValue({
     pathname: '',

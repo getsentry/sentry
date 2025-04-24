@@ -43,7 +43,7 @@ export function datetimeHasSameValue(
   return true;
 }
 
-interface PageFiltersState {
+export interface PageFiltersState {
   /**
    * The current page filter selection
    */

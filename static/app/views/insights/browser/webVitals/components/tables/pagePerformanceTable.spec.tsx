@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
@@ -26,22 +27,18 @@ describe('PagePerformanceTable', function () {
   beforeEach(function () {
     jest.mocked(useLocation).mockReturnValue(router.location);
 
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [],
+    const selection = {
+      datetime: {
+        period: '10d',
+        start: null,
+        end: null,
+        utc: false,
       },
-    });
+      environments: [],
+      projects: [],
+    };
+
+    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture({selection}));
 
     ProjectsStore.loadInitialData([
       ProjectFixture({

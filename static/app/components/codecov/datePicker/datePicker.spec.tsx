@@ -64,6 +64,9 @@ describe('DatePicker', function () {
         environments: [],
         projects: [],
       },
+      codecovSelection: {
+        repository: null,
+      },
     });
   });
 
@@ -105,6 +108,9 @@ describe('DatePicker', function () {
         },
         environments: [],
         projects: [],
+      },
+      codecovSelection: {
+        repository: null,
       },
     });
   });

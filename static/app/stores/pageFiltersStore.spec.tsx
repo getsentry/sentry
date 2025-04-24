@@ -33,6 +33,8 @@ describe('PageFiltersStore', function () {
         projects: [],
         environments: [],
         datetime: {period: '14d', start: null, end: null, utc: null},
+      },
+      codecovSelection: {
         repository: null,
       },
     });
@@ -62,10 +64,10 @@ describe('PageFiltersStore', function () {
   });
 
   it('returns updated repository when calling updateRepository()', async function () {
-    expect(PageFiltersStore.getState().selection.repository).toBeNull();
+    expect(PageFiltersStore.getState().codecovSelection.repository).toBeNull();
     updateRepository('test-repo');
     await tick();
-    expect(PageFiltersStore.getState().selection.repository).toBe('test-repo');
+    expect(PageFiltersStore.getState().codecovSelection.repository).toBe('test-repo');
   });
 
   it('does not update repository when calling updateRepository() if same value', async function () {
@@ -74,7 +76,7 @@ describe('PageFiltersStore', function () {
     PageFiltersStore.updateRepository(testRepoName);
 
     await waitFor(
-      () => PageFiltersStore.getState().selection.repository === testRepoName
+      () => PageFiltersStore.getState().codecovSelection.repository === testRepoName
     );
     PageFiltersStore.updateRepository(testRepoName);
     await tick();

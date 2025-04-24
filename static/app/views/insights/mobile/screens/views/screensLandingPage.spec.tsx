@@ -1,5 +1,6 @@
 import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
@@ -32,22 +33,17 @@ describe('Screens Landing Page', function () {
     state: undefined,
   } as Location);
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
-      },
-      environments: [],
-      projects: [parseInt(project.id, 10)],
+  const selection = {
+    datetime: {
+      period: '14d',
+      start: null,
+      end: null,
+      utc: false,
     },
-  });
+    environments: [],
+    projects: [parseInt(project.id, 10)],
+  };
+  jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture({selection}));
 
   jest.mocked(useCrossPlatformProject).mockReturnValue({
     project,

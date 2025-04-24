@@ -28,6 +28,9 @@ describe('PageFilters ActionCreators', function () {
   beforeEach(function () {
     jest.spyOn(PageFiltersStore, 'updateProjects');
     jest.spyOn(PageFiltersStore, 'onInitializeUrlState').mockImplementation();
+    jest
+      .spyOn(PageFiltersStore, 'onInitializeUrlStateWithCodecovData')
+      .mockImplementation();
     jest.clearAllMocks();
   });
 
@@ -124,7 +127,6 @@ describe('PageFilters ActionCreators', function () {
         expect.objectContaining({
           environments: [],
           projects: [],
-          repository: null,
         }),
         new Set(['projects']),
         false
@@ -294,6 +296,12 @@ describe('PageFilters ActionCreators', function () {
           },
           projects: [1],
           environments: [],
+        },
+        new Set(),
+        true
+      );
+      expect(PageFiltersStore.onInitializeUrlStateWithCodecovData).toHaveBeenCalledWith(
+        {
           repository: 'repo-from-query',
         },
         new Set(),
@@ -331,7 +339,6 @@ describe('PageFilters ActionCreators', function () {
           },
           projects: [-1],
           environments: [],
-          repository: null,
         },
         new Set(),
         true
@@ -360,7 +367,6 @@ describe('PageFilters ActionCreators', function () {
           },
           projects: [1],
           environments: [],
-          repository: null,
         },
         new Set(),
         true

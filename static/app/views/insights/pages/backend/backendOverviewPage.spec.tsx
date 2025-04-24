@@ -1,5 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {CodecovPageFiltersFixture, PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -181,6 +181,7 @@ const setupMocks = () => {
     pinnedFilters: new Set(),
     shouldPersist: true,
     selection: pageFilterSelection,
+    codecovSelection: CodecovPageFiltersFixture(),
   });
   ProjectsStore.loadInitialData(projects);
 };

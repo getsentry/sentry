@@ -1,4 +1,4 @@
-import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {CodecovPageFiltersFixture, PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectSdkUpdatesFixture} from 'sentry-fixture/projectSdkUpdates';
 
@@ -30,6 +30,7 @@ describe('NoDataMessage', () => {
 
     usePageFilters.mockImplementation(() => ({
       selection: PageFiltersFixture({projects: [2]}),
+      codecovSelection: CodecovPageFiltersFixture(),
       isReady: true,
       shouldPersist: true,
       pinnedFilters: new Set(),

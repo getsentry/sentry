@@ -1,3 +1,5 @@
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -28,22 +30,17 @@ describe('Renders QuotaExceededAlert correctly', function () {
   });
   beforeEach(function () {
     setMockDate(new Date('2024-12-14').getTime());
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '7d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [2],
+    const selection = {
+      datetime: {
+        period: '7d',
+        start: null,
+        end: null,
+        utc: false,
       },
-    });
+      environments: [],
+      projects: [2],
+    };
+    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture({selection}));
 
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',

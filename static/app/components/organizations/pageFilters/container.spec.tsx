@@ -112,7 +112,6 @@ describe('PageFiltersContainer', function () {
         },
         environments: [],
         projects: [],
-        repository: null,
       })
     );
   });
@@ -141,6 +140,8 @@ describe('PageFiltersContainer', function () {
           },
           environments: ['prod'],
           projects: [],
+        },
+        codecovSelection: {
           repository: null,
         },
       })
@@ -174,6 +175,8 @@ describe('PageFiltersContainer', function () {
           },
           environments: [],
           projects: [],
+        },
+        codecovSelection: {
           repository: null,
         },
       })
@@ -205,6 +208,8 @@ describe('PageFiltersContainer', function () {
           },
           environments: [],
           projects: [],
+        },
+        codecovSelection: {
           repository: null,
         },
       })
@@ -247,6 +252,8 @@ describe('PageFiltersContainer', function () {
         },
         environments: [],
         projects: [],
+      },
+      codecovSelection: {
         repository: null,
       },
     });
@@ -322,7 +329,7 @@ describe('PageFiltersContainer', function () {
     );
 
     expect(PageFiltersStore.getState().selection.projects).toEqual([1, 2]);
-    expect(PageFiltersStore.getState().selection.repository).toBe('repo-from-url');
+    expect(PageFiltersStore.getState().codecovSelection.repository).toBe('repo-from-url');
 
     // Since these are coming from URL, there should be no changes and
     // router does not need to be called
@@ -352,7 +359,9 @@ describe('PageFiltersContainer', function () {
     );
 
     expect(PageFiltersStore.getState().selection.projects).toEqual([1, 2]);
-    expect(PageFiltersStore.getState().selection.repository).toBe('repo-from-store');
+    expect(PageFiltersStore.getState().codecovSelection.repository).toBe(
+      'repo-from-store'
+    );
 
     // Since these are coming from URL, there should be no changes and
     // router does not need to be called
@@ -687,7 +696,6 @@ describe('PageFiltersContainer', function () {
           },
           environments: [],
           projects: [],
-          repository: null,
         })
       );
 
@@ -713,6 +721,10 @@ describe('PageFiltersContainer', function () {
           },
           environments: [],
           projects: [],
+        })
+      );
+      await waitFor(() =>
+        expect(PageFiltersStore.getState().codecovSelection).toEqual({
           repository: null,
         })
       );

@@ -1,5 +1,6 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {GetPageFiltersStorageFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -1019,18 +1020,9 @@ describe('Results', function () {
       });
 
       renderMockRequests();
-
-      jest.spyOn(PageFilterPersistence, 'getPageFilterStorage').mockReturnValue({
-        state: {
-          project: [1],
-          environment: [],
-          start: null,
-          end: null,
-          period: '14d',
-          utc: null,
-        },
-        pinnedFilters: new Set(['projects']),
-      });
+      jest
+        .spyOn(PageFilterPersistence, 'getPageFilterStorage')
+        .mockReturnValue(GetPageFiltersStorageFixture());
 
       ProjectsStore.loadInitialData([ProjectFixture({id: '1', slug: 'Pinned Project'})]);
 

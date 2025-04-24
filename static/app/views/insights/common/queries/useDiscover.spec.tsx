@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -35,26 +36,11 @@ describe('useDiscover', () => {
   describe('useSpanMetrics', () => {
     const organization = OrganizationFixture();
 
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [],
-      },
-    });
+    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
     jest.mocked(useLocation).mockReturnValue(
       LocationFixture({
-        query: {statsPeriod: '10d'},
+        query: {statsPeriod: '14d'},
       })
     );
 
@@ -140,7 +126,7 @@ describe('useDiscover', () => {
             sort: '-epm()',
             query: `span.group:221aa7ebd216 transaction:/api/details release:0.0.1`,
             referrer: 'api-spec',
-            statsPeriod: '10d',
+            statsPeriod: '14d',
           },
         })
       );
@@ -159,26 +145,11 @@ describe('useDiscover', () => {
   describe('useSpanIndexed', () => {
     const organization = OrganizationFixture();
 
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [],
-      },
-    });
+    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
     jest.mocked(useLocation).mockReturnValue(
       LocationFixture({
-        query: {statsPeriod: '10d'},
+        query: {statsPeriod: '14d'},
       })
     );
 
@@ -279,7 +250,7 @@ describe('useDiscover', () => {
             sort: '-span.group',
             query: `span.group:221aa7ebd216 measurements.inp:<50 measurements.inp:>0 transaction:/api/details release:0.0.1`,
             referrer: 'api-spec',
-            statsPeriod: '10d',
+            statsPeriod: '14d',
           },
         })
       );

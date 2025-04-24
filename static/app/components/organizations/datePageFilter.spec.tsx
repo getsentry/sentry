@@ -68,6 +68,9 @@ describe('DatePageFilter', function () {
         environments: [],
         projects: [],
       },
+      codecovSelection: {
+        repository: null,
+      },
     });
   });
 
@@ -110,6 +113,9 @@ describe('DatePageFilter', function () {
         },
         environments: [],
         projects: [],
+      },
+      codecovSelection: {
+        repository: null,
       },
     });
 
