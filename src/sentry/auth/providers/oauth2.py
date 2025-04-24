@@ -137,11 +137,11 @@ class OAuth2Provider(Provider, abc.ABC):
     is_partner = False
 
     @abc.abstractmethod
-    def get_client_id(self):
+    def get_client_id(self) -> str:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_client_secret(self):
+    def get_client_secret(self) -> str:
         raise NotImplementedError
 
     def get_auth_pipeline(self):
