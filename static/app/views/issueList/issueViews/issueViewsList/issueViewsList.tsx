@@ -267,7 +267,7 @@ export default function IssueViewsList() {
         </Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>
-        <Layout.Main fullWidth>
+        <MainTableLayout fullWidth>
           <FilterSortBar>
             <SearchBar
               defaultQuery={query}
@@ -293,7 +293,7 @@ export default function IssueViewsList() {
             limit={20}
             cursorQueryParam="sc"
           />
-        </Layout.Main>
+        </MainTableLayout>
       </Layout.Body>
     </Layout.Page>
   );
@@ -313,4 +313,8 @@ const TableHeading = styled('h2')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin-top: ${space(3)};
   margin-bottom: ${space(1.5)};
+`;
+
+const MainTableLayout = styled(Layout.Main)`
+  container-type: inline-size;
 `;
