@@ -29,7 +29,7 @@ def _get_user_from_email(group: Group, email: str) -> RpcUser | None:
     return None
 
 
-def process_inbound_email(mailfrom: str, group_id: int, payload: str):
+def process_inbound_email(mailfrom: str, group_id: int, payload: str) -> None:
     from sentry.models.group import Group
     from sentry.web.forms import NewNoteForm
 
@@ -59,7 +59,7 @@ def process_inbound_email(mailfrom: str, group_id: int, payload: str):
         namespace=notifications_tasks,
     ),
 )
-def send_email(message: EmailMultiAlternatives | dict[str, Any]):
+def send_email(message: EmailMultiAlternatives | dict[str, Any]) -> None:
     if not isinstance(message, EmailMultiAlternatives):
         message = message_from_dict(message)
     send_messages([message])
@@ -75,7 +75,7 @@ def send_email(message: EmailMultiAlternatives | dict[str, Any]):
         namespace=notifications_control_tasks,
     ),
 )
-def send_email_control(message):
+def send_email_control(message: EmailMultiAlternatives | dict[str, Any]) -> None:
     if not isinstance(message, EmailMultiAlternatives):
         message = message_from_dict(message)
     send_messages([message])
