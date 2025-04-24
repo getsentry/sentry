@@ -217,7 +217,7 @@ export function ToolbarSaveAs() {
       !valueIsEqual(locationSortByString, singleQuery?.orderby),
       !valueIsEqual(fields, singleQuery?.fields),
       !valueIsEqual(
-        visualizes.map(({chartType, yAxes}) => ({chartType, yAxes})),
+        visualizes.map(visualize => visualize.toJSON()),
         singleQuery?.visualize,
         true
       ),
