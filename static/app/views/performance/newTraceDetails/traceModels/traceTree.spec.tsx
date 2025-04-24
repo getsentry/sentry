@@ -612,6 +612,62 @@ describe('TraceTree', () => {
       expect(eapSpan?.occurrences.size).toBe(1);
     });
 
+    it('initializes eap span ops breakdown', () => {
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'eap-span-1',
+            is_transaction: true,
+            op: 'op-1',
+            occurrences: [],
+            children: [
+              makeEAPSpan({
+                event_id: 'eap-span-2',
+                is_transaction: false,
+                op: 'op-2',
+                children: [
+                  makeEAPSpan({
+                    event_id: 'eap-span-4',
+                    is_transaction: false,
+                    op: 'op-3',
+                    occurrences: [],
+                    children: [],
+                  }),
+                ],
+              }),
+              makeEAPSpan({
+                event_id: 'eap-span-3',
+                is_transaction: true,
+                op: 'op-2',
+                occurrences: [],
+                children: [],
+              }),
+            ],
+          }),
+        ]),
+        traceMetadata
+      );
+
+      const eapSpan1 = findEAPSpanByEventId(tree, 'eap-span-1');
+      expect(eapSpan1?.eapSpanOpsBreakdown).toEqual(
+        expect.arrayContaining([
+          {op: 'op-2', count: 2},
+          {op: 'op-3', count: 1},
+        ])
+      );
+
+      const eapSpan2 = findEAPSpanByEventId(tree, 'eap-span-2');
+      expect(eapSpan2?.eapSpanOpsBreakdown).toEqual(
+        expect.arrayContaining([{op: 'op-3', count: 1}])
+      );
+
+      const eapSpan3 = findEAPSpanByEventId(tree, 'eap-span-3');
+      expect(eapSpan3?.eapSpanOpsBreakdown).toEqual([]);
+
+      const eapSpan4 = findEAPSpanByEventId(tree, 'eap-span-4');
+      expect(eapSpan4?.eapSpanOpsBreakdown).toEqual([]);
+    });
+
     it('initializes expanded based on is_transaction property', () => {
       const tree = TraceTree.FromTrace(
         makeEAPTrace([

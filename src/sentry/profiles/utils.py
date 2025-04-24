@@ -170,7 +170,7 @@ def apply_stack_trace_rules_to_profile(profile: Profile, rules_config: str) -> N
     profiling_rules = keep_profiling_rules(rules_config)
     if profiling_rules == "":
         return
-    enhancements = Enhancements.from_config_string(profiling_rules)
+    enhancements = Enhancements.from_rules_text(profiling_rules)
     if "version" in profile:
         enhancements.apply_category_and_updated_in_app_to_frames(
             profile["profile"]["frames"], profile["platform"], {}

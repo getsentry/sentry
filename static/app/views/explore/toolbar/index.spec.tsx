@@ -23,9 +23,9 @@ import {
   useExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 jest.mock('sentry/actionCreators/modal');
 
@@ -160,13 +160,7 @@ describe('ExploreToolbar', function () {
     const section = screen.getByTestId('section-visualizes');
 
     // this is the default
-    expect(visualizes).toEqual([
-      {
-        chartType: ChartType.BAR,
-        label: 'A',
-        yAxes: ['count(span.duration)'],
-      },
-    ]);
+    expect(visualizes).toEqual([new Visualize(['count(span.duration)'], 'A')]);
 
     expect(within(section).getByRole('button', {name: 'spans'})).toBeDisabled();
   });
@@ -190,13 +184,7 @@ describe('ExploreToolbar', function () {
     const section = screen.getByTestId('section-visualizes');
 
     // this is the default
-    expect(visualizes).toEqual([
-      {
-        chartType: ChartType.BAR,
-        label: 'A',
-        yAxes: ['count(span.duration)'],
-      },
-    ]);
+    expect(visualizes).toEqual([new Visualize(['count(span.duration)'], 'A')]);
 
     // try changing the aggregate
     await userEvent.click(within(section).getByRole('button', {name: 'count'}));
@@ -206,24 +194,12 @@ describe('ExploreToolbar', function () {
     await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
 
-    expect(visualizes).toEqual([
-      {
-        chartType: ChartType.BAR,
-        label: 'A',
-        yAxes: ['avg(span.self_time)'],
-      },
-    ]);
+    expect(visualizes).toEqual([new Visualize(['avg(span.self_time)'], 'A')]);
 
     await userEvent.click(within(section).getByRole('button', {name: 'avg'}));
     await userEvent.click(within(section).getByRole('option', {name: 'count'}));
 
-    expect(visualizes).toEqual([
-      {
-        chartType: ChartType.BAR,
-        label: 'A',
-        yAxes: ['count(span.duration)'],
-      },
-    ]);
+    expect(visualizes).toEqual([new Visualize(['count(span.duration)'], 'A')]);
   });
 
   it('defaults count_unique argument to span.op', async function () {
@@ -245,25 +221,13 @@ describe('ExploreToolbar', function () {
     const section = screen.getByTestId('section-visualizes');
 
     // this is the default
-    expect(visualizes).toEqual([
-      {
-        chartType: ChartType.BAR,
-        label: 'A',
-        yAxes: ['count(span.duration)'],
-      },
-    ]);
+    expect(visualizes).toEqual([new Visualize(['count(span.duration)'], 'A')]);
 
     // try changing the aggregate
     await userEvent.click(within(section).getByRole('button', {name: 'count'}));
     await userEvent.click(within(section).getByRole('option', {name: 'count_unique'}));
 
-    expect(visualizes).toEqual([
-      {
-        chartType: ChartType.BAR,
-        label: 'A',
-        yAxes: ['count_unique(span.op)'],
-      },
-    ]);
+    expect(visualizes).toEqual([new Visualize(['count_unique(span.op)'], 'A')]);
 
     // try changing the aggregate + field
     await userEvent.click(within(section).getByRole('button', {name: 'count_unique'}));
@@ -273,25 +237,13 @@ describe('ExploreToolbar', function () {
     await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
 
-    expect(visualizes).toEqual([
-      {
-        chartType: ChartType.BAR,
-        label: 'A',
-        yAxes: ['avg(span.self_time)'],
-      },
-    ]);
+    expect(visualizes).toEqual([new Visualize(['avg(span.self_time)'], 'A')]);
     //
     // try changing the aggregate back to count_unique
     await userEvent.click(within(section).getByRole('button', {name: 'avg'}));
     await userEvent.click(within(section).getByRole('option', {name: 'count_unique'}));
 
-    expect(visualizes).toEqual([
-      {
-        chartType: ChartType.BAR,
-        label: 'A',
-        yAxes: ['count_unique(span.op)'],
-      },
-    ]);
+    expect(visualizes).toEqual([new Visualize(['count_unique(span.op)'], 'A')]);
   });
 
   it('allows changing visualizes', async function () {
@@ -314,13 +266,7 @@ describe('ExploreToolbar', function () {
     const section = screen.getByTestId('section-visualizes');
 
     // this is the default
-    expect(visualizes).toEqual([
-      {
-        chartType: ChartType.BAR,
-        label: 'A',
-        yAxes: ['count(span.duration)'],
-      },
-    ]);
+    expect(visualizes).toEqual([new Visualize(['count(span.duration)'], 'A')]);
 
     expect(fields).toEqual([
       'id',
@@ -334,24 +280,12 @@ describe('ExploreToolbar', function () {
     // try changing the aggregate
     await userEvent.click(within(section).getByRole('button', {name: 'count'}));
     await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
-    expect(visualizes).toEqual([
-      {
-        chartType: ChartType.BAR,
-        label: 'A',
-        yAxes: ['avg(span.duration)'],
-      },
-    ]);
+    expect(visualizes).toEqual([new Visualize(['avg(span.duration)'], 'A')]);
 
     // try changing the field
     await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
-    expect(visualizes).toEqual([
-      {
-        chartType: ChartType.BAR,
-        label: 'A',
-        yAxes: ['avg(span.self_time)'],
-      },
-    ]);
+    expect(visualizes).toEqual([new Visualize(['avg(span.self_time)'], 'A')]);
 
     expect(fields).toEqual([
       'id',
@@ -368,55 +302,29 @@ describe('ExploreToolbar', function () {
     await userEvent.click(within(section).getByRole('button', {name: 'count'}));
     await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
     expect(visualizes).toEqual([
-      {
-        chartType: ChartType.BAR,
-        label: 'A',
-        yAxes: ['avg(span.self_time)', 'avg(span.duration)'],
-      },
+      new Visualize(['avg(span.self_time)', 'avg(span.duration)'], 'A'),
     ]);
 
     // try adding a new chart
     await userEvent.click(within(section).getByRole('button', {name: 'Add Chart'}));
     expect(visualizes).toEqual([
-      {
-        chartType: ChartType.BAR,
-        label: 'A',
-        yAxes: ['avg(span.self_time)', 'avg(span.duration)'],
-      },
-      {
-        chartType: ChartType.BAR,
-        label: 'B',
-        yAxes: ['count(span.duration)'],
-      },
+      new Visualize(['avg(span.self_time)', 'avg(span.duration)'], 'A'),
+      new Visualize(['count(span.duration)'], 'B'),
     ]);
 
     // delete first overlay
     await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[0]!);
     expect(visualizes).toEqual([
-      {
-        chartType: ChartType.BAR,
-        label: 'A',
-        yAxes: ['avg(span.duration)'],
-      },
-      {
-        chartType: ChartType.BAR,
-        label: 'B',
-        yAxes: ['count(span.duration)'],
-      },
+      new Visualize(['avg(span.duration)'], 'A'),
+      new Visualize(['count(span.duration)'], 'B'),
     ]);
 
     // delete second chart
     await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[1]!);
-    expect(visualizes).toEqual([
-      {
-        chartType: ChartType.BAR,
-        label: 'A',
-        yAxes: ['avg(span.duration)'],
-      },
-    ]);
+    expect(visualizes).toEqual([new Visualize(['avg(span.duration)'], 'A')]);
 
-    // only one left so cant be deleted
-    expect(within(section).getByLabelText('Remove Overlay')).toBeDisabled();
+    // only one left so we hide the delete button
+    expect(within(section).queryByLabelText('Remove Overlay')).not.toBeInTheDocument();
   });
 
   it('allows changing visualizes equations', async function () {
@@ -439,13 +347,7 @@ describe('ExploreToolbar', function () {
     const section = screen.getByTestId('section-visualizes');
 
     // this is the default
-    expect(visualizes).toEqual([
-      {
-        chartType: ChartType.BAR,
-        label: 'A',
-        yAxes: ['count(span.duration)'],
-      },
-    ]);
+    expect(visualizes).toEqual([new Visualize(['count(span.duration)'], 'A')]);
 
     expect(fields).toEqual([
       'id',
@@ -484,13 +386,7 @@ describe('ExploreToolbar', function () {
     await userEvent.keyboard('{Escape}');
     await userEvent.click(within(section).getByText('Visualize'));
 
-    expect(visualizes).toEqual([
-      {
-        chartType: ChartType.BAR,
-        label: 'A',
-        yAxes: ['avg(span.self_time)'],
-      },
-    ]);
+    expect(visualizes).toEqual([new Visualize(['avg(span.self_time)'], 'A')]);
 
     // try adding an overlay
     await userEvent.click(within(section).getByRole('button', {name: 'Add Series'}));
@@ -505,52 +401,26 @@ describe('ExploreToolbar', function () {
     await userEvent.click(within(section).getByText('Visualize'));
 
     expect(visualizes).toEqual([
-      {
-        chartType: ChartType.BAR,
-        label: 'A',
-        yAxes: ['avg(span.self_time)', 'count(span.self_time)'],
-      },
+      new Visualize(['avg(span.self_time)', 'count(span.self_time)'], 'A'),
     ]);
 
     // try adding a new chart
     await userEvent.click(within(section).getByRole('button', {name: 'Add Chart'}));
     expect(visualizes).toEqual([
-      {
-        chartType: ChartType.BAR,
-        label: 'A',
-        yAxes: ['avg(span.self_time)', 'count(span.self_time)'],
-      },
-      {
-        chartType: ChartType.BAR,
-        label: 'B',
-        yAxes: ['count(span.duration)'],
-      },
+      new Visualize(['avg(span.self_time)', 'count(span.self_time)'], 'A'),
+      new Visualize(['count(span.duration)'], 'B'),
     ]);
 
     // delete first overlay
     await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[0]!);
     expect(visualizes).toEqual([
-      {
-        chartType: ChartType.BAR,
-        label: 'A',
-        yAxes: ['count(span.self_time)'],
-      },
-      {
-        chartType: ChartType.BAR,
-        label: 'B',
-        yAxes: ['count(span.duration)'],
-      },
+      new Visualize(['count(span.self_time)'], 'A'),
+      new Visualize(['count(span.duration)'], 'B'),
     ]);
 
     // delete second chart
     await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[1]!);
-    expect(visualizes).toEqual([
-      {
-        chartType: ChartType.BAR,
-        label: 'A',
-        yAxes: ['count(span.self_time)'],
-      },
-    ]);
+    expect(visualizes).toEqual([new Visualize(['count(span.self_time)'], 'A')]);
 
     // only one left so cant be deleted
     expect(within(section).getByLabelText('Remove Overlay')).toBeDisabled();
@@ -612,14 +482,8 @@ describe('ExploreToolbar', function () {
     await userEvent.click(within(section).getAllByLabelText('Remove Column')[0]!);
     expect(groupBys).toEqual(['span.description']);
 
-    // only 1 left but it's not empty
-    expect(within(section).getByLabelText('Remove Column')).toBeEnabled();
-
-    await userEvent.click(within(section).getByLabelText('Remove Column'));
-    expect(groupBys).toEqual(['']);
-
-    // last one and it's empty
-    expect(within(section).getByLabelText('Remove Column')).toBeDisabled();
+    // last one so remove column button is hidden
+    expect(within(section).queryByLabelText('Remove Column')).not.toBeInTheDocument();
   });
 
   it('switches to aggregates mode when modifying group bys', async function () {
@@ -772,16 +636,8 @@ describe('ExploreToolbar', function () {
         query: '',
         sortBys: [{field: 'avg(span.duration)', kind: 'desc'}],
         visualizes: [
-          {
-            chartType: ChartType.LINE,
-            label: 'A',
-            yAxes: ['avg(span.duration)'],
-          },
-          {
-            chartType: ChartType.LINE,
-            label: 'B',
-            yAxes: ['p50(span.duration)'],
-          },
+          new Visualize(['avg(span.duration)'], 'A'),
+          new Visualize(['p50(span.duration)'], 'B'),
         ],
       })
     );
@@ -817,7 +673,7 @@ describe('ExploreToolbar', function () {
       query: expect.objectContaining({
         queries: [
           '{"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["count(span.duration)"]}',
-          '{"chartType":1,"fields":["id","span.duration"],"groupBys":[],"query":"","sortBys":["-span.duration"],"yAxes":["count(span.duration)"]}',
+          '{"chartType":1,"fields":["id","span.duration","timestamp"],"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["count(span.duration)"]}',
         ],
       }),
     });

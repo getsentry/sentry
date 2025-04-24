@@ -32,7 +32,7 @@ def _get_name_from_email(email):
 
 
 class FetchUser(AuthView):
-    def __init__(self, org=None, *args, **kwargs):
+    def __init__(self, org=None, *args, **kwargs) -> None:
         self.org = org
         super().__init__(*args, **kwargs)
 
@@ -114,14 +114,14 @@ class ConfirmEmail(AuthView):
 class SelectOrganizationForm(forms.Form):
     org = forms.ChoiceField(label="Organization")
 
-    def __init__(self, org_list, *args, **kwargs):
+    def __init__(self, org_list, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         set_field_choices(self.fields["org"], [(o["id"], o["login"]) for o in org_list])
 
 
 class SelectOrganization(AuthView):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
     def handle(self, request: HttpRequest, helper) -> HttpResponseBase:

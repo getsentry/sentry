@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
@@ -231,6 +232,9 @@ describe('IssueViewSaveButton', function () {
         <GlobalModal />
       </Fragment>,
       {
+        organization: OrganizationFixture({
+          access: ['org:read'],
+        }),
         enableRouterMocks: false,
         initialRouterConfig: initialRouterConfigView,
       }

@@ -30,7 +30,7 @@ interface MetricEventStatsParams {
   timePeriod: TimePeriodType;
 }
 
-export interface EventRequestQueryParams {
+interface EventRequestQueryParams {
   comparisonDelta?: number;
   dataset?: DiscoverDatasets;
   end?: string;

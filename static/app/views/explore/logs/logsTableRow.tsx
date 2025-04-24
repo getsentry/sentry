@@ -1,3 +1,4 @@
+import type {SyntheticEvent} from 'react';
 import {Fragment, useCallback, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
@@ -15,6 +16,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import CellAction, {Actions} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
+import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {
   useLogsAnalyticsPageSource,
   useLogsFields,
@@ -28,11 +30,11 @@ import {
   LogFieldRenderer,
   SeverityCircleRenderer,
 } from 'sentry/views/explore/logs/fieldRenderers';
-import {LogFieldsTree} from 'sentry/views/explore/logs/logFieldsTree';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
+import {useLogAttributesTreeActions} from 'sentry/views/explore/logs/useLogAttributesTreeActions';
 import {
   useExploreLogsTableRow,
   usePrefetchLogTableRowOnHover,
@@ -51,7 +53,7 @@ import {
   LogTableRow,
   StyledChevronButton,
 } from './styles';
-import {getLogRowItem, getLogSeverityLevel} from './utils';
+import {adjustAliases, getLogRowItem, getLogSeverityLevel} from './utils';
 
 type LogsRowProps = {
   dataRow: OurLogsResponseItem;
@@ -61,6 +63,21 @@ type LogsRowProps = {
 };
 
 const ALLOWED_CELL_ACTIONS: Actions[] = [Actions.ADD, Actions.EXCLUDE];
+
+function isInsideButton(element: Element | null): boolean {
+  let i = 10;
+  while (element && i > 0) {
+    i -= 1;
+    if (
+      element instanceof HTMLButtonElement ||
+      element.getAttribute('role') === 'button'
+    ) {
+      return true;
+    }
+    element = element.parentElement;
+  }
+  return false;
+}
 
 export function LogRowContent({
   dataRow,
@@ -74,14 +91,22 @@ export function LogRowContent({
   const search = useLogsSearch();
   const setLogsSearch = useSetLogsSearch();
 
-  function onPointerUp() {
+  function toggleExpanded() {
+    setExpanded(e => !e);
+    trackAnalytics('logs.table.row_expanded', {
+      log_id: String(dataRow[OurLogKnownFieldKey.ID]),
+      page_source: analyticsPageSource,
+      organization,
+    });
+  }
+
+  function onPointerUp(event: SyntheticEvent) {
+    if (event.target instanceof Element && isInsideButton(event.target)) {
+      // do not expand the context menu if you clicked a button
+      return;
+    }
     if (window.getSelection()?.toString() === '') {
-      setExpanded(e => !e);
-      trackAnalytics('logs.table.row_expanded', {
-        log_id: String(dataRow[OurLogKnownFieldKey.ID]),
-        page_source: analyticsPageSource,
-        organization,
-      });
+      toggleExpanded();
     }
   }
 
@@ -106,7 +131,7 @@ export function LogRowContent({
   const theme = useTheme();
 
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
-  const severityText = dataRow[OurLogKnownFieldKey.SEVERITY_TEXT];
+  const severityText = dataRow[OurLogKnownFieldKey.SEVERITY];
 
   const level = getLogSeverityLevel(
     typeof severityNumber === 'number' ? severityNumber : null,
@@ -127,11 +152,18 @@ export function LogRowContent({
     renderSeverityCircle: true,
     location,
     organization,
+    tableResultLogRow: dataRow,
+    theme,
   };
 
   return (
     <Fragment>
-      <LogTableRow onPointerUp={onPointerUp} onTouchEnd={onPointerUp} {...hoverProps}>
+      <LogTableRow
+        data-test-id="log-table-row"
+        onPointerUp={onPointerUp}
+        onTouchEnd={onPointerUp}
+        {...hoverProps}
+      >
         <LogsTableBodyFirstCell key={'first'}>
           <LogFirstCellContent>
             <StyledChevronButton
@@ -140,15 +172,12 @@ export function LogRowContent({
               aria-expanded={expanded}
               size="zero"
               borderless
+              onClick={() => toggleExpanded()}
             />
-            <SeverityCircleRenderer
-              extra={rendererExtra}
-              meta={meta}
-              tableResultLogRow={dataRow}
-            />
+            <SeverityCircleRenderer extra={rendererExtra} meta={meta} />
           </LogFirstCellContent>
         </LogsTableBodyFirstCell>
-        {fields.map(field => {
+        {fields?.map(field => {
           const value = dataRow[field];
 
           if (!defined(value)) {
@@ -191,14 +220,13 @@ export function LogRowContent({
                   }
                 }}
                 allowActions={
-                  field === OurLogKnownFieldKey.MESSAGE ? ALLOWED_CELL_ACTIONS : []
+                  field === OurLogKnownFieldKey.TIMESTAMP ? [] : ALLOWED_CELL_ACTIONS
                 }
               >
                 <LogFieldRenderer
                   item={getLogRowItem(field, dataRow, meta)}
                   meta={meta}
                   extra={rendererExtra}
-                  tableResultLogRow={dataRow}
                 />
               </CellAction>
             </LogTableBodyCell>
@@ -224,8 +252,9 @@ function LogRowDetails({
   const location = useLocation();
   const organization = useOrganization();
   const fields = useLogsFields();
+  const getActions = useLogAttributesTreeActions();
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
-  const severityText = dataRow[OurLogKnownFieldKey.SEVERITY_TEXT];
+  const severityText = dataRow[OurLogKnownFieldKey.SEVERITY];
 
   const level = getLogSeverityLevel(
     typeof severityNumber === 'number' ? severityNumber : null,
@@ -267,21 +296,26 @@ function LogRowDetails({
                     wrapBody: true,
                     location,
                     organization,
+                    tableResultLogRow: dataRow,
+                    theme,
                   },
                 })}
               </DetailsBody>
               <LogDetailPanelItem>
-                <LogFieldsTree
+                <AttributesTree
                   attributes={data.attributes}
                   hiddenAttributes={HiddenLogDetailFields}
+                  getCustomActions={getActions}
+                  getAdjustedAttributeKey={adjustAliases}
                   renderers={LogAttributesRendererMap}
-                  renderExtra={{
+                  rendererExtra={{
                     highlightTerms,
                     logColors,
                     location,
                     organization,
+                    tableResultLogRow: dataRow,
+                    theme,
                   }}
-                  tableResultLogRow={dataRow}
                 />
               </LogDetailPanelItem>
             </DetailsContent>

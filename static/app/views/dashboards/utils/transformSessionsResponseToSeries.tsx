@@ -9,7 +9,7 @@ import {
   resolveDerivedStatusFields,
 } from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 
-export function getSeriesName(
+function getSeriesName(
   field: string,
   group: SessionApiResponse['groups'][number],
   queryAlias?: string

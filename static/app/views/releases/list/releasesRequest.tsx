@@ -55,7 +55,7 @@ function getInterval(datetimeObj: DateTimeObject) {
   // TODO(sessions): sub-hour session resolution is still not possible
   return '1h';
 }
-export function reduceTimeSeriesGroups(
+function reduceTimeSeriesGroups(
   acc: number[],
   group: SessionApiResponse['groups'][number],
   field: 'count_unique(user)' | 'sum(session)'

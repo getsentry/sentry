@@ -156,7 +156,7 @@ function AvatarList({
 export default AvatarList;
 
 // used in releases list page to do some alignment
-export const AvatarListWrapper = styled('div')`
+const AvatarListWrapper = styled('div')`
   display: flex;
   align-items: center;
   flex-direction: row-reverse;
