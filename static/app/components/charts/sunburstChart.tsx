@@ -40,7 +40,7 @@ function bfsFilter(root: ProcessedSunburstData, maxDepth: number) {
   return editableTree;
 }
 
-interface SunburstData {
+export interface SunburstData {
   children: SunburstData[];
   coverage: number;
   fullPath: string;
