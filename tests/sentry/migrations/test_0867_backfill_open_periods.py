@@ -107,6 +107,53 @@ class BackfillGroupOpenPeriodsTest(TestMigrations):
         assert self.group_ignored.status == GroupStatus.IGNORED
         assert self.group_ignored.substatus == GroupSubStatus.UNTIL_ESCALATING
 
+        # Create an unresolved group that already has an open period
+        self.unresolved_group_with_open_period = Group.objects.create(
+            project=self.project,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.NEW,
+            first_seen=now - timedelta(days=5),
+        )
+        GroupOpenPeriod.objects.create(
+            group=self.unresolved_group_with_open_period,
+            project=self.project,
+            date_started=self.unresolved_group_with_open_period.first_seen,
+        )
+
+        assert (
+            GroupOpenPeriod.objects.filter(group=self.unresolved_group_with_open_period).count()
+            == 1
+        )
+
+        # Create a resolved group that already has an open period
+        self.resolved_group_with_open_period = Group.objects.create(
+            project=self.project,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.NEW,
+            first_seen=now - timedelta(days=3),
+        )
+        gop = GroupOpenPeriod.objects.create(
+            group=self.resolved_group_with_open_period,
+            project=self.project,
+            date_started=self.resolved_group_with_open_period.first_seen,
+        )
+        self.resolved_group_with_open_period.update(status=GroupStatus.RESOLVED, substatus=None)
+        self.resolved_group_with_open_period_resolution_activity = Activity.objects.create(
+            group=self.resolved_group_with_open_period,
+            project=self.project,
+            type=ActivityType.SET_RESOLVED.value,
+            datetime=now,
+        )
+        gop.update(
+            resolution_activity=self.resolved_group_with_open_period_resolution_activity,
+            date_ended=self.resolved_group_with_open_period_resolution_activity.datetime,
+        )
+        assert (
+            GroupOpenPeriod.objects.filter(group=self.resolved_group_with_open_period).count() == 1
+        )
+        assert self.resolved_group_with_open_period.status == GroupStatus.RESOLVED
+        assert self.resolved_group_with_open_period.substatus is None
+
     def test(self):
         self.group_resolved.refresh_from_db()
         open_periods = GroupOpenPeriod.objects.filter(group=self.group_resolved).order_by(
@@ -144,3 +191,24 @@ class BackfillGroupOpenPeriodsTest(TestMigrations):
         assert open_periods[0].date_started == self.group_ignored.first_seen
         assert open_periods[0].date_ended is None
         assert open_periods[0].resolution_activity is None
+
+        # Ensure that the existing open periods were not touched
+        self.unresolved_group_with_open_period.refresh_from_db()
+        open_periods = GroupOpenPeriod.objects.filter(group=self.unresolved_group_with_open_period)
+        assert len(open_periods) == 1
+        assert open_periods[0].date_started == self.unresolved_group_with_open_period.first_seen
+        assert open_periods[0].date_ended is None
+        assert open_periods[0].resolution_activity is None
+
+        self.resolved_group_with_open_period.refresh_from_db()
+        open_periods = GroupOpenPeriod.objects.filter(group=self.resolved_group_with_open_period)
+        assert len(open_periods) == 1
+        assert open_periods[0].date_started == self.resolved_group_with_open_period.first_seen
+        assert (
+            open_periods[0].date_ended
+            == self.resolved_group_with_open_period_resolution_activity.datetime
+        )
+        assert (
+            open_periods[0].resolution_activity
+            == self.resolved_group_with_open_period_resolution_activity
+        )

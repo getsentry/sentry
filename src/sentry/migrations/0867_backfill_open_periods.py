@@ -10,7 +10,6 @@ from django.conf import settings
 from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
-from django.db.models import Min
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils import redis
@@ -118,37 +117,26 @@ def _backfill_group_open_periods(
     GroupOpenPeriod = apps.get_model("sentry", "GroupOpenPeriod")
     Activity = apps.get_model("sentry", "Activity")
 
-    old_open_periods = {
-        open_period["group_id"]: open_period["date_started__min"]
-        for open_period in GroupOpenPeriod.objects.filter(
-            group_id__in=[group_id for group_id, _, _, _ in group_data]
-        )
-        .values("group_id")
-        .annotate(Min("date_started"))
-    }
+    group_ids = [group_id for group_id, _, _, _ in group_data]
+    groups_with_open_periods = set(
+        GroupOpenPeriod.objects.filter(group_id__in=group_ids).values_list("group_id", flat=True)
+    )
 
-    # Filter the activities for the group to only include the ones that we need for the backfill.
+    # Filter the relevant activities for groups that need to be backfilled.
     activities = defaultdict(list)
     for activity in Activity.objects.filter(
-        group_id__in=[group_id for group_id, _, _, _ in group_data],
+        group_id__in=group_ids,
         type__in=[ActivityType.SET_REGRESSION.value, ActivityType.SET_RESOLVED.value],
     ).order_by("-datetime"):
-        if (
-            not old_open_periods.get(activity.group_id, None)
-            or activity.datetime < old_open_periods[activity.group_id]
-        ):
+        if activity.group_id not in groups_with_open_periods:
             activities[activity.group_id].append(activity)
 
     open_periods = []
     for group_id, first_seen, status, project_id in group_data:
-        # Skip groups that already have open periods starting from the first seen date.
-        # These groups were either already backfilled or were created after the open period
-        # logic was added.
-        old_open_period = old_open_periods.get(group_id, None)
-        if old_open_period and old_open_period.date_started == first_seen:
+        # Skip groups that already have open periods
+        if group_id in groups_with_open_periods:
             continue
 
-        # Backfill until the first open period that already exists.
         open_periods.extend(
             get_open_periods_for_group(
                 apps,
