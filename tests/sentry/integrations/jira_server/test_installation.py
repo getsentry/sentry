@@ -254,6 +254,15 @@ class JiraServerInstallationTest(IntegrationTestCase):
             body="oauth_token=valid-token&oauth_token_secret=valid-secret",
         )
         responses.add(
+            responses.GET,
+            "https://jira.example.com/rest/api/2/serverInfo",
+            status=200,
+            json={
+                "baseUrl": "https://jira.example.com",
+                "version": "9.9.9",
+            },
+        )
+        responses.add(
             responses.POST,
             "https://jira.example.com/rest/webhooks/1.0/webhook",
             status=204,
@@ -299,7 +308,15 @@ class JiraServerInstallationTest(IntegrationTestCase):
             content_type="text/plain",
             body="oauth_token=valid-token&oauth_token_secret=valid-secret",
         )
-
+        responses.add(
+            responses.GET,
+            "https://jira.example.com/rest/api/2/serverInfo",
+            status=200,
+            json={
+                "baseUrl": "https://jira.example.com",
+                "version": "9.9.9",
+            },
+        )
         expected_id = "jira.example.com:sentry-bot"
 
         def webhook_response(request):
@@ -317,6 +334,55 @@ class JiraServerInstallationTest(IntegrationTestCase):
         responses.add_callback(
             responses.POST,
             "https://jira.example.com/rest/webhooks/1.0/webhook",
+            callback=webhook_response,
+        )
+        self.install_integration()
+
+        integration = Integration.objects.get()
+        assert integration.external_id == expected_id
+
+    @responses.activate
+    def test_setup_create_webhook_with_new_endpoint(self):
+        responses.add(
+            responses.POST,
+            "https://jira.example.com/plugins/servlet/oauth/request-token",
+            status=200,
+            content_type="text/plain",
+            body="oauth_token=abc123&oauth_token_secret=def456",
+        )
+        responses.add(
+            responses.POST,
+            "https://jira.example.com/plugins/servlet/oauth/access-token",
+            status=200,
+            content_type="text/plain",
+            body="oauth_token=valid-token&oauth_token_secret=valid-secret",
+        )
+        responses.add(
+            responses.GET,
+            "https://jira.example.com/rest/api/2/serverInfo",
+            status=200,
+            json={
+                "baseUrl": "https://jira.example.com",
+                "version": "10.0.1",
+            },
+        )
+        expected_id = "jira.example.com:sentry-bot"
+
+        def webhook_response(request):
+            # Ensure the webhook token contains our integration
+            # external id
+            data = orjson.loads(request.body)
+            url = data["url"]
+            token = url.split("/")[-2]
+            token_data = jwt.peek_claims(token)
+            assert "id" in token_data
+            assert token_data["id"] == expected_id
+
+            return 204, {}, ""
+
+        responses.add_callback(
+            responses.POST,
+            "https://jira.example.com/rest/jira-webhook/1.0/webhooks",
             callback=webhook_response,
         )
         self.install_integration()
@@ -346,7 +412,15 @@ class JiraServerInstallationTest(IntegrationTestCase):
             status=204,
             body="",
         )
-
+        responses.add(
+            responses.GET,
+            "https://jira.example.com/rest/api/2/serverInfo",
+            status=200,
+            json={
+                "baseUrl": "https://jira.example.com",
+                "version": "9.9.9",
+            },
+        )
         # Start pipeline and go to setup page.
         self.client.get(self.setup_path)
 
@@ -393,7 +467,15 @@ class JiraServerInstallationTest(IntegrationTestCase):
             status=502,
             body="Bad things",
         )
-
+        responses.add(
+            responses.GET,
+            "https://jira.example.com/rest/api/2/serverInfo",
+            status=200,
+            json={
+                "baseUrl": "https://jira.example.com",
+                "version": "9.9.9",
+            },
+        )
         resp = self.install_integration()
         self.assertContains(resp, "webhook")
 
@@ -423,6 +505,15 @@ class JiraServerInstallationTest(IntegrationTestCase):
                 "messages": [
                     {"key": "You do not have permission to create WebHook 'Sentry Issue Sync'."}
                 ]
+            },
+        )
+        responses.add(
+            responses.GET,
+            "https://jira.example.com/rest/api/2/serverInfo",
+            status=200,
+            json={
+                "baseUrl": "https://jira.example.com",
+                "version": "9.9.9",
             },
         )
 

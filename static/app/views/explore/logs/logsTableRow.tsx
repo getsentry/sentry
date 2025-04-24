@@ -16,6 +16,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import CellAction, {Actions} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
+import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {
   useLogsAnalyticsPageSource,
   useLogsFields,
@@ -29,11 +30,11 @@ import {
   LogFieldRenderer,
   SeverityCircleRenderer,
 } from 'sentry/views/explore/logs/fieldRenderers';
-import {LogFieldsTree} from 'sentry/views/explore/logs/logFieldsTree';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
+import {useLogAttributesTreeActions} from 'sentry/views/explore/logs/useLogAttributesTreeActions';
 import {
   useExploreLogsTableRow,
   usePrefetchLogTableRowOnHover,
@@ -52,7 +53,7 @@ import {
   LogTableRow,
   StyledChevronButton,
 } from './styles';
-import {getLogRowItem, getLogSeverityLevel} from './utils';
+import {adjustAliases, getLogRowItem, getLogSeverityLevel} from './utils';
 
 type LogsRowProps = {
   dataRow: OurLogsResponseItem;
@@ -151,11 +152,18 @@ export function LogRowContent({
     renderSeverityCircle: true,
     location,
     organization,
+    tableResultLogRow: dataRow,
+    theme,
   };
 
   return (
     <Fragment>
-      <LogTableRow onPointerUp={onPointerUp} onTouchEnd={onPointerUp} {...hoverProps}>
+      <LogTableRow
+        data-test-id="log-table-row"
+        onPointerUp={onPointerUp}
+        onTouchEnd={onPointerUp}
+        {...hoverProps}
+      >
         <LogsTableBodyFirstCell key={'first'}>
           <LogFirstCellContent>
             <StyledChevronButton
@@ -166,11 +174,7 @@ export function LogRowContent({
               borderless
               onClick={() => toggleExpanded()}
             />
-            <SeverityCircleRenderer
-              extra={rendererExtra}
-              meta={meta}
-              tableResultLogRow={dataRow}
-            />
+            <SeverityCircleRenderer extra={rendererExtra} meta={meta} />
           </LogFirstCellContent>
         </LogsTableBodyFirstCell>
         {fields?.map(field => {
@@ -223,7 +227,6 @@ export function LogRowContent({
                   item={getLogRowItem(field, dataRow, meta)}
                   meta={meta}
                   extra={rendererExtra}
-                  tableResultLogRow={dataRow}
                 />
               </CellAction>
             </LogTableBodyCell>
@@ -249,6 +252,7 @@ function LogRowDetails({
   const location = useLocation();
   const organization = useOrganization();
   const fields = useLogsFields();
+  const getActions = useLogAttributesTreeActions();
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
   const severityText = dataRow[OurLogKnownFieldKey.SEVERITY];
 
@@ -292,21 +296,26 @@ function LogRowDetails({
                     wrapBody: true,
                     location,
                     organization,
+                    tableResultLogRow: dataRow,
+                    theme,
                   },
                 })}
               </DetailsBody>
               <LogDetailPanelItem>
-                <LogFieldsTree
+                <AttributesTree
                   attributes={data.attributes}
                   hiddenAttributes={HiddenLogDetailFields}
+                  getCustomActions={getActions}
+                  getAdjustedAttributeKey={adjustAliases}
                   renderers={LogAttributesRendererMap}
-                  renderExtra={{
+                  rendererExtra={{
                     highlightTerms,
                     logColors,
                     location,
                     organization,
+                    tableResultLogRow: dataRow,
+                    theme,
                   }}
-                  tableResultLogRow={dataRow}
                 />
               </LogDetailPanelItem>
             </DetailsContent>

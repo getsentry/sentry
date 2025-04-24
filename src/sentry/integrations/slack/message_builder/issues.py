@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
 from typing import Any, TypedDict
@@ -268,12 +269,7 @@ def get_suggested_assignees(
     project: Project, event: Event | GroupEvent, current_assignee: RpcUser | Team | None
 ) -> list[str]:
     """Get suggested assignees as a list of formatted strings"""
-    suggested_assignees = []
-    issue_owners, _ = ProjectOwnership.get_owners(project.id, event.data)
-    if (
-        issue_owners != ProjectOwnership.Everyone
-    ):  # we don't want every user in the project to be a suggested assignee
-        suggested_assignees = issue_owners
+    suggested_assignees, _ = ProjectOwnership.get_owners(project.id, event.data)
     try:
         suspect_commit_users = Actor.many_from_object(get_suspect_commit_users(project, event))
         suggested_assignees.extend(suspect_commit_users)
@@ -460,23 +456,16 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         has_action: bool,
         title_link: str | None = None,
     ) -> SlackBlock:
-        # If using summary, put the body in the headline as well
-        headline = None
-        if self.issue_summary is not None:
-            error_type = build_attachment_title(event_or_group)
-            text = build_attachment_text(self.group, self.event) or ""
-            text = text.strip(" \n")
-            text = escape_slack_markdown_text(text)
-            text = text.lstrip(" ")
-            if "\n" in text:
-                text = text.strip().split("\n")[0] + "..."
-            if len(text) > MAX_SUMMARY_HEADLINE_LENGTH:
-                text = text[:MAX_SUMMARY_HEADLINE_LENGTH] + "..."
-            headline = f"{error_type}: {text}" if text else error_type
+        summary_headline = self.get_issue_summary_headline(event_or_group)
+        title = summary_headline or build_attachment_title(event_or_group)
+        title_emoji = self.get_title_emoji(has_action)
 
-        title = headline if headline else build_attachment_title(event_or_group)
+        title_text = f"{title_emoji}<{title_link}|*{escape_slack_text(title)}*>"
+        return self.get_markdown_block(title_text)
 
+    def get_title_emoji(self, has_action: bool) -> str | None:
         is_error_issue = self.group.issue_category == GroupCategory.ERROR
+
         title_emoji = None
         if has_action:
             # if issue is resolved, archived, or assigned, replace circle emojis with white circle
@@ -492,9 +481,28 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             title_emoji = CATEGORY_TO_EMOJI.get(self.group.issue_category)
 
         title_emoji = title_emoji + " " if title_emoji else ""
-        title_text = title_emoji + f"<{title_link}|*{escape_slack_text(title)}*>"
+        return title_emoji
 
-        return self.get_markdown_block(title_text)
+    def get_issue_summary_headline(self, event_or_group: Event | GroupEvent | Group) -> str | None:
+        if self.issue_summary is None:
+            return None
+
+        # issue summary headline is formatted like ErrorType: message...
+        error_type = build_attachment_title(event_or_group)
+        text = build_attachment_text(self.group, self.event) or ""
+        text = text.strip(" \r\n\u2028\u2029")
+        text = escape_slack_markdown_text(text)
+        text = text.lstrip(" ")
+
+        linebreak_match = re.search(r"\r?\n|\u2028|\u2029", text)
+        if linebreak_match:
+            text = text[: linebreak_match.start()].strip() + "..."
+
+        if len(text) > MAX_SUMMARY_HEADLINE_LENGTH:
+            text = text[:MAX_SUMMARY_HEADLINE_LENGTH] + "..."
+
+        headline = f"{error_type}: {text}" if text else error_type
+        return headline
 
     def get_issue_summary_text(self) -> str | None:
         """Generate formatted text from issue summary fields."""
