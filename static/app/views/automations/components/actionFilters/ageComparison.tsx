@@ -1,14 +1,11 @@
+import AutomationBuilderNumberField from 'sentry/components/workflowEngine/form/automationBuilderNumberField';
+import AutomationBuilderSelectField from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
 import {tct} from 'sentry/locale';
 import {
   AGE_COMPARISON_CHOICES,
   type AgeComparison,
 } from 'sentry/views/automations/components/actionFilters/constants';
-import {
-  InlineNumberInput,
-  InlineSelectControl,
-  selectControlStyles,
-  useDataConditionNodeContext,
-} from 'sentry/views/automations/components/dataConditionNodes';
+import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
 export default function AgeComparisonNode() {
   return tct('The issue is [comparisonType] [value] [time]', {
@@ -21,10 +18,9 @@ export default function AgeComparisonNode() {
 function ComparisonField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
-    <InlineSelectControl
-      styles={selectControlStyles}
-      name={`${condition_id}.comparison.type`}
-      value={condition.comparison.type}
+    <AutomationBuilderSelectField
+      name={`${condition_id}.comparison.comparison_type`}
+      value={condition.comparison.comparison_type}
       options={AGE_COMPARISON_CHOICES}
       onChange={(value: AgeComparison) => {
         onUpdate({
@@ -38,7 +34,7 @@ function ComparisonField() {
 function ValueField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
-    <InlineNumberInput
+    <AutomationBuilderNumberField
       name={`${condition_id}.comparison.value`}
       value={condition.comparison.value}
       min={0}
@@ -55,8 +51,7 @@ function ValueField() {
 function TimeField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
-    <InlineSelectControl
-      styles={selectControlStyles}
+    <AutomationBuilderSelectField
       name={`${condition_id}.comparison.time`}
       value={condition.comparison.time}
       options={[
