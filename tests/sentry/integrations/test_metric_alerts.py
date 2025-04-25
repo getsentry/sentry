@@ -93,12 +93,6 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         referrer = "metric_alert_custom"
         notification_uuid = str(uuid.uuid4())
 
-        metric_issue_context = MetricIssueContext.from_legacy_models(
-            incident, IncidentStatus.CLOSED, metric_value
-        )
-        metric_issue_context.group = self.group
-        assert metric_issue_context.group is not None
-
         detector = self.create_detector(project=self.project)
         self.create_alert_rule_detector(alert_rule_id=alert_rule.id, detector=detector)
 
@@ -107,6 +101,14 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         )
         assert open_period is not None
         self.create_incident_group_open_period(incident, open_period)
+
+        metric_issue_context = MetricIssueContext.from_legacy_models(
+            incident, IncidentStatus.CLOSED, metric_value
+        )
+        # Setting the open period identifier to the open period id, since we are testing the lookup
+        metric_issue_context.open_period_identifier = open_period.id
+        metric_issue_context.group = self.group
+        assert metric_issue_context.group is not None
 
         data = incident_attachment_info(
             organization=incident.organization,
