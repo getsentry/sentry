@@ -26,7 +26,6 @@ describe('SeerSection', () => {
   let mockGroup!: ReturnType<typeof GroupFixture>;
   const mockProject = ProjectFixture();
   const organization = OrganizationFixture({
-    genAIConsent: true,
     hideAiFeatures: false,
     features: ['gen-ai-features'],
   });
@@ -73,7 +72,6 @@ describe('SeerSection', () => {
   it('renders resources section when AI features are disabled', () => {
     const customOrganization = OrganizationFixture({
       hideAiFeatures: true,
-      genAIConsent: false,
       features: ['gen-ai-features'],
     });
 
@@ -105,7 +103,6 @@ describe('SeerSection', () => {
   describe('Seer button text', () => {
     it('shows "Set Up Autofix" when AI needs setup', async () => {
       const customOrganization = OrganizationFixture({
-        genAIConsent: false,
         hideAiFeatures: false,
         features: ['gen-ai-features'],
       });
