@@ -24,6 +24,8 @@ interface IssueViewNavItemsProps {
 
 export interface NavIssueView extends IssueViewParams {
   createdBy: AvatarUser;
+  dateCreated: string;
+  dateUpdated: string;
   id: string;
   label: string;
   lastVisited: string | null;
