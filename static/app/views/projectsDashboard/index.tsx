@@ -3,7 +3,6 @@ import LazyLoad, {forceCheck} from 'react-lazyload';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import debounce from 'lodash/debounce';
-import partition from 'lodash/partition';
 import uniqBy from 'lodash/uniqBy';
 
 import {LinkButton} from 'sentry/components/core/button';
@@ -100,20 +99,14 @@ function getFilteredProjectsBasedOnTeams({
   userTeams: Team[];
 }): Project[] {
   const myTeamIds = new Set(userTeams.map(team => team.id));
-
-  const [myTeamsInAll, otherTeamsInAll] = partition(allTeams, team =>
-    myTeamIds.has(team.id)
-  );
-
   const includeMyTeams = isAllTeams || selectedTeams.includes('myteams');
   const selectedOtherTeamIds = new Set(
     selectedTeams.filter(teamId => teamId !== 'myteams')
   );
-
-  const myTeams = includeMyTeams ? myTeamsInAll : [];
+  const myTeams = includeMyTeams ? allTeams.filter(team => myTeamIds.has(team.id)) : [];
   const otherTeams = isAllTeams
-    ? otherTeamsInAll
-    : [...otherTeamsInAll].filter(team => selectedOtherTeamIds.has(String(team.id)));
+    ? allTeams
+    : [...allTeams].filter(team => selectedOtherTeamIds.has(String(team.id)));
 
   const visibleTeams = [...myTeams, ...otherTeams].filter(team => {
     if (showNonMemberProjects) {
@@ -121,20 +114,15 @@ function getFilteredProjectsBasedOnTeams({
     }
     return team.isMember;
   });
-
   const teamsWithProjects = addProjectsToTeams(visibleTeams, projects);
-
   const currentProjects = uniqBy(
     teamsWithProjects.flatMap(team => team.projects),
     'id'
   );
-
   const currentProjectIds = new Set(currentProjects.map(p => p.id));
-
   const unassignedProjects = isAllTeams
     ? projects.filter(project => !currentProjectIds.has(project.id))
     : [];
-
   return [...currentProjects, ...unassignedProjects].filter(project =>
     project.slug.includes(projectQuery)
   );
