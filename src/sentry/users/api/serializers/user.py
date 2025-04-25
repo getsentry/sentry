@@ -10,7 +10,6 @@ from typing import Any, DefaultDict, TypedDict, cast
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 
-from sentry import experiments
 from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.app import env
@@ -160,7 +159,6 @@ class UserSerializer(Serializer):
         user: User | AnonymousUser | RpcUser,
         **kwargs: Any,
     ) -> UserSerializerResponse | UserSerializerResponseSelf:
-        experiment_assignments = experiments.all(user=user)
 
         d: UserSerializerResponse = {
             "id": str(obj.id),
@@ -177,11 +175,13 @@ class UserSerializer(Serializer):
             "lastActive": obj.last_active,
             "isSuperuser": obj.is_superuser,
             "isStaff": obj.is_staff,
-            "experiments": experiment_assignments,
             "emails": [
                 {"id": str(e.id), "email": e.email, "is_verified": e.is_verified}
                 for e in attrs["emails"]
             ],
+            # TODO(epurkhiser): This can be removed once we confirm the
+            # frontend does not use it
+            "experiments": {},
         }
 
         if self._user_is_requester(obj, user):

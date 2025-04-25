@@ -89,7 +89,6 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "404",
         "500",
         "_admin",
-        "_experiment",
         "_static",
         "about",
         "accept",
