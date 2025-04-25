@@ -111,7 +111,7 @@ export default function PerformanceScoreBreakdownChartWidget(
 
   return (
     <InsightsTimeSeriesWidget
-      id={props.id}
+      id="performanceScoreBreakdownChartWidget"
       title={t('Score Breakdown')}
       height="100%"
       visualizationType="area"
