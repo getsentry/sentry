@@ -35,12 +35,9 @@ import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDisco
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {INGESTION_DELAY} from 'sentry/views/insights/settings';
 
-type ChartWidgetPropsWithId = Omit<LoadableChartWidgetProps, 'id'> &
-  Required<Pick<LoadableChartWidgetProps, 'id'>>;
-
 export interface InsightsTimeSeriesWidgetProps
   extends WidgetTitleProps,
-    ChartWidgetPropsWithId {
+    LoadableChartWidgetProps {
   error: Error | null;
   isLoading: boolean;
   series: DiscoverSeries[];
