@@ -86,7 +86,6 @@ export function ServiceEntrySpansTable({
     sort: selected.sort,
     transactionName,
     p95,
-    selected,
     limit: LIMIT,
   });
 
