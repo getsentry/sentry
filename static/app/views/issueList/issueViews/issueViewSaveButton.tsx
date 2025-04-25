@@ -69,7 +69,9 @@ function SegmentedIssueViewSaveButton({
     <ButtonBar merged>
       <PrimarySaveButton
         priority={buttonPriority}
-        analyticsEventName="issue_views.save.clicked"
+        analyticsEventName={
+          canEdit ? 'issue_views.save.clicked' : 'issue_views.save_as.clicked'
+        }
         data-test-id={hasUnsavedChanges ? 'save-button-unsaved' : 'save-button'}
         onClick={canEdit ? saveView : openCreateIssueViewModal}
         disabled={isSaving}

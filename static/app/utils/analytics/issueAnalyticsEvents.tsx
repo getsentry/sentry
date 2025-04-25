@@ -285,12 +285,17 @@ export type IssueEventParameters = {
   'issue_views.add_view.saved_search_saved': {
     query: string;
   };
-  'issue_views.created': {
-    starred: boolean;
+  'issue_views.delete_view': {
+    ownership: 'personal' | 'organization';
+    surface: 'issue-views-list' | 'issue-view-details';
   };
   'issue_views.deleted_view': Record<string, unknown>;
   'issue_views.discarded_changes': Record<string, unknown>;
   'issue_views.duplicated_view': Record<string, unknown>;
+  'issue_views.edit_name': {
+    ownership: 'personal' | 'organization';
+    surface: 'issue-views-list' | 'issue-view-details';
+  };
   'issue_views.new_view.suggested_query_clicked': {
     query: string;
     query_label: string;
@@ -302,12 +307,23 @@ export type IssueEventParameters = {
   'issue_views.reordered_views': Record<string, unknown>;
   'issue_views.save.clicked': Record<string, unknown>;
   'issue_views.save_as.clicked': Record<string, unknown>;
-  'issue_views.saved_changes': Record<string, unknown>;
+  'issue_views.save_as.created': {
+    starred: boolean;
+  };
+  'issue_views.saved_changes': {ownership: 'personal' | 'organization'};
   'issue_views.shared_view_opened': {
     query: string;
   };
+  'issue_views.star_view': {
+    ownership: 'personal' | 'organization';
+    starred: boolean;
+    surface: 'issue-views-list' | 'issue-view-details';
+  };
   'issue_views.switched_views': Record<string, unknown>;
   'issue_views.table.create_view_clicked': Record<string, unknown>;
+  'issue_views.table.search': {
+    query: string;
+  };
   'issue_views.table.sort_changed': {
     sort: string;
   };
@@ -466,6 +482,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Proguard Potentially Misconfigured Issue Error Banner Link Clicked',
   'issues_tab.viewed': 'Viewed Issues Tab',
   'issue_views.switched_views': 'Issue Views: Switched Views',
+  'issue_views.delete_view': 'Issue Views: Delete View',
   'issue_views.saved_changes': 'Issue Views: Updated View',
   'issue_views.discarded_changes': 'Issue Views: Discarded Changes',
   'issue_views.renamed_view': 'Issue Views: Renamed View',
@@ -473,8 +490,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_views.deleted_view': 'Issue Views: Deleted View',
   'issue_views.reordered_views': 'Issue Views: Views Reordered',
   'issue_views.add_view.clicked': 'Issue Views: Add View Clicked',
-  'issue_views.created': 'Issue Views: Created',
   'issue_views.save_as.clicked': 'Issue Views: Save As Clicked',
+  'issue_views.save_as.created': 'Issue Views: Save As New View Created',
   'issue_views.save.clicked': 'Issue Views: Save Clicked',
   'issue_views.add_view.custom_query_saved':
     'Issue Views: Custom Query Saved From Add View',
@@ -490,6 +507,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_views.table.sort_changed': 'Issue Views: Changed Sort',
   'issue_views.table.create_view_clicked': 'Issue Views: Create View Clicked',
   'issue_views.new_view.suggested_query_clicked': 'Issue Views: Suggested Query Clicked',
+  'issue_views.edit_name': 'Issue Views: Edit Name',
+  'issue_views.star_view': 'Issue Views: Star View',
   'issue_search.failed': 'Issue Search: Failed',
   'issue_search.empty': 'Issue Search: Empty',
   'issue.search_sidebar_clicked': 'Issue Search Sidebar Clicked',
@@ -568,4 +587,5 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'tour-guide.dismiss': 'Tour Guide: Dismissed',
   'tour-guide.finish': 'Tour Guide: Finished',
   'whats_new.link_clicked': "What's New: Link Clicked",
+  'issue_views.table.search': 'Issue Views: Table Searched',
 };

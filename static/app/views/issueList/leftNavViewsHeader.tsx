@@ -7,6 +7,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -59,6 +60,7 @@ function PageTitle() {
 
 function IssueViewStarButton() {
   const organization = useOrganization();
+  const user = useUser();
   const queryClient = useQueryClient();
   const {data: groupSearchView} = useSelectedGroupSearchView();
   const {mutate: mutateViewStarred} = useUpdateGroupSearchViewStarred({
@@ -97,11 +99,26 @@ function IssueViewStarButton() {
   return (
     <Button
       onClick={() => {
-        mutateViewStarred({
-          id: groupSearchView.id,
-          starred: !groupSearchView?.starred,
-          view: groupSearchView,
-        });
+        mutateViewStarred(
+          {
+            id: groupSearchView.id,
+            starred: !groupSearchView?.starred,
+            view: groupSearchView,
+          },
+          {
+            onSuccess: () => {
+              trackAnalytics('issue_views.star_view', {
+                organization,
+                ownership:
+                  user?.id === groupSearchView.createdBy?.id
+                    ? 'personal'
+                    : 'organization',
+                starred: !groupSearchView?.starred,
+                surface: 'issue-view-details',
+              });
+            },
+          }
+        );
       }}
       aria-label={groupSearchView?.starred ? t('Unstar view') : t('Star view')}
       icon={
@@ -149,6 +166,14 @@ function IssueViewEditMenu() {
                       navigate(
                         normalizeUrl(`/organizations/${organization.slug}/issues/`)
                       );
+                      trackAnalytics('issue_views.delete_view', {
+                        organization,
+                        ownership:
+                          user?.id === groupSearchView.createdBy?.id
+                            ? 'personal'
+                            : 'organization',
+                        surface: 'issue-view-details',
+                      });
                     },
                   }
                 ),
