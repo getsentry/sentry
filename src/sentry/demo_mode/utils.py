@@ -2,7 +2,6 @@ from django.contrib.auth.models import AnonymousUser
 
 from sentry import options
 from sentry.models.organization import Organization
-from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.users.models.user import User
 
 READONLY_SCOPES = frozenset(
@@ -30,7 +29,7 @@ def is_demo_user(user: User | AnonymousUser | None) -> bool:
     return user.id in options.get("demo-mode.users")
 
 
-def is_demo_org(organization: Organization | RpcOrganization | None):
+def is_demo_org(organization: Organization | None):
 
     if not organization:
         return False
