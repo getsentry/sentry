@@ -1,5 +1,5 @@
 from sentry.models.group import GroupStatus
-from sentry.testutils.fixtures import DetectorPriorityLevel
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.types.group import PriorityLevel
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.alert_rule import (
@@ -7,7 +7,7 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_metric_data_conditions,
 )
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.types import DetectorPriorityLevel, WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
 
@@ -53,31 +53,41 @@ class TestIssuePriorityGreaterOrEqualCondition(ConditionTestCase):
             condition_group=dc_critical.condition_group,
         )
 
+    def update_group_and_open_period(self, priority: PriorityLevel) -> None:
+        self.group.update(priority=priority)
+        open_period = (
+            GroupOpenPeriod.objects.filter(group=self.group).order_by("-date_started").first()
+        )
+        assert open_period is not None
+        highest_seen_priority = open_period.data.get("highest_seen_priority", priority)
+        open_period.data["highest_seen_priority"] = max(highest_seen_priority, priority)
+        open_period.save()
+
     def test_warning(self):
-        self.group.update(priority=PriorityLevel.MEDIUM)
+        self.update_group_and_open_period(priority=PriorityLevel.MEDIUM)
         self.assert_does_not_pass(self.deescalating_dc_warning, self.event_data)
 
-        self.group.update(priority=PriorityLevel.HIGH)
+        self.update_group_and_open_period(priority=PriorityLevel.HIGH)
         self.assert_does_not_pass(self.deescalating_dc_warning, self.event_data)
 
         self.group.update(status=GroupStatus.RESOLVED)
         self.assert_passes(self.deescalating_dc_warning, self.event_data)
 
     def test_critical_threshold_not_breached(self):
-        self.group.update(priority=PriorityLevel.MEDIUM)
+        self.update_group_and_open_period(priority=PriorityLevel.MEDIUM)
         self.assert_does_not_pass(self.deescalating_dc_critical, self.event_data)
 
         self.group.update(status=GroupStatus.RESOLVED)
         self.assert_does_not_pass(self.deescalating_dc_critical, self.event_data)
 
     def test_critical(self):
-        self.group.update(priority=PriorityLevel.MEDIUM)
+        self.update_group_and_open_period(priority=PriorityLevel.MEDIUM)
         self.assert_does_not_pass(self.deescalating_dc_critical, self.event_data)
 
-        self.group.update(priority=PriorityLevel.HIGH)
+        self.update_group_and_open_period(priority=PriorityLevel.HIGH)
         self.assert_does_not_pass(self.deescalating_dc_critical, self.event_data)
 
-        self.group.update(priority=PriorityLevel.MEDIUM)
+        self.update_group_and_open_period(priority=PriorityLevel.MEDIUM)
         self.assert_passes(self.deescalating_dc_critical, self.event_data)
 
         self.group.update(status=GroupStatus.RESOLVED)
