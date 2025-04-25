@@ -4,7 +4,6 @@ import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceCon
 import ReplaySlugChooser from 'sentry/components/replays/player/__stories__/replaySlugChooser';
 import ReplayPlayer from 'sentry/components/replays/player/replayPlayer';
 import ReplayPlayerMeasurer from 'sentry/components/replays/player/replayPlayerMeasurer';
-import ReplayPlayPauseButton from 'sentry/components/replays/player/replayPlayPauseButton';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import storyBook from 'sentry/stories/storyBook';
 
@@ -24,7 +23,6 @@ export default storyBook('ReplayPlayer', story => {
               {style => <ReplayPlayer style={style} />}
             </ReplayPlayerMeasurer>
           </NegativeSpaceContainer>
-          <ReplayPlayPauseButton />
         </Fragment>
       );
     }
@@ -56,7 +54,6 @@ export default storyBook('ReplayPlayer', story => {
               {style => <ReplayPlayer style={style} />}
             </ReplayPlayerMeasurer>
           </NegativeSpaceContainer>
-          <ReplayPlayPauseButton />
         </Fragment>
       );
     }

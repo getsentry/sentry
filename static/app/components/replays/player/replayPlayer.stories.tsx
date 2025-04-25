@@ -1,10 +1,8 @@
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import JumpToOffsetButtonBar from 'sentry/components/replays/player/__stories__/jumpToOffsetButtonBar';
 import ReplaySlugChooser from 'sentry/components/replays/player/__stories__/replaySlugChooser';
-import ReplayCurrentTime from 'sentry/components/replays/player/replayCurrentTime';
 import ReplayPlayer from 'sentry/components/replays/player/replayPlayer';
 import ReplayPlayerMeasurer from 'sentry/components/replays/player/replayPlayerMeasurer';
-import ReplayPlayPauseButton from 'sentry/components/replays/player/replayPlayPauseButton';
 import ReplayPreferenceDropdown from 'sentry/components/replays/preferences/replayPreferenceDropdown';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import {StructuredData} from 'sentry/components/structuredEventData';
@@ -17,8 +15,6 @@ export default storyBook('ReplayPlayer', story => {
     function Example() {
       return (
         <SideBySide>
-          <ReplayPlayPauseButton />
-          <ReplayCurrentTime />
           <ReplayPreferenceDropdown speedOptions={[0.5, 1, 2, 8]} />
           <JumpToOffsetButtonBar intervals={['0m', '1ms', '1m', '8m', '12m']} />
           <DebugReplayPlayerState />
