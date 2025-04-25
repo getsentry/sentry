@@ -104,7 +104,7 @@ describe('CreateIssueViewModal', function () {
           },
           query: 'is:unresolved foo',
           querySort: IssueSortOptions.TRENDS,
-          starred: false,
+          starred: true,
         },
       })
     );
