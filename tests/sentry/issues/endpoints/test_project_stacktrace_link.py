@@ -93,7 +93,7 @@ class BaseProjectStacktraceLink(APITestCase):
 
         self.login_as(self.user)
 
-    def create_code_mapping(
+    def _create_code_mapping(
         self, stack_root: str, source_root: str, automatically_generated: bool = False
     ) -> RepositoryProjectPathConfig:
         return super().create_code_mapping(
@@ -128,11 +128,11 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
 
     def setUp(self) -> None:
         BaseProjectStacktraceLink.setUp(self)
-        self.code_mapping1 = self.create_code_mapping(
+        self.code_mapping1 = self._create_code_mapping(
             stack_root="usr/src/getsentry/",
             source_root="",
         )
-        self.code_mapping2 = self.create_code_mapping(
+        self.code_mapping2 = self._create_code_mapping(
             stack_root="sentry/",
             source_root="src/sentry/",
             automatically_generated=True,  # Created by the automation
@@ -222,19 +222,19 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
 class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
     def setUp(self) -> None:
         BaseProjectStacktraceLink.setUp(self)
-        self.android_code_mapping = self.create_code_mapping(
+        self.android_code_mapping = self._create_code_mapping(
             stack_root="usr/src/getsentry/",
             source_root="src/getsentry/",
         )
-        self.flutter_code_mapping = self.create_code_mapping(
+        self.flutter_code_mapping = self._create_code_mapping(
             stack_root="a/b/",
             source_root="",
         )
-        self.cocoa_code_mapping_filename = self.create_code_mapping(
+        self.cocoa_code_mapping_filename = self._create_code_mapping(
             stack_root="AppDelegate",
             source_root="src/AppDelegate",
         )
-        self.cocoa_code_mapping_abs_path = self.create_code_mapping(
+        self.cocoa_code_mapping_abs_path = self._create_code_mapping(
             stack_root="/Users/user/code/SwiftySampleProject/",
             source_root="src/",
         )
@@ -379,11 +379,11 @@ class ProjectStacktraceLinkTestMultipleMatches(BaseProjectStacktraceLink):
         filepath = f"{prefix}/src/sentry/{src_path}"
 
         # All of these code mappings would match filepath
-        self.create_code_mapping("", "", False)
-        self.create_code_mapping(f"{prefix}/src/", "", True)
-        cm = self.create_code_mapping(prefix, "", False)
-        self.create_code_mapping("/usr/src/", "", False)
-        self.create_code_mapping(f"{prefix}/src/sentry/", "", True)
+        self._create_code_mapping("", "", False)
+        self._create_code_mapping(f"{prefix}/src/", "", True)
+        cm = self._create_code_mapping(prefix, "", False)
+        self._create_code_mapping("/usr/src/", "", False)
+        self._create_code_mapping(f"{prefix}/src/sentry/", "", True)
 
         with patch.object(
             ExampleIntegration,
