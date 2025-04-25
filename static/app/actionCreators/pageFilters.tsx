@@ -216,7 +216,7 @@ export function initializeUrlState({
   pageFilters.datetime.period ??= defaultDatetime.period;
 
   const codecovDefaultFilters = getCodecovDefaultSelection();
-  const codecovPageFilters: CodecovPageFilters = {...codecovDefaultFilters};
+  const codecovPageFilters: CodecovPageFilters = codecovDefaultFilters;
 
   // Do not set a period if we have absolute start and end
   if (pageFilters.datetime.start && pageFilters.datetime.end) {
