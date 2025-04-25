@@ -14,8 +14,8 @@ describe('scaleTimeSeriesData', () => {
         },
       ],
       meta: {
-        type: 'string',
-        unit: null,
+        valueType: 'string',
+        valueUnit: null,
       },
     };
 
@@ -37,8 +37,8 @@ describe('scaleTimeSeriesData', () => {
         },
       ],
       meta: {
-        type: 'duration',
-        unit: DurationUnit.SECOND,
+        valueType: 'duration',
+        valueUnit: DurationUnit.SECOND,
       },
     };
 
@@ -55,8 +55,8 @@ describe('scaleTimeSeriesData', () => {
         },
       ],
       meta: {
-        type: 'duration',
-        unit: DurationUnit.SECOND,
+        valueType: 'duration',
+        valueUnit: DurationUnit.SECOND,
       },
     };
 
@@ -69,8 +69,8 @@ describe('scaleTimeSeriesData', () => {
         },
       ],
       meta: {
-        type: 'duration',
-        unit: DurationUnit.MILLISECOND,
+        valueType: 'duration',
+        valueUnit: DurationUnit.MILLISECOND,
       },
     });
   });
@@ -85,8 +85,8 @@ describe('scaleTimeSeriesData', () => {
         },
       ],
       meta: {
-        type: 'size',
-        unit: SizeUnit.MEBIBYTE,
+        valueType: 'size',
+        valueUnit: SizeUnit.MEBIBYTE,
       },
     };
 
@@ -99,8 +99,8 @@ describe('scaleTimeSeriesData', () => {
         },
       ],
       meta: {
-        type: 'size',
-        unit: SizeUnit.BYTE,
+        valueType: 'size',
+        valueUnit: SizeUnit.BYTE,
       },
     });
   });

@@ -5,8 +5,8 @@ export function TimeSeriesFixture(params: Partial<TimeSeries> = {}): TimeSeries 
   return {
     field: 'eps()',
     meta: {
-      type: 'rate',
-      unit: RateUnit.PER_SECOND
+      valueType: 'rate',
+      valueUnit: RateUnit.PER_SECOND
     },
     values: [
       {
