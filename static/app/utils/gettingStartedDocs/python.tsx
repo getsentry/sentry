@@ -17,10 +17,10 @@ export function getPythonInstallSnippet({
 }: {
   packageName: string;
   minimumVersion?: string;
-  packageManager?: 'pip' | 'uv';
+  packageManager?: 'pip' | 'uv' | 'poetry';
 }) {
   const versionedPackage = minimumVersion
-    ? `${packageName}>=${minimumVersion}`
+    ? `"${packageName}>=${minimumVersion}"`
     : packageName;
 
   const upgradeFlag = minimumVersion ? '--upgrade ' : '';
@@ -28,6 +28,7 @@ export function getPythonInstallSnippet({
   const packageManagerCommands = {
     uv: `uv add ${upgradeFlag}${versionedPackage}`,
     pip: `pip install ${upgradeFlag}${versionedPackage}`,
+    poetry: `poetry add ${versionedPackage}`,
   };
 
   return packageManagerCommands[packageManager].trim();
@@ -64,6 +65,16 @@ export function getPythonInstallConfig({
           code: getPythonInstallSnippet({
             packageName,
             packageManager: 'uv',
+            minimumVersion,
+          }),
+        },
+        {
+          label: 'poetry',
+          value: 'poetry',
+          language: 'bash',
+          code: getPythonInstallSnippet({
+            packageName,
+            packageManager: 'poetry',
             minimumVersion,
           }),
         },
