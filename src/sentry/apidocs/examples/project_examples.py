@@ -397,8 +397,8 @@ PROJECT_SUMMARY = {
         },
     ],
     "id": "6758470122493650",
-    "name": "the-spoiled-yoghurt",
-    "slug": "The Spoiled Yoghurt",
+    "slug": "the-spoiled-yoghurt",
+    "name": "The Spoiled Yoghurt",
     "isBookmarked": False,
     "isMember": True,
     "access": [
@@ -497,8 +497,8 @@ def project_with_team(extra_team: bool = False):
     return {
         **BASE_PROJECT,
         "id": "6758470122493650",
-        "slug": "The Spoiled Yoghurt",
-        "name": "the-spoiled-yoghurt",
+        "slug": "the-spoiled-yoghurt",
+        "name": "The Spoiled Yoghurt",
         "platform": "javascript",
         "dateCreated": "2023-03-29T15:25:21.344565Z",
         "color": "#5cbf3f",
