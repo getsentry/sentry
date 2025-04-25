@@ -6,38 +6,24 @@ import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
 import {ConnectionCell} from 'sentry/components/workflowEngine/gridCell/connectionCell';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
-import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
 import {space} from 'sentry/styles/space';
-import type {ActionType} from 'sentry/types/workflowEngine/actions';
+import type {Automation} from 'sentry/types/workflowEngine/automations';
+import {useAutomationActions} from 'sentry/views/automations/hooks/utils';
+import {AUTOMATIONS_BASE_URL} from 'sentry/views/automations/routes';
 
-export type Automation = {
-  actions: ActionType[];
-  id: string;
-  link: string;
-  monitorIds: string[];
-  name: string;
-  details?: string[];
-  disabled?: boolean;
-  lastTriggered?: Date;
-};
-
-type AutomationListRowProps = Automation & {
+type AutomationListRowProps = {
+  automation: Automation;
   handleSelect: (id: string, checked: boolean) => void;
   selected: boolean;
 };
 
 export function AutomationListRow({
-  actions,
-  id,
-  lastTriggered,
-  link,
-  monitorIds,
-  name,
-  details,
+  automation,
   handleSelect,
   selected,
-  disabled,
 }: AutomationListRowProps) {
+  const actions = useAutomationActions(automation);
+  const {id, name, disabled, lastTriggered, detectorIds = []} = automation;
   return (
     <RowWrapper disabled={disabled}>
       <InteractionStateLayer />
@@ -49,12 +35,7 @@ export function AutomationListRow({
           }}
         />
         <CellWrapper>
-          <StyledTitleCell
-            name={name}
-            link={link}
-            details={details}
-            disabled={disabled}
-          />
+          <TitleCell href={`${AUTOMATIONS_BASE_URL}/${id}/`}>{name}</TitleCell>
         </CellWrapper>
       </Flex>
       <CellWrapper className="last-triggered">
@@ -64,7 +45,7 @@ export function AutomationListRow({
         <ActionCell actions={actions} disabled={disabled} />
       </CellWrapper>
       <CellWrapper className="connected-monitors">
-        <ConnectionCell ids={monitorIds} type="detector" disabled={disabled} />
+        <ConnectionCell ids={detectorIds} type="detector" disabled={disabled} />
       </CellWrapper>
     </RowWrapper>
   );
@@ -76,16 +57,26 @@ const StyledCheckbox = styled(Checkbox)<{checked?: boolean}>`
   opacity: 1;
 `;
 
-const CellWrapper = styled(Flex)`
+const CellWrapper = styled('div')`
+  justify-content: start;
   padding: 0 ${space(2)};
-  flex: 1;
   overflow: hidden;
   white-space: nowrap;
+  text-overflow: ellipsis;
+  width: 100%;
+  min-width: 0;
 `;
 
-const StyledTitleCell = styled(TitleCell)`
+const TitleCell = styled('a')`
   padding: ${space(2)};
   margin: -${space(2)};
+  color: ${p => p.theme.textColor};
+
+  &:hover,
+  &:active {
+    text-decoration: underline;
+    color: ${p => p.theme.textColor};
+  }
 `;
 
 const RowWrapper = styled('div')<{disabled?: boolean}>`
@@ -139,6 +130,6 @@ const RowWrapper = styled('div')<{disabled?: boolean}>`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: 3fr 1fr 1fr 1fr;
+    grid-template-columns: minmax(0, 3fr) 1fr 1fr 1fr;
   }
 `;
