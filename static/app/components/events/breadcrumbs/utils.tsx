@@ -282,6 +282,7 @@ function getBreadcrumbColorConfig(
     case BreadcrumbType.SESSION:
     case BreadcrumbType.DEVICE:
     case BreadcrumbType.NETWORK:
+    case BreadcrumbType.CONNECTIVITY:
       return {title: theme.pink400, icon: theme.pink400, iconBorder: theme.pink200};
     case BreadcrumbType.INFO:
       return {title: theme.blue400, icon: theme.blue300, iconBorder: theme.blue200};
@@ -327,6 +328,8 @@ function getBreadcrumbFilter(type?: BreadcrumbType) {
       return t('Device');
     case BreadcrumbType.NETWORK:
       return t('Network');
+    case BreadcrumbType.CONNECTIVITY:
+      return t('Connectivity');
     default:
       return BREADCRUMB_TITLE_PLACEHOLDER;
   }
@@ -361,6 +364,7 @@ function BreadcrumbIcon({type}: {type?: BreadcrumbType}) {
     case BreadcrumbType.DEVICE:
       return <IconMobile size="xs" />;
     case BreadcrumbType.NETWORK:
+    case BreadcrumbType.CONNECTIVITY:
       return <IconWifi size="xs" />;
     default:
       return <IconCode size="xs" />;

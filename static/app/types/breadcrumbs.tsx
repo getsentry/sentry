@@ -29,6 +29,7 @@ export enum BreadcrumbType {
   INIT = 'init',
   NETWORK = 'network',
   DEVICE = 'device',
+  CONNECTIVITY = 'connectivity',
 }
 
 export enum BreadcrumbMessageFormat {
