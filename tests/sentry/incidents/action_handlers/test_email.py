@@ -304,7 +304,6 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule)
         action = self.create_alert_rule_trigger_action(triggered_for_incident=incident)
-        aggregate = action.alert_rule_trigger.alert_rule.snuba_query.aggregate
         alert_link = self.organization.absolute_url(
             reverse(
                 "sentry-metric-alert",
@@ -318,7 +317,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         expected = {
             "link": alert_link,
             "incident_name": incident.title,
-            "aggregate": aggregate,
+            "aggregate": action.alert_rule_trigger.alert_rule.snuba_query.aggregate,
             "query": action.alert_rule_trigger.alert_rule.snuba_query.query,
             "threshold": action.alert_rule_trigger.alert_threshold,
             "status": INCIDENT_STATUS[IncidentStatus(incident.status)],
