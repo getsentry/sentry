@@ -107,6 +107,7 @@ class OrganizationTracesSerializer(serializers.Serializer):
     useRpc = serializers.BooleanField(required=False)
 
     def validate_dataset(self, value):
+        sentry_sdk.set_tag("query.dataset", value)
         if value == "spans":
             return Dataset.EventsAnalyticsPlatform
         if value == "spansIndexed":
