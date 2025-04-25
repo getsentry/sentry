@@ -220,7 +220,6 @@ DETAILED_PROJECT = {
             "performance-n-plus-one-api-calls-post-process-group",
             "performance-db-main-thread-post-process-group",
             "performance-metrics-backed-transaction-summary",
-            "performance-db-main-thread-detector",
             "issue-platform",
             "performance-consecutive-db-issue",
             "performance-consecutive-http-post-process-group",

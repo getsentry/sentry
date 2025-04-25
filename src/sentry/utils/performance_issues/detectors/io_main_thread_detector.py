@@ -7,7 +7,7 @@ from typing import Any
 import sentry_sdk
 from symbolic.proguard import ProguardMapper
 
-from sentry import features, options
+from sentry import options
 from sentry.issues.grouptype import (
     GroupType,
     PerformanceDBMainThreadGroupType,
@@ -241,6 +241,4 @@ class DBMainThreadDetector(BaseIOMainThreadDetector):
         return data.get("blocked_main_thread", False) is True
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return features.has(
-            "organizations:performance-db-main-thread-detector", organization, actor=None
-        )
+        return True
