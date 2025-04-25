@@ -10,8 +10,8 @@ from sentry.workflow_engine.models.data_condition import Condition
 
 
 class TestMigrateIssueAlerts(TestMigrations):
-    migrate_from = "0048_fix_some_drift"
-    migrate_to = "0049_remove_orphaned_rule_workflows"
+    migrate_from = "0049_migrate_metric_alerts"
+    migrate_to = "0050_remove_orphaned_rule_workflows"
     app = "workflow_engine"
 
     def setup_initial_state(self):
