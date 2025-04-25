@@ -564,7 +564,22 @@ def generate_incident_trigger_email_context(
     if notification_uuid:
         alert_link_params["notification_uuid"] = notification_uuid
 
-    if features.has("organizations:workflow-engine-trigger-actions", organization):
+    if features.has("organizations:workflow-engine-ui-links", organization):
+        assert (
+            metric_issue_context.group is not None
+        ), "Group should not be None when workflow engine ui links are enabled"
+        alert_link = organization.absolute_url(
+            reverse(
+                "sentry-group",
+                kwargs={
+                    "organization_slug": organization.slug,
+                    "project_id": project.id,
+                    "group_id": metric_issue_context.group.id,
+                },
+            ),
+            query=urlencode(alert_link_params),
+        )
+    elif features.has("organizations:workflow-engine-trigger-actions", organization):
         # lookup the incident_id from the open_period_identifier
         try:
             incident_group_open_period = IncidentGroupOpenPeriod.objects.get(
@@ -580,21 +595,6 @@ def generate_incident_trigger_email_context(
                 kwargs={
                     "organization_slug": organization.slug,
                     "incident_id": incident.identifier,
-                },
-            ),
-            query=urlencode(alert_link_params),
-        )
-    elif features.has("organizations:workflow-engine-ui-links", organization):
-        assert (
-            metric_issue_context.group is not None
-        ), "Group should not be None when workflow engine ui links are enabled"
-        alert_link = organization.absolute_url(
-            reverse(
-                "sentry-group",
-                kwargs={
-                    "organization_slug": organization.slug,
-                    "project_id": project.id,
-                    "group_id": metric_issue_context.group.id,
                 },
             ),
             query=urlencode(alert_link_params),
