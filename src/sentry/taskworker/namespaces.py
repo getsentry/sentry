@@ -36,6 +36,8 @@ hybridcloud_control_tasks = taskregistry.create_namespace("hybridcloud.control")
 
 ingest_profiling_tasks = taskregistry.create_namespace("ingest.profiling")
 
+ingest_transactions_tasks = taskregistry.create_namespace("ingest.transactions")
+
 issues_tasks = taskregistry.create_namespace("issues")
 
 integrations_tasks = taskregistry.create_namespace("integrations")
