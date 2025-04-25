@@ -38,8 +38,10 @@ class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
         return list(detector.stored_problems.values())
 
     def create_event(self, description_maker: Callable[[int], str]) -> dict[str, Any]:
-        total_duration = self._settings[DetectorType.N_PLUS_ONE_API_CALLS]["total_duration"] + 1
-        count = self._settings[DetectorType.N_PLUS_ONE_API_CALLS]["count"] + 1
+        total_duration = (
+            self._settings[DetectorType.EXPERIMENTAL_N_PLUS_ONE_API_CALLS]["total_duration"] + 1
+        )
+        count = self._settings[DetectorType.EXPERIMENTAL_N_PLUS_ONE_API_CALLS]["count"] + 1
         hash = uuid4().hex[:16]
 
         return create_event(
@@ -176,14 +178,14 @@ class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
     def test_does_not_detect_problems_with_low_span_count(self):
         event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")
         event["spans"] = self.create_eligible_spans(
-            1000, self._settings[DetectorType.N_PLUS_ONE_API_CALLS]["count"]
+            1000, self._settings[DetectorType.EXPERIMENTAL_N_PLUS_ONE_API_CALLS]["count"]
         )
 
         problems = self.find_problems(event)
         assert len(problems) == 1
 
         event["spans"] = self.create_eligible_spans(
-            1000, self._settings[DetectorType.N_PLUS_ONE_API_CALLS]["count"] - 1
+            1000, self._settings[DetectorType.EXPERIMENTAL_N_PLUS_ONE_API_CALLS]["count"] - 1
         )
 
         problems = self.find_problems(event)
