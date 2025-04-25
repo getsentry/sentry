@@ -10,7 +10,7 @@ class InactiveReason(str, Enum):
     # Indicates the request should be allowed
     NONE = None
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return self.value is not None
 
     def __str__(self) -> str:

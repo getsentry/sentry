@@ -159,10 +159,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:issue-search-group-attributes-side-query", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable custom views features in the issue stream
     manager.add("organizations:issue-stream-custom-views", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable the updated empty state for issues
-    manager.add("organizations:issue-stream-empty-state", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable additional platforms for issue stream empty state
-    manager.add("organizations:issue-stream-empty-state-additional-platforms", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable issue stream performance improvements
     manager.add("organizations:issue-search-snuba", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable the new issue category mapping
@@ -192,8 +188,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:new-page-filter", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=True)
     # Enable access to NextJS specific insights
     manager.add("organizations:nextjs-insights", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Drop obsoleted status changes in occurence consumer
-    manager.add("organizations:occurence-consumer-prune-status-changes", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable User Feedback v1
     manager.add("organizations:old-user-feedback", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Extract on demand metrics
@@ -206,8 +200,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:on-demand-metrics-query-spec-version-two", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Use the new OrganizationMemberInvite endpoints
     manager.add("organizations:new-organization-member-invite", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Display new Source map uploads view in settings
-    manager.add("organizations:new-source-map-uploads-view", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Display on demand metrics related UI elements
     manager.add("organizations:on-demand-metrics-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Display on demand metrics related UI elements, for dashboards and widgets. The other flag is for alerts.

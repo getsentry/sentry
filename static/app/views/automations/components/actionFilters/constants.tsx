@@ -42,12 +42,6 @@ export enum MatchType {
   STARTS_WITH = 'sw',
 }
 
-enum Assignee {
-  UNASSIGNED = 'Unassigned',
-  TEAM = 'Team',
-  MEMBER = 'Member',
-}
-
 export enum Priority {
   LOW = 25,
   MEDIUM = 50,
@@ -115,12 +109,6 @@ export const MATCH_CHOICES = [
   {value: MatchType.NOT_SET, label: 'is not set'},
   {value: MatchType.IS_IN, label: 'is one of'},
   {value: MatchType.NOT_IN, label: 'is not one of'},
-];
-
-export const ASSIGNEE_CHOICES = [
-  {value: Assignee.UNASSIGNED, label: t('unassigned')},
-  {value: Assignee.MEMBER, label: t('member')},
-  {value: Assignee.TEAM, label: t('team')},
 ];
 
 export const PRIORITY_CHOICES = [

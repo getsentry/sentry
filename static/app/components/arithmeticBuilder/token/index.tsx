@@ -145,12 +145,6 @@ export function isTokenFreeText(token: Token | null | undefined): token is Token
   return token?.kind === TokenKind.FREE_TEXT;
 }
 
-export function isTokenAttribute(
-  token: Token | null | undefined
-): token is TokenAttribute {
-  return token?.kind === TokenKind.ATTRIBUTE;
-}
-
 export function isTokenFunction(token: Token | null | undefined): token is TokenFunction {
   return token?.kind === TokenKind.FUNCTION;
 }
