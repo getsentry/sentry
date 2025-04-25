@@ -180,14 +180,9 @@ export function TreeCoverageSunburstChart({data}: TreeCoverageSunburstChartProps
               type: 'sunburst',
               data: [renderData],
               radius: [40, 100],
-              label: {
-                show: false,
-              },
-              emphasis: {
-                focus: 'ancestor',
-              },
+              label: {show: false},
+              emphasis: {focus: 'ancestor'},
               nodeClick: false,
-              levels: [{}, {itemStyle: {color: theme.blue300}}, {}],
             },
           }}
         />
