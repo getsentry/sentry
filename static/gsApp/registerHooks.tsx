@@ -18,7 +18,6 @@ import DisabledCustomInboundFilters from 'getsentry/components/features/disabled
 import DisabledDataForwarding from 'getsentry/components/features/disabledDataForwarding';
 import DisabledDateRange from 'getsentry/components/features/disabledDateRange';
 import DisabledDiscardGroup from 'getsentry/components/features/disabledDiscardGroup';
-import DisabledMetricsAlertTooltip from 'getsentry/components/features/disabledMetricsAlertTooltip';
 import DisabledQuickTrace from 'getsentry/components/features/disabledQuickTrace';
 import DisabledRateLimits from 'getsentry/components/features/disabledRateLimits';
 import DisabledRelay from 'getsentry/components/features/disabledRelay';
@@ -267,19 +266,14 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'feature-disabled:relay': p => <DisabledRelay {...p} />,
   'feature-disabled:rate-limits': p => <DisabledRateLimits {...p} />,
   'feature-disabled:sso-basic': p => <DisabledAuthProvider {...p} />,
-  'feature-disabled:sso-saml2': p => <DisabledAuthProvider {...p} />,
   'feature-disabled:custom-inbound-filters': p => <DisabledCustomInboundFilters {...p} />,
   'feature-disabled:discover2-sidebar-item': p =>
-    typeof p.children === 'function' ? p.children(p) : p.children,
-  'feature-disabled:incidents-sidebar-item': p =>
     typeof p.children === 'function' ? p.children(p) : p.children,
   'feature-disabled:performance-new-project': p => (
     <PerformanceNewProjectPrompt {...p}>
       {typeof p.children === 'function' ? p.children(p) : p.children}
     </PerformanceNewProjectPrompt>
   ),
-  'feature-disabled:performance-sidebar-item': p =>
-    typeof p.children === 'function' ? p.children(p) : p.children,
   'feature-disabled:discover2-page': p => (
     <LazyLoad LazyComponent={DisabledDiscover2Page} {...p}>
       {typeof p.children === 'function' ? p.children(p) : p.children}
@@ -309,11 +303,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
     <DisabledAlertWizard {...p}>
       {typeof p.children === 'function' ? p.children(p) : p.children}
     </DisabledAlertWizard>
-  ),
-  'feature-disabled:create-metrics-alert-tooltip': p => (
-    <DisabledMetricsAlertTooltip {...p}>
-      {typeof p.children === 'function' ? p.children(p) : p.children}
-    </DisabledMetricsAlertTooltip>
   ),
   'feature-disabled:codecov-integration-setting': () => (
     <PowerFeatureHovercard
@@ -369,15 +358,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
     </PowerFeatureHovercard>
   ),
   'feature-disabled:open-in-discover': p => <OpenInDiscoverBtn {...p} />,
-  'feature-disabled:trace-view-link': p => (
-    <PowerFeatureHovercard
-      // TODO(wmak): Flip back to trace-view-summary when we add it to plans
-      features={['organizations:discover-query']}
-      id="trace-view-link"
-    >
-      {typeof p.children === 'function' ? p.children(p) : p.children}
-    </PowerFeatureHovercard>
-  ),
 
   /**
    * Augment integration installation modals with feature grouping based on
