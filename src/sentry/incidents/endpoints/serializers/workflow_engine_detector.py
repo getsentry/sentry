@@ -215,7 +215,6 @@ class WorkflowEngineDetectorSerializer(Serializer):
                 for detector_trigger in detector_trigger_data_conditions
             ],
         ).exclude(condition_group__in=detector_workflow_condition_group_ids)
-        # ).values_list("condition_group", flat=True)
 
         dcgas = DataConditionGroupAction.objects.filter(
             condition_group__in=[
