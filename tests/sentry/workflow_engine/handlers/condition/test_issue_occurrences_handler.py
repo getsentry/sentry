@@ -39,7 +39,7 @@ class TestIssueOccurrencesCondition(ConditionTestCase):
 
     def test_dual_write__min_zero(self):
         dcg = self.create_data_condition_group()
-        self.payload["value"] = -10
+        self.payload["value"] = "-10"
         dc = self.translate_to_data_condition(self.payload, dcg)
 
         assert dc.type == self.condition
