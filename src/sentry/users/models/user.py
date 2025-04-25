@@ -121,6 +121,7 @@ class User(Model, AbstractBaseUser):
     is_unclaimed = models.BooleanField(
         _("unclaimed"),
         default=False,
+        db_default=False,
         help_text=_(
             "Designates that this user was imported via the relocation tool, but has not yet been "
             "claimed by the owner of the associated email. Users in this state have randomized "
@@ -184,8 +185,12 @@ class User(Model, AbstractBaseUser):
     date_joined = models.DateTimeField(_("date joined"), default=timezone.now)
     last_active = models.DateTimeField(_("last active"), default=timezone.now, null=True)
 
-    avatar_type = models.PositiveSmallIntegerField(default=0, choices=UserAvatar.AVATAR_TYPES)
-    avatar_url = models.CharField(_("avatar url"), max_length=120, null=True)
+    avatar_type = models.PositiveSmallIntegerField(
+        default=0, db_default=0, choices=UserAvatar.AVATAR_TYPES
+    )
+    avatar_url = models.CharField(
+        _("avatar url"), default=None, db_default=None, max_length=120, null=True
+    )
 
     objects: ClassVar[UserManager] = UserManager(cache_fields=["pk"])
 
