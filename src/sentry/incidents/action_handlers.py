@@ -585,6 +585,9 @@ def generate_incident_trigger_email_context(
             query=urlencode(alert_link_params),
         )
     elif features.has("organizations:workflow-engine-ui-links", organization):
+        assert (
+            metric_issue_context.group is not None
+        ), "Group should not be None when workflow engine ui links are enabled"
         alert_link = organization.absolute_url(
             reverse(
                 "sentry-group",
