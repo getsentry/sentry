@@ -7,14 +7,15 @@ class DetectionTest(TestCase):
     def test_http_within_sql_transaction(self):
         f = http_within_sql_transaction()
 
-        expected = (
-            "Precedes(\n"
-            "  And(EqLiteral(op, 'db'), PrefixLiteral(description, 'BEGIN')),\n"
-            "  And(EqLiteral(op, 'http.client'), DurationGtLiteral(0.25)),\n"
-            "  And(EqLiteral(op, 'db'), Or(PrefixLiteral(description, 'COMMIT'), PrefixLiteral(description, 'ROLLBACK'))),\n"
+        assert f.dumps() == (
+            "(\n"
+            "  (op='db' AND description='BEGIN'*)\n"
+            "  ...\n"
+            "  (op='http.client' AND duration>0.25)\n"
+            "  ...\n"
+            "  (op='db' AND (description='COMMIT'* OR description='ROLLBACK'*))\n"
             ")"
         )
-        assert f.dumps() == expected
 
         assert f(
             [

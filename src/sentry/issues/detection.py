@@ -104,7 +104,7 @@ class OpAnd(SpanOp):
         return self.left(span) and self.right(span)
 
     def __str__(self):
-        return f"And({self.left}, {self.right})"
+        return f"({self.left} AND {self.right})"
 
 
 class OpOr(SpanOp):
@@ -116,7 +116,7 @@ class OpOr(SpanOp):
         return self.left(span) or self.right(span)
 
     def __str__(self):
-        return f"Or({self.left}, {self.right})"
+        return f"({self.left} OR {self.right})"
 
 
 class OpEqLiteral(SpanOp):
@@ -128,7 +128,7 @@ class OpEqLiteral(SpanOp):
         return span.get(self.key) == self.value
 
     def __str__(self):
-        return f"EqLiteral({self.key}, {repr(self.value)})"
+        return f"{self.key}={repr(self.value)}"
 
 
 class OpPrefixLiteral(SpanOp):
@@ -140,7 +140,7 @@ class OpPrefixLiteral(SpanOp):
         return span.get(self.key).startswith(self.prefix)
 
     def __str__(self):
-        return f"PrefixLiteral({self.key}, {repr(self.prefix)})"
+        return f"{self.key}={repr(self.prefix)}*"
 
 
 class OpGtLiteral(SpanOp):
@@ -152,7 +152,7 @@ class OpGtLiteral(SpanOp):
         return self.key in span and span[self.key] > self.value
 
     def __str__(self):
-        return f"GtLiteral({self.key}, {repr(self.value)})"
+        return f"{self.key}>{repr(self.value)})"
 
 
 class OpDurationGtLiteral(SpanOp):
@@ -163,7 +163,7 @@ class OpDurationGtLiteral(SpanOp):
         return (span["timestamp"] - span["start_timestamp"]) > self.value
 
     def __str__(self):
-        return f"DurationGtLiteral({repr(self.value)})"
+        return f"duration>{repr(self.value)}"
 
 
 class OpPrecedes(SpansOp):
@@ -187,13 +187,17 @@ class OpPrecedes(SpansOp):
 
     def dumps(self, indent: int = 0) -> str:
         prefix = " " * indent
-        output = prefix + "Precedes(\n"
+        output = prefix + "(\n"
 
         indent += 2
         prefix = " " * indent
+        first = True
         for op in self.ops:
-            output += op.dumps(indent=indent)
-            output += ",\n"
+            if first:
+                first = False
+            else:
+                output += prefix + "...\n"
+            output += op.dumps(indent=indent) + "\n"
 
         indent -= 2
         prefix = " " * indent
