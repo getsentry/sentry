@@ -3,6 +3,7 @@ from datetime import timedelta
 import pytest
 from django.urls import reverse
 
+from sentry.search.utils import DEVICE_CLASS
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 from tests.snuba.api.endpoints.test_organization_events_span_indexed import KNOWN_PREFLIGHT_ID
@@ -1337,7 +1338,11 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                             "description": "foo",
                             "sentry_tags": {
                                 "status": "success",
-                                "device.class": "1" if count[0] == "low" else "2",
+                                "device.class": (
+                                    list(DEVICE_CLASS["low"])[0]
+                                    if count[0] == "low"
+                                    else list(DEVICE_CLASS["medium"])[0]
+                                ),
                             },
                         },
                         start_ts=self.day_ago + timedelta(hours=hour, minutes=minute),
