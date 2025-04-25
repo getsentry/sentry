@@ -12,7 +12,7 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {AutomationListRow} from 'sentry/views/automations/components/automationListRow';
-import {useAutomationsQuery} from 'sentry/views/automations/hooks/utils';
+import {useAutomationsQuery} from 'sentry/views/automations/hooks';
 
 function AutomationListTable() {
   const {data: automations = [], isLoading} = useAutomationsQuery();
