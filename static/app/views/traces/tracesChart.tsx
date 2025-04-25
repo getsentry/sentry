@@ -153,7 +153,6 @@ const useTraceCountSeries = ({
       search: new MutableSearch(query ?? ''),
       yAxis: ['count()'],
       interval: getInterval(pageFilters.selection.datetime, 'metrics'),
-      overriddenRoute: 'traces-stats',
       enabled,
     },
     'api.trace-explorer.stats'
