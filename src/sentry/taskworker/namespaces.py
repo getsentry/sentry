@@ -34,6 +34,10 @@ hybridcloud_tasks = taskregistry.create_namespace("hybridcloud")
 
 hybridcloud_control_tasks = taskregistry.create_namespace("hybridcloud.control")
 
+ingest_profiling_tasks = taskregistry.create_namespace("ingest.profiling")
+
+ingest_transactions_tasks = taskregistry.create_namespace("ingest.transactions")
+
 issues_tasks = taskregistry.create_namespace("issues")
 
 integrations_tasks = taskregistry.create_namespace("integrations")
@@ -47,6 +51,8 @@ notifications_control_tasks = taskregistry.create_namespace("notifications.contr
 options_tasks = taskregistry.create_namespace("options")
 
 options_control_tasks = taskregistry.create_namespace("options.control")
+
+relay_tasks = taskregistry.create_namespace("relay")
 
 performance_tasks = taskregistry.create_namespace("performance")
 
