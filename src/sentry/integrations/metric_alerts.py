@@ -224,6 +224,8 @@ def incident_attachment_info(
             alert_rule_id = AlertRuleDetector.objects.values_list("alert_rule_id", flat=True).get(
                 detector_id=alert_context.action_identifier_id
             )
+            if alert_rule_id is None:
+                raise ValueError("Alert rule id not found when querying for AlertRuleDetector")
         except AlertRuleDetector.DoesNotExist:
             raise ValueError("Alert rule detector not found when querying for AlertRuleDetector")
 
