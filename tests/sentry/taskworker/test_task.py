@@ -240,7 +240,7 @@ def test_create_activation_tracing(task_namespace: TaskNamespace) -> None:
     assert "baggage" in headers
 
 
-def test_create_activation_headers(task_namespace: TaskNamespace) -> None:
+def test_create_activation_tracing_headers(task_namespace: TaskNamespace) -> None:
     @task_namespace.register(name="test.parameters")
     def with_parameters(one: str, two: int, org_id: int) -> None:
         raise NotImplementedError
@@ -254,6 +254,26 @@ def test_create_activation_headers(task_namespace: TaskNamespace) -> None:
     assert headers["sentry-trace"]
     assert "baggage" in headers
     assert headers["key"] == "value"
+
+
+def test_create_activation_headers_scalars(task_namespace: TaskNamespace) -> None:
+    @task_namespace.register(name="test.parameters")
+    def with_parameters(one: str, two: int, org_id: int) -> None:
+        raise NotImplementedError
+
+    headers = {
+        "str": "value",
+        "int": 22,
+        "float": 3.14,
+        "bool": False,
+        "none": None,
+    }
+    activation = with_parameters.create_activation(["one", 22], {"org_id": 99}, headers)
+    assert activation.headers["str"] == "value"
+    assert activation.headers["int"] == "22"
+    assert activation.headers["float"] == "3.14"
+    assert activation.headers["bool"] == "False"
+    assert activation.headers["none"] == "None"
 
 
 def test_create_activation_headers_nested(task_namespace: TaskNamespace) -> None:

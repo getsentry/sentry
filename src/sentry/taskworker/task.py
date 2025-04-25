@@ -151,7 +151,9 @@ class Task(Generic[P, R]):
             del headers["sentry-monitor-config"]
 
         for key, value in headers.items():
-            if not isinstance(value, (str, bytes, int, bool, float)):
+            if value is None or isinstance(value, (str, bytes, int, bool, float)):
+                headers[key] = str(value)
+            else:
                 raise ValueError(
                     "Only scalar header values are supported. "
                     f"The `{key}` header value is of type {type(value)}"
