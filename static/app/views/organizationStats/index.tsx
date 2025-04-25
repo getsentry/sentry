@@ -355,11 +355,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
   render() {
     const {organization} = this.props;
     const hasTeamInsights = organization.features.includes('team-insights');
-    const showProfilingBanner = [
-      'profileDuration',
-      'profileDurationUI',
-      'profiles',
-    ].includes(this.dataCategory);
+    const showProfilingBanner = this.dataCategory === 'profiles';
 
     return (
       <SentryDocumentTitle title={t('Usage Stats')} orgSlug={organization.slug}>
@@ -391,9 +387,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
                   {this.renderProjectPageControl()}
                   {this.renderEstimationDisclaimer()}
                 </ControlsWrapper>
-                {showProfilingBanner && (
-                  <HookOrgStatsProfilingBanner router={this.props.router} />
-                )}
+                {showProfilingBanner && <HookOrgStatsProfilingBanner />}
                 <div>
                   <ErrorBoundary mini>{this.renderUsageStatsOrg()}</ErrorBoundary>
                 </div>

@@ -1,17 +1,12 @@
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
-import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button';
 import {IconProfiling} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
 
-type Props = {
-  router: InjectedRouter & {location?: Location};
-};
-
-function OrgStatsProfilingBanner({router}: Props) {
+function OrgStatsProfilingBanner() {
+  const location = useLocation();
   return (
     <BannerGrid>
       <HeaderItem>
@@ -34,7 +29,10 @@ function OrgStatsProfilingBanner({router}: Props) {
             icon={<IconProfiling size="sm" />}
             title="Go to UI Profile Hours"
             aria-label="Go to UI Profile Hours"
-            onClick={() => router.push(normalizeUrl('/profiling/'))}
+            to={{
+              ...location,
+              query: {...location.query, dataCategory: 'profileDurationUI'},
+            }}
           >
             Go to UI Profile Hours
           </StyledProfilingButton>
@@ -52,7 +50,10 @@ function OrgStatsProfilingBanner({router}: Props) {
             icon={<IconProfiling size="sm" />}
             title="Go to Continuous Profile Hours"
             aria-label="Go to Continuous Profile Hours"
-            onClick={() => router.push(normalizeUrl('/profiling/'))}
+            to={{
+              ...location,
+              query: {...location.query, dataCategory: 'profileDuration'},
+            }}
           >
             Go to Continuous Profile Hours
           </StyledProfilingButton>
@@ -116,7 +117,7 @@ const CategoryItemRight = styled('div')`
   padding: ${space(2)};
 `;
 
-const StyledProfilingButton = styled(Button)`
+const StyledProfilingButton = styled(LinkButton)`
   margin-top: ${space(1)};
 `;
 
