@@ -75,9 +75,7 @@ import OpenInDiscoverBtn from './components/openInDiscoverBtn';
 import {
   ContinuousProfilingBetaAlertBanner,
   ContinuousProfilingBetaSDKAlertBanner,
-  ProfilingAM1OrMMXUpgrade,
   ProfilingBetaAlertBanner,
-  ProfilingUpgradePlanButton,
 } from './components/profiling/alerts';
 import ReplayOnboardingAlert from './components/replayOnboardingAlert';
 import ReplaySettingsAlert from './components/replaySettingsAlert';
@@ -236,8 +234,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:replay-settings-alert': () => ReplaySettingsAlert,
   'component:product-unavailable-cta': () => ProductUnavailableCTA,
   'component:profiling-billing-banner': () => ProfilingBetaAlertBanner,
-  'component:profiling-upgrade-plan-button': () => ProfilingUpgradePlanButton,
-  'component:profiling-am1-or-mmx-upgrade': () => ProfilingAM1OrMMXUpgrade,
   'component:product-selection-availability': () => ProductSelectionAvailability,
   'component:superuser-access-category': SuperuserAccessCategory,
   'component:superuser-warning': p => <SuperuserWarning {...p} />,

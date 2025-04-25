@@ -11,10 +11,8 @@ from django.http.response import HttpResponseBase
 from django.urls import resolve, reverse
 
 from sentry import features
-from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import organization_service
-from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.types.region import subdomain_is_region
 from sentry.utils import auth
 from sentry.utils.http import absolute_uri
@@ -22,10 +20,12 @@ from sentry.utils.http import absolute_uri
 logger = logging.getLogger(__name__)
 
 
-def _get_org_id(slug: str | None) -> int | None:
+def _org_exists(slug):
     if not slug:
-        return None
-    return organization_service.check_organization_by_slug(slug=slug, only_visible=False)
+        return False
+    return (
+        organization_service.check_organization_by_slug(slug=slug, only_visible=False) is not None
+    )
 
 
 def _query_string(request):
@@ -35,15 +35,15 @@ def _query_string(request):
     return qs
 
 
-def _resolve_activeorg(request: HttpRequest) -> tuple[int | None, str | None]:
+def _resolve_activeorg(request):
     subdomain = request.subdomain
     session = getattr(request, "session", None)
-    if org_id := _get_org_id(subdomain):
+    if _org_exists(subdomain):
         # Assume subdomain is an org slug being accessed
-        return org_id, subdomain
-    elif session and (org_id := _get_org_id(session.get("activeorg"))):
-        return org_id, session["activeorg"]
-    return None, None
+        return subdomain
+    elif session and "activeorg" in session and _org_exists(session["activeorg"]):
+        return session["activeorg"]
+    return None
 
 
 def _resolve_redirect_url(request, activeorg):
@@ -107,21 +107,15 @@ class CustomerDomainMiddleware:
             logger.info("customer_domain.redirect.logout", extra={"location": redirect_url})
             return HttpResponseRedirect(redirect_url)
 
-        org_id, activeorg = _resolve_activeorg(request)
-
+        activeorg = _resolve_activeorg(request)
         if not activeorg:
             session = getattr(request, "session", None)
             if session and "activeorg" in session:
                 del session["activeorg"]
             return self.get_response(request)
-
-        if not is_demo_mode_enabled() or not is_demo_org(RpcOrganization(id=org_id)):
-            # we explicitly do not set the active org for demo orgs
-            auth.set_active_org(request, activeorg)
-
+        auth.set_active_org(request, activeorg)
         redirect_url = _resolve_redirect_url(request, activeorg)
         if redirect_url is not None and len(redirect_url) > 0:
             logger.info("customer_domain.redirect", extra={"location": redirect_url})
             return HttpResponseRedirect(redirect_url)
-
         return self.get_response(request)
