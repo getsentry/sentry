@@ -113,20 +113,17 @@ class RatelimitMiddleware:
                             "window": request.rate_limit_metadata.window,
                         },
                     )
-                    response = HttpResponse(
-                        orjson.dumps(
-                            DEFAULT_ERROR_MESSAGE.format(
-                                limit=request.rate_limit_metadata.limit,
-                                window=request.rate_limit_metadata.window,
-                            )
-                            if request.rate_limit_metadata.rate_limit_type
-                            == RateLimitType.FIXED_WINDOW
-                            else DEFAULT_CONCURRENT_ERROR_MESSAGE.format(
-                                limit=request.rate_limit_metadata.concurrent_limit
-                            )
-                        ),
-                        status=429,
-                    )
+                    if request.rate_limit_metadata.rate_limit_type == RateLimitType.FIXED_WINDOW:
+                        response_text = DEFAULT_ERROR_MESSAGE.format(
+                            limit=request.rate_limit_metadata.limit,
+                            window=request.rate_limit_metadata.window,
+                        )
+                    else:
+                        response_text = DEFAULT_CONCURRENT_ERROR_MESSAGE.format(
+                            limit=request.rate_limit_metadata.concurrent_limit
+                        )
+
+                    response = HttpResponse(orjson.dumps(response_text), status=429)
                     assert request.method is not None
                     return apply_cors_headers(
                         request=request, response=response, allowed_methods=[request.method]

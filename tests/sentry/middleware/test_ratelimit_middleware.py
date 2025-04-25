@@ -118,7 +118,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
             response = self.middleware.process_view(request, self._test_endpoint, [], {})
             assert request.will_be_rate_limited
             assert response
-            assert "You are attempting to use this endpoint too frequently. Limit is 0 requests in 100 seconds" in response.serialize().decode(
+            assert "You are attempting to use this endpoint too frequently. Limit is 0 requests in 100 seconds" in response.serialize().decode(  # type: ignore[attr-defined]
                 "utf-8"
             )
             assert response["Access-Control-Allow-Methods"] == "GET"
@@ -148,7 +148,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
             response = self.middleware.process_view(request, self._test_endpoint, [], {})
             assert request.will_be_rate_limited
             assert response
-            assert "You are attempting to go above the allowed concurrency for this endpoint. Concurrency limit is 1" in response.serialize().decode(
+            assert "You are attempting to go above the allowed concurrency for this endpoint. Concurrency limit is 1" in response.serialize().decode(  # type: ignore[attr-defined]
                 "utf-8"
             )
             assert response["Access-Control-Allow-Methods"] == "GET"
