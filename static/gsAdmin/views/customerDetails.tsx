@@ -59,6 +59,7 @@ import TrialSubscriptionAction from 'admin/components/trialSubscriptionAction';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import type {BillingConfig, DataCategories, Subscription} from 'getsentry/types';
 import {
+  getCategoryInfoFromPlural,
   hasActiveVCFeature,
   isBizPlanFamily,
   isUnlimitedReserved,
@@ -146,11 +147,16 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
 
           // Check why categories are disabled
           const categoryNotExists = !data.categories?.[category as DataCategories];
+          const categoryInfo = getCategoryInfoFromPlural(category as DataCategory);
+
+          const isGiftable =
+            categoryInfo?.maxAdminGift && categoryInfo.freeEventsMultiple;
 
           return [
             category,
             {
-              disabled: categoryNotExists || isUnlimited || isReservedBudgetQuota,
+              disabled:
+                categoryNotExists || isUnlimited || isReservedBudgetQuota || !isGiftable,
               displayName: getPlanCategoryName({
                 plan: data.planDetails,
                 category,
@@ -159,6 +165,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
               }),
               isUnlimited,
               isReservedBudgetQuota,
+              categoryInfo,
             },
           ];
         })
@@ -702,7 +709,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
             ...Object.entries(this.giftCategories).map<ActionItem>(
               ([
                 dataCategory,
-                {displayName, disabled, isUnlimited, isReservedBudgetQuota},
+                {displayName, disabled, isUnlimited, isReservedBudgetQuota, categoryInfo},
               ]) => ({
                 key: `gift-${dataCategory}`,
                 name: `Gift ${displayName}`,
@@ -716,6 +723,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
                 confirmModalOpts: {
                   renderModalSpecificContent: deps => (
                     <AddGiftEventsAction
+                      billedCategoryInfo={categoryInfo}
                       dataCategory={dataCategory as DataCategory}
                       subscription={data}
                       {...deps}

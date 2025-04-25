@@ -1,5 +1,7 @@
-import {DataCategory} from 'sentry/types/core';
+import {DATA_CATEGORY_INFO} from 'sentry/constants';
+import {DataCategoryExact} from 'sentry/types/core';
 
+import type {BilledDataCategoryInfo} from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
 
 export const MONTHLY = 'monthly';
@@ -24,18 +26,6 @@ const BASIC_TRIAL_PLANS = ['am1_t', 'am2_t', 'am3_t'];
 const ENTERPRISE_TRIAL_PLANS = ['am1_t_ent', 'am2_t_ent', 'am3_t_ent', 'am3_t_ent_ds'];
 export const TRIAL_PLANS = [...BASIC_TRIAL_PLANS, ...ENTERPRISE_TRIAL_PLANS];
 
-export const MAX_ADMIN_CATEGORY_GIFTS = {
-  [DataCategory.ERRORS]: 10_000_000,
-  [DataCategory.TRANSACTIONS]: 50_000_000,
-  [DataCategory.ATTACHMENTS]: 10_000,
-  [DataCategory.REPLAYS]: 1_000_000,
-  [DataCategory.MONITOR_SEATS]: 10_000,
-  [DataCategory.UPTIME]: 10_000,
-  [DataCategory.SPANS]: 1_000_000_000,
-  [DataCategory.PROFILE_DURATION]: 10_000,
-  [DataCategory.PROFILE_DURATION_UI]: 10_000,
-};
-
 // While we no longer offer or support unlimited ondemand we still
 // need to render billing history records that have unlimited ondemand.
 export const UNLIMITED_ONDEMAND = -1;
@@ -51,16 +41,112 @@ export enum AllocationTargetTypes {
   ORGANIZATION = 'Organization',
 }
 
-export const ALLOCATION_SUPPORTED_CATEGORIES: DataCategory[] = [
-  DataCategory.ERRORS,
-  DataCategory.TRANSACTIONS,
-  DataCategory.ATTACHMENTS,
-];
+// XXX: initialize the BilledDataCategoryInfo-specific field for all non-billed
+// `categories and make TS happy so we can access the BilledDataCategoryInfo
+// fields directly without needing to check that they exist on the object
+const DEFAULT_BILLED_DATA_CATEGORY_INFO = {
+  ...DATA_CATEGORY_INFO,
+} as Record<DataCategoryExact, BilledDataCategoryInfo>;
+Object.entries(DEFAULT_BILLED_DATA_CATEGORY_INFO).forEach(
+  ([categoryExact, categoryInfo]) => {
+    if (!categoryInfo.isBilledCategory) {
+      DEFAULT_BILLED_DATA_CATEGORY_INFO[categoryExact as DataCategoryExact] = {
+        ...categoryInfo,
+        canAllocate: false,
+        canProductTrial: false,
+        maxAdminGift: 0,
+        freeEventsMultiple: 0,
+        feature: null,
+      };
+    }
+  }
+);
 
-export const PRODUCT_TRIAL_CATEGORIES: DataCategory[] = [
-  DataCategory.REPLAYS,
-  DataCategory.SPANS,
-  DataCategory.TRANSACTIONS,
-  DataCategory.PROFILE_DURATION,
-  DataCategory.PROFILE_DURATION_UI,
-];
+/**
+ * Extension of DATA_CATEGORY_INFO with billing info for billed categories.
+ * All categories with isBilledCategory: true, should be explicitly
+ * added to this object with billing info.
+ */
+export const BILLED_DATA_CATEGORY_INFO = {
+  ...DEFAULT_BILLED_DATA_CATEGORY_INFO,
+  [DataCategoryExact.ERROR]: {
+    ...DATA_CATEGORY_INFO[DataCategoryExact.ERROR],
+    canAllocate: true,
+    canProductTrial: false,
+    maxAdminGift: 10_000_000,
+    freeEventsMultiple: 1_000,
+    feature: null,
+  },
+  [DataCategoryExact.TRANSACTION]: {
+    ...DATA_CATEGORY_INFO[DataCategoryExact.TRANSACTION],
+    canAllocate: true,
+    canProductTrial: true,
+    maxAdminGift: 50_000_000,
+    freeEventsMultiple: 1_000,
+    feature: 'performance-view',
+  },
+  [DataCategoryExact.ATTACHMENT]: {
+    ...DATA_CATEGORY_INFO[DataCategoryExact.ATTACHMENT],
+    canAllocate: true,
+    canProductTrial: false,
+    maxAdminGift: 10_000,
+    freeEventsMultiple: 1,
+    feature: 'event-attachments',
+  },
+  [DataCategoryExact.REPLAY]: {
+    ...DATA_CATEGORY_INFO[DataCategoryExact.REPLAY],
+    canAllocate: false,
+    canProductTrial: true,
+    maxAdminGift: 1_000_000,
+    freeEventsMultiple: 1,
+    feature: 'session-replay',
+  },
+  [DataCategoryExact.SPAN]: {
+    ...DATA_CATEGORY_INFO[DataCategoryExact.SPAN],
+    canAllocate: false,
+    canProductTrial: true,
+    maxAdminGift: 1_000_000_000,
+    freeEventsMultiple: 100_000,
+    feature: 'spans-usage-tracking',
+  },
+  [DataCategoryExact.SPAN_INDEXED]: {
+    ...DATA_CATEGORY_INFO[DataCategoryExact.SPAN_INDEXED],
+    canAllocate: false,
+    canProductTrial: true,
+    maxAdminGift: 1_000_000_000,
+    freeEventsMultiple: 100_000,
+    feature: 'spans-usage-tracking',
+  },
+  [DataCategoryExact.MONITOR_SEAT]: {
+    ...DATA_CATEGORY_INFO[DataCategoryExact.MONITOR_SEAT],
+    canAllocate: false,
+    canProductTrial: false,
+    maxAdminGift: 10_000,
+    freeEventsMultiple: 1,
+    feature: 'monitor-seat-billing',
+  },
+  [DataCategoryExact.UPTIME]: {
+    ...DATA_CATEGORY_INFO[DataCategoryExact.UPTIME],
+    canAllocate: false,
+    canProductTrial: false,
+    maxAdminGift: 10_000,
+    freeEventsMultiple: 1,
+    feature: 'uptime',
+  },
+  [DataCategoryExact.PROFILE_DURATION]: {
+    ...DATA_CATEGORY_INFO[DataCategoryExact.PROFILE_DURATION],
+    canAllocate: false,
+    canProductTrial: true,
+    maxAdminGift: 10_000,
+    freeEventsMultiple: 1, // in hours
+    feature: null,
+  },
+  [DataCategoryExact.PROFILE_DURATION_UI]: {
+    ...DATA_CATEGORY_INFO[DataCategoryExact.PROFILE_DURATION_UI],
+    canAllocate: false,
+    canProductTrial: true,
+    maxAdminGift: 10_000,
+    freeEventsMultiple: 1, // in hours
+    feature: null,
+  },
+} as const satisfies Record<DataCategoryExact, BilledDataCategoryInfo>;

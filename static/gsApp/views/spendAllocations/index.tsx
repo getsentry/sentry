@@ -26,10 +26,7 @@ import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/or
 import LearnMoreButton from 'getsentry/components/features/learnMoreButton';
 import PlanFeature from 'getsentry/components/features/planFeature';
 import withSubscription from 'getsentry/components/withSubscription';
-import {
-  ALLOCATION_SUPPORTED_CATEGORIES,
-  AllocationTargetTypes,
-} from 'getsentry/constants';
+import {AllocationTargetTypes} from 'getsentry/constants';
 import type {Subscription} from 'getsentry/types';
 import {
   displayPlanName,
@@ -77,8 +74,8 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
       : BigNumUnits.NUMBERS;
   }, [selectedMetric]);
 
-  const supportedCategories = ALLOCATION_SUPPORTED_CATEGORIES.filter(category =>
-    planDetails.categories.includes(category)
+  const supportedCategories = planDetails.categories.filter(
+    category => getCategoryInfoFromPlural(category as DataCategory)?.canAllocate
   );
 
   const period = useMemo<Date[]>(() => {
