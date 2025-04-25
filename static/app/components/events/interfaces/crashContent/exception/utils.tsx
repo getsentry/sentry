@@ -5,29 +5,7 @@ import styled from '@emotion/styled';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconOpen} from 'sentry/icons';
-import type {Frame} from 'sentry/types/event';
-import {getFileExtension} from 'sentry/utils/fileExtension';
 import {isUrl} from 'sentry/utils/string/isUrl';
-import {safeURL} from 'sentry/utils/url/safeURL';
-
-const fileNameBlocklist = ['@webkit-masked-url'];
-export function isFrameFilenamePathlike(frame: Frame): boolean {
-  let filename = frame.absPath ?? '';
-
-  const parsedURL = safeURL(filename);
-  if (parsedURL) {
-    filename = parsedURL.pathname.split('/').reverse()[0]!;
-  }
-
-  return (
-    // If all filenames are anonymous, we do not want to show this alert
-    // If all absolute paths do not have a file extension, we do not want to show this alert
-    (frame.filename === '<anonymous>' && frame.inApp) ||
-    // If all function names are on the blocklist, we do not want to show this alert
-    fileNameBlocklist.includes(frame.function ?? '') ||
-    (!!frame.absPath && !getFileExtension(filename))
-  );
-}
 
 interface RenderLinksInTextProps {
   exceptionText: string;

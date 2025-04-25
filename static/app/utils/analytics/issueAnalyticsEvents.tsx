@@ -1,10 +1,21 @@
-import type {SourceMapProcessingIssueType} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
 import type {FieldValue} from 'sentry/components/forms/model';
 import type {PriorityLevel} from 'sentry/types/group';
 import type {IntegrationType} from 'sentry/types/integrations';
 import type {Broadcast} from 'sentry/types/system';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
+
+enum SourceMapProcessingIssueType {
+  UNKNOWN_ERROR = 'unknown_error',
+  MISSING_RELEASE = 'no_release_on_event',
+  MISSING_SOURCEMAPS = 'no_sourcemaps_on_release',
+  URL_NOT_VALID = 'url_not_valid',
+  NO_URL_MATCH = 'no_url_match',
+  PARTIAL_MATCH = 'partial_match',
+  DIST_MISMATCH = 'dist_mismatch',
+  SOURCEMAP_NOT_FOUND = 'sourcemap_not_found',
+  DEBUG_ID_NO_SOURCEMAPS = 'debug_id_no_sourcemaps',
+}
 
 type IssueStream = {
   group_id: string;
