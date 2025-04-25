@@ -30,10 +30,7 @@ from .detectors.io_main_thread_detector import DBMainThreadDetector, FileIOMainT
 from .detectors.large_payload_detector import LargeHTTPPayloadDetector
 from .detectors.mn_plus_one_db_span_detector import MNPlusOneDBSpanDetector
 from .detectors.n_plus_one_api_calls_detector import NPlusOneAPICallsDetector
-from .detectors.n_plus_one_db_span_detector import (
-    NPlusOneDBSpanDetector,
-    NPlusOneDBSpanDetectorExtended,
-)
+from .detectors.n_plus_one_db_span_detector import NPlusOneDBSpanDetector
 from .detectors.render_blocking_asset_span_detector import RenderBlockingAssetSpanDetector
 from .detectors.slow_db_query_detector import SlowDBQueryDetector
 from .detectors.uncompressed_asset_detector import UncompressedAssetSpanDetector
@@ -246,10 +243,6 @@ def get_detection_settings(project_id: int | None = None) -> dict[DetectorType, 
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
             "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
         },
-        DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: {
-            "count": settings["n_plus_one_db_count"],
-            "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
-        },
         DetectorType.CONSECUTIVE_DB_OP: {
             # time saved by running all queries in parallel
             "min_time_saved": settings["consecutive_db_min_time_saved_threshold"],  # ms
@@ -329,7 +322,6 @@ DETECTOR_CLASSES: list[type[PerformanceDetector]] = [
     SlowDBQueryDetector,
     RenderBlockingAssetSpanDetector,
     NPlusOneDBSpanDetector,
-    NPlusOneDBSpanDetectorExtended,
     FileIOMainThreadDetector,
     NPlusOneAPICallsDetector,
     NPlusOneAPICallsExperimentalDetector,
