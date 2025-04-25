@@ -164,7 +164,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
               periods,
               target_type: 'Project',
               cursor: currentCursor,
-              billing_metric: getCategoryInfoFromPlural(selectedMetric)?.name,
+              billing_metric: getCategoryInfoFromPlural(selectedMetric)?.name, // TODO: we should update the endpoint to use camelCase api name
             },
           }
         );
@@ -208,7 +208,9 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
         await api.requestPromise(PATH, {
           method: 'DELETE',
           query: {
-            billing_metric: billingMetric,
+            billing_metric: billingMetric
+              ? getCategoryInfoFromPlural(billingMetric)?.name // TODO: we should update the endpoint to use camelCase api name
+              : null,
             target_id: targetId,
             target_type: targetType,
             timestamp,
@@ -228,7 +230,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
       await api.requestPromise(PATH, {
         method: 'POST',
         data: {
-          billing_metric: getCategoryInfoFromPlural(selectedMetric)?.name,
+          billing_metric: getCategoryInfoFromPlural(selectedMetric)?.name, // TODO: we should update the endpoint to use camelCase api name
           target_id: organization.id,
           target_type: AllocationTargetTypes.ORGANIZATION,
           desired_quantity: 1,
