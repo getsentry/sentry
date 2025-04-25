@@ -1,4 +1,4 @@
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
