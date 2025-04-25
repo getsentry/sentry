@@ -15,7 +15,7 @@ import {useReleaseDetails} from 'sentry/views/releases/utils/useReleaseDetails';
 
 interface DetailsSectionProps {
   isMetaError: boolean;
-  projectSlug: string;
+  projectSlug: string | undefined;
   release: string;
   releaseMeta?: ReleaseMeta;
 }
@@ -100,7 +100,7 @@ export function GeneralCard({
         key: t('Source Maps'),
         subject: t('Source Maps'),
         value:
-          releaseMeta && releaseDetails ? (
+          releaseMeta && releaseDetails && projectSlug ? (
             <Link
               to={
                 releaseMeta.isArtifactBundle

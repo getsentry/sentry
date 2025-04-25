@@ -28,7 +28,7 @@ export default function UserHealthCountChartWidget(props: LoadableChartWidgetPro
       interactiveTitle={() => (
         <ChartSelectionTitle title={CHART_TITLES.UserHealthCountChartWidget} />
       )}
-      height={SESSION_HEALTH_CHART_HEIGHT}
+      height={props.height || SESSION_HEALTH_CHART_HEIGHT}
       description={tct(
         'Breakdown of total [linkUsers:users], grouped by [linkStatus:health status].',
         {

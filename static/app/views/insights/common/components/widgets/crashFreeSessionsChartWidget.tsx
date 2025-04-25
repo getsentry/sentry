@@ -28,7 +28,7 @@ export default function CrashFreeSessionsChartWidget(props: LoadableChartWidgetP
       interactiveTitle={() => (
         <ChartSelectionTitle title={CHART_TITLES.CrashFreeSessionsChartWidget} />
       )}
-      height={SESSION_HEALTH_CHART_HEIGHT}
+      height={props.height || SESSION_HEALTH_CHART_HEIGHT}
       description={tct(
         'The percent of sessions terminating without a crash. See [link:session status]. The 5 most adopted releases are shown.',
         {

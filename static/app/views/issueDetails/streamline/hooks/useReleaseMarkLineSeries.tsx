@@ -15,9 +15,11 @@ import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 export function useReleaseMarkLineSeries({
   group,
   releases,
+  onReleaseClick,
 }: {
   group: Group;
   releases: ReleaseMetaBasic[];
+  onReleaseClick?: (release: ReleaseMetaBasic) => void;
 }) {
   const navigate = useNavigate();
   const theme = useTheme();
@@ -43,6 +45,10 @@ export function useReleaseMarkLineSeries({
       name: formatVersion(release.version, true),
       value: formatVersion(release.version, true),
       onClick: () => {
+        if (onReleaseClick) {
+          onReleaseClick(release);
+          return;
+        }
         navigate(
           makeReleasesPathname({
             organization,

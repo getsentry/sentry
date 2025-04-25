@@ -1,50 +1,29 @@
-import {Fragment, type ReactElement, useCallback, useRef} from 'react';
-import styled from '@emotion/styled';
+import {useCallback, useRef} from 'react';
 import type {SeriesOption} from 'echarts';
 import type {MarkLineOption} from 'echarts/types/dist/shared';
 import type {EChartsInstance} from 'echarts-for-react';
 
-import {DateTime} from 'sentry/components/dateTime';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {ChartWidgetLoader} from 'sentry/components/charts/chartWidgetLoader';
+import {
+  EventDrawerBody,
+  EventDrawerContainer,
+  EventDrawerHeader,
+  EventNavigator,
+  Header,
+  NavigationCrumbs,
+} from 'sentry/components/events/eventDrawer';
+import {t, tn} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
 import type {ReactEchartsRef, SeriesDataUnit} from 'sentry/types/echarts';
-import type {ReleaseMetaBasic} from 'sentry/types/release';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import type {
-  Bucket,
-  ChartRendererProps,
-} from 'sentry/views/releases/releaseBubbles/types';
+import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/streamline/eventGraphWidget';
 
 import {ReleaseDrawerTable} from './releasesDrawerTable';
 
 interface ReleasesDrawerListProps {
-  /**
-   * This is a list of the release buckets used by eCharts to draw the
-   * release bubbles. Currently unused, but we can use this to traverse
-   * through the release buckets within the drawer
-   */
-  buckets: Bucket[];
-  endTs: number;
-  environments: readonly string[];
-  /**
-   * Callback when a release is selected
-   */
-  onSelectRelease: (release: string, projectId: string) => void;
-  projects: readonly number[];
-  /**
-   * A list of releases in the current release bucket
-   */
-  releases: ReleaseMetaBasic[];
-  startTs: number;
-  /**
-   * A renderer function that returns a chart. It is called with the trimmed
-   * list of releases and timeSeries. It currently uses the
-   * `TimeSeriesWidgetVisualization` components props. It's possible we change
-   * it to make the props more generic, e.g. pass start/end timestamps and do
-   * the series manipulation when we call the bubble hook.
-   */
-  chartRenderer?: (rendererProps: ChartRendererProps) => ReactElement;
+  pageFilters: PageFilters;
+  chart?: string;
 }
 
 type MarkLineDataCallbackFn = (item: SeriesDataUnit) => boolean;
@@ -100,18 +79,10 @@ const unhighlightMarkLines = createMarkLineUpdater({});
  * Renders the a chart + releases table for use in the Global Drawer.
  * Allows users to view releases of a specific timebucket.
  */
-export function ReleasesDrawerList({
-  startTs,
-  endTs,
-  chartRenderer,
-  releases,
-  onSelectRelease,
-  projects,
-  environments,
-}: ReleasesDrawerListProps) {
-  const start = new Date(startTs);
-  const end = new Date(endTs);
+export function ReleasesDrawerList({chart, pageFilters}: ReleasesDrawerListProps) {
+  const {releases} = useReleaseStats(pageFilters);
   const chartRef = useRef<ReactEchartsRef | null>(null);
+  const chartHeight = chart === EVENT_GRAPH_WIDGET_ID ? 'auto' : '220px';
 
   const handleMouseOverRelease = useCallback((release: string) => {
     if (!chartRef.current) {
@@ -137,57 +108,39 @@ export function ReleasesDrawerList({
     );
   }, []);
 
-  return (
-    <Fragment>
-      {chartRenderer ? (
-        <ChartContainer>
-          <Widget
-            Title={
-              <Fragment>
-                {t('Releases from ')}
-                <DateTime date={start} /> <span>{t('to')}</span> <DateTime date={end} />
-              </Fragment>
-            }
-            Visualization={chartRenderer?.({
-              ref: (e: ReactEchartsRef | null) => {
-                chartRef.current = e;
+  const title = tn('%s Release', '%s Releases', releases?.length ?? 0);
+  const crumbs = [
+    {
+      label: t('Releases'),
+    },
+  ];
 
-                if (e) {
-                  // When chart is mounted, zoom the chart into the relevant
-                  // bucket
-                  e.getEchartsInstance().dispatchAction({
-                    type: 'dataZoom',
-                    batch: [
-                      {
-                        // data value at starting location
-                        startValue: startTs,
-                        // data value at ending location
-                        endValue: endTs,
-                      },
-                    ],
-                  });
-                }
-              },
-              releases,
-              start,
-              end,
-            })}
-          />
-        </ChartContainer>
-      ) : null}
-      <ReleaseDrawerTable
-        projects={projects}
-        environments={environments}
-        start={start.toISOString()}
-        end={end.toISOString()}
-        onSelectRelease={onSelectRelease}
-        onMouseOverRelease={handleMouseOverRelease}
-        onMouseOutRelease={handleMouseOutRelease}
-      />
-    </Fragment>
+  return (
+    <EventDrawerContainer>
+      <EventDrawerHeader>
+        <NavigationCrumbs crumbs={crumbs} />
+      </EventDrawerHeader>
+      <EventNavigator>
+        <Header>{title}</Header>
+      </EventNavigator>
+      <EventDrawerBody>
+        {chart ? (
+          <div style={{height: chartHeight}}>
+            <ChartWidgetLoader
+              id={chart}
+              height={chartHeight}
+              pageFilters={pageFilters}
+              showReleaseAs="line"
+            />
+          </div>
+        ) : null}
+
+        <ReleaseDrawerTable
+          {...pageFilters}
+          onMouseOverRelease={handleMouseOverRelease}
+          onMouseOutRelease={handleMouseOutRelease}
+        />
+      </EventDrawerBody>
+    </EventDrawerContainer>
   );
 }
-
-const ChartContainer = styled('div')`
-  margin-bottom: ${space(2)};
-`;

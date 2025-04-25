@@ -27,7 +27,10 @@ interface UseReleaseStatsParams {
  */
 export function useReleaseStats(
   {datetime, environments, projects, maxPages = 10}: UseReleaseStatsParams,
-  queryOptions: {staleTime: number} = {staleTime: Infinity}
+  queryOptions: {enabled?: boolean; staleTime?: number} = {
+    staleTime: Infinity,
+    enabled: true,
+  }
 ) {
   const organization = useOrganization();
 

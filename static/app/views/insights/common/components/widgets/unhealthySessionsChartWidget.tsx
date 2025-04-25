@@ -24,7 +24,7 @@ export default function UnhealthySessionsChartWidget(props: LoadableChartWidgetP
       interactiveTitle={() => (
         <ChartSelectionTitle title={CHART_TITLES.UnhealthySessionsChartWidget} />
       )}
-      height={SESSION_HEALTH_CHART_HEIGHT}
+      height={props.height || SESSION_HEALTH_CHART_HEIGHT}
       description={tct(
         'The percent of sessions ending normally, with no errors occurring during its lifetime. See [link:session status].',
         {
