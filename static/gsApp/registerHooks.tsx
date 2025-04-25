@@ -67,6 +67,7 @@ import SpikeProtectionProjectSettings from 'getsentry/hooks/spendVisibility/spik
 import SuperuserAccessCategory from 'getsentry/hooks/superuserAccessCategory';
 import TargetedOnboardingHeader from 'getsentry/hooks/targetedOnboardingHeader';
 import {useExperiment} from 'getsentry/hooks/useExperiment';
+import useSubscription from 'getsentry/hooks/useSubscription';
 import logExperiment from 'getsentry/utils/logExperiment';
 import rawTrackAnalyticsEvent from 'getsentry/utils/rawTrackAnalyticsEvent';
 import trackMetric from 'getsentry/utils/trackMetric';
@@ -249,6 +250,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'react-hook:route-activated': useRouteActivatedHook,
   'react-hook:use-button-tracking': useButtonTracking,
   'react-hook:use-experiment': useExperiment,
+  'react-hook:use-subscription': useSubscription,
   'react-hook:use-get-max-retention-days': useGetMaxRetentionDays,
   'component:partnership-agreement': p => (
     <LazyLoad LazyComponent={PartnershipAgreement} {...p} />

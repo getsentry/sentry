@@ -1,6 +1,7 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {tct} from 'sentry/locale';
+import HookStore from 'sentry/stores/hookStore';
 import {
   type ProcessingError,
   ProcessingErrorType,
@@ -12,6 +13,8 @@ interface Props {
 }
 
 export function ProcessingErrorItem({error, checkinTooltip}: Props) {
+  const subscription = HookStore.get('react-hook:use-subscription')[0]?.();
+
   switch (error.type) {
     case ProcessingErrorType.CHECKIN_ENVIRONMENT_MISMATCH:
       return tct(
@@ -90,8 +93,9 @@ export function ProcessingErrorItem({error, checkinTooltip}: Props) {
       );
     case ProcessingErrorType.MONITOR_OVER_QUOTA:
       return tct(
-        'A [checkinTooltip:check-in] was sent but dropped due to the monitor being disabled. Please increase your on-demand budget if needed in your [link:subscription settings]. Then, enable this monitor to resume processing check-ins.',
+        'A [checkinTooltip:check-in] was sent but dropped due to the monitor being disabled. Please increase your [budgetTerm] budget if needed in your [link:subscription settings]. Then, enable this monitor to resume processing check-ins.',
         {
+          budgetTerm: subscription?.planDetails.budgetTerm ?? 'pay-as-you-go',
           checkinTooltip,
           link: <Link to="/settings/billing/overview/" />,
         }
