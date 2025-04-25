@@ -41,13 +41,34 @@ export enum AllocationTargetTypes {
   ORGANIZATION = 'Organization',
 }
 
+// XXX: initialize the BilledDataCategoryInfo-specific field for all non-billed
+// `categories and make TS happy so we can access the BilledDataCategoryInfo
+// fields directly without needing to check that they exist on the object
+const DEFAULT_BILLED_DATA_CATEGORY_INFO = {
+  ...DATA_CATEGORY_INFO,
+} as Record<DataCategoryExact, BilledDataCategoryInfo>;
+Object.entries(DEFAULT_BILLED_DATA_CATEGORY_INFO).forEach(
+  ([categoryExact, categoryInfo]) => {
+    if (!categoryInfo.isBilledCategory) {
+      DEFAULT_BILLED_DATA_CATEGORY_INFO[categoryExact as DataCategoryExact] = {
+        ...categoryInfo,
+        canAllocate: false,
+        canProductTrial: false,
+        maxAdminGift: 0,
+        freeEventsMultiple: 0,
+        feature: null,
+      };
+    }
+  }
+);
+
 /**
  * Extension of DATA_CATEGORY_INFO with billing info for billed categories.
  * All categories with isBilledCategory: true, should be explicitly
  * added to this object with billing info.
  */
 export const BILLED_DATA_CATEGORY_INFO = {
-  ...DATA_CATEGORY_INFO,
+  ...DEFAULT_BILLED_DATA_CATEGORY_INFO,
   [DataCategoryExact.ERROR]: {
     ...DATA_CATEGORY_INFO[DataCategoryExact.ERROR],
     canAllocate: true,

@@ -940,21 +940,21 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
   /**
    * Whether the category is supported for spend allocations
    */
-  canAllocate?: boolean;
+  canAllocate: boolean;
   /**
    * Whether the category is supported for product trials
    */
-  canProductTrial?: boolean;
+  canProductTrial: boolean;
   /**
    * The feature flag that enables the category
    */
-  feature?: string | null;
+  feature: string | null;
   /**
    * The event multiplier for gifts
    */
-  freeEventsMultiple?: number;
+  freeEventsMultiple: number;
   /**
    * The maximum number of free events that can be gifted
    */
-  maxAdminGift?: number;
+  maxAdminGift: number;
 }
