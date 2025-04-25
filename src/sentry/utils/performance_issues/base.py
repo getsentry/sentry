@@ -30,6 +30,7 @@ class DetectorType(Enum):
     UNCOMPRESSED_ASSETS = "uncompressed_assets"
     DB_MAIN_THREAD = "db_main_thread"
     HTTP_OVERHEAD = "http_overhead"
+    EXPERIMENTAL_N_PLUS_ONE_API_CALLS = "experimental_n_plus_one_api_calls"
 
 
 # Detector and the corresponding system option must be added to this list to have issues created.
