@@ -307,7 +307,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         assert workflow.id == self.workflow.id
         assert workflow.name == "Update Test"
 
-    def test_update__remove_triggers(self):
+    def test_update__remove_trigger_conditions(self):
         assert self.workflow.when_condition_group
 
         self.valid_saved_data["triggers"] = {
@@ -325,7 +325,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         assert self.workflow.when_condition_group is not None
         assert self.workflow.when_condition_group.conditions.count() == 0
 
-    def test_update__hax_to_replace_group(self):
+    def test_update__hack_attempt_to_override_different_trigger_condition(self):
         fake_dcg = DataConditionGroup.objects.create(
             organization=self.organization,
             logic_type="any",
@@ -343,7 +343,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         with pytest.raises(ValidationError):
             validator.update(self.workflow, validator.validated_data)
 
-    def test_update__remove_action_fitler(self):
+    def test_update__remove_action_filter(self):
         self.valid_saved_data["actionFilters"] = []
 
         validator = WorkflowValidator(data=self.valid_saved_data, context=self.context)
