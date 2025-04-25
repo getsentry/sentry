@@ -15,10 +15,12 @@ import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 
 import {PlanTier} from 'getsentry/types';
 import {formatReservedWithUnits} from 'getsentry/utils/billing';
-import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
+import {
+  getCategoryInfoFromPlural,
+  getPlanCategoryName,
+} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import UnitTypeItem from 'getsentry/views/amCheckout/steps/unitTypeItem';
-import {getDataCategoryTooltipText} from 'getsentry/views/amCheckout/steps/utils';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
@@ -113,22 +115,23 @@ function VolumeSliders({
 
   return (
     <Fragment>
-      {activePlan.checkoutCategories
+      {(activePlan.checkoutCategories as DataCategory[])
         .filter(
           // only show sliders for checkout categories with more than 1 bucket
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          category => activePlan.planCategories[category].length > 1
+          category => (activePlan.planCategories[category]?.length ?? 0) > 1
         )
         .map(category => {
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          const allowedValues = activePlan.planCategories[category].map(
+          const allowedValues = activePlan.planCategories[category]?.map(
             (bucket: any) => bucket.events
           );
 
+          if (!allowedValues) {
+            return null;
+          }
+
+          const categoryInfo = getCategoryInfoFromPlural(category);
           const eventBucket = utils.getBucket({
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             events: formData.reserved[category],
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             buckets: activePlan.planCategories[category],
           });
 
@@ -139,7 +142,7 @@ function VolumeSliders({
           const price = utils.displayPrice({cents: eventBucket.price});
           const unitPrice = utils.displayUnitPrice({
             cents: eventBucket.unitPrice || 0,
-            ...(category === DATA_CATEGORY_INFO[DataCategoryExact.ATTACHMENT].plural
+            ...(category === DataCategory.ATTACHMENTS
               ? {
                   minDigits: ATTACHMENT_DIGITS,
                   maxDigits: ATTACHMENT_DIGITS,
@@ -172,15 +175,15 @@ function VolumeSliders({
                 <SectionHeader>
                   <Title htmlFor={sliderId}>
                     <div>{getPlanCategoryName({plan: activePlan, category})}</div>
-                    {showPerformanceUnits ? (
-                      renderPerformanceHovercard()
-                    ) : (
-                      <QuestionTooltip
-                        title={getDataCategoryTooltipText(checkoutTier, category)}
-                        position="top"
-                        size="xs"
-                      />
-                    )}
+                    {showPerformanceUnits
+                      ? renderPerformanceHovercard()
+                      : categoryInfo?.reservedVolumeTooltip && (
+                          <QuestionTooltip
+                            title={categoryInfo.reservedVolumeTooltip}
+                            position="top"
+                            size="xs"
+                          />
+                        )}
                   </Title>
                   <Events isLegacy={isLegacy}>
                     {

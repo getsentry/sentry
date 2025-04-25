@@ -16,6 +16,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {DataCategory} from 'sentry/types/core';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {QueryClient} from 'sentry/utils/queryClient';
@@ -36,7 +37,6 @@ import {
 import {
   type BillingConfig,
   CheckoutType,
-  type DataCategories,
   OnDemandBudgetMode,
   type OnDemandBudgets,
   type Plan,
@@ -396,7 +396,7 @@ class AMCheckout extends Component<Props, State> {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         .filter(([category, _]) => initialPlan.planCategories[category])
         .map(([category, eventBuckets]) => {
-          const currentHistory = subscription.categories[category as DataCategories];
+          const currentHistory = subscription.categories[category as DataCategory];
           // When introducing a new category before backfilling, the reserved value from the billing metric
           // history is not available, so we default to 0.
           let events = currentHistory?.reserved || 0;

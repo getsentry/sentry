@@ -7,7 +7,6 @@ import {defined} from 'sentry/utils';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 
 import {
-  BILLED_DATA_CATEGORY_INFO,
   BILLION,
   DEFAULT_TRIAL_DAYS,
   GIGABYTE,
@@ -18,7 +17,6 @@ import {
   UNLIMITED_RESERVED,
 } from 'getsentry/constants';
 import type {
-  BilledDataCategoryInfo,
   BillingConfig,
   BillingMetricHistory,
   BillingStatTotal,
@@ -643,20 +641,4 @@ export function partnerPlanEndingModalIsDismissed(
     default:
       return true;
   }
-}
-
-/**
- * Returns the data category info defined in DATA_CATEGORY_INFO for the given category,
- * with billing context defined in BILLED_DATA_CATEGORY_INFO.
- *
- * Returns null for categories not defined in DATA_CATEGORY_INFO.
- */
-export function getCategoryInfoFromPlural(
-  category: DataCategory
-): BilledDataCategoryInfo | null {
-  const info = Object.values(BILLED_DATA_CATEGORY_INFO).find(c => c.plural === category);
-  if (!info) {
-    return null;
-  }
-  return info;
 }

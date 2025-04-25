@@ -13,8 +13,12 @@ import type {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import type {BillingStatTotal, Subscription} from 'getsentry/types';
-import {formatUsageWithUnits, getCategoryInfoFromPlural} from 'getsentry/utils/billing';
-import {getPlanCategoryName, isContinuousProfiling} from 'getsentry/utils/dataCategory';
+import {formatUsageWithUnits} from 'getsentry/utils/billing';
+import {
+  getCategoryInfoFromPlural,
+  getPlanCategoryName,
+  isContinuousProfiling,
+} from 'getsentry/utils/dataCategory';
 import {StripedTable} from 'getsentry/views/subscriptionPage/styles';
 import {displayPercentage} from 'getsentry/views/subscriptionPage/usageTotals';
 

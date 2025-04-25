@@ -88,6 +88,7 @@ function PlanMigrationRow(props: Props) {
 
   const options = {isAbbreviated: true};
 
+  // TODO(data categories): check if this can be parsed
   switch (props.type) {
     case 'plan':
       currentValue = tct('Legacy [currentValue]', {currentValue: props.currentValue});

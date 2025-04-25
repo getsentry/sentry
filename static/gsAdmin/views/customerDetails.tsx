@@ -57,14 +57,16 @@ import testVercelApiEndpoint from 'admin/components/testVCApiEndpoints';
 import toggleSpendAllocationModal from 'admin/components/toggleSpendAllocationModal';
 import TrialSubscriptionAction from 'admin/components/trialSubscriptionAction';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
-import type {BillingConfig, DataCategories, Subscription} from 'getsentry/types';
+import type {BillingConfig, Subscription} from 'getsentry/types';
 import {
-  getCategoryInfoFromPlural,
   hasActiveVCFeature,
   isBizPlanFamily,
   isUnlimitedReserved,
 } from 'getsentry/utils/billing';
-import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
+import {
+  getCategoryInfoFromPlural,
+  getPlanCategoryName,
+} from 'getsentry/utils/dataCategory';
 
 const DEFAULT_ERROR_MESSAGE = 'Unable to update the customer account';
 
@@ -141,12 +143,12 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
             data.planDetails.onDemandCategories.includes(category)
         )
         .map(category => {
-          const reserved = data.categories?.[category as DataCategories]?.reserved;
+          const reserved = data.categories?.[category as DataCategory]?.reserved;
           const isUnlimited = isUnlimitedReserved(reserved);
           const isReservedBudgetQuota = reserved === RESERVED_BUDGET_QUOTA;
 
           // Check why categories are disabled
-          const categoryNotExists = !data.categories?.[category as DataCategories];
+          const categoryNotExists = !data.categories?.[category as DataCategory];
           const categoryInfo = getCategoryInfoFromPlural(category as DataCategory);
 
           const isGiftable =
@@ -159,7 +161,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
                 categoryNotExists || isUnlimited || isReservedBudgetQuota || !isGiftable,
               displayName: getPlanCategoryName({
                 plan: data.planDetails,
-                category,
+                category: category as DataCategory,
                 capitalize: false,
                 hadCustomDynamicSampling: isReservedBudgetQuota,
               }),

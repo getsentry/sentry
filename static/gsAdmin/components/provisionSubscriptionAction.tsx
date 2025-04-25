@@ -31,14 +31,16 @@ import type {
 } from 'getsentry/types';
 import {
   getAmPlanTier,
-  getCategoryInfoFromPlural,
   isAm3DsPlan,
   isAm3Plan,
   isAmEnterprisePlan,
   isAmPlan,
   isTrialPlan,
 } from 'getsentry/utils/billing';
-import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
+import {
+  getCategoryInfoFromPlural,
+  getPlanCategoryName,
+} from 'getsentry/utils/dataCategory';
 
 const CPE_DECIMAL_PRECISION = 8;
 

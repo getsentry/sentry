@@ -17,7 +17,6 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {DEFAULT_TIER, MONTHLY, SUPPORTED_TIERS} from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {
-  DataCategories,
   EventBucket,
   OnDemandBudgets,
   Plan,
@@ -207,7 +206,7 @@ export function getReservedPriceCents({
     ([category, quantity]) =>
       (reservedCents += getBucket({
         events: quantity,
-        buckets: plan.planCategories[category as DataCategories],
+        buckets: plan.planCategories[category as DataCategory],
       }).price)
   );
 
@@ -317,6 +316,7 @@ function recordAnalytics(
   trackMarketingEvent('Upgrade', {plan: data.plan});
 
   const currentData = {
+    // TODO(data categories): check if these can be parsed
     plan: data.plan,
     errors: data.reservedErrors,
     transactions: data.reservedTransactions,
@@ -436,6 +436,7 @@ export function getCheckoutAPIData({
   const formatReservedData = (value: number | null | undefined) => value ?? undefined;
 
   const reservedData = {
+    // TODO(data categories): check if these can be parsed
     reservedErrors: formatReservedData(formData.reserved.errors),
     reservedTransactions: formatReservedData(formData.reserved.transactions),
     reservedAttachments: formatReservedData(formData.reserved.attachments),

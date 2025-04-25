@@ -25,13 +25,9 @@ import {
 
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
 import useSubscription from 'getsentry/hooks/useSubscription';
+import {OnDemandBudgetMode, type Subscription} from 'getsentry/types';
 import {
-  type DataCategories,
-  OnDemandBudgetMode,
-  type Subscription,
-} from 'getsentry/types';
-import {getCategoryInfoFromPlural} from 'getsentry/utils/billing';
-import {
+  getCategoryInfoFromPlural,
   getSingularCategoryName,
   listDisplayNames,
   sortCategoriesWithKeys,
@@ -60,7 +56,7 @@ function QuotaExceededContent({
   onCheck,
   isDismissed,
 }: {
-  exceededCategories: string[];
+  exceededCategories: DataCategory[];
   isDismissed: boolean;
   onCheck: ({
     checked,
@@ -75,7 +71,7 @@ function QuotaExceededContent({
   subscription: Subscription;
 }) {
   const eventTypes: EventType[] = exceededCategories.map(category => {
-    const categoryInfo = getCategoryInfoFromPlural(category as DataCategory);
+    const categoryInfo = getCategoryInfoFromPlural(category);
     return (categoryInfo?.name ?? category) as EventType;
   });
   return (
@@ -148,7 +144,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
       if (currentHistory.usageExceeded) {
         const designatedBudget =
           subscription?.onDemandBudgets?.budgetMode === OnDemandBudgetMode.PER_CATEGORY
-            ? subscription.onDemandBudgets.budgets[category as DataCategories]
+            ? subscription.onDemandBudgets.budgets[category as DataCategory]
             : subscription?.onDemandMaxSpend;
         if (
           !designatedBudget &&
@@ -158,13 +154,13 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
           // if there is no PAYG
           return acc;
         }
-        acc.push(category);
+        acc.push(category as DataCategory);
       }
       return acc;
-    }, [] as string[]);
+    }, [] as DataCategory[]);
   const promptsToCheck = exceededCategories
     .map(category => {
-      const categoryInfo = getCategoryInfoFromPlural(category as DataCategory);
+      const categoryInfo = getCategoryInfoFromPlural(category);
       return `${categoryInfo?.snakeCasePlural ?? category}_overage_alert`;
     })
     .filter(Boolean);

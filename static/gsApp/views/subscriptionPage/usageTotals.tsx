@@ -24,7 +24,6 @@ import {
 import {
   type BillingMetricHistory,
   type BillingStatTotal,
-  type DataCategories,
   type EventBucket,
   PlanTier,
   type ProductTrial,
@@ -87,7 +86,7 @@ type UsageProps = {
   /**
    * The data category to display
    */
-  category: string;
+  category: DataCategory;
   displayMode: 'usage' | 'cost';
   organization: Organization;
   subscription: Subscription;
@@ -186,7 +185,7 @@ export function calculateCategoryPrepaidUsage(
   prepaidUsage: number;
 } {
   const categoryInfo: BillingMetricHistory | undefined =
-    subscription.categories[category as DataCategories];
+    subscription.categories[category as DataCategory];
   const usage = accepted ?? categoryInfo?.usage ?? 0;
 
   // Calculate the prepaid total
@@ -382,7 +381,7 @@ function UsageTotals({
   const totalMaxOndemandBudget =
     'sharedMaxBudget' in onDemandBudgets
       ? onDemandBudgets.sharedMaxBudget
-      : getOnDemandBudget(onDemandBudgets, category as DataCategory);
+      : getOnDemandBudget(onDemandBudgets, category);
 
   const {onDemandSpent: categoryOnDemandSpent, onDemandUnitPrice} =
     calculateCategorySpend(subscription, category);
@@ -428,11 +427,8 @@ function UsageTotals({
   }
 
   const productTrial =
-    getActiveProductTrial(subscription.productTrials ?? null, category as DataCategory) ??
-    getPotentialProductTrial(
-      subscription.productTrials ?? null,
-      category as DataCategory
-    );
+    getActiveProductTrial(subscription.productTrials ?? null, category) ??
+    getPotentialProductTrial(subscription.productTrials ?? null, category);
 
   const {
     ondemandPercentUsed,
@@ -442,7 +438,7 @@ function UsageTotals({
   } = calculateCategoryOnDemandUsage(category, subscription);
   const unusedOnDemandWidth = 100 - ondemandPercentUsed;
   const categoryInfo: BillingMetricHistory | undefined =
-    subscription.categories[category as DataCategories];
+    subscription.categories[category];
   const usage = categoryInfo?.usage ?? 0;
   const {prepaidPrice, prepaidPercentUsed, prepaidUsage, onDemandUsage} =
     calculateCategoryPrepaidUsage(
@@ -696,7 +692,7 @@ function UsageTotals({
                                 <LegendTitle>
                                   {getPlanCategoryName({
                                     plan: subscription.planDetails,
-                                    category: categoryKey,
+                                    category: categoryKey as DataCategory,
                                     hadCustomDynamicSampling:
                                       subscription.hadCustomDynamicSampling,
                                     title: true,

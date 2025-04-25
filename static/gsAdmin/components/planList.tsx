@@ -12,7 +12,7 @@ import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {ANNUAL} from 'getsentry/constants';
-import type {BillingConfig, DataCategories, Plan, Subscription} from 'getsentry/types';
+import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 
@@ -125,7 +125,10 @@ function PlanList({
           <StyledFormSection>
             <h4>Reserved Volumes</h4>
             {activePlan.checkoutCategories.map(category => {
-              const titleCategory = getPlanCategoryName({plan: activePlan, category});
+              const titleCategory = getPlanCategoryName({
+                plan: activePlan,
+                category: category as DataCategory,
+              });
               const reservedKey = `reserved${toTitleCase(category, {
                 allowInnerUpperCase: true,
               })}`;
@@ -146,7 +149,7 @@ function PlanList({
                     label={label}
                     value={fieldValue}
                     options={(
-                      activePlan.planCategories[category as DataCategories] || []
+                      activePlan.planCategories[category as DataCategory] || []
                     ).map((level: {events: {toLocaleString: () => any}}) => ({
                       label: level.events.toLocaleString(),
                       value: level.events,

@@ -9,7 +9,7 @@ import {DataCategory} from 'sentry/types/core';
 
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import {usePlanMigrations} from 'getsentry/hooks/usePlanMigrations';
-import type {DataCategories, Plan, PlanMigration, Subscription} from 'getsentry/types';
+import type {Plan, PlanMigration, Subscription} from 'getsentry/types';
 import {formatReservedWithUnits} from 'getsentry/utils/billing';
 import {
   getPlanCategoryName,
@@ -147,7 +147,7 @@ function getRegularChanges(subscription: Subscription) {
       ...subscription.planDetails.categories,
       ...Object.keys(pendingChanges.reserved ?? {}),
     ]),
-  ] as DataCategories[];
+  ] as DataCategory[];
   categories.forEach(category => {
     if (category !== 'errors') {
       // Errors and Events handled above
@@ -197,7 +197,7 @@ function getRegularChanges(subscription: Subscription) {
       const change = getStringForPrice(pendingChanges.customPrices?.[category]);
       changes.push(
         formatChangeForCategory({
-          category: category as DataCategory,
+          category,
           changeTitle: 'Custom price for',
           oldValue: old,
           pendingValue: change,
@@ -236,7 +236,7 @@ function getRegularChanges(subscription: Subscription) {
       );
       changes.push(
         formatChangeForCategory({
-          category: category as DataCategory,
+          category,
           changeTitle: 'Reserved cost-per-event for',
           oldValue: old,
           pendingValue: change,
@@ -252,7 +252,7 @@ function getRegularChanges(subscription: Subscription) {
   oldBudgets?.forEach(budget => {
     const budgetName = getReservedBudgetDisplayName({
       plan: subscription.planDetails,
-      categories: Object.keys(budget.categories),
+      categories: Object.keys(budget.categories) as DataCategory[],
       hadCustomDynamicSampling: oldPlanUsesDsNames,
     });
     oldBudgetsChanges.push(
@@ -262,7 +262,7 @@ function getRegularChanges(subscription: Subscription) {
   pendingChanges.reservedBudgets.forEach(budget => {
     const budgetName = getReservedBudgetDisplayName({
       plan: pendingChanges.planDetails,
-      categories: Object.keys(budget.categories),
+      categories: Object.keys(budget.categories) as DataCategory[],
       hadCustomDynamicSampling: newPlanUsesDsNames,
     });
     newBudgetsChanges.push(
@@ -301,12 +301,12 @@ function getOnDemandChanges(subscription: Subscription) {
       const current = formatOnDemandBudget(
         subscription.planDetails,
         currentOnDemandBudgets,
-        subscription.planDetails.onDemandCategories
+        subscription.planDetails.onDemandCategories as DataCategory[]
       );
       const change = formatOnDemandBudget(
         pendingChanges.planDetails,
         pendingOnDemandBudgets,
-        pendingChanges.planDetails.onDemandCategories
+        pendingChanges.planDetails.onDemandCategories as DataCategory[]
       );
       changes.push(
         <span>

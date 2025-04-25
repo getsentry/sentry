@@ -122,6 +122,7 @@ export interface DataCategoryInfo {
   productName: string;
   titleName: string;
   uid: number;
+  docsUrl?: string;
   snakeCasePlural?: string;
 }
 
