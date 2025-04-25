@@ -41,8 +41,8 @@ export class Area extends ContinuousTimeSeries implements Plottable {
     // complete series has one more data points than we'd expect. Account for
     // this by reconstructing the data points from the split series
     const mergedData = [
-      ...(this.#completeTimeSeries?.data ?? []),
-      ...(this.#incompleteTimeSeries?.data ?? []),
+      ...(this.#completeTimeSeries?.values ?? []),
+      ...(this.#incompleteTimeSeries?.values ?? []),
     ];
 
     const datum = mergedData.at(dataIndex);
@@ -83,7 +83,7 @@ export class Area extends ContinuousTimeSeries implements Plottable {
           data: scaleTimeSeriesData(
             this.#completeTimeSeries,
             plottingOptions.unit
-          ).data.map(timeSeriesItemToEChartsDataPoint),
+          ).values.map(timeSeriesItemToEChartsDataPoint),
         })
       );
     }
@@ -96,7 +96,7 @@ export class Area extends ContinuousTimeSeries implements Plottable {
           data: scaleTimeSeriesData(
             this.#incompleteTimeSeries,
             plottingOptions.unit
-          ).data.map(timeSeriesItemToEChartsDataPoint),
+          ).values.map(timeSeriesItemToEChartsDataPoint),
           lineStyle: {
             type: 'dotted',
           },
