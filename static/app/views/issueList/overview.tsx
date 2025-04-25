@@ -1072,7 +1072,8 @@ function IssueListOverview({
           <LeftNavViewsHeader selectedProjectIds={selection.projects} title={title} />
         )}
         {!prefersStackedNav &&
-          (organization.features.includes('issue-stream-custom-views') ? (
+          (organization.features.includes('issue-stream-custom-views') &&
+          !organization.features.includes('issue-view-sharing') ? (
             <ErrorBoundary message={'Failed to load custom tabs'} mini>
               <IssueViewsIssueListHeader
                 router={router}
