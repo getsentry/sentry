@@ -3,6 +3,7 @@ import LazyLoad, {forceCheck} from 'react-lazyload';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import debounce from 'lodash/debounce';
+import partition from 'lodash/partition';
 import uniqBy from 'lodash/uniqBy';
 
 import {LinkButton} from 'sentry/components/core/button';
@@ -81,6 +82,64 @@ function addProjectsToTeams(teams: Team[], projects: Project[]): TeamWithProject
   }));
 }
 
+function getFilteredProjectsBasedOnTeams({
+  allTeams,
+  userTeams,
+  selectedTeams,
+  isAllTeams,
+  showNonMemberProjects,
+  projects,
+  projectQuery,
+}: {
+  allTeams: Team[];
+  isAllTeams: boolean;
+  projectQuery: string;
+  projects: Project[];
+  selectedTeams: string[];
+  showNonMemberProjects: boolean;
+  userTeams: Team[];
+}): Project[] {
+  const myTeamIds = new Set(userTeams.map(team => team.id));
+
+  const [myTeamsInAll, otherTeamsInAll] = partition(allTeams, team =>
+    myTeamIds.has(team.id)
+  );
+
+  const includeMyTeams = isAllTeams || selectedTeams.includes('myteams');
+  const selectedOtherTeamIds = new Set(
+    selectedTeams.filter(teamId => teamId !== 'myteams')
+  );
+
+  const myTeams = includeMyTeams ? myTeamsInAll : [];
+  const otherTeams = isAllTeams
+    ? otherTeamsInAll
+    : [...otherTeamsInAll].filter(team => selectedOtherTeamIds.has(String(team.id)));
+
+  const visibleTeams = [...myTeams, ...otherTeams].filter(team => {
+    if (showNonMemberProjects) {
+      return true;
+    }
+    return team.isMember;
+  });
+
+  const teamsWithProjects = addProjectsToTeams(visibleTeams, projects);
+
+  const currentProjects = uniqBy(
+    teamsWithProjects.flatMap(team => team.projects),
+    'id'
+  );
+
+  const currentProjectIds = new Set(currentProjects.map(p => p.id));
+
+  const unassignedProjects = isAllTeams
+    ? projects.filter(project => !currentProjectIds.has(project.id))
+    : [];
+
+  return [...currentProjects, ...unassignedProjects].filter(project =>
+    project.slug.includes(projectQuery)
+  );
+}
+
 function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -123,32 +182,17 @@ function Dashboard() {
     return <LoadingError message={t('An error occurred while fetching your projects')} />;
   }
 
-  const includeMyTeams = isAllTeams || selectedTeams.includes('myteams');
-  const hasOtherTeams = selectedTeams.some(team => team !== 'myteams');
-  const myTeams = includeMyTeams ? userTeams : [];
-  const otherTeams = isAllTeams
-    ? allTeams
-    : hasOtherTeams
-      ? allTeams.filter(team => selectedTeams.includes(`${team.id}`))
-      : [];
-  const filteredTeams = [...myTeams, ...otherTeams].filter(team => {
-    if (showNonMemberProjects) {
-      return true;
-    }
-
-    return team.isMember;
+  const filteredProjects = getFilteredProjectsBasedOnTeams({
+    allTeams,
+    userTeams,
+    selectedTeams,
+    isAllTeams,
+    showNonMemberProjects,
+    projects,
+    projectQuery,
   });
-  const filteredTeamsWithProjects = addProjectsToTeams(filteredTeams, projects);
 
-  const currentProjects = uniqBy(
-    filteredTeamsWithProjects.flatMap(team => team.projects),
-    'id'
-  );
   setGroupedEntityTag('projects.total', 1000, projects.length);
-
-  const filteredProjects = currentProjects.filter(project =>
-    project.slug.includes(projectQuery)
-  );
 
   const showResources = projects.length === 1 && !projects[0]!.firstEvent;
 
