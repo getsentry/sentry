@@ -313,9 +313,15 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           <MediumWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
-                new Line(shiftTimeSeriesToNow(sampleThroughputTimeSeries), {delay: 90}),
-                new Line(shiftTimeSeriesToNow(sampleDurationTimeSeries), {delay: 90}),
-                new Line(shiftTimeSeriesToNow(sampleDurationTimeSeriesP50), {delay: 90}),
+                new Line(shiftTimeSeriesToNow(sampleThroughputTimeSeries), {
+                  delay: 90,
+                }),
+                new Line(shiftTimeSeriesToNow(sampleDurationTimeSeries), {
+                  delay: 90,
+                }),
+                new Line(shiftTimeSeriesToNow(sampleDurationTimeSeriesP50), {
+                  delay: 90,
+                }),
               ]}
             />
           </MediumWidget>
@@ -580,8 +586,14 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           <MediumWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
-                new Bars(shiftedSampleDurationTimeSeries, {delay, stack: 'all'}),
-                new Bars(shiftedSampleDurationTimeSeries2, {delay, stack: 'all'}),
+                new Bars(shiftedSampleDurationTimeSeries, {
+                  delay,
+                  stack: 'all',
+                }),
+                new Bars(shiftedSampleDurationTimeSeries2, {
+                  delay,
+                  stack: 'all',
+                }),
               ]}
             />
           </MediumWidget>
@@ -918,6 +930,54 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
       </Fragment>
     );
   });
+  story('Deep-Linking', () => (
+    <div>
+      <p>
+        As part of the work to add Release bubbles, we needed to be able to deep-link to
+        the Release flyout drawer, which includes the chart where the Release Bubble was
+        initially clicked on. We decided to handle this by using a unique id per each
+        chart in the application. This allows us to be able to render a chart from a
+        single string in the URL parameters.
+      </p>
+
+      <p>
+        Please take a look at{' '}
+        <code>static/app/views/insights/common/components/widgets</code> for examples.
+        Here are the following guidelines if you are rendering a chart that uses{' '}
+        <JSXNode name="TimeSeriesWidgetVisualization" />:
+      </p>
+
+      <ul>
+        <li>
+          Components should be self-contained (e.g. they should not need to accept any
+          additional props and should manage their own data-fetching)
+        </li>
+        <li>
+          Components should be placed in{' '}
+          <code>static/app/views/insights/common/components/widgets</code>
+        </li>
+        <li>
+          Components should have a unique <code>id</code> prop that should also match the
+          filename
+        </li>
+        <li>
+          Components need to be a <code>default</code> export
+        </li>
+        <li>
+          Component must be manually mapped in{' '}
+          <code>app/components/charts/chartWidgetLoader</code> - this is because we want
+          these paths to be statically analyzable
+        </li>
+      </ul>
+
+      <p>
+        Note that there are lint rules to disallow importing of insights chart widget
+        comopnents, as well as automated testing on all components in the root of the{' '}
+        <code>widgets/</code> directory to ensure that{' '}
+        <JSXNode name="ChartWidgetLoader" /> is able to load them all.
+      </p>
+    </div>
+  ));
 });
 
 const FillParent = styled('div')`
