@@ -6,7 +6,7 @@ import re
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from enum import Enum
-from typing import Any, ClassVar
+from typing import Any, ClassVar, TypedDict
 from urllib.parse import parse_qs, urlparse
 
 from sentry import options
@@ -30,6 +30,7 @@ class DetectorType(Enum):
     UNCOMPRESSED_ASSETS = "uncompressed_assets"
     DB_MAIN_THREAD = "db_main_thread"
     HTTP_OVERHEAD = "http_overhead"
+    EXPERIMENTAL_N_PLUS_ONE_API_CALLS = "experimental_n_plus_one_api_calls"
 
 
 # Detector and the corresponding system option must be added to this list to have issues created.
@@ -292,7 +293,17 @@ def fingerprint_resource_span(span: Span):
     return hashlib.sha1(stripped_url.encode("utf-8")).hexdigest()
 
 
-def parameterize_url(url: str) -> str:
+class ParameterizedUrl(TypedDict):
+    url: str
+    path_params: list[str]  # e.g. ["123", "abc123de-1024-4321-abcd-1234567890ab"]
+    query_params: dict[str, list[str]]  # e.g. {"limit": "50", "offset": "100"}
+
+
+def parameterize_url_with_result(url: str) -> ParameterizedUrl:
+    """
+    Given a URL, return the URL with parsed path and query parameters replaced with '*',
+    a list of the path parameters, and a dict of the query parameters.
+    """
     parsed_url = urlparse(str(url))
 
     protocol_fragments = []
@@ -305,15 +316,18 @@ def parameterize_url(url: str) -> str:
         host_fragments.append(str(fragment))
 
     path_fragments = []
+    path_params = []
     for fragment in parsed_url.path.split("/"):
-        if PARAMETERIZED_URL_REGEX.search(fragment):
+        path_param = PARAMETERIZED_URL_REGEX.search(fragment)
+        if path_param:
             path_fragments.append("*")
+            path_params.append(path_param.group())
         else:
             path_fragments.append(str(fragment))
 
     query = parse_qs(parsed_url.query)
 
-    return "".join(
+    parameterized_url = "".join(
         [
             "".join(protocol_fragments),
             ".".join(host_fragments),
@@ -322,6 +336,16 @@ def parameterize_url(url: str) -> str:
             "&".join(sorted([f"{key}=*" for key in query.keys()])),
         ]
     ).rstrip("?")
+
+    return ParameterizedUrl(
+        url=parameterized_url,
+        path_params=path_params,
+        query_params=query,
+    )
+
+
+def parameterize_url(url: str) -> str:
+    return parameterize_url_with_result(url).get("url", "")
 
 
 def fingerprint_http_spans(spans: list[Span]) -> str:

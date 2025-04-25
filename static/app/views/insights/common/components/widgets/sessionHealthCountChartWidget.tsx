@@ -28,7 +28,7 @@ export default function SessionHealthCountChartWidget(props: LoadableChartWidget
       interactiveTitle={() => (
         <ChartSelectionTitle title={CHART_TITLES.SessionHealthCountChartWidget} />
       )}
-      height={SESSION_HEALTH_CHART_HEIGHT}
+      height={props.height || SESSION_HEALTH_CHART_HEIGHT}
       description={tct(
         'The count of sessions with each health status. See [link:session status].',
         {

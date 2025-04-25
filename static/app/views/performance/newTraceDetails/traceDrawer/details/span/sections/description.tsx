@@ -131,7 +131,13 @@ export function SpanDescription({
         resolvedModule === ModuleName.DB ? `${space(1)} ${space(2)}` : `${space(1)}`
       }
     >
-      <SpanSummaryLink event={node.event!} organization={organization} span={span} />
+      <SpanSummaryLink
+        op={span.op}
+        category={span.sentry_tags?.category}
+        group={groupHash}
+        project_id={node.event?.projectID}
+        organization={organization}
+      />
       <Link
         to={
           hasExploreEnabled
@@ -526,8 +532,9 @@ const DescriptionWrapper = styled('div')`
   width: 100%;
   justify-content: space-between;
   flex-direction: row;
-  gap: ${space(0.5)};
+  gap: ${space(1)};
   word-break: break-word;
+  line-height: 1.4;
   padding: ${space(1)};
 `;
 

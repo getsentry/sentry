@@ -3,20 +3,24 @@ import styled from '@emotion/styled';
 
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {
   canEditIssueView,
   confirmDeleteIssueView,
 } from 'sentry/views/issueList/issueViews/utils';
-import type {GroupSearchView} from 'sentry/views/issueList/types';
+import {
+  type GroupSearchView,
+  GroupSearchViewCreatedBy,
+} from 'sentry/views/issueList/types';
 
 type IssueViewsTableProps = {
   handleDeleteView: (view: GroupSearchView) => void;
   handleStarView: (view: GroupSearchView) => void;
   isError: boolean;
   isPending: boolean;
-  type: string;
+  type: GroupSearchViewCreatedBy;
   views: GroupSearchView[];
   hideCreatedBy?: boolean;
 };
@@ -84,6 +88,13 @@ export function IssueViewsTable({
               <SavedEntityTable.CellStar
                 isStarred={view.starred}
                 onClick={() => {
+                  trackAnalytics('issue_views.star_view', {
+                    organization,
+                    ownership:
+                      type === GroupSearchViewCreatedBy.ME ? 'personal' : 'organization',
+                    starred: !view.starred,
+                    surface: 'issue-views-list',
+                  });
                   handleStarView(view);
                 }}
               />
@@ -125,6 +136,14 @@ export function IssueViewsTable({
                     label: t('Delete'),
                     priority: 'danger',
                     onAction: () => {
+                      trackAnalytics('issue_views.delete_view', {
+                        organization,
+                        ownership:
+                          type === GroupSearchViewCreatedBy.ME
+                            ? 'personal'
+                            : 'organization',
+                        surface: 'issue-views-list',
+                      });
                       confirmDeleteIssueView({
                         handleDelete: () => handleDeleteView(view),
                         groupSearchView: view,

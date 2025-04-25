@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {useParams} from 'sentry/utils/useParams';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
@@ -40,13 +41,18 @@ export default function EventGraphWidget({pageFilters}: LoadableChartWidgetProps
   }
 
   return (
-    <EventGraph
-      event={undefined}
-      eventView={eventView}
-      group={groupData}
-      showSummary={false}
-      showReleasesAs="line"
-      disableZoomNavigation
+    <Widget
+      Title={<Widget.WidgetTitle title={t('Events')} />}
+      Visualization={
+        <EventGraph
+          event={undefined}
+          eventView={eventView}
+          group={groupData}
+          showSummary={false}
+          showReleasesAs="line"
+          disableZoomNavigation
+        />
+      }
     />
   );
 }

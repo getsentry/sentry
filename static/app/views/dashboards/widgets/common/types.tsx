@@ -27,15 +27,18 @@ export type TimeSeriesMeta = {
 };
 
 export type TimeSeriesItem = {
-  timestamp: string;
+  /**
+   * Milliseconds since Unix epoch
+   */
+  timestamp: number;
   value: number | null;
   delayed?: boolean;
 };
 
 export type TimeSeries = {
-  data: TimeSeriesItem[];
   field: string;
   meta: TimeSeriesMeta;
+  values: TimeSeriesItem[];
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
   sampleCount?: AccuracyStats<number>;
