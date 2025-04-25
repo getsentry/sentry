@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any, BinaryIO, ClassVar
 
 from django.db import models
 from django.db.models import Q
+from django.db.models.functions import Now
 from django.utils import timezone
 from symbolic.debuginfo import Archive, BcSymbolMap, Object, UuidMapping, normalize_debug_id
 from symbolic.exceptions import ObjectErrorUnsupportedObject, SymbolicError
@@ -130,7 +131,7 @@ class ProjectDebugFile(Model):
     debug_id = models.CharField(max_length=64, db_column="uuid")
     code_id = models.CharField(max_length=64, null=True)
     data: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
-    date_accessed = models.DateTimeField(default=timezone.now)
+    date_accessed = models.DateTimeField(default=timezone.now, db_default=Now())
 
     objects: ClassVar[ProjectDebugFileManager] = ProjectDebugFileManager()
 

@@ -11,6 +11,7 @@ import sentry_sdk
 from django import db
 from django.db import OperationalError, connections, models, router, transaction
 from django.db.models import Count, Max, Min
+from django.db.models.functions import Now
 from django.db.transaction import Atomic
 from django.utils import timezone
 from sentry_sdk.tracing import Span
@@ -177,7 +178,9 @@ class OutboxBase(Model):
     scheduled_for = models.DateTimeField(null=False, default=THE_PAST)
 
     # Initial creation date for the outbox which should not be modified. Used for lag time calculation.
-    date_added = models.DateTimeField(null=False, default=timezone.now, editable=False)
+    date_added = models.DateTimeField(
+        null=False, default=timezone.now, db_default=Now(), editable=False
+    )
 
     def last_delay(self) -> datetime.timedelta:
         return max(self.scheduled_for - self.scheduled_from, datetime.timedelta(seconds=1))

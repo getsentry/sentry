@@ -465,7 +465,9 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         dict[str, Any] | list[dict[str, Any]] | None,
     ] = JSONField(null=True)
     status = BoundedPositiveIntegerField(
-        default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
+        default=ObjectStatus.ACTIVE,
+        db_default=ObjectStatus.ACTIVE,
+        choices=ObjectStatus.as_choices(),
     )
 
     class Meta:
