@@ -5,6 +5,7 @@ from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.workflow_engine.endpoints.validators.base import BaseDataConditionValidator
+from sentry.workflow_engine.endpoints.validators.utils import remove_items_by_api_input
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup
 
 
@@ -43,17 +44,7 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer):
         instance: DataConditionGroup,
         validated_data: dict[str, Any],
     ) -> DataConditionGroup:
-        condition_ids = {
-            c["id"] for c in validated_data.get("conditions", []) if c.get("id") is not None
-        }
-
-        has_condition_removal = condition_ids != set(
-            instance.conditions.all().values_list("id", flat=True)
-        )
-
-        if has_condition_removal:
-            # Remove conditions that were not included in the update
-            instance.conditions.exclude(id__in=condition_ids).delete()
+        remove_items_by_api_input(validated_data.get("conditions", []), instance.conditions, "id")
 
         conditions = validated_data.pop("conditions", None)
         if conditions:
