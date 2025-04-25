@@ -26,6 +26,10 @@ DEFAULT_ERROR_MESSAGE = (
     "You are attempting to use this endpoint too frequently. Limit is "
     "{limit} requests in {window} seconds"
 )
+DEFAULT_CONCURRENT_ERROR_MESSAGE = (
+    "You are attempting to go above the allowed concurrency for this endpoint. Concurrency limit is "
+    "{limit}"
+)
 logger = logging.getLogger("sentry.api.rate-limit")
 
 
@@ -114,6 +118,11 @@ class RatelimitMiddleware:
                             DEFAULT_ERROR_MESSAGE.format(
                                 limit=request.rate_limit_metadata.limit,
                                 window=request.rate_limit_metadata.window,
+                            )
+                            if request.rate_limit_metadata.rate_limit_type
+                            == RateLimitType.FIXED_WINDOW
+                            else DEFAULT_CONCURRENT_ERROR_MESSAGE.format(
+                                limit=request.rate_limit_metadata.concurrent_limit
                             )
                         ),
                         status=429,
