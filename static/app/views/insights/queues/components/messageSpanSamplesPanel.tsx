@@ -22,6 +22,8 @@ import useProjects from 'sentry/utils/useProjects';
 import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
 import {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/samples';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
+// TODO(release-drawer): Move InsightsLineChartWidget into separate, self-contained component
+// eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -304,8 +306,8 @@ export function MessageSpanSamplesPanel() {
 
           <ModuleLayout.Full>
             <InsightsLineChartWidget
-              showLegend="never"
               title={getDurationChartTitle('queue')}
+              showLegend="never"
               isLoading={isDurationDataFetching}
               error={durationError}
               series={[durationData[`avg(span.duration)`]]}

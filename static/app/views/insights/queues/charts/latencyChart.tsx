@@ -3,6 +3,8 @@ import cloneDeep from 'lodash/cloneDeep';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
+// Our loadable chart widgets use this to render, so this import is ok
+// eslint-disable-next-line no-restricted-imports
 import {InsightsAreaChartWidget} from 'sentry/views/insights/common/components/insightsAreaChartWidget';
 import {useProcessQueuesTimeSeriesQuery} from 'sentry/views/insights/queues/queries/useProcessQueuesTimeSeriesQuery';
 import type {Referrer} from 'sentry/views/insights/queues/referrers';
