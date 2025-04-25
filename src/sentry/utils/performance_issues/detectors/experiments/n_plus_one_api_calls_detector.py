@@ -27,19 +27,19 @@ from sentry.utils.performance_issues.types import PerformanceProblemsMap, Span
 
 class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
     """
-    Detect parallel network calls to the same endpoint.
+    Detect parallel network calls to the same parameterized endpoint.
 
       [-------- transaction -----------]
          [-------- parent span -----------]
-          [n0] https://service.io/resources/?id=12443
-          [n1] https://service.io/resources/?id=13342
-          [n2] https://service.io/resources/?id=13441
+          [n0] https://service.io/resources/1/?id=12443
+          [n1] https://service.io/resources/2/?id=13342
+          [n2] https://service.io/resources/3/?id=13441
           ...
     """
 
     __slots__ = ["stored_problems"]
-    type = DetectorType.N_PLUS_ONE_API_CALLS
-    settings_key = DetectorType.N_PLUS_ONE_API_CALLS
+    type = DetectorType.EXPERIMENTAL_N_PLUS_ONE_API_CALLS
+    settings_key = DetectorType.EXPERIMENTAL_N_PLUS_ONE_API_CALLS
 
     def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
         super().__init__(settings, event)
@@ -47,6 +47,11 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
         # TODO: Only store the span IDs and timestamps instead of entire span objects
         self.stored_problems: PerformanceProblemsMap = {}
         self.spans: list[Span] = []
+
+    def is_creation_allowed_for_system(self) -> bool:
+        # Defer to the issue platform for whether to create issues
+        # See https://develop.sentry.dev/backend/issue-platform/#releasing-your-issue-type
+        return True
 
     def visit_span(self, span: Span) -> None:
         if not NPlusOneAPICallsExperimentalDetector.is_span_eligible(span):
