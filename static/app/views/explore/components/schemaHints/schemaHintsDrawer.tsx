@@ -176,6 +176,7 @@ function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDraw
               onChange={e => setSearchQuery(e.target.value)}
               aria-label={t('Search attributes')}
               placeholder={t('Search')}
+              autoFocus
             />
           </StyledInputGroup>
         </HeaderContainer>
