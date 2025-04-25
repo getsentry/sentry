@@ -300,7 +300,6 @@ def save_issue_from_occurrence(
                 project=project,
             )
 
-        # TODO: this function does not update the group priority if the group already exists—so this doesn't work yet
         open_period = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()
         if open_period is not None:
             highest_seen_priority = open_period.data.get("highest_seen_priority", None)
