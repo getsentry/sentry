@@ -1,6 +1,6 @@
 import type {Location} from 'history';
 
-import {DropdownOption} from 'sentry/components/discover/transactionsList';
+import type {DropdownOption} from 'sentry/components/discover/transactionsList';
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
