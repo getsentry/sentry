@@ -300,16 +300,19 @@ def save_issue_from_occurrence(
                 project=project,
             )
 
-        open_period = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()
-        if open_period is not None:
-            highest_seen_priority = open_period.data.get("highest_seen_priority", None)
-            if highest_seen_priority is None:
-                highest_seen_priority = group.priority
-            else:
-                highest_seen_priority = max(highest_seen_priority, group.priority)
-            open_period.update(
-                data={**open_period.data, "highest_seen_priority": highest_seen_priority}
+            open_period = (
+                GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()
             )
+            if open_period is not None:
+                highest_seen_priority = open_period.data.get("highest_seen_priority", None)
+                if highest_seen_priority is None:
+                    highest_seen_priority = group.priority
+                elif group.priority is not None:
+                    # XXX: we know this is not None, because we just set the group's priority
+                    highest_seen_priority = max(highest_seen_priority, group.priority)
+                open_period.update(
+                    data={**open_period.data, "highest_seen_priority": highest_seen_priority}
+                )
 
     additional_hashes = [f for f in occurrence.fingerprint if f != primary_grouphash.hash]
     for fingerprint_hash in additional_hashes:

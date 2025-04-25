@@ -488,9 +488,11 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         )
         event = self.store_event(data={}, project_id=self.project.id)
         group_info = save_issue_from_occurrence(occurrence, event, None)
+        assert group_info is not None
         group = group_info.group
         assert group.priority == PriorityLevel.MEDIUM
         open_period = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()
+        assert open_period is not None
         assert open_period.data["highest_seen_priority"] == PriorityLevel.MEDIUM
 
         new_event = self.store_event(data={}, project_id=self.project.id)
@@ -500,6 +502,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         )
         with self.tasks():
             updated_group_info = save_issue_from_occurrence(new_occurrence, new_event, None)
+        assert updated_group_info is not None
         updated_group = updated_group_info.group
         updated_group.refresh_from_db()
         assert updated_group.priority == PriorityLevel.HIGH
@@ -528,7 +531,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         group.refresh_from_db()
         assert group.priority == PriorityLevel.LOW
         assert group.priority_locked_at is not None
-        
+
 
 class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
