@@ -8,7 +8,9 @@ import {
 import AgeComparisonNode from 'sentry/views/automations/components/actionFilters/ageComparison';
 import EventAttributeNode from 'sentry/views/automations/components/actionFilters/eventAttribute';
 import IssueOccurrencesNode from 'sentry/views/automations/components/actionFilters/issueOccurrences';
+import IssuePriorityNode from 'sentry/views/automations/components/actionFilters/issuePriority';
 import LatestAdoptedReleaseNode from 'sentry/views/automations/components/actionFilters/latestAdoptedRelease';
+import LevelNode from 'sentry/views/automations/components/actionFilters/level';
 import TaggedEventNode from 'sentry/views/automations/components/actionFilters/taggedEvent';
 
 interface DataConditionNodeProps {
@@ -70,6 +72,13 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     },
   ],
   [
+    DataConditionType.ISSUE_PRIORITY_EQUALS,
+    {
+      label: t('Issue priority'),
+      dataCondition: <IssuePriorityNode />,
+    },
+  ],
+  [
     DataConditionType.LATEST_ADOPTED_RELEASE,
     {
       label: t('Release age'),
@@ -95,6 +104,13 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
     {
       label: t('Tagged event'),
       dataCondition: <TaggedEventNode />,
+    },
+  ],
+  [
+    DataConditionType.LEVEL,
+    {
+      label: t('Event level'),
+      dataCondition: <LevelNode />,
     },
   ],
 ]);
