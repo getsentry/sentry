@@ -9,7 +9,7 @@ import {getReleaseBounds, getReleaseParams} from 'sentry/views/releases/utils';
 import {useReleaseDetails} from 'sentry/views/releases/utils/useReleaseDetails';
 
 interface Props {
-  projectId: string;
+  projectId: string | undefined;
   release: string;
   withChart?: boolean;
 }
@@ -45,7 +45,7 @@ export function NewIssues({release, projectId, withChart = false}: Props) {
       queryFilterDescription={queryFilterDescription}
       withChart={withChart}
       renderEmptyMessage={renderEmptyMessage}
-      withPagination={false}
+      withPagination
       source="release-drawer"
     />
   );

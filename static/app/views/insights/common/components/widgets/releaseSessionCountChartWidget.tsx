@@ -25,7 +25,7 @@ export default function ReleaseSessionCountChartwidget(props: LoadableChartWidge
       interactiveTitle={() => (
         <ChartSelectionTitle title={CHART_TITLES.ReleaseSessionCountChartWidget} />
       )}
-      height={SESSION_HEALTH_CHART_HEIGHT}
+      height={props.height || SESSION_HEALTH_CHART_HEIGHT}
       description={t(
         'The total number of sessions per release. The 5 most recent releases are shown.'
       )}

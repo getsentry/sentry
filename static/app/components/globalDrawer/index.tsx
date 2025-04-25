@@ -70,7 +70,7 @@ export interface DrawerOptions {
   /**
    * If true (default), closes the drawer when the location changes
    */
-  shouldCloseOnLocationChange?: (newPathname: Location) => boolean;
+  shouldCloseOnLocationChange?: (nextLocation: Location) => boolean;
   //
   // Custom framer motion transition for the drawer
   //

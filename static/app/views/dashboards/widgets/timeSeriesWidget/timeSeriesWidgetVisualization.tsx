@@ -1,5 +1,4 @@
 import {useCallback, useRef} from 'react';
-import {useNavigate} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
@@ -31,6 +30,8 @@ import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {type Range, RangeMap} from 'sentry/utils/number/rangeMap';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
@@ -45,7 +46,10 @@ import type {
 } from 'sentry/views/dashboards/widgets/common/types';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useReleaseBubbles} from 'sentry/views/releases/releaseBubbles/useReleaseBubbles';
-import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
+import {
+  makeReleaseDrawerPathname,
+  makeReleasesPathname,
+} from 'sentry/views/releases/utils/pathnames';
 
 import {formatTooltipValue} from './formatters/formatTooltipValue';
 import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
@@ -63,12 +67,6 @@ export interface TimeSeriesWidgetVisualizationProps
    * An array of `Plottable` objects. This can be any object that implements the `Plottable` interface.
    */
   plottables: Plottable[];
-  /**
-  /**
-   * Disables navigating to release details when clicked
-   * TODO(billy): temporary until we implement route based nav
-   */
-  disableReleaseNavigation?: boolean;
   /**
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
    */
@@ -129,6 +127,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const theme = useTheme();
   const organization = useOrganization();
   const navigate = useNavigate();
+  const location = useLocation();
   const hasReleaseBubbles =
     organization.features.includes('release-bubbles-ui') &&
     props.showReleaseAs === 'bubble';
@@ -146,22 +145,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     releaseBubbleXAxis,
     releaseBubbleGrid,
   } = useReleaseBubbles({
-    chartRenderer: ({start: trimStart, end: trimEnd, ref: chartRendererRef}) => {
-      return (
-        <DrawerWidgetWrapper>
-          <TimeSeriesWidgetVisualization
-            {...props}
-            ref={chartRendererRef}
-            disableReleaseNavigation
-            onZoom={() => {}}
-            plottables={props.plottables.map(plottable =>
-              plottable.constrain(trimStart, trimEnd)
-            )}
-            showReleaseAs="line"
-          />
-        </DrawerWidgetWrapper>
-      );
-    },
+    chartId: props.id,
     minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
     maxTime: latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined,
     releases: hasReleaseBubbles
@@ -176,7 +160,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           theme,
           props.releases,
           function onReleaseClick(release: Release) {
-            if (props.disableReleaseNavigation) {
+            if (organization.features.includes('release-bubbles-ui')) {
+              navigate(makeReleaseDrawerPathname({location, release: release.version}));
               return;
             }
             navigate(
@@ -715,10 +700,6 @@ const LoadingPlaceholder = styled('div')`
 
 const LoadingMask = styled(TransparentLoadingMask)`
   background: ${p => p.theme.background};
-`;
-
-const DrawerWidgetWrapper = styled('div')`
-  height: 220px;
 `;
 
 TimeSeriesWidgetVisualization.LoadingPlaceholder = LoadingPanel;
