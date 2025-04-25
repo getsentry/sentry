@@ -20,7 +20,7 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
 from sentry.workflow_engine.models import ActionGroupStatus
 
 
-@freeze_time("2018-12-11 03:21:34")
+@freeze_time("2024-12-11 03:21:34")
 class TestDetectorSerializer(TestCase):
     def setUp(self) -> None:
         self.alert_rule = self.create_alert_rule()
@@ -149,7 +149,7 @@ class TestDetectorSerializer(TestCase):
             name="Super Awesome App",
             schema={"elements": [self.create_alert_rule_action_schema()]},
         )
-        self.create_sentry_app_installation(
+        install = self.create_sentry_app_installation(
             slug=sentry_app.slug, organization=self.organization, user=self.user
         )
         self.sentry_app_trigger_action = self.create_alert_rule_trigger_action(
@@ -178,6 +178,8 @@ class TestDetectorSerializer(TestCase):
             "desc": f"Send a notification via {sentry_app.name}",
             "priority": self.critical_action.data.get("priority"),
             "settings": [{"name": "title", "label": None, "value": "An alert"}],
+            "sentryAppInstallationUuid": install.uuid,
+            "disabled": True,
         }
         sentry_app_expected = self.expected.copy()
         expected_critical_action = self.expected_critical_action.copy()
@@ -185,6 +187,8 @@ class TestDetectorSerializer(TestCase):
         sentry_app_expected["triggers"][0]["actions"] = expected_critical_action
 
         serialized_detector = serialize(
-            self.detector, self.user, WorkflowEngineDetectorSerializer()
+            self.detector,
+            self.user,
+            WorkflowEngineDetectorSerializer(prepare_component_fields=True),
         )
         assert serialized_detector == sentry_app_expected

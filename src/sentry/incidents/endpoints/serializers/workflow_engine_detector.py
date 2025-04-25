@@ -48,9 +48,9 @@ class WorkflowEngineDetectorSerializer(Serializer):
         sentry_app_installations_by_sentry_app_id: Mapping[str, RpcSentryAppComponentContext] = {}
         if self.prepare_component_fields:
             sentry_app_ids = [
-                action.config.get("sentry_app_id")
+                int(action.config.get("target_identifier"))
                 for action in actions
-                if action.config.get("sentry_app_id")
+                if action.config.get("sentry_app_identifier") is not None
             ]
             install_contexts = app_service.get_component_contexts(
                 filter={"app_ids": sentry_app_ids, "organization_id": organization_id},
@@ -92,7 +92,6 @@ class WorkflowEngineDetectorSerializer(Serializer):
                     assert rpc_app
 
                     action["sentryAppInstallationUuid"] = rpc_install.uuid
-
                     component = (
                         prepare_ui_component(
                             rpc_install,
