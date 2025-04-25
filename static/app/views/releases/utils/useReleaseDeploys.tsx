@@ -7,7 +7,7 @@ export function useReleaseDeploys({
   release,
   projectSlug,
 }: {
-  projectSlug: string;
+  projectSlug: string | undefined;
   release: string;
 }) {
   const organization = useOrganization();
