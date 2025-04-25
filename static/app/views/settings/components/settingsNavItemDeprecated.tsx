@@ -56,7 +56,9 @@ function SettingsNavItemDeprecated({badge, label, index, id, to, ...props}: Prop
 }
 
 const StyledNavItem = styled(RouterNavLink)`
-  display: block;
+  display: flex;
+  gap: ${space(0.75)};
+  align-items: center;
   color: ${p => p.theme.subText};
   font-size: 14px;
   line-height: 30px;
