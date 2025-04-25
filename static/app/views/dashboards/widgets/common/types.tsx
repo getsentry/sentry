@@ -27,7 +27,10 @@ export type TimeSeriesMeta = {
 };
 
 export type TimeSeriesItem = {
-  timestamp: string;
+  /**
+   * Milliseconds since Unix epoch
+   */
+  timestamp: number;
   value: number | null;
   delayed?: boolean;
 };

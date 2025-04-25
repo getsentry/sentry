@@ -53,7 +53,7 @@ export abstract class ContinuousTimeSeries<
 > {
   // Ideally both the `timeSeries` and `config` would be protected properties.
   timeSeries: Readonly<TimeSeries>;
-  #timestamps: readonly string[];
+  #timestamps: readonly number[];
   config?: Readonly<TConfig>;
 
   constructor(timeSeries: TimeSeries, config?: TConfig) {
@@ -88,11 +88,11 @@ export abstract class ContinuousTimeSeries<
     return this.timeSeries.meta.unit;
   }
 
-  get start(): string | null {
+  get start(): number | null {
     return this.#timestamps.at(0) ?? null;
   }
 
-  get end(): string | null {
+  get end(): number | null {
     return this.#timestamps.at(-1) ?? null;
   }
 

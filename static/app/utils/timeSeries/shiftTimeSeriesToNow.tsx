@@ -15,7 +15,7 @@ export function shiftTimeSeriesToNow(timeSeries: TimeSeries): TimeSeries {
     ...timeSeries,
     data: timeSeries.data.map(datum => ({
       ...datum,
-      timestamp: new Date(new Date(datum.timestamp).getTime() + diff).toISOString(),
+      timestamp: datum.timestamp + diff,
     })),
   };
 }
