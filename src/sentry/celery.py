@@ -45,6 +45,9 @@ def holds_bad_pickle_object(value, memo=None):
     app_module = type(value).__module__
     if app_module.startswith(("sentry.", "getsentry.")):
         return value, "do not pickle custom classes"
+    elif isinstance(value, SafeString):
+        # Django string wrappers json encode fine
+        return None
     elif app_module != "builtins":
         return value, "do not pickle custom classes"
 
