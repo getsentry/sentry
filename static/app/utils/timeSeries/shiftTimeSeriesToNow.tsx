@@ -3,7 +3,7 @@ import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 export function shiftTimeSeriesToNow(timeSeries: TimeSeries): TimeSeries {
   const currentTimestamp = Date.now();
 
-  const lastDatum = timeSeries.data.at(-1);
+  const lastDatum = timeSeries.values.at(-1);
   if (!lastDatum) {
     return timeSeries;
   }
@@ -13,7 +13,7 @@ export function shiftTimeSeriesToNow(timeSeries: TimeSeries): TimeSeries {
 
   return {
     ...timeSeries,
-    data: timeSeries.data.map(datum => ({
+    values: timeSeries.values.map(datum => ({
       ...datum,
       timestamp: datum.timestamp + diff,
     })),

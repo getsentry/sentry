@@ -17,7 +17,7 @@ describe('ContinuousTimeSeries', () => {
 
     it('marks empty series as empty', () => {
       const timeSeries = TimeSeriesFixture({
-        data: [],
+        values: [],
       });
 
       const plottable = new Dots(timeSeries);
@@ -27,7 +27,7 @@ describe('ContinuousTimeSeries', () => {
 
     it('marks series of all nulls as empty', () => {
       const timeSeries = TimeSeriesFixture({
-        data: [
+        values: [
           {
             value: null,
             timestamp: 1729796400000, // '2024-10-24T15:00:00-04:00'
@@ -66,7 +66,7 @@ describe('ContinuousTimeSeries', () => {
   describe('start/end', () => {
     it('sets start and end to null if there is not data', () => {
       const timeSeries = TimeSeriesFixture({
-        data: [],
+        values: [],
       });
 
       const plottable = new Dots(timeSeries);
@@ -77,7 +77,7 @@ describe('ContinuousTimeSeries', () => {
 
     it('sets start and end to the same date if only one data point exists', () => {
       const timeSeries = TimeSeriesFixture({
-        data: [
+        values: [
           {
             value: 10,
             timestamp: 1729796400000, // '2024-10-24T15:00:00-04:00'
