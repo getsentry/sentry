@@ -78,7 +78,7 @@ export function CreateIssueViewModal({
       period: '14d',
       utc: null,
     },
-    starred: false,
+    starred: true,
   };
 
   return (
