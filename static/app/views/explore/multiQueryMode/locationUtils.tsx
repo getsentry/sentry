@@ -22,16 +22,15 @@ import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 // Read utils begin
 
 export type ReadableExploreQueryParts = {
-  chartType: ChartType;
   fields: string[];
   groupBys: string[];
   query: string;
   sortBys: Sort[];
   yAxes: string[];
+  chartType?: ChartType;
 };
 
 const DEFAULT_QUERY: ReadableExploreQueryParts = {
-  chartType: ChartType.LINE,
   yAxes: [DEFAULT_VISUALIZATION],
   sortBys: [{kind: 'desc', field: 'timestamp'}],
   fields: ['id', DEFAULT_VISUALIZATION_FIELD, 'timestamp'],
@@ -85,9 +84,9 @@ function parseQuery(raw: string): ReadableExploreQueryParts {
       return DEFAULT_QUERY;
     }
 
-    let chartType = Number(parsed.chartType);
+    let chartType: number | undefined = Number(parsed.chartType);
     if (isNaN(chartType) || !Object.values(ChartType).includes(chartType)) {
-      chartType = ChartType.LINE;
+      chartType = undefined;
     }
 
     const groupBys: string[] = parsed.groupBys ?? [];
