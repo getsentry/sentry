@@ -42,7 +42,9 @@ function SegmentedIssueViewSaveButton({
   const {data: view} = useSelectedGroupSearchView();
   const {mutate: updateGroupSearchView, isPending: isSaving} = useUpdateGroupSearchView();
   const user = useUser();
-  const canEdit = view ? canEditIssueView({user, groupSearchView: view}) : false;
+  const canEdit = view
+    ? canEditIssueView({user, groupSearchView: view, organization})
+    : false;
 
   const discardUnsavedChanges = () => {
     if (view) {
@@ -67,7 +69,9 @@ function SegmentedIssueViewSaveButton({
     <ButtonBar merged>
       <PrimarySaveButton
         priority={buttonPriority}
-        analyticsEventName="issue_views.save.clicked"
+        analyticsEventName={
+          canEdit ? 'issue_views.save.clicked' : 'issue_views.save_as.clicked'
+        }
         data-test-id={hasUnsavedChanges ? 'save-button-unsaved' : 'save-button'}
         onClick={canEdit ? saveView : openCreateIssueViewModal}
         disabled={isSaving}
@@ -119,7 +123,7 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
     openModal(props => (
       <CreateIssueViewModal
         {...props}
-        name={view?.name}
+        name={view ? `${view.name} (Copy)` : undefined}
         query={query}
         querySort={sort}
         projects={selection.projects}

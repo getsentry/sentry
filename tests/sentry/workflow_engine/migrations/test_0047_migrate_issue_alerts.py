@@ -186,6 +186,13 @@ class TestMigrateIssueAlerts(TestMigrations):
         self.issue_alert_no_triggers.data["conditions"] = []
         self.issue_alert_no_triggers.save()
 
+        self.issue_alert_invalid_environment = self.create_project_rule(
+            name="test4",
+            condition_data=conditions,
+            environment_id=123,
+            frequency=5,
+        )
+
     def assert_issue_alert_migrated(
         self, issue_alert, is_enabled=True, logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT
     ) -> Workflow:
@@ -263,6 +270,7 @@ class TestMigrateIssueAlerts(TestMigrations):
         self._test_run__every_event_condition()
         self._test_run__invalid_action()
         self._test_run__no_triggers()
+        self._test_run__skips_invalid_env_rule()
 
     def _test_run(self):
         workflow = self.assert_issue_alert_migrated(self.issue_alert)
@@ -374,4 +382,12 @@ class TestMigrateIssueAlerts(TestMigrations):
         assert workflow.when_condition_group
         assert (
             DataCondition.objects.filter(condition_group=workflow.when_condition_group).count() == 0
+        )
+
+    def _test_run__skips_invalid_env_rule(self):
+        assert (
+            AlertRuleWorkflow.objects.filter(
+                rule_id=self.issue_alert_invalid_environment.id
+            ).count()
+            == 0
         )

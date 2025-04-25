@@ -9,6 +9,7 @@ import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {DateTime} from 'sentry/components/dateTime';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixProgressBar} from 'sentry/components/events/autofix/autofixProgressBar';
 import {AutofixStartBox} from 'sentry/components/events/autofix/autofixStartBox';
@@ -160,8 +161,10 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
                   size="xs"
                   onClick={reset}
                   title={
-                    autofixData?.created_at
-                      ? `Last run at ${autofixData.created_at.split('T')[0]}`
+                    autofixData?.last_triggered_at
+                      ? tct('Last run at [date]', {
+                          date: <DateTime date={autofixData.last_triggered_at} />,
+                        })
                       : null
                   }
                   disabled={!autofixData}

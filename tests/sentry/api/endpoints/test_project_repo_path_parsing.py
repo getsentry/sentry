@@ -13,7 +13,16 @@ class BaseStacktraceLinkTest(APITestCase):
             name="foo", organization=self.org, teams=[self.create_team(organization=self.org)]
         )
 
-    def make_post(self, source_url, stack_path, project=None, user=None):
+    def make_post(
+        self,
+        source_url,
+        stack_path,
+        module=None,
+        abs_path=None,
+        platform=None,
+        project=None,
+        user=None,
+    ):
         self.login_as(user=user or self.user)
         if not project:
             project = self.project
@@ -26,7 +35,16 @@ class BaseStacktraceLinkTest(APITestCase):
             },
         )
 
-        return self.client.post(url, data={"sourceUrl": source_url, "stackPath": stack_path})
+        return self.client.post(
+            url,
+            data={
+                "sourceUrl": source_url,
+                "stackPath": stack_path,
+                "module": module,
+                "absPath": abs_path,
+                "platform": platform,
+            },
+        )
 
 
 class PathMappingSerializerTest(TestCase):
@@ -202,6 +220,28 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             "stackRoot": "sentry/",
             "sourceRoot": "src/sentry/",
             "defaultBranch": "master",
+        }
+
+    def test_java_path(self):
+        src_file = "src/com/example/foo/Bar.kt"
+        source_url = f"https://github.com/getsentry/sentry/blob/master/{src_file}"
+        filename = "Bar.kt"  # The filename in Java does not contain the package name
+        resp = self.make_post(
+            source_url,
+            filename,
+            module="com.example.foo.Bar",  # The module misses the extension
+            abs_path="Bar.kt",  # abs_path includes the extension
+            platform="java",
+        )
+        assert resp.status_code == 200, resp.content
+
+        assert resp.data == {
+            "defaultBranch": "master",
+            "integrationId": self.integration.id,
+            "repositoryId": self.repo.id,
+            "provider": "github",
+            "sourceRoot": "src/com/example/foo/",
+            "stackRoot": "com/example/foo/",
         }
 
     def test_short_path(self):

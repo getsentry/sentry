@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -106,10 +105,18 @@ function SaveQueryModal({
         <Wrapper>
           <SectionHeader>{t('Name')}</SectionHeader>
           <Input
-            placeholder={t('Enter a name for your saved query')}
+            placeholder={
+              defined(initialName)
+                ? t('Enter a name for your query')
+                : t('Enter a name for your new query')
+            }
             onChange={e => setName(e.target.value)}
             value={name}
-            title={t('Enter a name for your saved query')}
+            title={
+              defined(initialName)
+                ? t('Enter a name for your query')
+                : t('Enter a name for your new query')
+            }
           />
         </Wrapper>
         {initialName === undefined && (
@@ -207,11 +214,6 @@ const StyledButtonBar = styled(ButtonBar)`
       width: 100%;
     }
   }
-`;
-
-export const modalCss = css`
-  max-width: 700px;
-  margin: 70px auto;
 `;
 
 const SectionHeader = styled('h6')`

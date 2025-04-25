@@ -5,9 +5,17 @@ import type {PageFilters} from 'sentry/types/core';
  * render an Insight Chart Widget
  */
 export interface LoadableChartWidgetProps {
+  /**
+   * Chart height, needed to ensure that the chart height is consistent with
+   * the loading placeholder height
+   */
+  height?: string | number;
+
   // TODO(billy): This should be required when all chart widgets are converted
   /**
    * Unique ID for the widget
+   *
+   * TODO(billy): This should be required when all chart widgets are converted
    */
   id?: string;
 

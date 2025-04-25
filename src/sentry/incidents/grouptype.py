@@ -56,6 +56,7 @@ class MetricIssue(GroupType):
     slug = "metric_issue"
     description = "Metric issue triggered"
     category = GroupCategory.METRIC_ALERT.value
+    category_v2 = GroupCategory.PERFORMANCE_REGRESSION.value
     creation_quota = Quota(3600, 60, 100)
     default_priority = PriorityLevel.HIGH
     enable_auto_resolve = False
@@ -87,8 +88,3 @@ class MetricIssue(GroupType):
     @classmethod
     def allow_post_process_group(cls, organization: Organization) -> bool:
         return features.has("organizations:workflow-engine-metric-alert-processing", organization)
-
-
-# This needs to be removed once the import in getsentry is updated to use MetricIssue
-class MetricAlertFire:
-    slug = "metric_alert_fire"

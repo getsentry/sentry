@@ -40,6 +40,7 @@ import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
 import {LogsTable} from 'sentry/views/explore/logs/logsTable';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
+import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePersistentLogsPageParameters';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {DefaultPeriod, MaxPickableDays} from 'sentry/views/explore/utils';
@@ -62,7 +63,7 @@ export function LogsTabContent({
   const setLogsPageParams = useSetLogsPageParams();
   const tableData = useExploreLogsTable({});
   const pageFilters = usePageFilters();
-
+  usePersistentLogsPageParameters(); // persist the columns you chose last time
   // always use the smallest interval possible (the most bars)
   const interval = getIntervalOptionsForPageFilter(pageFilters.selection.datetime)?.[0]
     ?.value;
@@ -162,11 +163,9 @@ export function LogsTabContent({
               />
             </SchemaHintsSection>
           </Feature>
-          <Feature features="organizations:ourlogs-graph">
-            <LogsGraphContainer>
-              <LogsGraph timeseriesResult={timeseriesResult} />
-            </LogsGraphContainer>
-          </Feature>
+          <LogsGraphContainer>
+            <LogsGraph timeseriesResult={timeseriesResult} />
+          </LogsGraphContainer>
           <LogsItemContainer>
             <LogsTable
               tableData={tableData}
@@ -192,5 +191,5 @@ const LogsItemContainer = styled('div')`
 `;
 
 const LogsGraphContainer = styled(LogsItemContainer)`
-  height: 175px;
+  height: 200px;
 `;

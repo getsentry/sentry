@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from django.utils import timezone
@@ -211,6 +211,8 @@ def get_dataset_from_label(dataset_label: str):
     if dataset_label == "events":
         # DATASET_OPTIONS expects the name 'errors'
         dataset_label = "errors"
+    elif dataset_label == "events_analytics_platform":
+        dataset_label = "spans"
     elif dataset_label in ["generic_metrics", "transactions"]:
         # XXX: performance alerts dataset differs locally vs in prod
         dataset_label = "metricsEnhanced"
@@ -243,17 +245,7 @@ def fetch_historical_data(
         start = end - timedelta(days=NUM_DAYS)
     granularity = snuba_query.time_window
 
-    dataset_label = snuba_query.dataset
-
-    if dataset_label == "events":
-        # DATASET_OPTIONS expects the name 'errors'
-        dataset_label = "errors"
-    elif dataset_label == "events_analytics_platform":
-        dataset_label = "spans"
-    elif dataset_label in ["generic_metrics", "transactions"]:
-        # XXX: performance alerts dataset differs locally vs in prod
-        dataset_label = "metricsEnhanced"
-    dataset = get_dataset_from_label(dataset_label)
+    dataset = get_dataset_from_label(snuba_query.dataset)
 
     if not project or not dataset or not organization:
         return None
@@ -275,6 +267,16 @@ def fetch_historical_data(
     if dataset == metrics_performance:
         return get_crash_free_historical_data(start, end, project, organization, granularity)
     elif dataset in [spans_eap, spans_rpc]:
+        # EAP timeseries don't round time buckets to the nearest time window but seer expects
+        # that. So for example, if start was 7:01 with a 15 min interval, EAP would
+        # bucket it as 7:01, 7:16 etc. Force rounding the start and end times so we
+        # get the buckets seer expects.
+        rounded_end = int(end.timestamp() / granularity) * granularity
+        rounded_start = int(start.timestamp() / granularity) * granularity
+
+        snuba_params.end = datetime.fromtimestamp(rounded_end, UTC)
+        snuba_params.start = datetime.fromtimestamp(rounded_start, UTC)
+
         results = spans_rpc.run_timeseries_query(
             params=snuba_params,
             query_string=snuba_query.query,
@@ -288,7 +290,7 @@ def fetch_historical_data(
                 auto_fields=False,
                 use_aggregate_conditions=False,
             ),
-            sampling_mode=None,
+            sampling_mode="BEST_EFFORT",
         )
         return results
     else:

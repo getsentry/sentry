@@ -15,6 +15,7 @@ class UptimeDomainCheckFailure(GroupType):
     slug = "uptime_domain_failure"
     description = "Uptime Domain Monitor Failure"
     category = GroupCategory.UPTIME.value
+    category_v2 = GroupCategory.OUTAGE.value
     creation_quota = Quota(3600, 60, 1000)  # 1000 per hour, sliding window of 60 seconds
     default_priority = PriorityLevel.HIGH
     enable_auto_resolve = False

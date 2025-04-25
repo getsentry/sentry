@@ -1,17 +1,6 @@
-import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
 import type {SpanResult} from 'sentry/views/explore/hooks/useTraceSpans';
 
 import type {Field} from './data';
-
-export function normalizeTraces(traces: TraceResult[] | undefined) {
-  if (!traces) {
-    return traces;
-  }
-  return traces.sort(
-    // Only sort name == null to the end, the rest leave in the original order.
-    (t1, t2) => (t1.name ? '0' : '1').localeCompare(t2.name ? '0' : '1')
-  );
-}
 
 export function getStylingSliceName(
   sliceName: string | null,
@@ -23,21 +12,6 @@ export function getStylingSliceName(
   }
 
   return sliceName;
-}
-
-export function areQueriesEmpty(queries: string[]): boolean {
-  if (queries.length > 1) {
-    return false;
-  }
-  if (queries.length === 0) {
-    return true;
-  }
-
-  if (queries.length === 1) {
-    return queries[0]!.length === 0;
-  }
-
-  return false;
 }
 
 export function getSecondaryNameFromSpan(span: SpanResult<Field>) {
