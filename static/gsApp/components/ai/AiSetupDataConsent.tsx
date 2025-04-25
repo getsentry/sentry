@@ -43,7 +43,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
     <ConsentItemsContainer>
       <Flex align="center" gap={space(1)}>
         <SeerWaitingIcon size="xl" />
-        <SayHelloHeader>{t('Say Hello to Seer')}</SayHelloHeader>
+        <SayHelloHeader>{t('Say Hello to a Smarter Sentry')}</SayHelloHeader>
       </Flex>
       <Flex align="center" justify="center" gap={space(1)}>
         <img src={autofixSetupImg} alt="Seer looking at a root cause for a solution" />
@@ -95,7 +95,7 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
       {!autofixSetupData?.setupAcknowledgement.orgHasAcknowledged && (
         <Paragraph>
           {tct(
-            'Seer models are powered by generative Al. Per our [dataLink:data usage policies]. Sentry does not use your data to train Seer models or share your data with other customers without your express consent.',
+            'Seer models are powered by generative Al. Per our [dataLink:data usage policies], Sentry does not share AI-generated output from your data with other customers or use your data to train generative AI models without your express consent.',
             {
               dataLink: (
                 <ExternalLink href="https://docs.sentry.io/product/security/ai-ml-policy/#use-of-identifying-data-for-generative-ai-features" />
