@@ -121,7 +121,7 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
     openModal(props => (
       <CreateIssueViewModal
         {...props}
-        name={view ? `${view.name} (Copy)` : 'New View'}
+        name={view ? `${view.name} (Copy)` : undefined}
         query={query}
         querySort={sort}
         projects={selection.projects}
