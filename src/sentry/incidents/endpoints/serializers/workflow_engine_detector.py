@@ -75,6 +75,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             errors = []
             detector = detectors[int(serialized.get("alertRuleId"))]
             alert_rule_triggers = result[detector].setdefault("triggers", [])
+
             for action in serialized.get("actions", []):
                 if action is None:
                     continue
@@ -249,12 +250,16 @@ class WorkflowEngineDetectorSerializer(Serializer):
         )
 
         # add trigger and action data
-        serialized_data_conditions = serialize(
-            list(detector_trigger_data_conditions),
-            user,
-            WorkflowEngineDataConditionSerializer(),
-            **kwargs,
-        )
+        serialized_data_conditions: list[dict[str, Any]] = []
+        for trigger in detector_trigger_data_conditions:
+            serialized_data_conditions.extend(
+                serialize(
+                    [trigger],
+                    user,
+                    WorkflowEngineDataConditionSerializer(),
+                    **kwargs,
+                )
+            )
         self.add_triggers_and_actions(
             result,
             detectors,
