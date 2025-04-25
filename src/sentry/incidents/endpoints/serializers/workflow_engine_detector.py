@@ -224,32 +224,6 @@ class WorkflowEngineDetectorSerializer(Serializer):
         ).select_related("action")
         actions = [dcga.action for dcga in dcgas]
 
-        # the most horrible way to map a detector to it's action ids but idk if I can make this less horrible
-        detector_to_workflow_condition_group_ids = {
-            detector: detector.workflow_condition_group.id
-            for detector in detectors.values()
-            if detector.workflow_condition_group
-        }
-        detector_to_detector_triggers = defaultdict(list)
-        for trigger in detector_trigger_data_conditions:
-            for detector, wcg_id in detector_to_workflow_condition_group_ids.items():
-                if trigger.condition_group.id is wcg_id:
-                    detector_to_detector_triggers[detector].append(trigger)
-
-        detector_to_action_filters = defaultdict(list)
-        for action_filter in action_filter_data_condition_groups:
-            for detector, detector_triggers in detector_to_detector_triggers.items():
-                for trigger in detector_triggers:
-                    if action_filter.comparison is trigger.condition_result:
-                        detector_to_action_filters[detector].append(action_filter)
-
-        detector_to_action_ids = defaultdict(list)
-        for dcga in dcgas:
-            for detector, action_filters in detector_to_action_filters.items():
-                for action_filter in action_filters:
-                    if action_filter.condition_group.id is dcga.condition_group.id:
-                        detector_to_action_ids[detector].append(dcga.action.id)
-
         # add sentry app data
         organization_id = [detector.project.organization_id for detector in detectors.values()][0]
         sentry_app_installations_by_sentry_app_id = (
@@ -279,6 +253,32 @@ class WorkflowEngineDetectorSerializer(Serializer):
         # skipping snapshot data
 
         if "latestIncident" in self.expand:
+            # the most horrible way to map a detector to it's action ids but idk if I can make this less horrible
+            detector_to_workflow_condition_group_ids = {
+                detector: detector.workflow_condition_group.id
+                for detector in detectors.values()
+                if detector.workflow_condition_group
+            }
+            detector_to_detector_triggers = defaultdict(list)
+            for trigger in detector_trigger_data_conditions:
+                for detector, wcg_id in detector_to_workflow_condition_group_ids.items():
+                    if trigger.condition_group.id is wcg_id:
+                        detector_to_detector_triggers[detector].append(trigger)
+
+            detector_to_action_filters = defaultdict(list)
+            for action_filter in action_filter_data_condition_groups:
+                for detector, detector_triggers in detector_to_detector_triggers.items():
+                    for trigger in detector_triggers:
+                        if action_filter.comparison is trigger.condition_result:
+                            detector_to_action_filters[detector].append(action_filter)
+
+            detector_to_action_ids = defaultdict(list)
+            for dcga in dcgas:
+                for detector, action_filters in detector_to_action_filters.items():
+                    for action_filter in action_filters:
+                        if action_filter.condition_group.id is dcga.condition_group.id:
+                            detector_to_action_ids[detector].append(dcga.action.id)
+
             self.add_latest_incident(result, user, detectors, detector_to_action_ids)
 
         # add information from snubaquery
