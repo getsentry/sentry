@@ -269,7 +269,6 @@ DETAILED_PROJECT = {
             "performance-issues-compressed-assets-detector",
             "device-class-synthesis",
             "profiling-billing",
-            "performance-file-io-main-thread-detector",
             "integrations-deployment",
             "performance-m-n-plus-one-db-queries-visible",
             "mobile-cpu-memory-in-transactions",

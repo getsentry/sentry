@@ -200,9 +200,7 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
         return data.get("blocked_main_thread", False) is True
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return features.has(
-            "organizations:performance-file-io-main-thread-detector", organization, actor=None
-        )
+        return True
 
 
 class DBMainThreadDetector(BaseIOMainThreadDetector):
