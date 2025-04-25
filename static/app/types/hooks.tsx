@@ -8,13 +8,11 @@ import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
-import type {UseExperiment} from 'sentry/utils/useExperiment';
 import type {TitleableModuleNames} from 'sentry/views/insights/common/components/modulePageProviders';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
-import type {ExperimentKey} from './experiments';
 import type {Integration, IntegrationProvider} from './integrations';
 import type {
   Route,
@@ -238,7 +236,6 @@ type CustomizationHooks = {
  */
 type AnalyticsHooks = {
   'analytics:init-user': AnalyticsInitUser;
-  'analytics:log-experiment': AnalyticsLogExperiment;
   'analytics:raw-track-event': AnalyticsRawTrackEvent;
   'metrics:event': MetricsEvent;
 };
@@ -340,7 +337,6 @@ type ReactHooks = {
     props: RouteContextInterface
   ) => React.ContextType<typeof RouteAnalyticsContext>;
   'react-hook:use-button-tracking': (props: ButtonProps) => () => void;
-  'react-hook:use-experiment': UseExperiment;
   'react-hook:use-get-max-retention-days': () => number | undefined;
 };
 
@@ -457,20 +453,6 @@ type AnalyticsRawTrackEvent = (
     time?: number;
   }
 ) => void;
-
-/**
- * Trigger experiment observed logging.
- */
-type AnalyticsLogExperiment = (opts: {
-  /**
-   * The experiment key
-   */
-  key: ExperimentKey;
-  /**
-   * The organization. Must be provided for organization experiments.
-   */
-  organization?: Organization;
-}) => void;
 
 /**
  * Trigger recording a metric in the hook store.

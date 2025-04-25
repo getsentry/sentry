@@ -77,5 +77,3 @@ export type OrgExperiments = GetExperimentAssignment<
 export type UserExperiments = GetExperimentAssignment<
   TypeSelect<ExperimentList, ExperimentType.USER>['key']
 >;
-
-export type ExperimentAssignment = GetExperimentAssignment<ExperimentList['key']>;
