@@ -13,6 +13,7 @@ from sentry.incidents.models.incident import IncidentTrigger, TriggerStatus
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_alert_rule,
     migrate_metric_action,
@@ -116,7 +117,7 @@ class TestDetectorSerializer(TestCase):
             "dateModified": self.detector.date_updated,
             "dateCreated": self.detector.date_added,
             "createdBy": {},
-            "description": self.detector.description,
+            "description": self.detector.description or "",
             "detectionType": self.detector.type,
         }
 
@@ -133,6 +134,8 @@ class TestDetectorSerializer(TestCase):
             alert_rule_trigger=self.critical_trigger,
             status=TriggerStatus.ACTIVE.value,
         )
+        self.group.priority = PriorityLevel.HIGH
+        self.group.save()
         ActionGroupStatus.objects.create(action=self.critical_action, group=self.group)
         GroupOpenPeriod.objects.create(group=self.group, project=self.detector.project)
 

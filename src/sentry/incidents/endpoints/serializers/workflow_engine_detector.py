@@ -68,12 +68,13 @@ class WorkflowEngineDetectorSerializer(Serializer):
         result: DefaultDict[Detector, dict[str, Any]],
         detectors: dict[int, Detector],
         sentry_app_installations_by_sentry_app_id: Mapping[str, RpcSentryAppComponentContext],
-        data_conditions: list[DataCondition],
-        serialized_data_conditions: dict[str, Any],
+        serialized_data_conditions: list[dict[str, Any]],
     ) -> None:
-        for data_condition, serialized in zip(data_conditions, serialized_data_conditions):
+        for serialized in serialized_data_conditions:
             errors = []
-            detector = detectors[int(serialized.get("alertRuleId"))]
+            alert_rule_id = serialized.get("alertRuleId")
+            assert alert_rule_id
+            detector = detectors[int(alert_rule_id)]
             alert_rule_triggers = result[detector].setdefault("triggers", [])
 
             for action in serialized.get("actions", []):
@@ -139,7 +140,9 @@ class WorkflowEngineDetectorSerializer(Serializer):
         }
         for detector in detectors:
             # this is based on who created or updated it during dual write
-            rpc_user = user_by_user_id.get(detector.created_by_id)
+            rpc_user = None
+            if detector.created_by_id:
+                rpc_user = user_by_user_id.get(detector.created_by_id)
             if not rpc_user:
                 result[detector]["created_by"] = {}
             else:
@@ -162,40 +165,44 @@ class WorkflowEngineDetectorSerializer(Serializer):
         result: DefaultDict[Detector, dict[str, Any]],
         user: User | RpcUser | AnonymousUser,
         detectors: dict[int, Detector],
-        detector_to_action_ids: dict[Detector, Sequence[Action]],
+        detector_to_action_ids: defaultdict[Detector, list[int]],
     ) -> None:
         for detector in detectors.values():
             group_ids = None
-            open_period = None
+            open_periods = None
 
             try:
                 group_ids = ActionGroupStatus.objects.values_list("group_id", flat=True).filter(
-                    action_id__in=detector_to_action_ids[detector.id]
+                    action_id__in=detector_to_action_ids[detector]
                 )
             except ActionGroupStatus.DoesNotExist:
                 continue
 
             if group_ids:
                 try:
-                    open_period = GroupOpenPeriod.objects.filter(group=group_ids)
+                    open_periods = GroupOpenPeriod.objects.filter(
+                        group__in=[group_id for group_id in group_ids]
+                    ).order_by("-date_started")
                 except GroupOpenPeriod.DoesNotExist:
                     continue
 
             # TODO: this serializer is half baked
-            # TODO get latest open period
-            serialized_group_open_period = serialize(
-                open_period[0], user, WorkflowEngineIncidentSerializer()
-            )
-            result[detector]["latestIncident"] = serialized_group_open_period
+            if open_periods:
+                serialized_group_open_period = serialize(
+                    open_periods[0], user, WorkflowEngineIncidentSerializer()
+                )
+                result[detector]["latestIncident"] = serialized_group_open_period
 
     def get_attrs(
         self, item_list: Sequence[Detector], user: User | RpcUser | AnonymousUser, **kwargs: Any
-    ) -> defaultdict[str, Any]:
+    ) -> defaultdict[Detector, dict[str, Any]]:
         detectors = {item.id: item for item in item_list}
         result: DefaultDict[Detector, dict[str, Any]] = defaultdict(dict)
 
         detector_workflow_condition_group_ids = [
-            detector.workflow_condition_group.id for detector in detectors.values()
+            detector.workflow_condition_group.id
+            for detector in detectors.values()
+            if detector.workflow_condition_group
         ]
         detector_trigger_data_conditions = DataCondition.objects.filter(
             condition_group__in=detector_workflow_condition_group_ids,
@@ -220,7 +227,9 @@ class WorkflowEngineDetectorSerializer(Serializer):
 
         # the most horrible way to map a detector to it's action ids but idk if I can make this less horrible
         detector_to_workflow_condition_group_ids = {
-            detector: detector.workflow_condition_group.id for detector in detectors.values()
+            detector: detector.workflow_condition_group.id
+            for detector in detectors.values()
+            if detector.workflow_condition_group
         }
         detector_to_detector_triggers = defaultdict(list)
         for trigger in detector_trigger_data_conditions:
@@ -263,12 +272,11 @@ class WorkflowEngineDetectorSerializer(Serializer):
             result,
             detectors,
             sentry_app_installations_by_sentry_app_id,
-            detector_trigger_data_conditions,
             serialized_data_conditions,
         )
         self.add_projects(result, detectors)
-        self.add_created_by(result, detectors.values())
-        self.add_owner(result, detectors.values())
+        self.add_created_by(result, list(detectors.values()))
+        self.add_owner(result, list(detectors.values()))
         # skipping snapshot data
 
         if "latestIncident" in self.expand:
@@ -289,7 +297,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
         alert_rule_detector_id = AlertRuleDetector.objects.values_list(
             "alert_rule_id", flat=True
         ).get(detector=obj)
-        return {
+        data: AlertRuleSerializerResponse = {
             "id": str(alert_rule_detector_id),
             "name": obj.name,
             "organizationId": obj.project.organization_id,
@@ -309,6 +317,10 @@ class WorkflowEngineDetectorSerializer(Serializer):
             "dateModified": obj.date_updated,
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by"),
-            "description": obj.description,
+            "description": obj.description if obj.description else "",
             "detectionType": obj.type,
         }
+        if "latestIncident" in self.expand:
+            data["latestIncident"] = attrs.get("latestIncident", None)
+
+        return data
