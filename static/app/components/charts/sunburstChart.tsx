@@ -163,12 +163,13 @@ export function SunburstChart({data}: SunburstChartProps) {
                         <span class="tooltip-label">
                           <strong>${params.data.dir ? 'Directory' : 'File'}: </strong>${params.data.name}
                        </span>
-                      </div>`,
+                     </div>`,
                     `<div>
                         <span class="tooltip-label">
                           <strong>Coverage</strong>: ${params.data.coverage}%
                         </span>
                       </div>`,
+                    '</div>',
                   ].join('');
                 },
               },
