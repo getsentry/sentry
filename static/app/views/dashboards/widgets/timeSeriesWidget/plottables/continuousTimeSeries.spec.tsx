@@ -30,11 +30,11 @@ describe('ContinuousTimeSeries', () => {
         data: [
           {
             value: null,
-            timestamp: '2024-10-24T15:00:00-04:00',
+            timestamp: 1729796400000, // '2024-10-24T15:00:00-04:00'
           },
           {
             value: null,
-            timestamp: '2024-10-24T15:30:00-04:00',
+            timestamp: 1729798200000, // '2024-10-24T15:30:00-04:00'
           },
         ],
       });
@@ -80,15 +80,15 @@ describe('ContinuousTimeSeries', () => {
         data: [
           {
             value: 10,
-            timestamp: '2024-10-24T15:00:00-04:00',
+            timestamp: 1729796400000, // '2024-10-24T15:00:00-04:00'
           },
         ],
       });
 
       const plottable = new Dots(timeSeries);
 
-      expect(plottable.start).toBe('2024-10-24T15:00:00-04:00');
-      expect(plottable.end).toBe('2024-10-24T15:00:00-04:00');
+      expect(plottable.start).toBe(1729796400000);
+      expect(plottable.end).toBe(1729796400000);
     });
 
     it('returns the start and end if available', () => {
@@ -96,8 +96,8 @@ describe('ContinuousTimeSeries', () => {
 
       const plottable = new Dots(timeSeries);
 
-      expect(plottable.start).toBe('2024-10-24T15:00:00-04:00');
-      expect(plottable.end).toBe('2024-10-24T15:30:00-04:00');
+      expect(plottable.start).toBe(1729796400000);
+      expect(plottable.end).toBe(1729798200000);
     });
   });
 });
