@@ -9,7 +9,6 @@ from sentry.api.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
     fetch_slugifed_email_username,
 )
-from sentry.experiments.manager import ExperimentManager
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
@@ -31,7 +30,6 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
         self.login_as(user=self.user)
         self.email_username = fetch_slugifed_email_username(self.user.email)
         self.t1 = f"team-{self.email_username}"
-        self.mock_experiment_get = patch.object(ExperimentManager, "get", return_value=1).start()
 
     def validate_team_with_suffix(self, team: Team):
         pattern = rf"^{self.t1}-[a-z]{{3}}$"

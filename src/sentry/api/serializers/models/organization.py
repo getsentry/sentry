@@ -567,9 +567,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
     ) -> DetailedOrganizationSerializerResponse:
         # TODO: rectify access argument overriding parent if we want to remove above type ignore
 
-        from sentry import experiments
-
-        experiment_assignments = experiments.all(org=obj, actor=user)
         include_feature_flags = kwargs.get("include_feature_flags", True)
 
         base = super().serialize(
@@ -602,7 +599,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         context: DetailedOrganizationSerializerResponse = {
             **base,
-            "experiments": experiment_assignments,
+            # TODO(epurkhiser): This can be removed once we confirm the
+            # frontend does not use it
+            "experiments": {},
             "quota": {
                 "maxRate": max_rate[0],
                 "maxRateInterval": max_rate[1],
