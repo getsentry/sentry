@@ -171,7 +171,7 @@ const FUNCTION_TO_CHART_TYPE: Record<string, ChartType> = {
   [AggregationKey.SUM]: ChartType.BAR,
 };
 
-function determineDefaultChartType(yAxes: readonly string[]): ChartType {
+export function determineDefaultChartType(yAxes: readonly string[]): ChartType {
   const counts: Record<ChartType, number> = {
     [ChartType.BAR]: 0,
     [ChartType.LINE]: 0,
