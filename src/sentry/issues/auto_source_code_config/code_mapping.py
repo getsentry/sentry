@@ -293,18 +293,7 @@ class CodeMappingTreesHelper:
             logger.warning("More than one repo matched %s", frame_filename.raw_path)
             return None
 
-        cm = code_mappings[0]
-        logger.info(
-            "Found code mapping.",
-            extra={
-                "stack_path": frame_filename.raw_path,
-                "stack_root": cm.stacktrace_root,
-                "source_path": cm.source_path,
-                "repo_name": cm.repo.name,
-                "repo_branch": cm.repo.branch,
-            },
-        )
-        return cm
+        return code_mappings[0]
 
     def _generate_code_mapping_from_tree(
         self,
