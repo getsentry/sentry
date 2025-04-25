@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from sentry.api.serializers import serialize
 from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
     WorkflowEngineDetectorSerializer,
@@ -141,7 +143,8 @@ class TestDetectorSerializer(TestCase):
         )
         assert serialized_detector["latestIncident"] is not None
 
-    def test_sentry_app(self):
+    @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
+    def test_sentry_app(self, mock_sentry_app_components_preparer):
         sentry_app = self.create_sentry_app(
             organization=self.organization,
             published=True,
@@ -179,7 +182,28 @@ class TestDetectorSerializer(TestCase):
             "priority": self.critical_action.data.get("priority"),
             "settings": [{"name": "title", "label": None, "value": "An alert"}],
             "sentryAppInstallationUuid": install.uuid,
-            "disabled": True,
+            "formFields": {
+                "type": "alert-rule-settings",
+                "uri": "/sentry/alert-rule",
+                "required_fields": [
+                    {"type": "text", "name": "title", "label": "Title"},
+                    {"type": "text", "name": "summary", "label": "Summary"},
+                ],
+                "optional_fields": [
+                    {
+                        "type": "select",
+                        "name": "points",
+                        "label": "Points",
+                        "options": [["1", "1"], ["2", "2"], ["3", "3"], ["5", "5"], ["8", "8"]],
+                    },
+                    {
+                        "type": "select",
+                        "name": "assignee",
+                        "label": "Assignee",
+                        "uri": "/sentry/members",
+                    },
+                ],
+            },
         }
         sentry_app_expected = self.expected.copy()
         expected_critical_action = self.expected_critical_action.copy()
