@@ -24,6 +24,7 @@ from sentry.signals import (
     member_invited,
     member_joined,
     project_created,
+    project_transferred,
     transaction_processed,
 )
 from sentry.silo.base import SiloMode
@@ -1281,3 +1282,99 @@ class OrganizationOnboardingTaskTest(TestCase):
             ).count()
             == 1
         )
+
+    @patch("sentry.analytics.record")
+    def test_tasks_are_transferred_when_project_is_transferred(self, record_analytics):
+        """
+        Test that onboarding tasks are transferred when a project is transferred
+        """
+
+        project = self.create_project(platform="python")
+        project_created.send(
+            project=project, user=self.user, default_rules=True, sender=type(project)
+        )
+
+        transaction_event = load_data("transaction")
+        transaction_event.update({"user": None, "release": "my-first-release", "tags": []})
+        event = self.store_event(data=transaction_event, project_id=project.id)
+        transaction_processed.send(project=project, event=event, sender=type(project))
+
+        data = load_data("javascript")
+        data["exception"] = {
+            "values": [
+                {
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "data": {
+                                    "sourcemap": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js.map"
+                                }
+                            }
+                        ]
+                    },
+                    "type": "TypeError",
+                }
+            ]
+        }
+
+        event_with_sourcemap = self.store_event(
+            project_id=project.id,
+            data=data,
+        )
+        event_processed.send(project=project, event=event_with_sourcemap, sender=type(project))
+
+        error_event = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "message": "this is bad.",
+                "timestamp": timezone.now().isoformat(),
+                "type": "error",
+            },
+            project_id=project.id,
+        )
+        event_processed.send(project=project, event=error_event, sender=type(project))
+
+        first_replay_received.send(project=project, sender=type(project))
+
+        new_organization = self.create_organization(slug="new-org")
+
+        project.organization = new_organization
+        project_transferred.send(
+            old_org_id=self.organization.id,
+            updated_project=project,
+            sender=type(project),
+        )
+
+        record_analytics.assert_called_with(
+            "project.transferred",
+            old_organization_id=self.organization.id,
+            new_organization_id=new_organization.id,
+            project_id=project.id,
+            platform=project.platform,
+        )
+
+        project2 = self.create_project(platform="javascript-react")
+        project_created.send(
+            project=project2, user=self.user, default_rules=False, sender=type(project2)
+        )
+        project2.organization = new_organization
+        project_transferred.send(
+            old_org_id=self.organization.id,
+            updated_project=project2,
+            sender=type(project2),
+        )
+
+        record_analytics.assert_called_with(
+            "project.transferred",
+            old_organization_id=self.organization.id,
+            new_organization_id=new_organization.id,
+            project_id=project2.id,
+            platform=project2.platform,
+        )
+
+        transferred_tasks = OrganizationOnboardingTask.objects.filter(
+            organization_id=new_organization.id,
+            task__in=OrganizationOnboardingTask.TRANSFERABLE_TASKS,
+        )
+
+        self.assertEqual(len(transferred_tasks), len(OrganizationOnboardingTask.TRANSFERABLE_TASKS))

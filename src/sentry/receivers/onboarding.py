@@ -36,6 +36,7 @@ from sentry.signals import (
     integration_added,
     member_invited,
     project_created,
+    project_transferred,
     transaction_processed,
 )
 from sentry.users.services.user import RpcUser
@@ -574,3 +575,39 @@ def record_integration_added(
                     task=task_mapping[integration_type],
                     status=OnboardingTaskStatus.COMPLETE,
                 )
+
+
+@project_transferred.connect(weak=False, dispatch_uid="onboarding.record_project_transferred")
+def record_project_transferred(old_org_id, updated_project, **kwargs):
+
+    new_organization_id = updated_project.organization_id
+
+    analytics.record(
+        "project.transferred",
+        old_organization_id=old_org_id,
+        new_organization_id=new_organization_id,
+        project_id=updated_project.id,
+        platform=updated_project.platform,
+    )
+
+    existing_tasks_in_old_org = OrganizationOnboardingTask.objects.filter(
+        organization_id=old_org_id,
+        task__in=OrganizationOnboardingTask.TRANSFERABLE_TASKS,
+    )
+
+    existing_tasks_in_new_org = set(
+        OrganizationOnboardingTask.objects.filter(organization_id=new_organization_id).values_list(
+            "task", flat=True
+        )
+    )
+
+    tasks_to_be_transferred = []
+
+    for task in existing_tasks_in_old_org:
+        if task.task not in existing_tasks_in_new_org:
+            task.id = None
+            task.organization_id = new_organization_id
+            tasks_to_be_transferred.append(task)
+
+    if tasks_to_be_transferred:
+        OrganizationOnboardingTask.objects.bulk_create(tasks_to_be_transferred)

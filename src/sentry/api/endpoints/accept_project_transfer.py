@@ -18,6 +18,7 @@ from sentry.api.serializers.models.organization import (
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.signals import project_transferred
 from sentry.utils import metrics
 from sentry.utils.signing import unsign
 
@@ -124,8 +125,14 @@ class AcceptProjectTransferEndpoint(Endpoint):
         if not is_org_owner:
             return Response({"detail": "Invalid organization"}, status=400)
 
+        old_organization = project.organization
         project.transfer_to(organization=organization)
         ProjectOption.objects.unset_value(project, "sentry:project-transfer-transaction-id")
+
+        updated_project = Project.objects.get(id=project.id)
+        project_transferred.send_robust(
+            old_org_id=old_organization.id, updated_project=updated_project
+        )
 
         self.create_audit_entry(
             request=request,
