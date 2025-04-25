@@ -9,6 +9,7 @@ import {
 import {space} from 'sentry/styles/space';
 
 interface LineNumberProps {
+  ariaLabel: string | undefined;
   coverage: CoverageValue | undefined;
   isHighlighted: boolean;
   lineNumber: number | string | null | undefined;
@@ -33,6 +34,7 @@ export function LineNumber({
   virtualItem,
   virtualizer,
   isHighlighted,
+  ariaLabel,
 }: LineNumberProps) {
   return (
     <LineNumberWrapper
@@ -45,7 +47,7 @@ export function LineNumber({
       isHighlighted={isHighlighted}
       hasLineNumber={!!lineNumber}
     >
-      <StyledLineNumber onClick={onClick}>
+      <StyledLineNumber onClick={onClick} aria-label={ariaLabel}>
         {isHighlighted ? '#' : null}
         {lineNumber}
       </StyledLineNumber>
