@@ -131,7 +131,9 @@ class AcceptProjectTransferEndpoint(Endpoint):
 
         updated_project = Project.objects.get(id=project.id)
         project_transferred.send_robust(
-            old_org_id=old_organization.id, updated_project=updated_project
+            old_org_id=old_organization.id,
+            updated_project=updated_project,
+            sender=self,
         )
 
         self.create_audit_entry(
