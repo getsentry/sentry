@@ -506,7 +506,7 @@ class SearchResolver:
     def map_context_to_original_column(
         self,
         context_definition: VirtualColumnDefinition,
-    ):
+    ) -> ResolvedAttribute:
         """
         Time series request do not support virtual column contexts, so we have to remap the value back to the original column.
         (see https://github.com/getsentry/eap-planning/issues/236)
@@ -527,6 +527,10 @@ class SearchResolver:
             raise InvalidSearchQuery(f"Cannot map {context.from_column_name} to a public alias")
 
         resolved_column, _ = self.resolve_column(public_alias)
+
+        if not isinstance(resolved_column.proto_definition, AttributeKey):
+            raise ValueError(f"{resolved_column.public_alias} is not valid search term")
+
         return resolved_column
 
     def map_search_term_context_to_original_column(
@@ -539,24 +543,13 @@ class SearchResolver:
         (see https://github.com/getsentry/eap-planning/issues/236)
         """
         context = context_definition.constructor(self.params)
-
         is_number_column = (
             context.from_column_name in SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS["number"]
         )
 
-        public_alias = (
-            SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS["number"].get(context.from_column_name)
-            if is_number_column
-            else context.from_column_name
-        )
-
-        if public_alias is None:
-            raise InvalidSearchQuery(f"Cannot map {context.from_column_name} to a public alias")
+        resolved_column = self.map_context_to_original_column(context_definition)
 
         value = term.value.value
-        resolved_column, _ = self.resolve_column(public_alias)
-        if not isinstance(resolved_column.proto_definition, AttributeKey):
-            raise ValueError(f"{term.key.name} is not valid search term")
 
         inverse_value_map: dict[str, list[str]] = {}
         for key, val in context.value_map.items():

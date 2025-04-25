@@ -207,6 +207,14 @@ def run_top_events_timeseries_query(
     change this"""
     """Make a table query first to get what we need to filter by"""
     rpc_dataset_common.validate_granularity(params)
+
+    # Virtual context columns (VCCs) are currently only supported in TraceItemTable.
+    # For TopN queries, we want table and timeseries data to match.
+    # Here, we want to run the table request the the VCCs. SnubaParams has
+    # a property `is_timeseries_request` which resolves to true if granularity_secs is set.
+    # `is_timeseries_request` is used to evaluate if VCCs should be used.
+    # Unset granularity_secs, so this gets treated as a table request with
+    # the correct VCC.
     table_query_params = params.copy()
     table_query_params.granularity_secs = None
     table_search_resolver = get_resolver(params=table_query_params, config=config)
@@ -281,6 +289,11 @@ def run_top_events_timeseries_query(
                 ]
             else:
                 resolved_groupby, context = search_resolver.resolve_attribute(col)
+
+                # Virtual context columns (VCCs) are currently only supported in TraceItemTable.
+                # Since timeseries run the query with the original column, we need to map
+                # them correctly so they map the table result. We need to map both the column name
+                # and the values.
                 if context is not None:
                     resolved_groupby = search_resolver.map_context_to_original_column(context)
 
@@ -288,6 +301,7 @@ def run_top_events_timeseries_query(
                 if context is not None:
                     groupby_value = context.constructor(params).value_map[groupby_value]
                     groupby_attributes[resolved_groupby.internal_name] = groupby_value
+
                 remapped_groupby[col] = groupby_value
 
         result_key = create_result_key(remapped_groupby, groupby_columns, {})
