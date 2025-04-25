@@ -66,8 +66,6 @@ import EnhancedOrganizationStats from 'getsentry/hooks/spendVisibility/enhancedI
 import SpikeProtectionProjectSettings from 'getsentry/hooks/spendVisibility/spikeProtectionProjectSettings';
 import SuperuserAccessCategory from 'getsentry/hooks/superuserAccessCategory';
 import TargetedOnboardingHeader from 'getsentry/hooks/targetedOnboardingHeader';
-import {useExperiment} from 'getsentry/hooks/useExperiment';
-import logExperiment from 'getsentry/utils/logExperiment';
 import rawTrackAnalyticsEvent from 'getsentry/utils/rawTrackAnalyticsEvent';
 import trackMetric from 'getsentry/utils/trackMetric';
 
@@ -113,7 +111,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
    */
   'analytics:raw-track-event': rawTrackAnalyticsEvent,
   'analytics:init-user': hookAnalyticsInitUser,
-  'analytics:log-experiment': logExperiment,
   'metrics:event': trackMetric,
 
   /**
@@ -244,7 +241,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:crons-list-page-header': () => CronsBillingBanner,
   'react-hook:route-activated': useRouteActivatedHook,
   'react-hook:use-button-tracking': useButtonTracking,
-  'react-hook:use-experiment': useExperiment,
   'react-hook:use-get-max-retention-days': useGetMaxRetentionDays,
   'component:partnership-agreement': p => (
     <LazyLoad LazyComponent={PartnershipAgreement} {...p} />

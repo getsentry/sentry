@@ -7,7 +7,6 @@ import type {
 import type {WidgetType} from 'sentry/views/dashboards/types';
 
 import type {Actor, Avatar, ObjectStatus, Scope} from './core';
-import type {OrgExperiments} from './experiments';
 import type {ExternalTeam} from './integrations';
 import type {OnboardingTaskStatus} from './onboarding';
 import type {Project} from './project';
@@ -64,7 +63,6 @@ export interface Organization extends OrganizationSummary {
   defaultRole: string;
   enhancedPrivacy: boolean;
   eventsMemberAdmin: boolean;
-  experiments: Partial<OrgExperiments>;
   genAIConsent: boolean;
   isDefault: boolean;
   isDynamicallySampled: boolean;

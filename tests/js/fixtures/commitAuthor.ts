@@ -46,7 +46,6 @@ export function CommitAuthorFixture(params: Partial<User> = {}): User {
     },
     permissions: new Set(),
     canReset2fa: false,
-    experiments: [],
     flags: {newsletter_consent_prompt: false},
     identities: [],
     ...params,

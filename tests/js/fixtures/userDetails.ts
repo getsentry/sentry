@@ -42,7 +42,6 @@ export function UserDetailsFixture(params: Partial<User> = {}): User {
     permissions: new Set(),
     email: 'billyfirefox@test.com',
     canReset2fa: false,
-    experiments: [],
     flags: {newsletter_consent_prompt: false},
     hasPasswordAuth: false,
     ...params,
