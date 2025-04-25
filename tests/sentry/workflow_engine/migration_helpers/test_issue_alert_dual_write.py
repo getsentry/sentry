@@ -1,6 +1,9 @@
 import pytest
 from jsonschema.exceptions import ValidationError
 
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions
+from sentry.models.project import Project
+from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules.age import AgeComparisonType
 from sentry.rules.conditions.event_frequency import (
@@ -18,6 +21,7 @@ from sentry.rules.match import MatchType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.workflow_engine.migration_helpers.issue_alert_dual_write import (
     delete_migrated_issue_alert,
     update_migrated_issue_alert,
@@ -35,7 +39,7 @@ from sentry.workflow_engine.models import (
 from sentry.workflow_engine.models.data_condition import Condition
 
 
-class RuleMigrationHelpersTest(TestCase):
+class RuleMigrationHelpersTest(TestCase, HybridCloudTestMixin):
     def setUp(self):
         conditions = [
             {"id": ReappearedEventCondition.id},
@@ -362,7 +366,7 @@ class RuleMigrationHelpersTest(TestCase):
 
     @with_feature("organizations:workflow-engine-issue-alert-dual-write")
     def test_delete_issue_alert__receiver(self):
-        IssueAlertMigrator(self.issue_alert, self.user.id).run()
+        workflow = IssueAlertMigrator(self.issue_alert, self.user.id).run()
 
         alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=self.issue_alert.id)
         workflow = alert_rule_workflow.workflow
@@ -377,6 +381,13 @@ class RuleMigrationHelpersTest(TestCase):
         filters = DataCondition.objects.filter(condition_group=if_dcg)
         assert filters.count() == 1
 
-        self.project.delete()
+        self.ScheduledDeletion.schedule(self.project.organization, days=0)
+
+        # delete_migrated_issue_alert(self.issue_alert)
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not Project.objects.filter(id=self.project.id).exists()
+        assert not Rule.objects.filter(id=self.issue_alert.id).exists()
 
         self.assert_issue_alert_deleted(workflow, when_dcg, if_dcg)
