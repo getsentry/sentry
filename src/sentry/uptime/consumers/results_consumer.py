@@ -25,23 +25,20 @@ from sentry.remote_subscriptions.consumers.result_consumer import (
     ResultsStrategyFactory,
 )
 from sentry.uptime.detectors.ranking import _get_cluster
-from sentry.uptime.detectors.tasks import set_failed_url
+from sentry.uptime.detectors.result_handler import handle_onboarding_result
 from sentry.uptime.issue_platform import create_issue_platform_occurrence, resolve_uptime_issue
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
-    get_detector,
     get_project_subscription_for_uptime_subscription,
     get_top_hosting_provider_names,
     load_regions_for_uptime_subscription,
 )
 from sentry.uptime.subscriptions.subscriptions import (
     check_and_update_regions,
-    delete_uptime_detector,
     remove_uptime_subscription_if_unused,
-    update_project_uptime_subscription,
 )
 from sentry.uptime.subscriptions.tasks import (
     send_uptime_config_deletion,
@@ -55,23 +52,16 @@ from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_to
 logger = logging.getLogger(__name__)
 
 LAST_UPDATE_REDIS_TTL = timedelta(days=7)
-ONBOARDING_MONITOR_PERIOD = timedelta(days=3)
-# When onboarding a new subscription how many total failures are allowed to happen during
-# the ONBOARDING_MONITOR_PERIOD before we consider the subscription to have failed onboarding.
-ONBOARDING_FAILURE_THRESHOLD = 3
-# The TTL of the redis key used to track the failure counts for a subscription in
-# `ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING` mode. Must be >= the
-# ONBOARDING_MONITOR_PERIOD.
-ONBOARDING_FAILURE_REDIS_TTL = ONBOARDING_MONITOR_PERIOD
-# How frequently we should run active auto-detected subscriptions
-AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL = timedelta(minutes=1)
+
 # The TTL of the redis key used to track consecutive statuses. We need this to be longer than the longest interval we
 # support, so that the key doesn't expire between checks. We add an extra hour to account for any backlogs in
 # processing.
 ACTIVE_THRESHOLD_REDIS_TTL = timedelta(seconds=max(UptimeSubscription.IntervalSeconds)) + timedelta(
     minutes=60
 )
+
 SNUBA_UPTIME_RESULTS_CODEC: Codec[SnubaUptimeResult] = get_topic_codec(Topic.SNUBA_UPTIME_RESULTS)
+
 # We want to limit cardinality for provider tags. This controls how many tags we should include
 TOTAL_PROVIDERS_TO_INCLUDE_AS_TAGS = 30
 
@@ -89,10 +79,6 @@ _snuba_uptime_checks_producer = SingletonProducer(_get_snuba_uptime_checks_produ
 
 def build_last_update_key(project_subscription: ProjectUptimeSubscription) -> str:
     return f"project-sub-last-update:{project_subscription.id}"
-
-
-def build_onboarding_failure_key(project_subscription: ProjectUptimeSubscription) -> str:
-    return f"project-sub-onboarding_failure:{project_subscription.id}"
 
 
 def build_active_consecutive_status_key(
@@ -309,6 +295,100 @@ def record_check_metrics(
     )
 
 
+def handle_active_result(
+    project_subscription: ProjectUptimeSubscription,
+    result: CheckResult,
+    metric_tags: dict[str, str],
+):
+    uptime_status = project_subscription.uptime_status
+    result_status = result["status"]
+
+    redis = _get_cluster()
+    delete_status = (
+        CHECKSTATUS_FAILURE if result_status == CHECKSTATUS_SUCCESS else CHECKSTATUS_SUCCESS
+    )
+    # Delete any consecutive results we have for the opposing status, since we received this status
+    redis.delete(build_active_consecutive_status_key(project_subscription, delete_status))
+
+    if uptime_status == UptimeStatus.OK and result_status == CHECKSTATUS_FAILURE:
+        if not has_reached_status_threshold(project_subscription, result_status, metric_tags):
+            return
+
+        issue_creation_flag_enabled = features.has(
+            "organizations:uptime-create-issues",
+            project_subscription.project.organization,
+        )
+
+        restricted_host_provider_ids = options.get(
+            "uptime.restrict-issue-creation-by-hosting-provider-id"
+        )
+        host_provider_id = project_subscription.uptime_subscription.host_provider_id
+        issue_creation_restricted_by_provider = host_provider_id in restricted_host_provider_ids
+
+        if issue_creation_restricted_by_provider:
+            metrics.incr(
+                "uptime.result_processor.restricted_by_provider",
+                sample_rate=1.0,
+                tags={
+                    "host_provider_id": host_provider_id,
+                    **metric_tags,
+                },
+            )
+
+        if issue_creation_flag_enabled and not issue_creation_restricted_by_provider:
+            create_issue_platform_occurrence(result, project_subscription)
+            metrics.incr(
+                "uptime.result_processor.active.sent_occurrence",
+                tags=metric_tags,
+                sample_rate=1.0,
+            )
+            logger.info(
+                "uptime_active_sent_occurrence",
+                extra={
+                    "project_id": project_subscription.project_id,
+                    "url": project_subscription.uptime_subscription.url,
+                    **result,
+                },
+            )
+        # TODO(epurkhiser): Dual until we're only reading the uptime_status
+        # from the uptime_subscription.
+        project_subscription.update(
+            uptime_status=UptimeStatus.FAILED, uptime_status_update_date=django_timezone.now()
+        )
+        project_subscription.uptime_subscription.update(
+            uptime_status=UptimeStatus.FAILED, uptime_status_update_date=django_timezone.now()
+        )
+    elif uptime_status == UptimeStatus.FAILED and result_status == CHECKSTATUS_SUCCESS:
+        if not has_reached_status_threshold(project_subscription, result_status, metric_tags):
+            return
+
+        if features.has(
+            "organizations:uptime-create-issues", project_subscription.project.organization
+        ):
+            resolve_uptime_issue(project_subscription)
+            metrics.incr(
+                "uptime.result_processor.active.resolved",
+                sample_rate=1.0,
+                tags=metric_tags,
+            )
+            logger.info(
+                "uptime_active_resolved",
+                extra={
+                    "project_id": project_subscription.project_id,
+                    "url": project_subscription.uptime_subscription.url,
+                    **result,
+                },
+            )
+        # TODO(epurkhiser): Dual until we're only reading the uptime_status
+        # from the uptime_subscription.
+        project_subscription.update(
+            uptime_status=UptimeStatus.OK, uptime_status_update_date=django_timezone.now()
+        )
+        project_subscription.uptime_subscription.update(
+            uptime_status=UptimeStatus.OK, uptime_status_update_date=django_timezone.now()
+        )
+
+
 class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
     subscription_model = UptimeSubscription
 
@@ -422,17 +502,9 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         try:
             match project_subscription.mode:
                 case Mode.AUTO_DETECTED_ONBOARDING:
-                    self.handle_result_for_project_auto_onboarding_mode(
-                        project_subscription,
-                        result,
-                        metric_tags.copy(),
-                    )
+                    handle_onboarding_result(project_subscription, result, metric_tags.copy())
                 case Mode.AUTO_DETECTED_ACTIVE | Mode.MANUAL:
-                    self.handle_result_for_project_active_mode(
-                        project_subscription,
-                        result,
-                        metric_tags.copy(),
-                    )
+                    handle_active_result(project_subscription, result, metric_tags.copy())
                 case _:
                     logger.error(
                         "Unknown subscription mode",
@@ -454,165 +526,6 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         )
 
         record_check_completion_metrics(result, metric_tags)
-
-    def handle_result_for_project_auto_onboarding_mode(
-        self,
-        project_subscription: ProjectUptimeSubscription,
-        result: CheckResult,
-        metric_tags: dict[str, str],
-    ):
-        if result["status"] == CHECKSTATUS_FAILURE:
-            redis = _get_cluster()
-            key = build_onboarding_failure_key(project_subscription)
-            pipeline = redis.pipeline()
-            pipeline.incr(key)
-            pipeline.expire(key, ONBOARDING_FAILURE_REDIS_TTL)
-            failure_count = pipeline.execute()[0]
-            if failure_count >= ONBOARDING_FAILURE_THRESHOLD:
-                # If we've hit too many failures during the onboarding period we stop monitoring
-                if detector := get_detector(project_subscription.uptime_subscription):
-                    delete_uptime_detector(detector)
-                # Mark the url as failed so that we don't attempt to auto-detect it for a while
-                set_failed_url(project_subscription.uptime_subscription.url)
-                redis.delete(key)
-                status_reason = "unknown"
-                if result["status_reason"]:
-                    status_reason = result["status_reason"]["type"]
-                metrics.incr(
-                    "uptime.result_processor.autodetection.failed_onboarding",
-                    tags={"failure_reason": status_reason, **metric_tags},
-                    sample_rate=1.0,
-                )
-                logger.info(
-                    "uptime_onboarding_failed",
-                    extra={
-                        "project_id": project_subscription.project_id,
-                        "url": project_subscription.uptime_subscription.url,
-                        **result,
-                    },
-                )
-        elif result["status"] == CHECKSTATUS_SUCCESS:
-            assert project_subscription.date_added is not None
-            scheduled_check_time = datetime.fromtimestamp(
-                result["scheduled_check_time_ms"] / 1000, timezone.utc
-            )
-            if scheduled_check_time - ONBOARDING_MONITOR_PERIOD > project_subscription.date_added:
-                # If we've had mostly successes throughout the onboarding period then we can graduate the subscription
-                # to active.
-                update_project_uptime_subscription(
-                    project_subscription,
-                    interval_seconds=int(
-                        AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL.total_seconds()
-                    ),
-                    mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
-                )
-                metrics.incr(
-                    "uptime.result_processor.autodetection.graduated_onboarding",
-                    sample_rate=1.0,
-                    tags=metric_tags,
-                )
-                logger.info(
-                    "uptime_onboarding_graduated",
-                    extra={
-                        "project_id": project_subscription.project_id,
-                        "url": project_subscription.uptime_subscription.url,
-                        **result,
-                    },
-                )
-
-    def handle_result_for_project_active_mode(
-        self,
-        project_subscription: ProjectUptimeSubscription,
-        result: CheckResult,
-        metric_tags: dict[str, str],
-    ):
-        uptime_status = project_subscription.uptime_status
-        result_status = result["status"]
-
-        redis = _get_cluster()
-        delete_status = (
-            CHECKSTATUS_FAILURE if result_status == CHECKSTATUS_SUCCESS else CHECKSTATUS_SUCCESS
-        )
-        # Delete any consecutive results we have for the opposing status, since we received this status
-        redis.delete(build_active_consecutive_status_key(project_subscription, delete_status))
-
-        if uptime_status == UptimeStatus.OK and result_status == CHECKSTATUS_FAILURE:
-            if not has_reached_status_threshold(project_subscription, result_status, metric_tags):
-                return
-
-            issue_creation_flag_enabled = features.has(
-                "organizations:uptime-create-issues",
-                project_subscription.project.organization,
-            )
-
-            restricted_host_provider_ids = options.get(
-                "uptime.restrict-issue-creation-by-hosting-provider-id"
-            )
-            host_provider_id = project_subscription.uptime_subscription.host_provider_id
-            issue_creation_restricted_by_provider = host_provider_id in restricted_host_provider_ids
-
-            if issue_creation_restricted_by_provider:
-                metrics.incr(
-                    "uptime.result_processor.restricted_by_provider",
-                    sample_rate=1.0,
-                    tags={
-                        "host_provider_id": host_provider_id,
-                        **metric_tags,
-                    },
-                )
-
-            if issue_creation_flag_enabled and not issue_creation_restricted_by_provider:
-                create_issue_platform_occurrence(result, project_subscription)
-                metrics.incr(
-                    "uptime.result_processor.active.sent_occurrence",
-                    tags=metric_tags,
-                    sample_rate=1.0,
-                )
-                logger.info(
-                    "uptime_active_sent_occurrence",
-                    extra={
-                        "project_id": project_subscription.project_id,
-                        "url": project_subscription.uptime_subscription.url,
-                        **result,
-                    },
-                )
-            # TODO(epurkhiser): Dual until we're only reading the uptime_status
-            # from the uptime_subscription.
-            project_subscription.update(
-                uptime_status=UptimeStatus.FAILED, uptime_status_update_date=django_timezone.now()
-            )
-            project_subscription.uptime_subscription.update(
-                uptime_status=UptimeStatus.FAILED, uptime_status_update_date=django_timezone.now()
-            )
-        elif uptime_status == UptimeStatus.FAILED and result_status == CHECKSTATUS_SUCCESS:
-            if not has_reached_status_threshold(project_subscription, result_status, metric_tags):
-                return
-
-            if features.has(
-                "organizations:uptime-create-issues", project_subscription.project.organization
-            ):
-                resolve_uptime_issue(project_subscription)
-                metrics.incr(
-                    "uptime.result_processor.active.resolved",
-                    sample_rate=1.0,
-                    tags=metric_tags,
-                )
-                logger.info(
-                    "uptime_active_resolved",
-                    extra={
-                        "project_id": project_subscription.project_id,
-                        "url": project_subscription.uptime_subscription.url,
-                        **result,
-                    },
-                )
-            # TODO(epurkhiser): Dual until we're only reading the uptime_status
-            # from the uptime_subscription.
-            project_subscription.update(
-                uptime_status=UptimeStatus.OK, uptime_status_update_date=django_timezone.now()
-            )
-            project_subscription.uptime_subscription.update(
-                uptime_status=UptimeStatus.OK, uptime_status_update_date=django_timezone.now()
-            )
 
 
 class UptimeResultsStrategyFactory(ResultsStrategyFactory[CheckResult, UptimeSubscription]):

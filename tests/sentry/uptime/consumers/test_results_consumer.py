@@ -28,13 +28,15 @@ from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.uptime.consumers.results_consumer import (
-    AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL,
-    ONBOARDING_MONITOR_PERIOD,
     UptimeResultsStrategyFactory,
     build_last_update_key,
-    build_onboarding_failure_key,
 )
 from sentry.uptime.detectors.ranking import _get_cluster
+from sentry.uptime.detectors.result_handler import (
+    AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL,
+    ONBOARDING_MONITOR_PERIOD,
+    build_onboarding_failure_key,
+)
 from sentry.uptime.detectors.tasks import is_failed_url
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import (
@@ -636,9 +638,10 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         )
         with (
             mock.patch("sentry.quotas.backend.remove_seat") as mock_remove_seat,
-            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as consumer_metrics,
+            mock.patch("sentry.uptime.detectors.result_handler.metrics") as onboarding_metrics,
             mock.patch(
-                "sentry.uptime.consumers.results_consumer.ONBOARDING_FAILURE_THRESHOLD", new=2
+                "sentry.uptime.detectors.result_handler.ONBOARDING_FAILURE_THRESHOLD", new=2
             ),
             self.tasks(),
             self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
@@ -651,7 +654,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             mock_remove_seat.side_effect = capture_remove_seat
 
             self.send_result(result)
-            metrics.incr.assert_has_calls(
+            consumer_metrics.incr.assert_has_calls(
                 [
                     call(
                         "uptime.result_processor.handle_result_for_project",
@@ -664,6 +667,10 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                         },
                         sample_rate=1.0,
                     ),
+                ]
+            )
+            onboarding_metrics.incr.assert_has_calls(
+                [
                     call(
                         "uptime.result_processor.autodetection.failed_onboarding",
                         tags={
@@ -746,12 +753,13 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         key = build_onboarding_failure_key(self.project_subscription)
         assert redis.get(key) is None
         with (
-            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as consumer_metrics,
+            mock.patch("sentry.uptime.detectors.result_handler.metrics") as onboarding_metrics,
             self.tasks(),
             self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
         ):
             self.send_result(result)
-            metrics.incr.assert_has_calls(
+            consumer_metrics.incr.assert_has_calls(
                 [
                     call(
                         "uptime.result_processor.handle_result_for_project",
@@ -764,6 +772,10 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                         },
                         sample_rate=1.0,
                     ),
+                ]
+            )
+            onboarding_metrics.incr.assert_has_calls(
+                [
                     call(
                         "uptime.result_processor.autodetection.graduated_onboarding",
                         tags={
