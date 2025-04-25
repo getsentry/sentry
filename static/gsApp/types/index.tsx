@@ -1,5 +1,5 @@
 import type {DATA_CATEGORY_INFO} from 'sentry/constants';
-import type {DataCategoryExact} from 'sentry/types/core';
+import type {DataCategoryExact, DataCategoryInfo} from 'sentry/types/core';
 import type {User} from 'sentry/types/user';
 
 declare global {
@@ -940,3 +940,26 @@ export type PolicyRevision = {
   url: string | null;
   version: string;
 };
+
+export interface BilledDataCategoryInfo extends DataCategoryInfo {
+  /**
+   * Whether the category is supported for spend allocations
+   */
+  canAllocate: boolean;
+  /**
+   * Whether the category is supported for product trials
+   */
+  canProductTrial: boolean;
+  /**
+   * The feature flag that enables the category
+   */
+  feature: string | null;
+  /**
+   * The event multiplier for gifts
+   */
+  freeEventsMultiple: number;
+  /**
+   * The maximum number of free events that can be gifted
+   */
+  maxAdminGift: number;
+}

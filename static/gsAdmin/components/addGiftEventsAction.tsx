@@ -2,47 +2,22 @@ import {Component} from 'react';
 
 import TextField from 'sentry/components/forms/fields/textField';
 import {DataCategory} from 'sentry/types/core';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import type {
   AdminConfirmParams,
   AdminConfirmRenderProps,
 } from 'admin/components/adminConfirmationModal';
-import {MAX_ADMIN_CATEGORY_GIFTS} from 'getsentry/constants';
-import type {Subscription} from 'getsentry/types';
+import type {BilledDataCategoryInfo, Subscription} from 'getsentry/types';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 
 /** @internal exported for tests only */
-export const FREE_EVENTS_KEYS = {
-  [DataCategory.ERRORS]: 'addFreeErrors',
-  [DataCategory.TRANSACTIONS]: 'addFreeTransactions',
-  [DataCategory.REPLAYS]: 'addFreeReplays',
-  [DataCategory.ATTACHMENTS]: 'addFreeAttachments',
-  [DataCategory.MONITOR_SEATS]: 'addFreeMonitorSeats',
-  [DataCategory.UPTIME]: 'addFreeUptime',
-  [DataCategory.SPANS]: 'addFreeSpans',
-  [DataCategory.SPANS_INDEXED]: 'addFreeSpansIndexed',
-  [DataCategory.PROFILE_DURATION]: 'addFreeProfileDuration',
-  [DataCategory.PROFILE_DURATION_UI]: 'addFreeProfileDurationUI',
-};
-
-/**
- * Used so form can show "How many errors in multiples of 1,000s? (50 is 50,000 errors)"
- * and calculate total based on the multiplier
- */
-const DISPLAY_FREE_EVENTS_MULTIPLE = {
-  [DataCategory.ERRORS]: 1_000,
-  [DataCategory.TRANSACTIONS]: 1_000,
-  [DataCategory.REPLAYS]: 1,
-  [DataCategory.ATTACHMENTS]: 1, // GB
-  [DataCategory.MONITOR_SEATS]: 1,
-  [DataCategory.UPTIME]: 1,
-  [DataCategory.SPANS]: 100_000,
-  [DataCategory.SPANS_INDEXED]: 100_000,
-  [DataCategory.PROFILE_DURATION]: 1, // hours
-  [DataCategory.PROFILE_DURATION_UI]: 1, // hours
-};
+export function getFreeEventsKey(dataCategory: DataCategory) {
+  return `addFree${toTitleCase(dataCategory, {allowInnerUpperCase: true})}`;
+}
 
 type Props = AdminConfirmRenderProps & {
+  billedCategoryInfo: BilledDataCategoryInfo | null;
   dataCategory: DataCategory;
   subscription: Subscription;
 };
@@ -71,12 +46,12 @@ class AddGiftEventsAction extends Component<Props, State> {
   };
 
   coerceValue(value: string) {
-    const {dataCategory} = this.props;
+    const {billedCategoryInfo} = this.props;
 
     const intValue = parseInt(value, 10);
     const maxValue =
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      MAX_ADMIN_CATEGORY_GIFTS[dataCategory] / DISPLAY_FREE_EVENTS_MULTIPLE[dataCategory];
+      (billedCategoryInfo?.maxAdminGift ?? 0) /
+      (billedCategoryInfo?.freeEventsMultiple ?? 1); // prevent ZeroDivisionError
 
     if (isNaN(intValue) || intValue < 0) {
       return undefined;
@@ -89,8 +64,7 @@ class AddGiftEventsAction extends Component<Props, State> {
     const {onConfirm, dataCategory} = this.props;
 
     const freeEvents = this.calculatedTotal;
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    const freeEventsKey = FREE_EVENTS_KEYS[dataCategory];
+    const freeEventsKey = getFreeEventsKey(dataCategory);
 
     onConfirm?.({[freeEventsKey]: freeEvents, ...params});
 
@@ -102,18 +76,17 @@ class AddGiftEventsAction extends Component<Props, State> {
   };
 
   get calculatedTotal() {
-    const {dataCategory} = this.props;
+    const {billedCategoryInfo} = this.props;
     const {freeEvents} = this.state;
 
     if (!freeEvents) {
       return 0;
     }
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    return freeEvents * DISPLAY_FREE_EVENTS_MULTIPLE[dataCategory];
+    return freeEvents * (billedCategoryInfo?.freeEventsMultiple ?? 0);
   }
 
   render() {
-    const {dataCategory, subscription} = this.props;
+    const {billedCategoryInfo, dataCategory, subscription} = this.props;
     const {freeEvents} = this.state;
 
     function getlabel() {
@@ -131,8 +104,7 @@ class AddGiftEventsAction extends Component<Props, State> {
         category: dataCategory,
         capitalize: false,
       });
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      const multiplier = DISPLAY_FREE_EVENTS_MULTIPLE[dataCategory];
+      const multiplier = billedCategoryInfo?.freeEventsMultiple ?? 0;
       const addToMessage =
         multiplier > 1
           ? ` in multiples of ${multiplier.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}s?`

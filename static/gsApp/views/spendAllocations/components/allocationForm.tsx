@@ -22,11 +22,9 @@ import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import {
-  ALLOCATION_SUPPORTED_CATEGORIES,
-  AllocationTargetTypes,
-} from 'getsentry/constants';
+import {AllocationTargetTypes} from 'getsentry/constants';
 import type {Subscription} from 'getsentry/types';
+import {getCategoryInfoFromPlural} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
@@ -65,9 +63,9 @@ function AllocationForm({
   const [selectedMetric, setSelectedMetric] = useState<DataCategory>(
     initializedData
       ? (initializedData.billingMetric as DataCategory)
-      : initialMetric && ALLOCATION_SUPPORTED_CATEGORIES.includes(initialMetric)
+      : initialMetric && getCategoryInfoFromPlural(initialMetric)?.canAllocate
         ? initialMetric
-        : ALLOCATION_SUPPORTED_CATEGORIES[0]!
+        : DataCategory.ERRORS // default to errors
   );
   const [targetId, setTargetId] = useState<string | undefined>(
     initializedData && String(initializedData.targetId)
@@ -270,16 +268,19 @@ function AllocationForm({
             <Title>{t('Select Category:')}</Title>
             <Select
               name="category"
-              options={ALLOCATION_SUPPORTED_CATEGORIES.filter(category =>
-                subscription.planDetails.categories.includes(category)
-              ).map(category => ({
-                value: category,
-                label: getPlanCategoryName({
-                  plan: subscription.planDetails,
-                  category,
-                  title: true,
-                }),
-              }))}
+              options={subscription.planDetails.categories
+                .filter(
+                  category =>
+                    getCategoryInfoFromPlural(category as DataCategory)?.canAllocate
+                )
+                .map(category => ({
+                  value: category,
+                  label: getPlanCategoryName({
+                    plan: subscription.planDetails,
+                    category,
+                    title: true,
+                  }),
+                }))}
               value={selectedMetric}
               onChange={(val: any) => setSelectedMetric(val)}
             />
