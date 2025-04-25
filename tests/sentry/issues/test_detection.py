@@ -9,11 +9,11 @@ class DetectionTest(TestCase):
 
         assert f.dumps() == (
             "(\n"
-            "  (op='db' AND description='BEGIN'*)\n"
+            "  (op=db AND description=BEGIN*)\n"
             "  ...\n"
-            "  (op='http.client' AND duration>0.25)\n"
+            "  (op=http.client AND duration>0.25)\n"
             "  ...\n"
-            "  (op='db' AND (description='COMMIT'* OR description='ROLLBACK'*))\n"
+            "  (op=db AND (description=COMMIT* OR description=ROLLBACK*))\n"
             ")"
         )
 

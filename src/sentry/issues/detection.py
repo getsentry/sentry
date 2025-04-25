@@ -128,7 +128,7 @@ class OpEqLiteral(SpanOp):
         return span.get(self.key) == self.value
 
     def __str__(self):
-        return f"{self.key}={repr(self.value)}"
+        return f"{self.key}={self.value}"
 
 
 class OpPrefixLiteral(SpanOp):
@@ -140,7 +140,7 @@ class OpPrefixLiteral(SpanOp):
         return span.get(self.key).startswith(self.prefix)
 
     def __str__(self):
-        return f"{self.key}={repr(self.prefix)}*"
+        return f"{self.key}={self.prefix}*"
 
 
 class OpGtLiteral(SpanOp):
@@ -152,7 +152,7 @@ class OpGtLiteral(SpanOp):
         return self.key in span and span[self.key] > self.value
 
     def __str__(self):
-        return f"{self.key}>{repr(self.value)})"
+        return f"{self.key}>{self.value})"
 
 
 class OpDurationGtLiteral(SpanOp):
