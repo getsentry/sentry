@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
+from sentry.api.helpers.group_index.update import handle_priority
 from sentry.constants import LOG_LEVELS_MAP, MAX_CULPRIT_LENGTH
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import (
@@ -475,6 +476,29 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         group_info = save_issue_from_occurrence(occurrence, event, None)
         assert group_info is not None
         assert group_info.group.priority == PriorityLevel.HIGH
+
+    def test_group_with_priority_locked(self) -> None:
+        occurrence = self.build_occurrence(priority=PriorityLevel.HIGH)
+        event = self.store_event(data={}, project_id=self.project.id)
+        group_info = save_issue_from_occurrence(occurrence, event, None)
+        assert group_info is not None
+        group = group_info.group
+        assert group.priority == PriorityLevel.HIGH
+        assert group.priority_locked_at is None
+
+        handle_priority(
+            priority=PriorityLevel.LOW.to_str(),
+            group_list=[group],
+            acting_user=None,
+            project_lookup={self.project.id: self.project},
+        )
+
+        occurrence = self.build_occurrence(priority=PriorityLevel.HIGH)
+        event = self.store_event(data={}, project_id=self.project.id)
+        save_issue_from_occurrence(occurrence, event, None)
+        group.refresh_from_db()
+        assert group.priority == PriorityLevel.LOW
+        assert group.priority_locked_at is not None
 
 
 class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):

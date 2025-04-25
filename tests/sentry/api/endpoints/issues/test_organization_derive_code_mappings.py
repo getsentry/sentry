@@ -79,8 +79,8 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
                 "filename": "app/src/main/java/com/waffleware/billing/Billing.kt",
                 "repo_name": "getsentry/codemap",
                 "repo_branch": "master",
-                "stacktrace_root": "com/waffleware/",
-                "source_path": "app/src/main/java/com/waffleware/",
+                "stacktrace_root": "com/waffleware/billing/",
+                "source_path": "app/src/main/java/com/waffleware/billing/",
             }
         ]
 
