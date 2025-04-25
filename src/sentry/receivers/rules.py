@@ -1,6 +1,7 @@
 import logging
 
 from django.db import router, transaction
+from django.db.models.signals import pre_delete
 
 from sentry import features
 from sentry.models.project import Project
@@ -8,6 +9,9 @@ from sentry.models.rule import Rule
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.signals import alert_rule_created, project_created
 from sentry.users.services.user.model import RpcUser
+from sentry.workflow_engine.migration_helpers.issue_alert_dual_write import (
+    delete_migrated_issue_alert,
+)
 from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 
 logger = logging.getLogger("sentry")
@@ -75,4 +79,17 @@ def create_default_rules(project: Project, default_rules=True, RuleModel=Rule, *
     )
 
 
+def dual_delete_issue_alert(instance: Rule, **kwargs) -> None:
+    if features.has(
+        "organizations:workflow-engine-issue-alert-dual-write", instance.project.organization
+    ):
+        workflow_id = delete_migrated_issue_alert(instance)
+        if workflow_id:
+            logger.info(
+                "workflow_engine.issue_alert.deleted",
+                extra={"rule_id": instance.id, "workflow_id": workflow_id},
+            )
+
+
 project_created.connect(create_default_rules, dispatch_uid="create_default_rules", weak=False)
+pre_delete.connect(dual_delete_issue_alert, sender=Rule)
