@@ -42,6 +42,12 @@ export enum MatchType {
   STARTS_WITH = 'sw',
 }
 
+export enum Priority {
+  LOW = 25,
+  MEDIUM = 50,
+  HIGH = 75,
+}
+
 export enum AgeComparison {
   OLDER = 'older',
   NEWER = 'newer',
@@ -81,6 +87,15 @@ export enum Attributes {
   OS_DISTRIBUTION_VERSION = 'os.distribution_version',
 }
 
+export enum Level {
+  FATAL = 50,
+  ERROR = 40,
+  WARNING = 30,
+  INFO = 20,
+  DEBUG = 10,
+  SAMPLING = 0,
+}
+
 export const MATCH_CHOICES = [
   {value: MatchType.CONTAINS, label: 'contains'},
   {value: MatchType.EQUAL, label: 'equals'},
@@ -94,6 +109,12 @@ export const MATCH_CHOICES = [
   {value: MatchType.NOT_SET, label: 'is not set'},
   {value: MatchType.IS_IN, label: 'is one of'},
   {value: MatchType.NOT_IN, label: 'is not one of'},
+];
+
+export const PRIORITY_CHOICES = [
+  {value: Priority.HIGH, label: t('high')},
+  {value: Priority.MEDIUM, label: t('medium')},
+  {value: Priority.LOW, label: t('low')},
 ];
 
 export const AGE_COMPARISON_CHOICES = [
@@ -116,4 +137,18 @@ export const MODEL_AGE_CHOICES = [
     value: ModelAge.NEWEST,
     label: t('newest'),
   },
+];
+
+export const LEVEL_MATCH_CHOICES = [
+  {value: MatchType.EQUAL, label: t('equals')},
+  {value: MatchType.NOT_EQUAL, label: t('does not equal')},
+];
+
+export const LEVEL_CHOICES = [
+  {value: Level.FATAL, label: t('fatal')},
+  {value: Level.ERROR, label: t('error')},
+  {value: Level.WARNING, label: t('warning')},
+  {value: Level.INFO, label: t('info')},
+  {value: Level.DEBUG, label: t('debug')},
+  {value: Level.SAMPLING, label: t('sampling')},
 ];
