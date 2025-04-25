@@ -11,7 +11,7 @@ import {
   FILTER_MATCH_OPTIONS,
 } from 'sentry/views/automations/components/actionFilters/constants';
 import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
-import RuleNodeList from 'sentry/views/automations/components/ruleNodeList';
+import DataConditionNodeList from 'sentry/views/automations/components/dataConditionNodeList';
 import {
   TRIGGER_DATA_CONDITION_TYPES,
   TRIGGER_MATCH_OPTIONS,
@@ -53,7 +53,7 @@ export default function AutomationBuilder() {
           })}
         </StepLead>
       </Step>
-      <RuleNodeList
+      <DataConditionNodeList
         // TODO: replace constant dataConditionTypes with DataConditions API response
         dataConditionTypes={TRIGGER_DATA_CONDITION_TYPES}
         placeholder={t('Select a trigger...')}
@@ -135,7 +135,7 @@ function ActionFilterBlock({groupIndex}: ActionFilterBlockProps) {
               onClick={() => actions.removeIf(groupIndex)}
             />
           </Flex>
-          <RuleNodeList
+          <DataConditionNodeList
             // TODO: replace constant dataConditionTypes with DataConditions API response
             dataConditionTypes={FILTER_DATA_CONDITION_TYPES}
             placeholder={t('Filter by...')}
