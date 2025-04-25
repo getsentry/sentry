@@ -7,14 +7,11 @@ import type {ProductSelectionProps} from 'sentry/components/onboarding/productSe
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
-import type {UseExperiment} from 'sentry/utils/useExperiment';
 import type {TitleableModuleNames} from 'sentry/views/insights/common/components/modulePageProviders';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
-import type {ExperimentKey} from './experiments';
 import type {Integration, IntegrationProvider} from './integrations';
 import type {
   Route,
@@ -58,7 +55,7 @@ export type HookName = keyof Hooks;
 /**
  * Route hooks.
  */
-export type RouteHooks = {
+type RouteHooks = {
   'routes:legacy-organization-redirects': RoutesHook;
   'routes:root': RoutesHook;
   'routes:settings': RoutesHook;
@@ -91,8 +88,6 @@ type DisabledMemberTooltipProps = {children: React.ReactNode};
 
 type DashboardHeadersProps = {organization: Organization};
 
-type MetricsSamplesListProps = {children: React.ReactNode; organization: Organization};
-
 type ReplayFeedbackButton = {children: React.ReactNode};
 type ReplayListPageHeaderProps = {children?: React.ReactNode};
 type ReplayOnboardingAlertProps = {children: React.ReactNode};
@@ -104,17 +99,6 @@ type ProfilingBetaAlertBannerProps = {
 };
 
 type ContinuousProfilingBetaAlertBannerProps = {
-  organization: Organization;
-};
-
-type ProfilingUpgradePlanButtonProps = ButtonProps & {
-  children: React.ReactNode;
-  fallback: React.ReactNode;
-  organization: Organization;
-};
-
-type ProfilingAM1OrMMXUpgradeProps = {
-  fallback: React.ReactNode;
   organization: Organization;
 };
 
@@ -153,9 +137,6 @@ type MonitorCreatedCallback = (organization: Organization) => void;
 
 type CronsOnboardingPanelProps = {children: React.ReactNode};
 
-type SentryLogoProps = SVGIconProps & {
-  pride?: boolean;
-};
 export type ParntershipAgreementType = 'standard' | 'partner_presence';
 export type PartnershipAgreementProps = {
   agreements: ParntershipAgreementType[];
@@ -175,7 +156,7 @@ export type MembershipSettingsProps = {
 /**
  * Component wrapping hooks
  */
-export type ComponentHooks = {
+type ComponentHooks = {
   'component:ai-setup-data-consent': () => React.ComponentType<AiSetupDataConsentProps> | null;
   'component:codecov-integration-settings-link': () => React.ComponentType<CodecovLinkProps>;
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
@@ -187,7 +168,6 @@ export type ComponentHooks = {
   'component:data-consent-banner': () => React.ComponentType<{source: string}> | null;
   'component:data-consent-org-creation-checkbox': () => React.ComponentType | null;
   'component:data-consent-priority-learn-more': () => React.ComponentType | null;
-  'component:ddm-metrics-samples-list': () => React.ComponentType<MetricsSamplesListProps>;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
   'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
@@ -205,15 +185,12 @@ export type ComponentHooks = {
   'component:partnership-agreement': React.ComponentType<PartnershipAgreementProps>;
   'component:product-selection-availability': () => React.ComponentType<ProductSelectionAvailabilityProps>;
   'component:product-unavailable-cta': () => React.ComponentType<ProductUnavailableCTAProps>;
-  'component:profiling-am1-or-mmx-upgrade': () => React.ComponentType<ProfilingAM1OrMMXUpgradeProps>;
   'component:profiling-billing-banner': () => React.ComponentType<ProfilingBetaAlertBannerProps>;
-  'component:profiling-upgrade-plan-button': () => React.ComponentType<ProfilingUpgradePlanButtonProps>;
   'component:replay-feedback-button': () => React.ComponentType<ReplayFeedbackButton>;
   'component:replay-list-page-header': () => React.ComponentType<ReplayListPageHeaderProps> | null;
   'component:replay-onboarding-alert': () => React.ComponentType<ReplayOnboardingAlertProps>;
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
   'component:replay-settings-alert': () => React.ComponentType | null;
-  'component:sentry-logo': () => React.ComponentType<SentryLogoProps>;
   'component:superuser-access-category': React.ComponentType<any>;
   'component:superuser-warning': React.ComponentType<any>;
   'component:superuser-warning-excluded': SuperuserWarningExcluded;
@@ -225,7 +202,7 @@ export type ComponentHooks = {
  *
  * These are very similar to the component wrapping hooks
  */
-export type CustomizationHooks = {
+type CustomizationHooks = {
   'integrations:feature-gates': IntegrationsFeatureGatesHook;
   'member-invite-button:customization': InviteButtonCustomizationHook;
   'member-invite-modal:customization': InviteModalCustomizationHook;
@@ -236,9 +213,8 @@ export type CustomizationHooks = {
 /**
  * Analytics / tracking / and operational metrics backend hooks.
  */
-export type AnalyticsHooks = {
+type AnalyticsHooks = {
   'analytics:init-user': AnalyticsInitUser;
-  'analytics:log-experiment': AnalyticsLogExperiment;
   'analytics:raw-track-event': AnalyticsRawTrackEvent;
   'metrics:event': MetricsEvent;
 };
@@ -290,7 +266,7 @@ export type FeatureDisabledHooks = {
 /**
  * Interface chrome hooks.
  */
-export type InterfaceChromeHooks = {
+type InterfaceChromeHooks = {
   footer: GenericComponentHook;
   'help-modal:footer': HelpModalFooterHook;
   'sidebar:billing-status': GenericOrganizationComponentHook;
@@ -304,7 +280,7 @@ export type InterfaceChromeHooks = {
 /**
  * Onboarding experience hooks
  */
-export type OnboardingHooks = {
+type OnboardingHooks = {
   'onboarding-wizard:skip-help': () => React.ComponentType;
   'onboarding:block-hide-sidebar': () => boolean;
   'onboarding:targeted-onboarding-header': (opts: {source: string}) => React.ReactNode;
@@ -313,7 +289,7 @@ export type OnboardingHooks = {
 /**
  * Settings navigation hooks.
  */
-export type SettingsHooks = {
+type SettingsHooks = {
   'settings:api-navigation-config': SettingsItemsHook;
   'settings:organization-navigation': OrganizationSettingsHook;
   'settings:organization-navigation-config': SettingsConfigHook;
@@ -322,25 +298,24 @@ export type SettingsHooks = {
 /**
  * Feature Specific Hooks
  */
-export interface FeatureSpecificHooks extends SpendVisibilityHooks {}
+interface FeatureSpecificHooks extends SpendVisibilityHooks {}
 
 /**
  * Hooks related to Spend Visibitlity
  * (i.e. Per-Project Spike Protection + Spend Allocations)
  */
-export type SpendVisibilityHooks = {
+type SpendVisibilityHooks = {
   'spend-visibility:spike-protection-project-settings': GenericProjectComponentHook;
 };
 
 /**
  * Hooks that are actually React Hooks as well
  */
-export type ReactHooks = {
+type ReactHooks = {
   'react-hook:route-activated': (
     props: RouteContextInterface
   ) => React.ContextType<typeof RouteAnalyticsContext>;
   'react-hook:use-button-tracking': (props: ButtonProps) => () => void;
-  'react-hook:use-experiment': UseExperiment;
   'react-hook:use-get-max-retention-days': () => number | undefined;
 };
 
@@ -457,20 +432,6 @@ type AnalyticsRawTrackEvent = (
     time?: number;
   }
 ) => void;
-
-/**
- * Trigger experiment observed logging.
- */
-type AnalyticsLogExperiment = (opts: {
-  /**
-   * The experiment key
-   */
-  key: ExperimentKey;
-  /**
-   * The organization. Must be provided for organization experiments.
-   */
-  organization?: Organization;
-}) => void;
 
 /**
  * Trigger recording a metric in the hook store.

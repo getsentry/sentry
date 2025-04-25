@@ -689,6 +689,7 @@ def _call_autofix(
                 "id": group.id,
                 "title": group.title,
                 "short_id": group.qualified_short_id,
+                "first_seen": group.first_seen.isoformat(),
                 "events": [serialized_event],
             },
             "profile": profile,

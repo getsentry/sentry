@@ -59,10 +59,6 @@ export function getMEPQueryParams(
   return isEmptyObject(queryParams) ? undefined : queryParams;
 }
 
-export function getMetricOnlyQueryParams() {
-  return {...mepQueryParamBase, dataset: 'metrics'};
-}
-
 export const WIDGET_MAP_DENY_LIST = [
   PerformanceWidgetSetting.MOST_RELATED_ERRORS,
   PerformanceWidgetSetting.MOST_RELATED_ISSUES,

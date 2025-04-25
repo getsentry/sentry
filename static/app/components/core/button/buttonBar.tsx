@@ -6,8 +6,7 @@ import {StyledButton} from 'sentry/components/core/button';
 import type {ValidSize} from 'sentry/styles/space';
 import {space} from 'sentry/styles/space';
 
-export interface ButtonBarProps
-  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'className'> {
+interface ButtonBarProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'className'> {
   children: React.ReactNode;
   gap?: ValidSize | 0;
   merged?: boolean;

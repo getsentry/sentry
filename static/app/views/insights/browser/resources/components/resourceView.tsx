@@ -8,7 +8,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {getResourceTypeFilter} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
 import RenderBlockingSelector from 'sentry/views/insights/browser/resources/components/renderBlockingSelector';
 import ResourceTable from 'sentry/views/insights/browser/resources/components/tables/resourceTable';
 import {
@@ -24,16 +23,13 @@ import {
 import {useResourceSort} from 'sentry/views/insights/browser/resources/utils/useResourceSort';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {TransactionSelector} from 'sentry/views/insights/common/views/spans/selectors/transactionSelector';
-import type {ModuleFilters} from 'sentry/views/insights/common/views/spans/types';
 
 import {ResourceLandingPageCharts} from './charts/resourceLandingPageCharts';
 
 const {
   SPAN_OP: RESOURCE_TYPE,
-  SPAN_DOMAIN,
   TRANSACTION,
   RESOURCE_RENDER_BLOCKING_STATUS,
-  USER_GEO_SUBREGION,
 } = BrowserStarfishFields;
 
 type Option = {
@@ -45,25 +41,10 @@ function ResourceView() {
   const filters = useResourceModuleFilters();
   const sort = useResourceSort();
 
-  const spanTimeChartsFilters: ModuleFilters = {
-    'span.op': `[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
-    ...(filters[SPAN_DOMAIN] ? {[SPAN_DOMAIN]: filters[SPAN_DOMAIN]} : {}),
-  };
-
-  const extraQuery = [
-    ...getResourceTypeFilter(undefined, DEFAULT_RESOURCE_TYPES),
-    ...(filters[USER_GEO_SUBREGION]
-      ? [`user.geo.subregion:[${filters[USER_GEO_SUBREGION].join(',')}]`]
-      : []),
-  ];
-
   return (
     <Fragment>
       <SpanTimeChartsContainer>
-        <ResourceLandingPageCharts
-          appliedFilters={spanTimeChartsFilters}
-          extraQuery={extraQuery}
-        />
+        <ResourceLandingPageCharts />
       </SpanTimeChartsContainer>
 
       <DropdownContainer>
@@ -127,7 +108,7 @@ function ResourceTypeSelector({value}: {value?: string}) {
   );
 }
 
-export const SpanTimeChartsContainer = styled('div')`
+const SpanTimeChartsContainer = styled('div')`
   margin-bottom: ${space(2)};
 `;
 

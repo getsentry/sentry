@@ -15,6 +15,7 @@ export const FILTER_DATA_CONDITION_TYPES = [
   DataConditionType.ISSUE_OCCURRENCES,
   DataConditionType.ASSIGNED_TO,
   DataConditionType.ISSUE_PRIORITY_EQUALS,
+  DataConditionType.ISSUE_PRIORITY_GREATER_OR_EQUAL,
   DataConditionType.LATEST_ADOPTED_RELEASE,
   DataConditionType.LATEST_RELEASE,
   DataConditionType.EVENT_ATTRIBUTE,
@@ -39,12 +40,6 @@ export enum MatchType {
   NOT_STARTS_WITH = 'nsw',
   NOT_IN = 'nin',
   STARTS_WITH = 'sw',
-}
-
-export enum Assignee {
-  UNASSIGNED = 'Unassigned',
-  TEAM = 'Team',
-  MEMBER = 'Member',
 }
 
 export enum Priority {
@@ -114,12 +109,6 @@ export const MATCH_CHOICES = [
   {value: MatchType.NOT_SET, label: 'is not set'},
   {value: MatchType.IS_IN, label: 'is one of'},
   {value: MatchType.NOT_IN, label: 'is not one of'},
-];
-
-export const ASSIGNEE_CHOICES = [
-  {value: Assignee.UNASSIGNED, label: t('unassigned')},
-  {value: Assignee.MEMBER, label: t('member')},
-  {value: Assignee.TEAM, label: t('team')},
 ];
 
 export const PRIORITY_CHOICES = [

@@ -44,7 +44,7 @@ const defaultProps = {
   useTintRow: true,
 };
 
-export type GroupListColumn =
+type GroupListColumn =
   | 'graph'
   | 'event'
   | 'users'

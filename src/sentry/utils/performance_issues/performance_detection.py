@@ -22,6 +22,9 @@ from sentry.utils.safe import get_path
 from .base import DetectorType, PerformanceDetector
 from .detectors.consecutive_db_detector import ConsecutiveDBSpanDetector
 from .detectors.consecutive_http_detector import ConsecutiveHTTPSpanDetector
+from .detectors.experiments.n_plus_one_api_calls_detector import (
+    NPlusOneAPICallsExperimentalDetector,
+)
 from .detectors.http_overhead_detector import HTTPOverheadDetector
 from .detectors.io_main_thread_detector import DBMainThreadDetector, FileIOMainThreadDetector
 from .detectors.large_payload_detector import LargeHTTPPayloadDetector
@@ -278,6 +281,13 @@ def get_detection_settings(project_id: int | None = None) -> dict[DetectorType, 
             "allowed_span_ops": ["http.client"],
             "detection_enabled": settings["n_plus_one_api_calls_detection_enabled"],
         },
+        DetectorType.EXPERIMENTAL_N_PLUS_ONE_API_CALLS: {
+            "total_duration": settings["n_plus_one_api_calls_total_duration_threshold"],  # ms
+            "concurrency_threshold": 10,  # ms
+            "count": 5,
+            "allowed_span_ops": ["http.client"],
+            "detection_enabled": settings["n_plus_one_api_calls_detection_enabled"],
+        },
         DetectorType.M_N_PLUS_ONE_DB: {
             "total_duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
             "minimum_occurrences_of_pattern": 3,
@@ -322,6 +332,7 @@ DETECTOR_CLASSES: list[type[PerformanceDetector]] = [
     NPlusOneDBSpanDetectorExtended,
     FileIOMainThreadDetector,
     NPlusOneAPICallsDetector,
+    NPlusOneAPICallsExperimentalDetector,
     MNPlusOneDBSpanDetector,
     UncompressedAssetSpanDetector,
     LargeHTTPPayloadDetector,

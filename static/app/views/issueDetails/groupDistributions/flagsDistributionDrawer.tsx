@@ -2,11 +2,13 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
+import {Flex} from 'sentry/components/container/flex';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {EventDrawerBody, EventNavigator} from 'sentry/components/events/eventDrawer';
 import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
 import {OrderBy, SortBy} from 'sentry/components/events/featureFlags/utils';
+import {IconSentry} from 'sentry/icons/iconSentry';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
@@ -57,12 +59,12 @@ export default function Flags({group, organization, setTab}: Props) {
   const sortByOptions = enableSuspectFlags
     ? [
         {
-          label: t('Suspiciousness'),
-          value: SortBy.SUSPICION,
-        },
-        {
           label: t('Alphabetical'),
           value: SortBy.ALPHABETICAL,
+        },
+        {
+          label: t('Suspiciousness'),
+          value: SortBy.SUSPICION,
         },
       ]
     : [
@@ -74,16 +76,16 @@ export default function Flags({group, organization, setTab}: Props) {
   const orderByOptions = enableSuspectFlags
     ? [
         {
-          label: t('High to Low'),
-          value: OrderBy.HIGH_TO_LOW,
-        },
-        {
           label: t('A-Z'),
           value: OrderBy.A_TO_Z,
         },
         {
           label: t('Z-A'),
           value: OrderBy.Z_TO_A,
+        },
+        {
+          label: t('High to Low'),
+          value: OrderBy.HIGH_TO_LOW,
         },
       ]
     : [
@@ -145,19 +147,6 @@ export default function Flags({group, organization, setTab}: Props) {
           </ButtonBar>
         )}
       </EventNavigator>
-      {!tagKey && showSuspectSandboxUI && (
-        <EventDrawerBody>
-          <Label>
-            {t('Debug')}{' '}
-            <Checkbox
-              checked={debugSuspectScores}
-              onChange={() => {
-                setDebugSuspectScores(debugSuspectScores ? '0' : '1');
-              }}
-            />
-          </Label>
-        </EventDrawerBody>
-      )}
       <EventDrawerBody>
         {tagKey ? (
           <AnalyticsArea name="feature_flag_details">
@@ -165,6 +154,20 @@ export default function Flags({group, organization, setTab}: Props) {
           </AnalyticsArea>
         ) : (
           <AnalyticsArea name="feature_flag_distributions">
+            {showSuspectSandboxUI && (
+              <Flex>
+                <Label>
+                  <IconSentry size="xs" />
+                  {t('Debug')}
+                  <Checkbox
+                    checked={debugSuspectScores}
+                    onChange={() => {
+                      setDebugSuspectScores(debugSuspectScores ? '0' : '1');
+                    }}
+                  />
+                </Label>
+              </Flex>
+            )}
             <FlagDrawerContent
               debugSuspectScores={debugSuspectScores}
               environments={environments}
