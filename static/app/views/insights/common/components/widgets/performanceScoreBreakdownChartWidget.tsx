@@ -18,7 +18,9 @@ import {
 } from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
 
-export function PerformanceScoreBreakdownChartWidget(props: LoadableChartWidgetProps) {
+export default function PerformanceScoreBreakdownChartWidget(
+  props: LoadableChartWidgetProps
+) {
   const {
     transaction,
     [SpanIndexedField.BROWSER_NAME]: browserTypes,
@@ -109,6 +111,7 @@ export function PerformanceScoreBreakdownChartWidget(props: LoadableChartWidgetP
 
   return (
     <InsightsTimeSeriesWidget
+      id={props.id}
       title={t('Score Breakdown')}
       height="100%"
       visualizationType="area"
