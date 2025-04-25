@@ -20,6 +20,7 @@ from sentry.api.utils import get_date_range_from_params, is_member_disabled_from
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
+from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org
 from sentry.exceptions import InvalidParams
 from sentry.models.apikey import is_api_key_auth
 from sentry.models.environment import Environment
@@ -305,7 +306,8 @@ class ControlSiloOrganizationEndpoint(Endpoint):
         # Never track any org (regardless of whether the user does or doesn't have
         # membership in that org) when the user is in active superuser mode
         if request.auth is None and request.user and not is_active_superuser(request):
-            auth.set_active_org(request, organization_context.organization.slug)
+            if not is_demo_mode_enabled() or not is_demo_org(organization_context.organization):
+                auth.set_active_org(request, organization_context.organization.slug)
 
         kwargs["organization_context"] = organization_context
         kwargs["organization"] = organization_context.organization
@@ -638,7 +640,8 @@ class OrganizationEndpoint(Endpoint):
         # Never track any org (regardless of whether the user does or doesn't have
         # membership in that org) when the user is in active superuser mode
         if request.auth is None and request.user and not is_active_superuser(request):
-            auth.set_active_org(request, organization.slug)
+            if not is_demo_mode_enabled() or not is_demo_org(organization):
+                auth.set_active_org(request, organization.slug)
 
         kwargs["organization"] = organization
         return (args, kwargs)

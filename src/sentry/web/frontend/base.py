@@ -30,6 +30,7 @@ from sentry.api.utils import is_member_disabled_from_limit
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
+from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org
 from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
 from sentry.middleware.placeholder import placeholder_get_response
 from sentry.models.avatars.base import AvatarBase
@@ -221,7 +222,8 @@ def determine_active_organization(
         )
 
     if active_organization and active_organization.member:
-        auth.set_active_org(request, active_organization.organization.slug)
+        if not is_demo_mode_enabled() or not is_demo_org(active_organization.organization):
+            auth.set_active_org(request, active_organization.organization.slug)
 
     return active_organization
 
