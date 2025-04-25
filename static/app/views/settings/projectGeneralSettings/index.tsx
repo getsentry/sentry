@@ -425,5 +425,5 @@ function ProjectGeneralSettingsContainer() {
   return <ProjectGeneralSettings onChangeSlug={setChangedSlug} />;
 }
 
-export {ProjectGeneralSettingsContainer};
-export default ProjectGeneralSettings;
+export {ProjectGeneralSettings};
+export default ProjectGeneralSettingsContainer;

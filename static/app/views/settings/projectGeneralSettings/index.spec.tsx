@@ -17,7 +17,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import ProjectContextProvider from 'sentry/views/projects/projectContext';
-import ProjectGeneralSettings from 'sentry/views/settings/projectGeneralSettings';
+import {ProjectGeneralSettings} from 'sentry/views/settings/projectGeneralSettings';
 
 jest.mock('sentry/actionCreators/indicator');
 jest.mock('sentry/components/organizations/pageFilters/persistence');
