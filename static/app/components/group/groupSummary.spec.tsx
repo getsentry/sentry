@@ -13,7 +13,6 @@ describe('GroupSummary', function () {
   const mockGroup = GroupFixture();
   const mockProject = ProjectFixture();
   const organization = OrganizationFixture({
-    genAIConsent: true,
     hideAiFeatures: false,
     features: ['gen-ai-features'],
   });
