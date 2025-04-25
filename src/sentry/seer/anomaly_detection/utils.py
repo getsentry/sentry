@@ -245,8 +245,7 @@ def fetch_historical_data(
         start = end - timedelta(days=NUM_DAYS)
     granularity = snuba_query.time_window
 
-    dataset_label = snuba_query.dataset
-    dataset = get_dataset_from_label(dataset_label)
+    dataset = get_dataset_from_label(snuba_query.dataset)
 
     if not project or not dataset or not organization:
         return None
