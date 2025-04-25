@@ -646,8 +646,8 @@ export function partnerPlanEndingModalIsDismissed(
 }
 
 /**
- * Returns the data category info (DATA_CATEGORY_INFO) for the given category,
- * including billing info (BILLED_DATA_CATEGORY_INFO) for billed categories.
+ * Returns the data category info defined in DATA_CATEGORY_INFO for the given category,
+ * with billing context defined in BILLED_DATA_CATEGORY_INFO.
  *
  * Returns null for categories not defined in DATA_CATEGORY_INFO.
  */
