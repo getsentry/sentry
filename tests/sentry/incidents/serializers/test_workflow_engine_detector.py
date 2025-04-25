@@ -2,7 +2,11 @@ from sentry.api.serializers import serialize
 from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
     WorkflowEngineDetectorSerializer,
 )
-from sentry.incidents.models.alert_rule import AlertRuleStatus, AlertRuleThresholdType
+from sentry.incidents.models.alert_rule import (
+    AlertRuleStatus,
+    AlertRuleThresholdType,
+    AlertRuleTriggerAction,
+)
 from sentry.incidents.models.incident import IncidentTrigger, TriggerStatus
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.testutils.cases import TestCase
@@ -138,5 +142,49 @@ class TestDetectorSerializer(TestCase):
         assert serialized_detector["latestIncident"] is not None
 
     def test_sentry_app(self):
-        # add a test with a sentry app to make sure that info is there
-        pass
+        sentry_app = self.create_sentry_app(
+            organization=self.organization,
+            published=True,
+            verify_install=False,
+            name="Super Awesome App",
+            schema={"elements": [self.create_alert_rule_action_schema()]},
+        )
+        self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization, user=self.user
+        )
+        self.sentry_app_trigger_action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=self.critical_trigger,
+            type=AlertRuleTriggerAction.Type.SENTRY_APP,
+            target_identifier=sentry_app.id,
+            target_type=AlertRuleTriggerAction.TargetType.SENTRY_APP,
+            sentry_app=sentry_app,
+            sentry_app_config=[
+                {"name": "title", "value": "An alert"},
+            ],
+        )
+        self.sentry_app_action, _, _ = migrate_metric_action(self.sentry_app_trigger_action)
+
+        # add a sentry app action and update expected actions
+        sentry_app_action_data = {
+            "id": str(self.sentry_app_trigger_action.id),
+            "alertRuleTriggerId": str(self.critical_trigger.id),
+            "type": "sentry_app",
+            "targetType": "sentry_app",
+            "targetIdentifier": sentry_app.id,
+            "inputChannelId": None,
+            "integrationId": None,
+            "sentryAppId": sentry_app.id,
+            "dateCreated": self.sentry_app_trigger_action.date_added,
+            "desc": f"Send a notification via {sentry_app.name}",
+            "priority": self.critical_action.data.get("priority"),
+            "settings": [{"name": "title", "label": None, "value": "An alert"}],
+        }
+        sentry_app_expected = self.expected.copy()
+        expected_critical_action = self.expected_critical_action.copy()
+        expected_critical_action.append(sentry_app_action_data)
+        sentry_app_expected["triggers"][0]["actions"] = expected_critical_action
+
+        serialized_detector = serialize(
+            self.detector, self.user, WorkflowEngineDetectorSerializer()
+        )
+        assert serialized_detector == sentry_app_expected
