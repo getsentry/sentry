@@ -461,5 +461,5 @@ const TriggerText = styled('span')`
 
 const StyledFeatureBadge = styled(FeatureBadge)`
   margin-left: ${space(0.25)};
-  padding-bottom: 3px;
+  padding-bottom: ${space(0.25)};
 `;
