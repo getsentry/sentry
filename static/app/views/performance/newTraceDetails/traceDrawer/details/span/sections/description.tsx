@@ -532,8 +532,9 @@ const DescriptionWrapper = styled('div')`
   width: 100%;
   justify-content: space-between;
   flex-direction: row;
-  gap: ${space(0.5)};
+  gap: ${space(1)};
   word-break: break-word;
+  line-height: 1.4;
   padding: ${space(1)};
 `;
 
