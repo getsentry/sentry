@@ -2,7 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import type {TagCollection} from 'sentry/types/group';
-import {FieldKind} from 'sentry/utils/fields';
+import {AggregationKey, FieldKind} from 'sentry/utils/fields';
 import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {
   PageParamsProvider,
@@ -99,7 +99,7 @@ describe('SchemaHintsList', () => {
       <Subject
         stringTags={mockStringTags}
         numberTags={mockNumberTags}
-        supportedAggregates={[]}
+        supportedAggregates={[AggregationKey.COUNT]}
       />
     );
 
@@ -107,12 +107,11 @@ describe('SchemaHintsList', () => {
     const withinContainer = within(container);
     expect(withinContainer.getByText('stringTag1')).toBeInTheDocument();
     expect(withinContainer.getByText('stringTag2')).toBeInTheDocument();
-    // counting the has tag
-    expect(withinContainer.getAllByText('is')).toHaveLength(3);
+    expect(withinContainer.getAllByText('is')).toHaveLength(2);
     expect(withinContainer.getByText('numberTag1')).toBeInTheDocument();
     expect(withinContainer.getByText('numberTag2')).toBeInTheDocument();
-    expect(withinContainer.getAllByText('>')).toHaveLength(2);
-    // counting the has tag
+    expect(withinContainer.getByText('count(...)')).toBeInTheDocument();
+    expect(withinContainer.getAllByText('>')).toHaveLength(3);
     expect(withinContainer.getAllByText('...')).toHaveLength(5);
     expect(withinContainer.getByText('See full list')).toBeInTheDocument();
   });
@@ -200,7 +199,55 @@ describe('SchemaHintsList', () => {
     });
   });
 
+  it('should properly add aggregate hint to query', async () => {
+    render(
+      <Subject
+        stringTags={mockStringTags}
+        numberTags={mockNumberTags}
+        supportedAggregates={[AggregationKey.COUNT_UNIQUE]}
+      />,
+      {organization, router}
+    );
+    const countUniquePill = screen.getByText('count_unique(...)');
+    await userEvent.click(countUniquePill);
+
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: 'UPDATE_QUERY',
+      query: 'count_unique(user):>0',
+      focusOverride: {
+        itemKey: 'filter:0',
+        part: 'value',
+      },
+    });
+
+    const seeFullList = screen.getByText('See full list');
+    await userEvent.click(seeFullList);
+
+    const withinDrawer = within(screen.getByLabelText('Schema Hints Drawer'));
+    const countUniqueCheckbox = withinDrawer.getByText('count_unique(...)');
+    await userEvent.click(countUniqueCheckbox);
+
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: 'UPDATE_QUERY',
+      query: 'count_unique(user):>0',
+      focusOverride: {
+        itemKey: 'filter:0',
+        part: 'value',
+      },
+    });
+  });
+
   it('should remove hint from query when checkbox is unchecked on drawer', async () => {
+    const searchQueryBuilderModule = jest.requireMock(
+      'sentry/components/searchQueryBuilder/context'
+    );
+    searchQueryBuilderModule.useSearchQueryBuilder = () => ({
+      query: '!stringTag1:"" numberTag1:>0',
+      getTagValues: () => Promise.resolve(['tagValue1', 'tagValue2']),
+      dispatch: mockDispatch,
+      wrapperRef: {current: null},
+    });
+
     render(
       <Subject
         stringTags={mockStringTags}
@@ -231,9 +278,58 @@ describe('SchemaHintsList', () => {
 
     expect(mockDispatch).toHaveBeenCalledWith({
       type: 'UPDATE_QUERY',
-      query: 'stringTag1:""',
+      query: 'numberTag1:>0',
       focusOverride: {
-        itemKey: 'filter:0',
+        itemKey: 'filter:-1',
+        part: 'value',
+      },
+    });
+  });
+
+  it('should remove aggregate hint from query when checkbox is unchecked on drawer', async () => {
+    const searchQueryBuilderModule = jest.requireMock(
+      'sentry/components/searchQueryBuilder/context'
+    );
+    searchQueryBuilderModule.useSearchQueryBuilder = () => ({
+      query: 'stringTag1:"" numberTag1:>0 count_unique(user):>0',
+      getTagValues: () => Promise.resolve(['tagValue1', 'tagValue2']),
+      dispatch: mockDispatch,
+      wrapperRef: {current: null},
+    });
+
+    render(
+      <Subject
+        stringTags={mockStringTags}
+        numberTags={mockNumberTags}
+        supportedAggregates={[AggregationKey.COUNT_UNIQUE]}
+      />,
+      {
+        organization,
+        router: {
+          ...router,
+          location: {
+            ...router.location,
+            query: {
+              query: 'stringTag1:"" numberTag1:>0 count_unique(user):>0',
+              field: ['stringTag1', 'numberTag1'],
+            },
+          },
+        },
+      }
+    );
+
+    const seeFullList = screen.getByText('See full list');
+    await userEvent.click(seeFullList);
+
+    const withinDrawer = within(screen.getByLabelText('Schema Hints Drawer'));
+    const countUniqueCheckbox = withinDrawer.getByText('count_unique(...)');
+    await userEvent.click(countUniqueCheckbox);
+
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: 'UPDATE_QUERY',
+      query: 'stringTag1:"" numberTag1:>0',
+      focusOverride: {
+        itemKey: 'filter:-1',
         part: 'value',
       },
     });
