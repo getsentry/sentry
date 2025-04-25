@@ -40,7 +40,10 @@ describe('CreateAlertFromViewButton', () => {
         eventView={eventView}
         projects={[ProjectFixture()]}
         onClick={onClickMock}
-      />
+      />,
+      {
+        enableRouterMocks: true,
+      }
     );
     await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
     expect(onClickMock).toHaveBeenCalledTimes(1);
@@ -71,6 +74,7 @@ describe('CreateAlertFromViewButton', () => {
       />,
       {
         organization: noAccessOrg,
+        enableRouterMocks: true,
       }
     );
 
@@ -98,6 +102,7 @@ describe('CreateAlertFromViewButton', () => {
       />,
       {
         organization,
+        enableRouterMocks: true,
       }
     );
 
@@ -137,6 +142,7 @@ describe('CreateAlertFromViewButton', () => {
       />,
       {
         organization: noAccessOrg,
+        enableRouterMocks: true,
       }
     );
 
@@ -157,6 +163,7 @@ describe('CreateAlertFromViewButton', () => {
       />,
       {
         organization: noAccessOrg,
+        enableRouterMocks: true,
       }
     );
 
@@ -177,6 +184,7 @@ describe('CreateAlertFromViewButton', () => {
       />,
       {
         organization: adminAccessOrg,
+        enableRouterMocks: true,
       }
     );
 
@@ -186,6 +194,7 @@ describe('CreateAlertFromViewButton', () => {
   it('redirects to alert wizard with no project', async () => {
     render(<CreateAlertButton aria-label="Create Alert" organization={organization} />, {
       organization,
+      enableRouterMocks: true,
     });
     await userEvent.click(screen.getByRole('button'));
     expect(navigateTo).toHaveBeenCalledWith(
@@ -207,6 +216,7 @@ describe('CreateAlertFromViewButton', () => {
       />,
       {
         organization,
+        enableRouterMocks: true,
       }
     );
 
@@ -234,7 +244,10 @@ describe('CreateAlertFromViewButton', () => {
         projects={projects}
         onClick={onClickMock}
       />,
-      {router}
+      {
+        router,
+        enableRouterMocks: true,
+      }
     );
     await userEvent.click(screen.getByRole('button'));
     expect(router.push).toHaveBeenCalledWith({

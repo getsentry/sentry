@@ -81,6 +81,7 @@ const render = (children: React.ReactElement, orgParams: Partial<Organization> =
   return baseRender(children, {
     router,
     organization,
+    enableRouterMocks: true,
   });
 };
 

@@ -43,7 +43,9 @@ describe('EventOrGroupHeader', function () {
 
   describe('Group', function () {
     it('renders with `type = error`', function () {
-      render(<EventOrGroupHeader data={group} {...router} />);
+      render(<EventOrGroupHeader data={group} {...router} />, {
+        enableRouterMocks: true,
+      });
     });
 
     it('renders with `type = csp`', function () {
@@ -54,7 +56,10 @@ describe('EventOrGroupHeader', function () {
             type: EventOrGroupType.CSP,
           }}
           {...router}
-        />
+        />,
+        {
+          enableRouterMocks: true,
+        }
       );
     });
 
@@ -70,7 +75,10 @@ describe('EventOrGroupHeader', function () {
             },
           }}
           {...router}
-        />
+        />,
+        {
+          enableRouterMocks: true,
+        }
       );
     });
 
@@ -82,7 +90,10 @@ describe('EventOrGroupHeader', function () {
             type: EventOrGroupType.ERROR,
           }}
           {...router}
-        />
+        />,
+        {
+          enableRouterMocks: true,
+        }
       );
 
       expect(screen.getByText('metadata value')).toBeInTheDocument();
@@ -95,7 +106,9 @@ describe('EventOrGroupHeader', function () {
         body: group,
       });
 
-      render(<EventOrGroupHeader data={group} {...router} />);
+      render(<EventOrGroupHeader data={group} {...router} />, {
+        enableRouterMocks: true,
+      });
 
       const groupLink = screen.getByRole('link');
 
@@ -118,7 +131,10 @@ describe('EventOrGroupHeader', function () {
             type: EventOrGroupType.ERROR,
           })}
           {...router}
-        />
+        />,
+        {
+          enableRouterMocks: true,
+        }
       );
     });
 
@@ -130,7 +146,10 @@ describe('EventOrGroupHeader', function () {
             type: EventOrGroupType.CSP,
           }}
           {...router}
-        />
+        />,
+        {
+          enableRouterMocks: true,
+        }
       );
     });
 
@@ -146,7 +165,10 @@ describe('EventOrGroupHeader', function () {
             },
           }}
           {...router}
-        />
+        />,
+        {
+          enableRouterMocks: true,
+        }
       );
     });
 
@@ -162,7 +184,10 @@ describe('EventOrGroupHeader', function () {
               title: 'metadata title',
             },
           }}
-        />
+        />,
+        {
+          enableRouterMocks: true,
+        }
       );
     });
 
@@ -185,6 +210,8 @@ describe('EventOrGroupHeader', function () {
               },
             },
           },
+
+          enableRouterMocks: true,
         }
       );
 
@@ -210,6 +237,8 @@ describe('EventOrGroupHeader', function () {
               query: {},
             },
           },
+
+          enableRouterMocks: true,
         }
       );
 
@@ -240,7 +269,10 @@ describe('EventOrGroupHeader', function () {
           isTombstone: true,
         }}
         {...router}
-      />
+      />,
+      {
+        enableRouterMocks: true,
+      }
     );
 
     expect(screen.queryByRole('link')).not.toBeInTheDocument();

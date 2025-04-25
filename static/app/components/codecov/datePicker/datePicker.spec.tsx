@@ -38,7 +38,10 @@ describe('DatePicker', function () {
   });
 
   it('can change period', async function () {
-    render(<DatePicker />, {router});
+    render(<DatePicker />, {
+      router,
+      enableRouterMocks: true,
+    });
 
     await userEvent.click(screen.getByRole('button', {name: '7D', expanded: false}));
     await userEvent.click(screen.getByRole('option', {name: 'Last 30 days'}));
@@ -83,7 +86,10 @@ describe('DatePicker', function () {
       new Set(['datetime'])
     );
 
-    render(<DatePicker />, {router});
+    render(<DatePicker />, {
+      router,
+      enableRouterMocks: true,
+    });
 
     // Confirm selection changed to default Codecov period
     const button = await screen.findByRole('button', {name: '24H', expanded: false});
@@ -133,6 +139,7 @@ describe('DatePicker', function () {
     render(<DatePicker />, {
       router: desyncRouter,
       organization: desyncOrganization,
+      enableRouterMocks: true,
     });
 
     await userEvent.click(screen.getByRole('button', {name: '30D', expanded: false}));

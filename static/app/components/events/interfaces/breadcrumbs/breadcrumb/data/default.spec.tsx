@@ -71,6 +71,7 @@ describe('Breadcrumb Data Default', function () {
       {
         organization,
         router,
+        enableRouterMocks: true,
       }
     );
 
@@ -110,7 +111,11 @@ describe('Breadcrumb Data Default', function () {
           event_id: null,
         }}
       />,
-      {organization, router}
+      {
+        organization,
+        router,
+        enableRouterMocks: true,
+      }
     );
 
     expect(

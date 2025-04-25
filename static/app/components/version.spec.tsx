@@ -13,12 +13,16 @@ describe('Version', () => {
   });
 
   it('renders', () => {
-    render(<Version version={VERSION} />);
+    render(<Version version={VERSION} />, {
+      enableRouterMocks: true,
+    });
   });
 
   it('shows correct parsed version', () => {
     // component uses @sentry/release-parser package for parsing versions
-    render(<Version version={VERSION} />);
+    render(<Version version={VERSION} />, {
+      enableRouterMocks: true,
+    });
 
     expect(screen.getByText('1.0.0 (20200101)')).toBeInTheDocument();
   });
@@ -26,6 +30,7 @@ describe('Version', () => {
   it('links to release page', async () => {
     render(<Version version={VERSION} projectId="1" />, {
       router,
+      enableRouterMocks: true,
     });
 
     await userEvent.click(screen.getByText('1.0.0 (20200101)'));
@@ -39,6 +44,7 @@ describe('Version', () => {
     jest.useFakeTimers();
     render(<Version version={VERSION} tooltipRawVersion />, {
       router,
+      enableRouterMocks: true,
     });
     expect(screen.queryByText(VERSION)).not.toBeInTheDocument();
 

@@ -70,7 +70,11 @@ describe('Frame Variables', function () {
           },
         }}
       />,
-      {organization, router}
+      {
+        organization,
+        router,
+        enableRouterMocks: true,
+      }
     );
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(2);
@@ -111,7 +115,10 @@ describe('Frame Variables', function () {
           other: '<Class at 0x12345>',
         }}
         platform="python"
-      />
+      />,
+      {
+        enableRouterMocks: true,
+      }
     );
 
     expect(
@@ -142,7 +149,10 @@ describe('Frame Variables', function () {
           str: 'string',
         }}
         platform="node"
-      />
+      />,
+      {
+        enableRouterMocks: true,
+      }
     );
 
     const nullValues = screen.getAllByTestId('value-null');
@@ -169,7 +179,10 @@ describe('Frame Variables', function () {
           str: 'string',
         }}
         platform="ruby"
-      />
+      />,
+      {
+        enableRouterMocks: true,
+      }
     );
 
     expect(within(screen.getByTestId('value-null')).getByText('nil')).toBeInTheDocument();
@@ -190,7 +203,10 @@ describe('Frame Variables', function () {
           str: 'string',
         }}
         platform="php"
-      />
+      />,
+      {
+        enableRouterMocks: true,
+      }
     );
 
     expect(
