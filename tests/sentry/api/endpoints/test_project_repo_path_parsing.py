@@ -240,8 +240,8 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             "integrationId": self.integration.id,
             "repositoryId": self.repo.id,
             "provider": "github",
-            "sourceRoot": "src/com/example/",
-            "stackRoot": "com/example/",
+            "sourceRoot": "src/com/example/foo/",
+            "stackRoot": "com/example/foo/",
         }
 
     def test_short_path(self):
