@@ -284,6 +284,11 @@ const StyledNavItem = styled(Link)<ItemProps>`
   line-height: 177.75%;
   border-radius: ${p => p.theme.borderRadius};
 
+  &:focus-visible {
+    box-shadow: 0 0 0 2px ${p => p.theme.focusBorder};
+    color: currentColor;
+  }
+
   &[aria-selected='true'] {
     color: ${p => p.theme.purple400};
     font-weight: ${p => p.theme.fontWeightBold};
