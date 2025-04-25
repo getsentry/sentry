@@ -44,7 +44,11 @@ class StringIndexer(BaseIndexer):
 @region_silo_model
 class PerfStringIndexer(BaseIndexer):
     __relocation_scope__ = RelocationScope.Excluded
-    use_case_id = models.CharField(max_length=120)
+    use_case_id = models.CharField(
+        max_length=120,
+        default=UseCaseKey.PERFORMANCE.value,
+        db_default=UseCaseKey.PERFORMANCE.value,
+    )
 
     class Meta:
         db_table = "sentry_perfstringindexer"
