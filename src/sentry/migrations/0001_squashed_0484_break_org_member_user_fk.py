@@ -6047,7 +6047,7 @@ class Migration(CheckedMigration):
                     sql='\n                    CREATE INDEX CONCURRENTLY "sentry_projectdsymfile_checksum_8fb028a8_idx" ON "sentry_projectdsymfile" ("checksum");\n                    ',
                     reverse_sql='\n                        DROP INDEX CONCURRENTLY "sentry_projectdsymfile_checksum_8fb028a8_idx";\n                        ',
                     hints={"tables": ["sentry_projectdsymfile"]},
-                    uses_statements=False,
+                    use_statements=False,
                 ),
             ],
             state_operations=[
