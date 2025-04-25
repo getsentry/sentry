@@ -57,18 +57,18 @@ describe('AccountSecurityEnroll', function () {
       });
     });
 
-    it('does not have enrolled circle indicator', function () {
+    it('does not have enrolled circle indicator', async function () {
       render(<AccountSecurityEnroll />, {router});
 
       expect(
-        screen.getByRole('status', {name: 'Authentication Method Inactive'})
+        await screen.findByRole('status', {name: 'Authentication Method Inactive'})
       ).toBeInTheDocument();
     });
 
-    it('has qrcode component', function () {
+    it('has qrcode component', async function () {
       render(<AccountSecurityEnroll />, {router});
 
-      expect(screen.getByLabelText('Enrollment QR Code')).toBeInTheDocument();
+      expect(await screen.findByLabelText('Enrollment QR Code')).toBeInTheDocument();
     });
 
     it('can enroll from org subdomain', async function () {
@@ -93,7 +93,10 @@ describe('AccountSecurityEnroll', function () {
 
       render(<AccountSecurityEnroll />, {router});
 
-      await userEvent.type(screen.getByRole('textbox', {name: 'OTP Code'}), 'otp{enter}');
+      await userEvent.type(
+        await screen.findByRole('textbox', {name: 'OTP Code'}),
+        'otp{enter}'
+      );
 
       expect(enrollMock).toHaveBeenCalledWith(
         `${ENDPOINT}15/enroll/`,
@@ -131,7 +134,10 @@ describe('AccountSecurityEnroll', function () {
 
       render(<AccountSecurityEnroll />, {router});
 
-      await userEvent.type(screen.getByRole('textbox', {name: 'OTP Code'}), 'otp{enter}');
+      await userEvent.type(
+        await screen.findByRole('textbox', {name: 'OTP Code'}),
+        'otp{enter}'
+      );
 
       expect(enrollMock).toHaveBeenCalledWith(
         `${ENDPOINT}15/enroll/`,
