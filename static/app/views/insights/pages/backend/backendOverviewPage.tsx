@@ -3,14 +3,12 @@ import styled from '@emotion/styled';
 import Feature from 'sentry/components/acl/feature';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {NoAccess} from 'sentry/components/noAccess';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
-import {tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
@@ -57,13 +55,11 @@ import {
 import {LaravelOverviewPage} from 'sentry/views/insights/pages/platform/laravel';
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
 import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
-import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
+import {useIsNextJsInsightsEnabled} from 'sentry/views/insights/pages/platform/nextjs/features';
+import {NewNextJsExperienceButton} from 'sentry/views/insights/pages/platform/nextjs/newNextjsExperienceToggle';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import type {EAPSpanProperty} from 'sentry/views/insights/types';
-import {
-  generateBackendPerformanceEventView,
-  USER_MISERY_TOOLTIP,
-} from 'sentry/views/performance/data';
+import {generateBackendPerformanceEventView} from 'sentry/views/performance/data';
 import {
   DoubleChartRow,
   TripleChartRow,
@@ -76,38 +72,15 @@ import {
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
 
-const APDEX_TOOLTIP = tct(
-  'An industry-standard metric used to measure user satisfaction based on your application response times. [link:Learn more.]',
-  {
-    link: (
-      <ExternalLink href="https://docs.sentry.io/product/performance/metrics/#apdex" />
-    ),
-  }
-);
-
-export const BACKEND_COLUMN_TITLES = [
-  {title: 'http method'},
-  {title: 'transaction'},
-  {title: 'operation'},
-  {title: 'project'},
-  {title: 'tpm'},
-  {title: 'p50()'},
-  {title: 'p95()'},
-  {title: 'failure rate'},
-  {title: 'apdex', tooltip: APDEX_TOOLTIP},
-  {title: 'users'},
-  {title: 'user misery', tooltip: USER_MISERY_TOOLTIP},
-];
-
 function BackendOverviewPage() {
   useOverviewPageTrackPageload();
   const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
-  const isNextJsPageAvailable = useIsNextJsInsightsAvailable();
+  const [isNextJsPageEnabled] = useIsNextJsInsightsEnabled();
   const useEap = useInsightsEap();
   if (isLaravelPageAvailable) {
     return <LaravelOverviewPage />;
   }
-  if (isNextJsPageAvailable) {
+  if (isNextJsPageEnabled) {
     return <NextJsOverviewPage headerTitle={BACKEND_LANDING_TITLE} />;
   }
   if (useEap) {
@@ -290,7 +263,10 @@ function EAPBackendOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <BackendHeader headerTitle={BACKEND_LANDING_TITLE} />
+      <BackendHeader
+        headerTitle={BACKEND_LANDING_TITLE}
+        headerActions={<NewNextJsExperienceButton />}
+      />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
@@ -346,14 +322,14 @@ function EAPBackendOverviewPage() {
 function BackendOverviewPageWithProviders() {
   const organization = useOrganization();
   const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
-  const isNextJsPageAvailable = useIsNextJsInsightsAvailable();
+  const [isNextJsPageEnabled] = useIsNextJsInsightsEnabled();
 
   const {maxPickableDays} = limitMaxPickableDays(organization);
 
   return (
     <DomainOverviewPageProviders
       maxPickableDays={
-        isLaravelPageAvailable || isNextJsPageAvailable ? maxPickableDays : undefined
+        isLaravelPageAvailable || isNextJsPageEnabled ? maxPickableDays : undefined
       }
     >
       <BackendOverviewPage />

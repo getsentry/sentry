@@ -9,7 +9,7 @@ describe('scaleTimeSeriesData', () => {
       field: 'user',
       values: [
         {
-          timestamp: '2025-01-01T00:00:00',
+          timestamp: 1735707600000, // '2025-01-01T00:00:00'
           value: 17,
         },
       ],
@@ -32,7 +32,7 @@ describe('scaleTimeSeriesData', () => {
       field: 'transaction.duration',
       values: [
         {
-          timestamp: '2025-01-01T00:00:00',
+          timestamp: 1735707600000, // '2025-01-01T00:00:00'
           value: 17,
         },
       ],
@@ -50,7 +50,7 @@ describe('scaleTimeSeriesData', () => {
       field: 'transaction.duration',
       values: [
         {
-          timestamp: '2025-01-01T00:00:00',
+          timestamp: 1735707600000, // '2025-01-01T00:00:00'
           value: 17,
         },
       ],
@@ -64,7 +64,7 @@ describe('scaleTimeSeriesData', () => {
       field: 'transaction.duration',
       values: [
         {
-          timestamp: '2025-01-01T00:00:00',
+          timestamp: 1735707600000, // '2025-01-01T00:00:00'
           value: 17000,
         },
       ],
@@ -80,7 +80,7 @@ describe('scaleTimeSeriesData', () => {
       field: 'file.size',
       values: [
         {
-          timestamp: '2025-01-01T00:00:00',
+          timestamp: 1735707600000, // '2025-01-01T00:00:00'
           value: 17,
         },
       ],
@@ -94,7 +94,7 @@ describe('scaleTimeSeriesData', () => {
       field: 'file.size',
       values: [
         {
-          timestamp: '2025-01-01T00:00:00',
+          timestamp: 1735707600000, // '2025-01-01T00:00:00'
           value: 17825792,
         },
       ],

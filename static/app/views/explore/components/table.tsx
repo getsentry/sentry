@@ -13,9 +13,6 @@ import {
   GridHead,
   GridHeadCell,
   GridRow,
-  Header,
-  HeaderButtonContainer,
-  HeaderTitle,
 } from 'sentry/components/gridEditable/styles';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -164,9 +161,6 @@ export const TableRow = GridRow;
 export const TableBodyCell = GridBodyCell;
 
 export const TableHead = GridHead;
-export const TableHeader = Header;
-export const TableHeaderActions = HeaderButtonContainer;
-export const TableHeaderTitle = HeaderTitle;
 export const TableHeadCell = styled(GridHeadCell)<{align?: Alignments}>`
   ${p => p.align && `justify-content: ${p.align};`}
 `;

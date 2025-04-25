@@ -10,9 +10,16 @@ export function convertSeriesToTimeseries(series: DiscoverSeries): TimeSeries {
       type: series.meta?.fields?.[series.seriesName] ?? null,
       unit: (series.meta?.units?.[series.seriesName] ?? null) as DataUnit,
     },
-    values: (series?.data ?? []).map(datum => ({
-      timestamp: datum.name.toString(),
-      value: datum.value,
-    })),
+    values: (series?.data ?? []).map(datum => {
+      const timestamp =
+        typeof datum.name === 'number'
+          ? datum.name * 1000 // Timestamps from `events-stats` are in seconds
+          : new Date(datum.name).getTime();
+
+      return {
+        timestamp,
+        value: datum.value,
+      };
+    }),
   };
 }

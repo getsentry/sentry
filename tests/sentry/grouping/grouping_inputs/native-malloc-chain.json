@@ -15,7 +15,6 @@
             },
             {
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               },
               "function": "malloc_zone_malloc",
@@ -27,7 +26,6 @@
             },
             {
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               },
               "function": "nanov2_malloc",
@@ -39,7 +37,6 @@
             },
             {
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               },
               "function": "nanov2_allocate",
@@ -51,7 +48,6 @@
             },
             {
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               },
               "function": "nanov2_allocate_from_block",
@@ -63,7 +59,6 @@
             },
             {
               "data": {
-                "orig_in_app": -1,
                 "symbolicator_status": "symbolicated"
               },
               "function": "nanov2_allocate_from_block.cold.1",
