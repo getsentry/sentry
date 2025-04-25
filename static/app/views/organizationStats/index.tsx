@@ -45,6 +45,9 @@ import UsageStatsOrg from './usageStatsOrg';
 import {UsageStatsProjects} from './usageStatsProjects';
 
 const HookHeader = HookOrDefault({hookName: 'component:org-stats-banner'});
+const HookOrgStatsProfilingBanner = HookOrDefault({
+  hookName: 'component:org-stats-profiling-banner',
+});
 
 export const PAGE_QUERY_PARAMS = [
   // From DatePageFilter
@@ -352,6 +355,11 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
   render() {
     const {organization} = this.props;
     const hasTeamInsights = organization.features.includes('team-insights');
+    const showProfilingBanner = [
+      'profileDuration',
+      'profileDurationUI',
+      'profiles',
+    ].includes(this.dataCategory);
 
     return (
       <SentryDocumentTitle title={t('Usage Stats')} orgSlug={organization.slug}>
@@ -383,6 +391,9 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
                   {this.renderProjectPageControl()}
                   {this.renderEstimationDisclaimer()}
                 </ControlsWrapper>
+                {showProfilingBanner && (
+                  <HookOrgStatsProfilingBanner router={this.props.router} />
+                )}
                 <div>
                   <ErrorBoundary mini>{this.renderUsageStatsOrg()}</ErrorBoundary>
                 </div>
