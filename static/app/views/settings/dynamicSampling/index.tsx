@@ -34,11 +34,11 @@ export default function DynamicSamplingSettings() {
       <Alert.Container>
         <Alert type="warning">
           {tct(
-            'Custom Sample Rates for Dynamic Sampling are not available on your current plan. See the [docs] for information about how to set Sampling Priorities.',
+            'Custom Sample Rates for Dynamic Sampling are not available on your current plan. Check our [documentation] for information about how to set Sampling Priorities.',
             {
-              docs: (
+              documentation: (
                 <Link to="https://docs.sentry.io/organization/dynamic-sampling/#dynamic-sampling-priorities">
-                  {t('docs')}
+                  {t('documentation')}
                 </Link>
               ),
             }
