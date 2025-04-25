@@ -503,9 +503,8 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         with self.tasks():
             updated_group_info = save_issue_from_occurrence(new_occurrence, new_event, None)
         assert updated_group_info is not None
-        updated_group = updated_group_info.group
-        updated_group.refresh_from_db()
-        assert updated_group.priority == PriorityLevel.HIGH
+        group.refresh_from_db()
+        assert group.priority == PriorityLevel.HIGH
         open_period.refresh_from_db()
         assert open_period.data["highest_seen_priority"] == PriorityLevel.HIGH
 
