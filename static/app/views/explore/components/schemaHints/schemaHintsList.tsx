@@ -6,7 +6,6 @@ import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
 import {Button} from 'sentry/components/core/button';
-import {getHasTag} from 'sentry/components/events/searchBar';
 import useDrawer from 'sentry/components/globalDrawer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';
@@ -16,9 +15,10 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {prettifyTagKey} from 'sentry/utils/discover/fields';
+import {isAggregateField, prettifyTagKey} from 'sentry/utils/discover/fields';
 import {
   type AggregationKey,
+  type FieldDefinition,
   FieldKind,
   FieldValueType,
   getFieldDefinition,
@@ -75,12 +75,30 @@ function getTagsFromKeys(keys: string[], tags: TagCollection): Tag[] {
 export function addFilterToQuery(
   filterQuery: MutableSearch,
   tag: Tag,
-  isBoolean: boolean
+  fieldDefinition: FieldDefinition | null
 ) {
-  filterQuery.addFilterValue(
-    tag.key,
-    isBoolean ? 'True' : tag.kind === FieldKind.MEASUREMENT ? '>0' : ''
-  );
+  if (tag.kind === FieldKind.FUNCTION) {
+    const defaultFunctionParam = fieldDefinition?.parameters?.[0]?.defaultValue;
+    filterQuery.addFilterValue(
+      defaultFunctionParam ? `${tag.key}(${defaultFunctionParam})` : `${tag.key}()`,
+      '>0'
+    );
+  } else {
+    const isBoolean = fieldDefinition?.valueType === FieldValueType.BOOLEAN;
+    filterQuery.addFilterValue(
+      tag.key,
+      isBoolean ? 'True' : tag.kind === FieldKind.MEASUREMENT ? '>0' : ''
+    );
+  }
+}
+
+export function parseTagKey(tagKey: string) {
+  if (!isAggregateField(tagKey)) {
+    return tagKey;
+  }
+
+  const aggregateKey = tagKey.split('(')[0];
+  return aggregateKey;
 }
 
 const FILTER_KEY_SECTIONS: Record<SchemaHintsSources, FilterKeySection[]> = {
@@ -123,7 +141,6 @@ function SchemaHintsList({
       ...numberTags,
       ...stringTags,
     });
-    filterTags.has = getHasTag({...stringTags});
 
     const schemaHintsListOrder = getSchemaHintsListOrder(source);
     const filterKeySections = getFilterKeySections(source);
@@ -314,10 +331,8 @@ function SchemaHintsList({
       }
 
       const newSearchQuery = new MutableSearch(query);
-      const isBoolean =
-        getFieldDefinition(hint.key, 'span', hint.kind)?.valueType ===
-        FieldValueType.BOOLEAN;
-      addFilterToQuery(newSearchQuery, hint, isBoolean);
+      const fieldDefinition = getFieldDefinition(hint.key, 'span', hint.kind);
+      addFilterToQuery(newSearchQuery, hint, fieldDefinition);
 
       const newQuery = newSearchQuery.formatString();
 
@@ -325,7 +340,10 @@ function SchemaHintsList({
         type: 'UPDATE_QUERY',
         query: newQuery,
         focusOverride: {
-          itemKey: `filter:${newSearchQuery.getFilterKeys().indexOf(hint.key)}`,
+          itemKey: `filter:${newSearchQuery
+            .getFilterKeys()
+            .map(parseTagKey)
+            .indexOf(hint.key)}`,
           part: 'value',
         },
       });
@@ -354,7 +372,7 @@ function SchemaHintsList({
       return hint.name;
     }
 
-    return `${prettifyTagKey(hint.name)} ${hint.kind === FieldKind.MEASUREMENT ? '>' : 'is'} ...`;
+    return `${prettifyTagKey(hint.name)}${hint.kind === FieldKind.FUNCTION ? '(...)' : ''} ${hint.kind === FieldKind.MEASUREMENT || hint.kind === FieldKind.FUNCTION ? '>' : 'is'} ...`;
   };
 
   const getHintElement = (hint: Tag) => {
@@ -364,8 +382,12 @@ function SchemaHintsList({
 
     return (
       <HintTextContainer>
-        <HintName>{prettifyTagKey(hint.name)}</HintName>
-        <HintOperator>{hint.kind === FieldKind.MEASUREMENT ? '>' : 'is'}</HintOperator>
+        <HintName>{`${prettifyTagKey(hint.name)}${hint.kind === FieldKind.FUNCTION ? '(...)' : ''}`}</HintName>
+        <HintOperator>
+          {hint.kind === FieldKind.MEASUREMENT || hint.kind === FieldKind.FUNCTION
+            ? '>'
+            : 'is'}
+        </HintOperator>
         <HintValue>...</HintValue>
       </HintTextContainer>
     );
