@@ -14,9 +14,6 @@ jest.mock(
   'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization',
   () => {
     const TimeSeriesWidgetVisualizationMock = jest.fn(() => null);
-    TimeSeriesWidgetVisualizationMock.LoadingPlaceholder = function () {
-      return <div />;
-    };
     return {
       TimeSeriesWidgetVisualization: TimeSeriesWidgetVisualizationMock,
     };
