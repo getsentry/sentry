@@ -305,7 +305,6 @@ type InterfaceChromeHooks = {
  * Onboarding experience hooks
  */
 type OnboardingHooks = {
-  'onboarding-wizard:skip-help': () => React.ComponentType;
   'onboarding:block-hide-sidebar': () => boolean;
   'onboarding:targeted-onboarding-header': (opts: {source: string}) => React.ReactNode;
 };
