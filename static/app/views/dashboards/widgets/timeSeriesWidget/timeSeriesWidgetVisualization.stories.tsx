@@ -39,7 +39,7 @@ import types from '!!type-loader!sentry/views/dashboards/widgets/timeSeriesWidge
 const sampleDurationTimeSeriesP50: TimeSeries = {
   ...sampleDurationTimeSeries,
   field: 'p50(span.duration)',
-  data: sampleDurationTimeSeries.data.map(datum => {
+  values: sampleDurationTimeSeries.values.map(datum => {
     return {
       ...datum,
       value: datum.value ? datum.value * 0.3 + 30 * Math.random() : null,
@@ -50,7 +50,7 @@ const sampleDurationTimeSeriesP50: TimeSeries = {
 const sampleDurationTimeSeriesP75: TimeSeries = {
   ...sampleDurationTimeSeries,
   field: 'p75(span.duration)',
-  data: sampleDurationTimeSeries.data.map(datum => {
+  values: sampleDurationTimeSeries.values.map(datum => {
     return {
       ...datum,
       value: datum.value ? datum.value * 0.1 + 30 * Math.random() : null,
@@ -352,8 +352,8 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
                   ...sampleThroughputTimeSeries,
                   field: 'equation|spm() + 1',
                   meta: {
-                    type: 'number',
-                    unit: null,
+                    valueType: 'number',
+                    valueUnit: null,
                   },
                 }),
                 new Line({
@@ -372,24 +372,24 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
                   ...sampleDurationTimeSeries,
                   field: 'custom_agg(duration)',
                   meta: {
-                    type: 'number',
-                    unit: null,
+                    valueType: 'number',
+                    valueUnit: null,
                   },
                 }),
                 new Line({
                   ...sampleDurationTimeSeriesP50,
                   field: 'custom_agg2(duration)',
                   meta: {
-                    type: 'integer',
-                    unit: null,
+                    valueType: 'integer',
+                    valueUnit: null,
                   },
                 }),
                 new Line({
                   ...sampleThroughputTimeSeries,
                   field: 'custom_agg3(duration)',
                   meta: {
-                    type: 'duration',
-                    unit: DurationUnit.MILLISECOND,
+                    valueType: 'duration',
+                    valueUnit: DurationUnit.MILLISECOND,
                   },
                 }),
               ]}
@@ -428,15 +428,15 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     // Create a very similar series, but with a different unit to demonstrate automatic scaling
     const secondsSeries: TimeSeries = {
       field: 'p99(span.self_time)',
-      data: sampleDurationTimeSeries.data.map(datum => {
+      values: sampleDurationTimeSeries.values.map(datum => {
         return {
           ...datum,
           value: datum.value ? (datum.value / 1000) * (1 + Math.random() / 10) : null, // Introduce jitter so the series is visible
         };
       }),
       meta: {
-        type: 'duration',
-        unit: DurationUnit.SECOND,
+        valueType: 'duration',
+        valueUnit: DurationUnit.SECOND,
       },
     };
 
@@ -718,8 +718,8 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
       ...sampleThroughputTimeSeries,
       field: 'error_rate()',
       meta: {
-        type: 'rate',
-        unit: RateUnit.PER_SECOND,
+        valueType: 'rate',
+        valueUnit: RateUnit.PER_SECOND,
       },
     };
 
@@ -867,13 +867,13 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
       {
         version: 'ui@0.1.2',
         timestamp: new Date(
-          sampleThroughputTimeSeries.data.at(2)?.timestamp!
+          sampleThroughputTimeSeries.values.at(2)!.timestamp
         ).toISOString(),
       },
       {
         version: 'ui@0.1.3',
         timestamp: new Date(
-          sampleThroughputTimeSeries.data.at(20)?.timestamp!
+          sampleThroughputTimeSeries.values.at(20)!.timestamp
         ).toISOString(),
       },
     ].filter(hasTimestamp);
@@ -959,7 +959,7 @@ function toTimeSeriesSelection(
 ): TimeSeries {
   return {
     ...timeSeries,
-    data: timeSeries.data.filter(datum => {
+    values: timeSeries.values.filter(datum => {
       if (start && moment(datum.timestamp).isBefore(moment.utc(start))) {
         return false;
       }
@@ -978,6 +978,6 @@ function hasTimestamp(release: Partial<Release>): release is Release {
 }
 
 const NULL_META: TimeSeriesMeta = {
-  type: null,
-  unit: null,
+  valueType: null,
+  valueUnit: null,
 };

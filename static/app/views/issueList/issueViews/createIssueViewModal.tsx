@@ -46,7 +46,7 @@ export function CreateIssueViewModal({
         normalizeUrl(`/organizations/${organization.slug}/issues/views/${data.id}/`)
       );
 
-      trackAnalytics('issue_views.created', {
+      trackAnalytics('issue_views.save_as.created', {
         organization,
         starred: variables.starred ?? false,
       });
