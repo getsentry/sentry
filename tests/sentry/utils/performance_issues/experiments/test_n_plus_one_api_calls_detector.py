@@ -16,7 +16,6 @@ from sentry.testutils.performance_issues.event_generators import (
 from sentry.utils.performance_issues.base import DetectorType, parameterize_url
 from sentry.utils.performance_issues.detectors.experiments.n_plus_one_api_calls_detector import (
     NPlusOneAPICallsExperimentalDetector,
-    without_query_params,
 )
 from sentry.utils.performance_issues.performance_detection import (
     get_detection_settings,
@@ -27,6 +26,8 @@ from sentry.utils.performance_issues.performance_problem import PerformanceProbl
 
 @pytest.mark.django_db
 class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
+    type_id = PerformanceNPlusOneAPICallsExperimentalGroupType.type_id
+
     def setUp(self):
         super().setUp()
         self._settings = get_detection_settings()
@@ -74,7 +75,7 @@ class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
         problems = self.find_problems(event)
         assert self.find_problems(event) == [
             PerformanceProblem(
-                fingerprint=f"1-{PerformanceNPlusOneAPICallsExperimentalGroupType.type_id}-d750ce46bb1b13dd5780aac48098d5e20eea682c",
+                fingerprint=f"1-{self.type_id}-d750ce46bb1b13dd5780aac48098d5e20eea682c",
                 op="http.client",
                 type=PerformanceNPlusOneAPICallsExperimentalGroupType,
                 desc="GET /api/0/organizations/sentry/events/?field=replayId&field=count%28%29&per_page=50&query=issue.id%3A",
@@ -188,9 +189,22 @@ class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
         problems = self.find_problems(event)
         assert problems == []
 
-    def test_does_not_detect_problem_with_unparameterized_urls(self):
+    def test_does_detect_problem_with_unparameterized_urls(self):
         event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-weather-app")
-        assert self.find_problems(event) == []
+        [problem] = self.find_problems(event)
+
+        assert problem.fingerprint == f"1-{self.type_id}-bf7ad6b20bb345ae327362c849427956862bf839"
+
+    def test_does_detect_problem_with_parameterized_urls(self):
+        event = self.create_event(lambda i: f"GET /clients/{i}/info/{i*100}/")
+        [problem] = self.find_problems(event)
+        assert problem.desc == "/clients/*/info/*/"
+        assert problem.evidence_data is not None
+        path_params = problem.evidence_data.get("path_parameters", [])
+        # It should sequentially store sets of path parameters on the evidence data
+        for i in range(len(path_params)):
+            assert path_params[i] == f"{i}, {i*100}"
+        assert problem.fingerprint == f"1-{self.type_id}-8bf177290e2d78550fef5a1f6e9ddf115e4b0614"
 
     def test_does_not_detect_problem_with_concurrent_calls_to_different_urls(self):
         event = get_event("n-plus-one-api-calls/not-n-plus-one-api-calls")
@@ -200,10 +214,7 @@ class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
         event = self.create_event(lambda i: "GET /clients/11/info")
         [problem] = self.find_problems(event)
 
-        assert (
-            problem.fingerprint
-            == f"1-{PerformanceNPlusOneAPICallsExperimentalGroupType.type_id}-e9daac10ea509a0bf84a8b8da45d36394868ad67"
-        )
+        assert problem.fingerprint == f"1-{self.type_id}-e9daac10ea509a0bf84a8b8da45d36394868ad67"
 
     def test_fingerprints_identical_relative_urls_together(self):
         event1 = self.create_event(lambda i: "GET /clients/11/info")
@@ -224,28 +235,55 @@ class NPlusOneAPICallsExperimentalDetectorTest(TestCase):
         assert problem1.fingerprint == problem2.fingerprint
 
     def test_fingerprints_same_parameterized_integer_relative_urls_together(self):
-        event1 = self.create_event(lambda i: f"GET /clients/17/info?id={i}")
+        event1 = self.create_event(lambda i: f"GET /clients/{i}/info?id={i}")
         [problem1] = self.find_problems(event1)
 
-        event2 = self.create_event(lambda i: f"GET /clients/16/info?id={i*2}")
+        event2 = self.create_event(lambda i: f"GET /clients/{i}/info?id={i*2}")
         [problem2] = self.find_problems(event2)
 
         assert problem1.fingerprint == problem2.fingerprint
 
     def test_fingerprints_different_relative_url_separately(self):
-        event1 = self.create_event(lambda i: f"GET /clients/11/info?id={i}")
+        event1 = self.create_event(lambda i: f"GET /clients/{i}/info?id={i}")
         [problem1] = self.find_problems(event1)
 
-        event2 = self.create_event(lambda i: f"GET /projects/11/details?pid={i}")
+        event2 = self.create_event(lambda i: f"GET /projects/{i}/details?pid={i}")
+        [problem2] = self.find_problems(event2)
+
+        assert problem1.fingerprint != problem2.fingerprint
+
+    def test_fingerprints_relative_urls_with_query_params_together(self):
+        event1 = self.create_event(lambda i: f"GET /clients/{i}/info")
+        [problem1] = self.find_problems(event1)
+
+        event2 = self.create_event(lambda i: f"GET /clients/{i}/info?id={i}")
+        [problem2] = self.find_problems(event2)
+
+        assert problem1.fingerprint == problem2.fingerprint
+
+    def test_fingerprints_multiple_parameterized_integer_relative_urls_together(self):
+        event1 = self.create_event(lambda i: f"GET /clients/{i}/organization/{i}/info")
+        [problem1] = self.find_problems(event1)
+
+        event2 = self.create_event(lambda i: f"GET /clients/{i*100}/organization/{i*100}/info")
+        [problem2] = self.find_problems(event2)
+
+        assert problem1.fingerprint == problem2.fingerprint
+
+    def test_fingerprints_different_parameterized_integer_relative_urls_separately(self):
+        event1 = self.create_event(lambda i: f"GET /clients/{i}/mario/{i}/info")
+        [problem1] = self.find_problems(event1)
+
+        event2 = self.create_event(lambda i: f"GET /clients/{i}/luigi/{i}/info")
         [problem2] = self.find_problems(event2)
 
         assert problem1.fingerprint != problem2.fingerprint
 
     def test_ignores_hostname_for_fingerprinting(self):
-        event1 = self.create_event(lambda i: f"GET http://service.io/clients/42/info?id={i}")
+        event1 = self.create_event(lambda i: f"GET http://service.io/clients/{i}/info?id={i}")
         [problem1] = self.find_problems(event1)
 
-        event2 = self.create_event(lambda i: f"GET /clients/42/info?id={i}")
+        event2 = self.create_event(lambda i: f"GET /clients/{i}/info?id={i}")
         [problem2] = self.find_problems(event2)
 
         assert problem1.fingerprint == problem2.fingerprint
@@ -434,20 +472,6 @@ def test_allows_eligible_spans(span):
 )
 def test_rejects_ineligible_spans(span):
     assert not NPlusOneAPICallsExperimentalDetector.is_span_eligible(span)
-
-
-@pytest.mark.parametrize(
-    "url,url_without_query",
-    [
-        ("", ""),
-        ("http://service.io", "http://service.io"),
-        ("http://service.io/resource", "http://service.io/resource"),
-        ("/resource?id=1", "/resource"),
-        ("/resource?id=1&sort=down", "/resource"),
-    ],
-)
-def test_removes_query_params(url, url_without_query):
-    assert without_query_params(url) == url_without_query
 
 
 @pytest.mark.parametrize(
