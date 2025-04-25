@@ -371,13 +371,14 @@ class WorkflowEngineRuleSerializer(Serializer):
             return None
 
         user = users.get(workflow.created_by_id)
-        if user:
-            return {
-                "id": user.id,
-                "name": user.get_display_name(),
-                "email": user.email,
-            }
-        return None
+        if not user:
+            return None
+
+        return {
+            "id": user.id,
+            "name": user.get_display_name(),
+            "email": user.email,
+        }
 
     def _fetch_workflow_owner(self, workflow: Workflow) -> str | None:
         actor = workflow.owner
