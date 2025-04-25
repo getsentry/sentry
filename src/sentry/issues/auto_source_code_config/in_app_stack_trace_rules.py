@@ -6,7 +6,7 @@ from sentry.issues.auto_source_code_config.utils.platform import PlatformConfig
 from sentry.models.project import Project
 from sentry.utils import metrics
 
-from .constants import DERIVED_ENHANCEMENTS_OPTION_KEY, METRIC_PREFIX
+from .constants import DERIVED_ENHANCEMENTS_OPTION_KEY, METRIC_PREFIX, STACK_ROOT_MAX_LEVEL
 
 logger = logging.getLogger(__name__)
 
@@ -54,14 +54,16 @@ def generate_rule_for_code_mapping(code_mapping: CodeMapping) -> str:
         raise ValueError("Stacktrace root is empty")
 
     parts = stacktrace_root.rstrip("/").split("/")
-    module = ".".join(parts)
 
-    if module == "":
+    if len(parts) == 0:
         raise ValueError("Module is empty")
-
-    # a/ -> a.**
-    # x/y/ -> x.y.**
-    # com/example/foo/bar/ -> com.example.**
-    # We add an extra level of granularity
-    # uk/co/example/foo/bar/ -> uk.co.example.**
-    return f"stack.module:{module}.** +app"
+    elif len(parts) >= STACK_ROOT_MAX_LEVEL - 1:
+        # com/example/foo/ -> com.example.**
+        # uk/co/example/foo/ -> uk.co.example.**
+        module = ".".join(parts[:-1])
+        return f"stack.module:{module}.** +app"
+    else:
+        # a/ -> a.**
+        # x/y/ -> x.y.**
+        module = ".".join(parts)
+        return f"stack.module:{module}.** +app"
