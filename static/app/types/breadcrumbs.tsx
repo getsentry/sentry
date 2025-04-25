@@ -29,6 +29,7 @@ export enum BreadcrumbType {
   INIT = 'init',
   NETWORK = 'network',
   DEVICE = 'device',
+  CONNECTIVITY = 'connectivity',
 }
 
 export enum BreadcrumbMessageFormat {
@@ -111,13 +112,3 @@ interface HTTPCrumb extends BaseCrumb, BreadcrumbTypeHTTP {}
 interface DefaultCrumb extends BaseCrumb, BreadcrumbTypeDefault {}
 
 export type Crumb = NavigationCrumb | HTTPCrumb | DefaultCrumb;
-
-export function isBreadcrumbLogLevel(logLevel: string): logLevel is BreadcrumbLevelType {
-  return Object.values(BreadcrumbLevelType).includes(logLevel as any);
-}
-
-export function isBreadcrumbTypeDefault(
-  breadcrumb: Crumb
-): breadcrumb is Extract<Crumb, BreadcrumbTypeDefault> {
-  return ![BreadcrumbType.HTTP, BreadcrumbType.NAVIGATION].includes(breadcrumb.type);
-}

@@ -97,6 +97,7 @@ export function ToolbarSaveAs() {
   if (defined(id)) {
     items.push({
       key: 'update-query',
+      textValue: t('Existing Query'),
       label: <span>{t('Existing Query')}</span>,
       onAction: async () => {
         try {
@@ -118,6 +119,7 @@ export function ToolbarSaveAs() {
   items.push({
     key: 'save-query',
     label: <span>{t('A New Query')}</span>,
+    textValue: t('A New Query'),
     onAction: () => {
       trackAnalytics('trace_explorer.save_query_modal', {
         action: 'open',
@@ -137,6 +139,7 @@ export function ToolbarSaveAs() {
     items.push({
       key: 'create-alert',
       label: t('An Alert for'),
+      textValue: t('An Alert for'),
       children: alertsUrls ?? [],
       disabled: !alertsUrls || alertsUrls.length === 0,
       isSubmenu: true,
@@ -217,7 +220,7 @@ export function ToolbarSaveAs() {
       !valueIsEqual(locationSortByString, singleQuery?.orderby),
       !valueIsEqual(fields, singleQuery?.fields),
       !valueIsEqual(
-        visualizes.map(({chartType, yAxes}) => ({chartType, yAxes})),
+        visualizes.map(visualize => visualize.toJSON()),
         singleQuery?.visualize,
         true
       ),
@@ -291,6 +294,7 @@ export function ToolbarSaveAs() {
               groupBys,
               fields,
               sortBys,
+              chartType: visualizes[0]!.chartType,
             })}
           >{`${t('Compare Queries')}`}</LinkButton>
         )}

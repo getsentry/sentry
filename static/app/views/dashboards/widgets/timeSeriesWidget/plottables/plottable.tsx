@@ -27,7 +27,7 @@ export interface Plottable {
   /**
    * Start timestamp of the plottable, if applicable
    */
-  end: string | null;
+  end: number | null;
   /**
    * Whether this plottable has enough data to be visually represented.
    */
@@ -43,7 +43,7 @@ export interface Plottable {
   /**
    * Start timestamp of the plottable, if applicable
    */
-  start: string | null;
+  start: number | null;
   /**
    *
    * @param plottingOptions Plotting options depend on the specific implementation of the interface.

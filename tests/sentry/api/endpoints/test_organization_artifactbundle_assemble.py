@@ -10,7 +10,7 @@ from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.fileblobowner import FileBlobOwner
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.silo.base import SiloMode
-from sentry.tasks.assemble import ChunkFileState, assemble_artifacts
+from sentry.tasks.assemble import ChunkFileState
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
@@ -253,7 +253,6 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
                 "dist": None,
                 "chunks": [blob1.checksum],
                 "checksum": total_checksum,
-                "upload_as_artifact_bundle": True,
             }
         )
 
@@ -290,7 +289,6 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
                 "dist": None,
                 "chunks": [blob1.checksum],
                 "checksum": total_checksum,
-                "upload_as_artifact_bundle": True,
             }
         )
 
@@ -329,7 +327,6 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
                 "dist": dist,
                 "chunks": [blob1.checksum],
                 "checksum": total_checksum,
-                "upload_as_artifact_bundle": True,
             }
         )
 
@@ -385,14 +382,6 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
         FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob1)
 
-        assemble_artifacts(
-            org_id=self.organization.id,
-            version=self.release.version,
-            checksum=total_checksum,
-            chunks=[blob1.checksum],
-            upload_as_artifact_bundle=False,
-        )
-
         response = self.client.post(
             self.url,
             data={
@@ -415,14 +404,6 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         total_checksum = sha1(bundle_file).hexdigest()
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
         FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob1)
-
-        assemble_artifacts(
-            org_id=self.organization.id,
-            version=self.release.version,
-            checksum=total_checksum,
-            chunks=[blob1.checksum],
-            upload_as_artifact_bundle=False,
-        )
 
         # right org, wrong permission level
         with assume_test_silo_mode(SiloMode.CONTROL):
