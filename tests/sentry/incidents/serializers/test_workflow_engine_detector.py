@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import patch
 
 from sentry.api.serializers import serialize
@@ -147,7 +148,7 @@ class TestDetectorSerializer(TestCase):
         assert serialized_detector["latestIncident"] is not None
 
     @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
-    def test_sentry_app(self, mock_sentry_app_components_preparer):
+    def test_sentry_app(self, mock_sentry_app_components_preparer: Any) -> None:
         sentry_app = self.create_sentry_app(
             organization=self.organization,
             published=True,
