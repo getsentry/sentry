@@ -1,10 +1,11 @@
-from typing import Any
+from typing import Any, TypeVar
 
 from django.db import router, transaction
 from rest_framework import serializers
 
 from sentry import audit_log
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.db import models
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseActionValidator,
@@ -22,8 +23,9 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 
-DataConditionGroupData = dict[str, Any]
-ActionData = list[dict[str, Any]]
+InputData = dict[str, Any]
+ListInputData = list[InputData]
+ModelType = TypeVar("ModelType", bound=models.Model)
 
 
 class WorkflowValidator(CamelSnakeSerializer):
@@ -37,7 +39,7 @@ class WorkflowValidator(CamelSnakeSerializer):
 
     def _split_action_and_condition_group(
         self, action_filter: dict[str, Any]
-    ) -> tuple[ActionData, DataConditionGroupData]:
+    ) -> tuple[ListInputData, InputData]:
         try:
             actions = action_filter["actions"]
         except KeyError:
@@ -49,7 +51,7 @@ class WorkflowValidator(CamelSnakeSerializer):
         schema = Workflow.config_schema
         return validate_json_schema(value, schema)
 
-    def validate_action_filters(self, value: ActionData) -> ActionData:
+    def validate_action_filters(self, value: ListInputData) -> ListInputData:
         for action_filter in value:
             actions, condition_group = self._split_action_and_condition_group(action_filter)
             BaseDataConditionGroupValidator(data=condition_group).is_valid(raise_exception=True)
@@ -59,9 +61,22 @@ class WorkflowValidator(CamelSnakeSerializer):
 
         return value
 
+    def _update_or_create(
+        self,
+        input_data: dict[str, Any],
+        validator: serializers.Serializer,
+        Model: type[ModelType],
+    ) -> ModelType:
+        if input_data.get("id") is None:
+            return validator.create(input_data)
+
+        instance = Model.objects.get(id=input_data["id"])
+        validator.update(instance, input_data)
+        return instance
+
     def update_or_create_actions(
         self,
-        actions_data: ActionData,
+        actions_data: ListInputData,
         condition_group: DataConditionGroup,
     ) -> None:
         remove_items_by_api_input(
@@ -70,15 +85,11 @@ class WorkflowValidator(CamelSnakeSerializer):
 
         validator = BaseActionValidator(context=self.context)
         for action in actions_data:
-            if action.get("id") is None:
-                validator.create(action)
-            else:
-                action_instance = Action.objects.get(id=action["id"])
-                validator.update(action_instance, action)
+            self._update_or_create(action, validator, Action)
 
     def update_or_create_data_condition_group(
         self,
-        condition_group_data: dict[str, Any],
+        condition_group_data: InputData,
         instance: DataConditionGroup | None = None,
     ) -> DataConditionGroup:
         validator = BaseDataConditionGroupValidator(context=self.context)
@@ -90,22 +101,16 @@ class WorkflowValidator(CamelSnakeSerializer):
             )
 
         actions = condition_group_data.pop("actions", None)
-
-        if condition_group_id is None:
-            condition_group = validator.create(condition_group_data)
-        else:
-            stored_condition_group = DataConditionGroup.objects.get(id=condition_group_data["id"])
-            condition_group = validator.update(stored_condition_group, condition_group_data)
+        condition_group = self._update_or_create(
+            condition_group_data, validator, DataConditionGroup
+        )
 
         if actions is not None:
             self.update_or_create_actions(actions, condition_group)
 
         return condition_group
 
-    def update_action_filters(
-        self,
-        action_filters: list[dict[str, Any]],
-    ) -> list[DataConditionGroup]:
+    def update_action_filters(self, action_filters: ListInputData) -> list[DataConditionGroup]:
         instance = self.context["workflow"]
         filters: list[DataConditionGroup] = []
 
@@ -126,7 +131,7 @@ class WorkflowValidator(CamelSnakeSerializer):
 
         return filters
 
-    def update(self, instance: Workflow, validated_data: dict[str, Any]) -> Workflow:
+    def update(self, instance: Workflow, validated_data: InputData) -> Workflow:
         with transaction.atomic(router.db_for_write(Workflow)):
             # Update the Workflow.when_condition_group
             triggers = validated_data.pop("triggers", None)
@@ -142,7 +147,7 @@ class WorkflowValidator(CamelSnakeSerializer):
             instance.update(**validated_data)
             return instance
 
-    def create(self, validated_value: dict[str, Any]) -> Workflow:
+    def create(self, validated_value: InputData) -> Workflow:
         condition_group_validator = BaseDataConditionGroupValidator(context=self.context)
         action_validator = BaseActionValidator(context=self.context)
 
