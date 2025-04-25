@@ -310,7 +310,10 @@ export type IssueEventParameters = {
   'issue_views.save_as.created': {
     starred: boolean;
   };
-  'issue_views.saved_changes': {ownership: 'personal' | 'organization'};
+  'issue_views.saved_changes': {
+    ownership: 'personal' | 'organization';
+    surface: 'issue-view-details' | 'navigation';
+  };
   'issue_views.shared_view_opened': {
     query: string;
   };
