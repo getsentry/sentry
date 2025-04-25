@@ -2,7 +2,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   type Docs,
-  DocsPageLocation,
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -16,11 +15,12 @@ import {
   featureFlagOnboarding,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
-import {getPythonProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/python';
+import {
+  getPythonInstallConfig,
+  getPythonProfilingOnboarding,
+} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
-
-const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[falcon]'`;
 
 const getSdkSetupSnippet = (params: Params) => `
 import falcon
@@ -64,7 +64,7 @@ const onboarding: OnboardingConfig = {
     tct('The Falcon integration adds support for the [link:Falcon Web Framework].', {
       link: <ExternalLink href="https://falconframework.org/" />,
     }),
-  install: (params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
       description: tct(
@@ -73,21 +73,7 @@ const onboarding: OnboardingConfig = {
           code: <code />,
         }
       ),
-      configurations: [
-        {
-          description:
-            params.docsLocation === DocsPageLocation.PROFILING_PAGE
-              ? tct(
-                  'You need a minimum version [code:2.24.1] of the [code:sentry-python] SDK for the profiling feature.',
-                  {
-                    code: <code />,
-                  }
-                )
-              : undefined,
-          language: 'bash',
-          code: getInstallSnippet(),
-        },
-      ],
+      configurations: getPythonInstallConfig({packageName: "'sentry-sdk[falcon]'"}),
     },
   ],
   configure: (params: Params) => [

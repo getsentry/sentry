@@ -18,7 +18,9 @@ class DocIntegrationAvatar(ControlAvatarBase):
     FILE_TYPE = "avatar.file"
 
     doc_integration = FlexibleForeignKey("sentry.DocIntegration", related_name="avatar")
-    avatar_type = models.PositiveSmallIntegerField(default=0, choices=((0, "upload"),))
+    avatar_type = models.PositiveSmallIntegerField(
+        default=0, db_default=0, choices=((0, "upload"),)
+    )
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:

@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -33,6 +32,7 @@ export type SaveQueryModalProps = {
   organization: Organization;
   saveQuery: (name: string, starred?: boolean) => Promise<SavedQuery>;
   name?: string;
+  source?: 'toolbar' | 'table';
 };
 
 type Props = ModalRenderProps & SaveQueryModalProps;
@@ -44,6 +44,7 @@ function SaveQueryModal({
   closeModal,
   saveQuery,
   name: initialName,
+  source,
 }: Props) {
   const organization = useOrganization();
 
@@ -69,11 +70,14 @@ function SaveQueryModal({
         updatePageIdAndTitle(id, name);
       }
       addSuccessMessage(t('Query saved successfully'));
-      trackAnalytics('trace_explorer.save_as', {
-        save_type: 'saved_query',
-        ui_source: 'toolbar',
-        organization,
-      });
+      if (defined(source)) {
+        trackAnalytics('trace_explorer.save_query_modal', {
+          action: 'submit',
+          save_type: initialName === undefined ? 'save_new_query' : 'rename_query',
+          ui_source: source,
+          organization,
+        });
+      }
       closeModal();
     } catch (error) {
       addErrorMessage(t('Failed to save query'));
@@ -89,6 +93,7 @@ function SaveQueryModal({
     closeModal,
     organization,
     initialName,
+    source,
   ]);
 
   return (
@@ -100,10 +105,18 @@ function SaveQueryModal({
         <Wrapper>
           <SectionHeader>{t('Name')}</SectionHeader>
           <Input
-            placeholder={t('Enter a name for your saved query')}
+            placeholder={
+              defined(initialName)
+                ? t('Enter a name for your query')
+                : t('Enter a name for your new query')
+            }
             onChange={e => setName(e.target.value)}
             value={name}
-            title={t('Enter a name for your saved query')}
+            title={
+              defined(initialName)
+                ? t('Enter a name for your query')
+                : t('Enter a name for your new query')
+            }
           />
         </Wrapper>
         {initialName === undefined && (
@@ -201,11 +214,6 @@ const StyledButtonBar = styled(ButtonBar)`
       width: 100%;
     }
   }
-`;
-
-export const modalCss = css`
-  max-width: 700px;
-  margin: 70px auto;
 `;
 
 const SectionHeader = styled('h6')`

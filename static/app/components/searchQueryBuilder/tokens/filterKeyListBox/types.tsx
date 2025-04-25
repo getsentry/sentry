@@ -31,7 +31,7 @@ export interface FilterValueItem extends SelectOptionWithKey<string> {
   value: string;
 }
 
-export interface RecentFilterItem extends SelectOptionWithKey<string> {
+interface RecentFilterItem extends SelectOptionWithKey<string> {
   type: 'recent-filter';
   value: string;
 }

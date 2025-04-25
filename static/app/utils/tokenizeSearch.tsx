@@ -1,6 +1,6 @@
 import {escapeDoubleQuotes} from 'sentry/utils';
 
-export const ALLOWED_WILDCARD_FIELDS = [
+const ALLOWED_WILDCARD_FIELDS = [
   'span.description',
   'span.domain',
   'span.status_code',
@@ -15,7 +15,7 @@ export enum TokenType {
   FREE_TEXT = 2,
 }
 
-export type Token = {
+type Token = {
   type: TokenType;
   value: string;
   key?: string;

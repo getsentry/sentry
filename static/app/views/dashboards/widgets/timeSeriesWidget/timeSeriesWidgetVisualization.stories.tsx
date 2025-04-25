@@ -199,11 +199,11 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
   "data": [
     {
       "value": 163.26759544018776,
-      "timestamp": "2024-10-24T15:00:00-04:00",
+      "timestamp": 1729798200000,
     },
     {
       "value": 164.07690380778297,
-      "timestamp": "2024-10-24T15:30:00-04:00",
+      "timestamp": 1729800000000,
     },
   ]
 }
@@ -400,6 +400,28 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     );
   });
 
+  story('X Axis', () => {
+    return (
+      <Fragment>
+        <p>
+          In a <JSXNode name="TimeSeriesWidgetVisualization" />, the X axis is by
+          definition always time. The ticks and labels are automatically determined based
+          on the domain of the data set. You can, however, use the <code>showXAxis</code>{' '}
+          prop to hide the X axis in contexts where it would be too busy or distracting.
+          This might be the case in small sidebar charts, for example. Setting the{' '}
+          <code>showXAxis</code> prop to <code>"never"</code> will hide the X axis.
+        </p>
+
+        <SmallWidget>
+          <TimeSeriesWidgetVisualization
+            plottables={[new Line(sampleDurationTimeSeries)]}
+            showXAxis="never"
+          />
+        </SmallWidget>
+      </Fragment>
+    );
+  });
+
   story('Unit Alignment', () => {
     const millisecondsSeries = sampleDurationTimeSeries;
 
@@ -446,7 +468,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     }, []);
 
     const samplesPlottable = useMemo(() => {
-      return new Samples(shiftTabularDataToNow(spanSamplesWithDurations), {
+      return new Samples(shiftedSpanSamples, {
         alias: 'Span Samples',
         attributeName: 'p99(span.duration)',
         baselineValue: 175,
@@ -844,11 +866,15 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     const releases = [
       {
         version: 'ui@0.1.2',
-        timestamp: sampleThroughputTimeSeries.data.at(2)?.timestamp,
+        timestamp: new Date(
+          sampleThroughputTimeSeries.data.at(2)?.timestamp!
+        ).toISOString(),
       },
       {
         version: 'ui@0.1.3',
-        timestamp: sampleThroughputTimeSeries.data.at(20)?.timestamp,
+        timestamp: new Date(
+          sampleThroughputTimeSeries.data.at(20)?.timestamp!
+        ).toISOString(),
       },
     ].filter(hasTimestamp);
 

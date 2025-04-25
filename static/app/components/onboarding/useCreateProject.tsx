@@ -1,5 +1,3 @@
-import * as Sentry from '@sentry/react';
-
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Project} from 'sentry/types/project';
@@ -24,11 +22,6 @@ export function useCreateProject() {
   return useMutation<Project, RequestError, Variables>({
     mutationKey: [MUTATION_KEY],
     mutationFn: ({firstTeamSlug, name, platform, default_rules}) => {
-      // A default team should always be created for a new organization.
-      // If teams are loaded but no first team is found, fallback to the experimental project.
-      if (!firstTeamSlug) {
-        Sentry.captureException('No team slug found for new org during onboarding');
-      }
       return api.requestPromise(
         firstTeamSlug
           ? `/teams/${organization.slug}/${firstTeamSlug}/projects/`

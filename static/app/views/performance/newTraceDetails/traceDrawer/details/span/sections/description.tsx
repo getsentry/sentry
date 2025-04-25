@@ -49,7 +49,7 @@ import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/uti
 
 const formatter = new SQLishFormatter();
 
-export function hasFormattedSpanDescription(node: TraceTreeNode<TraceTree.Span>) {
+function hasFormattedSpanDescription(node: TraceTreeNode<TraceTree.Span>) {
   const span = node.value;
   const resolvedModule: ModuleName = resolveSpanModule(
     span.sentry_tags?.op,
@@ -131,7 +131,13 @@ export function SpanDescription({
         resolvedModule === ModuleName.DB ? `${space(1)} ${space(2)}` : `${space(1)}`
       }
     >
-      <SpanSummaryLink event={node.event!} organization={organization} span={span} />
+      <SpanSummaryLink
+        op={span.op}
+        category={span.sentry_tags?.category}
+        group={groupHash}
+        project_id={node.event?.projectID}
+        organization={organization}
+      />
       <Link
         to={
           hasExploreEnabled

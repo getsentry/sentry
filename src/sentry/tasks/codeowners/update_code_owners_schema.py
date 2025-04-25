@@ -10,6 +10,9 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, load_model_from_db, retry
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import issues_tasks
+from sentry.taskworker.retry import Retry
 
 
 @instrumented_task(
@@ -18,6 +21,12 @@ from sentry.tasks.base import instrumented_task, load_model_from_db, retry
     default_retry_delay=5,
     max_retries=5,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        retry=Retry(
+            times=5,
+        ),
+    ),
 )
 @retry
 def update_code_owners_schema(
