@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button';
-import {IconProfiling} from 'sentry/icons';
+import {IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -13,21 +13,25 @@ function OrgStatsProfilingBanner() {
       <HeaderItem>
         <h6>{t('Profiling has a new billing model!')}</h6>
         <span>
+          {t(`
           We've split Profiling into two products targeted at different use cases –
           Continuous Profiling for the backend and UI Profiling for the frontend. These
           products are billed separately.
+          `)}
         </span>
       </HeaderItem>
       <CategoryItemLeft>
         <h6>{t('UI Profile Hours')}</h6>
         <span>
+          {t(`
           Ensure great UX on browser and mobile apps by fixing issues that cause long load
           times and unresponsive interactions.
+          `)}
         </span>
         <div>
           <StyledProfilingButton
             size="sm"
-            icon={<IconProfiling size="sm" />}
+            icon={<IconShow size="sm" />}
             title={t('Go to UI Profile Hours')}
             aria-label={t('Go to UI Profile Hours')}
             to={{
@@ -42,13 +46,15 @@ function OrgStatsProfilingBanner() {
       <CategoryItemRight>
         <h6>{t('Continuous Profile Hours')}</h6>
         <span>
+          {t(`
           Find performance bottlenecks in backend services that cause high request latency
           and excessive infrastructure costs.
+          `)}
         </span>
         <div>
           <StyledProfilingButton
             size="sm"
-            icon={<IconProfiling size="sm" />}
+            icon={<IconShow size="sm" />}
             title={t('Go to Continuous Profile Hours')}
             aria-label={t('Go to Continuous Profile Hours')}
             to={{
