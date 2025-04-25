@@ -1,7 +1,7 @@
 import uuid
 from unittest import mock
 
-from sentry.incidents.models.incident import IncidentStatus
+from sentry.incidents.models.incident import IncidentStatus, TriggerStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
     MetricIssueContext,
@@ -48,6 +48,8 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
             alert_context=alert_context,
             metric_issue_context=metric_issue_context,
             open_period_context=open_period_context,
+            trigger_status=TriggerStatus.ACTIVE,
+            project=self.detector.project,
             organization=self.detector.project.organization,
             notification_uuid=notification_uuid,
         )
@@ -95,6 +97,7 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
             threshold_type=None,
             detection_type=None,
             comparison_delta=None,
+            alert_threshold=1.0,
         )
 
         self.assert_metric_issue_context(

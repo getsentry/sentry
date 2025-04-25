@@ -63,7 +63,7 @@ function trailToCrumb(
               query: omit(trail.payload.query, ['cursor', 'query']),
             })
           : undefined,
-        label: t('Profile Summary'),
+        label: t('Transaction Summary'),
         preservePageFilters: true,
       };
     }

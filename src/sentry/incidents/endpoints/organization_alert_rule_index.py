@@ -67,11 +67,8 @@ from sentry.relay.config.metric_extraction import (
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.snuba.dataset import Dataset
-from sentry.uptime.models import (
-    ProjectUptimeSubscription,
-    ProjectUptimeSubscriptionMode,
-    UptimeStatus,
-)
+from sentry.uptime.models import ProjectUptimeSubscription, UptimeStatus
+from sentry.uptime.types import ProjectUptimeSubscriptionMode
 from sentry.utils.cursors import Cursor, StringCursor
 
 

@@ -2198,10 +2198,26 @@ function buildRoutes() {
     <Route path="/issues/" withOrgPath>
       <IndexRoute component={errorHandler(OverviewWrapper)} />
       <Route
+        path="errors-outages/"
+        component={make(() => import('sentry/views/issueList/pages/errorsOutages'))}
+      />
+      <Route
+        path="metrics/"
+        component={make(() => import('sentry/views/issueList/pages/metrics'))}
+      />
+      <Route
+        path="best-practices/"
+        component={make(() => import('sentry/views/issueList/pages/bestPractices'))}
+      />
+      <Route
         path="views/"
         component={make(
           () => import('sentry/views/issueList/issueViews/issueViewsList/issueViewsList')
         )}
+      />
+      <Route
+        path="views/new/"
+        component={make(() => import('sentry/views/issueList/pages/newViewPage'))}
       />
       <Route path="views/:viewId/" component={errorHandler(OverviewWrapper)} />
       <Route path="searches/:searchId/" component={errorHandler(OverviewWrapper)} />

@@ -22,7 +22,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 
 from sentry.conf.types import kafka_definition
 from sentry.conf.types.uptime import UptimeRegionConfig
-from sentry.constants import DataCategory, ObjectStatus
+from sentry.constants import DataCategory
 from sentry.models.group import Group, GroupStatus
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.datetime import freeze_time
@@ -39,11 +39,11 @@ from sentry.uptime.detectors.tasks import is_failed_url
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
-    ProjectUptimeSubscriptionMode,
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
 )
+from sentry.uptime.types import ProjectUptimeSubscriptionMode
 from sentry.utils import json
 from tests.sentry.uptime.subscriptions.test_tasks import ConfigPusherTestMixin
 
@@ -156,6 +156,25 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_status == UptimeStatus.FAILED
         assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.FAILED
+
+    def test_does_nothing_when_missing_project_subscription(self):
+        self.project_subscription.delete()
+
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+        with (
+            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
+            mock.patch("sentry.remote_subscriptions.consumers.result_consumer.logger") as logger,
+            mock.patch(
+                "sentry.uptime.consumers.results_consumer.remove_uptime_subscription_if_unused"
+            ) as mock_remove_uptime_subscription_if_unused,
+        ):
+            # Does not produce an error
+            self.send_result(result)
+            assert not logger.exception.called
+            mock_remove_uptime_subscription_if_unused.assert_called_with(self.subscription)
 
     def test_restricted_host_provider_id(self):
         """
@@ -445,32 +464,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             self.assert_redis_config(
                 "default", UptimeSubscription(subscription_id=subscription_id), "delete", None
             )
-
-    def test_multiple_project_subscriptions_with_disabled(self):
-        """
-        Tests that we do not process results for disabled project subscriptions
-        """
-        # Second disabled project subscription
-        self.create_project_uptime_subscription(
-            uptime_subscription=self.subscription,
-            project=self.create_project(),
-            status=ObjectStatus.DISABLED,
-        )
-        result = self.create_uptime_result(self.subscription.subscription_id)
-
-        with (
-            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
-        ):
-            self.send_result(result)
-            # We only process a single project result, the other is dropped,
-            # there should be only one handle_result_for_project metric call
-            handle_result_calls = [
-                c
-                for c in metrics.incr.mock_calls
-                if c[1][0] == "uptime.result_processor.handle_result_for_project"
-            ]
-            assert len(handle_result_calls) == 1
 
     def test_organization_feature_disabled(self):
         """
@@ -1063,6 +1056,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             subscription_id=uuid.UUID(int=5).hex,
             region_slugs=["region1"],
         )
+        self.create_project_uptime_subscription(uptime_subscription=sub)
         self.run_check_and_update_region_test(
             sub,
             ["region1", "region2"],
@@ -1093,6 +1087,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             subscription_id=uuid.UUID(int=5).hex,
             region_slugs=["region1", "region2"],
         )
+        self.create_project_uptime_subscription(uptime_subscription=sub)
         self.run_check_and_update_region_test(
             sub,
             ["region1", "region2"],
@@ -1119,6 +1114,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             region_slugs=["region1"],
             interval_seconds=UptimeSubscription.IntervalSeconds.ONE_HOUR,
         )
+        self.create_project_uptime_subscription(uptime_subscription=hour_sub)
         self.run_check_and_update_region_test(
             hour_sub,
             ["region1", "region2"],
@@ -1140,6 +1136,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             region_slugs=["region1"],
             interval_seconds=UptimeSubscription.IntervalSeconds.FIVE_MINUTES,
         )
+        self.create_project_uptime_subscription(uptime_subscription=five_min_sub)
         self.run_check_and_update_region_test(
             five_min_sub,
             ["region1", "region2"],
@@ -1188,6 +1185,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             region_slugs=["region1"],
             interval_seconds=UptimeSubscription.IntervalSeconds.FIVE_MINUTES,
         )
+        self.create_project_uptime_subscription(uptime_subscription=five_min_sub)
         self.run_check_and_update_region_test(
             five_min_sub,
             ["region1", "region2"],
@@ -1206,8 +1204,10 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
 
     def test_check_and_update_regions_removes_disabled(self):
         sub = self.create_uptime_subscription(
-            subscription_id=uuid.UUID(int=5).hex, region_slugs=["region1", "region2"]
+            subscription_id=uuid.UUID(int=5).hex,
+            region_slugs=["region1", "region2"],
         )
+        self.create_project_uptime_subscription(uptime_subscription=sub)
         self.run_check_and_update_region_test(
             sub,
             ["region1", "region2"],
@@ -1259,6 +1259,7 @@ class ProcessResultSerialTest(ProcessResultTest):
             subscription_2 = self.create_uptime_subscription(
                 subscription_id=uuid.uuid4().hex, interval_seconds=300, url="http://santry.io"
             )
+            self.create_project_uptime_subscription(uptime_subscription=subscription_2)
 
             result_1 = self.create_uptime_result(
                 self.subscription.subscription_id,
@@ -1310,6 +1311,7 @@ class ProcessResultSerialTest(ProcessResultTest):
         subscription_2 = self.create_uptime_subscription(
             subscription_id=uuid.uuid4().hex, interval_seconds=300, url="http://santry.io"
         )
+        self.create_project_uptime_subscription(uptime_subscription=subscription_2)
 
         result_1 = self.create_uptime_result(
             self.subscription.subscription_id,

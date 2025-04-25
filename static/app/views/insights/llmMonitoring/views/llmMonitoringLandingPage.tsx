@@ -4,16 +4,14 @@ import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modul
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
-import {
-  NumberOfPipelinesChart,
-  PipelineDurationChart,
-  TotalTokensUsedChart,
-} from 'sentry/views/insights/llmMonitoring/components/charts/llmMonitoringCharts';
+import LlmNumberOfPipelinesChartWidget from 'sentry/views/insights/common/components/widgets/llmNumberOfPipelinesChartWidget';
+import LlmPipelineDurationChartWidget from 'sentry/views/insights/common/components/widgets/llmPipelineDurationChartWidget';
+import LlmTotalTokensUsedChart from 'sentry/views/insights/common/components/widgets/llmTotalTokensUsedChartWidget';
 import {PipelinesTable} from 'sentry/views/insights/llmMonitoring/components/tables/pipelinesTable';
 import {AiHeader} from 'sentry/views/insights/pages/ai/aiPageHeader';
 import {ModuleName} from 'sentry/views/insights/types';
 
-export function LLMMonitoringPage() {
+function LLMMonitoringPage() {
   return (
     <Layout.Page>
       <AiHeader module={ModuleName.AI} />
@@ -26,13 +24,13 @@ export function LLMMonitoringPage() {
               </ModuleLayout.Full>
               <ModulesOnboarding moduleName={ModuleName.AI}>
                 <ModuleLayout.Third>
-                  <TotalTokensUsedChart />
+                  <LlmTotalTokensUsedChart />
                 </ModuleLayout.Third>
                 <ModuleLayout.Third>
-                  <NumberOfPipelinesChart />
+                  <LlmNumberOfPipelinesChartWidget />
                 </ModuleLayout.Third>
                 <ModuleLayout.Third>
-                  <PipelineDurationChart />
+                  <LlmPipelineDurationChartWidget />
                 </ModuleLayout.Third>
                 <ModuleLayout.Full>
                   <PipelinesTable />

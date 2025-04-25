@@ -57,13 +57,13 @@ import testVercelApiEndpoint from 'admin/components/testVCApiEndpoints';
 import toggleSpendAllocationModal from 'admin/components/toggleSpendAllocationModal';
 import TrialSubscriptionAction from 'admin/components/trialSubscriptionAction';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
-import type {BillingConfig, Subscription} from 'getsentry/types';
+import type {BillingConfig, DataCategories, Subscription} from 'getsentry/types';
 import {
   hasActiveVCFeature,
   isBizPlanFamily,
   isUnlimitedReserved,
 } from 'getsentry/utils/billing';
-import {getPlanCategoryName, GIFT_CATEGORIES} from 'getsentry/utils/dataCategory';
+import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 
 const DEFAULT_ERROR_MESSAGE = 'Unable to update the customer account';
 
@@ -129,41 +129,39 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
     if (!data?.planDetails) {
       return {};
     }
-    // Can only gift for checkout categories
+    // We display all categories that are in either checkoutCategories or onDemandCategories,
+    // then disable the button if the category cannot be gifted to on this particular subscription (ie. unlimited quota).
+    // Categories that are not giftable in any state for the subscription are excluded (ie. plan does not include category).
     return Object.fromEntries(
-      GIFT_CATEGORIES.map(category => {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        const reserved = data.categories?.[category]?.reserved;
-        const isUnlimited = isUnlimitedReserved(reserved);
-        const isReservedBudgetQuota = reserved === RESERVED_BUDGET_QUOTA;
+      data.planDetails.categories
+        .filter(
+          category =>
+            data.planDetails.checkoutCategories.includes(category) ||
+            data.planDetails.onDemandCategories.includes(category)
+        )
+        .map(category => {
+          const reserved = data.categories?.[category as DataCategories]?.reserved;
+          const isUnlimited = isUnlimitedReserved(reserved);
+          const isReservedBudgetQuota = reserved === RESERVED_BUDGET_QUOTA;
 
-        // Check why categories are disabled
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        const categoryNotExists = !data.categories?.[category];
-        const notInCheckoutCategories =
-          !data.planDetails?.checkoutCategories?.includes(category);
-        const notInOnDemandCategories =
-          !data.planDetails?.onDemandCategories?.includes(category);
+          // Check why categories are disabled
+          const categoryNotExists = !data.categories?.[category as DataCategories];
 
-        return [
-          category,
-          {
-            disabled:
-              categoryNotExists ||
-              (notInCheckoutCategories && notInOnDemandCategories) ||
-              isUnlimited ||
+          return [
+            category,
+            {
+              disabled: categoryNotExists || isUnlimited || isReservedBudgetQuota,
+              displayName: getPlanCategoryName({
+                plan: data.planDetails,
+                category,
+                capitalize: false,
+                hadCustomDynamicSampling: isReservedBudgetQuota,
+              }),
+              isUnlimited,
               isReservedBudgetQuota,
-            displayName: getPlanCategoryName({
-              plan: data.planDetails,
-              category,
-              capitalize: false,
-              hadCustomDynamicSampling: isReservedBudgetQuota,
-            }),
-            isUnlimited,
-            isReservedBudgetQuota,
-          },
-        ];
-      })
+            },
+          ];
+        })
     );
   }
 
@@ -648,7 +646,6 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
                   orgId,
                   subscription: data,
                   billingConfig,
-                  canProvisionDsPlan: true,
                   onSuccess: () => this.reloadData(),
                 }),
             },

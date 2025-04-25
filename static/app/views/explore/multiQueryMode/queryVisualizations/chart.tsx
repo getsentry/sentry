@@ -29,6 +29,7 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/charts';
 import {WidgetExtrapolationFooter} from 'sentry/views/explore/charts/widgetExtrapolationFooter';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useAddCompareQueryToDashboard} from 'sentry/views/explore/multiQueryMode/hooks/useAddCompareQueryToDashboard';
@@ -44,7 +45,7 @@ import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/use
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 const CHART_HEIGHT = 260;
-export interface MultiQueryChartProps {
+interface MultiQueryChartProps {
   canUsePreviousResults: boolean;
   index: number;
   mode: Mode;
@@ -52,8 +53,6 @@ export interface MultiQueryChartProps {
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   samplingMode?: SamplingMode;
 }
-
-export const EXPLORE_CHART_GROUP = 'multi-query-charts_group';
 
 export function MultiQueryModeChart({
   index,
@@ -139,16 +138,14 @@ export function MultiQueryModeChart({
     isTopN
   );
 
+  const chartType = queryParts.chartType || determineDefaultChartType(yAxes);
+
   const visualizationType =
-    queryParts.chartType === ChartType.LINE
-      ? 'line'
-      : queryParts.chartType === ChartType.AREA
-        ? 'area'
-        : 'bar';
+    chartType === ChartType.LINE ? 'line' : chartType === ChartType.AREA ? 'area' : 'bar';
 
   const chartInfo = {
     chartIcon: <IconGraph type={visualizationType} />,
-    chartType: queryParts.chartType,
+    chartType,
     yAxes,
     formattedYAxes,
     data,

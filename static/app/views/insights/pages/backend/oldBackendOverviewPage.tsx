@@ -45,6 +45,7 @@ import {
   MOBILE_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS,
 } from 'sentry/views/insights/pages/mobile/settings';
+import {NewNextJsExperienceButton} from 'sentry/views/insights/pages/platform/nextjs/newNextjsExperienceToggle';
 import {
   generateBackendPerformanceEventView,
   USER_MISERY_TOOLTIP,
@@ -71,7 +72,7 @@ const APDEX_TOOLTIP = tct(
   }
 );
 
-export const BACKEND_COLUMN_TITLES = [
+const BACKEND_COLUMN_TITLES = [
   {title: 'http method'},
   {title: 'transaction'},
   {title: 'operation'},
@@ -229,7 +230,10 @@ export function OldBackendOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <BackendHeader headerTitle={BACKEND_LANDING_TITLE} />
+      <BackendHeader
+        headerTitle={BACKEND_LANDING_TITLE}
+        headerActions={<NewNextJsExperienceButton />}
+      />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>

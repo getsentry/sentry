@@ -1,7 +1,7 @@
 import uuid
 from unittest import mock
 
-from sentry.incidents.models.incident import IncidentStatus
+from sentry.incidents.models.incident import IncidentStatus, TriggerStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
     MetricIssueContext,
@@ -52,19 +52,21 @@ class TestDiscordMetricAlertHandler(MetricAlertHandlerBase):
             alert_context=alert_context,
             metric_issue_context=metric_issue_context,
             open_period_context=open_period_context,
+            trigger_status=TriggerStatus.ACTIVE,
+            project=self.detector.project,
             organization=self.detector.project.organization,
             notification_uuid=notification_uuid,
         )
 
         mock_send_incident_alert_notification.assert_called_once_with(
-            notification_context=notification_context,
+            organization=self.detector.project.organization,
             alert_context=alert_context,
+            notification_context=notification_context,
             metric_issue_context=metric_issue_context,
             open_period_context=open_period_context,
-            organization=self.detector.project.organization,
-            notification_uuid=notification_uuid,
             alert_rule_serialized_response=get_alert_rule_serializer(self.detector),
             incident_serialized_response=get_detailed_incident_serializer(self.open_period),
+            notification_uuid=notification_uuid,
         )
 
     @mock.patch(
@@ -100,6 +102,7 @@ class TestDiscordMetricAlertHandler(MetricAlertHandlerBase):
             threshold_type=None,
             detection_type=None,
             comparison_delta=None,
+            alert_threshold=1.0,
         )
 
         self.assert_metric_issue_context(

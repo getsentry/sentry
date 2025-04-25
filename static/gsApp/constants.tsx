@@ -1,4 +1,4 @@
-import {DataCategory, DataCategoryExact} from 'sentry/types/core';
+import {DataCategory} from 'sentry/types/core';
 
 import {PlanTier} from 'getsentry/types';
 
@@ -32,8 +32,8 @@ export const MAX_ADMIN_CATEGORY_GIFTS = {
   [DataCategory.MONITOR_SEATS]: 10_000,
   [DataCategory.UPTIME]: 10_000,
   [DataCategory.SPANS]: 1_000_000_000,
-  [DataCategory.PROFILE_DURATION]: 10_000, // TODO(continuous profiling): confirm max amount
-  [DataCategory.PROFILE_DURATION_UI]: 10_000, // TODO(continuous profiling): confirm max amount
+  [DataCategory.PROFILE_DURATION]: 10_000,
+  [DataCategory.PROFILE_DURATION_UI]: 10_000,
 };
 
 // While we no longer offer or support unlimited ondemand we still
@@ -51,10 +51,10 @@ export enum AllocationTargetTypes {
   ORGANIZATION = 'Organization',
 }
 
-export const ALLOCATION_SUPPORTED_CATEGORIES: DataCategoryExact[] = [
-  DataCategoryExact.ERROR,
-  DataCategoryExact.TRANSACTION,
-  DataCategoryExact.ATTACHMENT,
+export const ALLOCATION_SUPPORTED_CATEGORIES: DataCategory[] = [
+  DataCategory.ERRORS,
+  DataCategory.TRANSACTIONS,
+  DataCategory.ATTACHMENTS,
 ];
 
 export const PRODUCT_TRIAL_CATEGORIES: DataCategory[] = [

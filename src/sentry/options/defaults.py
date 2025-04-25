@@ -613,12 +613,6 @@ register("github-app.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DIS
 
 # Github Enterprise Integration
 register(
-    "github-enterprise-app.alert-rule-action",
-    type=Bool,
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "github-enterprise-app.allowed-hosts-legacy-webhooks",
     type=Sequence,
     default=[],
@@ -2454,12 +2448,6 @@ register(
 # END: SDK Crash Detection
 
 register(
-    "issues.auto_source_code_config.update_code_mapping_if_needed",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     # Lists the shared resource ids we want to account usage for.
     "shared_resources_accounting_enabled",
     default=[],
@@ -2821,13 +2809,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Killswitch for EnvironmentProject.get_or_create refactor
-register(
-    "environmentproject.new_add_project.rollout",
-    default=0.0,
-    type=Float,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # TODO: remove once removed from options
 register(
@@ -2864,6 +2845,13 @@ register(
     "profiling.continuous-profiling.chunks-query.size",
     type=Int,
     default=250,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Limits the total duration of profile chunks to aggregate in flamegraphs
+register(
+    "profiling.continuous-profiling.flamegraph.max-seconds",
+    type=Int,
+    default=10 * 60,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2968,10 +2956,6 @@ register(
     type=Float,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "ecosystem:enable_integration_form_error_raise", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
 
@@ -3323,3 +3307,82 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "taskworker.attachments.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.seer.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.relay.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.sentryapp.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.sentryapp.control.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.issues.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.export.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.buffer.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.performance.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.releasehealth.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.symbolication.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.profiling.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.reports.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.ingest.profiling.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.telemetry-experience.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Orgs for which compression should be disabled in the chunk upload endpoint.
+# This is intended to circumvent sporadic 503 errors reported by some customers.
+register("chunk-upload.no-compression", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)

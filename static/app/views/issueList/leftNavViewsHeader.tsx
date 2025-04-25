@@ -1,6 +1,6 @@
+import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
@@ -16,7 +16,10 @@ import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {EditableIssueViewHeader} from 'sentry/views/issueList/editableIssueViewHeader';
 import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
-import {canEditIssueView} from 'sentry/views/issueList/issueViews/utils';
+import {
+  canEditIssueView,
+  confirmDeleteIssueView,
+} from 'sentry/views/issueList/issueViews/utils';
 import {useDeleteGroupSearchView} from 'sentry/views/issueList/mutations/useDeleteGroupSearchView';
 import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
 import {makeFetchGroupSearchViewKey} from 'sentry/views/issueList/queries/useFetchGroupSearchView';
@@ -25,9 +28,10 @@ import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 
 type LeftNavViewsHeaderProps = {
   selectedProjectIds: number[];
+  title: ReactNode;
 };
 
-function PageTitle() {
+function PageTitle({title}: {title: ReactNode}) {
   const organization = useOrganization();
   const {data: groupSearchView} = useSelectedGroupSearchView();
   const user = useUser();
@@ -36,16 +40,16 @@ function PageTitle() {
   if (
     hasIssueViewSharing &&
     groupSearchView &&
-    canEditIssueView({groupSearchView, user})
+    canEditIssueView({groupSearchView, user, organization})
   ) {
     return <EditableIssueViewHeader view={groupSearchView} />;
   }
 
   if (groupSearchView) {
-    return <Layout.Title>{groupSearchView?.name ?? t('Issues')}</Layout.Title>;
+    return <Layout.Title>{groupSearchView?.name ?? title}</Layout.Title>;
   }
 
-  return <Layout.Title>{t('Issues')}</Layout.Title>;
+  return <Layout.Title>{title}</Layout.Title>;
 }
 
 function IssueViewStarButton() {
@@ -117,7 +121,7 @@ function IssueViewEditMenu() {
     return null;
   }
 
-  const canDeleteView = canEditIssueView({groupSearchView, user});
+  const canDeleteView = canEditIssueView({groupSearchView, organization, user});
 
   return (
     <DropdownMenu
@@ -131,19 +135,10 @@ function IssueViewEditMenu() {
             ? undefined
             : t('You do not have permission to delete this view.'),
           onAction: () => {
-            openConfirmModal({
-              message: t(
-                'Are you sure you want to delete the view "%s"?',
-                groupSearchView.name
-              ),
-              isDangerous: true,
-              confirmText: t('Delete View'),
-              priority: 'danger',
-              onConfirm: () => {
+            confirmDeleteIssueView({
+              handleDelete: () =>
                 deleteIssueView(
-                  {
-                    id: groupSearchView.id,
-                  },
+                  {id: groupSearchView.id},
                   {
                     onSuccess: () => {
                       navigate(
@@ -151,8 +146,8 @@ function IssueViewEditMenu() {
                       );
                     },
                   }
-                );
-              },
+                ),
+              groupSearchView,
             });
           },
         },
@@ -171,7 +166,7 @@ function IssueViewEditMenu() {
   );
 }
 
-function LeftNavViewsHeader({selectedProjectIds}: LeftNavViewsHeaderProps) {
+function LeftNavViewsHeader({selectedProjectIds, title}: LeftNavViewsHeaderProps) {
   const {projects} = useProjects();
   const prefersStackedNav = usePrefersStackedNav();
   const selectedProjects = projects.filter(({id}) =>
@@ -182,7 +177,7 @@ function LeftNavViewsHeader({selectedProjectIds}: LeftNavViewsHeaderProps) {
     <Layout.Header noActionWrap unified={prefersStackedNav}>
       <Layout.HeaderContent unified={prefersStackedNav}>
         <StyledLayoutTitle>
-          <PageTitle />
+          <PageTitle title={title} />
           <Actions>
             <IssueViewStarButton />
             <IssueViewEditMenu />

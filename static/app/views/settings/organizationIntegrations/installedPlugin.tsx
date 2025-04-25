@@ -33,7 +33,7 @@ type Props = {
   className?: string;
 };
 
-export class InstalledPlugin extends Component<Props> {
+class InstalledPlugin extends Component<Props> {
   get projectId() {
     return this.props.projectItem.projectId;
   }

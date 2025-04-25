@@ -5,7 +5,7 @@ import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
 export const ToolbarSection = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(3)};
 `;
 
 export const ToolbarHeader = styled('div')`
