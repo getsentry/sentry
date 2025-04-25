@@ -1,6 +1,9 @@
 import styled from '@emotion/styled';
 
-import {SunburstChart, type SunburstData} from 'sentry/components/charts/sunburstChart';
+import {
+  TreeCoverageSunburstChart,
+  type TreeCoverageSunburstData,
+} from 'sentry/components/charts/treeCoverageSunburstChart';
 import {space} from 'sentry/styles/space';
 
 import {data} from './data';
@@ -75,7 +78,7 @@ export default function CoveragePage() {
   return (
     <LayoutGap>
       <p>Coverage Analytics</p>
-      <SunburstChart data={data as unknown as SunburstData} />
+      <TreeCoverageSunburstChart data={data as unknown as TreeCoverageSunburstData} />
     </LayoutGap>
   );
 }

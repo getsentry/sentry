@@ -15,7 +15,7 @@ import {getTooltipStyles} from 'sentry/components/charts/baseChart';
 import {computeChartTooltip} from 'sentry/components/charts/components/tooltip';
 import type {EChartClickHandler, EChartMouseOverHandler} from 'sentry/types/echarts';
 
-function bfsFilter(root: ProcessedSunburstData, maxDepth: number) {
+function bfsFilter(root: ProcessedTreeCoverageSunburstData, maxDepth: number) {
   const editableTree = structuredClone(root);
   const queue = [editableTree];
 
@@ -40,8 +40,8 @@ function bfsFilter(root: ProcessedSunburstData, maxDepth: number) {
   return editableTree;
 }
 
-export interface SunburstData {
-  children: SunburstData[];
+export interface TreeCoverageSunburstData {
+  children: TreeCoverageSunburstData[];
   coverage: number;
   fullPath: string;
   name: string;
@@ -49,26 +49,26 @@ export interface SunburstData {
   dir?: boolean;
 }
 
-interface ProcessedSunburstData extends SunburstData {
+interface ProcessedTreeCoverageSunburstData extends TreeCoverageSunburstData {
   depth?: number;
   itemStyle?: SunburstSeriesOption['itemStyle'];
   type?: 'dir' | 'file';
 }
 
-interface SunburstChartProps {
-  data: SunburstData;
+interface TreeCoverageSunburstChartProps {
+  data: TreeCoverageSunburstData;
 }
 
-export function SunburstChart({data}: SunburstChartProps) {
+export function TreeCoverageSunburstChart({data}: TreeCoverageSunburstChartProps) {
   const theme = useTheme();
 
   const [rootNode] = useState(() => {
     // we want to copy this prop value as we're inline editing it's content
     const tree = structuredClone(data);
-    const nodeMap = new Map<string, SunburstData>();
-    const edges = new Map<any, SunburstData>();
+    const nodeMap = new Map<string, TreeCoverageSunburstData>();
+    const edges = new Map<any, TreeCoverageSunburstData>();
     // Store node and its depth
-    const queue: Array<[ProcessedSunburstData, number]> = [[tree, 0]];
+    const queue: Array<[ProcessedTreeCoverageSunburstData, number]> = [[tree, 0]];
 
     while (queue.length > 0) {
       const queueEntry = queue.shift();
@@ -114,7 +114,7 @@ export function SunburstChart({data}: SunburstChartProps) {
   const [breadCrumbs, setBreadCrumbs] = useState(rootNode.tree.fullPath);
 
   return (
-    <SunburstContainer>
+    <div>
       <ChartContainer autoHeightResize={false}>
         <ReactEchartsCore
           echarts={echarts}
@@ -145,7 +145,7 @@ export function SunburstChart({data}: SunburstChartProps) {
                       name: parent.name,
                       itemStyle: {color: theme.blue300, opacity: 0.9},
                       children: [children],
-                    } satisfies ProcessedSunburstData;
+                    } satisfies ProcessedTreeCoverageSunburstData;
                   }
 
                   return bfsFilter(node, params.data?.depth + 2);
@@ -193,11 +193,9 @@ export function SunburstChart({data}: SunburstChartProps) {
         />
       </ChartContainer>
       <BreadCrumbContainer>{breadCrumbs}</BreadCrumbContainer>
-    </SunburstContainer>
+    </div>
   );
 }
-
-const SunburstContainer = styled('div')``;
 
 const BreadCrumbContainer = styled('div')`
   display: flex;
