@@ -96,7 +96,7 @@ export function TrafficWidget({
     () =>
       plottables.every(
         plottable =>
-          plottable.isEmpty || plottable.timeSeries.data.every(point => !point.value)
+          plottable.isEmpty || plottable.timeSeries.values.every(point => !point.value)
       ),
     [plottables]
   );

@@ -73,7 +73,7 @@ export function scaleTimeSeriesData(
 
   return {
     ...timeSeries,
-    data: timeSeries.data.map(datum => {
+    values: timeSeries.values.map(datum => {
       const {value} = datum;
       return {
         ...datum,

@@ -4,7 +4,7 @@
 
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
-export function markDelayedData(timeSeries: TimeSeries, delay: number) {
+export function markDelayedData(timeSeries: TimeSeries, delay: number): TimeSeries {
   if (delay === 0) {
     return timeSeries;
   }
@@ -18,7 +18,7 @@ export function markDelayedData(timeSeries: TimeSeries, delay: number) {
   // backwards and immediately stopping once we see the first complete point
   return {
     ...timeSeries,
-    data: timeSeries.data.map(datum => {
+    values: timeSeries.values.map(datum => {
       const bucketEndTimestamp = new Date(datum.timestamp).getTime() + bucketSize;
       const delayed = bucketEndTimestamp >= ingestionDelayTimestamp;
 
@@ -31,8 +31,8 @@ export function markDelayedData(timeSeries: TimeSeries, delay: number) {
 }
 
 function getTimeSeriesBucketSize(timeSeries: TimeSeries): number {
-  const penultimateDatum = timeSeries.data.at(-2);
-  const finalDatum = timeSeries.data.at(-1);
+  const penultimateDatum = timeSeries.values.at(-2);
+  const finalDatum = timeSeries.values.at(-1);
 
   let bucketSize = 0;
   if (penultimateDatum && finalDatum) {

@@ -29,7 +29,7 @@ export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable 
 
   onHighlight(dataIndex: number): void {
     const {config = {}} = this;
-    const datum = this.timeSeries.data.at(dataIndex);
+    const datum = this.timeSeries.values.at(dataIndex);
 
     if (!datum) {
       error('`Bars` plottable `onHighlight` out-of-range error', {
@@ -69,13 +69,13 @@ export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable 
         animation: false,
         itemStyle: {
           color: params => {
-            const datum = markedSeries.data[params.dataIndex]!;
+            const datum = markedSeries.values[params.dataIndex]!;
 
             return datum.delayed ? colorObject.lighten(0.5).string() : color;
           },
           opacity: 1.0,
         },
-        data: markedSeries.data.map(timeSeriesItemToEChartsDataPoint),
+        data: markedSeries.values.map(timeSeriesItemToEChartsDataPoint),
       }),
     ];
   }

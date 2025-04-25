@@ -235,7 +235,7 @@ export function convertEventsStatsToTimeSeriesData(
 
   const serie: TimeSeries = {
     field: label,
-    data: seriesData.data.map(([timestamp, countsForTimestamp]) => ({
+    values: seriesData.data.map(([timestamp, countsForTimestamp]) => ({
       timestamp: timestamp * 1000,
       value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
     })),
