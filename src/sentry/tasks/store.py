@@ -26,7 +26,7 @@ from sentry.silo.base import SiloMode
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
-from sentry.taskworker.namespaces import issues_tasks
+from sentry.taskworker.namespaces import ingest_transactions_tasks, issues_tasks
 from sentry.utils import metrics
 from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
 from sentry.utils.safe import safe_execute
@@ -657,6 +657,10 @@ def save_event(
     time_limit=65,
     soft_time_limit=60,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=ingest_transactions_tasks,
+        processing_deadline_duration=65,
+    ),
 )
 def save_event_transaction(
     cache_key: str | None = None,
