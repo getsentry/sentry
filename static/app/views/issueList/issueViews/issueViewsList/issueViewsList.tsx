@@ -54,9 +54,9 @@ function getEndpointSort(
     case GroupSearchViewSort.VIEWED:
       return ['-visited', '-popularity', '-created'];
     case GroupSearchViewSort.CREATED_ASC:
-      return ['-created', '-popularity', '-visited'];
-    case GroupSearchViewSort.CREATED_DESC:
       return ['created', '-popularity', '-visited'];
+    case GroupSearchViewSort.CREATED_DESC:
+      return ['-created', '-popularity', '-visited'];
     default:
       unreachable(sort);
       return [];
@@ -223,11 +223,11 @@ function SortDropdown() {
         },
         {
           label: t('Created (Newest)'),
-          value: GroupSearchViewSort.CREATED_ASC,
+          value: GroupSearchViewSort.CREATED_DESC,
         },
         {
           label: t('Created (Oldest)'),
-          value: GroupSearchViewSort.CREATED_DESC,
+          value: GroupSearchViewSort.CREATED_ASC,
         },
       ]}
     />
