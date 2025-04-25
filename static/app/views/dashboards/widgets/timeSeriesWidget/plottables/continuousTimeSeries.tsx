@@ -79,13 +79,13 @@ export abstract class ContinuousTimeSeries<
   }
 
   get dataType(): PlottableTimeSeriesValueType {
-    return isAPlottableTimeSeriesValueType(this.timeSeries.meta.type)
-      ? this.timeSeries.meta.type
+    return isAPlottableTimeSeriesValueType(this.timeSeries.meta.valueType)
+      ? this.timeSeries.meta.valueType
       : FALLBACK_TYPE;
   }
 
   get dataUnit(): TimeSeriesValueUnit {
-    return this.timeSeries.meta.unit;
+    return this.timeSeries.meta.valueUnit;
   }
 
   get start(): number | null {
