@@ -7,12 +7,12 @@ import 'zrender/lib/svg/svg';
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {SunburstSeriesOption, TooltipComponentOption} from 'echarts';
+import type {SunburstSeriesOption} from 'echarts';
 import * as echarts from 'echarts/core';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import {getTooltipStyles} from 'sentry/components/charts/baseChart';
-import {CHART_TOOLTIP_VIEWPORT_OFFSET} from 'sentry/components/charts/components/tooltip';
+import {computeChartTooltip} from 'sentry/components/charts/components/tooltip';
 import type {EChartClickHandler, EChartMouseOverHandler} from 'sentry/types/echarts';
 
 function bfsFilter(root: ProcessedSunburstData, maxDepth: number) {
@@ -154,94 +154,26 @@ export function SunburstChart({data}: SunburstChartProps) {
             },
           }}
           option={{
-            tooltip: {
-              show: true,
-              trigger: 'item',
-              backgroundColor: `${theme.backgroundElevated}`,
-              borderWidth: 0,
-              extraCssText: `box-shadow: 0 0 0 1px ${theme.translucentBorder}, ${theme.dropShadowHeavy}`,
-              transitionDuration: 0,
-              padding: 0,
-              className: 'tooltip-container',
-              // Default hideDelay in echarts docs is 100ms
-              hideDelay: 100,
-              /**
-               * @link https://echarts.apache.org/en/option.html#tooltip.position
-               *
-               * @param pos mouse position
-               * @param _params same as formatter
-               * @param dom dom object of tooltip
-               * @param _rec graphic elements
-               * @param _size The size of dom echarts container.
-               */
-              position(pos, _params, dom, _rec, size) {
-                // Types seem to be broken on dom
-                dom = dom as HTMLDivElement;
-                // Center the tooltip slightly above the cursor.
-                const [tipWidth, tipHeight] = size.contentSize;
-
-                let parentNode: Element = document.body;
-                if (dom.parentNode instanceof Element) {
-                  parentNode = dom.parentNode;
-                }
-
-                const chartElement: Element = parentNode;
-
-                // Get the left offset of the tip container (the chart)
-                // so that we can estimate overflows
-                const chartBoundingRect = chartElement.getBoundingClientRect();
-                const chartLeft = chartBoundingRect.left ?? 0;
-
-                // Determine the new left edge.
-                let leftPos = Number(pos[0]) - tipWidth / 2;
-                // And the right edge taking into account the chart left offset
-                const rightEdge = chartLeft + Number(pos[0]) + tipWidth / 2;
-
-                let arrowPosition: string | undefined;
-                if (rightEdge >= window.innerWidth - CHART_TOOLTIP_VIEWPORT_OFFSET) {
-                  // If the tooltip would leave viewport on the right, pin it.
-                  leftPos -=
-                    rightEdge - window.innerWidth + CHART_TOOLTIP_VIEWPORT_OFFSET;
-                  arrowPosition = `${Number(pos[0]) - leftPos}px`;
-                } else if (leftPos + chartLeft - CHART_TOOLTIP_VIEWPORT_OFFSET <= 0) {
-                  // If the tooltip would leave viewport on the left, pin it.
-                  leftPos = chartLeft * -1 + CHART_TOOLTIP_VIEWPORT_OFFSET;
-                  arrowPosition = `${Number(pos[0]) - leftPos}px`;
-                } else {
-                  // Tooltip not near the window edge, reset position
-                  arrowPosition = '50%';
-                }
-
-                const arrow = dom.querySelector<HTMLDivElement>('.tooltip-arrow');
-                if (arrow) {
-                  arrow.style.left = arrowPosition;
-                }
-
-                return {
-                  left: leftPos,
-                  top: Math.max(
-                    Number(pos[1]) - tipHeight - 20,
-                    // avoid tooltip from being cut off by the top edge of the window
-                    CHART_TOOLTIP_VIEWPORT_OFFSET - chartBoundingRect.top
-                  ),
-                };
+            tooltip: computeChartTooltip(
+              {
+                formatter: (params: any) => {
+                  return [
+                    '<div class="tooltip-series">',
+                    `<div>
+                        <span class="tooltip-label">
+                          <strong>${params.data.dir ? 'Directory' : 'File'}: </strong>${params.data.name}
+                       </span>
+                      </div>`,
+                    `<div>
+                        <span class="tooltip-label">
+                          <strong>Coverage</strong>: ${params.data.coverage}%
+                        </span>
+                      </div>`,
+                  ].join('');
+                },
               },
-              formatter: (params: any) => {
-                return [
-                  '<div class="tooltip-series">',
-                  `<div>
-                    <span class="tooltip-label">
-                      <strong>${params.data.dir ? 'Directory' : 'File'}: </strong>${params.data.name}
-                   </span>
-                  </div>`,
-                  `<div>
-                    <span class="tooltip-label">
-                      <strong>Coverage</strong>: ${params.data.coverage}%
-                    </span>
-                  </div>`,
-                ].join('');
-              },
-            } satisfies TooltipComponentOption,
+              theme
+            ),
             series: {
               animation: false,
               type: 'sunburst',
