@@ -258,6 +258,9 @@ class AlertRuleNotification(ProjectNotification):
                 context["snooze_alert_url"] = get_snooze_url(
                     self.rules[0], self.organization, self.project, sentry_query_params
                 )
+        else:
+            context["snooze_alert"] = False
+            context["snooze_alert_url"] = None
 
         if isinstance(self.event, GroupEvent) and self.event.occurrence:
             context["issue_title"] = self.event.occurrence.issue_title

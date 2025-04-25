@@ -43,6 +43,7 @@ from sentry.replays.testutils import mock_replay
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, ReplaysSnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -59,6 +60,10 @@ pytestmark = requires_snuba
 
 
 class BaseMailAdapterTest(TestCase, PerformanceIssueTestCase):
+    def setUp(self):
+        super().setUp()
+        self.rule = self.create_project_rule(project=self.project)
+
     @cached_property
     def adapter(self):
         return mail_adapter
@@ -518,7 +523,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
         with self.tasks():
             AlertRuleNotification(
-                Notification(event=event),
+                Notification(event=event, rules=[self.rule]),
                 ActionTargetType.ISSUE_OWNERS,
                 fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
             ).send()
@@ -534,6 +539,68 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         self.assertEqual(notification.project, self.project)
         self.assertEqual(notification.reference, group)
         assert notification.get_subject() == "BAR-1 - hello world"
+
+        assert notification.get_context()["snooze_alert"] is True
+
+        assert group
+        mock_logger.info.assert_called_with(
+            "mail.adapter.notify",
+            extra={
+                "target_type": "IssueOwners",
+                "target_identifier": None,
+                "group": group.id,
+                "project_id": group.project.id,
+                "organization": group.organization.id,
+                "fallthrough_choice": "ActiveMembers",
+                "notification_uuid": mock.ANY,
+            },
+        )
+
+    @mock_notify
+    @mock.patch("sentry.notifications.notifications.rules.logger")
+    @with_feature("organizations:workflow-engine-ui-links")
+    def test_notify_users_does_email_workflow_engine_ui_links(self, mock_logger, mock_func):
+        self.create_user_option(user=self.user, key="timezone", value="Europe/Vienna")
+        event_manager = EventManager({"message": "hello world", "level": "error"})
+        event_manager.normalize()
+        event_data = event_manager.get_data()
+        event_type = get_event_type(event_data)
+        event_data["type"] = event_type.key
+        event_data["metadata"] = event_type.get_metadata(event_data)
+
+        event = event_manager.save(self.project.id)
+        group = event.group
+
+        self.create_notification_settings_provider(
+            user_id=self.user.id,
+            scope_type="user",
+            scope_identifier=self.user.id,
+            provider="slack",
+            type="alerts",
+            value="never",
+        )
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+
+        with self.tasks():
+            AlertRuleNotification(
+                Notification(event=event, rules=[self.rule]),
+                ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            ).send()
+
+        assert mock_func.call_count == 1
+
+        args, kwargs = mock_func.call_args
+        notification = args[1]
+
+        recipient_context = notification.get_recipient_context(Actor.from_orm_user(self.user), {})
+        assert recipient_context["timezone"] == zoneinfo.ZoneInfo("Europe/Vienna")
+
+        self.assertEqual(notification.project, self.project)
+        self.assertEqual(notification.reference, group)
+        assert notification.get_subject() == "BAR-1 - hello world"
+
+        assert notification.get_context()["snooze_alert"] is False
 
         assert group
         mock_logger.info.assert_called_with(
