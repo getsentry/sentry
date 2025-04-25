@@ -4,6 +4,7 @@ from datetime import timedelta
 from urllib.parse import urljoin
 from urllib.robotparser import RobotFileParser
 
+from dateutil.parser import parse as parse_datetime
 from django.utils import timezone
 
 from sentry import audit_log, features
@@ -104,10 +105,13 @@ def schedule_detections():
         namespace=uptime_tasks,
     ),
 )
-def process_detection_bucket(bucket: datetime.datetime):
+def process_detection_bucket(bucket: datetime.datetime | str):
     """
     Schedules url detection for all projects in this time bucket that saw promising urls.
     """
+    if isinstance(bucket, str):
+        bucket = parse_datetime(bucket)
+
     for organization_id in get_organization_bucket(bucket):
         metrics.incr("uptime.detectors.scheduler.scheduled_organization")
         process_organization_url_ranking.delay(organization_id)
