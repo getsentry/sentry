@@ -162,43 +162,29 @@ class WorkflowEngineDetectorSerializer(Serializer):
         result: DefaultDict[Detector, dict[str, Any]],
         user: User | RpcUser | AnonymousUser,
         detectors: dict[int, Detector],
-        data_condition_group_actions: Sequence[DataConditionGroupAction],
+        detector_to_action_ids: dict[Detector, Sequence[Action]],
     ) -> None:
-        # create a mapping from detector to action
-        detector_to_workflow_condition_group = {
-            detector.id: detector.workflow_condition_group.id for detector in detectors.values()
-        }
-        detector_to_actions: DefaultDict[Detector, Action] = defaultdict()
-        for dcga in data_condition_group_actions:
-            for detector, condition_group_id in detector_to_workflow_condition_group.items():
-                if dcga.condition_group.id == condition_group_id:
-                    detector_to_actions[detector] = dcga.action
-                    break
-
         for detector in detectors.values():
             group_ids = None
             open_period = None
-            incident_id = None
 
             try:
-                group_ids = ActionGroupStatus.objects.values_list("group_id", flat=True).get(
-                    action_id=detector_to_actions[detector.id]
+                group_ids = ActionGroupStatus.objects.values_list("group_id", flat=True).filter(
+                    action_id__in=detector_to_action_ids[detector.id]
                 )
             except ActionGroupStatus.DoesNotExist:
                 continue
 
             if group_ids:
                 try:
-                    open_period = GroupOpenPeriod.objects.get(group=group_ids)
+                    open_period = GroupOpenPeriod.objects.filter(group=group_ids)
                 except GroupOpenPeriod.DoesNotExist:
                     continue
 
-            if incident_id:
-                result[detector]["latestIncident"] = incident_id
-
             # TODO: this serializer is half baked
+            # TODO get latest open period
             serialized_group_open_period = serialize(
-                open_period, user, WorkflowEngineIncidentSerializer()
+                open_period[0], user, WorkflowEngineIncidentSerializer()
             )
             result[detector]["latestIncident"] = serialized_group_open_period
 
@@ -215,10 +201,46 @@ class WorkflowEngineDetectorSerializer(Serializer):
             condition_group__in=detector_workflow_condition_group_ids,
             condition_result__in=[DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM],
         )
+
+        action_filter_data_condition_groups = DataCondition.objects.filter(
+            comparison__in=[
+                detector_trigger.condition_result
+                for detector_trigger in detector_trigger_data_conditions
+            ],
+        ).exclude(condition_group__in=detector_workflow_condition_group_ids)
+        # ).values_list("condition_group", flat=True)
+
         dcgas = DataConditionGroupAction.objects.filter(
-            condition_group__in=detector_workflow_condition_group_ids
+            condition_group__in=[
+                action_filter.condition_group
+                for action_filter in action_filter_data_condition_groups
+            ]
         ).select_related("action")
         actions = [dcga.action for dcga in dcgas]
+
+        # the most horrible way to map a detector to it's action ids but idk if I can make this less horrible
+        detector_to_workflow_condition_group_ids = {
+            detector: detector.workflow_condition_group.id for detector in detectors.values()
+        }
+        detector_to_detector_triggers = defaultdict(list)
+        for trigger in detector_trigger_data_conditions:
+            for detector, wcg_id in detector_to_workflow_condition_group_ids.items():
+                if trigger.condition_group.id is wcg_id:
+                    detector_to_detector_triggers[detector].append(trigger)
+
+        detector_to_action_filters = defaultdict(list)
+        for action_filter in action_filter_data_condition_groups:
+            for detector, detector_triggers in detector_to_detector_triggers.items():
+                for trigger in detector_triggers:
+                    if action_filter.comparison is trigger.condition_result:
+                        detector_to_action_filters[detector].append(action_filter)
+
+        detector_to_action_ids = defaultdict(list)
+        for dcga in dcgas:
+            for detector, action_filters in detector_to_action_filters.items():
+                for action_filter in action_filters:
+                    if action_filter.condition_group.id is dcga.condition_group.id:
+                        detector_to_action_ids[detector].append(dcga.action.id)
 
         # add sentry app data
         organization_id = [detector.project.organization_id for detector in detectors.values()][0]
@@ -246,7 +268,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
         # skipping snapshot data
 
         if "latestIncident" in self.expand:
-            self.add_latest_incident(result, user, detectors, dcgas)
+            self.add_latest_incident(result, user, detectors, detector_to_action_ids)
 
         # add information from snubaquery
         for detector in detectors.values():
