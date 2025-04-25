@@ -222,10 +222,6 @@ function SortDropdown() {
           value: GroupSearchViewSort.NAME_DESC,
         },
         {
-          label: t('Name (Z-A)'),
-          value: GroupSearchViewSort.NAME_DESC,
-        },
-        {
           label: t('Created (Newest)'),
           value: GroupSearchViewSort.CREATED_ASC,
         },
