@@ -8,7 +8,11 @@ import Link from 'sentry/components/links/link';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
+import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
+import {
+  makeReleaseDrawerPathname,
+  makeReleasesPathname,
+} from 'sentry/views/releases/utils/pathnames';
 
 type Props = {
   /**
@@ -63,6 +67,8 @@ function Version({
   const versionToDisplay = formatVersion(version, withPackage);
   const theme = useTheme();
 
+  useReleasesDrawer();
+
   let releaseDetailProjectId: null | undefined | string | string[];
   if (projectId) {
     // we can override preservePageFilters's project id
@@ -74,16 +80,26 @@ function Version({
 
   const renderVersion = () => {
     if (anchor && organization?.slug) {
-      const props = {
-        to: {
-          pathname: makeReleasesPathname({
-            path: `/${encodeURIComponent(version)}/`,
-            organization,
-          }),
-          query: releaseDetailProjectId ? {project: releaseDetailProjectId} : undefined,
-        },
-        className,
-      };
+      const props = organization.features.includes('release-bubbles-ui')
+        ? {
+            to: makeReleaseDrawerPathname({
+              location,
+              release: version,
+              projectId: releaseDetailProjectId,
+            }),
+          }
+        : {
+            to: {
+              pathname: makeReleasesPathname({
+                path: `/${encodeURIComponent(version)}/`,
+                organization,
+              }),
+              query: releaseDetailProjectId
+                ? {project: releaseDetailProjectId}
+                : undefined,
+            },
+            className,
+          };
       if (preservePageFilters) {
         return (
           <GlobalSelectionLink {...props}>
