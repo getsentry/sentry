@@ -82,17 +82,14 @@ def schedule_auto_transition_to_ongoing() -> None:
 
     schedule_auto_transition_issues_new_to_ongoing.delay(
         first_seen_lte=int(seven_days_ago.timestamp()),
-        expires=now + timedelta(hours=1),
     )
 
     schedule_auto_transition_issues_regressed_to_ongoing.delay(
         date_added_lte=int(seven_days_ago.timestamp()),
-        expires=now + timedelta(hours=1),
     )
 
     schedule_auto_transition_issues_escalating_to_ongoing.delay(
         date_added_lte=int(seven_days_ago.timestamp()),
-        expires=now + timedelta(hours=1),
     )
 
 
