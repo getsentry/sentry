@@ -20,12 +20,6 @@ jest.mock('@sentry/react', () => {
   };
 });
 
-window.requestAnimationFrame = cb => {
-  cb(1);
-  return 1;
-};
-window.cancelAnimationFrame = () => {};
-
 const scrollToMock = jest.fn();
 window.scrollTo = scrollToMock;
 window.scrollY = 100;
