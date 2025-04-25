@@ -37,7 +37,7 @@ interface SidebarItemDropdownProps {
   items: MenuItemProps[];
   label: string;
   children?: React.ReactNode;
-  forceLabel?: boolean;
+  disableTooltip?: boolean;
   onOpen?: MouseEventHandler<HTMLButtonElement>;
 }
 
@@ -60,13 +60,26 @@ interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
   children: React.ReactNode;
   label: string;
   showLabel: boolean;
+  disableTooltip?: boolean;
 }
 
-export function SidebarItem({children, label, showLabel, ...props}: SidebarItemProps) {
+export function SidebarItem({
+  children,
+  label,
+  showLabel,
+  disableTooltip,
+  ...props
+}: SidebarItemProps) {
   const {layout} = useNavContext();
   return (
     <IconDefaultsProvider legacySize={layout === NavLayout.MOBILE ? '16px' : '21px'}>
-      <Tooltip title={label} disabled={showLabel} position="right" skipWrapper delay={0}>
+      <Tooltip
+        title={label}
+        disabled={showLabel || disableTooltip}
+        position="right"
+        skipWrapper
+        delay={0}
+      >
         <SidebarListItem {...props}>{children}</SidebarListItem>
       </Tooltip>
     </IconDefaultsProvider>
@@ -78,14 +91,14 @@ export function SidebarMenu({
   children,
   analyticsKey,
   label,
-  forceLabel,
   onOpen,
+  disableTooltip,
 }: SidebarItemDropdownProps) {
   const theme = useTheme();
   const organization = useOrganization();
   const {layout} = useNavContext();
 
-  const showLabel = forceLabel || layout === NavLayout.MOBILE;
+  const showLabel = layout === NavLayout.MOBILE;
 
   return (
     <DropdownMenu
@@ -94,7 +107,11 @@ export function SidebarMenu({
       minMenuWidth={200}
       trigger={(props, isOpen) => {
         return (
-          <SidebarItem label={label} showLabel={showLabel}>
+          <SidebarItem
+            label={label}
+            showLabel={showLabel}
+            disableTooltip={disableTooltip}
+          >
             <NavButton
               {...props}
               aria-label={showLabel ? undefined : label}
