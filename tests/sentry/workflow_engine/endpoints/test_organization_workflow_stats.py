@@ -43,12 +43,14 @@ class WorkflowStatsEndpointTest(APITestCase):
         histories: list[WorkflowFireHistory] = WorkflowFireHistory.objects.bulk_create(self.history)
 
         # manually update date_added
+        index = 0
         for i in range(3):
-            for j in range(i + 1):
-                histories[i + j].update(date_added=before_now(hours=i + 1))
+            for _ in range(i + 1):
+                histories[index].update(date_added=before_now(hours=i + 1))
+                index += 1
 
         for i in range(2):
-            histories[-i].update(date_added=before_now(hours=i + 1))
+            histories[i + 6].update(date_added=before_now(hours=i + 4))
 
         self.login_as(self.user)
 
