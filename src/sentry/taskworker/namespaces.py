@@ -38,6 +38,8 @@ ingest_profiling_tasks = taskregistry.create_namespace("ingest.profiling")
 
 ingest_errors_tasks = taskregistry.create_namespace("ingest.errors")
 
+ingest_transactions_tasks = taskregistry.create_namespace("ingest.transactions")
+
 issues_tasks = taskregistry.create_namespace("issues")
 
 integrations_tasks = taskregistry.create_namespace("integrations")
