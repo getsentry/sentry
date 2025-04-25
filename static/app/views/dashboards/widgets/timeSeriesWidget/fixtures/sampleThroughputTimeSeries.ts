@@ -4,8 +4,8 @@ import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 export const sampleThroughputTimeSeries: TimeSeries = {
   field: 'eps()',
   meta: {
-    type: 'rate',
-    unit: RateUnit.PER_SECOND,
+    valueType: 'rate',
+    valueUnit: RateUnit.PER_SECOND,
   },
   values: [
     {

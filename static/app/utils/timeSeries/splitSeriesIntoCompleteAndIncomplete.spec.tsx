@@ -32,8 +32,8 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
         },
       ],
       meta: {
-        type: 'duration',
-        unit: DurationUnit.MILLISECOND,
+        valueType: 'duration',
+        valueUnit: DurationUnit.MILLISECOND,
       },
     };
 
@@ -82,8 +82,8 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
         },
       ],
       meta: {
-        type: 'duration',
-        unit: DurationUnit.MILLISECOND,
+        valueType: 'duration',
+        valueUnit: DurationUnit.MILLISECOND,
       },
     };
 
@@ -140,8 +140,8 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
         },
       ],
       meta: {
-        type: 'duration',
-        unit: DurationUnit.MILLISECOND,
+        valueType: 'duration',
+        valueUnit: DurationUnit.MILLISECOND,
       },
     };
 
@@ -205,8 +205,8 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
         },
       ],
       meta: {
-        type: 'duration',
-        unit: DurationUnit.MILLISECOND,
+        valueType: 'duration',
+        valueUnit: DurationUnit.MILLISECOND,
       },
     };
 

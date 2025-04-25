@@ -4,8 +4,8 @@ import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 export const sampleDurationTimeSeries: TimeSeries = {
   field: 'p99(span.duration)',
   meta: {
-    type: 'duration',
-    unit: DurationUnit.MILLISECOND,
+    valueType: 'duration',
+    valueUnit: DurationUnit.MILLISECOND,
   },
   values: [
     {

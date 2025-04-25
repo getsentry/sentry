@@ -7,8 +7,8 @@ export function convertSeriesToTimeseries(series: DiscoverSeries): TimeSeries {
     field: series.seriesName,
     meta: {
       // This behavior is a little awkward. Normally `meta` shouldn't be missing, but we sometime return blank meta from helper hooks
-      type: series.meta?.fields?.[series.seriesName] ?? null,
-      unit: (series.meta?.units?.[series.seriesName] ?? null) as DataUnit,
+      valueType: series.meta?.fields?.[series.seriesName] ?? null,
+      valueUnit: (series.meta?.units?.[series.seriesName] ?? null) as DataUnit,
     },
     values: (series?.data ?? []).map(datum => {
       const timestamp =
