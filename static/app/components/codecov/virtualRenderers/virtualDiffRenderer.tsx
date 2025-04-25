@@ -94,9 +94,16 @@ function CodeBody({
           const lineNumber = line?.baseNumber;
           const hash = `#${hashedPath}-L${lineNumber}`;
 
-          let coverageValue = undefined;
-          if (lineNumber && line?.baseCoverage) {
-            coverageValue = line?.baseCoverage;
+          const isHighlighted = location.hash === hash;
+          let label = 'base line';
+          if (isHighlighted) {
+            label = 'highlighted base line';
+          } else if (line?.baseCoverage === 'H') {
+            label = 'hit base line';
+          } else if (line?.baseCoverage === 'M') {
+            label = 'missed base line';
+          } else if (line?.baseCoverage === 'P') {
+            label = 'partial base line';
           }
 
           return (
@@ -106,8 +113,9 @@ function CodeBody({
               virtualizer={virtualizer}
               lineNumber={lineNumber}
               virtualItem={virtualItem}
-              coverage={coverageValue}
-              isHighlighted={location.hash === hash}
+              coverage={line?.baseCoverage ?? undefined}
+              isHighlighted={isHighlighted}
+              ariaLabel={label}
               onClick={() => {
                 if (lineNumber) {
                   location.hash = location.hash === hash ? '' : hash;
@@ -124,9 +132,16 @@ function CodeBody({
           const lineNumber = line?.headNumber;
           const hash = `#${hashedPath}-R${lineNumber}`;
 
-          let coverageValue = undefined;
-          if (lineNumber && line?.headCoverage) {
-            coverageValue = line?.headCoverage;
+          const isHighlighted = location.hash === hash;
+          let label = 'head line';
+          if (isHighlighted) {
+            label = 'highlighted head line';
+          } else if (line?.headCoverage === 'H') {
+            label = 'hit head line';
+          } else if (line?.headCoverage === 'M') {
+            label = 'missed head line';
+          } else if (line?.headCoverage === 'P') {
+            label = 'partial head line';
           }
 
           return (
@@ -136,8 +151,9 @@ function CodeBody({
               virtualizer={virtualizer}
               lineNumber={lineNumber}
               virtualItem={virtualItem}
-              coverage={coverageValue}
-              isHighlighted={location.hash === hash}
+              coverage={line?.headCoverage ?? undefined}
+              isHighlighted={isHighlighted}
+              ariaLabel={label}
               onClick={() => {
                 if (lineNumber) {
                   location.hash = location.hash === hash ? '' : hash;
@@ -272,7 +288,10 @@ export function VirtualDiffRenderer({
   });
 
   return (
-    <VirtualCodeRenderer ref={virtualCodeRendererRef}>
+    <VirtualCodeRenderer
+      ref={virtualCodeRendererRef}
+      data-test-id="virtual-diff-renderer"
+    >
       <TextArea
         ref={textAreaRef}
         value={content}
@@ -287,10 +306,12 @@ export function VirtualDiffRenderer({
         tabIndex={0}
         aria-multiline="true"
         aria-haspopup="false"
+        data-test-id="virtual-diff-renderer-text-area"
       />
       <CodeDisplayOverlay
         ref={codeDisplayOverlayRef}
         styleHeight={virtualizer.getTotalSize()}
+        data-test-id="virtual-diff-renderer-overlay"
       >
         <CodePreWrapper
           ref={widthDivRef}
