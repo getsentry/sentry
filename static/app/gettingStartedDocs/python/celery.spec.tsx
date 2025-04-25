@@ -16,13 +16,6 @@ describe('celery onboarding docs', function () {
     expect(screen.getByRole('heading', {name: 'Standalone Setup'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Setup With Django'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
-
-    // Renders install instructions
-    expect(
-      screen.getByText(
-        textWithMarkupMatcher(/pip install --upgrade 'sentry-sdk\[celery\]'/)
-      )
-    ).toBeInTheDocument();
   });
 
   it('renders without tracing', function () {

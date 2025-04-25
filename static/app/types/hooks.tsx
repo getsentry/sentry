@@ -7,7 +7,6 @@ import type {ProductSelectionProps} from 'sentry/components/onboarding/productSe
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import type {UseExperiment} from 'sentry/utils/useExperiment';
 import type {TitleableModuleNames} from 'sentry/views/insights/common/components/modulePageProviders';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
@@ -91,8 +90,6 @@ type DisabledMemberTooltipProps = {children: React.ReactNode};
 
 type DashboardHeadersProps = {organization: Organization};
 
-type MetricsSamplesListProps = {children: React.ReactNode; organization: Organization};
-
 type ReplayFeedbackButton = {children: React.ReactNode};
 type ReplayListPageHeaderProps = {children?: React.ReactNode};
 type ReplayOnboardingAlertProps = {children: React.ReactNode};
@@ -104,17 +101,6 @@ type ProfilingBetaAlertBannerProps = {
 };
 
 type ContinuousProfilingBetaAlertBannerProps = {
-  organization: Organization;
-};
-
-type ProfilingUpgradePlanButtonProps = ButtonProps & {
-  children: React.ReactNode;
-  fallback: React.ReactNode;
-  organization: Organization;
-};
-
-type ProfilingAM1OrMMXUpgradeProps = {
-  fallback: React.ReactNode;
   organization: Organization;
 };
 
@@ -153,9 +139,6 @@ type MonitorCreatedCallback = (organization: Organization) => void;
 
 type CronsOnboardingPanelProps = {children: React.ReactNode};
 
-type SentryLogoProps = SVGIconProps & {
-  pride?: boolean;
-};
 export type ParntershipAgreementType = 'standard' | 'partner_presence';
 export type PartnershipAgreementProps = {
   agreements: ParntershipAgreementType[];
@@ -187,7 +170,6 @@ type ComponentHooks = {
   'component:data-consent-banner': () => React.ComponentType<{source: string}> | null;
   'component:data-consent-org-creation-checkbox': () => React.ComponentType | null;
   'component:data-consent-priority-learn-more': () => React.ComponentType | null;
-  'component:ddm-metrics-samples-list': () => React.ComponentType<MetricsSamplesListProps>;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
   'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
@@ -205,15 +187,12 @@ type ComponentHooks = {
   'component:partnership-agreement': React.ComponentType<PartnershipAgreementProps>;
   'component:product-selection-availability': () => React.ComponentType<ProductSelectionAvailabilityProps>;
   'component:product-unavailable-cta': () => React.ComponentType<ProductUnavailableCTAProps>;
-  'component:profiling-am1-or-mmx-upgrade': () => React.ComponentType<ProfilingAM1OrMMXUpgradeProps>;
   'component:profiling-billing-banner': () => React.ComponentType<ProfilingBetaAlertBannerProps>;
-  'component:profiling-upgrade-plan-button': () => React.ComponentType<ProfilingUpgradePlanButtonProps>;
   'component:replay-feedback-button': () => React.ComponentType<ReplayFeedbackButton>;
   'component:replay-list-page-header': () => React.ComponentType<ReplayListPageHeaderProps> | null;
   'component:replay-onboarding-alert': () => React.ComponentType<ReplayOnboardingAlertProps>;
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
   'component:replay-settings-alert': () => React.ComponentType | null;
-  'component:sentry-logo': () => React.ComponentType<SentryLogoProps>;
   'component:superuser-access-category': React.ComponentType<any>;
   'component:superuser-warning': React.ComponentType<any>;
   'component:superuser-warning-excluded': SuperuserWarningExcluded;

@@ -17,6 +17,7 @@ from sentry.rules.filters.tagged_event import TaggedEventFilter
 from sentry.rules.match import MatchType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
+from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.migration_helpers.issue_alert_dual_write import (
     delete_migrated_issue_alert,
     update_migrated_issue_alert,
@@ -329,6 +330,16 @@ class RuleMigrationHelpersTest(TestCase):
         with pytest.raises(ValidationError):
             update_migrated_issue_alert(self.issue_alert)
 
+    def assert_issue_alert_deleted(self, workflow, when_dcg, if_dcg):
+        assert not AlertRuleWorkflow.objects.filter(rule_id=self.issue_alert.id).exists()
+        assert not Workflow.objects.filter(id=workflow.id).exists()
+        assert not DataConditionGroup.objects.filter(id=when_dcg.id).exists()
+        assert not DataConditionGroup.objects.filter(id=if_dcg.id).exists()
+        assert not DataCondition.objects.filter(condition_group=when_dcg).exists()
+        assert not DataCondition.objects.filter(condition_group=if_dcg).exists()
+        assert not DataConditionGroupAction.objects.filter(condition_group=if_dcg).exists()
+        assert not Action.objects.all().exists()
+
     def test_delete_issue_alert(self):
         IssueAlertMigrator(self.issue_alert, self.user.id).run()
 
@@ -347,11 +358,25 @@ class RuleMigrationHelpersTest(TestCase):
 
         delete_migrated_issue_alert(self.issue_alert)
 
-        assert not AlertRuleWorkflow.objects.filter(rule_id=self.issue_alert.id).exists()
-        assert not Workflow.objects.filter(id=workflow.id).exists()
-        assert not DataConditionGroup.objects.filter(id=when_dcg.id).exists()
-        assert not DataConditionGroup.objects.filter(id=if_dcg.id).exists()
-        assert not DataCondition.objects.filter(condition_group=when_dcg).exists()
-        assert not DataCondition.objects.filter(condition_group=if_dcg).exists()
-        assert not DataConditionGroupAction.objects.filter(condition_group=if_dcg).exists()
-        assert not Action.objects.all().exists()
+        self.assert_issue_alert_deleted(workflow, when_dcg, if_dcg)
+
+    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
+    def test_delete_issue_alert__receiver(self):
+        IssueAlertMigrator(self.issue_alert, self.user.id).run()
+
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=self.issue_alert.id)
+        workflow = alert_rule_workflow.workflow
+        when_dcg = workflow.when_condition_group
+        if_dcg = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
+
+        assert when_dcg is not None
+        assert if_dcg is not None
+
+        conditions = DataCondition.objects.filter(condition_group=when_dcg)
+        assert conditions.count() == 2
+        filters = DataCondition.objects.filter(condition_group=if_dcg)
+        assert filters.count() == 1
+
+        self.project.delete()
+
+        self.assert_issue_alert_deleted(workflow, when_dcg, if_dcg)

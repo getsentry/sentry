@@ -4297,3 +4297,58 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             },
         ]
         assert meta["dataset"] == self.dataset
+
+    def test_has_parent_span_filter(self):
+        spans = [
+            self.create_span(
+                {"parent_span_id": None},
+                start_ts=self.ten_mins_ago,
+            ),
+            self.create_span(
+                {},
+                start_ts=self.ten_mins_ago,
+            ),
+        ]
+        self.store_spans(spans, is_eap=self.is_eap)
+
+        response = self.do_request(
+            {
+                "field": ["parent_span"],
+                "query": "!has:parent_span",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "id": spans[0]["span_id"],
+                "parent_span": None,
+                "project.name": self.project.slug,
+            }
+        ]
+        assert meta["dataset"] == self.dataset
+
+        response = self.do_request(
+            {
+                "field": ["parent_span"],
+                "query": "has:parent_span",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "id": spans[1]["span_id"],
+                "parent_span": spans[1]["parent_span_id"],
+                "project.name": self.project.slug,
+            }
+        ]
+        assert meta["dataset"] == self.dataset

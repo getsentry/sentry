@@ -27,6 +27,7 @@ describe('LeftNavViewsHeader', function () {
 
   const defaultProps = {
     selectedProjectIds: [],
+    title: 'Issues',
   };
 
   const organization = OrganizationFixture({
