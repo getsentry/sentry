@@ -319,7 +319,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(self.features):
             response = self.client.get(
-                self.url + "?field=id&sort=count_errors&query=test:hello OR user_id:123"
+                self.url + "?field=id&orderBy=count_errors&query=test:hello OR user_id:123"
             )
             assert response.status_code == 200
 
@@ -387,13 +387,13 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(self.features):
             # Latest first.
-            response = self.client.get(self.url + "?sort=-started_at")
+            response = self.client.get(self.url + "?orderBy=-started_at")
             response_data = response.json()
             assert response_data["data"][0]["id"] == replay2_id
             assert response_data["data"][1]["id"] == replay1_id
 
             # Earlist first.
-            response = self.client.get(self.url + "?sort=started_at")
+            response = self.client.get(self.url + "?orderBy=started_at")
             response_data = response.json()
             assert response_data["data"][0]["id"] == replay1_id
             assert response_data["data"][1]["id"] == replay2_id
@@ -415,13 +415,13 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(self.features):
             # Latest first.
-            response = self.client.get(self.url + "?sort=-finished_at")
+            response = self.client.get(self.url + "?orderBy=-finished_at")
             response_data = response.json()
             assert response_data["data"][0]["id"] == replay2_id
             assert response_data["data"][1]["id"] == replay1_id
 
             # Earlist first.
-            response = self.client.get(self.url + "?sort=finished_at")
+            response = self.client.get(self.url + "?orderBy=finished_at")
             response_data = response.json()
             assert response_data["data"][0]["id"] == replay1_id
             assert response_data["data"][1]["id"] == replay2_id
@@ -444,14 +444,14 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(self.features):
             # Smallest duration first.
-            response = self.client.get(self.url + "?sort=duration")
+            response = self.client.get(self.url + "?orderBy=duration")
             assert response.status_code == 200, response
             response_data = response.json()
             assert response_data["data"][0]["id"] == replay1_id
             assert response_data["data"][1]["id"] == replay2_id
 
             # Largest duration first.
-            response = self.client.get(self.url + "?sort=-duration")
+            response = self.client.get(self.url + "?orderBy=-duration")
             response_data = response.json()
             assert response_data["data"][0]["id"] == replay2_id
             assert response_data["data"][1]["id"] == replay1_id
@@ -928,7 +928,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
             for key in queries:
                 # Ascending
-                response = self.client.get(self.url + f"?sort={key}")
+                response = self.client.get(self.url + f"?orderBy={key}")
                 assert response.status_code == 200, key
 
                 r = response.json()
@@ -937,7 +937,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 assert r["data"][1]["id"] == replay1_id, key
 
                 # Descending
-                response = self.client.get(self.url + f"?sort=-{key}")
+                response = self.client.get(self.url + f"?orderBy=-{key}")
                 assert response.status_code == 200, key
 
                 r = response.json()
