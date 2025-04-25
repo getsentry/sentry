@@ -5,20 +5,20 @@ import path from 'node:path';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
+
 import {ChartWidgetLoader} from './chartWidgetLoader';
 
 // Mock this component so it doesn't yell at us for no plottables
 jest.mock(
   'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization',
   () => {
-    function TimeSeriesWidgetVisualization() {
-      return null;
-    }
-    TimeSeriesWidgetVisualization.LoadingPlaceholder = function () {
+    const TimeSeriesWidgetVisualizationMock = jest.fn(() => null);
+    TimeSeriesWidgetVisualizationMock.LoadingPlaceholder = function () {
       return <div />;
     };
     return {
-      TimeSeriesWidgetVisualization,
+      TimeSeriesWidgetVisualization: TimeSeriesWidgetVisualizationMock,
     };
   }
 );
@@ -56,7 +56,15 @@ jest.mock(
 jest.mock('sentry/views/insights/sessions/queries/useReleaseNewIssues', () => ({
   __esModule: true,
   default: jest.fn(() => ({
-    series: [],
+    series: [{}],
+    isPending: false,
+    isError: false,
+  })),
+}));
+jest.mock('sentry/views/insights/sessions/queries/useRecentIssues', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    recentIssues: [],
     isPending: false,
     isError: false,
   })),
@@ -64,12 +72,172 @@ jest.mock('sentry/views/insights/sessions/queries/useReleaseNewIssues', () => ({
 jest.mock('sentry/views/insights/sessions/queries/useNewAndResolvedIssues', () => ({
   __esModule: true,
   default: jest.fn(() => ({
-    series: [],
+    series: [{}],
     isPending: false,
     isError: false,
   })),
 }));
-
+jest.mock('sentry/views/insights/sessions/queries/useCrashFreeSessions', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    series: [{}],
+    isPending: false,
+    isError: false,
+  })),
+}));
+jest.mock(
+  'sentry/views/insights/common/components/widgets/hooks/useResourceLandingSeries',
+  () => ({
+    useResourceLandingSeries: jest.fn(() => ({
+      data: {
+        'epm()': {},
+        'avg(span.self_time)': {},
+        'avg(http.response_content_length)': {},
+        'avg(http.response_transfer_size)': {},
+        'avg(http.decoded_response_content_length)': {},
+      },
+      isPending: false,
+      error: null,
+    })),
+  })
+);
+jest.mock(
+  'sentry/views/insights/common/components/widgets/hooks/useResourceSummarySeries',
+  () => ({
+    useResourceSummarySeries: jest.fn(() => ({
+      data: {
+        'epm()': {},
+        'avg(span.self_time)': {},
+        'avg(http.response_content_length)': {},
+        'avg(http.response_transfer_size)': {},
+        'avg(http.decoded_response_content_length)': {},
+      },
+      isPending: false,
+      error: null,
+    })),
+  })
+);
+jest.mock('sentry/views/insights/queues/queries/usePublishQueuesTimeSeriesQuery', () => ({
+  usePublishQueuesTimeSeriesQuery: jest.fn(() => ({
+    data: {},
+    isPending: false,
+    error: null,
+  })),
+}));
+jest.mock('sentry/views/insights/queues/queries/useProcessQueuesTimeSeriesQuery', () => ({
+  useProcessQueuesTimeSeriesQuery: jest.fn(() => ({
+    data: {
+      'avg(messaging.message.receive.latency)': {},
+    },
+    isPending: false,
+    error: null,
+  })),
+}));
+jest.mock(
+  'sentry/views/insights/common/components/widgets/hooks/useDatabaseLandingDurationQuery',
+  () => ({
+    useDatabaseLandingDurationQuery: jest.fn(() => ({
+      data: {
+        'avg(span.self_time)': {},
+      },
+      isPending: false,
+      error: null,
+    })),
+  })
+);
+jest.mock(
+  'sentry/views/insights/common/components/widgets/hooks/useDatabaseLandingThroughputQuery',
+  () => ({
+    useDatabaseLandingThroughputQuery: jest.fn(() => ({
+      data: {
+        'epm()': {},
+      },
+      isPending: false,
+      error: null,
+    })),
+  })
+);
+jest.mock('sentry/views/insights/common/queries/useDiscoverSeries', () => ({
+  useMetricsSeries: jest.fn(() => ({
+    data: {
+      'performance_score(measurements.score.lcp)': {
+        data: [],
+      },
+      'performance_score(measurements.score.fcp)': {
+        data: [],
+      },
+      'performance_score(measurements.score.cls)': {
+        data: [],
+      },
+      'performance_score(measurements.score.inp)': {
+        data: [],
+      },
+      'performance_score(measurements.score.ttfb)': {
+        data: [],
+      },
+      'count()': {
+        data: [],
+      },
+    },
+    isPending: false,
+    error: null,
+  })),
+  useSpanMetricsSeries: jest.fn(() => ({
+    data: {
+      'cache_miss_rate()': {},
+      'http_response_rate(3)': {},
+      'http_response_rate(4)': {},
+      'http_response_rate(5)': {},
+      'epm()': {},
+      'avg(span.self_time)': {},
+      'avg(http.response_content_length)': {},
+      'avg(http.response_transfer_size)': {},
+      'avg(http.decoded_response_content_length)': {},
+    },
+    isPending: false,
+    error: null,
+  })),
+}));
+jest.mock('sentry/views/insights/sessions/queries/useErroredSessions', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    series: [{}],
+    isPending: false,
+    error: null,
+  })),
+}));
+jest.mock('sentry/views/insights/sessions/queries/useSessionHealthBreakdown', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    series: [{}],
+    isPending: false,
+    error: null,
+  })),
+}));
+jest.mock('sentry/views/insights/sessions/queries/useReleaseSessionPercentage', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    series: [{}],
+    isPending: false,
+    error: null,
+  })),
+}));
+jest.mock('sentry/views/insights/sessions/queries/useReleaseSessionCounts', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    series: [{}],
+    isPending: false,
+    error: null,
+  })),
+}));
+jest.mock('sentry/views/insights/sessions/queries/useUserHealthBreakdown', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    series: [{}],
+    isPending: false,
+    error: null,
+  })),
+}));
 // Dynamically get all widget IDs from the widgets directory
 const WIDGETS_DIR = path.join(
   __dirname,
@@ -86,8 +254,8 @@ const widgetIds = fs
   .map(file => file.replace('.tsx', ''));
 
 describe('ChartWidgetLoader - unmocked imports', () => {
-  beforeAll(() => {
-    jest.unmock('@tanstack/react-query');
+  afterAll(() => {
+    jest.resetAllMocks();
   });
 
   beforeEach(() => {
@@ -97,41 +265,6 @@ describe('ChartWidgetLoader - unmocked imports', () => {
       body: {
         data: [[123, []]],
       },
-    });
-
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {
-        data: [
-          [123, [{count: 1}]],
-          [124, [{count: 2}]],
-        ],
-      },
-    });
-
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/sessions/',
-      body: {
-        groups: [],
-        intervals: [],
-      },
-    });
-
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues-metrics/',
-      body: {
-        data: [],
-        meta: {
-          fields: {
-            'count()': 'integer',
-          },
-        },
-      },
-    });
-
-    MockApiClient.addMockResponse({
-      url: '/projects/org-slug/undefined/issues/',
-      body: [],
     });
   });
 
@@ -154,6 +287,13 @@ describe('ChartWidgetLoader - unmocked imports', () => {
     await waitFor(() => {
       expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
     });
+
+    expect(TimeSeriesWidgetVisualization).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: widgetId,
+      }),
+      undefined
+    );
   });
 
   it('shows error state for invalid widget id', async () => {
