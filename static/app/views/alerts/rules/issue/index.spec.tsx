@@ -107,7 +107,11 @@ const createWrapper = (props = {}) => {
         userTeamIds={[]}
       />
     </ProjectAlerts>,
-    {router, organization}
+    {
+      router,
+      organization,
+      enableRouterMocks: true,
+    }
   );
 
   return {

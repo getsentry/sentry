@@ -35,7 +35,11 @@ describe('AlertRuleDetails', () => {
         router={router}
         {...props}
       />,
-      {router, organization: org}
+      {
+        router,
+        organization: org,
+        enableRouterMocks: true,
+      }
     );
   };
 
