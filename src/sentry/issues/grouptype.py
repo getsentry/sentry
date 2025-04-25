@@ -59,11 +59,11 @@ class GroupCategory(IntEnum):
     TEST_NOTIFICATION = 9
 
     # New issue categories (under the organizations:issue-taxonomy flag)
-    OUTAGE = 9
-    PERFORMANCE_REGRESSION = 10
-    USER_EXPERIENCE = 11
-    RESPONSIVENESS = 12
-    PERFORMANCE_BEST_PRACTICE = 13
+    OUTAGE = 10
+    PERFORMANCE_REGRESSION = 11
+    USER_EXPERIENCE = 12
+    RESPONSIVENESS = 13
+    PERFORMANCE_BEST_PRACTICE = 14
 
 
 GROUP_CATEGORIES_CUSTOM_EMAIL = (
