@@ -100,7 +100,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         assert metric_issue_context.group is not None
 
         detector = self.create_detector(project=self.project)
-        self.create_alert_rule_detector(alert_rule_id=incident.alert_rule.id, detector=detector)
+        self.create_alert_rule_detector(alert_rule_id=alert_rule.id, detector=detector)
 
         open_period = (
             GroupOpenPeriod.objects.filter(group=self.group).order_by("-date_started").first()
