@@ -221,7 +221,7 @@ def incident_attachment_info(
 
     if features.has("organizations:workflow-engine-trigger-actions", organization):
         try:
-            alert_rule_detector = AlertRuleDetector.objects.get(
+            alert_rule_id = AlertRuleDetector.objects.values_list("alert_rule_id", flat=True).get(
                 detector_id=alert_context.action_identifier_id
             )
         except AlertRuleDetector.DoesNotExist:
@@ -238,13 +238,13 @@ def incident_attachment_info(
 
         workflow_engine_params = title_link_params.copy()
 
-        incident = Incident.objects.get(id=open_period_incident.incident_id)
-
-        workflow_engine_params["alert"] = str(incident.identifier)
-
-        title_link = build_title_link(
-            alert_rule_detector.alert_rule_id, organization, workflow_engine_params
+        incident_identifier = Incident.objects.values_list("identifier", flat=True).get(
+            id=open_period_incident.incident_id
         )
+
+        workflow_engine_params["alert"] = str(incident_identifier)
+
+        title_link = build_title_link(alert_rule_id, organization, workflow_engine_params)
 
     elif features.has("organizations:workflow-engine-ui-links", organization):
         if metric_issue_context.group is None:
