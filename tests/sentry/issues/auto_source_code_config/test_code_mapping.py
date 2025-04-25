@@ -26,6 +26,7 @@ from sentry.issues.auto_source_code_config.code_mapping import (
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import Feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.event_frames import EventFrame
 
@@ -533,6 +534,11 @@ class TestConvertStacktraceFramePathToSourcePath(TestCase):
                 "MainFragment.java",
                 "src/com/example/vu/android/empowerplant/MainFragment.java",
             ),
+            (
+                "com.example.foo.BarImpl$invoke$bazFetch$2",
+                "Bar.kt",  # Notice "Impl" is not included in the module above
+                "src/com/example/foo/BarImpl.kt",  # This is incorrect; the new logic will fix this
+            ),
         ]:
             assert (
                 convert_stacktrace_frame_path_to_source_path(
@@ -542,6 +548,31 @@ class TestConvertStacktraceFramePathToSourcePath(TestCase):
                     sdk_name="sentry.java.android",
                 )
                 == expected_path
+            )
+
+    def test_convert_stacktrace_frame_path_to_source_path_java_new_logic(self) -> None:
+        code_mapping = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="com/example/",
+            source_root="src/com/example/",
+            automatically_generated=False,
+        )
+        with Feature({"organizations:java-frame-munging-new-logic": True}):
+            assert (
+                convert_stacktrace_frame_path_to_source_path(
+                    frame=EventFrame(
+                        filename="Baz.java",
+                        abs_path="Baz.java",  # Notice "Impl" is not included in the module below
+                        module="com.example.foo.BazImpl$invoke$bazFetch$2",
+                    ),
+                    code_mapping=code_mapping,
+                    platform="java",
+                    sdk_name="sentry.java.android",
+                    organization=self.organization,
+                )
+                == "src/com/example/foo/Baz.java"
             )
 
     def test_convert_stacktrace_frame_path_to_source_path_backslashes(self) -> None:
