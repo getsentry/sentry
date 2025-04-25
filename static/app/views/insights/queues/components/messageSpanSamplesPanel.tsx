@@ -306,8 +306,8 @@ export function MessageSpanSamplesPanel() {
 
           <ModuleLayout.Full>
             <InsightsLineChartWidget
-              title={getDurationChartTitle('queue')}
               showLegend="never"
+              title={getDurationChartTitle('queue')}
               isLoading={isDurationDataFetching}
               error={durationError}
               series={[durationData[`avg(span.duration)`]]}
