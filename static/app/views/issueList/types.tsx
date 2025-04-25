@@ -29,6 +29,8 @@ export enum GroupSearchViewCreatedBy {
 
 export type StarredGroupSearchView = {
   createdBy: AvatarUser;
+  dateCreated: string;
+  dateUpdated: string;
   environments: string[];
   id: string;
   lastVisited: string | null;
@@ -60,4 +62,6 @@ export enum GroupSearchViewSort {
   POPULARITY = 'popularity',
   NAME_ASC = 'name',
   NAME_DESC = '-name',
+  CREATED_ASC = 'created',
+  CREATED_DESC = '-created',
 }
