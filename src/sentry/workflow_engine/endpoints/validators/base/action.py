@@ -35,3 +35,7 @@ class BaseActionValidator(CamelSnakeSerializer):
         TODO @saponifi3d -- add any org checks for creating actions here
         """
         return Action.objects.create(**validated_value)
+
+    def update(self, instance: Action, validated_value: dict[str, Any]) -> Action:
+        instance.update(**validated_value)
+        return instance

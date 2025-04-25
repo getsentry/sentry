@@ -8,7 +8,8 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import TaskRunner
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
-from sentry.workflow_engine.models import Action, DataConditionGroup
+from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
+from sentry.workflow_engine.models import Action, DataConditionGroup, Workflow
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -29,6 +30,37 @@ class OrganizationWorkflowIndexGetTest(OrganizationWorkflowDetailsBaseTest):
 
     def test_does_not_exist(self):
         self.get_error_response(self.organization.slug, 3, status_code=404)
+
+
+@region_silo_test
+class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWorkflowTest):
+    method = "PUT"
+
+    def setUp(self):
+        super().setUp()
+        self.valid_workflow = {
+            "name": "Test Workflow",
+            "enabled": True,
+            "config": {},
+            "triggers": {"logicType": "any", "conditions": []},
+            "action_filters": [],
+        }
+        validator = WorkflowValidator(
+            data=self.valid_workflow,
+            context={"organization": self.organization, "request": self.make_request()},
+        )
+        validator.is_valid(raise_exception=True)
+        self.workflow = validator.create(validator.validated_data)
+
+    def test_simple(self):
+        self.valid_workflow["name"] = "Updated Workflow"
+        response = self.get_success_response(
+            self.organization.slug, self.workflow.id, raw_data=self.valid_workflow
+        )
+        updated_workflow = Workflow.objects.get(id=response.data.get("id"))
+
+        assert response.status_code == 200
+        assert updated_workflow.name == "Updated Workflow"
 
 
 @region_silo_test
