@@ -62,7 +62,7 @@ interface SunburstChartProps {
 export function SunburstChart({data}: SunburstChartProps) {
   const theme = useTheme();
 
-  const [rootData] = useState(() => {
+  const [rootNode] = useState(() => {
     // we want to copy this prop value as we're inline editing it's content
     const tree = structuredClone(data);
     const nodeMap = new Map<string, SunburstData>();
@@ -110,8 +110,8 @@ export function SunburstChart({data}: SunburstChartProps) {
 
     return {tree, nodeMap, edges};
   });
-  const [renderData, setRenderData] = useState(bfsFilter(rootData.tree, 2));
-  const [breadCrumbs, setBreadCrumbs] = useState(rootData.tree.fullPath);
+  const [renderData, setRenderData] = useState(bfsFilter(rootNode.tree, 2));
+  const [breadCrumbs, setBreadCrumbs] = useState(rootNode.tree.fullPath);
 
   return (
     <SunburstContainer>
@@ -130,8 +130,8 @@ export function SunburstChart({data}: SunburstChartProps) {
             },
             click: (params: Parameters<EChartClickHandler>[0]) => {
               if (params?.data?.type === 'dir') {
-                const parent = rootData.edges.get(params.data.fullPath);
-                const node = rootData.nodeMap.get(params.data?.fullPath);
+                const parent = rootNode.edges.get(params.data.fullPath);
+                const node = rootNode.nodeMap.get(params.data?.fullPath);
                 if (!node) {
                   return;
                 }
