@@ -51,7 +51,7 @@ class AddGiftEventsAction extends Component<Props, State> {
     const intValue = parseInt(value, 10);
     const maxValue =
       (billedCategoryInfo?.maxAdminGift ?? 0) /
-      (billedCategoryInfo?.freeEventsMultiple ?? 1);
+      (billedCategoryInfo?.freeEventsMultiple ?? 1); // prevent ZeroDivisionError
 
     if (isNaN(intValue) || intValue < 0) {
       return undefined;
