@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button';
 import {IconProfiling} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -10,7 +11,7 @@ function OrgStatsProfilingBanner() {
   return (
     <BannerGrid>
       <HeaderItem>
-        <h6>Profiling has a new billing model!</h6>
+        <h6>{t('Profiling has a new billing model!')}</h6>
         <span>
           We've split Profiling into two products targeted at different use cases –
           Continuous Profiling for the backend and UI Profiling for the frontend. These
@@ -18,7 +19,7 @@ function OrgStatsProfilingBanner() {
         </span>
       </HeaderItem>
       <CategoryItemLeft>
-        <h6>UI Profile Hours</h6>
+        <h6>{t('UI Profile Hours')}</h6>
         <span>
           Ensure great UX on browser and mobile apps by fixing issues that cause long load
           times and unresponsive interactions.
@@ -27,19 +28,19 @@ function OrgStatsProfilingBanner() {
           <StyledProfilingButton
             size="sm"
             icon={<IconProfiling size="sm" />}
-            title="Go to UI Profile Hours"
-            aria-label="Go to UI Profile Hours"
+            title={t('Go to UI Profile Hours')}
+            aria-label={t('Go to UI Profile Hours')}
             to={{
               ...location,
               query: {...location.query, dataCategory: 'profileDurationUI'},
             }}
           >
-            Go to UI Profile Hours
+            {t('Go to UI Profile Hours')}
           </StyledProfilingButton>
         </div>
       </CategoryItemLeft>
       <CategoryItemRight>
-        <h6>Continuous Profile Hours</h6>
+        <h6>{t('Continuous Profile Hours')}</h6>
         <span>
           Find performance bottlenecks in backend services that cause high request latency
           and excessive infrastructure costs.
@@ -48,14 +49,14 @@ function OrgStatsProfilingBanner() {
           <StyledProfilingButton
             size="sm"
             icon={<IconProfiling size="sm" />}
-            title="Go to Continuous Profile Hours"
-            aria-label="Go to Continuous Profile Hours"
+            title={t('Go to Continuous Profile Hours')}
+            aria-label={t('Go to Continuous Profile Hours')}
             to={{
               ...location,
               query: {...location.query, dataCategory: 'profileDuration'},
             }}
           >
-            Go to Continuous Profile Hours
+            {t('Go to Continuous Profile Hours')}
           </StyledProfilingButton>
         </div>
       </CategoryItemRight>
