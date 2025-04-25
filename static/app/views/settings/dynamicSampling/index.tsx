@@ -53,7 +53,7 @@ export default function DynamicSamplingSettings() {
       <Alert.Container>
         <Alert type="warning">
           {tct(
-            'Dynamic Sampling is not available on your plan. Check our [documentation] for more information about Dynamic Sampling.',
+            'Dynamic Sampling is not available on your current plan. Check our [documentation] for more information about Dynamic Sampling.',
             {
               documentation: (
                 <Link to="https://docs.sentry.io/organization/dynamic-sampling/">
