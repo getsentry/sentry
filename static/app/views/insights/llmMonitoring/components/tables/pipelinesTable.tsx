@@ -86,7 +86,7 @@ type ValidSort = Sort & {
   field: 'epm()' | 'avg(span.duration)';
 };
 
-export function isAValidSort(sort: Sort): sort is ValidSort {
+function isAValidSort(sort: Sort): sort is ValidSort {
   return (SORTABLE_FIELDS as unknown as string[]).includes(sort.field);
 }
 export function PipelinesTable() {

@@ -109,7 +109,7 @@ class OrganizationMemberInvite(DefaultFieldsModel):
     sso_linked = models.BooleanField(default=False)
     sso_invalid = models.BooleanField(default=False)
     member_limit_restricted = models.BooleanField(default=False)
-    idp_provisioned = models.BooleanField(default=False)
+    idp_provisioned = models.BooleanField(default=False, db_default=False)
     idp_role_restricted = models.BooleanField(default=False)
     partnership_restricted = models.BooleanField(default=False)
 

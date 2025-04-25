@@ -27,7 +27,7 @@ export function useConfigureSdk({
   onComplete: (selectedPlatform: OnboardingSelectedSDK) => void;
 }) {
   const {teams, fetching: isLoadingTeams} = useTeams();
-  const {projects} = useProjects();
+  const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const organization = useOrganization();
   const onboardingContext = useOnboardingContext();
   const createProject = useCreateProject();
@@ -130,5 +130,5 @@ export function useConfigureSdk({
     [createPlatformProject, onboardingContext, organization]
   );
 
-  return {configureSdk, isLoadingData: isLoadingTeams};
+  return {configureSdk, isLoadingData: isLoadingTeams || !projectsLoaded};
 }

@@ -21,7 +21,7 @@ import {
   useExploreTitle,
   useExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
-import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
@@ -50,7 +50,7 @@ interface UseTrackAnalyticsProps {
   tracesTableResult?: TracesTableResult;
 }
 
-export function useTrackAnalytics({
+function useTrackAnalytics({
   queryType,
   aggregatesTableResult,
   spansTableResult,
@@ -104,10 +104,7 @@ export function useTrackAnalytics({
       result_missing_root: 0,
       user_queries: search.formatString(),
       user_queries_count: search.tokens.length,
-      visualizes: visualizes.map(visualize => ({
-        chartType: visualize.chartType,
-        yAxes: visualize.yAxes,
-      })),
+      visualizes: visualizes.map(visualize => visualize.toJSON()),
       visualizes_count: visualizes.length,
       title: title || '',
       empty_buckets_percentage: computeEmptyBuckets(visualizes, timeseriesResult.data),
@@ -360,13 +357,9 @@ export function useCompareAnalytics({
   const dataset = DiscoverDatasets.SPANS_EAP_RPC;
   const query = queryParts.query;
   const fields = queryParts.fields;
-  const visualizes = queryParts.yAxes.map(yAxis => {
-    return {
-      chartType: queryParts.chartType,
-      yAxes: [yAxis],
-      label: String(index),
-    } as Visualize;
-  });
+  const visualizes = queryParts.yAxes.map(
+    yAxis => new Visualize([yAxis], String(index), queryParts.chartType)
+  );
 
   return useTrackAnalytics({
     queryType,
@@ -480,7 +473,7 @@ function computeTotals(
   });
 }
 
-export function computeEmptyBucketsForSeries(series: Pick<TimeSeries, 'data'>): number {
+function computeEmptyBucketsForSeries(series: Pick<TimeSeries, 'data'>): number {
   let emptyBucketsForSeries = 0;
   for (const item of series.data) {
     if (item.value === 0 || item.value === null) {

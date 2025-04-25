@@ -22,7 +22,7 @@ function getNodeType(node: SpanChartNode | null) {
   return t('Span');
 }
 
-export interface SpansContextMenuProps {
+interface SpansContextMenuProps {
   contextMenu: ReturnType<typeof useContextMenu>;
   hoveredNode: SpanChartNode | null;
   onCopyDescription: () => void;

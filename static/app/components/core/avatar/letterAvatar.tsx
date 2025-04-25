@@ -10,7 +10,7 @@ import {
   BaseAvatarComponentStyles,
 } from './baseAvatarComponentStyles';
 
-export interface LetterAvatarProps
+interface LetterAvatarProps
   extends React.HTMLAttributes<SVGSVGElement>,
     BaseAvatarComponentProps {
   displayName?: string;
