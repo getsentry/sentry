@@ -5,6 +5,7 @@ import logging
 from enum import Enum, IntEnum, StrEnum
 from typing import Any
 
+import sentry_sdk
 from attr import dataclass
 from django.apps.registry import Apps
 from django.db import migrations, router, transaction
@@ -12,7 +13,7 @@ from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from jsonschema import ValidationError, validate
 
 from sentry.new_migrations.migrations import CheckedMigration
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
+from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -761,14 +762,14 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
     Workflow = apps.get_model("workflow_engine", "Workflow")
 
     # MAIN MIGRATION LOOP STARTS HERE
-    for organization in RangeQuerySetWrapperWithProgressBarApprox(Organization.objects.all()):
+    for organization in RangeQuerySetWrapper(Organization.objects.all()):
         organization_id = organization.id
 
         with transaction.atomic(router.db_for_write(AlertRule)):
             alert_rules = AlertRule.objects_with_snapshots.select_for_update().filter(
                 organization=organization, status=AlertRuleStatus.PENDING.value
             )
-            for alert_rule in RangeQuerySetWrapperWithProgressBarApprox(alert_rules):
+            for alert_rule in RangeQuerySetWrapper(alert_rules):
                 if alert_rule.detection_type == "dynamic":
                     logger.info(
                         "anomaly detection alert rule, skipping",
@@ -868,6 +869,8 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                         "error when migrating alert rule",
                         extra={"error": str(e), "alert_rule_id": alert_rule.id},
                     )
+                    sentry_sdk.capture_exception(e)
+                    continue
 
 
 class Migration(CheckedMigration):
@@ -886,7 +889,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("workflow_engine", "0047_migrate_issue_alerts"),
+        ("workflow_engine", "0048_fix_some_drift"),
     ]
 
     operations = [
