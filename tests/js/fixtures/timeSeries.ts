@@ -8,7 +8,7 @@ export function TimeSeriesFixture(params: Partial<TimeSeries> = {}): TimeSeries 
       type: 'rate',
       unit: RateUnit.PER_SECOND
     },
-    data: [
+    values: [
       {
         value: 7456.966666666666,
         timestamp: 1729796400000, // '2024-10-24T15:00:00-04:00'
