@@ -66,9 +66,7 @@ import EnhancedOrganizationStats from 'getsentry/hooks/spendVisibility/enhancedI
 import SpikeProtectionProjectSettings from 'getsentry/hooks/spendVisibility/spikeProtectionProjectSettings';
 import SuperuserAccessCategory from 'getsentry/hooks/superuserAccessCategory';
 import TargetedOnboardingHeader from 'getsentry/hooks/targetedOnboardingHeader';
-import {useExperiment} from 'getsentry/hooks/useExperiment';
 import useSubscription from 'getsentry/hooks/useSubscription';
-import logExperiment from 'getsentry/utils/logExperiment';
 import rawTrackAnalyticsEvent from 'getsentry/utils/rawTrackAnalyticsEvent';
 import trackMetric from 'getsentry/utils/trackMetric';
 
@@ -78,9 +76,7 @@ import OpenInDiscoverBtn from './components/openInDiscoverBtn';
 import {
   ContinuousProfilingBetaAlertBanner,
   ContinuousProfilingBetaSDKAlertBanner,
-  ProfilingAM1OrMMXUpgrade,
   ProfilingBetaAlertBanner,
-  ProfilingUpgradePlanButton,
 } from './components/profiling/alerts';
 import ReplayOnboardingAlert from './components/replayOnboardingAlert';
 import ReplaySettingsAlert from './components/replaySettingsAlert';
@@ -116,7 +112,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
    */
   'analytics:raw-track-event': rawTrackAnalyticsEvent,
   'analytics:init-user': hookAnalyticsInitUser,
-  'analytics:log-experiment': logExperiment,
   'metrics:event': trackMetric,
 
   /**
@@ -240,8 +235,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:replay-settings-alert': () => ReplaySettingsAlert,
   'component:product-unavailable-cta': () => ProductUnavailableCTA,
   'component:profiling-billing-banner': () => ProfilingBetaAlertBanner,
-  'component:profiling-upgrade-plan-button': () => ProfilingUpgradePlanButton,
-  'component:profiling-am1-or-mmx-upgrade': () => ProfilingAM1OrMMXUpgrade,
   'component:product-selection-availability': () => ProductSelectionAvailability,
   'component:superuser-access-category': SuperuserAccessCategory,
   'component:superuser-warning': p => <SuperuserWarning {...p} />,
@@ -249,7 +242,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:crons-list-page-header': () => CronsBillingBanner,
   'react-hook:route-activated': useRouteActivatedHook,
   'react-hook:use-button-tracking': useButtonTracking,
-  'react-hook:use-experiment': useExperiment,
   'react-hook:use-subscription': useSubscription,
   'react-hook:use-get-max-retention-days': useGetMaxRetentionDays,
   'component:partnership-agreement': p => (

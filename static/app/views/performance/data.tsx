@@ -5,7 +5,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import EventView from 'sentry/utils/discover/eventView';
@@ -78,19 +77,6 @@ export enum PerformanceTerm {
   MOST_TIME_CONSUMING_DOMAINS = 'mostTimeConsumingDomains',
   HIGHEST_CACHE_MISS_RATE_TRANSACTIONS = 'highestCacheMissRateTransactions',
 }
-
-type TooltipOption = SelectValue<string> & {
-  tooltip: string;
-};
-
-export type AxisOption = TooltipOption & {
-  field: string;
-  label: string;
-  backupOption?: AxisOption;
-  isDistribution?: boolean;
-  isLeftDefault?: boolean;
-  isRightDefault?: boolean;
-};
 
 type TermFormatter = (organization: Organization) => string;
 

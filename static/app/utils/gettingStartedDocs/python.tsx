@@ -1,14 +1,91 @@
 import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {
+  type Configuration,
+  StepType,
+} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import type {
+  DocsParams,
+  OnboardingConfig,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {AlternativeConfiguration} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
 const getProfilingInstallSnippet = (basePackage: string, minimumVersion?: string) =>
   `pip install --upgrade ${minimumVersion ? `${basePackage}>=${minimumVersion}` : basePackage}`;
-import type {
-  DocsParams,
-  OnboardingConfig,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
+
+export function getPythonInstallSnippet({
+  packageName,
+  packageManager,
+}: {
+  packageManager: 'pip' | 'uv';
+  packageName: string;
+}) {
+  if (packageManager === 'uv') {
+    return `uv add --upgrade ${packageName}`;
+  }
+  return `pip install --upgrade ${packageName}`;
+}
+
+export function getPythonInstallConfig({
+  packageName = "'sentry-sdk'",
+  description,
+}: {
+  description?: React.ReactNode;
+  packageName?: string;
+} = {}): Configuration[] {
+  return [
+    {
+      description,
+      language: 'bash',
+      code: [
+        {
+          label: 'pip',
+          value: 'pip',
+          language: 'bash',
+          code: getPythonInstallSnippet({
+            packageName,
+            packageManager: 'pip',
+          }),
+        },
+        {
+          label: 'uv',
+          value: 'uv',
+          language: 'bash',
+          code: getPythonInstallSnippet({
+            packageName,
+            packageManager: 'uv',
+          }),
+        },
+      ],
+    },
+  ];
+}
+
+export function getPythonProfilingMinVersionMessage() {
+  return tct(
+    'You need a minimum version [code:2.24.1] of the [code:sentry-python] SDK for the profiling feature.',
+    {
+      code: <code />,
+    }
+  );
+}
+export function getPythonAiocontextvarsConfig({
+  description,
+}: {
+  description?: React.ReactNode;
+} = {}): Configuration[] {
+  const defaultDescription = tct(
+    "If you're on Python 3.6, you also need the [code:aiocontextvars] package:",
+    {
+      code: <code />,
+    }
+  );
+
+  return getPythonInstallConfig({
+    packageName: "'aiocontextvars'",
+    description: description ?? defaultDescription,
+  });
+}
 
 export const getPythonProfilingOnboarding = ({
   basePackage = 'sentry-sdk',

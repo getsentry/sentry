@@ -1,13 +1,13 @@
 import moment from 'moment-timezone';
 
 import type {PromptData} from 'sentry/actionCreators/prompts';
-import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import {DataCategory, type DataCategoryInfo} from 'sentry/types/core';
+import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 
 import {
+  BILLED_DATA_CATEGORY_INFO,
   BILLION,
   DEFAULT_TRIAL_DAYS,
   GIGABYTE,
@@ -18,6 +18,7 @@ import {
   UNLIMITED_RESERVED,
 } from 'getsentry/constants';
 import type {
+  BilledDataCategoryInfo,
   BillingConfig,
   BillingMetricHistory,
   BillingStatTotal,
@@ -644,11 +645,16 @@ export function partnerPlanEndingModalIsDismissed(
   }
 }
 
+/**
+ * Returns the data category info defined in DATA_CATEGORY_INFO for the given category,
+ * with billing context defined in BILLED_DATA_CATEGORY_INFO.
+ *
+ * Returns null for categories not defined in DATA_CATEGORY_INFO.
+ */
 export function getCategoryInfoFromPlural(
   category: DataCategory
-): DataCategoryInfo | null {
-  const categories = Object.values(DATA_CATEGORY_INFO);
-  const info = categories.find(c => c.plural === category);
+): BilledDataCategoryInfo | null {
+  const info = Object.values(BILLED_DATA_CATEGORY_INFO).find(c => c.plural === category);
   if (!info) {
     return null;
   }

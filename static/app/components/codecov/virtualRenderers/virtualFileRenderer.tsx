@@ -69,15 +69,28 @@ function CodeBody({
       <LineNumberColumn>
         {virtualizer.getVirtualItems().map(virtualItem => {
           const lineNumber = virtualItem.index + 1;
+          const isHighlighted = location.hash === `#L${lineNumber}`;
+
+          let label = 'line';
+          if (isHighlighted) {
+            label = 'highlighted line';
+          } else if (coverage.get(lineNumber)?.coverage === 'H') {
+            label = 'covered line';
+          } else if (coverage.get(lineNumber)?.coverage === 'M') {
+            label = 'missed line';
+          } else if (coverage.get(lineNumber)?.coverage === 'P') {
+            label = 'partial line';
+          }
 
           return (
             <LineNumber
+              ariaLabel={label}
               key={virtualItem.key}
               coverage={coverage.get(lineNumber)?.coverage}
               lineNumber={lineNumber}
               virtualItem={virtualItem}
               virtualizer={virtualizer}
-              isHighlighted={location.hash === `#L${lineNumber}`}
+              isHighlighted={isHighlighted}
               onClick={() => {
                 location.hash =
                   location.hash === `#L${lineNumber}` ? '' : `#L${lineNumber}`;
