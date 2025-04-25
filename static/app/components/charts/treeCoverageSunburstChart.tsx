@@ -57,9 +57,13 @@ interface ProcessedTreeCoverageSunburstData extends TreeCoverageSunburstData {
 
 interface TreeCoverageSunburstChartProps {
   data: TreeCoverageSunburstData;
+  autoHeightResize?: boolean;
 }
 
-export function TreeCoverageSunburstChart({data}: TreeCoverageSunburstChartProps) {
+export function TreeCoverageSunburstChart({
+  data,
+  autoHeightResize = false,
+}: TreeCoverageSunburstChartProps) {
   const theme = useTheme();
 
   const [rootNode] = useState(() => {
@@ -115,7 +119,7 @@ export function TreeCoverageSunburstChart({data}: TreeCoverageSunburstChartProps
 
   return (
     <div>
-      <ChartContainer autoHeightResize={false}>
+      <ChartContainer autoHeightResize={autoHeightResize}>
         <ReactEchartsCore
           echarts={echarts}
           onEvents={{
