@@ -114,7 +114,17 @@ def get_timeseries_query(
     meta = search_resolver.resolve_meta(referrer=referrer, sampling_mode=sampling_mode)
     query, _, query_contexts = search_resolver.resolve_query(query_string)
     (functions, _) = search_resolver.resolve_functions(y_axes)
-    (groupbys, _) = search_resolver.resolve_attributes(groupby)
+    groupbys, groupby_contexts = search_resolver.resolve_attributes(groupby)
+
+    # Virtual context columns (VCCs) are currently only supported in TraceItemTable.
+    # Since they are not supported here - we map them manually back to the original
+    # column the virtual context column would have used.
+    for i, groupby_definition in enumerate(zip(groupbys, groupby_contexts)):
+        _, context = groupby_definition
+        if context is not None:
+            col = search_resolver.map_context_to_original_column(context)
+            groupbys[i] = col
+
     if extra_conditions is not None:
         if query is not None:
             query = TraceItemFilter(and_filter=AndFilter(filters=[query, extra_conditions]))

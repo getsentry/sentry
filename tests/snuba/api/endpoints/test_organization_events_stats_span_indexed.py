@@ -3,6 +3,7 @@ from datetime import timedelta
 import pytest
 from django.urls import reverse
 
+from sentry.search.utils import DEVICE_CLASS
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 from tests.snuba.api.endpoints.test_organization_events_span_indexed import KNOWN_PREFLIGHT_ID
@@ -1318,6 +1319,70 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
             rows = data[0:6]
             for test in zip(event_counts, rows):
                 assert test[1][1][0]["count"] == test[0]
+
+    def test_device_class_top_events(self):
+        event_counts = [
+            ("low", 6),
+            ("medium", 0),
+            ("low", 6),
+            ("medium", 6),
+            ("low", 0),
+            ("medium", 3),
+        ]
+        spans = []
+        for hour, count in enumerate(event_counts):
+            spans.extend(
+                [
+                    self.create_span(
+                        {
+                            "description": "foo",
+                            "sentry_tags": {
+                                "status": "success",
+                                "device.class": (
+                                    list(DEVICE_CLASS["low"])[0]
+                                    if count[0] == "low"
+                                    else list(DEVICE_CLASS["medium"])[0]
+                                ),
+                            },
+                        },
+                        start_ts=self.day_ago + timedelta(hours=hour, minutes=minute),
+                    )
+                    for minute in range(count[1])
+                ],
+            )
+        self.store_spans(spans, is_eap=self.is_eap)
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=6),
+                "interval": "1h",
+                "yAxis": "count()",
+                "field": ["device.class", "count()"],
+                "topEvents": 5,
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 200, response.content
+        low = response.data["low"]["data"]
+        assert len(low) == 6
+
+        rows = low[0:6]
+        for i, test in enumerate(zip(event_counts, rows)):
+            test_data, row = test
+            test_count = test_data[1] if test_data[0] == "low" else 0.0
+            assert row[1][0]["count"] == test_count
+
+        medium = response.data["medium"]["data"]
+        assert len(medium) == 6
+
+        rows = medium[0:6]
+        for i, test in enumerate(zip(event_counts, rows)):
+            test_data, row = test
+            test_count = test_data[1] if test_data[0] == "medium" else 0.0
+            assert row[1][0]["count"] == test_count
 
     def test_top_events_filters_out_groupby_even_when_its_just_one_row(self):
         self.store_spans(
