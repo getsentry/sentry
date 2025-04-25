@@ -45,6 +45,8 @@ def holds_bad_pickle_object(value, memo=None):
     app_module = type(value).__module__
     if app_module.startswith(("sentry.", "getsentry.")):
         return value, "do not pickle custom classes"
+    elif app_module != "builtins":
+        return value, "do not pickle custom classes"
 
     if os.getenv("TASK_TYPE_CHECKING") and os.getenv("TASK_TYPE_CHECKING") != "0":
         if isinstance(value, SafeString):
