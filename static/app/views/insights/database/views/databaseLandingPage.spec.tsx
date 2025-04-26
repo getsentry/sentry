@@ -130,7 +130,7 @@ describe('DatabaseLandingPage', function () {
   it('fetches module data', async function () {
     jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
 
-    render(<DatabaseLandingPage />, {organization});
+    render(<DatabaseLandingPage />, {organization, enableRouterMocks: true});
 
     expect(spanChartsRequestMock).toHaveBeenNthCalledWith(
       1,
@@ -217,7 +217,7 @@ describe('DatabaseLandingPage', function () {
   it('renders a list of queries', async function () {
     jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
 
-    render(<DatabaseLandingPage />, {organization});
+    render(<DatabaseLandingPage />, {organization, enableRouterMocks: true});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
@@ -244,7 +244,7 @@ describe('DatabaseLandingPage', function () {
 
     jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
 
-    render(<DatabaseLandingPage />, {organization});
+    render(<DatabaseLandingPage />, {organization, enableRouterMocks: true});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
@@ -347,7 +347,7 @@ describe('DatabaseLandingPage', function () {
 
     jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
 
-    render(<DatabaseLandingPage />, {organization});
+    render(<DatabaseLandingPage />, {organization, enableRouterMocks: true});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
@@ -371,7 +371,7 @@ describe('DatabaseLandingPage', function () {
 
     jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
 
-    render(<DatabaseLandingPage />, {organization});
+    render(<DatabaseLandingPage />, {organization, enableRouterMocks: true});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 

@@ -75,7 +75,7 @@ describe('queuesLandingPage', () => {
   });
 
   it('renders', async () => {
-    render(<QueuesLandingPage />, {organization});
+    render(<QueuesLandingPage />, {organization, enableRouterMocks: true});
     await screen.findByRole('table', {name: 'Queues'});
     screen.getByPlaceholderText('Search for more destinations');
     screen.getByText('Average Duration');

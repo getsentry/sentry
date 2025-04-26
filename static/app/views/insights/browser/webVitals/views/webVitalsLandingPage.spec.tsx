@@ -79,7 +79,7 @@ describe('WebVitalsLandingPage', function () {
   });
 
   it('renders', async () => {
-    render(<WebVitalsLandingPage />, {organization});
+    render(<WebVitalsLandingPage />, {organization, enableRouterMocks: true});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     // Table query
     expect(eventsMock).toHaveBeenNthCalledWith(
