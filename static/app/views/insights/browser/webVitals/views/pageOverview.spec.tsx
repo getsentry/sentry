@@ -75,7 +75,7 @@ describe('PageOverview', function () {
   });
 
   it('renders', () => {
-    render(<PageOverview />, {organization});
+    render(<PageOverview />, {organization, enableRouterMocks: true});
     // Raw web vital metric tile queries
     expect(eventsMock).toHaveBeenNthCalledWith(
       1,
@@ -143,7 +143,10 @@ describe('PageOverview', function () {
       action: 'PUSH',
       key: '',
     });
-    render(<PageOverview />, {organization: organizationWithInp});
+    render(<PageOverview />, {
+      organization: organizationWithInp,
+      enableRouterMocks: true,
+    });
     await waitFor(() =>
       expect(eventsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
@@ -191,7 +194,10 @@ describe('PageOverview', function () {
       action: 'PUSH',
       key: '',
     });
-    render(<PageOverview />, {organization: organizationWithInp});
+    render(<PageOverview />, {
+      organization: organizationWithInp,
+      enableRouterMocks: true,
+    });
     await waitFor(() =>
       expect(eventsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
