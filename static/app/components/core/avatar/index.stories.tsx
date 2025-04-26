@@ -107,7 +107,6 @@ export default storyBook('Avatar', (story, APIReference) => {
             githubNudgeInvite: false,
             githubOpenPRBot: false,
             githubPRBot: false,
-            gitlabPRBot: false,
             hideAiFeatures: false,
             isEarlyAdopter: false,
             issueAlertsThreadFlag: false,
