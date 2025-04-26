@@ -38,6 +38,7 @@ from sentry.shared_integrations.exceptions import (
 from sentry.snuba.referrer import Referrer
 from sentry.types.referrer_ids import GITLAB_PR_BOT_REFERRER
 from sentry.users.models.identity import Identity
+from sentry.utils import metrics
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
@@ -171,7 +172,13 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
     # CommitContextIntegration methods
 
     def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
-        # TODO(jianyuan): handle this
+        if api_error.code == 429:
+            metrics.incr(
+                metrics_base.format(integration=self.integration_name, key="error"),
+                tags={"type": "rate_limited_error"},
+            )
+            return True
+
         return False
 
     # Gitlab only functions
@@ -212,7 +219,9 @@ class GitlabPRCommentWorkflow(PRCommentWorkflow):
     referrer_id = GITLAB_PR_BOT_REFERRER
 
     @staticmethod
-    def format_comment_subtitle(subtitle: str) -> str:
+    def format_comment_subtitle(subtitle: str | None) -> str:
+        if subtitle is None:
+            return ""
         return subtitle[:47] + "..." if len(subtitle) > 50 else subtitle
 
     @staticmethod
