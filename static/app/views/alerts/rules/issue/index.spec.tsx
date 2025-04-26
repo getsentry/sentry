@@ -252,7 +252,7 @@ describe('IssueRuleEditor', function () {
         body: {},
       });
       const {router} = createWrapper();
-      renderGlobalModal({router});
+      renderGlobalModal({router, enableRouterMocks: true});
       await userEvent.click(screen.getByLabelText('Delete Rule'));
 
       expect(

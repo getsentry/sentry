@@ -49,6 +49,7 @@ describe('User Details', function () {
 
       render(<UserDetails />, {
         router,
+        enableRouterMocks: true,
       });
 
       expect(await screen.findByText('Active')).toBeInTheDocument();
@@ -63,6 +64,7 @@ describe('User Details', function () {
 
       render(<UserDetails />, {
         router,
+        enableRouterMocks: true,
       });
 
       await userEvent.click(
@@ -79,6 +81,7 @@ describe('User Details', function () {
 
       render(<UserDetails />, {
         router,
+        enableRouterMocks: true,
       });
 
       expect(await screen.findByText('test-username')).toBeInTheDocument();

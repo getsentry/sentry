@@ -76,6 +76,7 @@ describe('EventTagsTree', function () {
   it('renders tag tree', async function () {
     render(<EventTags projectSlug={project.slug} event={event} />, {
       organization,
+      enableRouterMocks: true,
     });
     expect(mockDetailedProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -138,6 +139,7 @@ describe('EventTagsTree', function () {
     });
     render(<EventTags projectSlug={project.slug} event={releaseEvent} />, {
       organization,
+      enableRouterMocks: true,
     });
     expect(mockDetailedProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -197,6 +199,7 @@ describe('EventTagsTree', function () {
       const uniqueTagsEvent = EventFixture({tags: [tag], projectID: project.id});
       render(<EventTags projectSlug={project.slug} event={uniqueTagsEvent} />, {
         organization,
+        enableRouterMocks: true,
       });
       expect(mockDetailedProject).toHaveBeenCalled();
       expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -244,6 +247,7 @@ describe('EventTagsTree', function () {
     });
     render(<EventTags projectSlug={project.slug} event={errorTagEvent} />, {
       organization,
+      enableRouterMocks: true,
     });
     expect(mockDetailedProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -266,6 +270,7 @@ describe('EventTagsTree', function () {
     });
     render(<EventTags projectSlug={project.slug} event={uniqueTagsEvent} />, {
       organization,
+      enableRouterMocks: true,
     });
     expect(mockDetailedProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -291,6 +296,7 @@ describe('EventTagsTree', function () {
     });
     render(<EventTags projectSlug={highlightProject.slug} event={highlightsEvent} />, {
       organization,
+      enableRouterMocks: true,
     });
     expect(mockHighlightProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -330,6 +336,7 @@ describe('EventTagsTree', function () {
     });
     render(<EventTags projectSlug={highlightProject.slug} event={highlightsEvent} />, {
       organization: readAccessOrganization,
+      enableRouterMocks: true,
     });
     expect(mockHighlightProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -355,6 +362,7 @@ describe('EventTagsTree', function () {
     render(<EventTags projectSlug={project.slug} event={highlightsEvent} />, {
       organization,
       router: issueDetailsRouter,
+      enableRouterMocks: true,
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 

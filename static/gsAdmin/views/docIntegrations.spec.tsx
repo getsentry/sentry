@@ -23,7 +23,10 @@ describe('Doc Integrations', function () {
       body: [],
     });
 
-    render(<DocIntegrations {...routerProps} />, {router});
+    render(<DocIntegrations {...routerProps} />, {
+      router,
+      enableRouterMocks: true,
+    });
 
     expect(
       screen.getByRole('heading', {name: 'Document Integrations'})
@@ -52,7 +55,10 @@ describe('Doc Integration Details', function () {
       body: mockDocIntegration,
     });
 
-    render(<DocIntegrationDetails />, {router});
+    render(<DocIntegrationDetails />, {
+      router,
+      enableRouterMocks: true,
+    });
 
     expect(
       await screen.findByRole('heading', {name: 'Doc Integrations'})
@@ -86,7 +92,10 @@ describe('Doc Integration Details', function () {
       method: 'DELETE',
     });
 
-    render(<DocIntegrationDetails />, {router});
+    render(<DocIntegrationDetails />, {
+      router,
+      enableRouterMocks: true,
+    });
 
     expect(
       await screen.findByRole('heading', {name: 'Doc Integrations'})
@@ -142,7 +151,10 @@ describe('Doc Integration Details', function () {
       statusCode: 403,
     });
 
-    render(<DocIntegrationDetails />, {router});
+    render(<DocIntegrationDetails />, {
+      router,
+      enableRouterMocks: true,
+    });
     expect(
       await screen.findByRole('heading', {name: 'Doc Integrations'})
     ).toBeInTheDocument();
@@ -196,7 +208,10 @@ describe('Doc Integration Details', function () {
       },
     });
 
-    render(<DocIntegrationDetails />, {router});
+    render(<DocIntegrationDetails />, {
+      router,
+      enableRouterMocks: true,
+    });
 
     expect(
       await screen.findByRole('heading', {name: 'Doc Integrations'})

@@ -177,7 +177,7 @@ describe('Discover > Homepage', () => {
         enableRouterMocks: true,
       }
     );
-    renderGlobalModal({router: initialData.router});
+    renderGlobalModal({router: initialData.router, enableRouterMocks: true});
 
     await userEvent.click(await screen.findByText('Columns'));
 

@@ -85,6 +85,7 @@ export function renderWithOnboardingLayout<
     {
       organization,
       router,
+      enableRouterMocks: true,
     }
   );
 }

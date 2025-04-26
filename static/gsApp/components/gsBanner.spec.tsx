@@ -846,7 +846,7 @@ describe('GSBanner', function () {
       organization,
       enableRouterMocks: true,
     });
-    renderGlobalModal();
+    renderGlobalModal({enableRouterMocks: true});
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
@@ -862,7 +862,7 @@ describe('GSBanner', function () {
       organization,
       enableRouterMocks: true,
     });
-    renderGlobalModal();
+    renderGlobalModal({enableRouterMocks: true});
 
     expect(await screen.findByTestId('modal-usage-exceeded')).toBeInTheDocument();
   });
@@ -881,7 +881,7 @@ describe('GSBanner', function () {
       organization,
       enableRouterMocks: true,
     });
-    renderGlobalModal();
+    renderGlobalModal({enableRouterMocks: true});
 
     expect(await screen.findByTestId('modal-grace-period')).toBeInTheDocument();
   });
@@ -1919,7 +1919,7 @@ describe('GSBanner', function () {
       organization,
       enableRouterMocks: true,
     });
-    renderGlobalModal();
+    renderGlobalModal({enableRouterMocks: true});
 
     expect(await screen.findByTestId('banner-alert-past-due')).toBeInTheDocument();
     expect(
@@ -1960,7 +1960,7 @@ describe('GSBanner', function () {
       organization,
       enableRouterMocks: true,
     });
-    renderGlobalModal();
+    renderGlobalModal({enableRouterMocks: true});
 
     expect(await screen.findByTestId('banner-alert-past-due')).toBeInTheDocument();
     expect(await screen.findByTestId('modal-past-due')).toBeInTheDocument();
@@ -1984,7 +1984,7 @@ describe('GSBanner', function () {
       organization,
       enableRouterMocks: true,
     });
-    renderGlobalModal();
+    renderGlobalModal({enableRouterMocks: true});
 
     await act(tick);
     expect(screen.queryByTestId('modal-past-due')).not.toBeInTheDocument();
@@ -2076,7 +2076,7 @@ describe('GSBanner', function () {
       organization,
       enableRouterMocks: true,
     });
-    renderGlobalModal();
+    renderGlobalModal({enableRouterMocks: true});
 
     await act(tick);
     expect(screen.queryByTestId('banner-alert-past-due')).not.toBeInTheDocument();

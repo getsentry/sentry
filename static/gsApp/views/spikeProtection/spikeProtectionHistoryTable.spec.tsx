@@ -47,7 +47,11 @@ describe('SpikeProtectionHistoryTable', () => {
         project={project}
         onEnableSpikeProtection={() => {}}
       />,
-      {router, organization}
+      {
+        router,
+        organization,
+        enableRouterMocks: true,
+      }
     );
 
     const emptyState = await screen.findByTestId('spike-history-empty');
@@ -67,7 +71,11 @@ describe('SpikeProtectionHistoryTable', () => {
         project={project}
         onEnableSpikeProtection={onEnableFunction}
       />,
-      {router, organization}
+      {
+        router,
+        organization,
+        enableRouterMocks: true,
+      }
     );
 
     const disabledState = screen.getByTestId('spike-history-disabled');
@@ -102,7 +110,11 @@ describe('SpikeProtectionHistoryTable', () => {
         project={project}
         onEnableSpikeProtection={() => {}}
       />,
-      {router, organization}
+      {
+        router,
+        organization,
+        enableRouterMocks: true,
+      }
     );
     await screen.findByTestId('spike-protection-history-table');
     screen.getByText('2wk');
@@ -145,7 +157,11 @@ describe('SpikeProtectionHistoryTable', () => {
         project={project}
         onEnableSpikeProtection={() => {}}
       />,
-      {router, organization}
+      {
+        router,
+        organization,
+        enableRouterMocks: true,
+      }
     );
 
     await screen.findByTestId('spike-protection-history-table');
