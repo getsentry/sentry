@@ -170,6 +170,118 @@ def get_organization_autofix_consent(*, org_id: int) -> dict:
     }
 
 
+# def get_fields(*, org_id: int, project_ids: list[int], stats_period: str) -> dict:
+#     # organization = Organization.objects.get(id=org_id)
+#     # projects = Project.objects.filter(id__in=project_ids, organization=organization, status=0)
+
+#     # TODO: Start based off stats period
+#     start = datetime.datetime.now() - datetime.timedelta(days=1)
+#     end = datetime.datetime.now()
+
+#     start_time_proto = ProtobufTimestamp()
+#     start_time_proto.FromDatetime(start)
+#     end_time_proto = ProtobufTimestamp()
+#     end_time_proto.FromDatetime(end)
+#     req = AggregateBucketRequest(
+#         meta=RequestMeta(
+#             organization_id=org_id,
+#             cogs_category="events_analytics_platform",
+#             referrer="seer_rpc",
+#             project_ids=project_ids,
+#             start_timestamp=start_time_proto,
+#             end_timestamp=end_time_proto,
+#             trace_item_name=TraceItemName.TRACE_ITEM_NAME_EAP_SPANS,
+#         ),
+#         aggregate=AggregateBucketRequest.FUNCTION_SUM,
+#         filter=TraceItemFilter(
+#             comparison_filter=ComparisonFilter(
+#                 key=AttributeKey(name="op", type=AttributeKey.Type.TYPE_STRING),
+#                 value=AttributeValue(val_str="ai.run"),
+#             )
+#         ),
+#         granularity_secs=60,
+#         key=AttributeKey(name="duration", type=AttributeKey.TYPE_FLOAT),
+#         # attribute_key_transform_context=AttributeKeyTransformContext(),
+#     )
+#     aggregate_resp = snuba_rpc.rpc(req, AggregateBucketResponse)
+#     response = AggregateBucketResponse()
+#     # response.ParseFromString(aggregate_resp.result)
+#     print("aggregate_resp", aggregate_resp)
+#     print("response", response)
+#     print()
+
+#     return {}
+
+
+# def get_field_values(
+#     *,
+#     organization_slug: str,
+#     project_ids: list[int],
+#     fields: list[str],
+#     stats_period: str,
+#     k: int = 100,
+# ) -> dict:
+#     """
+#     Get values for specific fields in the given projects.
+
+#     Args:
+#         organization_slug: The slug of the organization
+#         project_ids: List of project IDs to get field values from
+#         fields: List of field names to get values for
+#         stats_period: The time period to consider for stats
+#         k: Maximum number of values to return per field
+
+#     Returns:
+#         Dictionary containing field values
+#     """
+#     try:
+#         organization = Organization.objects.get(slug=organization_slug)
+#         projects = Project.objects.filter(
+#             id__in=project_ids, organization=organization, status=0  # ObjectStatus.ACTIVE
+#         )
+#     except (Organization.DoesNotExist, Project.DoesNotExist):
+#         return {}
+
+#     result = {}
+
+#     for field in fields:
+#         # Handle project fields
+#         if field == "project":
+#             result[field] = {"type": "string", "values": [project.slug for project in projects][:k]}
+#         elif field == "project.id":
+#             result[field] = {"type": "number", "values": [project.id for project in projects][:k]}
+#         # Handle organization fields
+#         elif field == "organization":
+#             result[field] = {"type": "string", "value": organization.slug}
+#         elif field == "organization.id":
+#             result[field] = {"type": "number", "value": organization.id}
+#         # Handle data scrubbing fields
+#         elif field.startswith("project:") and (
+#             ":sensitive_fields" in field or ":safe_fields" in field
+#         ):
+#             parts = field.split(":")
+#             if len(parts) == 3:
+#                 project_slug = parts[1]
+#                 field_type = parts[2]
+#                 try:
+#                     project = projects.get(slug=project_slug)
+#                     scrub_settings = get_datascrubbing_settings(project)
+#                     if field_type == "sensitive_fields" and scrub_settings.get("sensitiveFields"):
+#                         result[field] = {
+#                             "type": "array",
+#                             "values": scrub_settings["sensitiveFields"][:k],
+#                         }
+#                     elif field_type == "safe_fields" and scrub_settings.get("safeFields"):
+#                         result[field] = {
+#                             "type": "array",
+#                             "values": scrub_settings["safeFields"][:k],
+#                         }
+#                 except Project.DoesNotExist:
+#                     continue
+
+#     return result
+
+
 seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_organization_slug": get_organization_slug,
     "get_organization_autofix_consent": get_organization_autofix_consent,
@@ -177,6 +289,8 @@ seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_issues_related_to_function_names": get_issues_related_to_function_names,
     "get_error_event_details": get_error_event_details,
     "get_profile_details": get_profile_details,
+    # "get_fields": get_fields,
+    # "get_field_values": get_field_values,
 }
 
 
