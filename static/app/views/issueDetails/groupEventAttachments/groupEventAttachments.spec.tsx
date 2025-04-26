@@ -71,6 +71,7 @@ describe('GroupEventAttachments', function () {
     render(<GroupEventAttachments project={project} group={group} />, {
       router: screenshotRouter,
       organization,
+      enableRouterMocks: true,
     });
     expect(screen.getByRole('radio', {name: 'Screenshots'})).toBeInTheDocument();
     await userEvent.click(screen.getByRole('radio', {name: 'Screenshots'}));
@@ -90,6 +91,7 @@ describe('GroupEventAttachments', function () {
     render(<GroupEventAttachments project={project} group={group} />, {
       router: screenshotRouter,
       organization,
+      enableRouterMocks: true,
     });
     renderGlobalModal();
     await userEvent.click(await screen.findByTestId('screenshot-1'));
@@ -100,6 +102,7 @@ describe('GroupEventAttachments', function () {
     render(<GroupEventAttachments project={project} group={group} />, {
       router,
       organization,
+      enableRouterMocks: true,
     });
     expect(await screen.findByRole('link', {name: '12345678'})).toHaveAttribute(
       'href',
@@ -111,6 +114,7 @@ describe('GroupEventAttachments', function () {
     render(<GroupEventAttachments project={project} group={group} />, {
       router: screenshotRouter,
       organization,
+      enableRouterMocks: true,
     });
     await userEvent.click(await screen.findByLabelText('Actions'));
     expect(
@@ -126,6 +130,7 @@ describe('GroupEventAttachments', function () {
     render(<GroupEventAttachments project={project} group={group} />, {
       router,
       organization,
+      enableRouterMocks: true,
     });
     expect(await screen.findByText(/error loading/i)).toBeInTheDocument();
   });
@@ -138,6 +143,7 @@ describe('GroupEventAttachments', function () {
     render(<GroupEventAttachments project={project} group={group} />, {
       router,
       organization,
+      enableRouterMocks: true,
     });
     renderGlobalModal();
 

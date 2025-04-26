@@ -40,7 +40,11 @@ describe('TeamMembers', () => {
       <TeamDetails {...routerProps}>
         <div data-test-id="test" />
       </TeamDetails>,
-      {organization, router}
+      {
+        organization,
+        router,
+        enableRouterMocks: true,
+      }
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Request Access'}));
@@ -60,7 +64,11 @@ describe('TeamMembers', () => {
       <TeamDetails {...routerProps}>
         <div data-test-id="test" />
       </TeamDetails>,
-      {organization, router}
+      {
+        organization,
+        router,
+        enableRouterMocks: true,
+      }
     );
 
     expect(screen.getByTestId('test')).toBeInTheDocument();

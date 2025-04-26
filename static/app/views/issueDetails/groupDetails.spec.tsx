@@ -95,7 +95,11 @@ describe('groupDetails', () => {
       <GroupDetails {...init.routerProps}>
         <MockComponent />
       </GroupDetails>,
-      {organization: init.organization, router: init.router}
+      {
+        organization: init.organization,
+        router: init.router,
+        enableRouterMocks: true,
+      }
     );
   };
 

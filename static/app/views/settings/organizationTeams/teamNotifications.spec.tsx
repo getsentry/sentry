@@ -50,7 +50,11 @@ describe('TeamNotificationSettings', () => {
       body: [],
     });
 
-    render(<TeamNotificationSettings />, {router, organization});
+    render(<TeamNotificationSettings />, {
+      router,
+      organization,
+      enableRouterMocks: true,
+    });
 
     expect(
       await screen.findByText('No Notification Integrations have been installed yet.')
@@ -68,7 +72,11 @@ describe('TeamNotificationSettings', () => {
       body: [EXAMPLE_INTEGRATION],
     });
 
-    render(<TeamNotificationSettings />, {router, organization});
+    render(<TeamNotificationSettings />, {
+      router,
+      organization,
+      enableRouterMocks: true,
+    });
 
     expect(await screen.findByText('No teams have been linked yet.')).toBeInTheDocument();
   });
@@ -84,7 +92,11 @@ describe('TeamNotificationSettings', () => {
       body: [EXAMPLE_INTEGRATION],
     });
 
-    render(<TeamNotificationSettings />, {router, organization});
+    render(<TeamNotificationSettings />, {
+      router,
+      organization,
+      enableRouterMocks: true,
+    });
 
     const input = await screen.findByRole('textbox', {
       name: 'Unlink this channel in slack with `/slack unlink team`',
@@ -112,7 +124,11 @@ describe('TeamNotificationSettings', () => {
       method: 'DELETE',
     });
 
-    render(<TeamNotificationSettings />, {router, organization});
+    render(<TeamNotificationSettings />, {
+      router,
+      organization,
+      enableRouterMocks: true,
+    });
 
     await userEvent.click(await screen.findByRole('button', {name: 'Unlink'}));
 

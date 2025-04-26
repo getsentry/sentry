@@ -92,6 +92,7 @@ describe('Relocation', function () {
     return render(<Relocation {...routerProps} />, {
       router,
       organization,
+      enableRouterMocks: true,
     });
   }
 

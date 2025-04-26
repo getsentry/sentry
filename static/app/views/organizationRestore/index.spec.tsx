@@ -34,7 +34,10 @@ describe('OrganizationRestore', function () {
     const {routerProps, router} = initializeOrg<{orgId: string}>({
       organization: pendingDeleteOrg,
     });
-    render(<OrganizationRestore {...routerProps} />, {router});
+    render(<OrganizationRestore {...routerProps} />, {
+      router,
+      enableRouterMocks: true,
+    });
 
     const text = await screen.findByText(/currently scheduled for deletion/);
     expect(mockGet).toHaveBeenCalled();
@@ -53,7 +56,10 @@ describe('OrganizationRestore', function () {
     const {routerProps, router} = initializeOrg<{orgId: string}>({
       organization: pendingDeleteOrg,
     });
-    render(<OrganizationRestore {...routerProps} />, {router});
+    render(<OrganizationRestore {...routerProps} />, {
+      router,
+      enableRouterMocks: true,
+    });
 
     const button = await screen.findByTestId('form-submit');
     await userEvent.click(button);
@@ -75,7 +81,10 @@ describe('OrganizationRestore', function () {
     const {routerProps, router} = initializeOrg<{orgId: string}>({
       organization: deleteInProgressOrg,
     });
-    render(<OrganizationRestore {...routerProps} />, {router});
+    render(<OrganizationRestore {...routerProps} />, {
+      router,
+      enableRouterMocks: true,
+    });
 
     const text = await screen.findByText(
       /organization is currently in progress of being deleted/

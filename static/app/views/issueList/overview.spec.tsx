@@ -606,6 +606,7 @@ describe('IssueList', function () {
       render(<IssueListOverview {...merge({}, routerProps, routerWithSavedSearch)} />, {
         router: routerWithSavedSearch,
         organization,
+        enableRouterMocks: true,
       });
 
       expect(
@@ -656,6 +657,7 @@ describe('IssueList', function () {
       render(<IssueListOverview {...merge({}, routerProps, routerWithSavedSearch)} />, {
         router: routerWithSavedSearch,
         organization,
+        enableRouterMocks: true,
       });
 
       expect(

@@ -34,7 +34,9 @@ describe('IssueSearchWithSavedSearches', () => {
   });
 
   it('displays "Custom Search" label when no saved searches are selected', async () => {
-    render(<IssueSearchWithSavedSearches {...defaultProps} />);
+    render(<IssueSearchWithSavedSearches {...defaultProps} />, {
+      enableRouterMocks: true,
+    });
 
     expect(
       await screen.findByRole('button', {name: 'Custom Search'})
@@ -48,6 +50,8 @@ describe('IssueSearchWithSavedSearches', () => {
           searchId: '789',
         },
       },
+
+      enableRouterMocks: true,
     });
 
     expect(

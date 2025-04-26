@@ -361,6 +361,7 @@ describe('groupEventDetails', () => {
     const {rerender} = render(<GroupEventDetails />, {
       organization: props.organization,
       router: props.router,
+      enableRouterMocks: true,
     });
     expect(await screen.findByTestId('group-event-details')).toBeInTheDocument();
     expect(props.router.replace).not.toHaveBeenCalled();
@@ -378,6 +379,7 @@ describe('groupEventDetails', () => {
     const {rerender} = render(<GroupEventDetails />, {
       organization: props.organization,
       router: props.router,
+      enableRouterMocks: true,
     });
 
     expect(props.router.replace).not.toHaveBeenCalled();
@@ -415,6 +417,7 @@ describe('groupEventDetails', () => {
     render(<GroupEventDetails />, {
       organization: props.organization,
       router: props.router,
+      enableRouterMocks: true,
     });
 
     expect(await screen.findByText(/couldn't track down an event/)).toBeInTheDocument();
@@ -435,6 +438,7 @@ describe('groupEventDetails', () => {
     render(<GroupEventDetails />, {
       router: props.router,
       organization: props.organization,
+      enableRouterMocks: true,
     });
 
     expect(
@@ -467,6 +471,7 @@ describe('groupEventDetails', () => {
     render(<GroupEventDetails />, {
       organization: props.organization,
       router: props.router,
+      enableRouterMocks: true,
     });
 
     expect(
@@ -480,7 +485,11 @@ describe('groupEventDetails', () => {
   it('renders event tags ui', async () => {
     const {organization, project, group, event, router} = makeDefaultMockData();
     mockGroupApis(organization, project, group, event);
-    render(<GroupEventDetails />, {organization, router});
+    render(<GroupEventDetails />, {
+      organization,
+      router,
+      enableRouterMocks: true,
+    });
 
     expect(await screen.findByRole('region', {name: 'tags'})).toBeInTheDocument();
     const highlights = screen.getByRole('region', {name: 'Highlights'});
@@ -511,6 +520,7 @@ describe('groupEventDetails', () => {
       render(<GroupEventDetails />, {
         organization: props.organization,
         router: props.router,
+        enableRouterMocks: true,
       });
 
       expect(
@@ -540,6 +550,7 @@ describe('groupEventDetails', () => {
       render(<GroupEventDetails />, {
         organization: props.organization,
         router: props.router,
+        enableRouterMocks: true,
       });
 
       // mechanism: ANR

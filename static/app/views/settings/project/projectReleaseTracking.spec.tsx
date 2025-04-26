@@ -50,7 +50,10 @@ describe('ProjectReleaseTracking', function () {
         organization={org}
         project={project}
         plugins={{loading: false, plugins: PluginsFixture()}}
-      />
+      />,
+      {
+        enableRouterMocks: true,
+      }
     );
 
     await waitFor(() => {
@@ -64,7 +67,10 @@ describe('ProjectReleaseTracking', function () {
         organization={org}
         project={project}
         plugins={{loading: false, plugins: PluginsFixture()}}
-      />
+      />,
+      {
+        enableRouterMocks: true,
+      }
     );
     renderGlobalModal();
 
@@ -112,7 +118,10 @@ describe('ProjectReleaseTracking', function () {
     });
 
     const {rerender} = render(
-      <ProjectReleaseTrackingContainer organization={org} project={project} />
+      <ProjectReleaseTrackingContainer organization={org} project={project} />,
+      {
+        enableRouterMocks: true,
+      }
     );
     await waitFor(() => {
       expect(fetchPlugins).toHaveBeenCalled();
@@ -153,7 +162,10 @@ describe('ProjectReleaseTracking', function () {
         organization={org}
         project={project}
         plugins={{loading: false, plugins: PluginsFixture()}}
-      />
+      />,
+      {
+        enableRouterMocks: true,
+      }
     );
 
     await waitFor(() => {

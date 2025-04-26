@@ -282,6 +282,7 @@ describe('Performance > Content', function () {
 
     render(<WrappedComponent router={router} />, {
       router,
+      enableRouterMocks: true,
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
@@ -298,6 +299,7 @@ describe('Performance > Content', function () {
 
     render(<WrappedComponent router={router} />, {
       router,
+      enableRouterMocks: true,
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
@@ -314,6 +316,7 @@ describe('Performance > Content', function () {
 
     render(<WrappedComponent router={router} />, {
       router,
+      enableRouterMocks: true,
     });
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
     expect(screen.queryByText('Pinpoint problems')).not.toBeInTheDocument();
@@ -325,6 +328,7 @@ describe('Performance > Content', function () {
 
     render(<WrappedComponent router={router} />, {
       router,
+      enableRouterMocks: true,
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
@@ -346,6 +350,7 @@ describe('Performance > Content', function () {
     const {router} = initializeTrendsData({query: 'tag:value'}, false);
     render(<WrappedComponent router={router} />, {
       router,
+      enableRouterMocks: true,
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
@@ -361,6 +366,7 @@ describe('Performance > Content', function () {
 
     render(<WrappedComponent router={router} />, {
       router,
+      enableRouterMocks: true,
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
@@ -390,6 +396,7 @@ describe('Performance > Content', function () {
 
     render(<WrappedComponent router={router} />, {
       router,
+      enableRouterMocks: true,
     });
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
 
@@ -401,6 +408,7 @@ describe('Performance > Content', function () {
 
     render(<WrappedComponent router={router} />, {
       router,
+      enableRouterMocks: true,
     });
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
     expect(router.push).toHaveBeenCalledTimes(0);
@@ -411,6 +419,7 @@ describe('Performance > Content', function () {
 
     render(<WrappedComponent router={router} />, {
       router,
+      enableRouterMocks: true,
     });
 
     const trendsLinks = await screen.findAllByTestId('landing-header-trends');
@@ -436,6 +445,7 @@ describe('Performance > Content', function () {
 
     render(<WrappedComponent router={router} />, {
       router,
+      enableRouterMocks: true,
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();

@@ -168,6 +168,7 @@ describe('Performance > Transaction Tags', function () {
     render(<TransactionTags location={router.location} />, {
       router,
       organization,
+      enableRouterMocks: true,
     });
 
     // It shows the sidebar
@@ -202,6 +203,7 @@ describe('Performance > Transaction Tags', function () {
     render(<TransactionTags location={router.location} />, {
       router,
       organization,
+      enableRouterMocks: true,
     });
 
     await waitFor(() => {
@@ -241,6 +243,7 @@ describe('Performance > Transaction Tags', function () {
     render(<TransactionTags location={router.location} />, {
       router,
       organization,
+      enableRouterMocks: true,
     });
 
     await waitFor(() => {
@@ -278,6 +281,7 @@ describe('Performance > Transaction Tags', function () {
     render(<TransactionTags location={initialData.router.location} />, {
       router: initialData.router,
       organization: initialData.organization,
+      enableRouterMocks: true,
     });
 
     await waitFor(() => {
@@ -306,6 +310,7 @@ describe('Performance > Transaction Tags', function () {
     render(<TransactionTags location={router.location} />, {
       router,
       organization,
+      enableRouterMocks: true,
     });
 
     expect(await screen.findByText('Suspect Tags')).toBeInTheDocument();
@@ -366,6 +371,7 @@ describe('Performance > Transaction Tags', function () {
     render(<TransactionTags location={router.location} />, {
       router,
       organization,
+      enableRouterMocks: true,
     });
 
     await waitFor(() => {

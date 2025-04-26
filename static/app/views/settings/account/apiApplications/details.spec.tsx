@@ -30,6 +30,8 @@ describe('ApiApplications', function () {
           appId: 'abcd',
         },
       },
+
+      enableRouterMocks: true,
     });
 
     expect(
@@ -84,6 +86,8 @@ describe('ApiApplications', function () {
           appId: 'abcd',
         },
       },
+
+      enableRouterMocks: true,
     });
     renderGlobalModal();
 

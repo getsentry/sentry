@@ -58,7 +58,9 @@ describe('EventSearch', () => {
   });
 
   it('handles basic inputs for tags', async function () {
-    render(<EventSearch {...defaultProps} />);
+    render(<EventSearch {...defaultProps} />, {
+      enableRouterMocks: true,
+    });
     const search = screen.getByRole('combobox', {name: 'Add a search term'});
     expect(search).toBeInTheDocument();
     await userEvent.type(search, `${tagKey}:`);
@@ -78,6 +80,7 @@ describe('EventSearch', () => {
       () => useEventQuery({groupId: group.id}),
       {
         wrapper: makeAllTheProviders({
+          enableRouterMocks: true,
           organization,
           router: RouterFixture({
             location: LocationFixture({
@@ -93,6 +96,7 @@ describe('EventSearch', () => {
       () => useEventQuery({groupId: group.id}),
       {
         wrapper: makeAllTheProviders({
+          enableRouterMocks: true,
           organization,
           router: RouterFixture({
             location: LocationFixture({
@@ -108,6 +112,7 @@ describe('EventSearch', () => {
       () => useEventQuery({groupId: group.id}),
       {
         wrapper: makeAllTheProviders({
+          enableRouterMocks: true,
           organization,
           router: RouterFixture({
             location: LocationFixture({
@@ -123,6 +128,7 @@ describe('EventSearch', () => {
       () => useEventQuery({groupId: group.id}),
       {
         wrapper: makeAllTheProviders({
+          enableRouterMocks: true,
           organization,
           router: RouterFixture({
             location: LocationFixture({

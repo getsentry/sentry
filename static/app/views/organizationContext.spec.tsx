@@ -78,7 +78,10 @@ describe('OrganizationContext', function () {
     render(
       <OrganizationContextProvider>
         <OrganizationName />
-      </OrganizationContextProvider>
+      </OrganizationContextProvider>,
+      {
+        enableRouterMocks: true,
+      }
     );
 
     expect(await screen.findByText(organization.slug)).toBeInTheDocument();
@@ -140,7 +143,10 @@ describe('OrganizationContext', function () {
     render(
       <OrganizationContextProvider>
         <OrganizationName />
-      </OrganizationContextProvider>
+      </OrganizationContextProvider>,
+      {
+        enableRouterMocks: true,
+      }
     );
 
     await waitFor(() => !OrganizationStore.getState().loading);
@@ -159,7 +165,10 @@ describe('OrganizationContext', function () {
     render(
       <OrganizationContextProvider>
         <OrganizationName />
-      </OrganizationContextProvider>
+      </OrganizationContextProvider>,
+      {
+        enableRouterMocks: true,
+      }
     );
 
     await waitFor(() => !OrganizationStore.getState().loading);

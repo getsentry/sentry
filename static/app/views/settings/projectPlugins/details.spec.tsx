@@ -55,7 +55,10 @@ describe('ProjectPluginDetails', function () {
     });
     render(
       <ProjectPluginDetailsContainer organization={organization} project={project} />,
-      {router}
+      {
+        router,
+        enableRouterMocks: true,
+      }
     );
     expect(await screen.findByRole('heading', {name: 'Amazon SQS'})).toBeInTheDocument();
   });
@@ -72,7 +75,10 @@ describe('ProjectPluginDetails', function () {
         project={project}
         plugins={{plugins}}
       />,
-      {router}
+      {
+        router,
+        enableRouterMocks: true,
+      }
     );
 
     await userEvent.click(
@@ -92,7 +98,10 @@ describe('ProjectPluginDetails', function () {
 
     render(
       <ProjectPluginDetailsContainer organization={organization} project={project} />,
-      {router}
+      {
+        router,
+        enableRouterMocks: true,
+      }
     );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Enable Plugin'}));

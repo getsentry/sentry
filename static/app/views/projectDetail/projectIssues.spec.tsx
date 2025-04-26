@@ -68,6 +68,7 @@ describe('ProjectDetail > ProjectIssues', function () {
       {
         router,
         organization,
+        enableRouterMocks: true,
       }
     );
 
@@ -85,6 +86,7 @@ describe('ProjectDetail > ProjectIssues', function () {
       {
         router,
         organization,
+        enableRouterMocks: true,
       }
     );
 
@@ -114,6 +116,7 @@ describe('ProjectDetail > ProjectIssues', function () {
       {
         router,
         organization,
+        enableRouterMocks: true,
       }
     );
 
@@ -144,6 +147,7 @@ describe('ProjectDetail > ProjectIssues', function () {
       {
         router,
         organization,
+        enableRouterMocks: true,
       }
     );
 
@@ -175,7 +179,11 @@ describe('ProjectDetail > ProjectIssues', function () {
           query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},
         }}
       />,
-      {router, organization}
+      {
+        router,
+        organization,
+        enableRouterMocks: true,
+      }
     );
 
     expect(endpointMock).toHaveBeenCalledTimes(0);

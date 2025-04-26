@@ -45,7 +45,11 @@ describe('PluginDetailedView', function () {
     const router = RouterFixture({
       params: {orgId: organization.slug, integrationSlug: plugin.slug},
     });
-    render(<PluginDetailedView />, {organization, router});
+    render(<PluginDetailedView />, {
+      organization,
+      router,
+      enableRouterMocks: true,
+    });
 
     expect(await screen.findByText(plugin.name)).toBeInTheDocument();
     expect(screen.getByText('Installed')).toBeInTheDocument();
@@ -61,7 +65,11 @@ describe('PluginDetailedView', function () {
       location: {query: {tab: 'configurations'}},
     });
 
-    render(<PluginDetailedView />, {router, organization});
+    render(<PluginDetailedView />, {
+      router,
+      organization,
+      enableRouterMocks: true,
+    });
 
     expect(await screen.findByText(plugin.name)).toBeInTheDocument();
     expect(screen.getByTestId('installed-plugin')).toBeInTheDocument();

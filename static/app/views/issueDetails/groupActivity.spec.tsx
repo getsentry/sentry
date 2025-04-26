@@ -78,7 +78,11 @@ describe('GroupActivity', function () {
 
     TeamStore.loadInitialData([TeamFixture({id: '999', slug: 'no-team'})]);
     OrganizationStore.onUpdate(organization, {replace: true});
-    render(<GroupActivity />, {router, organization});
+    render(<GroupActivity />, {
+      router,
+      organization,
+      enableRouterMocks: true,
+    });
   }
 
   it('renders a NoteInput', async function () {

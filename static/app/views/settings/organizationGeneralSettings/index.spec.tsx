@@ -48,7 +48,9 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('can enable "early adopter"', async function () {
-    render(<OrganizationGeneralSettings />);
+    render(<OrganizationGeneralSettings />, {
+      enableRouterMocks: true,
+    });
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
@@ -73,6 +75,7 @@ describe('OrganizationGeneralSettings', function () {
     });
     render(<OrganizationGeneralSettings />, {
       organization: organizationWithCodecovFeature,
+      enableRouterMocks: true,
     });
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -96,7 +99,10 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('changes org slug and redirects to new slug', async function () {
-    render(<OrganizationGeneralSettings />, {router});
+    render(<OrganizationGeneralSettings />, {
+      router,
+      enableRouterMocks: true,
+    });
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
@@ -133,7 +139,10 @@ describe('OrganizationGeneralSettings', function () {
       body: {...org, slug: 'acme', links: {organizationUrl: 'https://acme.sentry.io'}},
     });
 
-    render(<OrganizationGeneralSettings />, {organization: org});
+    render(<OrganizationGeneralSettings />, {
+      organization: org,
+      enableRouterMocks: true,
+    });
 
     const input = screen.getByRole('textbox', {name: /slug/i});
 
@@ -162,6 +171,7 @@ describe('OrganizationGeneralSettings', function () {
 
     render(<OrganizationGeneralSettings />, {
       organization: readOnlyOrg,
+      enableRouterMocks: true,
     });
 
     const formElements = [
@@ -186,6 +196,8 @@ describe('OrganizationGeneralSettings', function () {
       organization: OrganizationFixture({
         access: ['org:write'],
       }),
+
+      enableRouterMocks: true,
     });
 
     expect(
@@ -198,6 +210,7 @@ describe('OrganizationGeneralSettings', function () {
 
     render(<OrganizationGeneralSettings />, {
       organization: OrganizationFixture({access: ['org:admin']}),
+      enableRouterMocks: true,
     });
     renderGlobalModal();
 

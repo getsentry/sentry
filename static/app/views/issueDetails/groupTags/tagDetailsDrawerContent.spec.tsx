@@ -63,7 +63,10 @@ describe('TagDetailsDrawerContent', () => {
       url: '/organizations/org-slug/issues/1/tags/user/values/',
       body: TagValuesFixture(),
     });
-    render(<TagDetailsDrawerContent group={group} />, {router});
+    render(<TagDetailsDrawerContent group={group} />, {
+      router,
+      enableRouterMocks: true,
+    });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -101,7 +104,10 @@ describe('TagDetailsDrawerContent', () => {
           '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"',
       },
     });
-    render(<TagDetailsDrawerContent group={group} />, {router});
+    render(<TagDetailsDrawerContent group={group} />, {
+      router,
+      enableRouterMocks: true,
+    });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -125,7 +131,10 @@ describe('TagDetailsDrawerContent', () => {
       url: '/organizations/org-slug/issues/1/tags/user/values/',
       body: TagValuesFixture(),
     });
-    render(<TagDetailsDrawerContent group={group} />, {router});
+    render(<TagDetailsDrawerContent group={group} />, {
+      router,
+      enableRouterMocks: true,
+    });
 
     await userEvent.click(
       await screen.findByRole('button', {name: 'Tag Value Actions Menu'})
@@ -153,6 +162,7 @@ describe('TagDetailsDrawerContent', () => {
     render(<TagDetailsDrawerContent group={group} />, {
       router,
       organization: discoverOrganization,
+      enableRouterMocks: true,
     });
 
     await userEvent.click(
@@ -183,7 +193,10 @@ describe('TagDetailsDrawerContent', () => {
       statusCode: 500,
     });
 
-    render(<TagDetailsDrawerContent group={group} />, {router});
+    render(<TagDetailsDrawerContent group={group} />, {
+      router,
+      enableRouterMocks: true,
+    });
 
     expect(
       await screen.findByText('There was an error loading tag details')
@@ -203,7 +216,10 @@ describe('TagDetailsDrawerContent', () => {
       body: VariableTagValueFixture([996, 4]),
     });
 
-    render(<TagDetailsDrawerContent group={group} />, {router});
+    render(<TagDetailsDrawerContent group={group} />, {
+      router,
+      enableRouterMocks: true,
+    });
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     // Value and percent columns
@@ -230,7 +246,10 @@ describe('TagDetailsDrawerContent', () => {
       body: VariableTagValueFixture([992, 7]),
     });
 
-    render(<TagDetailsDrawerContent group={group} />, {router});
+    render(<TagDetailsDrawerContent group={group} />, {
+      router,
+      enableRouterMocks: true,
+    });
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     // Value and percent columns
@@ -257,7 +276,10 @@ describe('TagDetailsDrawerContent', () => {
       body: VariableTagValueFixture([995, 5]),
     });
 
-    render(<TagDetailsDrawerContent group={group} />, {router});
+    render(<TagDetailsDrawerContent group={group} />, {
+      router,
+      enableRouterMocks: true,
+    });
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     // Percents will be overcounted in this edge case.

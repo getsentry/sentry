@@ -58,7 +58,10 @@ describe('AccountSecurityEnroll', function () {
     });
 
     it('does not have enrolled circle indicator', function () {
-      render(<AccountSecurityEnroll />, {router});
+      render(<AccountSecurityEnroll />, {
+        router,
+        enableRouterMocks: true,
+      });
 
       expect(
         screen.getByRole('status', {name: 'Authentication Method Inactive'})
@@ -66,7 +69,10 @@ describe('AccountSecurityEnroll', function () {
     });
 
     it('has qrcode component', function () {
-      render(<AccountSecurityEnroll />, {router});
+      render(<AccountSecurityEnroll />, {
+        router,
+        enableRouterMocks: true,
+      });
 
       expect(screen.getByLabelText('Enrollment QR Code')).toBeInTheDocument();
     });
@@ -91,7 +97,10 @@ describe('AccountSecurityEnroll', function () {
         body: [usorg],
       });
 
-      render(<AccountSecurityEnroll />, {router});
+      render(<AccountSecurityEnroll />, {
+        router,
+        enableRouterMocks: true,
+      });
 
       await userEvent.type(screen.getByRole('textbox', {name: 'OTP Code'}), 'otp{enter}');
 
@@ -129,7 +138,10 @@ describe('AccountSecurityEnroll', function () {
         body: [usorg],
       });
 
-      render(<AccountSecurityEnroll />, {router});
+      render(<AccountSecurityEnroll />, {
+        router,
+        enableRouterMocks: true,
+      });
 
       await userEvent.type(screen.getByRole('textbox', {name: 'OTP Code'}), 'otp{enter}');
 
@@ -161,7 +173,10 @@ describe('AccountSecurityEnroll', function () {
         params: {authId: authenticator.authId},
       });
 
-      render(<AccountSecurityEnroll />, {router: routerWithMock});
+      render(<AccountSecurityEnroll />, {
+        router: routerWithMock,
+        enableRouterMocks: true,
+      });
 
       expect(pushMock).toHaveBeenCalledWith('/settings/account/security/');
     });

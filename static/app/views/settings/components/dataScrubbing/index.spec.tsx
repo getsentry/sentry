@@ -29,7 +29,10 @@ describe('Data Scrubbing', function () {
           relayPiiConfig={relayPiiConfig}
           organization={organization}
           onSubmitSuccess={jest.fn()}
-        />
+        />,
+        {
+          enableRouterMocks: true,
+        }
       );
 
       // Header
@@ -69,7 +72,10 @@ describe('Data Scrubbing', function () {
           relayPiiConfig={undefined}
           organization={organization}
           onSubmitSuccess={jest.fn()}
-        />
+        />,
+        {
+          enableRouterMocks: true,
+        }
       );
 
       expect(screen.getByText('You have no data scrubbing rules')).toBeInTheDocument();
@@ -84,7 +90,10 @@ describe('Data Scrubbing', function () {
           organization={organization}
           onSubmitSuccess={jest.fn()}
           disabled
-        />
+        />,
+        {
+          enableRouterMocks: true,
+        }
       );
 
       // Read Docs is the only enabled action
@@ -112,7 +121,10 @@ describe('Data Scrubbing', function () {
           organization={organization}
           onSubmitSuccess={jest.fn()}
           project={project}
-        />
+        />,
+        {
+          enableRouterMocks: true,
+        }
       );
 
       // Header
@@ -136,7 +148,10 @@ describe('Data Scrubbing', function () {
           onSubmitSuccess={jest.fn()}
           project={project}
         />,
-        {organization}
+        {
+          organization,
+          enableRouterMocks: true,
+        }
       );
 
       // Organization Rules
@@ -157,7 +172,10 @@ describe('Data Scrubbing', function () {
             organization={organization}
             onSubmitSuccess={jest.fn()}
           />
-        </Fragment>
+        </Fragment>,
+        {
+          enableRouterMocks: true,
+        }
       );
 
       await userEvent.click(screen.getAllByLabelText('Delete Rule')[0]!);
@@ -181,7 +199,10 @@ describe('Data Scrubbing', function () {
             organization={organization}
             onSubmitSuccess={jest.fn()}
           />
-        </Fragment>
+        </Fragment>,
+        {
+          enableRouterMocks: true,
+        }
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Add Rule'}));
@@ -206,7 +227,10 @@ describe('Data Scrubbing', function () {
             onSubmitSuccess={jest.fn()}
           />
         </Fragment>,
-        {router}
+        {
+          router,
+          enableRouterMocks: true,
+        }
       );
 
       await userEvent.click(screen.getAllByRole('button', {name: 'Edit Rule'})[0]!);

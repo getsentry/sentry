@@ -122,6 +122,7 @@ describe('GroupReplays', () => {
       render(<GroupReplays />, {
         router,
         organization,
+        enableRouterMocks: true,
       });
 
       expect(
@@ -151,6 +152,7 @@ describe('GroupReplays', () => {
       render(<GroupReplays />, {
         router,
         organization,
+        enableRouterMocks: true,
       });
 
       await waitFor(() => {
@@ -220,6 +222,7 @@ describe('GroupReplays', () => {
       render(<GroupReplays />, {
         router,
         organization,
+        enableRouterMocks: true,
       });
 
       expect(
@@ -250,6 +253,7 @@ describe('GroupReplays', () => {
       render(<GroupReplays />, {
         router,
         organization,
+        enableRouterMocks: true,
       });
 
       expect(
@@ -283,6 +287,7 @@ describe('GroupReplays', () => {
       render(<GroupReplays />, {
         router,
         organization,
+        enableRouterMocks: true,
       });
 
       expect(
@@ -318,6 +323,7 @@ describe('GroupReplays', () => {
       render(<GroupReplays />, {
         router,
         organization,
+        enableRouterMocks: true,
       });
 
       expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -387,6 +393,7 @@ describe('GroupReplays', () => {
       render(<GroupReplays />, {
         router,
         organization,
+        enableRouterMocks: true,
       });
 
       await waitFor(() => {
@@ -493,6 +500,7 @@ describe('GroupReplays', () => {
       render(<GroupReplays />, {
         router,
         organization,
+        enableRouterMocks: true,
       });
 
       expect(await screen.findByText('See Full Replay')).toBeInTheDocument();
@@ -567,6 +575,7 @@ describe('GroupReplays', () => {
       render(<GroupReplays />, {
         router,
         organization,
+        enableRouterMocks: true,
       });
 
       await waitFor(() => {

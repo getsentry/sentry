@@ -35,7 +35,10 @@ describe('ProjectDetail', function () {
         routes={router.routes}
         routeParams={router.params}
         route={{}}
-      />
+      />,
+      {
+        enableRouterMocks: true,
+      }
     );
 
     expect(await screen.findByText(/project could not be found/)).toBeInTheDocument();
@@ -60,7 +63,10 @@ describe('ProjectDetail', function () {
         routes={router.routes}
         routeParams={router.params}
         route={{}}
-      />
+      />,
+      {
+        enableRouterMocks: true,
+      }
     );
 
     expect(
@@ -86,7 +92,10 @@ describe('ProjectDetail', function () {
         routes={router.routes}
         routeParams={router.params}
         route={{}}
-      />
+      />,
+      {
+        enableRouterMocks: true,
+      }
     );
 
     expect(await screen.findByText(/project details/i)).toBeInTheDocument();
@@ -114,7 +123,10 @@ describe('ProjectDetail', function () {
         routes={router.routes}
         routeParams={router.params}
         route={{}}
-      />
+      />,
+      {
+        enableRouterMocks: true,
+      }
     );
 
     await waitFor(() => {

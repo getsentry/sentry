@@ -72,7 +72,9 @@ describe('ProjectsDashboard', function () {
       const teamsWithOneProject = [TeamFixture({projects})];
       TeamStore.loadInitialData(teamsWithOneProject);
 
-      render(<ProjectsDashboard />);
+      render(<ProjectsDashboard />, {
+        enableRouterMocks: true,
+      });
 
       expect(await screen.findByTestId('join-team')).toBeInTheDocument();
       expect(screen.getByTestId('create-project')).toBeInTheDocument();
@@ -110,7 +112,9 @@ describe('ProjectsDashboard', function () {
       ProjectsStore.loadInitialData(projects);
       const teamsWithTwoProjects = [TeamFixture({projects})];
       TeamStore.loadInitialData(teamsWithTwoProjects);
-      render(<ProjectsDashboard />);
+      render(<ProjectsDashboard />, {
+        enableRouterMocks: true,
+      });
       expect(await screen.findByText('My Teams')).toBeInTheDocument();
       expect(screen.getAllByTestId('badge-display-name')).toHaveLength(2);
       expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
@@ -142,7 +146,9 @@ describe('ProjectsDashboard', function () {
       const teamsWithTwoProjects = [TeamFixture({projects: teamProjects})];
       TeamStore.loadInitialData(teamsWithTwoProjects);
 
-      render(<ProjectsDashboard />);
+      render(<ProjectsDashboard />, {
+        enableRouterMocks: true,
+      });
       expect(await screen.findByText('My Teams')).toBeInTheDocument();
       expect(screen.getAllByTestId('badge-display-name')).toHaveLength(1);
     });
@@ -295,6 +301,7 @@ describe('ProjectsDashboard', function () {
       render(<ProjectsDashboard />, {
         router,
         organization: closedOrg,
+        enableRouterMocks: true,
       });
       expect(await screen.findByText('All Teams')).toBeInTheDocument();
       expect(screen.getAllByTestId('badge-display-name')).toHaveLength(1);
@@ -378,7 +385,10 @@ describe('ProjectsDashboard', function () {
         },
       });
 
-      render(<ProjectsDashboard />, {router});
+      render(<ProjectsDashboard />, {
+        router,
+        enableRouterMocks: true,
+      });
 
       expect(await screen.findByText('project3')).toBeInTheDocument();
       expect(screen.queryByText('project2')).not.toBeInTheDocument();
@@ -411,7 +421,9 @@ describe('ProjectsDashboard', function () {
       ProjectsStore.loadInitialData(projects);
       const teamsWithTwoProjects = [TeamFixture({projects})];
       TeamStore.loadInitialData(teamsWithTwoProjects);
-      render(<ProjectsDashboard />);
+      render(<ProjectsDashboard />, {
+        enableRouterMocks: true,
+      });
       await userEvent.type(
         screen.getByPlaceholderText('Search for projects by name'),
         'project2{enter}'
@@ -487,7 +499,9 @@ describe('ProjectsDashboard', function () {
         ],
       });
 
-      render(<ProjectsDashboard />);
+      render(<ProjectsDashboard />, {
+        enableRouterMocks: true,
+      });
 
       // check that all projects are displayed
       await waitFor(() =>
@@ -570,7 +584,9 @@ describe('ProjectsDashboard', function () {
         })),
       });
 
-      const {unmount} = render(<ProjectsDashboard />);
+      const {unmount} = render(<ProjectsDashboard />, {
+        enableRouterMocks: true,
+      });
 
       expect(loadStatsSpy).toHaveBeenCalledTimes(6);
       expect(mock).not.toHaveBeenCalled();
