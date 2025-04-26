@@ -281,7 +281,10 @@ async function keyboardNavigationTestSetup() {
   mockTraceEventDetails();
   mockEventsResponse();
 
-  const value = render(<TraceView />, {router});
+  const value = render(<TraceView />, {
+    router,
+    enableRouterMocks: true,
+  });
   const virtualizedContainer = getVirtualizedContainer();
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
@@ -340,7 +343,10 @@ async function pageloadTestSetup() {
   mockTraceEventDetails();
   mockEventsResponse();
 
-  const value = render(<TraceView />, {router});
+  const value = render(<TraceView />, {
+    router,
+    enableRouterMocks: true,
+  });
   const virtualizedContainer = getVirtualizedContainer();
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
@@ -398,7 +404,10 @@ async function nestedTransactionsTestSetup() {
   mockTraceEventDetails();
   mockEventsResponse();
 
-  const value = render(<TraceView />, {router});
+  const value = render(<TraceView />, {
+    router,
+    enableRouterMocks: true,
+  });
   const virtualizedContainer = getVirtualizedContainer();
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
@@ -456,7 +465,10 @@ async function searchTestSetup() {
   mockTraceEventDetails();
   mockEventsResponse();
 
-  const value = render(<TraceView />, {router});
+  const value = render(<TraceView />, {
+    router,
+    enableRouterMocks: true,
+  });
   const virtualizedContainer = getVirtualizedContainer();
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
@@ -518,7 +530,10 @@ async function simpleTestSetup() {
   mockTraceEventDetails();
   mockEventsResponse();
 
-  const value = render(<TraceView />, {router});
+  const value = render(<TraceView />, {
+    router,
+    enableRouterMocks: true,
+  });
   const virtualizedContainer = getVirtualizedContainer();
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
@@ -732,7 +747,10 @@ async function completeTestSetup() {
   mockTransactionSpansResponse('0', {}, transactionWithoutSpans);
   mockSpansResponse('0', {}, transactionWithoutSpans);
 
-  const value = render(<TraceView />, {router});
+  const value = render(<TraceView />, {
+    router,
+    enableRouterMocks: true,
+  });
   const virtualizedContainer = getVirtualizedContainer();
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
@@ -877,7 +895,10 @@ describe('trace view', () => {
     mockTraceTagsResponse();
     mockEventsResponse();
 
-    render(<TraceView />, {router});
+    render(<TraceView />, {
+      router,
+      enableRouterMocks: true,
+    });
     expect(await screen.findByText(/assembling the trace/i)).toBeInTheDocument();
   });
 
@@ -888,7 +909,10 @@ describe('trace view', () => {
     mockTraceTagsResponse({statusCode: 404});
     mockEventsResponse();
 
-    render(<TraceView />, {router});
+    render(<TraceView />, {
+      router,
+      enableRouterMocks: true,
+    });
     expect(
       await screen.findByText(/Woof. We failed to load your trace./i)
     ).toBeInTheDocument();
@@ -907,7 +931,10 @@ describe('trace view', () => {
     mockTraceTagsResponse({statusCode: 404});
     mockEventsResponse();
 
-    render(<TraceView />, {router});
+    render(<TraceView />, {
+      router,
+      enableRouterMocks: true,
+    });
     expect(
       await screen.findByText(/Woof. We failed to load your trace./i)
     ).toBeInTheDocument();
@@ -933,6 +960,7 @@ describe('trace view', () => {
     window.location.search = `?timestamp=${twelveMinutesAgoInSeconds.toString()}`;
     render(<TraceView />, {
       router,
+      enableRouterMocks: true,
     });
     expect(
       await screen.findByText(/This trace is so empty, even tumbleweeds don't roll here/i)
@@ -959,6 +987,7 @@ describe('trace view', () => {
     window.location.search = `?timestamp=${oneMinuteAgoInSeconds.toString()}`;
     render(<TraceView />, {
       router,
+      enableRouterMocks: true,
     });
     expect(
       await screen.findByText(
@@ -1756,7 +1785,10 @@ describe('trace view', () => {
         }
       );
 
-      const {container} = render(<TraceView />, {router});
+      const {container} = render(<TraceView />, {
+        router,
+        enableRouterMocks: true,
+      });
 
       // Awaits for the placeholder rendering rows to be removed
       await within(container).findByText(/transaction-op-0/i);
