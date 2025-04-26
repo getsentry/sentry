@@ -73,6 +73,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -83,6 +84,8 @@ describe('WidgetBuilderSlideout', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -110,6 +113,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -120,6 +124,8 @@ describe('WidgetBuilderSlideout', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -144,6 +150,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -154,6 +161,8 @@ describe('WidgetBuilderSlideout', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -177,7 +186,10 @@ describe('WidgetBuilderSlideout', () => {
           setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
-      {organization}
+      {
+        organization,
+        enableRouterMocks: true,
+      }
     );
     renderGlobalModal();
 
@@ -206,7 +218,10 @@ describe('WidgetBuilderSlideout', () => {
           setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
-      {organization}
+      {
+        organization,
+        enableRouterMocks: true,
+      }
     );
 
     renderGlobalModal();
@@ -246,6 +261,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -257,6 +273,8 @@ describe('WidgetBuilderSlideout', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -287,6 +305,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -297,6 +316,8 @@ describe('WidgetBuilderSlideout', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -324,6 +345,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -334,6 +356,8 @@ describe('WidgetBuilderSlideout', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -368,6 +392,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -376,6 +401,8 @@ describe('WidgetBuilderSlideout', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -401,7 +428,10 @@ describe('WidgetBuilderSlideout', () => {
           setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
-      {organization}
+      {
+        organization,
+        enableRouterMocks: true,
+      }
     );
 
     await userEvent.click(await screen.findByText('Update Widget'));
@@ -430,7 +460,10 @@ describe('WidgetBuilderSlideout', () => {
           setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
-      {organization}
+      {
+        organization,
+        enableRouterMocks: true,
+      }
     );
 
     await userEvent.click(await screen.findByText('Add Widget'));

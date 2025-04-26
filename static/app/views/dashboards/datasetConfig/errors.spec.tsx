@@ -53,7 +53,10 @@ describe('ErrorsConfig', function () {
             }),
           }
         ) as React.ReactElement<any, any>,
-        {router}
+        {
+          router,
+          enableRouterMocks: true,
+        }
       );
       await userEvent.click(await screen.findByText('abcd'));
       expect(router.push).toHaveBeenCalledWith({
@@ -83,7 +86,10 @@ describe('ErrorsConfig', function () {
             }),
           }
         ) as React.ReactElement<any, any>,
-        {router}
+        {
+          router,
+          enableRouterMocks: true,
+        }
       );
 
       await userEvent.click(await screen.findByText('defg'));

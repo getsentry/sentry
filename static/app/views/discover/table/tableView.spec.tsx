@@ -59,7 +59,10 @@ describe('TableView > CellActions', function () {
         title=""
         queryDataset={SavedQueryDatasets.TRANSACTIONS}
       />,
-      {router: context.router}
+      {
+        router: context.router,
+        enableRouterMocks: true,
+      }
     );
   }
 
@@ -462,7 +465,10 @@ describe('TableView > CellActions', function () {
         measurementKeys={null}
         showTags={false}
         title=""
-      />
+      />,
+      {
+        enableRouterMocks: true,
+      }
     );
     expect(screen.getByText('222.3 KiB')).toBeInTheDocument();
     expect(screen.getByText('444.3 KB')).toBeInTheDocument();
@@ -504,7 +510,10 @@ describe('TableView > CellActions', function () {
         showTags={false}
         title=""
       />,
-      {router: initialData.router}
+      {
+        router: initialData.router,
+        enableRouterMocks: true,
+      }
     );
     await userEvent.hover(screen.getByText('444.3 KB'));
     const buttons = screen.getAllByRole('button');

@@ -262,6 +262,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          enableRouterMocks: true,
         }
       );
 
@@ -311,6 +312,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          enableRouterMocks: true,
         }
       );
 
@@ -374,6 +376,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          enableRouterMocks: true,
         }
       );
 
@@ -411,6 +414,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          enableRouterMocks: true,
         }
       );
 
@@ -448,6 +452,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          enableRouterMocks: true,
         }
       );
 
@@ -484,6 +489,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          enableRouterMocks: true,
         }
       );
 
@@ -526,6 +532,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          enableRouterMocks: true,
         }
       );
 
@@ -562,6 +569,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          enableRouterMocks: true,
         }
       );
 
@@ -604,6 +612,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          enableRouterMocks: true,
         }
       );
 
@@ -641,6 +650,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          enableRouterMocks: true,
         }
       );
 
@@ -708,6 +718,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          enableRouterMocks: true,
         }
       );
 
@@ -746,6 +757,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          enableRouterMocks: true,
         }
       );
 
@@ -823,6 +835,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          enableRouterMocks: true,
         }
       );
 
@@ -900,6 +913,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          enableRouterMocks: true,
         }
       );
 
@@ -981,6 +995,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          enableRouterMocks: true,
         }
       );
 
@@ -1042,7 +1057,11 @@ describe('Results', function () {
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {router, organization}
+        {
+          router,
+          organization,
+          enableRouterMocks: true,
+        }
       );
 
       const projectPageFilter = await screen.findByTestId('page-filter-project-selector');
@@ -1085,7 +1104,11 @@ describe('Results', function () {
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {router, organization}
+        {
+          router,
+          organization,
+          enableRouterMocks: true,
+        }
       );
 
       await waitFor(() => {
@@ -1120,6 +1143,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          enableRouterMocks: true,
         }
       );
 
@@ -1157,6 +1181,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          enableRouterMocks: true,
         }
       );
 
@@ -1195,7 +1220,11 @@ describe('Results', function () {
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {router, organization}
+        {
+          router,
+          organization,
+          enableRouterMocks: true,
+        }
       );
 
       await waitFor(() =>
@@ -1261,7 +1290,11 @@ describe('Results', function () {
           location={router.location}
           router={router}
         />,
-        {router, organization}
+        {
+          router,
+          organization,
+          enableRouterMocks: true,
+        }
       );
 
       await waitFor(() =>
@@ -1329,7 +1362,11 @@ describe('Results', function () {
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {router, organization}
+        {
+          router,
+          organization,
+          enableRouterMocks: true,
+        }
       );
 
       await screen.findAllByText(getTransactionViews(organization)[0]!.name);
@@ -1381,7 +1418,11 @@ describe('Results', function () {
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {router, organization}
+        {
+          router,
+          organization,
+          enableRouterMocks: true,
+        }
       );
 
       await waitFor(() => {
@@ -1415,7 +1456,11 @@ describe('Results', function () {
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {router, organization}
+        {
+          router,
+          organization,
+          enableRouterMocks: true,
+        }
       );
 
       await waitFor(() => {
@@ -1459,7 +1504,11 @@ describe('Results', function () {
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {router, organization}
+        {
+          router,
+          organization,
+          enableRouterMocks: true,
+        }
       );
 
       await waitFor(() => {
@@ -1497,7 +1546,11 @@ describe('Results', function () {
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {router, organization}
+        {
+          router,
+          organization,
+          enableRouterMocks: true,
+        }
       );
 
       await waitFor(() => {
@@ -1538,6 +1591,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          enableRouterMocks: true,
         }
       );
 
@@ -1616,6 +1670,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          enableRouterMocks: true,
         }
       );
 
@@ -1708,6 +1763,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          enableRouterMocks: true,
         }
       );
 
@@ -1831,6 +1887,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          enableRouterMocks: true,
         }
       );
 
@@ -1951,6 +2008,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          enableRouterMocks: true,
         }
       );
 

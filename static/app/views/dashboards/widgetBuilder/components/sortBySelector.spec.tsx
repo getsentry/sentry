@@ -49,6 +49,7 @@ describe('WidgetBuilderSortBySelector', function () {
       {
         router,
         organization,
+        enableRouterMocks: true,
       }
     );
 
@@ -76,6 +77,7 @@ describe('WidgetBuilderSortBySelector', function () {
       {
         router: tableRouter,
         organization,
+        enableRouterMocks: true,
       }
     );
 
@@ -94,7 +96,11 @@ describe('WidgetBuilderSortBySelector', function () {
           <WidgetBuilderSortBySelector />
         </SpanTagsProvider>
       </WidgetBuilderProvider>,
-      {router, organization}
+      {
+        router,
+        organization,
+        enableRouterMocks: true,
+      }
     );
 
     const sortDirectionSelector = await screen.findByText('High to low');
@@ -131,7 +137,11 @@ describe('WidgetBuilderSortBySelector', function () {
           <WidgetBuilderSortBySelector />
         </SpanTagsProvider>
       </WidgetBuilderProvider>,
-      {router, organization}
+      {
+        router,
+        organization,
+        enableRouterMocks: true,
+      }
     );
 
     // default limit is 5
@@ -154,7 +164,11 @@ describe('WidgetBuilderSortBySelector', function () {
           <WidgetBuilderSortBySelector />
         </SpanTagsProvider>
       </WidgetBuilderProvider>,
-      {router: moreAggregatesRouter, organization}
+      {
+        router: moreAggregatesRouter,
+        organization,
+        enableRouterMocks: true,
+      }
     );
 
     // default limit changes to 3 since its the max limit for 3 aggregates
@@ -171,7 +185,11 @@ describe('WidgetBuilderSortBySelector', function () {
           <WidgetBuilderSortBySelector />
         </SpanTagsProvider>
       </WidgetBuilderProvider>,
-      {router, organization}
+      {
+        router,
+        organization,
+        enableRouterMocks: true,
+      }
     );
 
     const limitSelector = await screen.findByText('Limit to 5 results');

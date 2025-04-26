@@ -36,6 +36,7 @@ describe('QueryFilterBuilder', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -45,6 +46,8 @@ describe('QueryFilterBuilder', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
     expect(
@@ -60,11 +63,14 @@ describe('QueryFilterBuilder', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {query: [], dataset: WidgetType.SPANS, displayType: DisplayType.TABLE},
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
     expect(
@@ -82,6 +88,7 @@ describe('QueryFilterBuilder', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -91,6 +98,8 @@ describe('QueryFilterBuilder', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -107,6 +116,7 @@ describe('QueryFilterBuilder', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -116,6 +126,8 @@ describe('QueryFilterBuilder', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 

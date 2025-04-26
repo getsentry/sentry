@@ -89,7 +89,10 @@ describe('Tags', function () {
         location={{...LocationFixture(), query: {}}}
         generateUrl={generateUrl}
         confirmedQuery={false}
-      />
+      />,
+      {
+        enableRouterMocks: true,
+      }
     );
 
     // component is in loading state
@@ -126,7 +129,10 @@ describe('Tags', function () {
         generateUrl={generateUrl}
         confirmedQuery={false}
       />,
-      {router: initialData.router}
+      {
+        router: initialData.router,
+        enableRouterMocks: true,
+      }
     );
 
     // component has loaded
@@ -161,7 +167,10 @@ describe('Tags', function () {
         location={{...LocationFixture(), query: {}}}
         generateUrl={generateUrl}
         confirmedQuery={false}
-      />
+      />,
+      {
+        enableRouterMocks: true,
+      }
     );
 
     await waitForElementToBeRemoved(
@@ -198,7 +207,10 @@ describe('Tags', function () {
         generateUrl={generateUrl}
         confirmedQuery={false}
       />,
-      {router: initialData.router}
+      {
+        router: initialData.router,
+        enableRouterMocks: true,
+      }
     );
 
     await waitForElementToBeRemoved(
@@ -261,7 +273,10 @@ describe('Tags', function () {
         location={{...LocationFixture(), query: {}}}
         generateUrl={generateUrl}
         confirmedQuery={false}
-      />
+      />,
+      {
+        enableRouterMocks: true,
+      }
     );
 
     await waitForElementToBeRemoved(

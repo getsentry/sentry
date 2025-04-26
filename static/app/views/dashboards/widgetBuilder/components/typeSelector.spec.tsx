@@ -32,6 +32,7 @@ describe('TypeSelector', () => {
       {
         router,
         organization,
+        enableRouterMocks: true,
       }
     );
 
@@ -54,7 +55,11 @@ describe('TypeSelector', () => {
       <WidgetBuilderProvider>
         <TypeSelector error={{displayType: 'Please select a type'}} />
       </WidgetBuilderProvider>,
-      {router, organization}
+      {
+        router,
+        organization,
+        enableRouterMocks: true,
+      }
     );
 
     expect(await screen.findByText('Please select a type')).toBeInTheDocument();

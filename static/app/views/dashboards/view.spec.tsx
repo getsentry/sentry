@@ -52,7 +52,10 @@ describe('Dashboards > ViewEditDashboard', function () {
       >
         <Fragment />
       </ViewEditDashboard>,
-      {router}
+      {
+        router,
+        enableRouterMocks: true,
+      }
     );
 
     expect(router.replace).toHaveBeenCalledWith(

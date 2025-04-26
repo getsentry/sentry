@@ -804,7 +804,11 @@ describe('MultiQueryModeContent', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {router, organization}
+      {
+        router,
+        organization,
+        enableRouterMocks: true,
+      }
     );
 
     const section = screen.getByTestId('section-visualization-0');
@@ -825,7 +829,10 @@ describe('MultiQueryModeContent', function () {
   });
 
   it('renders a save query button', async function () {
-    render(<MultiQueryModeContent />, {organization});
+    render(<MultiQueryModeContent />, {
+      organization,
+      enableRouterMocks: true,
+    });
     expect(await screen.findByLabelText('Save')).toBeInTheDocument();
     await userEvent.click(screen.getByLabelText('Save'));
     expect(await screen.findByText('A New Query')).toBeInTheDocument();
@@ -883,7 +890,11 @@ describe('MultiQueryModeContent', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {router, organization}
+      {
+        router,
+        organization,
+        enableRouterMocks: true,
+      }
     );
     // No good way to check for highlighted css, so we just check for the text
     expect(await screen.findByText('Save')).toBeInTheDocument();

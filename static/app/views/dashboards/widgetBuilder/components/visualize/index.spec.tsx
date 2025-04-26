@@ -70,6 +70,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -79,6 +80,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -103,6 +106,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -112,6 +116,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -132,6 +138,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -141,6 +148,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -161,6 +170,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -170,6 +180,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -192,6 +204,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -201,6 +214,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -222,6 +237,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -231,6 +247,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -260,6 +278,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -269,6 +288,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -287,6 +308,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -296,6 +318,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -320,6 +344,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -329,6 +354,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -349,6 +376,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -358,6 +386,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -376,6 +406,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -385,6 +416,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -403,6 +436,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -412,6 +446,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -430,6 +466,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -439,6 +476,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -464,6 +503,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -473,6 +513,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -501,6 +543,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -510,6 +553,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -528,6 +573,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -537,6 +583,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -560,6 +608,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -569,6 +618,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -584,6 +635,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -593,6 +645,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -612,6 +666,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -621,6 +676,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -637,6 +694,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -646,6 +704,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -663,6 +723,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -672,6 +733,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -714,6 +777,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -722,6 +786,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -745,11 +811,14 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {dataset: WidgetType.TRANSACTIONS, displayType: DisplayType.LINE},
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -764,6 +833,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -773,6 +843,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -794,6 +866,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -804,6 +877,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -828,11 +903,14 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {dataset: WidgetType.RELEASE, field: ['crash_free_rate(session)']},
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -853,11 +931,14 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {dataset: WidgetType.TRANSACTIONS, field: ['transaction.duration']},
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -876,6 +957,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -884,6 +966,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -906,6 +990,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -914,6 +999,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -930,11 +1017,14 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {dataset: WidgetType.TRANSACTIONS, field: ['apdex(3000)']},
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -954,11 +1044,14 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {dataset: WidgetType.TRANSACTIONS, field: ['apdex(9999)']},
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -975,6 +1068,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -983,6 +1077,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -998,6 +1094,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -1007,6 +1104,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -1022,11 +1121,14 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {dataset: WidgetType.TRANSACTIONS, field: ['count()']},
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -1049,11 +1151,14 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {dataset: WidgetType.RELEASE, field: ['crash_free_rate(session)']},
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -1073,11 +1178,14 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {dataset: WidgetType.RELEASE, field: ['crash_free_rate(session)']},
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -1104,6 +1212,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -1112,6 +1221,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -1170,6 +1281,7 @@ describe('Visualize', () => {
         </WidgetBuilderProvider>,
         {
           organization,
+
           router: RouterFixture({
             location: LocationFixture({
               query: {
@@ -1179,6 +1291,8 @@ describe('Visualize', () => {
               },
             }),
           }),
+
+          enableRouterMocks: true,
         }
       );
 
@@ -1200,6 +1314,7 @@ describe('Visualize', () => {
         </WidgetBuilderProvider>,
         {
           organization,
+
           router: RouterFixture({
             location: LocationFixture({
               query: {
@@ -1209,6 +1324,8 @@ describe('Visualize', () => {
               },
             }),
           }),
+
+          enableRouterMocks: true,
         }
       );
 
@@ -1238,6 +1355,7 @@ describe('Visualize', () => {
         </WidgetBuilderProvider>,
         {
           organization,
+
           router: RouterFixture({
             location: LocationFixture({
               query: {
@@ -1247,6 +1365,8 @@ describe('Visualize', () => {
               },
             }),
           }),
+
+          enableRouterMocks: true,
         }
       );
 
@@ -1266,6 +1386,7 @@ describe('Visualize', () => {
         </WidgetBuilderProvider>,
         {
           organization,
+
           router: RouterFixture({
             location: LocationFixture({
               query: {
@@ -1275,6 +1396,8 @@ describe('Visualize', () => {
               },
             }),
           }),
+
+          enableRouterMocks: true,
         }
       );
 
@@ -1309,6 +1432,7 @@ describe('Visualize', () => {
         </WidgetBuilderProvider>,
         {
           organization,
+
           router: RouterFixture({
             location: LocationFixture({
               query: {
@@ -1318,6 +1442,8 @@ describe('Visualize', () => {
               },
             }),
           }),
+
+          enableRouterMocks: true,
         }
       );
 
@@ -1335,6 +1461,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -1344,6 +1471,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
     expect(
@@ -1359,6 +1488,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -1368,6 +1498,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 
@@ -1398,6 +1530,7 @@ describe('Visualize', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -1407,6 +1540,8 @@ describe('Visualize', () => {
             },
           }),
         }),
+
+        enableRouterMocks: true,
       }
     );
 

@@ -56,7 +56,11 @@ describe('Dashboards > IssueWidgetCard', function () {
     },
   };
 
-  const BasicProvidersWrapper = makeAllTheProviders({organization, router});
+  const BasicProvidersWrapper = makeAllTheProviders({
+    organization,
+    router,
+    enableRouterMocks: true,
+  });
   function Wrapper({children}: {children: React.ReactNode}) {
     return (
       <BasicProvidersWrapper>
@@ -126,7 +130,10 @@ describe('Dashboards > IssueWidgetCard', function () {
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
       />,
-      {wrapper: Wrapper}
+      {
+        wrapper: Wrapper,
+        enableRouterMocks: true,
+      }
     );
 
     expect(await screen.findByText('Issues')).toBeInTheDocument();
@@ -158,7 +165,10 @@ describe('Dashboards > IssueWidgetCard', function () {
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
       />,
-      {wrapper: Wrapper}
+      {
+        wrapper: Wrapper,
+        enableRouterMocks: true,
+      }
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -187,7 +197,10 @@ describe('Dashboards > IssueWidgetCard', function () {
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
       />,
-      {wrapper: Wrapper}
+      {
+        wrapper: Wrapper,
+        enableRouterMocks: true,
+      }
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -213,7 +226,10 @@ describe('Dashboards > IssueWidgetCard', function () {
         widgetLimitReached
         widgetLegendState={widgetLegendState}
       />,
-      {wrapper: Wrapper}
+      {
+        wrapper: Wrapper,
+        enableRouterMocks: true,
+      }
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -247,7 +263,10 @@ describe('Dashboards > IssueWidgetCard', function () {
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
       />,
-      {wrapper: Wrapper}
+      {
+        wrapper: Wrapper,
+        enableRouterMocks: true,
+      }
     );
 
     expect(await screen.findByText('Lifetime Events')).toBeInTheDocument();
