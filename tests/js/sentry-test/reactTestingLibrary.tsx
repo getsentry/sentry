@@ -21,7 +21,6 @@ import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import GlobalModal from 'sentry/components/globalModal';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {
   DANGEROUS_SET_REACT_ROUTER_6_HISTORY,
   DANGEROUS_SET_TEST_HISTORY,
@@ -295,14 +294,10 @@ function getInitialRouterConfig<T extends boolean = true>(
   initialEntry: InitialEntry;
   legacyRouterConfig?: Partial<InjectedRouter>;
 } {
-  if (options.enableRouterMocks === true || !defined(options.enableRouterMocks)) {
-    // Need to assert here because we want `enableRouterMocks` to default to true
-    const routerOptions = options as RenderOptions<true>;
-
+  if (options.enableRouterMocks) {
     return {
-      initialEntry:
-        routerOptions.router?.location?.pathname ?? LocationFixture().pathname,
-      legacyRouterConfig: routerOptions.router,
+      initialEntry: options.router?.location?.pathname ?? LocationFixture().pathname,
+      legacyRouterConfig: options.router,
       config: undefined,
     };
   }
@@ -354,9 +349,7 @@ function render<T extends boolean = true>(
     config,
   });
 
-  if (enableRouterMocks) {
-    DANGEROUS_SET_REACT_ROUTER_6_HISTORY(memoryRouter);
-  }
+  DANGEROUS_SET_REACT_ROUTER_6_HISTORY(memoryRouter);
 
   const renderResult = rtl.render(
     <RouterProvider router={memoryRouter} future={{v7_startTransition: true}} />,
