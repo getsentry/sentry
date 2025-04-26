@@ -140,6 +140,7 @@ describe('IssueViewsHeader', () => {
       render(<IssueViewsIssueListHeader {...defaultProps} />, {
         organization,
         router: defaultRouter,
+        enableRouterMocks: true,
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/group-search-views/${getRequestViews[0]!.id}/visit/`,
@@ -182,6 +183,7 @@ describe('IssueViewsHeader', () => {
         {
           organization,
           router: projectsOnlyRouter,
+          enableRouterMocks: true,
         }
       );
       MockApiClient.addMockResponse({
@@ -229,6 +231,7 @@ describe('IssueViewsHeader', () => {
       render(<IssueViewsIssueListHeader {...defaultProps} />, {
         organization,
         router: defaultRouter,
+        enableRouterMocks: true,
       });
 
       expect(await screen.findByRole('tab', {name: /Prioritized/})).toBeInTheDocument();
@@ -273,6 +276,7 @@ describe('IssueViewsHeader', () => {
       render(<IssueViewsIssueListHeader {...defaultProps} router={queryOnlyRouter} />, {
         organization,
         router: queryOnlyRouter,
+        enableRouterMocks: true,
       });
 
       expect(await screen.findByRole('tab', {name: /Prioritized/})).toBeInTheDocument();
@@ -310,6 +314,7 @@ describe('IssueViewsHeader', () => {
       render(<IssueViewsIssueListHeader {...defaultProps} router={specificTabRouter} />, {
         organization,
         router: specificTabRouter,
+        enableRouterMocks: true,
       });
 
       expect(await screen.findByRole('tab', {name: /Medium Priority/})).toHaveAttribute(
@@ -332,6 +337,7 @@ describe('IssueViewsHeader', () => {
       render(<IssueViewsIssueListHeader {...defaultProps} router={queryOnlyRouter} />, {
         organization,
         router: queryOnlyRouter,
+        enableRouterMocks: true,
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/group-search-views/${getRequestViews[0]!.id}/visit/`,
@@ -371,6 +377,7 @@ describe('IssueViewsHeader', () => {
       render(<IssueViewsIssueListHeader {...defaultProps} router={specificTabRouter} />, {
         organization,
         router: specificTabRouter,
+        enableRouterMocks: true,
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/group-search-views/${getRequestViews[1]!.id}/visit/`,
@@ -441,7 +448,11 @@ describe('IssueViewsHeader', () => {
           {...defaultProps}
           router={defaultTabDifferentQueryRouter}
         />,
-        {organization, router: defaultTabDifferentQueryRouter}
+        {
+          organization,
+          router: defaultTabDifferentQueryRouter,
+          enableRouterMocks: true,
+        }
       );
       expect(await screen.findByRole('tab', {name: /Prioritized/})).toBeInTheDocument();
       expect(screen.getByTestId('unsaved-changes-indicator')).toBeInTheDocument();
@@ -477,6 +488,7 @@ describe('IssueViewsHeader', () => {
       render(<IssueViewsIssueListHeader {...defaultProps} />, {
         organization,
         router: defaultRouter,
+        enableRouterMocks: true,
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/group-search-views/${getRequestViews[0]!.id}/visit/`,
@@ -531,7 +543,7 @@ describe('IssueViewsHeader', () => {
           {...defaultProps}
           router={goodViewIdChangedQueryRouter}
         />,
-        {organization, router: goodViewIdChangedQueryRouter}
+        {organization, router: goodViewIdChangedQueryRouter, enableRouterMocks: true}
       );
 
       expect(await screen.findByRole('tab', {name: /Medium Priority/})).toHaveAttribute(
@@ -573,7 +585,7 @@ describe('IssueViewsHeader', () => {
           {...defaultProps}
           router={goodViewIdChangedSortRouter}
         />,
-        {organization, router: goodViewIdChangedSortRouter}
+        {organization, router: goodViewIdChangedSortRouter, enableRouterMocks: true}
       );
 
       expect(await screen.findByRole('tab', {name: /Medium Priority/})).toHaveAttribute(
@@ -615,7 +627,7 @@ describe('IssueViewsHeader', () => {
           {...defaultProps}
           router={goodViewIdChangedProjectsRouter}
         />,
-        {organization, router: goodViewIdChangedProjectsRouter}
+        {organization, router: goodViewIdChangedProjectsRouter, enableRouterMocks: true}
       );
 
       expect(await screen.findByTestId('unsaved-changes-indicator')).toBeInTheDocument();
@@ -642,7 +654,11 @@ describe('IssueViewsHeader', () => {
           {...defaultProps}
           router={goodViewIdChangedEnvironmentsRouter}
         />,
-        {organization, router: goodViewIdChangedEnvironmentsRouter}
+        {
+          organization,
+          router: goodViewIdChangedEnvironmentsRouter,
+          enableRouterMocks: true,
+        }
       );
 
       expect(await screen.findByTestId('unsaved-changes-indicator')).toBeInTheDocument();
@@ -669,7 +685,11 @@ describe('IssueViewsHeader', () => {
           {...defaultProps}
           router={goodViewIdChangedTimeFiltersRouter}
         />,
-        {organization, router: goodViewIdChangedTimeFiltersRouter}
+        {
+          organization,
+          router: goodViewIdChangedTimeFiltersRouter,
+          enableRouterMocks: true,
+        }
       );
 
       expect(await screen.findByTestId('unsaved-changes-indicator')).toBeInTheDocument();
@@ -703,7 +723,10 @@ describe('IssueViewsHeader', () => {
         body: getRequestViews,
       });
 
-      render(<IssueViewsIssueListHeader {...defaultProps} />, {organization});
+      render(<IssueViewsIssueListHeader {...defaultProps} />, {
+        organization,
+        enableRouterMocks: true,
+      });
 
       await userEvent.click(
         await screen.findByRole('button', {name: 'High Priority Ellipsis Menu'})
@@ -736,6 +759,7 @@ describe('IssueViewsHeader', () => {
 
       render(<IssueViewsIssueListHeader {...defaultProps} router={unsavedTabRouter} />, {
         organization,
+        enableRouterMocks: true,
       });
 
       await userEvent.click(
@@ -766,7 +790,10 @@ describe('IssueViewsHeader', () => {
         body: [getRequestViews[0]],
       });
 
-      render(<IssueViewsIssueListHeader {...defaultProps} />, {organization});
+      render(<IssueViewsIssueListHeader {...defaultProps} />, {
+        organization,
+        enableRouterMocks: true,
+      });
 
       await userEvent.click(
         await screen.findByRole('button', {name: 'High Priority Ellipsis Menu'})
@@ -803,6 +830,7 @@ describe('IssueViewsHeader', () => {
         render(<IssueViewsIssueListHeader {...defaultProps} />, {
           organization,
           router: defaultRouter,
+          enableRouterMocks: true,
         });
 
         await userEvent.click(
@@ -855,6 +883,7 @@ describe('IssueViewsHeader', () => {
         render(<IssueViewsIssueListHeader {...defaultProps} />, {
           organization,
           router: defaultRouter,
+          enableRouterMocks: true,
         });
 
         await userEvent.click(
@@ -913,6 +942,7 @@ describe('IssueViewsHeader', () => {
         render(<IssueViewsIssueListHeader {...defaultProps} />, {
           organization,
           router: defaultRouter,
+          enableRouterMocks: true,
         });
 
         await userEvent.click(
@@ -952,7 +982,7 @@ describe('IssueViewsHeader', () => {
 
         render(
           <IssueViewsIssueListHeader {...defaultProps} router={unsavedTabRouter} />,
-          {organization, router: unsavedTabRouter}
+          {organization, router: unsavedTabRouter, enableRouterMocks: true}
         );
 
         await userEvent.click(
@@ -992,7 +1022,7 @@ describe('IssueViewsHeader', () => {
 
         render(
           <IssueViewsIssueListHeader {...defaultProps} router={unsavedTabRouter} />,
-          {organization, router: unsavedTabRouter}
+          {organization, router: unsavedTabRouter, enableRouterMocks: true}
         );
 
         await userEvent.click(
@@ -1049,6 +1079,7 @@ describe('IssueViewsHeader', () => {
       render(<IssueViewsIssueListHeader {...defaultProps} />, {
         organization,
         router: defaultRouter,
+        enableRouterMocks: true,
       });
 
       expect(await screen.findByText('42')).toBeInTheDocument();
@@ -1073,6 +1104,7 @@ describe('IssueViewsHeader', () => {
       render(<IssueViewsIssueListHeader {...defaultProps} />, {
         organization,
         router: defaultRouter,
+        enableRouterMocks: true,
       });
 
       expect(await screen.findByText('42')).toBeInTheDocument();
@@ -1100,6 +1132,7 @@ describe('IssueViewsHeader', () => {
       render(<IssueViewsIssueListHeader {...defaultProps} />, {
         organization,
         router: defaultRouter,
+        enableRouterMocks: true,
       });
 
       expect(await screen.findByText('99+')).toBeInTheDocument();
@@ -1125,6 +1158,7 @@ describe('IssueViewsHeader', () => {
       render(<IssueViewsIssueListHeader {...defaultProps} />, {
         organization,
         router: defaultRouter,
+        enableRouterMocks: true,
       });
 
       expect(await screen.findByText('0')).toBeInTheDocument();
