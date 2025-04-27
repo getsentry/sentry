@@ -112,7 +112,7 @@ describe('ProductUnavailableCTA', function () {
     });
 
     it('without session replay', async function () {
-      const {organization, router} = initializeOrg({
+      const {organization} = initializeOrg({
         organization: {
           features: ['performance-view'],
         },
@@ -123,9 +123,7 @@ describe('ProductUnavailableCTA', function () {
         organization,
       });
 
-      render(<ProductUnavailableCTA organization={organization} />, {
-        router,
-      });
+      render(<ProductUnavailableCTA organization={organization} />);
 
       expect(
         await screen.findByText(/request an owner in your organization to update/i)
@@ -189,7 +187,7 @@ describe('ProductUnavailableCTA', function () {
     });
 
     it('without session replay', async function () {
-      const {organization, router} = initializeOrg({
+      const {organization} = initializeOrg({
         organization: {
           access: ['org:billing'] as any, // TODO(ts): Fix this type for organizations on a plan
           features: ['performance-view'],
@@ -227,9 +225,7 @@ describe('ProductUnavailableCTA', function () {
         reservations: mockReservations,
       });
 
-      const {rerender} = render(<ProductUnavailableCTA organization={organization} />, {
-        router,
-      });
+      const {rerender} = render(<ProductUnavailableCTA organization={organization} />);
 
       expect(await screen.findByText(/update your organization/i)).toBeInTheDocument();
       expect(screen.getByText(/use session replay/i)).toBeInTheDocument();
