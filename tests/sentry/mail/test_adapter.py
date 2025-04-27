@@ -576,7 +576,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             value="never",
         )
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-        rule = self.create_project_rule(project=self.project)
+        rule = self.create_project_rule(
+            project=self.project, action_data=[{"workflow_id": "1234567890"}]
+        )
         with self.tasks():
             AlertRuleNotification(
                 Notification(event=event, rules=[rule]),
