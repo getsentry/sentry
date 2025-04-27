@@ -176,13 +176,13 @@ def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
     start = records[-1].datetime
     end = records[0].datetime
 
-    rule_ids = set()
-    workflow_ids = set()
+    rule_ids: set[int] = set()
+    workflow_ids: set[int] = set()
 
     for record in records:
         identifier_key = getattr(record.value, "identifier_key", IdentifierKey.RULE)
         # record.value is Notification, record.value.rules is Sequence[int]
-        ids_to_add = getattr(record.value, "rules", [])
+        ids_to_add = record.value.rules
         if identifier_key == IdentifierKey.RULE:
             rule_ids.update(ids_to_add)
         elif identifier_key == IdentifierKey.WORKFLOW:
@@ -207,7 +207,6 @@ def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
                 label=workflow.name,
                 id=workflow_id,
                 project_id=project.id,
-                organization_id=project.organization_id,
                 # We need to do this so that the links are built correctly downstream
                 data={"actions": [{"workflow_id": workflow_id}]},
             )
