@@ -106,7 +106,9 @@ def get_issue_replay_link(group: Group, sentry_query_params: str = ""):
 def get_rules(
     rules: Sequence[Rule], organization: Organization, project: Project
 ) -> Sequence[NotificationRuleDetails]:
-    if features.has("organizations:workflow-engine-trigger-actions", organization):
+    if features.has("organizations:workflow-engine-ui-links", organization):
+        return get_workflow_links(rules, organization, project)
+    elif features.has("organizations:workflow-engine-trigger-actions", organization):
         return get_rules_with_legacy_ids(rules, organization, project)
     return [
         NotificationRuleDetails(
@@ -134,6 +136,24 @@ def get_rules_with_legacy_ids(
             )
         )
     return rules_with_legacy_ids
+
+
+def get_workflow_links(
+    rules: Sequence[Rule], organization: Organization, project: Project
+) -> Sequence[NotificationRuleDetails]:
+    workflow_links = []
+    for rule in rules:
+        workflow_id = get_key_from_rule_data(rule, "workflow_id")
+        workflow_links.append(
+            NotificationRuleDetails(
+                workflow_id,
+                rule.label,
+                create_link_to_workflow(organization.id, workflow_id),
+                # TODO(iamrajjoshi): Add status url (whatever it is)
+                create_link_to_workflow(organization.id, workflow_id),
+            )
+        )
+    return workflow_links
 
 
 def get_snooze_url(
