@@ -12,7 +12,6 @@ from django.db.models import Count
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
-from sentry import features
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.base import IntegrationFeatures, IntegrationProvider
 from sentry.integrations.manager import default_manager as integrations
@@ -35,8 +34,6 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
-from sentry.notifications.notifications.rules import get_key_from_rule_data
-from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.silo.base import region_silo_function
 from sentry.types.rules import NotificationRuleDetails
 from sentry.users.services.user import RpcUser
@@ -120,133 +117,9 @@ def get_environment_for_deploy(deploy: Deploy | None) -> str:
     return "Default Environment"
 
 
-def get_email_link_extra_params(
-    referrer: str = "alert_email",
-    environment: str | None = None,
-    rule_details: Sequence[NotificationRuleDetails] | None = None,
-    alert_timestamp: int | None = None,
-    notification_uuid: str | None = None,
-    **kwargs: Any,
-) -> dict[int, str]:
-    alert_timestamp_str = (
-        str(round(time.time() * 1000)) if not alert_timestamp else str(alert_timestamp)
-    )
-    return {
-        rule_detail.id: "?"
-        + str(
-            urlencode(
-                {
-                    "referrer": referrer,
-                    "alert_type": str(AlertRuleTriggerAction.Type.EMAIL.name).lower(),
-                    "alert_timestamp": alert_timestamp_str,
-                    # TODO(iamrajjoshi): This will be workflow_id in the new UI, might need to update analytics
-                    "alert_rule_id": rule_detail.id,
-                    **dict(
-                        []
-                        if notification_uuid is None
-                        else [("notification_uuid", str(notification_uuid))]
-                    ),
-                    **dict([] if environment is None else [("environment", environment)]),
-                    **kwargs,
-                }
-            )
-        )
-        for rule_detail in (rule_details or [])
-    }
-
-
-def get_group_settings_link(
-    group: Group,
-    environment: str | None,
-    rule_details: Sequence[NotificationRuleDetails] | None = None,
-    alert_timestamp: int | None = None,
-    referrer: str = "alert_email",
-    notification_uuid: str | None = None,
-    **kwargs: Any,
-) -> str:
-    alert_rule_id = rule_details[0].id if rule_details and rule_details[0].id else None
-    extra_params = ""
-    if alert_rule_id:
-        extra_params = get_email_link_extra_params(
-            referrer,
-            environment,
-            rule_details,
-            alert_timestamp,
-            notification_uuid=notification_uuid,
-            **kwargs,
-        )[alert_rule_id]
-    elif not alert_rule_id and notification_uuid:
-        extra_params = "?" + str(urlencode({"notification_uuid": notification_uuid}))
-    return str(group.get_absolute_url() + extra_params)
-
-
-def get_integration_link(
-    organization: Organization, integration_slug: str, notification_uuid: str | None = None
-) -> str:
-    query_params = {"referrer": "alert_email"}
-    if notification_uuid:
-        query_params.update({"notification_uuid": notification_uuid})
-
-    return organization.absolute_url(
-        f"/settings/{organization.slug}/integrations/{integration_slug}/",
-        query=urlencode(query_params),
-    )
-
-
-def get_issue_replay_link(group: Group, sentry_query_params: str = ""):
-    return str(group.get_absolute_url() + "replays/" + sentry_query_params)
-
-
-@dataclass
-class NotificationRuleDetails:
-    id: int
-    label: str
-    url: str
-    status_url: str
-
-
-def get_rules_with_legacy_ids(
-    rules: Sequence[Rule], organization: Organization, project: Project
-) -> Sequence[NotificationRuleDetails]:
-    rules_with_legacy_ids = []
-    for rule in rules:
-        rule_id = get_key_from_rule_data(rule, "legacy_rule_id")
-        rules_with_legacy_ids.append(
-            NotificationRuleDetails(
-                rule_id,
-                rule.label,
-                f"/organizations/{organization.slug}/alerts/rules/{project.slug}/{rule_id}/",
-                f"/organizations/{organization.slug}/alerts/rules/{project.slug}/{rule_id}/details/",
-            )
-        )
-    return rules_with_legacy_ids
-
-
-def get_workflow_links(
-    rules: Sequence[Rule], organization: Organization, project: Project
-) -> Sequence[NotificationRuleDetails]:
-    workflow_links = []
-    for rule in rules:
-        workflow_id = get_key_from_rule_data(rule, "workflow_id")
-        workflow_links.append(
-            NotificationRuleDetails(
-                workflow_id,
-                rule.label,
-                create_link_to_workflow(organization.id, workflow_id),
-                # TODO(iamrajjoshi): Add status url (whatever it is)
-                create_link_to_workflow(organization.id, workflow_id),
-            )
-        )
-    return workflow_links
-
-
 def get_rules(
     rules: Sequence[Rule], organization: Organization, project: Project
 ) -> Sequence[NotificationRuleDetails]:
-    if features.has("organizations:workflow-engine-trigger-actions", organization):
-        return get_rules_with_legacy_ids(rules, organization, project)
-    elif features.has("organizations:workflow-engine-ui-links", organization):
-        return get_workflow_links(rules, organization, project)
     return [
         NotificationRuleDetails(
             rule.id,
