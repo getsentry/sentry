@@ -185,7 +185,7 @@ describe('ProjectsDashboard', function () {
 
       const {router} = render(<ProjectsDashboard />, {
         organization: openOrg,
-        deprecatedRouterMocks: false,
+
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/projects/',
@@ -242,7 +242,7 @@ describe('ProjectsDashboard', function () {
 
       const {router} = render(<ProjectsDashboard />, {
         organization: openMembershipOrg,
-        deprecatedRouterMocks: false,
+
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/projects/',

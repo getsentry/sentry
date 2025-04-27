@@ -95,7 +95,7 @@ describe('Nav', function () {
       </NavContextProvider>,
       {
         organization: OrganizationFixture({features}),
-        deprecatedRouterMocks: false,
+
         initialRouterConfig: {
           route,
           location: {

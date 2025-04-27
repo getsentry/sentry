@@ -97,7 +97,6 @@ describe('OrganizationContext', function () {
         <OrganizationName />
       </OrganizationContextProvider>,
       {
-        deprecatedRouterMocks: false,
         initialRouterConfig: {
           route: '/organizations/:orgId/',
           location: {
@@ -194,7 +193,6 @@ describe('OrganizationContext', function () {
         <OrganizationName />
       </OrganizationContextProvider>,
       {
-        deprecatedRouterMocks: false,
         initialRouterConfig: {
           route: '/organizations/',
           location: {

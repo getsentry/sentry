@@ -96,13 +96,13 @@ type RouterConfig = {
   routes?: string[];
 };
 
-type RenderOptions<T extends boolean = true> = T extends true
+type RenderOptions<T extends boolean = false> = T extends true
   ? BaseRenderOptions<T> & {router?: Partial<InjectedRouter>}
   : BaseRenderOptions<T> & {initialRouterConfig?: RouterConfig};
 
-type RenderReturn<T extends boolean = true> = T extends false
-  ? rtl.RenderResult & {router: TestRouter}
-  : rtl.RenderResult;
+type RenderReturn<T extends boolean = false> = T extends true
+  ? rtl.RenderResult
+  : rtl.RenderResult & {router: TestRouter};
 
 // Inject legacy react-router 3 style router mocked navigation functions
 // into the memory history used in react router 6
@@ -328,7 +328,7 @@ function getInitialRouterConfig<T extends boolean = true>(
  * navigate to a route. To set the initial location with mocks disabled,
  * pass an `initialRouterConfig`.
  */
-function render<T extends boolean = true>(
+function render<T extends boolean = false>(
   ui: React.ReactElement,
   options: RenderOptions<T> = {} as RenderOptions<T>
 ): RenderReturn<T> {

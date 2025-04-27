@@ -79,7 +79,6 @@ describe('IssueViewNavEllipsisMenu', () => {
     const user = userEvent.setup();
 
     render(<IssueViewNavEllipsisMenu {...defaultProps} view={mockView} />, {
-      deprecatedRouterMocks: false,
       initialRouterConfig: {
         route: '/organizations/:orgId/issues/views/:viewId/',
         location: {

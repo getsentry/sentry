@@ -48,7 +48,6 @@ describe('AcceptOrganizationInvite', function () {
     });
 
     render(<AcceptOrganizationInvite />, {
-      deprecatedRouterMocks: false,
       initialRouterConfig: defaultRouterConfig,
     });
 
@@ -87,7 +86,6 @@ describe('AcceptOrganizationInvite', function () {
     });
 
     render(<AcceptOrganizationInvite />, {
-      deprecatedRouterMocks: false,
       initialRouterConfig: defaultRouterConfig,
     });
 
@@ -114,7 +112,6 @@ describe('AcceptOrganizationInvite', function () {
     });
 
     render(<AcceptOrganizationInvite />, {
-      deprecatedRouterMocks: false,
       initialRouterConfig: {
         location: {
           pathname: '/accept-invite/1/abc/',
@@ -139,7 +136,6 @@ describe('AcceptOrganizationInvite', function () {
     });
 
     render(<AcceptOrganizationInvite />, {
-      deprecatedRouterMocks: false,
       initialRouterConfig: defaultRouterConfig,
     });
 
@@ -167,7 +163,6 @@ describe('AcceptOrganizationInvite', function () {
     });
 
     render(<AcceptOrganizationInvite />, {
-      deprecatedRouterMocks: false,
       initialRouterConfig: defaultRouterConfig,
     });
 
@@ -196,7 +191,6 @@ describe('AcceptOrganizationInvite', function () {
     });
 
     render(<AcceptOrganizationInvite />, {
-      deprecatedRouterMocks: false,
       initialRouterConfig: defaultRouterConfig,
     });
 
@@ -225,7 +219,6 @@ describe('AcceptOrganizationInvite', function () {
     });
 
     render(<AcceptOrganizationInvite />, {
-      deprecatedRouterMocks: false,
       initialRouterConfig: defaultRouterConfig,
     });
 
@@ -254,7 +247,6 @@ describe('AcceptOrganizationInvite', function () {
     });
 
     render(<AcceptOrganizationInvite />, {
-      deprecatedRouterMocks: false,
       initialRouterConfig: defaultRouterConfig,
     });
 
@@ -275,7 +267,6 @@ describe('AcceptOrganizationInvite', function () {
     });
 
     render(<AcceptOrganizationInvite />, {
-      deprecatedRouterMocks: false,
       initialRouterConfig: defaultRouterConfig,
     });
 
@@ -294,7 +285,6 @@ describe('AcceptOrganizationInvite', function () {
     });
 
     render(<AcceptOrganizationInvite />, {
-      deprecatedRouterMocks: false,
       initialRouterConfig: defaultRouterConfig,
     });
 
@@ -314,7 +304,6 @@ describe('AcceptOrganizationInvite', function () {
     });
 
     render(<AcceptOrganizationInvite />, {
-      deprecatedRouterMocks: false,
       initialRouterConfig: defaultRouterConfig,
     });
 

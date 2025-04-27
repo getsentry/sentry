@@ -102,8 +102,7 @@ describe('MultiQueryModeContent', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {deprecatedRouterMocks: false}
+      </PageParamsProvider>
     );
 
     const section = await screen.findByTestId('section-visualize-0');
@@ -122,8 +121,7 @@ describe('MultiQueryModeContent', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {deprecatedRouterMocks: false}
+      </PageParamsProvider>
     );
 
     const section = await screen.findByTestId('section-visualize-0');
@@ -194,8 +192,7 @@ describe('MultiQueryModeContent', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {deprecatedRouterMocks: false}
+      </PageParamsProvider>
     );
 
     const section = await screen.findByTestId('section-visualize-0');
@@ -284,8 +281,7 @@ describe('MultiQueryModeContent', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {deprecatedRouterMocks: false}
+      </PageParamsProvider>
     );
 
     expect(await screen.findByRole('button', {name: 'Bar'})).toBeInTheDocument();
@@ -339,8 +335,7 @@ describe('MultiQueryModeContent', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {deprecatedRouterMocks: false}
+      </PageParamsProvider>
     );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Bar'}));
@@ -382,8 +377,7 @@ describe('MultiQueryModeContent', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {deprecatedRouterMocks: false}
+      </PageParamsProvider>
     );
 
     expect(queries).toEqual([
@@ -431,8 +425,7 @@ describe('MultiQueryModeContent', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {deprecatedRouterMocks: false}
+      </PageParamsProvider>
     );
 
     expect(queries).toEqual([
@@ -480,8 +473,7 @@ describe('MultiQueryModeContent', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {deprecatedRouterMocks: false}
+      </PageParamsProvider>
     );
 
     expect(queries).toEqual([
@@ -588,8 +580,7 @@ describe('MultiQueryModeContent', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {deprecatedRouterMocks: false}
+      </PageParamsProvider>
     );
 
     expect(queries).toEqual([
@@ -740,8 +731,7 @@ describe('MultiQueryModeContent', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {deprecatedRouterMocks: false}
+      </PageParamsProvider>
     );
 
     expect(queries).toEqual([

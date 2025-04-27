@@ -169,7 +169,6 @@ describe('GroupEventAttachments', function () {
     act(() => ConfigStore.set('user', user));
 
     render(<GroupEventAttachments project={project} group={group} />, {
-      deprecatedRouterMocks: false,
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/issues/group-id/',

@@ -65,8 +65,7 @@ describe('ExploreToolbar', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {deprecatedRouterMocks: false}
+      </PageParamsProvider>
     );
 
     const section = screen.getByTestId('section-mode');
@@ -102,8 +101,7 @@ describe('ExploreToolbar', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {deprecatedRouterMocks: false}
+      </PageParamsProvider>
     );
 
     const section = screen.getByTestId('section-mode');
@@ -153,8 +151,7 @@ describe('ExploreToolbar', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {deprecatedRouterMocks: false}
+      </PageParamsProvider>
     );
 
     const section = screen.getByTestId('section-visualizes');
@@ -177,8 +174,7 @@ describe('ExploreToolbar', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {deprecatedRouterMocks: false}
+      </PageParamsProvider>
     );
 
     const section = screen.getByTestId('section-visualizes');
@@ -214,8 +210,7 @@ describe('ExploreToolbar', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {deprecatedRouterMocks: false}
+      </PageParamsProvider>
     );
 
     const section = screen.getByTestId('section-visualizes');
@@ -259,8 +254,7 @@ describe('ExploreToolbar', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {deprecatedRouterMocks: false}
+      </PageParamsProvider>
     );
 
     const section = screen.getByTestId('section-visualizes');
@@ -340,8 +334,7 @@ describe('ExploreToolbar', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {deprecatedRouterMocks: false}
+      </PageParamsProvider>
     );
 
     const section = screen.getByTestId('section-visualizes');
@@ -438,8 +431,7 @@ describe('ExploreToolbar', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {deprecatedRouterMocks: false}
+      </PageParamsProvider>
     );
 
     expect(screen.queryByTestId('section-group-by')).not.toBeInTheDocument();
@@ -500,8 +492,7 @@ describe('ExploreToolbar', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {deprecatedRouterMocks: false}
+      </PageParamsProvider>
     );
 
     expect(mode).toEqual(Mode.SAMPLES);
@@ -530,8 +521,7 @@ describe('ExploreToolbar', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {deprecatedRouterMocks: false}
+      </PageParamsProvider>
     );
 
     expect(mode).toEqual(Mode.SAMPLES);
@@ -556,8 +546,7 @@ describe('ExploreToolbar', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {deprecatedRouterMocks: false}
+      </PageParamsProvider>
     );
 
     const section = screen.getByTestId('section-sort-by');
@@ -614,8 +603,7 @@ describe('ExploreToolbar', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {deprecatedRouterMocks: false}
+      </PageParamsProvider>
     );
 
     const section = screen.getByTestId('section-suggested-queries');
