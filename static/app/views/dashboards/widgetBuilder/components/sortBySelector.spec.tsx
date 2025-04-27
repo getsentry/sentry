@@ -49,7 +49,7 @@ describe('WidgetBuilderSortBySelector', function () {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -77,7 +77,7 @@ describe('WidgetBuilderSortBySelector', function () {
       {
         router: tableRouter,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -99,7 +99,7 @@ describe('WidgetBuilderSortBySelector', function () {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -140,7 +140,7 @@ describe('WidgetBuilderSortBySelector', function () {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -167,7 +167,7 @@ describe('WidgetBuilderSortBySelector', function () {
       {
         router: moreAggregatesRouter,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -188,7 +188,7 @@ describe('WidgetBuilderSortBySelector', function () {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

@@ -48,7 +48,7 @@ describe('withSentryRouter', function () {
     const WrappedComponent = withSentryRouter(MyComponent);
     render(<WrappedComponent />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(screen.getByText('Org slug: albertos-apples')).toBeInTheDocument();
@@ -76,7 +76,7 @@ describe('withSentryRouter', function () {
     const WrappedComponent = withSentryRouter(MyComponent);
     render(<WrappedComponent />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(screen.getByText('Org slug: something-else')).toBeInTheDocument();

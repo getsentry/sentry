@@ -110,7 +110,7 @@ const createWrapper = (props = {}) => {
     {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     }
   );
 
@@ -252,7 +252,7 @@ describe('IssueRuleEditor', function () {
         body: {},
       });
       const {router} = createWrapper();
-      renderGlobalModal({router, enableRouterMocks: true});
+      renderGlobalModal({router, deprecatedRouterMocks: true});
       await userEvent.click(screen.getByLabelText('Delete Rule'));
 
       expect(

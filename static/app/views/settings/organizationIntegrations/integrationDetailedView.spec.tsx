@@ -95,7 +95,7 @@ describe('IntegrationDetailedView', function () {
     render(<IntegrationDetailedView />, {
       organization,
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(screen.getByText('Bitbucket')).toBeInTheDocument();
@@ -111,7 +111,7 @@ describe('IntegrationDetailedView', function () {
     render(<IntegrationDetailedView />, {
       organization,
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
@@ -130,7 +130,7 @@ describe('IntegrationDetailedView', function () {
     render(<IntegrationDetailedView />, {
       organization: lowerAccessOrganization,
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
@@ -146,7 +146,7 @@ describe('IntegrationDetailedView', function () {
     render(<IntegrationDetailedView />, {
       organization: lowerAccessOrganization,
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
@@ -160,7 +160,7 @@ describe('IntegrationDetailedView', function () {
     render(<IntegrationDetailedView />, {
       organization,
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(screen.getByText('features')).toBeInTheDocument();
@@ -178,7 +178,7 @@ describe('IntegrationDetailedView', function () {
     render(<IntegrationDetailedView />, {
       organization,
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
@@ -200,7 +200,7 @@ describe('IntegrationDetailedView', function () {
     render(<IntegrationDetailedView />, {
       organization,
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 

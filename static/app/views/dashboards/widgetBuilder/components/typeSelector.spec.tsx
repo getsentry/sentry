@@ -32,7 +32,7 @@ describe('TypeSelector', () => {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -58,7 +58,7 @@ describe('TypeSelector', () => {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

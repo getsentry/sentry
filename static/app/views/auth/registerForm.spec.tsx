@@ -47,7 +47,7 @@ describe('Register', function () {
     });
 
     render(<RegisterForm authConfig={emptyAuthConfig} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await doLogin(mockRequest);
 
@@ -73,7 +73,7 @@ describe('Register', function () {
 
     render(<RegisterForm authConfig={emptyAuthConfig} />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await doLogin(mockRequest);
 

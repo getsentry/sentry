@@ -47,7 +47,7 @@ describe('QueryFilterBuilder', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
     expect(
@@ -70,7 +70,7 @@ describe('QueryFilterBuilder', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
     expect(
@@ -99,7 +99,7 @@ describe('QueryFilterBuilder', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -127,7 +127,7 @@ describe('QueryFilterBuilder', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

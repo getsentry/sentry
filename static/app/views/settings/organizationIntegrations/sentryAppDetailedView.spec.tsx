@@ -32,7 +32,7 @@ describe('SentryAppDetailedView', function () {
     render(<SentryAppDetailedView />, {
       router: {...RouterFixture(), params: {integrationSlug}},
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     renderGlobalModal();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();

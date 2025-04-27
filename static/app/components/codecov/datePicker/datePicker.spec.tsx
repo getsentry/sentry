@@ -40,7 +40,7 @@ describe('DatePicker', function () {
   it('can change period', async function () {
     render(<DatePicker />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await userEvent.click(screen.getByRole('button', {name: '7D', expanded: false}));
@@ -88,7 +88,7 @@ describe('DatePicker', function () {
 
     render(<DatePicker />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     // Confirm selection changed to default Codecov period
@@ -139,7 +139,7 @@ describe('DatePicker', function () {
     render(<DatePicker />, {
       router: desyncRouter,
       organization: desyncOrganization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await userEvent.click(screen.getByRole('button', {name: '30D', expanded: false}));

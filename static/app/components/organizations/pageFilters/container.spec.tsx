@@ -27,7 +27,7 @@ function renderComponent(component: any, router: any, organization: any) {
   return render(component, {
     router,
     organization,
-    enableRouterMocks: true,
+    deprecatedRouterMocks: true,
   });
 }
 

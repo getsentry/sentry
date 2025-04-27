@@ -54,7 +54,7 @@ describe('GroupCheckIns', () => {
     render(<GroupCheckIns />, {
       organization,
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByText('All Check-Ins')).toBeInTheDocument();
     for (const column of [
@@ -80,7 +80,7 @@ describe('GroupCheckIns', () => {
     render(<GroupCheckIns />, {
       organization,
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByText('All Check-Ins')).toBeInTheDocument();
     expect(screen.queryByText('No matching check-ins found')).not.toBeInTheDocument();

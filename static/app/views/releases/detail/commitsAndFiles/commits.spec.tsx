@@ -37,7 +37,7 @@ describe('Commits', () => {
       </ReleaseContext>,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
   }
@@ -179,7 +179,7 @@ describe('Commits', () => {
       </ReleaseContext>,
       {
         router: newRouterContext,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
     expect(await screen.findByRole('button')).toHaveTextContent(otherRepo.name);

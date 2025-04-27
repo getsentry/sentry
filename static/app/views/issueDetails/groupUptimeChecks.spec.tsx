@@ -73,7 +73,7 @@ describe('GroupUptimeChecks', () => {
     render(<GroupUptimeChecks />, {
       organization,
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByText('All Uptime Checks')).toBeInTheDocument();
     for (const column of ['Timestamp', 'Status', 'Duration', 'Trace', 'Region']) {
@@ -100,7 +100,7 @@ describe('GroupUptimeChecks', () => {
     render(<GroupUptimeChecks />, {
       organization,
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByText('All Uptime Checks')).toBeInTheDocument();
     expect(screen.queryByText('No matching uptime checks found')).not.toBeInTheDocument();
@@ -136,7 +136,7 @@ describe('GroupUptimeChecks', () => {
     render(<GroupUptimeChecks />, {
       organization,
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByText('All Uptime Checks')).toBeInTheDocument();
 

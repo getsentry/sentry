@@ -53,7 +53,7 @@ describe('TeamNotificationSettings', () => {
     render(<TeamNotificationSettings />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -75,7 +75,7 @@ describe('TeamNotificationSettings', () => {
     render(<TeamNotificationSettings />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByText('No teams have been linked yet.')).toBeInTheDocument();
@@ -95,7 +95,7 @@ describe('TeamNotificationSettings', () => {
     render(<TeamNotificationSettings />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     const input = await screen.findByRole('textbox', {
@@ -127,7 +127,7 @@ describe('TeamNotificationSettings', () => {
     render(<TeamNotificationSettings />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await userEvent.click(await screen.findByRole('button', {name: 'Unlink'}));

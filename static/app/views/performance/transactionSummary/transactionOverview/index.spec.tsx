@@ -556,7 +556,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -611,7 +611,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -639,7 +639,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -668,7 +668,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -739,7 +739,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -786,7 +786,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -823,7 +823,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -845,7 +845,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -885,7 +885,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -918,7 +918,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -958,7 +958,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1001,7 +1001,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1035,7 +1035,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1061,7 +1061,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1080,7 +1080,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1110,7 +1110,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1172,7 +1172,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1222,7 +1222,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1279,7 +1279,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1363,7 +1363,7 @@ describe('Performance > TransactionSummary', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 

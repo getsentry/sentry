@@ -45,7 +45,7 @@ describe('Dashboards > WidgetCard', function () {
       {
         organization,
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

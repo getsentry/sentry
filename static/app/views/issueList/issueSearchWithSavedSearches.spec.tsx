@@ -35,7 +35,7 @@ describe('IssueSearchWithSavedSearches', () => {
 
   it('displays "Custom Search" label when no saved searches are selected', async () => {
     render(<IssueSearchWithSavedSearches {...defaultProps} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -51,7 +51,7 @@ describe('IssueSearchWithSavedSearches', () => {
         },
       },
 
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(

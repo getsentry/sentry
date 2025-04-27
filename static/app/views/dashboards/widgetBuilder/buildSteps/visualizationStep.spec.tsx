@@ -148,7 +148,7 @@ describe('VisualizationStep', function () {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -204,7 +204,7 @@ describe('VisualizationStep', function () {
           features: [...organization.features, 'dynamic-sampling', 'mep-rollout-flag'],
         },
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -245,7 +245,7 @@ describe('VisualizationStep', function () {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -293,7 +293,7 @@ describe('VisualizationStep', function () {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -339,7 +339,7 @@ describe('VisualizationStep', function () {
       </MEPSettingProvider>,
       {
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

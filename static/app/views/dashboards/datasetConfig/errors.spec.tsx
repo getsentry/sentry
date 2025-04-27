@@ -55,7 +55,7 @@ describe('ErrorsConfig', function () {
         ) as React.ReactElement<any, any>,
         {
           router,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
       await userEvent.click(await screen.findByText('abcd'));
@@ -88,7 +88,7 @@ describe('ErrorsConfig', function () {
         ) as React.ReactElement<any, any>,
         {
           router,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 

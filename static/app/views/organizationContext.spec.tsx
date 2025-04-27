@@ -80,7 +80,7 @@ describe('OrganizationContext', function () {
         <OrganizationName />
       </OrganizationContextProvider>,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -97,7 +97,7 @@ describe('OrganizationContext', function () {
         <OrganizationName />
       </OrganizationContextProvider>,
       {
-        enableRouterMocks: false,
+        deprecatedRouterMocks: false,
         initialRouterConfig: {
           route: '/organizations/:orgId/',
           location: {
@@ -145,7 +145,7 @@ describe('OrganizationContext', function () {
         <OrganizationName />
       </OrganizationContextProvider>,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -167,7 +167,7 @@ describe('OrganizationContext', function () {
         <OrganizationName />
       </OrganizationContextProvider>,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -194,7 +194,7 @@ describe('OrganizationContext', function () {
         <OrganizationName />
       </OrganizationContextProvider>,
       {
-        enableRouterMocks: false,
+        deprecatedRouterMocks: false,
         initialRouterConfig: {
           route: '/organizations/',
           location: {

@@ -73,7 +73,7 @@ describe('Frame Variables', function () {
       {
         organization,
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -117,7 +117,7 @@ describe('Frame Variables', function () {
         platform="python"
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -151,7 +151,7 @@ describe('Frame Variables', function () {
         platform="node"
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -181,7 +181,7 @@ describe('Frame Variables', function () {
         platform="ruby"
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -205,7 +205,7 @@ describe('Frame Variables', function () {
         platform="php"
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

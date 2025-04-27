@@ -66,7 +66,7 @@ describe('AccountSecurityDetails', function () {
         </AccountSecurityWrapper>,
         {
           router,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -101,7 +101,7 @@ describe('AccountSecurityDetails', function () {
         </AccountSecurityWrapper>,
         {
           router,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -143,7 +143,7 @@ describe('AccountSecurityDetails', function () {
         </AccountSecurityWrapper>,
         {
           router,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -186,7 +186,7 @@ describe('AccountSecurityDetails', function () {
         </AccountSecurityWrapper>,
         {
           router,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -237,7 +237,7 @@ describe('AccountSecurityDetails', function () {
         </AccountSecurityWrapper>,
         {
           router,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -271,7 +271,7 @@ describe('AccountSecurityDetails', function () {
         </AccountSecurityWrapper>,
         {
           router,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -316,7 +316,7 @@ describe('AccountSecurityDetails', function () {
         </AccountSecurityWrapper>,
         {
           router,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 

@@ -20,7 +20,7 @@ describe('Relocation Create', function () {
 
   it('renders', async function () {
     render(<RelocationCreate />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByRole('heading', {name: 'Relocation'})).toBeInTheDocument();
     expect(screen.getByText('Region')).toBeInTheDocument();
@@ -31,7 +31,7 @@ describe('Relocation Create', function () {
 
   it('accepts a file upload', async function () {
     render(<RelocationCreate />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     const relocationFile = new File(['hello'], 'hello.tar', {type: 'file'});
     const input = screen.getByLabelText('file-upload');
@@ -41,7 +41,7 @@ describe('Relocation Create', function () {
 
   it('rejects png file upload', async function () {
     render(<RelocationCreate />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     const relocationFile = new File(['hello'], 'hello.png', {type: 'file'});
     const input = screen.getByLabelText('file-upload');
@@ -52,7 +52,7 @@ describe('Relocation Create', function () {
 
   it('rejects large file upload', async function () {
     render(<RelocationCreate />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     const relocationFile = new File(['hello'], 'hello.tar', {type: 'file'});
     Object.defineProperty(relocationFile, 'size', {value: 200e6 + 1});
@@ -65,7 +65,7 @@ describe('Relocation Create', function () {
 
   it('throws error if owner is missing when form is submitted', async function () {
     render(<RelocationCreate />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     const relocationFile = new File(['hello'], 'hello.tar', {type: 'file'});
     const fileInput = screen.getByLabelText('file-upload');
@@ -80,7 +80,7 @@ describe('Relocation Create', function () {
 
   it('throws error if org slugs are missing when form is submitted', async function () {
     render(<RelocationCreate />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     const relocationFile = new File(['hello'], 'hello.tar', {type: 'file'});
     const fileInput = screen.getByLabelText('file-upload');
@@ -95,7 +95,7 @@ describe('Relocation Create', function () {
 
   it('throws error if file is missing when form is submitted', async function () {
     render(<RelocationCreate />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     const ownerInput = screen.getByLabelText('owner-input');
     const orgsInput = screen.getByLabelText('orgs-input');
@@ -137,7 +137,7 @@ describe('Relocation Create', function () {
     });
 
     render(<RelocationCreate />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     const relocationFile = new File(['hello'], 'hello.tar', {type: 'file'});
     const fileInput = screen.getByLabelText('file-upload');

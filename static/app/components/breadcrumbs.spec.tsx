@@ -31,14 +31,14 @@ describe('Breadcrumbs', () => {
       />,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
   }
 
   it('returns null when 0 crumbs', () => {
     const empty = render(<Breadcrumbs crumbs={[]} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(empty.container).toBeEmptyDOMElement();
@@ -88,7 +88,7 @@ describe('Breadcrumbs', () => {
       />,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
     await userEvent.hover(screen.getByText('dropdown crumb'));

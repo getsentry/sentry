@@ -70,7 +70,7 @@ describe('GroupEventCarousel', () => {
 
       render(<GroupEventCarousel {...defaultProps} />, {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       await userEvent.click(screen.getByRole('button', {name: /recommended/i}));
@@ -87,7 +87,7 @@ describe('GroupEventCarousel', () => {
 
       render(<GroupEventCarousel {...defaultProps} />, {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       await userEvent.click(screen.getByRole('button', {name: /recommended/i}));
@@ -105,7 +105,7 @@ describe('GroupEventCarousel', () => {
 
       render(<GroupEventCarousel {...defaultProps} />, {
         router: newRouter,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       await userEvent.click(screen.getByRole('button', {name: /latest/i}));
@@ -121,7 +121,7 @@ describe('GroupEventCarousel', () => {
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
       render(<GroupEventCarousel {...singleEventProps} />, {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       expect(await screen.findByRole('button', {name: 'Recommended'})).toBeDisabled();
@@ -132,7 +132,7 @@ describe('GroupEventCarousel', () => {
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
       render(<GroupEventCarousel {...singleEventProps} />, {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       expect(
@@ -145,7 +145,7 @@ describe('GroupEventCarousel', () => {
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
       render(<GroupEventCarousel {...singleEventProps} />, {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       expect(await screen.findByRole('button', {name: 'Latest'})).toBeInTheDocument();
@@ -156,7 +156,7 @@ describe('GroupEventCarousel', () => {
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
       render(<GroupEventCarousel {...singleEventProps} />, {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       expect(await screen.findByRole('button', {name: 'Oldest'})).toBeInTheDocument();
@@ -165,7 +165,7 @@ describe('GroupEventCarousel', () => {
 
   it('can navigate next/previous events', () => {
     render(<GroupEventCarousel {...defaultProps} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(screen.getByLabelText(/Previous Event/)).toHaveAttribute(
@@ -180,7 +180,7 @@ describe('GroupEventCarousel', () => {
 
   it('can copy event ID', async () => {
     render(<GroupEventCarousel {...defaultProps} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await userEvent.click(screen.getByText(testEvent.id));
@@ -190,7 +190,7 @@ describe('GroupEventCarousel', () => {
 
   it('can copy event link', async () => {
     render(<GroupEventCarousel {...defaultProps} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await userEvent.click(screen.getByRole('button', {name: /event actions/i}));
@@ -204,7 +204,7 @@ describe('GroupEventCarousel', () => {
   it('links to full event details when org has discover', async () => {
     render(<GroupEventCarousel {...defaultProps} />, {
       organization: OrganizationFixture({features: ['discover-basic']}),
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await userEvent.click(screen.getByRole('button', {name: /event actions/i}));
@@ -218,7 +218,7 @@ describe('GroupEventCarousel', () => {
 
   it('can open event JSON', async () => {
     render(<GroupEventCarousel {...defaultProps} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await userEvent.click(screen.getByRole('button', {name: /event actions/i}));

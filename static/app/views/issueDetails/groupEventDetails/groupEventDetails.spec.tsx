@@ -361,7 +361,7 @@ describe('groupEventDetails', () => {
     const {rerender} = render(<GroupEventDetails />, {
       organization: props.organization,
       router: props.router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('group-event-details')).toBeInTheDocument();
     expect(props.router.replace).not.toHaveBeenCalled();
@@ -379,7 +379,7 @@ describe('groupEventDetails', () => {
     const {rerender} = render(<GroupEventDetails />, {
       organization: props.organization,
       router: props.router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(props.router.replace).not.toHaveBeenCalled();
@@ -417,7 +417,7 @@ describe('groupEventDetails', () => {
     render(<GroupEventDetails />, {
       organization: props.organization,
       router: props.router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByText(/couldn't track down an event/)).toBeInTheDocument();
@@ -438,7 +438,7 @@ describe('groupEventDetails', () => {
     render(<GroupEventDetails />, {
       router: props.router,
       organization: props.organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -471,7 +471,7 @@ describe('groupEventDetails', () => {
     render(<GroupEventDetails />, {
       organization: props.organization,
       router: props.router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -488,7 +488,7 @@ describe('groupEventDetails', () => {
     render(<GroupEventDetails />, {
       organization,
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByRole('region', {name: 'tags'})).toBeInTheDocument();
@@ -520,7 +520,7 @@ describe('groupEventDetails', () => {
       render(<GroupEventDetails />, {
         organization: props.organization,
         router: props.router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       expect(
@@ -550,7 +550,7 @@ describe('groupEventDetails', () => {
       render(<GroupEventDetails />, {
         organization: props.organization,
         router: props.router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       // mechanism: ANR

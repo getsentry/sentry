@@ -30,7 +30,7 @@ describe('Thresholds', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -52,7 +52,7 @@ describe('Thresholds', () => {
         <Thresholds dataType="duration" dataUnit="millisecond" />
       </WidgetBuilderProvider>,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -84,7 +84,7 @@ describe('Thresholds', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -119,7 +119,7 @@ describe('Thresholds', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -133,7 +133,7 @@ describe('Thresholds', () => {
         <Thresholds dataType="duration" dataUnit="millisecond" />
       </WidgetBuilderProvider>,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

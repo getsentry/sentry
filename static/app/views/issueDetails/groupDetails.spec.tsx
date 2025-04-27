@@ -98,7 +98,7 @@ describe('groupDetails', () => {
       {
         organization: init.organization,
         router: init.router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
   };

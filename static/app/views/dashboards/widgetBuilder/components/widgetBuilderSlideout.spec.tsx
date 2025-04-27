@@ -85,7 +85,7 @@ describe('WidgetBuilderSlideout', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -125,7 +125,7 @@ describe('WidgetBuilderSlideout', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -162,7 +162,7 @@ describe('WidgetBuilderSlideout', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -188,7 +188,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
     renderGlobalModal();
@@ -220,7 +220,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -274,7 +274,7 @@ describe('WidgetBuilderSlideout', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -317,7 +317,7 @@ describe('WidgetBuilderSlideout', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -357,7 +357,7 @@ describe('WidgetBuilderSlideout', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -402,7 +402,7 @@ describe('WidgetBuilderSlideout', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -430,7 +430,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -462,7 +462,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

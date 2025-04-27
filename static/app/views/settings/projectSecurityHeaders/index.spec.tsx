@@ -19,7 +19,7 @@ describe('ProjectSecurityHeaders', function () {
   it('renders', async function () {
     render(<ProjectSecurityHeaders />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     // Renders the loading indication initially
@@ -40,7 +40,7 @@ describe('ProjectSecurityHeaders', function () {
     });
     render(<ProjectSecurityHeaders />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(

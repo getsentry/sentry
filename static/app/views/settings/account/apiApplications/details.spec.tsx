@@ -31,7 +31,7 @@ describe('ApiApplications', function () {
         },
       },
 
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -87,7 +87,7 @@ describe('ApiApplications', function () {
         },
       },
 
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     renderGlobalModal();
 

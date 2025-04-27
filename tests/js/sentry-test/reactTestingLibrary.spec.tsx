@@ -38,7 +38,7 @@ describe('rerender', () => {
 describe('disableRouterMocks', () => {
   it('starts with the correct initial location', () => {
     const {router} = render(<div />, {
-      enableRouterMocks: false,
+      deprecatedRouterMocks: false,
       initialRouterConfig: {location: '/foo/'},
     });
 
@@ -58,7 +58,7 @@ describe('disableRouterMocks', () => {
     }
 
     const {router} = render(<TestComp />, {
-      enableRouterMocks: false,
+      deprecatedRouterMocks: false,
     });
 
     const link = screen.getByText('Click me');
@@ -82,7 +82,7 @@ describe('disableRouterMocks', () => {
     }
 
     const {router} = render(<TestComp />, {
-      enableRouterMocks: false,
+      deprecatedRouterMocks: false,
     });
 
     const button = screen.getByText('Click me');
@@ -99,7 +99,7 @@ describe('disableRouterMocks', () => {
       return <div>{location.pathname}</div>;
     }
 
-    const {router} = render(<TestComp />, {enableRouterMocks: false});
+    const {router} = render(<TestComp />, {deprecatedRouterMocks: false});
 
     expect(screen.getByText('/mock-pathname/')).toBeInTheDocument();
 
@@ -130,7 +130,7 @@ describe('disableRouterMocks', () => {
     }
 
     render(<TestComp />, {
-      enableRouterMocks: false,
+      deprecatedRouterMocks: false,
       initialRouterConfig: {
         route: '/projects/:projectId/',
         location: '/projects/123/',
@@ -156,7 +156,7 @@ describe('disableRouterMocks', () => {
     }
 
     const {router} = render(<TestComp />, {
-      enableRouterMocks: false,
+      deprecatedRouterMocks: false,
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/issues/',

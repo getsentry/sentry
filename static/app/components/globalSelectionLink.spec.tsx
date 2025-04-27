@@ -19,7 +19,7 @@ describe('GlobalSelectionLink', function () {
 
     render(<GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(screen.getByText('Go somewhere!')).toHaveAttribute(
       'href',
@@ -33,7 +33,7 @@ describe('GlobalSelectionLink', function () {
   it('does not have global selection values in query', function () {
     render(<GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>, {
       router: getRouter(),
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(screen.getByText('Go somewhere!')).toHaveAttribute('href', path);
@@ -52,7 +52,7 @@ describe('GlobalSelectionLink', function () {
       </GlobalSelectionLink>,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -73,7 +73,7 @@ describe('GlobalSelectionLink', function () {
       <GlobalSelectionLink to={{pathname: path}}>Go somewhere!</GlobalSelectionLink>,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

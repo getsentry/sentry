@@ -38,7 +38,7 @@ describe('AlertRuleDetails', () => {
       {
         router,
         organization: org,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
   };

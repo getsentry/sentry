@@ -66,7 +66,7 @@ describe('ExploreToolbar', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {enableRouterMocks: false}
+      {deprecatedRouterMocks: false}
     );
 
     const section = screen.getByTestId('section-mode');
@@ -103,7 +103,7 @@ describe('ExploreToolbar', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {enableRouterMocks: false}
+      {deprecatedRouterMocks: false}
     );
 
     const section = screen.getByTestId('section-mode');
@@ -154,7 +154,7 @@ describe('ExploreToolbar', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {enableRouterMocks: false}
+      {deprecatedRouterMocks: false}
     );
 
     const section = screen.getByTestId('section-visualizes');
@@ -178,7 +178,7 @@ describe('ExploreToolbar', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {enableRouterMocks: false}
+      {deprecatedRouterMocks: false}
     );
 
     const section = screen.getByTestId('section-visualizes');
@@ -215,7 +215,7 @@ describe('ExploreToolbar', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {enableRouterMocks: false}
+      {deprecatedRouterMocks: false}
     );
 
     const section = screen.getByTestId('section-visualizes');
@@ -260,7 +260,7 @@ describe('ExploreToolbar', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {enableRouterMocks: false}
+      {deprecatedRouterMocks: false}
     );
 
     const section = screen.getByTestId('section-visualizes');
@@ -341,7 +341,7 @@ describe('ExploreToolbar', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {enableRouterMocks: false}
+      {deprecatedRouterMocks: false}
     );
 
     const section = screen.getByTestId('section-visualizes');
@@ -439,7 +439,7 @@ describe('ExploreToolbar', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {enableRouterMocks: false}
+      {deprecatedRouterMocks: false}
     );
 
     expect(screen.queryByTestId('section-group-by')).not.toBeInTheDocument();
@@ -501,7 +501,7 @@ describe('ExploreToolbar', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {enableRouterMocks: false}
+      {deprecatedRouterMocks: false}
     );
 
     expect(mode).toEqual(Mode.SAMPLES);
@@ -531,7 +531,7 @@ describe('ExploreToolbar', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {enableRouterMocks: false}
+      {deprecatedRouterMocks: false}
     );
 
     expect(mode).toEqual(Mode.SAMPLES);
@@ -557,7 +557,7 @@ describe('ExploreToolbar', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {enableRouterMocks: false}
+      {deprecatedRouterMocks: false}
     );
 
     const section = screen.getByTestId('section-sort-by');
@@ -615,7 +615,7 @@ describe('ExploreToolbar', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {enableRouterMocks: false}
+      {deprecatedRouterMocks: false}
     );
 
     const section = screen.getByTestId('section-suggested-queries');
@@ -665,7 +665,7 @@ describe('ExploreToolbar', function () {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -705,7 +705,7 @@ describe('ExploreToolbar', function () {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -747,7 +747,7 @@ describe('ExploreToolbar', function () {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -859,7 +859,7 @@ describe('ExploreToolbar', function () {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
     screen.getByText('Save as\u2026');
@@ -886,7 +886,7 @@ describe('ExploreToolbar', function () {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

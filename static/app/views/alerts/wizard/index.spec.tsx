@@ -29,7 +29,7 @@ describe('AlertWizard', () => {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -72,7 +72,7 @@ describe('AlertWizard', () => {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -109,7 +109,7 @@ describe('AlertWizard', () => {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -141,7 +141,7 @@ describe('AlertWizard', () => {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

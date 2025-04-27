@@ -75,7 +75,7 @@ describe('EventNavigation', () => {
 
       render(<IssueEventNavigation {...defaultProps} />, {
         router: allEventsRouter,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       const discoverButton = screen.getByLabelText('Open in Discover');
@@ -97,7 +97,7 @@ describe('EventNavigation', () => {
   describe('counts', () => {
     it('renders default counts', async () => {
       render(<IssueEventNavigation {...defaultProps} />, {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
       await userEvent.click(screen.getByRole('button', {name: 'Select issue content'}));
 
@@ -116,7 +116,7 @@ describe('EventNavigation', () => {
       });
 
       render(<IssueEventNavigation {...defaultProps} />, {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
       await userEvent.click(screen.getByRole('button', {name: 'Select issue content'}));
 
@@ -136,7 +136,7 @@ describe('EventNavigation', () => {
       });
 
       render(<IssueEventNavigation {...defaultProps} />, {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
       await userEvent.click(screen.getByRole('button', {name: 'Select issue content'}));
 

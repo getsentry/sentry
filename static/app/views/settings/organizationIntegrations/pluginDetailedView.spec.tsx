@@ -48,7 +48,7 @@ describe('PluginDetailedView', function () {
     render(<PluginDetailedView />, {
       organization,
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByText(plugin.name)).toBeInTheDocument();
@@ -68,7 +68,7 @@ describe('PluginDetailedView', function () {
     render(<PluginDetailedView />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByText(plugin.name)).toBeInTheDocument();

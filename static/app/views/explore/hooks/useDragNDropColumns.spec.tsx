@@ -18,7 +18,7 @@ describe('useDragNDropColumns', () => {
       return null;
     }
 
-    render(<TestPage />, {enableRouterMocks: false});
+    render(<TestPage />, {deprecatedRouterMocks: false});
 
     act(() => {
       insertColumn();
@@ -40,7 +40,7 @@ describe('useDragNDropColumns', () => {
       return null;
     }
 
-    render(<TestPage />, {enableRouterMocks: false});
+    render(<TestPage />, {deprecatedRouterMocks: false});
 
     act(() => {
       updateColumnAtIndex(0, 'span.description');
@@ -60,7 +60,7 @@ describe('useDragNDropColumns', () => {
       return null;
     }
 
-    render(<TestPage />, {enableRouterMocks: false});
+    render(<TestPage />, {deprecatedRouterMocks: false});
 
     act(() => {
       deleteColumnAtIndex(0);
@@ -80,7 +80,7 @@ describe('useDragNDropColumns', () => {
       return null;
     }
 
-    render(<TestPage />, {enableRouterMocks: false});
+    render(<TestPage />, {deprecatedRouterMocks: false});
 
     act(() => {
       onDragEnd({

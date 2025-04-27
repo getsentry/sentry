@@ -98,7 +98,7 @@ describe('AlertRulesList', () => {
     render(<AlertRulesList />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
@@ -122,7 +122,7 @@ describe('AlertRulesList', () => {
     render(<AlertRulesList />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -137,7 +137,7 @@ describe('AlertRulesList', () => {
     render(<AlertRulesList />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     const btn = (await screen.findAllByRole('button', {name: 'Unassigned'}))[0]!;
 
@@ -158,7 +158,7 @@ describe('AlertRulesList', () => {
     render(<AlertRulesList />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     const btn = (await screen.findAllByRole('button', {name: 'Unassigned'}))[0]!;
@@ -181,7 +181,7 @@ describe('AlertRulesList', () => {
     render(<AlertRulesList />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0]!;
     expect(actions).toBeInTheDocument();
@@ -210,7 +210,7 @@ describe('AlertRulesList', () => {
     render(<AlertRulesList />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     renderGlobalModal();
 
@@ -255,7 +255,7 @@ describe('AlertRulesList', () => {
     render(<AlertRulesList />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     renderGlobalModal();
 
@@ -291,7 +291,7 @@ describe('AlertRulesList', () => {
     render(<AlertRulesList />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0]!;
     expect(actions).toBeInTheDocument();
@@ -328,7 +328,7 @@ describe('AlertRulesList', () => {
     render(<AlertRulesList />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByText('Alert Rule')).toHaveAttribute(
@@ -354,7 +354,7 @@ describe('AlertRulesList', () => {
     render(<AlertRulesList />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByLabelText('Create Alert')).toBeDisabled();
@@ -365,7 +365,7 @@ describe('AlertRulesList', () => {
     render(<AlertRulesList />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     const search = await screen.findByPlaceholderText('Search by name');
@@ -395,7 +395,7 @@ describe('AlertRulesList', () => {
     render(<AlertRulesList />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
@@ -420,7 +420,7 @@ describe('AlertRulesList', () => {
     render(<AlertRulesList />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     const rules = await screen.findAllByText('My Incident Rule');
 
@@ -451,7 +451,7 @@ describe('AlertRulesList', () => {
     render(<AlertRulesList />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
     expect(screen.getByText('Disabled')).toBeInTheDocument();
@@ -478,7 +478,7 @@ describe('AlertRulesList', () => {
     render(<AlertRulesList />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
     expect(screen.getByText('Disabled')).toBeInTheDocument();
@@ -504,7 +504,7 @@ describe('AlertRulesList', () => {
     render(<AlertRulesList />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
     expect(screen.getByText('Muted')).toBeInTheDocument();
@@ -528,7 +528,7 @@ describe('AlertRulesList', () => {
     render(<AlertRulesList />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByText('My Incident Rule')).toBeInTheDocument();
     expect(screen.getByText('Muted')).toBeInTheDocument();
@@ -539,7 +539,7 @@ describe('AlertRulesList', () => {
     render(<AlertRulesList />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
@@ -563,7 +563,7 @@ describe('AlertRulesList', () => {
     render(<AlertRulesList />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
 
@@ -595,7 +595,7 @@ describe('AlertRulesList', () => {
     render(<AlertRulesList />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByText('Uptime Rule')).toBeInTheDocument();
@@ -616,7 +616,7 @@ describe('AlertRulesList', () => {
     render(<AlertRulesList />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     renderGlobalModal();
 

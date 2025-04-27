@@ -36,12 +36,11 @@ import {initializeOrg} from './initializeOrg';
 
 interface ProviderOptions {
   /**
-   * Do not shim the router use{Routes,Router,Navigate,Location} functions, and
-   * instead allow them to work as normal, rendering inside of a memory router.
+   * @deprecated do not use this option for new tests
    *
-   * When enabling this passing a `router` object *will do nothing*!
+   * If enabled, the router will be mocked and will not react to user events (links, navigations, etc).
    */
-  enableRouterMocks?: boolean;
+  deprecatedRouterMocks?: boolean;
   /**
    * Sets the history for the router.
    */
@@ -57,9 +56,14 @@ interface ProviderOptions {
 }
 
 interface BaseRenderOptions<T extends boolean = boolean>
-  extends Omit<ProviderOptions, 'history' | 'enableRouterMocks' | 'router'>,
+  extends Pick<ProviderOptions, 'organization'>,
     rtl.RenderOptions {
-  enableRouterMocks?: T;
+  /**
+   * @deprecated do not use this option for new tests
+   *
+   * If enabled, the router will be mocked and will not react to user events (links, navigations, etc).
+   */
+  deprecatedRouterMocks?: T;
 }
 
 type LocationConfig =
@@ -137,7 +141,7 @@ function patchBrowserHistoryMocksEnabled(history: MemoryHistory, router: Injecte
 }
 
 function makeAllTheProviders(options: ProviderOptions) {
-  const enableRouterMocks = options.enableRouterMocks ?? false;
+  const enableRouterMocks = options.deprecatedRouterMocks ?? false;
   const {organization, router} = initializeOrg({
     organization: options.organization === null ? undefined : options.organization,
     router: options.router,
@@ -294,7 +298,7 @@ function getInitialRouterConfig<T extends boolean = true>(
   initialEntry: InitialEntry;
   legacyRouterConfig?: Partial<InjectedRouter>;
 } {
-  if (options.enableRouterMocks) {
+  if (options.deprecatedRouterMocks) {
     return {
       initialEntry: options.router?.location?.pathname ?? LocationFixture().pathname,
       legacyRouterConfig: options.router,
@@ -330,8 +334,6 @@ function render<T extends boolean = true>(
 ): RenderReturn<T> {
   const {initialEntry, config, legacyRouterConfig} = getInitialRouterConfig(options);
 
-  const enableRouterMocks = options.enableRouterMocks ?? false;
-
   const history = createMemoryHistory({
     initialEntries: [initialEntry],
   });
@@ -339,7 +341,7 @@ function render<T extends boolean = true>(
   const AllTheProviders = makeAllTheProviders({
     organization: options.organization,
     router: legacyRouterConfig,
-    enableRouterMocks,
+    deprecatedRouterMocks: options.deprecatedRouterMocks,
     history,
   });
 
@@ -375,7 +377,7 @@ function render<T extends boolean = true>(
   return {
     ...renderResult,
     rerender,
-    ...(enableRouterMocks ? {} : {router: testRouter}),
+    ...(options.deprecatedRouterMocks ? {} : {router: testRouter}),
   } as RenderReturn<T>;
 }
 

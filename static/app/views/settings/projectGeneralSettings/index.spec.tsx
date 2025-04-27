@@ -85,7 +85,7 @@ describe('projectGeneralSettings', function () {
 
       {
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -114,7 +114,7 @@ describe('projectGeneralSettings', function () {
       <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
       {
         organization: orgWithoutScrapeJavaScript,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -132,7 +132,7 @@ describe('projectGeneralSettings', function () {
       <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
       {
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -156,7 +156,7 @@ describe('projectGeneralSettings', function () {
       <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
       {
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -194,7 +194,7 @@ describe('projectGeneralSettings', function () {
       <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
       {
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -212,7 +212,7 @@ describe('projectGeneralSettings', function () {
 
     // Check the error message
     const {container} = render((addErrorMessage as jest.Mock).mock.calls[0][0], {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(container).toHaveTextContent(
       'Error transferring project-slug. An organization owner could not be found'
@@ -228,7 +228,7 @@ describe('projectGeneralSettings', function () {
       <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
       {
         organization: nonAdminOrg,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -247,7 +247,7 @@ describe('projectGeneralSettings', function () {
       <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
       {
         organization: readOnlyOrg,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -281,7 +281,7 @@ describe('projectGeneralSettings', function () {
       </ProjectContextProvider>,
       {
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -319,7 +319,7 @@ describe('projectGeneralSettings', function () {
       {
         organization,
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -366,7 +366,7 @@ describe('projectGeneralSettings', function () {
         </ProjectContextProvider>,
         {
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
     }

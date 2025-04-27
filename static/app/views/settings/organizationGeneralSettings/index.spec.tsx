@@ -49,7 +49,7 @@ describe('OrganizationGeneralSettings', function () {
 
   it('can enable "early adopter"', async function () {
     render(<OrganizationGeneralSettings />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -75,7 +75,7 @@ describe('OrganizationGeneralSettings', function () {
     });
     render(<OrganizationGeneralSettings />, {
       organization: organizationWithCodecovFeature,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -101,7 +101,7 @@ describe('OrganizationGeneralSettings', function () {
   it('changes org slug and redirects to new slug', async function () {
     render(<OrganizationGeneralSettings />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -141,7 +141,7 @@ describe('OrganizationGeneralSettings', function () {
 
     render(<OrganizationGeneralSettings />, {
       organization: org,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     const input = screen.getByRole('textbox', {name: /slug/i});
@@ -171,7 +171,7 @@ describe('OrganizationGeneralSettings', function () {
 
     render(<OrganizationGeneralSettings />, {
       organization: readOnlyOrg,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     const formElements = [
@@ -197,7 +197,7 @@ describe('OrganizationGeneralSettings', function () {
         access: ['org:write'],
       }),
 
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -210,7 +210,7 @@ describe('OrganizationGeneralSettings', function () {
 
     render(<OrganizationGeneralSettings />, {
       organization: OrganizationFixture({access: ['org:admin']}),
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     renderGlobalModal();
 

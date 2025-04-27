@@ -86,7 +86,7 @@ describe('getCustomFieldRenderer', function () {
       ) as React.ReactElement<any, any>,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
     await userEvent.click(await screen.findByText('abcd'));
@@ -119,7 +119,7 @@ describe('getCustomFieldRenderer', function () {
       ) as React.ReactElement<any, any>,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -165,7 +165,7 @@ describe('getCustomFieldRenderer', function () {
       ) as React.ReactElement<any, any>,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

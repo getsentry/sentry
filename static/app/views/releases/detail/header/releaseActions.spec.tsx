@@ -74,10 +74,10 @@ describe('ReleaseActions', function () {
       />,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
-    renderGlobalModal({router, enableRouterMocks: true});
+    renderGlobalModal({router, deprecatedRouterMocks: true});
 
     await userEvent.click(screen.getByLabelText('Actions'));
 
@@ -127,7 +127,7 @@ describe('ReleaseActions', function () {
       />,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
     renderGlobalModal({router});
@@ -174,7 +174,7 @@ describe('ReleaseActions', function () {
       />,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

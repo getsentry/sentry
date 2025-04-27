@@ -63,7 +63,7 @@ describe('StreamGroup', function () {
     render(<StreamGroup id="1337" hasGuideAnchor />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByTestId('group')).toBeInTheDocument();
@@ -80,7 +80,7 @@ describe('StreamGroup', function () {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -101,7 +101,7 @@ describe('StreamGroup', function () {
     render(<StreamGroup id="1337" query="is:unresolved" />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByTestId('group')).toBeInTheDocument();
@@ -127,7 +127,7 @@ describe('StreamGroup', function () {
     });
 
     render(<StreamGroup id="1337" query="is:unresolved" />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     const priorityDropdown = screen.getByRole('button', {name: 'Modify issue priority'});
@@ -155,7 +155,7 @@ describe('StreamGroup', function () {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -168,7 +168,7 @@ describe('StreamGroup', function () {
     render(<StreamGroup id="1337" query="is:unresolved" />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByTestId('group')).toBeInTheDocument();
@@ -191,7 +191,7 @@ describe('StreamGroup', function () {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -206,7 +206,7 @@ describe('StreamGroup', function () {
         withColumns={['firstSeen', 'lastSeen']}
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -223,7 +223,7 @@ describe('StreamGroup', function () {
       />,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -247,7 +247,7 @@ describe('StreamGroup', function () {
     GroupStore.loadInitialData([GroupFixture({id: '1337', hasSeen: false})]);
 
     render(<StreamGroup id="1337" query="is:unresolved" />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByTestId('unread-issue-indicator')).toBeInTheDocument();

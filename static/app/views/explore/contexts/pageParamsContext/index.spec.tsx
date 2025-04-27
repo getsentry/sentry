@@ -68,7 +68,7 @@ describe('PageParamsProvider', function () {
       <PageParamsProvider>
         <Component />
       </PageParamsProvider>,
-      {enableRouterMocks: false}
+      {deprecatedRouterMocks: false}
     );
 
     act(() =>
@@ -96,7 +96,7 @@ describe('PageParamsProvider', function () {
       <PageParamsProvider>
         <Component />
       </PageParamsProvider>,
-      {enableRouterMocks: false}
+      {deprecatedRouterMocks: false}
     );
 
     expect(pageParams).toEqual({

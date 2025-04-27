@@ -61,7 +61,7 @@ describe('TableView > CellActions', function () {
       />,
       {
         router: context.router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
   }
@@ -467,7 +467,7 @@ describe('TableView > CellActions', function () {
         title=""
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
     expect(screen.getByText('222.3 KiB')).toBeInTheDocument();
@@ -512,7 +512,7 @@ describe('TableView > CellActions', function () {
       />,
       {
         router: initialData.router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
     await userEvent.hover(screen.getByText('444.3 KB'));

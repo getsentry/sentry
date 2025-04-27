@@ -60,7 +60,7 @@ describe('GroupTagValues', () => {
     });
     render(<GroupTagValues />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     // Special case for user tag - column title changes to Affected Users
@@ -88,7 +88,7 @@ describe('GroupTagValues', () => {
     });
     render(<GroupTagValues />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByRole('button', {name: 'Previous'})).toBeDisabled();
@@ -112,7 +112,7 @@ describe('GroupTagValues', () => {
     });
     render(<GroupTagValues />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await userEvent.click(await screen.findByRole('button', {name: 'More'}));
@@ -138,7 +138,7 @@ describe('GroupTagValues', () => {
 
     render(<GroupTagValues />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -156,7 +156,7 @@ describe('GroupTagValues', () => {
 
     render(<GroupTagValues />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(

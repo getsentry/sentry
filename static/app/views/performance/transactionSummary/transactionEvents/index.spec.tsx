@@ -171,7 +171,7 @@ describe('Performance > Transaction Summary > Transaction Events > Index', () =>
 
     render(<WrappedComponent data={data} />, {
       router: data.router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByText('uhoh@example.com')).toBeInTheDocument();
     expect(await screen.findByText('moreuhoh@example.com')).toBeInTheDocument();
@@ -184,7 +184,7 @@ describe('Performance > Transaction Summary > Transaction Events > Index', () =>
 
     render(<WrappedComponent data={data} />, {
       router: data.router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByText('uhoh@example.com')).toBeInTheDocument();
     expect(screen.queryByText('moreuhoh@example.com')).not.toBeInTheDocument();
@@ -195,7 +195,7 @@ describe('Performance > Transaction Summary > Transaction Events > Index', () =>
 
     render(<WrappedComponent data={data} />, {
       router: data.router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     const percentileButton = await screen.findByRole('button', {
       name: /percentile p100/i,

@@ -59,7 +59,7 @@ describe('Dashboards > IssueWidgetCard', function () {
   const BasicProvidersWrapper = makeAllTheProviders({
     organization,
     router,
-    enableRouterMocks: true,
+    deprecatedRouterMocks: true,
   });
   function Wrapper({children}: {children: React.ReactNode}) {
     return (
@@ -132,7 +132,7 @@ describe('Dashboards > IssueWidgetCard', function () {
       />,
       {
         wrapper: Wrapper,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -167,7 +167,7 @@ describe('Dashboards > IssueWidgetCard', function () {
       />,
       {
         wrapper: Wrapper,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -199,7 +199,7 @@ describe('Dashboards > IssueWidgetCard', function () {
       />,
       {
         wrapper: Wrapper,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -228,7 +228,7 @@ describe('Dashboards > IssueWidgetCard', function () {
       />,
       {
         wrapper: Wrapper,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -265,7 +265,7 @@ describe('Dashboards > IssueWidgetCard', function () {
       />,
       {
         wrapper: Wrapper,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

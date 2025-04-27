@@ -262,7 +262,7 @@ describe('Results', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -312,7 +312,7 @@ describe('Results', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -376,7 +376,7 @@ describe('Results', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -414,7 +414,7 @@ describe('Results', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -452,7 +452,7 @@ describe('Results', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -489,7 +489,7 @@ describe('Results', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -532,7 +532,7 @@ describe('Results', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -569,7 +569,7 @@ describe('Results', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -612,7 +612,7 @@ describe('Results', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -650,7 +650,7 @@ describe('Results', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -718,7 +718,7 @@ describe('Results', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -757,7 +757,7 @@ describe('Results', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -835,7 +835,7 @@ describe('Results', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -913,7 +913,7 @@ describe('Results', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -995,7 +995,7 @@ describe('Results', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1060,7 +1060,7 @@ describe('Results', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1107,7 +1107,7 @@ describe('Results', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1143,7 +1143,7 @@ describe('Results', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1181,7 +1181,7 @@ describe('Results', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1223,7 +1223,7 @@ describe('Results', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1293,7 +1293,7 @@ describe('Results', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1365,7 +1365,7 @@ describe('Results', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1421,7 +1421,7 @@ describe('Results', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1459,7 +1459,7 @@ describe('Results', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1507,7 +1507,7 @@ describe('Results', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1549,7 +1549,7 @@ describe('Results', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1591,7 +1591,7 @@ describe('Results', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1670,7 +1670,7 @@ describe('Results', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1763,7 +1763,7 @@ describe('Results', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1887,7 +1887,7 @@ describe('Results', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -2008,7 +2008,7 @@ describe('Results', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 

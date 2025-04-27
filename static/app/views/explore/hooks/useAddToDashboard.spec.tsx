@@ -109,7 +109,7 @@ describe('AddToDashboardButton', () => {
         <PageParamsProvider>
           <TestPage visualizeIndex={1} />
         </PageParamsProvider>,
-        {enableRouterMocks: false}
+        {deprecatedRouterMocks: false}
       );
 
       act(() =>
@@ -183,7 +183,7 @@ describe('AddToDashboardButton', () => {
       <PageParamsProvider>
         <TestPage visualizeIndex={1} />
       </PageParamsProvider>,
-      {enableRouterMocks: false}
+      {deprecatedRouterMocks: false}
     );
 
     act(() =>
@@ -256,7 +256,7 @@ describe('AddToDashboardButton', () => {
       <PageParamsProvider>
         <TestPage visualizeIndex={0} />
       </PageParamsProvider>,
-      {enableRouterMocks: false}
+      {deprecatedRouterMocks: false}
     );
 
     act(() => setMode(Mode.AGGREGATE));
@@ -303,7 +303,7 @@ describe('AddToDashboardButton', () => {
       <PageParamsProvider>
         <TestPage visualizeIndex={0} />
       </PageParamsProvider>,
-      {enableRouterMocks: false}
+      {deprecatedRouterMocks: false}
     );
 
     act(() => setMode(Mode.AGGREGATE));

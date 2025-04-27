@@ -43,7 +43,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
       />,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -80,7 +80,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
       />,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -131,7 +131,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
       />,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -192,7 +192,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
       />,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

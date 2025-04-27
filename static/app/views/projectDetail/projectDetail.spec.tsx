@@ -37,7 +37,7 @@ describe('ProjectDetail', function () {
         route={{}}
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -65,7 +65,7 @@ describe('ProjectDetail', function () {
         route={{}}
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -94,7 +94,7 @@ describe('ProjectDetail', function () {
         route={{}}
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -125,7 +125,7 @@ describe('ProjectDetail', function () {
         route={{}}
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

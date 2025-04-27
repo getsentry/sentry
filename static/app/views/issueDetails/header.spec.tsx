@@ -62,7 +62,7 @@ describe('GroupHeader', () => {
         {
           organization: orgWithFeatures,
           router,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -155,7 +155,7 @@ describe('GroupHeader', () => {
         {
           organization: orgWithFeatures,
           router,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -207,7 +207,7 @@ describe('GroupHeader', () => {
         {
           organization: orgWithFeatures,
           router,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -264,7 +264,7 @@ describe('GroupHeader', () => {
           event={null}
         />,
         {
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -288,7 +288,7 @@ describe('GroupHeader', () => {
           event={null}
         />,
         {
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 

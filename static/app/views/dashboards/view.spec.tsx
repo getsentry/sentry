@@ -54,7 +54,7 @@ describe('Dashboards > ViewEditDashboard', function () {
       </ViewEditDashboard>,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

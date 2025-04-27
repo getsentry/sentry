@@ -56,7 +56,7 @@ describe('SavedQueriesTable', () => {
 
   it('should render', async () => {
     render(<SavedQueriesTable mode="owned" />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(screen.getByText('Name')).toBeInTheDocument();
     expect(screen.getByText('Project')).toBeInTheDocument();
@@ -68,7 +68,7 @@ describe('SavedQueriesTable', () => {
 
   it('should request for owned queries', async () => {
     render(<SavedQueriesTable mode="owned" />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await waitFor(() =>
       expect(getQueriesMock).toHaveBeenCalledWith(
@@ -86,7 +86,7 @@ describe('SavedQueriesTable', () => {
 
   it('should request for shared queries', async () => {
     render(<SavedQueriesTable mode="shared" />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await waitFor(() =>
       expect(getQueriesMock).toHaveBeenCalledWith(
@@ -104,7 +104,7 @@ describe('SavedQueriesTable', () => {
 
   it('deletes a query', async () => {
     render(<SavedQueriesTable mode="owned" />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await screen.findByText('Query Name');
     await userEvent.click(screen.getByLabelText('More options'));
@@ -121,7 +121,7 @@ describe('SavedQueriesTable', () => {
 
   it('should link to a single query view', async () => {
     render(<SavedQueriesTable mode="owned" />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByText('Query Name')).toHaveAttribute(
       'href',
@@ -155,7 +155,7 @@ describe('SavedQueriesTable', () => {
       ],
     });
     render(<SavedQueriesTable mode="owned" />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByText('Query Name')).toHaveAttribute(
       'href',
@@ -202,7 +202,7 @@ describe('SavedQueriesTable', () => {
       ],
     });
     render(<SavedQueriesTable mode="owned" />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await screen.findByText('Query Name');
     screen.getByText('Starred Query');
@@ -236,7 +236,7 @@ describe('SavedQueriesTable', () => {
 
   it('should sort by most popular', async () => {
     render(<SavedQueriesTable mode="owned" sort="mostPopular" />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await screen.findByText('Query Name');
     expect(getQueriesMock).toHaveBeenCalledWith(
@@ -249,7 +249,7 @@ describe('SavedQueriesTable', () => {
 
   it('should search for a query', async () => {
     render(<SavedQueriesTable mode="owned" searchQuery="Query Name" />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await screen.findByText('Query Name');
     expect(getQueriesMock).toHaveBeenCalledWith(
@@ -262,7 +262,7 @@ describe('SavedQueriesTable', () => {
 
   it('should duplicate a query', async () => {
     render(<SavedQueriesTable mode="owned" />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await screen.findByText('Query Name');
     await userEvent.click(screen.getByLabelText('More options'));

@@ -198,7 +198,7 @@ describe('Performance > Web Vitals', function () {
     render(<TransactionVitals organization={organization} location={router.location} />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
   });
@@ -211,7 +211,7 @@ describe('Performance > Web Vitals', function () {
     render(<TransactionVitals organization={organization} location={router.location} />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(screen.getByText('/organizations/:orgId/')).toBeInTheDocument();
@@ -227,7 +227,7 @@ describe('Performance > Web Vitals', function () {
     render(<TransactionVitals organization={organization} location={router.location} />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(screen.getByRole('navigation')).toHaveTextContent(
@@ -244,7 +244,7 @@ describe('Performance > Web Vitals', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
       expect(await screen.findByText(vital.heading)).toBeInTheDocument();
@@ -261,7 +261,7 @@ describe('Performance > Web Vitals', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -280,7 +280,7 @@ describe('Performance > Web Vitals', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -299,7 +299,7 @@ describe('Performance > Web Vitals', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -319,7 +319,7 @@ describe('Performance > Web Vitals', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -341,7 +341,7 @@ describe('Performance > Web Vitals', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -380,7 +380,7 @@ describe('Performance > Web Vitals', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -407,7 +407,7 @@ describe('Performance > Web Vitals', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -444,7 +444,7 @@ describe('Performance > Web Vitals', function () {
     render(<TransactionVitals organization={organization} location={router.location} />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-placeholder'));

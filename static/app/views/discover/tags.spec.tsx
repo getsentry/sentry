@@ -91,7 +91,7 @@ describe('Tags', function () {
         confirmedQuery={false}
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -131,7 +131,7 @@ describe('Tags', function () {
       />,
       {
         router: initialData.router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -169,7 +169,7 @@ describe('Tags', function () {
         confirmedQuery={false}
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -209,7 +209,7 @@ describe('Tags', function () {
       />,
       {
         router: initialData.router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -275,7 +275,7 @@ describe('Tags', function () {
         confirmedQuery={false}
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

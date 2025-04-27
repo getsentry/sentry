@@ -56,7 +56,7 @@ const renderActionDropdown = (
     {
       organization,
       router: mockedRouter,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     }
   );
 };

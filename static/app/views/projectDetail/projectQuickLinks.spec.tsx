@@ -23,7 +23,7 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
       />,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -68,7 +68,7 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
       />,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

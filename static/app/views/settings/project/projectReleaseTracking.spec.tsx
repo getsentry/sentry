@@ -52,7 +52,7 @@ describe('ProjectReleaseTracking', function () {
         plugins={{loading: false, plugins: PluginsFixture()}}
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -69,7 +69,7 @@ describe('ProjectReleaseTracking', function () {
         plugins={{loading: false, plugins: PluginsFixture()}}
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
     renderGlobalModal();
@@ -120,7 +120,7 @@ describe('ProjectReleaseTracking', function () {
     const {rerender} = render(
       <ProjectReleaseTrackingContainer organization={org} project={project} />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
     await waitFor(() => {
@@ -164,7 +164,7 @@ describe('ProjectReleaseTracking', function () {
         plugins={{loading: false, plugins: PluginsFixture()}}
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

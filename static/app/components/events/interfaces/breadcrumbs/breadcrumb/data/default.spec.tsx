@@ -71,7 +71,7 @@ describe('Breadcrumb Data Default', function () {
       {
         organization,
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -114,7 +114,7 @@ describe('Breadcrumb Data Default', function () {
       {
         organization,
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

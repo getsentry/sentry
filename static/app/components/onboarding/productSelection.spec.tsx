@@ -36,7 +36,7 @@ describe('Onboarding Product Selection', function () {
 
     render(<ProductSelection organization={organization} platform="javascript-react" />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     // Error monitoring shall be checked and disabled by default
@@ -111,7 +111,7 @@ describe('Onboarding Product Selection', function () {
       />,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -148,7 +148,7 @@ describe('Onboarding Product Selection', function () {
 
     render(<ProductSelection organization={organization} platform="javascript-react" />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -170,7 +170,7 @@ describe('Onboarding Product Selection', function () {
 
     render(<ProductSelection organization={organization} platform="python-django" />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(screen.getByRole('presentation', {name: 'Profiling'})).toBeInTheDocument();
@@ -197,7 +197,7 @@ describe('Onboarding Product Selection', function () {
 
     render(<ProductSelection organization={organization} platform="javascript-react" />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(screen.getByRole('presentation', {name: 'Error Monitoring'})).toBeDisabled();
@@ -217,7 +217,7 @@ describe('Onboarding Product Selection', function () {
 
     render(<ProductSelection organization={organization} platform="python" />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(router.replace).not.toHaveBeenCalled();
@@ -243,7 +243,7 @@ describe('Onboarding Product Selection', function () {
       />,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -263,7 +263,7 @@ describe('Onboarding Product Selection', function () {
 
     render(<ProductSelection organization={organization} platform="javascript-react" />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(screen.getByRole('presentation', {name: 'Tracing'})).toBeChecked();

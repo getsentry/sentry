@@ -44,7 +44,7 @@ describe('Onboarding Product Selection', function () {
 
     render(<PlatformOptionsControl platformOptions={platformOptions} />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     // Find the Spring Boot option, preselected from the URL
@@ -90,7 +90,7 @@ describe('Onboarding Product Selection', function () {
 
     render(<PlatformOptionsControl platformOptions={platformOptions} />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     const springBootV3 = screen.getByRole('radio', {name: 'V3'});
@@ -134,7 +134,7 @@ describe('Onboarding Product Selection', function () {
       />,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

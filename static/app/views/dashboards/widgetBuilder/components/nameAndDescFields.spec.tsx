@@ -38,7 +38,7 @@ describe('WidgetBuilder', () => {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -76,7 +76,7 @@ describe('WidgetBuilder', () => {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

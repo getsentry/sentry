@@ -169,7 +169,7 @@ describe('OrganizationMembersList', function () {
     render(<OrganizationMembersList />, {
       organization,
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     renderGlobalModal({router});
 
@@ -198,7 +198,7 @@ describe('OrganizationMembersList', function () {
     render(<OrganizationMembersList />, {
       organization,
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     renderGlobalModal({router});
 
@@ -226,7 +226,7 @@ describe('OrganizationMembersList', function () {
     render(<OrganizationMembersList />, {
       organization,
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     renderGlobalModal({router});
 
@@ -257,7 +257,7 @@ describe('OrganizationMembersList', function () {
     render(<OrganizationMembersList />, {
       organization,
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     renderGlobalModal({router});
 
@@ -284,7 +284,7 @@ describe('OrganizationMembersList', function () {
     render(<OrganizationMembersList />, {
       organization,
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     renderGlobalModal({router});
 
@@ -309,7 +309,7 @@ describe('OrganizationMembersList', function () {
 
     render(<OrganizationMembersList />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(inviteMock).not.toHaveBeenCalled();
@@ -329,7 +329,7 @@ describe('OrganizationMembersList', function () {
 
     render(<OrganizationMembersList />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(inviteMock).not.toHaveBeenCalled();
@@ -347,7 +347,7 @@ describe('OrganizationMembersList', function () {
 
     const {rerender} = render(<OrganizationMembersList />, {
       router: filterRouter,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await userEvent.type(await screen.findByPlaceholderText('Search Members'), 'member');
@@ -381,7 +381,7 @@ describe('OrganizationMembersList', function () {
     const filterRouter = RouterFixture();
     const {rerender} = render(<OrganizationMembersList />, {
       router: filterRouter,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await userEvent.click(await screen.findByRole('button', {name: 'Filter'}));
@@ -483,7 +483,7 @@ describe('OrganizationMembersList', function () {
 
       render(<OrganizationMembersList />, {
         organization: org,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       expect(await screen.findByText('Pending Members')).toBeInTheDocument();
@@ -511,7 +511,7 @@ describe('OrganizationMembersList', function () {
       render(<OrganizationMembersList />, {
         organization,
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       expect(await screen.findByText('Pending Members')).toBeInTheDocument();
@@ -550,7 +550,7 @@ describe('OrganizationMembersList', function () {
 
       render(<OrganizationMembersList />, {
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       expect(await screen.findByText('Pending Members')).toBeInTheDocument();
@@ -588,7 +588,7 @@ describe('OrganizationMembersList', function () {
       render(<OrganizationMembersList />, {
         organization: org,
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       expect(await screen.findByText('Pending Members')).toBeInTheDocument();
@@ -622,7 +622,7 @@ describe('OrganizationMembersList', function () {
       render(<OrganizationMembersList />, {
         organization: inviteOrg,
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
       renderGlobalModal({router});
 
@@ -643,7 +643,7 @@ describe('OrganizationMembersList', function () {
       render(<OrganizationMembersList />, {
         organization: org,
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
       renderGlobalModal({router});
 
@@ -664,7 +664,7 @@ describe('OrganizationMembersList', function () {
       render(<OrganizationMembersList />, {
         organization: org,
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
       renderGlobalModal({router});
 
@@ -685,7 +685,7 @@ describe('OrganizationMembersList', function () {
       render(<OrganizationMembersList />, {
         organization: org,
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
       renderGlobalModal({router});
 
@@ -707,7 +707,7 @@ describe('OrganizationMembersList', function () {
       render(<OrganizationMembersList />, {
         organization,
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
       renderGlobalModal({router});
 
@@ -721,7 +721,7 @@ describe('OrganizationMembersList', function () {
       render(<OrganizationMembersList />, {
         organization,
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
       renderGlobalModal({router});
 
@@ -749,7 +749,7 @@ describe('OrganizationMembersList', function () {
       render(<OrganizationMembersList />, {
         organization,
         router: searchRouter,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
       renderGlobalModal({router});
 

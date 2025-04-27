@@ -79,7 +79,7 @@ describe('InvoiceDetails', function () {
       body: basicInvoice,
     });
     render(<InvoiceDetails {...routerProps} params={params} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await waitFor(() => expect(mockapi).toHaveBeenCalled());
 
@@ -113,7 +113,7 @@ describe('InvoiceDetails', function () {
       body: annualInvoice,
     });
     render(<InvoiceDetails {...routerProps} params={params} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await waitFor(() => expect(mockapi).toHaveBeenCalled());
 
@@ -132,7 +132,7 @@ describe('InvoiceDetails', function () {
     });
     const creditParams = {invoiceGuid: creditInvoice.id};
     render(<InvoiceDetails {...routerProps} params={creditParams} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await waitFor(() => expect(mockapi).toHaveBeenCalled());
 
@@ -149,7 +149,7 @@ describe('InvoiceDetails', function () {
       body: {},
     });
     render(<InvoiceDetails {...routerProps} params={params} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await waitFor(() => expect(mockapi).toHaveBeenCalled());
 
@@ -196,7 +196,7 @@ describe('InvoiceDetails', function () {
     });
 
     render(<InvoiceDetails {...routerProps} params={pastDueParams} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => expect(mockapiInvoice).toHaveBeenCalled());
@@ -218,7 +218,7 @@ describe('InvoiceDetails', function () {
       method: 'POST',
     });
     render(<InvoiceDetails {...routerProps} params={params} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await waitFor(() => expect(mockget).toHaveBeenCalled());
 
@@ -278,7 +278,7 @@ describe('InvoiceDetails', function () {
     renderGlobalModal();
     render(<InvoiceDetails {...routerProps} params={pastDueParams} />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => expect(mockapiInvoice).toHaveBeenCalled());
@@ -315,7 +315,7 @@ describe('InvoiceDetails', function () {
         body: basicInvoice,
       });
       render(<InvoiceDetails {...routerProps} params={params} />, {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       await waitFor(() => expect(mockInvoice).toHaveBeenCalled());
@@ -354,7 +354,7 @@ describe('InvoiceDetails', function () {
         body: basicInvoiceWithSentryTaxIds,
       });
       render(<InvoiceDetails {...routerProps} params={params} />, {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       await waitFor(() => expect(mockInvoice).toHaveBeenCalled());
@@ -377,7 +377,7 @@ describe('InvoiceDetails', function () {
         body: basicInvoiceReverseCharge,
       });
       render(<InvoiceDetails {...routerProps} params={params} />, {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       await waitFor(() => expect(mockInvoice).toHaveBeenCalled());

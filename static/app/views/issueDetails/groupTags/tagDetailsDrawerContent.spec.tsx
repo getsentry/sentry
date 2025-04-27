@@ -65,7 +65,7 @@ describe('TagDetailsDrawerContent', () => {
     });
     render(<TagDetailsDrawerContent group={group} />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
@@ -106,7 +106,7 @@ describe('TagDetailsDrawerContent', () => {
     });
     render(<TagDetailsDrawerContent group={group} />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
@@ -133,7 +133,7 @@ describe('TagDetailsDrawerContent', () => {
     });
     render(<TagDetailsDrawerContent group={group} />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await userEvent.click(
@@ -162,7 +162,7 @@ describe('TagDetailsDrawerContent', () => {
     render(<TagDetailsDrawerContent group={group} />, {
       router,
       organization: discoverOrganization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await userEvent.click(
@@ -195,7 +195,7 @@ describe('TagDetailsDrawerContent', () => {
 
     render(<TagDetailsDrawerContent group={group} />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -218,7 +218,7 @@ describe('TagDetailsDrawerContent', () => {
 
     render(<TagDetailsDrawerContent group={group} />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -248,7 +248,7 @@ describe('TagDetailsDrawerContent', () => {
 
     render(<TagDetailsDrawerContent group={group} />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -278,7 +278,7 @@ describe('TagDetailsDrawerContent', () => {
 
     render(<TagDetailsDrawerContent group={group} />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 

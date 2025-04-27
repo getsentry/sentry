@@ -33,7 +33,7 @@ describe('TeamSettings', function () {
 
     render(<TeamSettings {...routerProps} team={team} params={{teamId: team.slug}} />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     const input = screen.getByRole('textbox', {name: 'Team Slug'});
@@ -66,7 +66,7 @@ describe('TeamSettings', function () {
     render(<TeamSettings {...routerProps} team={team} params={{teamId: team.slug}} />, {
       organization,
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(screen.getByTestId('button-remove-team')).toBeDisabled();
@@ -82,7 +82,7 @@ describe('TeamSettings', function () {
 
     render(<TeamSettings {...routerProps} params={{teamId: team.slug}} team={team} />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     // Click "Remove Team button
@@ -113,7 +113,7 @@ describe('TeamSettings', function () {
     render(<TeamSettings {...routerProps} team={team} params={{teamId: team.slug}} />, {
       organization,
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(

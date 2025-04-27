@@ -90,7 +90,7 @@ describe('Onboarding Setup Docs', function () {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -139,7 +139,7 @@ describe('Onboarding Setup Docs', function () {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -196,7 +196,7 @@ describe('Onboarding Setup Docs', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -251,7 +251,7 @@ describe('Onboarding Setup Docs', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -302,7 +302,7 @@ describe('Onboarding Setup Docs', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -353,7 +353,7 @@ describe('Onboarding Setup Docs', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -423,7 +423,7 @@ describe('Onboarding Setup Docs', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -508,7 +508,7 @@ describe('Onboarding Setup Docs', function () {
         {
           router,
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 

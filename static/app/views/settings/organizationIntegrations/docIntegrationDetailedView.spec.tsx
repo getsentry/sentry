@@ -25,7 +25,7 @@ describe('DocIntegrationDetailedView', function () {
     render(<DocIntegrationDetailedView />, {
       organization,
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();

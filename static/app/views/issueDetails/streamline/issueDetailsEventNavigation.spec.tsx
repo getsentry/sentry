@@ -45,7 +45,7 @@ describe('IssueDetailsEventNavigation', () => {
 
       render(<IssueDetailsEventNavigation {...defaultProps} />, {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       await userEvent.click(await screen.findByRole('tab', {name: 'First'}));
@@ -61,7 +61,7 @@ describe('IssueDetailsEventNavigation', () => {
 
       render(<IssueDetailsEventNavigation {...defaultProps} />, {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       await userEvent.click(await screen.findByRole('tab', {name: 'Last'}));
@@ -84,7 +84,7 @@ describe('IssueDetailsEventNavigation', () => {
 
       render(<IssueDetailsEventNavigation {...defaultProps} />, {
         router: recommendedEventRouter,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       await userEvent.click(await screen.findByRole('tab', {name: 'Rec.'}));
@@ -98,7 +98,7 @@ describe('IssueDetailsEventNavigation', () => {
 
   it('can navigate next/previous events', async () => {
     render(<IssueDetailsEventNavigation {...defaultProps} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByRole('button', {name: 'Previous Event'})).toHaveAttribute(
@@ -125,7 +125,7 @@ describe('IssueDetailsEventNavigation', () => {
       body: EventFixture(),
     });
     render(<IssueDetailsEventNavigation {...defaultProps} event={event} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(mockNextEvent).not.toHaveBeenCalled();

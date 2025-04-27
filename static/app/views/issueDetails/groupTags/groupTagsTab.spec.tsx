@@ -39,7 +39,7 @@ describe('GroupTagsTab', function () {
     render(<GroupTagsTab />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     const headers = await screen.findAllByTestId('tag-title');
@@ -76,7 +76,7 @@ describe('GroupTagsTab', function () {
     render(<GroupTagsTab />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(

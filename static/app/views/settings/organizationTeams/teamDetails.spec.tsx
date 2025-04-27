@@ -43,7 +43,7 @@ describe('TeamMembers', () => {
       {
         organization,
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -67,7 +67,7 @@ describe('TeamMembers', () => {
       {
         organization,
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

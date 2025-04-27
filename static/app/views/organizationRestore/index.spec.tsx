@@ -36,7 +36,7 @@ describe('OrganizationRestore', function () {
     });
     render(<OrganizationRestore {...routerProps} />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     const text = await screen.findByText(/currently scheduled for deletion/);
@@ -58,7 +58,7 @@ describe('OrganizationRestore', function () {
     });
     render(<OrganizationRestore {...routerProps} />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     const button = await screen.findByTestId('form-submit');
@@ -83,7 +83,7 @@ describe('OrganizationRestore', function () {
     });
     render(<OrganizationRestore {...routerProps} />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     const text = await screen.findByText(

@@ -70,7 +70,7 @@ describe('InvoiceDetails', function () {
 
       render(<InvoiceDetails />, {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       await userEvent.click(
@@ -104,7 +104,7 @@ describe('InvoiceDetails', function () {
 
       render(<InvoiceDetails />, {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       await userEvent.click(
@@ -139,7 +139,7 @@ describe('InvoiceDetails', function () {
 
       render(<InvoiceDetails />, {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       await userEvent.click(
@@ -182,7 +182,7 @@ describe('InvoiceDetails', function () {
 
       render(<InvoiceDetails />, {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       await userEvent.click(
@@ -216,7 +216,7 @@ describe('InvoiceDetails', function () {
 
       render(<InvoiceDetails />, {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       await userEvent.click(

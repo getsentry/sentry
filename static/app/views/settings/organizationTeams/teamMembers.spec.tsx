@@ -72,7 +72,7 @@ describe('TeamMembers', function () {
     render(<TeamMembers team={team} />, {
       router,
       organization: org,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await userEvent.click(
@@ -88,7 +88,7 @@ describe('TeamMembers', function () {
     render(<TeamMembers team={team} />, {
       router,
       organization: org,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await userEvent.click(
@@ -105,7 +105,7 @@ describe('TeamMembers', function () {
     render(<TeamMembers team={team} />, {
       router,
       organization: org,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await userEvent.click(
@@ -121,7 +121,7 @@ describe('TeamMembers', function () {
     render(<TeamMembers team={team} />, {
       router,
       organization: org,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await userEvent.click(
@@ -137,7 +137,7 @@ describe('TeamMembers', function () {
     render(<TeamMembers team={team} />, {
       router,
       organization: org,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await userEvent.click(
@@ -158,7 +158,7 @@ describe('TeamMembers', function () {
     render(<TeamMembers team={team} />, {
       router,
       organization: org,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await userEvent.click(
@@ -179,7 +179,7 @@ describe('TeamMembers', function () {
     render(<TeamMembers team={team} />, {
       router,
       organization: org,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await userEvent.click(
@@ -197,7 +197,7 @@ describe('TeamMembers', function () {
     render(<TeamMembers team={team} />, {
       router,
       organization: org,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await userEvent.click(
@@ -215,7 +215,7 @@ describe('TeamMembers', function () {
     render(<TeamMembers team={team} />, {
       router,
       organization: org,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await userEvent.click(
@@ -234,7 +234,7 @@ describe('TeamMembers', function () {
     render(<TeamMembers team={team} />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await screen.findAllByRole('button', {name: 'Add Member'});
@@ -265,7 +265,7 @@ describe('TeamMembers', function () {
     render(<TeamMembers team={team} />, {
       router,
       organization: organizationMember,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await screen.findAllByRole('button', {name: 'Add Member'});
@@ -298,7 +298,7 @@ describe('TeamMembers', function () {
     render(<TeamMembers team={team} />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     const admins = await screen.findAllByText('Team Admin');
@@ -325,7 +325,7 @@ describe('TeamMembers', function () {
     render(<TeamMembers team={team} />, {
       router,
       organization: orgWithTeamRoles,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     const admins = await screen.findAllByText('Team Admin');
@@ -371,7 +371,7 @@ describe('TeamMembers', function () {
     render(<TeamMembers team={team2} />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -417,7 +417,7 @@ describe('TeamMembers', function () {
     render(<TeamMembers team={team2} />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(

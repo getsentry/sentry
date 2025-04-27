@@ -104,7 +104,7 @@ describe('GSBanner', function () {
 
     const {container} = render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     // wait for requests to finish
@@ -130,7 +130,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -161,7 +161,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -185,7 +185,7 @@ describe('GSBanner', function () {
 
     const {container} = render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await act(tick);
@@ -213,7 +213,7 @@ describe('GSBanner', function () {
 
     const {container} = render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await act(tick);
@@ -244,7 +244,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByTestId('overage-banner-attachment')).toBeInTheDocument();
@@ -270,7 +270,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -299,7 +299,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -330,7 +330,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -374,7 +374,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -414,7 +414,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await act(tick);
     expect(
@@ -448,7 +448,7 @@ describe('GSBanner', function () {
     });
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -519,7 +519,7 @@ describe('GSBanner', function () {
 
     const {container} = render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await act(tick);
@@ -547,7 +547,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -588,7 +588,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -627,7 +627,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await act(tick);
     expect(
@@ -651,7 +651,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await act(tick);
@@ -684,7 +684,7 @@ describe('GSBanner', function () {
 
     const {container} = render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await act(tick);
@@ -718,7 +718,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByTestId('overage-banner-error')).toBeInTheDocument();
@@ -747,7 +747,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await act(tick);
@@ -778,7 +778,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await act(tick);
@@ -824,7 +824,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await act(tick);
@@ -844,9 +844,9 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
-    renderGlobalModal({enableRouterMocks: true});
+    renderGlobalModal({deprecatedRouterMocks: true});
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
@@ -860,9 +860,9 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
-    renderGlobalModal({enableRouterMocks: true});
+    renderGlobalModal({deprecatedRouterMocks: true});
 
     expect(await screen.findByTestId('modal-usage-exceeded')).toBeInTheDocument();
   });
@@ -879,9 +879,9 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
-    renderGlobalModal({enableRouterMocks: true});
+    renderGlobalModal({deprecatedRouterMocks: true});
 
     expect(await screen.findByTestId('modal-grace-period')).toBeInTheDocument();
   });
@@ -902,7 +902,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await act(tick);
@@ -930,7 +930,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => expect(openTrialEndingModal).toHaveBeenCalled());
@@ -951,7 +951,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await act(tick);
@@ -971,7 +971,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await act(tick);
@@ -993,7 +993,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await act(tick);
@@ -1019,7 +1019,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await act(tick);
@@ -1054,7 +1054,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => expect(openPartnerPlanEndingModal).toHaveBeenCalled());
@@ -1088,7 +1088,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => expect(openPartnerPlanEndingModal).toHaveBeenCalled());
@@ -1122,7 +1122,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => expect(openPartnerPlanEndingModal).toHaveBeenCalled());
@@ -1156,7 +1156,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => expect(openPartnerPlanEndingModal).toHaveBeenCalled());
@@ -1189,7 +1189,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => expect(openPartnerPlanEndingModal).not.toHaveBeenCalled());
@@ -1230,7 +1230,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => expect(openPartnerPlanEndingModal).not.toHaveBeenCalled());
@@ -1271,7 +1271,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => expect(openPartnerPlanEndingModal).toHaveBeenCalled());
@@ -1305,7 +1305,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => expect(openPartnerPlanEndingModal).not.toHaveBeenCalled());
@@ -1349,7 +1349,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => expect(openPartnerPlanEndingModal).not.toHaveBeenCalled());
@@ -1392,7 +1392,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => expect(openPartnerPlanEndingModal).toHaveBeenCalled());
@@ -1435,7 +1435,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => expect(openPartnerPlanEndingModal).toHaveBeenCalled());
@@ -1478,7 +1478,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => expect(openPartnerPlanEndingModal).not.toHaveBeenCalled());
@@ -1499,7 +1499,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -1573,7 +1573,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => {
@@ -1658,7 +1658,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => {
@@ -1694,7 +1694,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => {
@@ -1733,7 +1733,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => {
@@ -1766,7 +1766,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => expect(openForcedTrialModal).toHaveBeenCalled());
@@ -1791,7 +1791,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await act(tick);
@@ -1838,7 +1838,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => {
@@ -1890,7 +1890,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => {
@@ -1917,9 +1917,9 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
-    renderGlobalModal({enableRouterMocks: true});
+    renderGlobalModal({deprecatedRouterMocks: true});
 
     expect(await screen.findByTestId('banner-alert-past-due')).toBeInTheDocument();
     expect(
@@ -1958,9 +1958,9 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
-    renderGlobalModal({enableRouterMocks: true});
+    renderGlobalModal({deprecatedRouterMocks: true});
 
     expect(await screen.findByTestId('banner-alert-past-due')).toBeInTheDocument();
     expect(await screen.findByTestId('modal-past-due')).toBeInTheDocument();
@@ -1982,9 +1982,9 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
-    renderGlobalModal({enableRouterMocks: true});
+    renderGlobalModal({deprecatedRouterMocks: true});
 
     await act(tick);
     expect(screen.queryByTestId('modal-past-due')).not.toBeInTheDocument();
@@ -2011,7 +2011,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -2045,7 +2045,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -2074,9 +2074,9 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
-    renderGlobalModal({enableRouterMocks: true});
+    renderGlobalModal({deprecatedRouterMocks: true});
 
     await act(tick);
     expect(screen.queryByTestId('banner-alert-past-due')).not.toBeInTheDocument();
@@ -2107,7 +2107,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByTestId('overage-banner-span')).toBeInTheDocument();
@@ -2135,7 +2135,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -2165,7 +2165,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await act(tick);
@@ -2195,7 +2195,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -2219,7 +2219,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await act(tick);
@@ -2249,7 +2249,7 @@ describe('GSBanner', function () {
 
     const {container} = render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await act(tick);
@@ -2280,7 +2280,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByTestId('overage-banner-span')).toBeInTheDocument();
@@ -2310,7 +2310,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -2341,7 +2341,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(

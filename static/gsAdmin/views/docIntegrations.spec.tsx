@@ -25,7 +25,7 @@ describe('Doc Integrations', function () {
 
     render(<DocIntegrations {...routerProps} />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -57,7 +57,7 @@ describe('Doc Integration Details', function () {
 
     render(<DocIntegrationDetails />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -94,7 +94,7 @@ describe('Doc Integration Details', function () {
 
     render(<DocIntegrationDetails />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -153,7 +153,7 @@ describe('Doc Integration Details', function () {
 
     render(<DocIntegrationDetails />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(
       await screen.findByRole('heading', {name: 'Doc Integrations'})
@@ -210,7 +210,7 @@ describe('Doc Integration Details', function () {
 
     render(<DocIntegrationDetails />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(

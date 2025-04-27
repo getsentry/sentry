@@ -63,7 +63,7 @@ const renderComponent = ({
   return render(<TransactionReplays />, {
     router,
     organization,
-    enableRouterMocks: true,
+    deprecatedRouterMocks: true,
   });
 };
 

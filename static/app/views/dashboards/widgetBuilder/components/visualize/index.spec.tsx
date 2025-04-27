@@ -81,7 +81,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -117,7 +117,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -149,7 +149,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -181,7 +181,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -215,7 +215,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -248,7 +248,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -289,7 +289,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -319,7 +319,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -355,7 +355,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -387,7 +387,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -417,7 +417,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -447,7 +447,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -477,7 +477,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -514,7 +514,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -554,7 +554,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -584,7 +584,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -619,7 +619,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -646,7 +646,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -677,7 +677,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -705,7 +705,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -734,7 +734,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -787,7 +787,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -818,7 +818,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -844,7 +844,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -878,7 +878,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -910,7 +910,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -938,7 +938,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -967,7 +967,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -1000,7 +1000,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -1024,7 +1024,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -1051,7 +1051,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -1078,7 +1078,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -1105,7 +1105,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -1128,7 +1128,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -1158,7 +1158,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -1185,7 +1185,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -1222,7 +1222,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -1292,7 +1292,7 @@ describe('Visualize', () => {
             }),
           }),
 
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1325,7 +1325,7 @@ describe('Visualize', () => {
             }),
           }),
 
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1366,7 +1366,7 @@ describe('Visualize', () => {
             }),
           }),
 
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1397,7 +1397,7 @@ describe('Visualize', () => {
             }),
           }),
 
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1443,7 +1443,7 @@ describe('Visualize', () => {
             }),
           }),
 
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1472,7 +1472,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
     expect(
@@ -1499,7 +1499,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -1541,7 +1541,7 @@ describe('Visualize', () => {
           }),
         }),
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

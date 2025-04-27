@@ -130,7 +130,7 @@ describe('groupEvents', () => {
     render(<GroupEvents />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByText('id123')).toBeInTheDocument();
@@ -149,7 +149,7 @@ describe('groupEvents', () => {
     render(<GroupEvents />, {
       organization,
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     const input = await screen.findByPlaceholderText('Search events\u2026');
@@ -176,7 +176,7 @@ describe('groupEvents', () => {
     render(<GroupEvents />, {
       organization,
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     const input = await screen.findByPlaceholderText('Search events\u2026');
@@ -200,7 +200,7 @@ describe('groupEvents', () => {
     render(<GroupEvents />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => {
@@ -221,7 +221,7 @@ describe('groupEvents', () => {
     render(<GroupEvents />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => {
@@ -244,7 +244,7 @@ describe('groupEvents', () => {
     render(<GroupEvents />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     const eventIdATag = (await screen.findByText('id123')).closest('a');
@@ -259,7 +259,7 @@ describe('groupEvents', () => {
     render(<GroupEvents />, {
       router,
       organization: {...organization, features: []},
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -273,7 +273,7 @@ describe('groupEvents', () => {
     render(<GroupEvents />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -287,7 +287,7 @@ describe('groupEvents', () => {
     render(<GroupEvents />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -318,7 +318,7 @@ describe('groupEvents', () => {
     render(<GroupEvents />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     const minidumpColumn = await screen.findByText('Minidump');
     expect(minidumpColumn).toBeInTheDocument();
@@ -348,7 +348,7 @@ describe('groupEvents', () => {
     render(<GroupEvents />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     const minidumpColumn = await screen.findByText('Minidump');
@@ -363,7 +363,7 @@ describe('groupEvents', () => {
     render(<GroupEvents />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await waitFor(() => {
       expect(requests.discover).toHaveBeenCalledWith(
@@ -391,7 +391,7 @@ describe('groupEvents', () => {
     render(<GroupEvents />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await waitFor(() => {
       expect(requests.discover).toHaveBeenCalledWith(
@@ -414,7 +414,7 @@ describe('groupEvents', () => {
     render(<GroupEvents />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await waitFor(() => {
       expect(requests.discover).toHaveBeenCalledWith(
@@ -443,7 +443,7 @@ describe('groupEvents', () => {
     render(<GroupEvents />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
@@ -457,7 +457,7 @@ describe('groupEvents', () => {
     render(<GroupEvents />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));

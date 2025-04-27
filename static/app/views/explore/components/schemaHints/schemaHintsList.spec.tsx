@@ -102,7 +102,7 @@ describe('SchemaHintsList', () => {
         supportedAggregates={[]}
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -128,7 +128,7 @@ describe('SchemaHintsList', () => {
         supportedAggregates={[]}
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -149,7 +149,7 @@ describe('SchemaHintsList', () => {
     render(
       <Subject stringTags={{}} numberTags={{}} supportedAggregates={[]} isLoading />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -166,7 +166,7 @@ describe('SchemaHintsList', () => {
       {
         organization,
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -194,7 +194,7 @@ describe('SchemaHintsList', () => {
       {
         organization,
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -238,7 +238,7 @@ describe('SchemaHintsList', () => {
           },
         },
 
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -269,7 +269,7 @@ describe('SchemaHintsList', () => {
       {
         organization,
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -298,7 +298,7 @@ describe('SchemaHintsList', () => {
       {
         organization,
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

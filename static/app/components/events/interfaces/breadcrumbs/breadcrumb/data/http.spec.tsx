@@ -66,7 +66,7 @@ describe('Breadcrumb Data Http', function () {
       {
         organization,
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -102,7 +102,7 @@ describe('Breadcrumb Data Http', function () {
       {
         organization,
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

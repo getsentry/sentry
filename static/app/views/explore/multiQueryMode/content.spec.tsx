@@ -103,7 +103,7 @@ describe('MultiQueryModeContent', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {enableRouterMocks: false}
+      {deprecatedRouterMocks: false}
     );
 
     const section = await screen.findByTestId('section-visualize-0');
@@ -123,7 +123,7 @@ describe('MultiQueryModeContent', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {enableRouterMocks: false}
+      {deprecatedRouterMocks: false}
     );
 
     const section = await screen.findByTestId('section-visualize-0');
@@ -195,7 +195,7 @@ describe('MultiQueryModeContent', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {enableRouterMocks: false}
+      {deprecatedRouterMocks: false}
     );
 
     const section = await screen.findByTestId('section-visualize-0');
@@ -285,7 +285,7 @@ describe('MultiQueryModeContent', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {enableRouterMocks: false}
+      {deprecatedRouterMocks: false}
     );
 
     expect(await screen.findByRole('button', {name: 'Bar'})).toBeInTheDocument();
@@ -340,7 +340,7 @@ describe('MultiQueryModeContent', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {enableRouterMocks: false}
+      {deprecatedRouterMocks: false}
     );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Bar'}));
@@ -383,7 +383,7 @@ describe('MultiQueryModeContent', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {enableRouterMocks: false}
+      {deprecatedRouterMocks: false}
     );
 
     expect(queries).toEqual([
@@ -432,7 +432,7 @@ describe('MultiQueryModeContent', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {enableRouterMocks: false}
+      {deprecatedRouterMocks: false}
     );
 
     expect(queries).toEqual([
@@ -481,7 +481,7 @@ describe('MultiQueryModeContent', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {enableRouterMocks: false}
+      {deprecatedRouterMocks: false}
     );
 
     expect(queries).toEqual([
@@ -589,7 +589,7 @@ describe('MultiQueryModeContent', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {enableRouterMocks: false}
+      {deprecatedRouterMocks: false}
     );
 
     expect(queries).toEqual([
@@ -741,7 +741,7 @@ describe('MultiQueryModeContent', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {enableRouterMocks: false}
+      {deprecatedRouterMocks: false}
     );
 
     expect(queries).toEqual([
@@ -807,7 +807,7 @@ describe('MultiQueryModeContent', function () {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -831,7 +831,7 @@ describe('MultiQueryModeContent', function () {
   it('renders a save query button', async function () {
     render(<MultiQueryModeContent />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByLabelText('Save')).toBeInTheDocument();
     await userEvent.click(screen.getByLabelText('Save'));
@@ -893,7 +893,7 @@ describe('MultiQueryModeContent', function () {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
     // No good way to check for highlighted css, so we just check for the text

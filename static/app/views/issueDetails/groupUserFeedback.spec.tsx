@@ -36,7 +36,7 @@ describe('GroupUserFeedback', () => {
     render(<GroupUserFeedback />, {
       organization,
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(
       await screen.findByRole('heading', {
@@ -75,7 +75,7 @@ describe('GroupUserFeedback', () => {
     render(<GroupUserFeedback />, {
       organization,
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByText('Test User')).toBeInTheDocument();
     expect(await screen.findByText('custom comment')).toBeInTheDocument();

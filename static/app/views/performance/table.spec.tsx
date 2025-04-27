@@ -211,7 +211,7 @@ describe('Performance > Table', function () {
         />,
         {
           router: data.router,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -270,7 +270,7 @@ describe('Performance > Table', function () {
           withStaticFilters
         />,
         {
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -301,7 +301,7 @@ describe('Performance > Table', function () {
           projects={data.projects}
         />,
         {
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -335,7 +335,7 @@ describe('Performance > Table', function () {
           projects={data.projects}
         />,
         {
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -362,7 +362,7 @@ describe('Performance > Table', function () {
           isMEPEnabled
         />,
         {
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 

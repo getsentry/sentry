@@ -148,7 +148,7 @@ describe('Performance > Landing > Index', function () {
     const data = initializeData();
 
     wrapper = render(<WrappedComponent data={data} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
@@ -160,7 +160,7 @@ describe('Performance > Landing > Index', function () {
     });
 
     wrapper = render(<WrappedComponent data={data} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('performance-table')).toBeInTheDocument();
   });
@@ -171,7 +171,7 @@ describe('Performance > Landing > Index', function () {
     });
 
     wrapper = render(<WrappedComponent data={data} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('performance-table')).toBeInTheDocument();
   });
@@ -182,7 +182,7 @@ describe('Performance > Landing > Index', function () {
     });
 
     wrapper = render(<WrappedComponent data={data} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('performance-table')).toBeInTheDocument();
   });
@@ -197,7 +197,7 @@ describe('Performance > Landing > Index', function () {
     });
 
     wrapper = render(<WrappedComponent data={data} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByTestId('performance-table')).toBeInTheDocument();
@@ -216,7 +216,7 @@ describe('Performance > Landing > Index', function () {
     });
 
     wrapper = render(<WrappedComponent data={data} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByTestId('performance-table')).toBeInTheDocument();
@@ -260,7 +260,7 @@ describe('Performance > Landing > Index', function () {
 
     wrapper = render(<WrappedComponent data={data} />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('frontend-other-view')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('tab', {name: 'All Transactions'}));
@@ -280,7 +280,7 @@ describe('Performance > Landing > Index', function () {
     });
 
     wrapper = render(<WrappedComponent data={data} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByTestId('frontend-other-view')).toBeInTheDocument();
@@ -302,7 +302,7 @@ describe('Performance > Landing > Index', function () {
     });
 
     wrapper = render(<WrappedComponent data={data} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('frontend-other-view')).toBeInTheDocument();
   });
@@ -312,7 +312,7 @@ describe('Performance > Landing > Index', function () {
       const data = initializeData();
 
       render(<WrappedComponent data={data} withStaticFilters />, {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
@@ -330,7 +330,7 @@ describe('Performance > Landing > Index', function () {
       });
 
       wrapper = render(<WrappedComponent data={data} withStaticFilters />, {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       expect(await screen.findByTestId('transaction-search-bar')).toBeInTheDocument();
@@ -340,7 +340,7 @@ describe('Performance > Landing > Index', function () {
       const data = initializeData();
 
       wrapper = render(<WrappedComponent data={data} />, {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
@@ -361,7 +361,7 @@ describe('Performance > Landing > Index', function () {
       });
 
       wrapper = render(<WrappedComponent data={data} />, {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
       const titles = await screen.findAllByTestId('performance-widget-title');
       expect(titles.at(0)).toHaveTextContent('Most Regressed');

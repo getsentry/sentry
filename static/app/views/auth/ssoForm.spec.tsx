@@ -34,7 +34,7 @@ describe('SsoForm', function () {
     };
 
     render(<SsoForm authConfig={authConfig} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(screen.getByLabelText('Organization ID')).toBeInTheDocument();
@@ -51,7 +51,7 @@ describe('SsoForm', function () {
     });
 
     render(<SsoForm authConfig={emptyAuthConfig} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await doSso(mockRequest);
 
@@ -71,7 +71,7 @@ describe('SsoForm', function () {
 
     render(<SsoForm authConfig={emptyAuthConfig} />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await doSso(mockRequest);
 

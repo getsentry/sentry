@@ -62,7 +62,7 @@ describe('WidgetTemplatesList', () => {
         />
       </WidgetBuilderProvider>,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -80,7 +80,7 @@ describe('WidgetTemplatesList', () => {
         />
       </WidgetBuilderProvider>,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -105,7 +105,7 @@ describe('WidgetTemplatesList', () => {
       </WidgetBuilderProvider>,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -136,7 +136,7 @@ describe('WidgetTemplatesList', () => {
         />
       </WidgetBuilderProvider>,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

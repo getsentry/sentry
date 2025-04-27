@@ -42,7 +42,7 @@ describe('CreateAlertFromViewButton', () => {
         onClick={onClickMock}
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
     await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
@@ -74,7 +74,7 @@ describe('CreateAlertFromViewButton', () => {
       />,
       {
         organization: noAccessOrg,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -102,7 +102,7 @@ describe('CreateAlertFromViewButton', () => {
       />,
       {
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -142,7 +142,7 @@ describe('CreateAlertFromViewButton', () => {
       />,
       {
         organization: noAccessOrg,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -163,7 +163,7 @@ describe('CreateAlertFromViewButton', () => {
       />,
       {
         organization: noAccessOrg,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -184,7 +184,7 @@ describe('CreateAlertFromViewButton', () => {
       />,
       {
         organization: adminAccessOrg,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -194,7 +194,7 @@ describe('CreateAlertFromViewButton', () => {
   it('redirects to alert wizard with no project', async () => {
     render(<CreateAlertButton aria-label="Create Alert" organization={organization} />, {
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await userEvent.click(screen.getByRole('button'));
     expect(navigateTo).toHaveBeenCalledWith(
@@ -216,7 +216,7 @@ describe('CreateAlertFromViewButton', () => {
       />,
       {
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -246,7 +246,7 @@ describe('CreateAlertFromViewButton', () => {
       />,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
     await userEvent.click(screen.getByRole('button'));

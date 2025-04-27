@@ -68,7 +68,7 @@ describe('GroupActions', function () {
         <GroupActions group={group} project={project} disabled={false} event={null} />,
         {
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
       expect(await screen.findByRole('button', {name: 'Resolve'})).toBeInTheDocument();
@@ -90,7 +90,7 @@ describe('GroupActions', function () {
         <GroupActions group={group} project={project} disabled={false} event={null} />,
         {
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
       await userEvent.click(screen.getByRole('button', {name: 'Subscribe'}));
@@ -120,7 +120,7 @@ describe('GroupActions', function () {
         <GroupActions group={group} project={project} disabled={false} event={null} />,
         {
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -148,7 +148,7 @@ describe('GroupActions', function () {
         <GroupActions group={group} project={project} event={event} disabled={false} />,
         {
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -167,7 +167,7 @@ describe('GroupActions', function () {
         <GroupActions group={group} project={project} event={event} disabled={false} />,
         {
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -195,7 +195,7 @@ describe('GroupActions', function () {
       </Fragment>,
       {
         organization: org,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -231,7 +231,7 @@ describe('GroupActions', function () {
         {
           router,
           organization: org,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -265,7 +265,7 @@ describe('GroupActions', function () {
         />,
         {
           organization: org,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -293,7 +293,7 @@ describe('GroupActions', function () {
         />,
         {
           organization: org,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -319,7 +319,7 @@ describe('GroupActions', function () {
       <GroupActions group={group} project={project} disabled={false} event={null} />,
       {
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -368,7 +368,7 @@ describe('GroupActions', function () {
       <GroupActions group={group} project={project} disabled={false} event={null} />,
       {
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

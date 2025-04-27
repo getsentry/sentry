@@ -75,7 +75,7 @@ describe('Sentry Application Dashboard', function () {
       const router = RouterFixture({params: {appSlug: sentryApp.slug}});
       render(<SentryApplicationDashboard />, {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
       expect(await screen.findByTestId('installs')).toHaveTextContent('Total installs5');
       expect(screen.getByTestId('uninstalls')).toHaveTextContent('Total uninstalls2');
@@ -85,7 +85,7 @@ describe('Sentry Application Dashboard', function () {
       const router = RouterFixture({params: {appSlug: sentryApp.slug}});
       render(<SentryApplicationDashboard />, {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
       // The mock response has 1 request
       expect(await screen.findByTestId('request-item')).toBeInTheDocument();
@@ -106,7 +106,7 @@ describe('Sentry Application Dashboard', function () {
       const router = RouterFixture({params: {appSlug: sentryApp.slug}});
       render(<SentryApplicationDashboard />, {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       expect(
@@ -118,7 +118,7 @@ describe('Sentry Application Dashboard', function () {
       const router = RouterFixture({params: {appSlug: sentryApp.slug}});
       render(<SentryApplicationDashboard />, {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       expect(await screen.findAllByTestId('chart')).toHaveLength(3);
@@ -170,7 +170,7 @@ describe('Sentry Application Dashboard', function () {
       const router = RouterFixture({params: {appSlug: sentryApp.slug}});
       render(<SentryApplicationDashboard />, {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
       expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
       // The mock response has 1 request
@@ -194,7 +194,7 @@ describe('Sentry Application Dashboard', function () {
       const router = RouterFixture({params: {appSlug: sentryApp.slug}});
       render(<SentryApplicationDashboard />, {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
       expect(
         await screen.findByText('No requests found in the last 30 days.')
@@ -205,7 +205,7 @@ describe('Sentry Application Dashboard', function () {
       const router = RouterFixture({params: {appSlug: sentryApp.slug}});
       render(<SentryApplicationDashboard />, {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       expect(await screen.findByTestId('chart')).toBeInTheDocument();

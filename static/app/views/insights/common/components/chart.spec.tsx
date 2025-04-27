@@ -15,7 +15,7 @@ describe('Chart', function () {
 
     render(
       <Chart error={parsingError} data={[]} loading={false} type={ChartType.LINE} />,
-      {enableRouterMocks: false}
+      {deprecatedRouterMocks: false}
     );
 
     expect(screen.getByTestId('chart-error-panel')).toBeInTheDocument();
@@ -44,7 +44,7 @@ describe('Chart', function () {
       },
     ];
     render(<Chart data={mockedSeries} loading={false} type={ChartType.LINE} />, {
-      enableRouterMocks: false,
+      deprecatedRouterMocks: false,
     });
     expect(jest.mocked(BaseChart).mock.calls[0]![0].series?.[0]).toHaveProperty(
       'markLine'

@@ -24,7 +24,7 @@ describe('OrganizationApiKeyDetails', function () {
   it('renders', async function () {
     render(<OrganizationApiKeyDetails />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByRole('textbox', {name: 'API Key'})).toBeInTheDocument();

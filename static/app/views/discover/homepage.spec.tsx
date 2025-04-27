@@ -112,7 +112,7 @@ describe('Discover > Homepage', () => {
       {
         router: initialData.router,
         organization: initialData.organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -151,7 +151,7 @@ describe('Discover > Homepage', () => {
       {
         router: initialData.router,
         organization: initialData.organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -174,10 +174,10 @@ describe('Discover > Homepage', () => {
       {
         router: initialData.router,
         organization: initialData.organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
-    renderGlobalModal({router: initialData.router, enableRouterMocks: true});
+    renderGlobalModal({router: initialData.router, deprecatedRouterMocks: true});
 
     await userEvent.click(await screen.findByText('Columns'));
 
@@ -209,7 +209,7 @@ describe('Discover > Homepage', () => {
       {
         router: initialData.router,
         organization: initialData.organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
     await waitFor(() => {
@@ -260,7 +260,7 @@ describe('Discover > Homepage', () => {
       {
         router: initialData.router,
         organization: initialData.organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -297,7 +297,7 @@ describe('Discover > Homepage', () => {
       {
         router: initialData.router,
         organization: initialData.organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -337,7 +337,7 @@ describe('Discover > Homepage', () => {
       {
         router: initialData.router,
         organization: initialData.organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -379,7 +379,7 @@ describe('Discover > Homepage', () => {
       {
         router: initialData.router,
         organization: initialData.organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
     renderGlobalModal();
@@ -439,7 +439,7 @@ describe('Discover > Homepage', () => {
       {
         router: initialData.router,
         organization: initialData.organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
     renderGlobalModal();
@@ -499,7 +499,7 @@ describe('Discover > Homepage', () => {
       {
         router: initialData.router,
         organization: initialData.organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
     await waitFor(() => {
@@ -538,7 +538,7 @@ describe('Discover > Homepage', () => {
       {
         router: initialData.router,
         organization: initialData.organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -608,7 +608,7 @@ describe('Discover > Homepage', () => {
       {
         router: initialData.router,
         organization: initialData.organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -693,7 +693,7 @@ describe('Discover > Homepage', () => {
       {
         router: initialData.router,
         organization: initialData.organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

@@ -82,7 +82,7 @@ describe('ProductSelectionAvailability', function () {
         />,
         {
           router,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -131,7 +131,7 @@ describe('ProductSelectionAvailability', function () {
         />,
         {
           router,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -188,7 +188,7 @@ describe('ProductSelectionAvailability', function () {
         />,
         {
           router,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -240,7 +240,7 @@ describe('ProductSelectionAvailability', function () {
         />,
         {
           router,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -293,7 +293,7 @@ describe('ProductSelectionAvailability', function () {
         />,
         {
           router,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -376,7 +376,7 @@ describe('ProductSelectionAvailability', function () {
         />,
         {
           router,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -454,7 +454,7 @@ describe('ProductSelectionAvailability', function () {
         />,
         {
           router,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -503,7 +503,7 @@ describe('ProductSelectionAvailability', function () {
         />,
         {
           router,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -552,7 +552,7 @@ describe('ProductSelectionAvailability', function () {
         />,
         {
           router,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -603,7 +603,7 @@ describe('ProductSelectionAvailability', function () {
         />,
         {
           router,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
       // Tracing

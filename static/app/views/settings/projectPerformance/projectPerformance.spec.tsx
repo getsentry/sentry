@@ -86,7 +86,7 @@ describe('projectPerformance', function () {
 
   it('renders the fields', async function () {
     render(<ProjectPerformance />, {
-      enableRouterMocks: false,
+      deprecatedRouterMocks: false,
       initialRouterConfig,
     });
 
@@ -99,7 +99,7 @@ describe('projectPerformance', function () {
 
   it('updates the field', async function () {
     render(<ProjectPerformance />, {
-      enableRouterMocks: false,
+      deprecatedRouterMocks: false,
       initialRouterConfig,
     });
 
@@ -123,7 +123,7 @@ describe('projectPerformance', function () {
 
   it('clears the data', async function () {
     render(<ProjectPerformance />, {
-      enableRouterMocks: false,
+      deprecatedRouterMocks: false,
       initialRouterConfig,
     });
 
@@ -146,7 +146,7 @@ describe('projectPerformance', function () {
 
     render(<ProjectPerformance />, {
       organization: org,
-      enableRouterMocks: false,
+      deprecatedRouterMocks: false,
       initialRouterConfig,
     });
 
@@ -295,7 +295,7 @@ describe('projectPerformance', function () {
 
       render(<ProjectPerformance />, {
         organization: org,
-        enableRouterMocks: false,
+        deprecatedRouterMocks: false,
         initialRouterConfig,
       });
 
@@ -360,7 +360,7 @@ describe('projectPerformance', function () {
 
     render(<ProjectPerformance />, {
       organization: org,
-      enableRouterMocks: false,
+      deprecatedRouterMocks: false,
       initialRouterConfig,
     });
 

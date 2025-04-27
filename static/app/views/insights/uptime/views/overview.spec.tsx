@@ -81,7 +81,7 @@ describe('Uptime Overview', function () {
     });
     OrganizationStore.onUpdate(organization);
 
-    render(<UptimeOverview />, {organization, router, enableRouterMocks: true});
+    render(<UptimeOverview />, {organization, router, deprecatedRouterMocks: true});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 

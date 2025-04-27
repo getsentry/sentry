@@ -81,7 +81,7 @@ describe('GroupActivity', function () {
     render(<GroupActivity />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
   }
 

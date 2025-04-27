@@ -33,7 +33,7 @@ describe('LoginForm', function () {
     });
 
     render(<LoginForm authConfig={emptyAuthConfig} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await doLogin();
 
@@ -59,7 +59,7 @@ describe('LoginForm', function () {
 
     render(<LoginForm authConfig={emptyAuthConfig} />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await doLogin();
 
@@ -82,7 +82,7 @@ describe('LoginForm', function () {
     };
 
     render(<LoginForm authConfig={authConfig} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(screen.getByText('Sign in with GitHub')).toBeInTheDocument();

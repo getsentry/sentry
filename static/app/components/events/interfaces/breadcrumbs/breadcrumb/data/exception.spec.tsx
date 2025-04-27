@@ -66,7 +66,7 @@ describe('Breadcrumb Data Exception', function () {
       {
         organization,
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -107,7 +107,7 @@ describe('Breadcrumb Data Exception', function () {
       {
         organization,
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

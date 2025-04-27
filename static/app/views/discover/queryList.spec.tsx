@@ -94,7 +94,7 @@ describe('Discover > QueryList', function () {
         location={location}
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -113,7 +113,7 @@ describe('Discover > QueryList', function () {
         location={location}
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -159,7 +159,7 @@ describe('Discover > QueryList', function () {
       />,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -221,7 +221,7 @@ describe('Discover > QueryList', function () {
         location={location}
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -260,7 +260,7 @@ describe('Discover > QueryList', function () {
       />,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -293,7 +293,7 @@ describe('Discover > QueryList', function () {
         location={location}
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -319,7 +319,7 @@ describe('Discover > QueryList', function () {
       />,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -343,7 +343,7 @@ describe('Discover > QueryList', function () {
       />,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -379,7 +379,7 @@ describe('Discover > QueryList', function () {
         location={location}
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -412,7 +412,7 @@ describe('Discover > QueryList', function () {
         location={location}
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -454,7 +454,7 @@ describe('Discover > QueryList', function () {
         location={location}
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -482,7 +482,7 @@ describe('Discover > QueryList', function () {
         location={location}
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -519,7 +519,7 @@ describe('Discover > QueryList', function () {
           location={location}
         />,
         {
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -588,7 +588,7 @@ describe('Discover > QueryList', function () {
           location={location}
         />,
         {
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -659,7 +659,7 @@ describe('Discover > QueryList', function () {
         location={location}
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

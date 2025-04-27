@@ -83,7 +83,7 @@ describe('IntegrationOrganizationLink', () => {
 
     render(<IntegrationOrganizationLink />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
@@ -111,7 +111,7 @@ describe('IntegrationOrganizationLink', () => {
 
     render(<IntegrationOrganizationLink />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 

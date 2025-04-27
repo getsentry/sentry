@@ -43,7 +43,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     render(getElement(), {
       organization: props.organization,
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
   beforeEach(function () {

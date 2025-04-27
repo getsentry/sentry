@@ -73,7 +73,7 @@ describe('ProjectsDashboard', function () {
       TeamStore.loadInitialData(teamsWithOneProject);
 
       render(<ProjectsDashboard />, {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       expect(await screen.findByTestId('join-team')).toBeInTheDocument();
@@ -113,7 +113,7 @@ describe('ProjectsDashboard', function () {
       const teamsWithTwoProjects = [TeamFixture({projects})];
       TeamStore.loadInitialData(teamsWithTwoProjects);
       render(<ProjectsDashboard />, {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
       expect(await screen.findByText('My Teams')).toBeInTheDocument();
       expect(screen.getAllByTestId('badge-display-name')).toHaveLength(2);
@@ -147,7 +147,7 @@ describe('ProjectsDashboard', function () {
       TeamStore.loadInitialData(teamsWithTwoProjects);
 
       render(<ProjectsDashboard />, {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
       expect(await screen.findByText('My Teams')).toBeInTheDocument();
       expect(screen.getAllByTestId('badge-display-name')).toHaveLength(1);
@@ -185,7 +185,7 @@ describe('ProjectsDashboard', function () {
 
       const {router} = render(<ProjectsDashboard />, {
         organization: openOrg,
-        enableRouterMocks: false,
+        deprecatedRouterMocks: false,
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/projects/',
@@ -242,7 +242,7 @@ describe('ProjectsDashboard', function () {
 
       const {router} = render(<ProjectsDashboard />, {
         organization: openMembershipOrg,
-        enableRouterMocks: false,
+        deprecatedRouterMocks: false,
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/projects/',
@@ -301,7 +301,7 @@ describe('ProjectsDashboard', function () {
       render(<ProjectsDashboard />, {
         router,
         organization: closedOrg,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
       expect(await screen.findByText('All Teams')).toBeInTheDocument();
       expect(screen.getAllByTestId('badge-display-name')).toHaveLength(1);
@@ -387,7 +387,7 @@ describe('ProjectsDashboard', function () {
 
       render(<ProjectsDashboard />, {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       expect(await screen.findByText('project3')).toBeInTheDocument();
@@ -422,7 +422,7 @@ describe('ProjectsDashboard', function () {
       const teamsWithTwoProjects = [TeamFixture({projects})];
       TeamStore.loadInitialData(teamsWithTwoProjects);
       render(<ProjectsDashboard />, {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
       await userEvent.type(
         screen.getByPlaceholderText('Search for projects by name'),
@@ -500,7 +500,7 @@ describe('ProjectsDashboard', function () {
       });
 
       render(<ProjectsDashboard />, {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       // check that all projects are displayed
@@ -585,7 +585,7 @@ describe('ProjectsDashboard', function () {
       });
 
       const {unmount} = render(<ProjectsDashboard />, {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       expect(loadStatsSpy).toHaveBeenCalledTimes(6);

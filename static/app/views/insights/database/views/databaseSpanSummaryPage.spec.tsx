@@ -175,7 +175,7 @@ describe('DatabaseSpanSummaryPage', function () {
 
     render(
       <DatabaseSpanSummaryPage {...RouteComponentPropsFixture({params: {groupId}})} />,
-      {organization, enableRouterMocks: true}
+      {organization, deprecatedRouterMocks: true}
     );
 
     // Metrics ribbon

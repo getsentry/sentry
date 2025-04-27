@@ -68,7 +68,7 @@ describe('ProjectDetail > ProjectIssues', function () {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -86,7 +86,7 @@ describe('ProjectDetail > ProjectIssues', function () {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -116,7 +116,7 @@ describe('ProjectDetail > ProjectIssues', function () {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -147,7 +147,7 @@ describe('ProjectDetail > ProjectIssues', function () {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -182,7 +182,7 @@ describe('ProjectDetail > ProjectIssues', function () {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

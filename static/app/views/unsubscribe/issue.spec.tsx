@@ -37,7 +37,7 @@ describe('UnsubscribeIssue', function () {
       <UnsubscribeIssue {...routerProps} location={router.location} params={params} />,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -58,7 +58,7 @@ describe('UnsubscribeIssue', function () {
       <UnsubscribeIssue {...routerProps} location={router.location} params={params} />,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

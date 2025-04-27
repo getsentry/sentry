@@ -13,7 +13,7 @@ describe('EventMissingBanner', () => {
     render(<EventMissingBanner />, {
       organization,
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     // Header
@@ -33,7 +33,7 @@ describe('EventMissingBanner', () => {
     render(<EventMissingBanner />, {
       organization,
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     // Header

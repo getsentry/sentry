@@ -27,7 +27,7 @@ describe('DropdownMenu', function () {
         triggerLabel="This is a Menu"
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -73,7 +73,7 @@ describe('DropdownMenu', function () {
         triggerLabel="Menu"
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -97,7 +97,7 @@ describe('DropdownMenu', function () {
         <DropdownMenu items={[{key: 'item2', label: 'Item Two'}]} triggerLabel="Menu B" />
       </Fragment>,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -166,7 +166,7 @@ describe('DropdownMenu', function () {
         triggerLabel="Menu"
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -256,7 +256,7 @@ describe('DropdownMenu', function () {
         triggerLabel="Menu"
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -273,7 +273,7 @@ describe('DropdownMenu', function () {
         triggerLabel="Menu"
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -291,7 +291,7 @@ describe('DropdownMenu', function () {
         triggerLabel="Menu"
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -315,7 +315,7 @@ describe('DropdownMenu', function () {
       />,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -347,7 +347,7 @@ describe('DropdownMenu', function () {
       />,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -384,7 +384,7 @@ describe('DropdownMenu', function () {
       />,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

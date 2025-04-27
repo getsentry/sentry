@@ -225,7 +225,7 @@ describe('Dashboards > Detail', function () {
         </OrganizationContext>,
         {
           router,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -249,7 +249,7 @@ describe('Dashboards > Detail', function () {
         {
           router: initialData.router,
           organization: initialData.organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -478,7 +478,7 @@ describe('Dashboards > Detail', function () {
         </OrganizationContext>,
         {
           router,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -544,7 +544,7 @@ describe('Dashboards > Detail', function () {
         </OrganizationContext>,
         {
           router,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -579,7 +579,7 @@ describe('Dashboards > Detail', function () {
         </OrganizationContext>,
         {
           router,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -622,7 +622,7 @@ describe('Dashboards > Detail', function () {
         </OrganizationContext>,
         {
           router,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
       expect(await screen.findByText('All Releases')).toBeInTheDocument();
@@ -650,7 +650,7 @@ describe('Dashboards > Detail', function () {
         </OrganizationContext>,
         {
           router,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -717,7 +717,7 @@ describe('Dashboards > Detail', function () {
         {
           router,
           organization: initialData.organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -767,7 +767,7 @@ describe('Dashboards > Detail', function () {
         {
           router,
           organization: initialData.organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -820,7 +820,7 @@ describe('Dashboards > Detail', function () {
         {
           router,
           organization: initialData.organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -876,7 +876,7 @@ describe('Dashboards > Detail', function () {
         {
           router,
           organization: initialData.organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -925,7 +925,7 @@ describe('Dashboards > Detail', function () {
         {
           router,
           organization: initialData.organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -965,7 +965,7 @@ describe('Dashboards > Detail', function () {
         {
           router,
           organization: initialData.organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1007,7 +1007,7 @@ describe('Dashboards > Detail', function () {
         {
           router: initialData.router,
           organization: initialData.organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1051,7 +1051,7 @@ describe('Dashboards > Detail', function () {
         {
           router: initialData.router,
           organization: initialData.organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1091,7 +1091,7 @@ describe('Dashboards > Detail', function () {
         {
           router: initialData.router,
           organization: initialData.organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1129,7 +1129,7 @@ describe('Dashboards > Detail', function () {
         {
           router,
           organization: initialData.organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1176,7 +1176,7 @@ describe('Dashboards > Detail', function () {
         {
           router,
           organization: initialData.organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1241,7 +1241,7 @@ describe('Dashboards > Detail', function () {
         {
           router,
           organization: testData.organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1317,7 +1317,7 @@ describe('Dashboards > Detail', function () {
         {
           router,
           organization: testData.organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1382,7 +1382,7 @@ describe('Dashboards > Detail', function () {
         {
           router,
           organization: testData.organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1451,7 +1451,7 @@ describe('Dashboards > Detail', function () {
         {
           router,
           organization: testData.organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1526,7 +1526,7 @@ describe('Dashboards > Detail', function () {
         {
           router,
           organization: testData.organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1595,7 +1595,7 @@ describe('Dashboards > Detail', function () {
         {
           router,
           organization: testData.organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1655,7 +1655,7 @@ describe('Dashboards > Detail', function () {
         {
           router,
           organization: testData.organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1714,7 +1714,7 @@ describe('Dashboards > Detail', function () {
         {
           router,
           organization: testData.organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1775,7 +1775,7 @@ describe('Dashboards > Detail', function () {
         {
           router,
           organization: testData.organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1847,7 +1847,7 @@ describe('Dashboards > Detail', function () {
         {
           router,
           organization: testData.organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1869,7 +1869,7 @@ describe('Dashboards > Detail', function () {
         {
           router: initialData.router,
           organization: initialData.organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1901,7 +1901,7 @@ describe('Dashboards > Detail', function () {
         {
           router,
           organization: initialData.organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
       await userEvent.click(await screen.findByText('Edit Access:'));
@@ -1968,7 +1968,7 @@ describe('Dashboards > Detail', function () {
         {
           router,
           organization: initialData.organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
       await userEvent.click(await screen.findByText('Edit Access:'));
@@ -2056,7 +2056,7 @@ describe('Dashboards > Detail', function () {
         {
           router,
           organization: initialData.organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
       await userEvent.click(await screen.findByText('Edit Access:'));
@@ -2130,7 +2130,7 @@ describe('Dashboards > Detail', function () {
             access: ['org:read'],
           },
 
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -2196,7 +2196,7 @@ describe('Dashboards > Detail', function () {
             access: ['org:read'],
           },
 
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -2242,7 +2242,7 @@ describe('Dashboards > Detail', function () {
             features: ['dashboards-favourite', ...initialData.organization.features],
           },
 
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -2276,7 +2276,7 @@ describe('Dashboards > Detail', function () {
             features: ['dashboards-favourite', ...initialData.organization.features],
           },
 
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -2316,7 +2316,7 @@ describe('Dashboards > Detail', function () {
             features: ['dashboards-favourite', ...initialData.organization.features],
           },
 
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -2375,7 +2375,7 @@ describe('Dashboards > Detail', function () {
           />,
           {
             organization: initialData.organization,
-            enableRouterMocks: true,
+            deprecatedRouterMocks: true,
           }
         );
         await userEvent.click(await screen.findByRole('button', {name: 'Add Widget'}));
@@ -2399,7 +2399,7 @@ describe('Dashboards > Detail', function () {
           />,
           {
             organization: initialData.organization,
-            enableRouterMocks: true,
+            deprecatedRouterMocks: true,
           }
         );
         await userEvent.click(await screen.findByRole('button', {name: 'Add Widget'}));
@@ -2423,7 +2423,7 @@ describe('Dashboards > Detail', function () {
           />,
           {
             organization: initialData.organization,
-            enableRouterMocks: true,
+            deprecatedRouterMocks: true,
           }
         );
         await userEvent.click(await screen.findByLabelText('Add Widget'));
@@ -2447,7 +2447,7 @@ describe('Dashboards > Detail', function () {
           />,
           {
             organization: initialData.organization,
-            enableRouterMocks: true,
+            deprecatedRouterMocks: true,
           }
         );
         await userEvent.click(await screen.findByLabelText('Add Widget'));
@@ -2486,7 +2486,7 @@ describe('Dashboards > Detail', function () {
             // Mock the widgetIndex param so it's available when the widget builder opens
             router: {...initialData.router, params: {widgetIndex: '0'}},
 
-            enableRouterMocks: true,
+            deprecatedRouterMocks: true,
           }
         );
 
@@ -2530,7 +2530,7 @@ describe('Dashboards > Detail', function () {
           />,
           {
             organization: initialData.organization,
-            enableRouterMocks: true,
+            deprecatedRouterMocks: true,
           }
         );
 
@@ -2581,7 +2581,7 @@ describe('Dashboards > Detail', function () {
             // Mock the widgetIndex param so it's available when the widget builder opens
             router: {...initialData.router, params: {widgetIndex: '0'}},
 
-            enableRouterMocks: true,
+            deprecatedRouterMocks: true,
           }
         );
 
@@ -2634,7 +2634,7 @@ describe('Dashboards > Detail', function () {
           />,
           {
             organization: initialData.organization,
-            enableRouterMocks: true,
+            deprecatedRouterMocks: true,
           }
         );
 

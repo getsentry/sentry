@@ -100,7 +100,7 @@ describe('Relocation Details', function () {
 
     render(<RelocationDetails />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(await screen.findByRole('heading', {name: 'Relocation'})).toBeInTheDocument();
@@ -131,7 +131,7 @@ describe('Relocation Details', function () {
 
     render(<RelocationDetails />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => expect(screen.getAllByText('Working')).toHaveLength(1));
@@ -239,7 +239,7 @@ describe('Relocation Details', function () {
 
     render(<RelocationDetails />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => expect(screen.getAllByText('Paused')).toHaveLength(1));
@@ -314,7 +314,7 @@ describe('Relocation Details', function () {
 
     render(<RelocationDetails />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await userEvent.click(await screen.findByText('Relocation Actions'));
@@ -342,7 +342,7 @@ describe('Relocation Details', function () {
 
     render(<RelocationDetails />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => expect(screen.getAllByText('Working')).toHaveLength(1));
@@ -444,7 +444,7 @@ describe('Relocation Details', function () {
 
     render(<RelocationDetails />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     // Unpause.
@@ -498,7 +498,7 @@ describe('Relocation Details', function () {
 
     render(<RelocationDetails />, {
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     // Unpause.

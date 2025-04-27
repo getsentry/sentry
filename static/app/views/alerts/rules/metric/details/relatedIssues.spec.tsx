@@ -50,7 +50,7 @@ describe('metric details -> RelatedIssues', () => {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

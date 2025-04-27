@@ -57,7 +57,7 @@ describe('ProjectPluginDetails', function () {
       <ProjectPluginDetailsContainer organization={organization} project={project} />,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
     expect(await screen.findByRole('heading', {name: 'Amazon SQS'})).toBeInTheDocument();
@@ -77,7 +77,7 @@ describe('ProjectPluginDetails', function () {
       />,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -100,7 +100,7 @@ describe('ProjectPluginDetails', function () {
       <ProjectPluginDetailsContainer organization={organization} project={project} />,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

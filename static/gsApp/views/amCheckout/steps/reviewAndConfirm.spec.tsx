@@ -156,7 +156,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
         checkoutTier={subscription.planTier as PlanTier}
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -174,7 +174,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
   it('renders closed', function () {
     const {mockPreview} = mockPreviewGet();
     render(<ReviewAndConfirm {...stepProps} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     // Submit should not be visible
@@ -185,7 +185,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
   it('renders open when active', async function () {
     const {preview, mockPreview} = mockPreviewGet();
     render(<ReviewAndConfirm {...stepProps} isActive />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -213,7 +213,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     const {mockPreview, preview} = mockPreviewGet();
     const updatedData = {...formData, onDemandMaxSpend: 5000};
     render(<ReviewAndConfirm {...stepProps} formData={updatedData} isActive />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -232,7 +232,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
   it('updates preview with formData change when active', async function () {
     const {preview, mockPreview} = mockPreviewGet();
     const {rerender} = render(<ReviewAndConfirm {...stepProps} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByText('Review & Confirm')).toBeInTheDocument();
     expect(screen.queryByText('Confirm Changes')).not.toBeInTheDocument();
@@ -266,7 +266,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
       reserved: {...formData.reserved, errors: reservedErrors},
     };
     render(<ReviewAndConfirm {...stepProps} formData={updatedData} isActive />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await userEvent.click(await screen.findByText('Confirm Changes'));
@@ -360,7 +360,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     };
 
     render(<ReviewAndConfirm {...partnerStepProps} formData={updatedData} isActive />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(
       await screen.findByText(
@@ -457,7 +457,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     };
 
     render(<ReviewAndConfirm {...partnerStepProps} formData={updatedData} isActive />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(
       await screen.findByText(
@@ -532,7 +532,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     };
 
     render(<ReviewAndConfirm {...stepProps} formData={updatedData} isActive />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(
       await screen.findByText(
@@ -557,7 +557,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     };
 
     render(<ReviewAndConfirm {...stepProps} formData={updatedData} isActive />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(
       await screen.findByText(
@@ -603,7 +603,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     };
 
     render(<ReviewAndConfirm {...partnerStepProps} formData={updatedData} isActive />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(
       await screen.findByText(
@@ -650,7 +650,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     };
 
     render(<ReviewAndConfirm {...partnerStepProps} formData={updatedData} isActive />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(
       await screen.findByText(
@@ -680,7 +680,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     const props = {...stepProps, subscription: sub, formData: updatedData};
 
     render(<ReviewAndConfirm {...props} isActive />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await userEvent.click(await screen.findByText('Confirm Changes'));
@@ -747,7 +747,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     const updatedData = {...formData};
     const props = {...stepProps, subscription: sub, formData: updatedData};
     render(<ReviewAndConfirm {...props} isActive />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     await userEvent.click(await screen.findByText('Confirm Changes'));
@@ -799,7 +799,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
     const mockConfirm = mockSubscriptionPut();
     const updatedData = {...formData, reserved: {errors: 100000}, onDemandMaxSpend: 5000};
     render(<ReviewAndConfirm {...stepProps} isActive formData={updatedData} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await userEvent.click(await screen.findByText('Confirm Changes'));
 
@@ -834,7 +834,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
 
     const updatedData = {...formData, reservedErrors: 100000};
     render(<ReviewAndConfirm {...stepProps} formData={updatedData} isActive />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(mockPreview).toHaveBeenCalledTimes(1);
 
@@ -870,7 +870,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
 
     const updatedData = {...formData, reservedTransactions: 1500000};
     render(<ReviewAndConfirm {...stepProps} formData={updatedData} isActive />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(mockPreview).toHaveBeenCalledTimes(1);
@@ -918,7 +918,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
 
     const updatedData = {...formData, reserved: {errors: 100000}, onDemandMaxSpend: 5000};
     render(<ReviewAndConfirm {...stepProps} isActive formData={updatedData} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await userEvent.click(await screen.findByText('Confirm Changes'));
 
@@ -965,7 +965,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
 
     const updatedData = {...formData, reserved: {errors: 100000}, onDemandMaxSpend: 5000};
     render(<ReviewAndConfirm {...stepProps} isActive formData={updatedData} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     const button = await screen.findByRole('button', {name: 'Confirm Changes'});
     await userEvent.click(button);
@@ -989,7 +989,7 @@ describe('AmCheckout > ReviewAndConfirm', function () {
 
     const updatedData = {...formData, reserved: {errors: 100000}, onDemandMaxSpend: 5000};
     render(<ReviewAndConfirm {...stepProps} isActive formData={updatedData} />, {
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     const button = await screen.findByRole('button', {name: 'Confirm Changes'});
     await userEvent.click(button);

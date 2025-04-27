@@ -87,7 +87,7 @@ describe('CacheLandingPage', function () {
   });
 
   it('fetches module data', async function () {
-    render(<CacheLandingPage />, {organization, enableRouterMocks: true});
+    render(<CacheLandingPage />, {organization, deprecatedRouterMocks: true});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
@@ -199,7 +199,7 @@ describe('CacheLandingPage', function () {
       },
     });
 
-    render(<CacheLandingPage />, {organization, enableRouterMocks: true});
+    render(<CacheLandingPage />, {organization, deprecatedRouterMocks: true});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
@@ -223,7 +223,7 @@ describe('CacheLandingPage', function () {
   });
 
   it('renders a list of transactions', async function () {
-    render(<CacheLandingPage />, {organization, enableRouterMocks: true});
+    render(<CacheLandingPage />, {organization, deprecatedRouterMocks: true});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     expect(screen.getByRole('columnheader', {name: 'Transaction'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: 'my-transaction'})).toBeInTheDocument();
@@ -279,7 +279,7 @@ describe('CacheLandingPage', function () {
       }),
     ]);
 
-    render(<CacheLandingPage />, {organization, enableRouterMocks: true});
+    render(<CacheLandingPage />, {organization, deprecatedRouterMocks: true});
 
     await waitFor(() => {
       expect(

@@ -69,7 +69,7 @@ describe('Renders SDK Documentation corretly based on platform id and language',
         />
       </OnboardingContextProvider>,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -117,7 +117,7 @@ describe('Renders SDK Documentation corretly based on platform id and language',
       </OnboardingContextProvider>,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

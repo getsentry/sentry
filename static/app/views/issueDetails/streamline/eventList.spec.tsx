@@ -82,7 +82,7 @@ describe('EventList', () => {
         routes: [{name: '', path: 'events/'}],
       }),
 
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
   }
 
@@ -143,7 +143,7 @@ describe('EventList', () => {
         routes: [{name: '', path: 'events/'}],
       }),
 
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     const expectedArgs = [

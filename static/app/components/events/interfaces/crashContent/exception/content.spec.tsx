@@ -143,7 +143,7 @@ describe('Exception Content', function () {
       {
         organization: org,
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -209,7 +209,7 @@ describe('Exception Content', function () {
         newestFirst
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -256,7 +256,7 @@ describe('Exception Content', function () {
 
     it('displays exception group tree under first exception', function () {
       render(<Content {...defaultProps} />, {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       const exceptions = screen.getAllByTestId('exception-value');
@@ -270,7 +270,7 @@ describe('Exception Content', function () {
 
     it('displays exception group tree in first frame when there is no other context', function () {
       render(<Content {...defaultProps} />, {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       const exceptions = screen.getAllByTestId('exception-value');
@@ -283,7 +283,7 @@ describe('Exception Content', function () {
 
     it('collapses sub-groups by default', async function () {
       render(<Content {...defaultProps} />, {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       // There are 4 values, but 1 should be hidden
@@ -309,7 +309,7 @@ describe('Exception Content', function () {
 
     it('auto-opens sub-groups when clicking link in tree', async function () {
       render(<Content {...defaultProps} />, {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       expect(screen.queryByRole('heading', {name: 'ValueError'})).not.toBeInTheDocument();

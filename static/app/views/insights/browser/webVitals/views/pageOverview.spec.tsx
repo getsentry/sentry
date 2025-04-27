@@ -75,7 +75,7 @@ describe('PageOverview', function () {
   });
 
   it('renders', () => {
-    render(<PageOverview />, {organization, enableRouterMocks: true});
+    render(<PageOverview />, {organization, deprecatedRouterMocks: true});
     // Raw web vital metric tile queries
     expect(eventsMock).toHaveBeenNthCalledWith(
       1,
@@ -145,7 +145,7 @@ describe('PageOverview', function () {
     });
     render(<PageOverview />, {
       organization: organizationWithInp,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await waitFor(() =>
       expect(eventsMock).toHaveBeenCalledWith(
@@ -196,7 +196,7 @@ describe('PageOverview', function () {
     });
     render(<PageOverview />, {
       organization: organizationWithInp,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     await waitFor(() =>
       expect(eventsMock).toHaveBeenCalledWith(

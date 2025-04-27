@@ -122,7 +122,7 @@ describe('GroupReplays', () => {
       render(<GroupReplays />, {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       expect(
@@ -152,7 +152,7 @@ describe('GroupReplays', () => {
       render(<GroupReplays />, {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       await waitFor(() => {
@@ -222,7 +222,7 @@ describe('GroupReplays', () => {
       render(<GroupReplays />, {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       expect(
@@ -253,7 +253,7 @@ describe('GroupReplays', () => {
       render(<GroupReplays />, {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       expect(
@@ -287,7 +287,7 @@ describe('GroupReplays', () => {
       render(<GroupReplays />, {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       expect(
@@ -323,7 +323,7 @@ describe('GroupReplays', () => {
       render(<GroupReplays />, {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -393,7 +393,7 @@ describe('GroupReplays', () => {
       render(<GroupReplays />, {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       await waitFor(() => {
@@ -500,7 +500,7 @@ describe('GroupReplays', () => {
       render(<GroupReplays />, {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       expect(await screen.findByText('See Full Replay')).toBeInTheDocument();
@@ -575,7 +575,7 @@ describe('GroupReplays', () => {
       render(<GroupReplays />, {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       await waitFor(() => {

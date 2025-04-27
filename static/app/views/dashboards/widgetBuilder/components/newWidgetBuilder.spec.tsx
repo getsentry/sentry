@@ -118,7 +118,7 @@ describe('NewWidgetBuiler', function () {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -185,7 +185,7 @@ describe('NewWidgetBuiler', function () {
       {
         router: chartsRouter,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -214,7 +214,7 @@ describe('NewWidgetBuiler', function () {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -248,7 +248,7 @@ describe('NewWidgetBuiler', function () {
       {
         router: chartsRouter,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -271,7 +271,7 @@ describe('NewWidgetBuiler', function () {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

@@ -34,7 +34,7 @@ describe('UnsubscribeProject', function () {
       <UnsubscribeProject {...routerProps} location={router.location} params={params} />,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -51,7 +51,7 @@ describe('UnsubscribeProject', function () {
       <UnsubscribeProject {...routerProps} location={router.location} params={params} />,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

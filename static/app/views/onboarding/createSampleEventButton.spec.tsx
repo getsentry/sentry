@@ -29,7 +29,7 @@ describe('CreateSampleEventButton', function () {
       {
         organization: org,
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
   }

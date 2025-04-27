@@ -42,7 +42,7 @@ describe('SimilarIssuesDrawer', function () {
     render(<SimilarIssuesDrawer group={group} project={project} />, {
       organization,
       router,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(

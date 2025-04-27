@@ -116,7 +116,7 @@ describe('Screen Summary', function () {
         ],
       });
 
-      render(<ScreenSummary />, {organization, enableRouterMocks: true});
+      render(<ScreenSummary />, {organization, deprecatedRouterMocks: true});
 
       await waitFor(() => {
         expect(eventsMock).toHaveBeenCalled();

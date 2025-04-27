@@ -84,7 +84,7 @@ describe('UpsellProvider', function () {
       {
         router,
         organization: org,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -111,7 +111,7 @@ describe('UpsellProvider', function () {
     render(<UpsellProvider source="test-abc">{renderer}</UpsellProvider>, {
       router,
       organization: org,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     expect(screen.getByText('Upgrade Plan')).toBeInTheDocument();
@@ -130,7 +130,7 @@ describe('UpsellProvider', function () {
 
     render(<UpsellProvider source="test-abc">{renderer}</UpsellProvider>, {
       organization: org,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
     expect(screen.getByText('Start Trial')).toBeInTheDocument();
 
@@ -155,7 +155,7 @@ describe('UpsellProvider', function () {
       {
         router,
         organization: org,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
     expect(screen.getByText('Request Trial')).toBeInTheDocument();
@@ -180,7 +180,7 @@ describe('UpsellProvider', function () {
       {
         router,
         organization: org,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -218,7 +218,7 @@ describe('UpsellProvider', function () {
       {
         router,
         organization: org,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
     await userEvent.click(screen.getByTestId('test-render'));
@@ -254,7 +254,7 @@ describe('UpsellProvider', function () {
       {
         router,
         organization: org,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
     expect(container).toBeEmptyDOMElement();

@@ -163,7 +163,7 @@ describe('IssueListOverview (actions)', function () {
 
       render(<IssueListOverview {...defaultProps} />, {
         organization,
-        enableRouterMocks: false,
+        deprecatedRouterMocks: false,
         initialRouterConfig: {
           route: '/organizations/:orgId/issues/',
           location: {
@@ -313,7 +313,7 @@ describe('IssueListOverview (actions)', function () {
 
       render(<IssueListOverview {...defaultProps} />, {
         organization,
-        enableRouterMocks: false,
+        deprecatedRouterMocks: false,
         initialRouterConfig: {
           route: '/organizations/:orgId/issues/',
           location: {
@@ -389,7 +389,7 @@ describe('IssueListOverview (actions)', function () {
 
       render(<IssueListOverview {...defaultProps} />, {
         organization,
-        enableRouterMocks: false,
+        deprecatedRouterMocks: false,
       });
 
       const groups = await screen.findAllByTestId('group');
@@ -433,7 +433,7 @@ describe('IssueListOverview (actions)', function () {
 
       render(<IssueListOverview {...defaultProps} />, {
         organization,
-        enableRouterMocks: false,
+        deprecatedRouterMocks: false,
         initialRouterConfig: {
           route: '/organizations/:orgId/issues/',
           location: {
@@ -476,7 +476,7 @@ describe('IssueListOverview (actions)', function () {
 
       render(<IssueListOverview {...defaultProps} />, {
         organization,
-        enableRouterMocks: false,
+        deprecatedRouterMocks: false,
         initialRouterConfig: {
           route: '/organizations/:orgId/issues/',
           location: {

@@ -50,7 +50,7 @@ describe('SpikeProtectionHistoryTable', () => {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -74,7 +74,7 @@ describe('SpikeProtectionHistoryTable', () => {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -113,7 +113,7 @@ describe('SpikeProtectionHistoryTable', () => {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
     await screen.findByTestId('spike-protection-history-table');
@@ -160,7 +160,7 @@ describe('SpikeProtectionHistoryTable', () => {
       {
         router,
         organization,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

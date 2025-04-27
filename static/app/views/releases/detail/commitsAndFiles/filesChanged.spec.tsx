@@ -51,7 +51,7 @@ describe('FilesChanged', () => {
       </ReleaseContext>,
       {
         router,
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
   }

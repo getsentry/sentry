@@ -57,7 +57,7 @@ describe('IssueListContainer', function () {
 
       render(<IssueListContainer {...defaultProps} />, {
         organization,
-        enableRouterMocks: false,
+        deprecatedRouterMocks: false,
         initialRouterConfig,
       });
 
@@ -69,7 +69,7 @@ describe('IssueListContainer', function () {
     it('hydrates issue view query params', async function () {
       const {router} = render(<IssueListContainer {...defaultProps} />, {
         organization,
-        enableRouterMocks: false,
+        deprecatedRouterMocks: false,
         initialRouterConfig,
       });
 

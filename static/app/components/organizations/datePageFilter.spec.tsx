@@ -41,7 +41,7 @@ describe('DatePageFilter', function () {
     render(<DatePageFilter />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     // Open time period dropdown
@@ -79,7 +79,7 @@ describe('DatePageFilter', function () {
     render(<DatePageFilter />, {
       router,
       organization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     // Open time period dropdown
@@ -156,7 +156,7 @@ describe('DatePageFilter', function () {
     render(<DatePageFilter />, {
       router: desyncRouter,
       organization: desyncOrganization,
-      enableRouterMocks: true,
+      deprecatedRouterMocks: true,
     });
 
     // Open menu

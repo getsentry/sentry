@@ -44,7 +44,7 @@ describe('EventOrGroupHeader', function () {
   describe('Group', function () {
     it('renders with `type = error`', function () {
       render(<EventOrGroupHeader data={group} {...router} />, {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
     });
 
@@ -58,7 +58,7 @@ describe('EventOrGroupHeader', function () {
           {...router}
         />,
         {
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
     });
@@ -77,7 +77,7 @@ describe('EventOrGroupHeader', function () {
           {...router}
         />,
         {
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
     });
@@ -92,7 +92,7 @@ describe('EventOrGroupHeader', function () {
           {...router}
         />,
         {
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -107,7 +107,7 @@ describe('EventOrGroupHeader', function () {
       });
 
       render(<EventOrGroupHeader data={group} {...router} />, {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       });
 
       const groupLink = screen.getByRole('link');
@@ -133,7 +133,7 @@ describe('EventOrGroupHeader', function () {
           {...router}
         />,
         {
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
     });
@@ -148,7 +148,7 @@ describe('EventOrGroupHeader', function () {
           {...router}
         />,
         {
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
     });
@@ -167,7 +167,7 @@ describe('EventOrGroupHeader', function () {
           {...router}
         />,
         {
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
     });
@@ -186,7 +186,7 @@ describe('EventOrGroupHeader', function () {
           }}
         />,
         {
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
     });
@@ -211,7 +211,7 @@ describe('EventOrGroupHeader', function () {
             },
           },
 
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -238,7 +238,7 @@ describe('EventOrGroupHeader', function () {
             },
           },
 
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -271,7 +271,7 @@ describe('EventOrGroupHeader', function () {
         {...router}
       />,
       {
-        enableRouterMocks: true,
+        deprecatedRouterMocks: true,
       }
     );
 

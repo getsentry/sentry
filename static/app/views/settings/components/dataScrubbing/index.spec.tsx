@@ -31,7 +31,7 @@ describe('Data Scrubbing', function () {
           onSubmitSuccess={jest.fn()}
         />,
         {
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -74,7 +74,7 @@ describe('Data Scrubbing', function () {
           onSubmitSuccess={jest.fn()}
         />,
         {
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -92,7 +92,7 @@ describe('Data Scrubbing', function () {
           disabled
         />,
         {
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -123,7 +123,7 @@ describe('Data Scrubbing', function () {
           project={project}
         />,
         {
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -150,7 +150,7 @@ describe('Data Scrubbing', function () {
         />,
         {
           organization,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -174,7 +174,7 @@ describe('Data Scrubbing', function () {
           />
         </Fragment>,
         {
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -201,7 +201,7 @@ describe('Data Scrubbing', function () {
           />
         </Fragment>,
         {
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -229,7 +229,7 @@ describe('Data Scrubbing', function () {
         </Fragment>,
         {
           router,
-          enableRouterMocks: true,
+          deprecatedRouterMocks: true,
         }
       );
 
