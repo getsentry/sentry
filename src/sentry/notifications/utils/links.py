@@ -146,7 +146,7 @@ def get_workflow_links(
         workflow_id = get_key_from_rule_data(rule, "workflow_id")
         workflow_links.append(
             NotificationRuleDetails(
-                workflow_id,
+                int(workflow_id),
                 rule.label,
                 create_link_to_workflow(organization.id, workflow_id),
                 # TODO(iamrajjoshi): Add status url (whatever it is)
