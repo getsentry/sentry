@@ -60,10 +60,6 @@ pytestmark = requires_snuba
 
 
 class BaseMailAdapterTest(TestCase, PerformanceIssueTestCase):
-    def setUp(self):
-        super().setUp()
-        self.rule = self.create_project_rule(project=self.project)
-
     @cached_property
     def adapter(self):
         return mail_adapter
@@ -520,10 +516,10 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             value="never",
         )
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-
+        rule = self.create_project_rule(project=self.project)
         with self.tasks():
             AlertRuleNotification(
-                Notification(event=event, rules=[self.rule]),
+                Notification(event=event, rules=[rule]),
                 ActionTargetType.ISSUE_OWNERS,
                 fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
             ).send()
@@ -580,10 +576,10 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             value="never",
         )
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-
+        rule = self.create_project_rule(project=self.project)
         with self.tasks():
             AlertRuleNotification(
-                Notification(event=event, rules=[self.rule]),
+                Notification(event=event, rules=[rule]),
                 ActionTargetType.ISSUE_OWNERS,
                 fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
             ).send()
