@@ -51,6 +51,7 @@ export const enum SectionKey {
 
   BREADCRUMBS = 'breadcrumbs',
   LOGS = 'logs',
+  SPAN_ATTRIBUTES = 'span-attributes',
   /**
    * Also called images loaded
    */
@@ -94,7 +95,7 @@ export interface SectionConfig {
   initialCollapse?: boolean;
 }
 
-export interface IssueDetailsContextType extends IssueDetailsState {
+interface IssueDetailsContextType extends IssueDetailsState {
   dispatch: Dispatch<IssueDetailsActions>;
 }
 
@@ -115,7 +116,7 @@ export function useIssueDetails() {
   return useContext(IssueDetailsContext);
 }
 
-export interface IssueDetailsState {
+interface IssueDetailsState {
   /**
    * Detector details for the current issue
    */
@@ -155,7 +156,7 @@ type UpdateDetectorDetailsAction = {
   type: 'UPDATE_DETECTOR_DETAILS';
 };
 
-export type IssueDetailsActions =
+type IssueDetailsActions =
   | UpdateEventSectionAction
   | UpdateNavScrollMarginAction
   | UpdateEventCountAction

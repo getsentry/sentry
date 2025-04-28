@@ -107,6 +107,7 @@ class OrganizationTracesSerializer(serializers.Serializer):
     useRpc = serializers.BooleanField(required=False)
 
     def validate_dataset(self, value):
+        sentry_sdk.set_tag("query.dataset", value)
         if value == "spans":
             return Dataset.EventsAnalyticsPlatform
         if value == "spansIndexed":
@@ -163,6 +164,9 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
             return Response(serializer.errors, status=400)
         serialized = serializer.validated_data
 
+        use_rpc = bool(serialized["useRpc"])
+        sentry_sdk.set_tag("performance.use_rpc", use_rpc)
+
         executor = TracesExecutor(
             dataset=serialized["dataset"],
             snuba_params=snuba_params,
@@ -177,7 +181,7 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
                 project_slugs=None,
                 include_all_accessible=True,
             ),
-            use_rpc=bool(serialized["useRpc"]),
+            use_rpc=use_rpc,
         )
 
         return self.paginate(
@@ -1922,12 +1926,15 @@ def process_rpc_user_queries(
     config = SearchResolverConfig(auto_fields=True)
     resolver = spans_rpc.get_resolver(snuba_params, config)
 
+    # Filter out empty queries as they do not do anything to change the results.
+    user_queries = [user_query for user_query in user_queries if len(user_query) > 0]
+
+    # ensure at least 1 user query exists as the environment filter is AND'ed to it
+    if not user_queries:
+        user_queries.append("")
+
     for user_query in user_queries:
         user_query = user_query.strip()
-
-        # Filter out empty queries as they do not do anything to change the results.
-        if not user_query:
-            continue
 
         # We want to ignore all the aggregate conditions here because we're strictly
         # searching on span attributes, not aggregates

@@ -16,9 +16,9 @@ import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {ModalChartContainer} from 'sentry/views/insights/pages/platform/laravel/styles';
-import {Toolbar} from 'sentry/views/insights/pages/platform/laravel/toolbar';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
+import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 
 export function TrafficWidget({
   title,
@@ -96,7 +96,7 @@ export function TrafficWidget({
     () =>
       plottables.every(
         plottable =>
-          plottable.isEmpty || plottable.timeSeries.data.every(point => !point.value)
+          plottable.isEmpty || plottable.timeSeries.values.every(point => !point.value)
       ),
     [plottables]
   );

@@ -6,7 +6,6 @@ from rest_framework import status
 from sentry.api.exceptions import SentryAPIException
 from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.locks import locks
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules.conditions.event_frequency import EventUniqueUserFrequencyConditionWithConditions
@@ -99,23 +98,14 @@ class IssueAlertMigrator:
                 error_detector = Detector(type=ErrorGroupType.slug, project=self.project)
 
         else:
-            lock = locks.get(
-                f"workflow-engine-project-error-detector:{self.project.id}",
-                duration=10,
-                name="workflow_engine_issue_alert",
+            error_detector, _ = Detector.objects.get_or_create(
+                type=ErrorGroupType.slug,
+                project=self.project,
+                defaults={"config": {}, "name": "Error Detector"},
             )
-            with lock.acquire():
-                error_detector, _ = Detector.objects.get_or_create(
-                    type=ErrorGroupType.slug,
-                    project=self.project,
-                    defaults={"config": {}, "name": "Error Detector"},
-                )
-                _, created = AlertRuleDetector.objects.get_or_create(
-                    detector=error_detector, rule_id=self.rule.id
-                )
-
-                # Detector is required for migration, migration should fail if unable to acquire lock
-                # UnableToAcquireLock exception should be handled by caller
+            _, created = AlertRuleDetector.objects.get_or_create(
+                detector=error_detector, rule_id=self.rule.id
+            )
 
         if not created:
             raise Exception("Issue alert already migrated")
@@ -214,7 +204,10 @@ class IssueAlertMigrator:
         no_conditions = len(conditions) == 0
         no_data_conditions = len(data_conditions) == 0
         only_has_every_event_cond = (
-            len(conditions) == 1 and conditions[0]["id"] == EveryEventCondition.id
+            len(
+                [condition for condition in conditions if condition["id"] == EveryEventCondition.id]
+            )
+            > 0
         )
 
         if not self.is_dry_run:

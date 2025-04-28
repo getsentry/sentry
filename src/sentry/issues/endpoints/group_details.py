@@ -31,9 +31,10 @@ from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.group import Group, get_open_periods_for_group
+from sentry.models.group import Group
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.grouplink import GroupLink
+from sentry.models.groupopenperiod import get_open_periods_for_group
 from sentry.models.groupowner import get_owner_details
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupsubscription import GroupSubscriptionManager

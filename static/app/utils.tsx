@@ -7,10 +7,6 @@ import {
 } from 'sentry/utils/fields';
 import {appendTagCondition} from 'sentry/utils/queryString';
 
-export function intcomma(x: number): string {
-  return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}
-
 /**
  * Replaces slug special chars with a space
  */

@@ -1,11 +1,10 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DurationUnit} from 'sentry/utils/discover/fields';
@@ -74,14 +73,6 @@ export function SpanSamplesContainer({
     searchQueryKey === undefined
       ? undefined
       : decodeScalar(location.query[searchQueryKey]);
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const debounceSetHighlightedSpanId = useCallback(
-    debounce(id => {
-      setHighlightedSpanId(id);
-    }, 10),
-    []
-  );
 
   const spanSearch = new MutableSearch(searchQuery ?? '');
   if (additionalFilters) {
@@ -155,14 +146,11 @@ export function SpanSamplesContainer({
   );
 
   const handleMouseOverSample = useCallback(
-    (sample: SpanSample) => debounceSetHighlightedSpanId(sample.span_id),
-    [debounceSetHighlightedSpanId]
+    (sample: SpanSample) => setHighlightedSpanId(sample.span_id),
+    []
   );
 
-  const handleMouseLeaveSample = useCallback(
-    () => debounceSetHighlightedSpanId(undefined),
-    [debounceSetHighlightedSpanId]
-  );
+  const handleMouseLeaveSample = useCallback(() => setHighlightedSpanId(undefined), []);
 
   return (
     <Fragment>
