@@ -2098,6 +2098,15 @@ function buildRoutes() {
           component={make(() => import('sentry/views/codecov/tests/onboarding'))}
         />
       </Route>
+      <Route path="tokens/">
+        <Route
+          component={make(() => import('sentry/views/codecov/tokens/tokensWrapper'))}
+        >
+          <IndexRoute
+            component={make(() => import('sentry/views/codecov/tokens/tokens'))}
+          />
+        </Route>
+      </Route>
     </Fragment>
   );
   const codecovRoutes = (
