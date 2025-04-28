@@ -1,7 +1,6 @@
 import {GroupingConfigsFixture} from 'sentry-fixture/groupingConfigs';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
   fireEvent,
@@ -41,7 +40,6 @@ describe('projectGeneralSettings', function () {
   let putMock: jest.Mock;
   const mockOnChangeSlug = jest.fn();
 
-  const router = RouterFixture({params: {projectId: project.slug}});
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -78,8 +76,12 @@ describe('projectGeneralSettings', function () {
 
       {
         organization,
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/${project.slug}/`,
+          },
+          route: '/:projectId/',
+        },
       }
     );
 
@@ -108,8 +110,12 @@ describe('projectGeneralSettings', function () {
 
     render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
       organization: orgWithoutScrapeJavaScript,
-      deprecatedRouterMocks: true,
-      router,
+      initialRouterConfig: {
+        location: {
+          pathname: `/${project.slug}/`,
+        },
+        route: '/:projectId/',
+      },
     });
 
     expect(
@@ -128,8 +134,12 @@ describe('projectGeneralSettings', function () {
 
     render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
       organization,
-      deprecatedRouterMocks: true,
-      router,
+      initialRouterConfig: {
+        location: {
+          pathname: `/${project.slug}/`,
+        },
+        route: '/:projectId/',
+      },
     });
 
     await userEvent.click(await screen.findByRole('button', {name: 'Remove Project'}));
@@ -150,8 +160,12 @@ describe('projectGeneralSettings', function () {
 
     render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
       organization,
-      deprecatedRouterMocks: true,
-      router,
+      initialRouterConfig: {
+        location: {
+          pathname: `/${project.slug}/`,
+        },
+        route: '/:projectId/',
+      },
     });
 
     await userEvent.click(await screen.findByRole('button', {name: 'Transfer Project'}));
@@ -186,8 +200,12 @@ describe('projectGeneralSettings', function () {
 
     render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
       organization,
-      deprecatedRouterMocks: true,
-      router,
+      initialRouterConfig: {
+        location: {
+          pathname: `/${project.slug}/`,
+        },
+        route: '/:projectId/',
+      },
     });
 
     await userEvent.click(await screen.findByRole('button', {name: 'Transfer Project'}));
@@ -218,8 +236,12 @@ describe('projectGeneralSettings', function () {
 
     render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
       organization: nonAdminOrg,
-      deprecatedRouterMocks: true,
-      router,
+      initialRouterConfig: {
+        location: {
+          pathname: `/${project.slug}/`,
+        },
+        route: '/:projectId/',
+      },
     });
 
     // Wait for the component to load
@@ -240,8 +262,12 @@ describe('projectGeneralSettings', function () {
 
     render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
       organization: readOnlyOrg,
-      deprecatedRouterMocks: true,
-      router,
+      initialRouterConfig: {
+        location: {
+          pathname: `/${project.slug}/`,
+        },
+        route: '/:projectId/',
+      },
     });
 
     // no textboxes are enabled
@@ -268,8 +294,12 @@ describe('projectGeneralSettings', function () {
       </ProjectContextProvider>,
       {
         organization,
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/${project.slug}/`,
+          },
+          route: '/:projectId/',
+        },
       }
     );
 
@@ -299,8 +329,12 @@ describe('projectGeneralSettings', function () {
       </ProjectContextProvider>,
       {
         organization,
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: `/${project.slug}/`,
+          },
+          route: '/:projectId/',
+        },
       }
     );
 
@@ -343,8 +377,12 @@ describe('projectGeneralSettings', function () {
         </ProjectContextProvider>,
         {
           organization,
-          router,
-          deprecatedRouterMocks: true,
+          initialRouterConfig: {
+            location: {
+              pathname: `/${project.slug}/`,
+            },
+            route: '/:projectId/',
+          },
         }
       );
     }
