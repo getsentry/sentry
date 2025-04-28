@@ -35,7 +35,6 @@ describe('CodecovSecondaryNav', () => {
       </NavContextProvider>,
       {
         organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
-
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/codecov/coverage/commits/',
@@ -60,7 +59,6 @@ describe('CodecovSecondaryNav', () => {
       </NavContextProvider>,
       {
         organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
-
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/codecov/tests/',
@@ -82,7 +80,6 @@ describe('CodecovSecondaryNav', () => {
       </NavContextProvider>,
       {
         organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
-        enableRouterMocks: false,
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/codecov/tokens/',
