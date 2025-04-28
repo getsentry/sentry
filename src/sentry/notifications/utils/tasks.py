@@ -19,6 +19,10 @@ if TYPE_CHECKING:
     from sentry.notifications.notifications.base import BaseNotification
 
 
+LAZY_OBJECT_KEY = "lazyobjectrpcuser"
+MODEL_KEY = "model"
+
+
 def serialize_lazy_object_user(arg: SimpleLazyObject, key: str | None = None) -> dict[str, Any]:
     raw_data = arg.dict()  # type: ignore[attr-defined]
     parsed_data = {}
@@ -29,7 +33,7 @@ def serialize_lazy_object_user(arg: SimpleLazyObject, key: str | None = None) ->
         parsed_data[k] = v
 
     return {
-        "type": "lazyobjectrpcuser",
+        "type": LAZY_OBJECT_KEY,
         "data": parsed_data,
         "key": key,
     }
@@ -38,7 +42,7 @@ def serialize_lazy_object_user(arg: SimpleLazyObject, key: str | None = None) ->
 def serialize_model(arg: Model, key: str | None = None) -> dict[str, Any]:
     meta = type(arg)._meta
     return {
-        "type": "model",
+        "type": MODEL_KEY,
         "app_label": meta.app_label,
         "model_name": meta.model_name,
         "pk": arg.pk,
@@ -94,7 +98,7 @@ def _send_notification(notification_class_name: str, arg_list: Iterable[Mapping[
     output_args = []
     output_kwargs = {}
     for arg in arg_list:
-        if arg["type"] == "model":
+        if arg["type"] == MODEL_KEY:
             model = apps.get_model(arg["app_label"], arg["model_name"])
             # TODO: error handling
             instance = model.objects.get(pk=arg["pk"])
@@ -102,7 +106,7 @@ def _send_notification(notification_class_name: str, arg_list: Iterable[Mapping[
                 output_kwargs[arg["key"]] = instance
             else:
                 output_args.append(instance)
-        elif arg["type"] == "lazyobjectuser":
+        elif arg["type"] == LAZY_OBJECT_KEY:
             user = RpcUser.parse_obj(arg["data"])
 
             if arg["key"]:
