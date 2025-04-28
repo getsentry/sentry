@@ -6,6 +6,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, Protocol, cast
 
+from sentry.utils import metrics
 from sentry.utils.safe import PathSearchable, get_path
 
 
@@ -58,6 +59,16 @@ def java_frame_munger(frame: EventFrame) -> str | None:
     return None
 
 
+def java_new_logic_frame_munger(frame: EventFrame) -> str | None:
+    if not frame.module or not frame.abs_path:
+        return None
+
+    from sentry.issues.auto_source_code_config.code_mapping import get_path_from_module
+
+    _, stacktrace_path = get_path_from_module(frame.module, frame.abs_path)
+    return stacktrace_path
+
+
 def cocoa_frame_munger(frame: EventFrame) -> str | None:
     if not frame.package or not frame.abs_path:
         return None
@@ -108,6 +119,7 @@ def package_relative_path(abs_path: str | None, package: str | None) -> str | No
 
 PLATFORM_FRAME_MUNGER: dict[str, SdkFrameMunger] = {
     "java": SdkFrameMunger(java_frame_munger),
+    "java-new-logic": SdkFrameMunger(java_new_logic_frame_munger),
     "cocoa": SdkFrameMunger(cocoa_frame_munger),
     "other": SdkFrameMunger(flutter_frame_munger, True, {"sentry.dart.flutter"}),
 }
@@ -131,7 +143,12 @@ def try_munge_frame_path(
     if not munger or (munger.requires_sdk and sdk_name not in munger.supported_sdks):
         return None
 
-    return munger.frame_munger(frame)
+    munged_filename = munger.frame_munger(frame)
+    metrics.incr(
+        "sentry.issues.frame_munging",
+        tags={"platform": platform, "outcome": "success" if munged_filename else "failure"},
+    )
+    return munged_filename
 
 
 def munged_filename_and_frames(
@@ -166,7 +183,7 @@ def munged_filename_and_frames(
 
 
 def get_crashing_thread(
-    thread_frames: Sequence[Mapping[str, Any]] | None
+    thread_frames: Sequence[Mapping[str, Any]] | None,
 ) -> Mapping[str, Any] | None:
     if not thread_frames:
         return None
