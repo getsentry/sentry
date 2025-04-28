@@ -173,7 +173,10 @@ export function MultiQueryModeChart({
         Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
         revealActions="always"
         Footer={
-          organization.features.includes('visibility-explore-progressive-loading') && (
+          organization.features.includes('visibility-explore-progressive-loading') &&
+          !organization.features.includes(
+            'visibility-explore-progressive-loading-normal-sampling-mode'
+          ) && (
             <WidgetExtrapolationFooter
               samplingMode={undefined}
               sampleCount={0}
