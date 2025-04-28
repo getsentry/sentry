@@ -23,23 +23,23 @@ function isSafeHref(href: string, pattern: RegExp) {
  * Implementation of marked. Renderer which additionally sanitizes URLs.
  */
 class SafeRenderer extends marked.Renderer {
-  link({href, title, text, ...rest}: Tokens.Link) {
+  link(tokens: Tokens.Link) {
     // For a bad link, just return the plain text href
-    if (!isSafeHref(href, safeLinkPattern)) {
-      return href;
+    if (!isSafeHref(tokens.href, safeLinkPattern)) {
+      return tokens.href;
     }
 
-    const out = super.link({href, title, text, ...rest});
+    const out = super.link(tokens);
     return dompurify.sanitize(out);
   }
 
-  image({href, title, text, ...rest}: Tokens.Image) {
+  image(tokens: Tokens.Image) {
     // For a bad image, return an empty string
-    if (!isSafeHref(href, safeImagePattern)) {
+    if (!isSafeHref(tokens.href, safeImagePattern)) {
       return '';
     }
 
-    return super.image({href, title, text, ...rest});
+    return super.image(tokens);
   }
 }
 
