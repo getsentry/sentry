@@ -79,8 +79,8 @@ class SentryAppAlertRuleActionRequester:
                     success=False,
                     message=self._get_response_message(e.response, DEFAULT_ERROR_MESSAGE),
                     error_type=SentryAppErrorType.INTEGRATOR,
-                    webhook_context={"error_type": "alert_rule_action.error", **extras},
-                    status_code=500,
+                    webhook_context={"error_type": halt_reason, **extras},
+                    status_code=400,
                 )
             except Exception as e:
                 failure_reason = FAILURE_REASON_BASE.format(
@@ -92,7 +92,7 @@ class SentryAppAlertRuleActionRequester:
 
                 return SentryAppAlertRuleActionResult(
                     success=False,
-                    message=self._get_response_message(e.response, DEFAULT_ERROR_MESSAGE),
+                    message=DEFAULT_ERROR_MESSAGE,
                     error_type=SentryAppErrorType.SENTRY,
                     webhook_context={"error_type": failure_reason, **extras},
                     status_code=500,
