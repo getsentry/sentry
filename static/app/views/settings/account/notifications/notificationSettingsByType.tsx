@@ -408,12 +408,16 @@ export function NotificationSettingsByType({notificationType}: Props) {
 
   const entityType = isGroupedByProject(notificationType) ? 'project' : 'organization';
 
+  const {organizationsLoaded} = useLegacyStore(OrganizationsStore);
+
   if (
     notificationOptionStatus === 'pending' ||
     notificationProviderStatus === 'pending' ||
     identitiesStatus === 'pending' ||
     organizationIntegrationStatus === 'pending' ||
-    defaultSettingsStatus === 'pending'
+    defaultSettingsStatus === 'pending' ||
+    !organizationsLoaded ||
+    organizations.length === 0
   ) {
     return <LoadingIndicator />;
   }

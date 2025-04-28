@@ -59,8 +59,19 @@ function NotificationSettingsByEntity({
     router.location?.query?.organizationId ?? orgFromSubdomain ?? organizations[0]?.id;
   let organization = organizations.find(({id}) => id === orgId);
   if (!organization) {
-    organization = organizations[0]!;
+    organization = organizations[0];
   }
+  
+  if (!organization) {
+    return (
+      <Panel>
+        <PanelBody>
+          <LoadingError message={t('No organizations available')} />
+        </PanelBody>
+      </Panel>
+    );
+  }
+
   const orgSlug = organization.slug;
 
   // loads all the projects for an org
