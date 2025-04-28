@@ -4,7 +4,11 @@ from sentry.models.group import GroupStatus
 from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
+from sentry.workflow_engine.types import (
+    DataConditionHandler,
+    DetectorPriorityLevel,
+    WorkflowEventData,
+)
 
 
 @condition_handler_registry.register(Condition.ISSUE_PRIORITY_DEESCALATING)
@@ -15,7 +19,10 @@ class IssuePriorityDeescalatingConditionHandler(DataConditionHandler[WorkflowEve
     comparison_json_schema = {
         "type": "object",
         "properties": {
-            "priority": {"type": "integer", "minimum": 0},
+            "priority": {
+                "type": "integer",
+                "enum": [DetectorPriorityLevel.HIGH.value, DetectorPriorityLevel.MEDIUM.value],
+            },
         },
         "required": ["priority"],
         "additionalProperties": False,

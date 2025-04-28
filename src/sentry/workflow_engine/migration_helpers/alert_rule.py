@@ -313,6 +313,16 @@ def migrate_metric_data_conditions(
         type=Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL,
         condition_group=data_condition_group,
     )
+    # finally, create a "resolution action filter": the condition result is set to true
+    # if we're de-escalating from the priority specified in the comparison
+    resolve_action_filter = DataCondition.objects.create(
+        comparison={
+            "priority": PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH).value
+        },
+        condition_result=True,
+        type=Condition.ISSUE_PRIORITY_DEESCALATING,
+        condition_group=data_condition_group,
+    )
     return detector_trigger, action_filter
 
 
@@ -719,19 +729,28 @@ def dual_update_migrated_alert_rule_trigger(
         # we won't reach this path
         return None
     action_filter = get_action_filter(alert_rule_trigger, priority)
-
+    resolve_action_filter = DataCondition.objects.get(
+        condition_group=action_filter.condition_group,
+        type=Condition.ISSUE_PRIORITY_DEESCALATING,
+    )
     updated_detector_trigger_fields: dict[str, Any] = {}
     updated_action_filter_fields: dict[str, Any] = {}
+    updated_resolve_action_filter_fields: dict[str, Any] = {}
     label = alert_rule_trigger.label
     updated_detector_trigger_fields["condition_result"] = PRIORITY_MAP.get(
         label, DetectorPriorityLevel.HIGH
     )
     updated_action_filter_fields["comparison"] = PRIORITY_MAP.get(label, DetectorPriorityLevel.HIGH)
+    updated_resolve_action_filter_fields["comparison"] = {
+        "priority": PRIORITY_MAP.get(label, DetectorPriorityLevel.HIGH).value
+    }
     updated_detector_trigger_fields["comparison"] = alert_rule_trigger.alert_threshold
 
     detector_trigger.update(**updated_detector_trigger_fields)
     if updated_action_filter_fields:
+        # these are updated together
         action_filter.update(**updated_action_filter_fields)
+        resolve_action_filter.update(**updated_resolve_action_filter_fields)
 
     return detector_trigger, action_filter
 
@@ -835,8 +854,7 @@ def dual_delete_migrated_alert_rule_trigger(alert_rule_trigger: AlertRuleTrigger
             action.delete()
 
         detector_trigger.delete()
-        action_filter.delete()
-        action_filter_dcg.delete()
+        action_filter_dcg.delete()  # deletes the action filter and resolve action filter
 
     return None
 

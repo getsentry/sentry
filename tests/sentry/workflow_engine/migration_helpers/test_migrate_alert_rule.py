@@ -365,6 +365,12 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
             condition_group=data_condition_group,
         )
 
+        resolve_action_filter = self.create_data_condition(
+            comparison={"priority": priority.value},
+            condition_result=True,
+            type=Condition.ISSUE_PRIORITY_DEESCALATING,
+            condition_group=data_condition_group,
+        )
         return detector_trigger, action_filter
 
     def create_migrated_metric_alert_rule_resolve_objects(
