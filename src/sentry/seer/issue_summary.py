@@ -328,36 +328,36 @@ def get_issue_summary(
     lock_duration = 4  # How long the lock is held if acquired (seconds)
     wait_timeout = 5  # How long to wait for the lock (seconds)
 
-    # 1. Check cache first (regardless of force_event_id)
-    if not force_event_id:
-        if cached_summary := cache.get(cache_key):
-            return convert_dict_key_case(cached_summary, snake_to_camel_case), 200
+    # if force_event_id is set, we always generate a new summary
+    if force_event_id:
+        summary_dict, status_code = _generate_summary(
+            group, user, force_event_id, source, cache_key
+        )
+        return convert_dict_key_case(summary_dict, snake_to_camel_case), status_code
 
-    # 2. If force_event_id is set, skip locking and proceed directly.
-    #    Otherwise, try to acquire the lock.
-    if not force_event_id:
-        try:
-            # Acquire lock context manager. This will poll and wait.
-            with locks.get(key=lock_key, duration=lock_duration).blocking_acquire(
-                initial_delay=0.25, timeout=wait_timeout
-            ):
-                # Re-check cache after acquiring lock, in case another process finished
-                # while we were waiting for the lock.
-                if cached_summary := cache.get(cache_key):
-                    return convert_dict_key_case(cached_summary, snake_to_camel_case), 200
+    # 1. Check cache first
+    if cached_summary := cache.get(cache_key):
+        return convert_dict_key_case(cached_summary, snake_to_camel_case), 200
 
-                # Lock acquired and cache is still empty, proceed with generation
-                summary_dict, status_code = _generate_summary(
-                    group, user, force_event_id, source, cache_key
-                )
-                return convert_dict_key_case(summary_dict, snake_to_camel_case), status_code
-
-        except UnableToAcquireLock:
-            # Failed to acquire lock within timeout. Check cache one last time.
+    # 2. Try to acquire lock
+    try:
+        # Acquire lock context manager. This will poll and wait.
+        with locks.get(key=lock_key, duration=lock_duration).blocking_acquire(
+            initial_delay=0.25, timeout=wait_timeout
+        ):
+            # Re-check cache after acquiring lock, in case another process finished
+            # while we were waiting for the lock.
             if cached_summary := cache.get(cache_key):
                 return convert_dict_key_case(cached_summary, snake_to_camel_case), 200
-            return {"detail": "Timeout waiting for summary generation lock"}, 503
 
-    # 3. Generate summary directly (either forced or lock acquired)
-    summary_dict, status_code = _generate_summary(group, user, force_event_id, source, cache_key)
-    return convert_dict_key_case(summary_dict, snake_to_camel_case), status_code
+            # Lock acquired and cache is still empty, proceed with generation
+            summary_dict, status_code = _generate_summary(
+                group, user, force_event_id, source, cache_key
+            )
+            return convert_dict_key_case(summary_dict, snake_to_camel_case), status_code
+
+    except UnableToAcquireLock:
+        # Failed to acquire lock within timeout. Check cache one last time.
+        if cached_summary := cache.get(cache_key):
+            return convert_dict_key_case(cached_summary, snake_to_camel_case), 200
+        return {"detail": "Timeout waiting for summary generation lock"}, 503
