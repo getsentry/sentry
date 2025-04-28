@@ -477,6 +477,7 @@ class TestConvertStacktraceFramePathToSourcePath(TestCase):
                 code_mapping=self.code_mapping_empty,
                 platform="python",
                 sdk_name="sentry.python",
+                organization=self.organization,
             )
             == "src/sentry/file.py"
         )
@@ -490,6 +491,7 @@ class TestConvertStacktraceFramePathToSourcePath(TestCase):
                 code_mapping=self.code_mapping_abs_path,
                 platform="python",
                 sdk_name="sentry.python",
+                organization=self.organization,
             )
             == "src/sentry/folder/file.py"
         )
@@ -504,6 +506,7 @@ class TestConvertStacktraceFramePathToSourcePath(TestCase):
                 code_mapping=self.code_mapping_file,
                 platform="java",
                 sdk_name="sentry.java",
+                organization=self.organization,
             )
             == "src/sentry/module/File.java"
         )
@@ -546,6 +549,7 @@ class TestConvertStacktraceFramePathToSourcePath(TestCase):
                     code_mapping=code_mapping,
                     platform="java",
                     sdk_name="sentry.java.android",
+                    organization=self.organization,
                 )
                 == expected_path
             )
@@ -584,6 +588,7 @@ class TestConvertStacktraceFramePathToSourcePath(TestCase):
                 code_mapping=self.code_mapping_backslash,
                 platform="rust",
                 sdk_name="sentry.rust",
+                organization=self.organization,
             )
             == "src/sentry/folder/file.rs"
         )
