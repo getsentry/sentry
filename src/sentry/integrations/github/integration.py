@@ -583,7 +583,6 @@ class OAuthLoginView(PipelineView):
                 )
 
             authenticated_user_info = get_user_info(payload["access_token"])
-
             if "login" not in authenticated_user_info:
                 lifecycle.record_failure(GitHubInstallationError.MISSING_LOGIN)
                 return error(
@@ -603,7 +602,6 @@ class GitHubInstallation(PipelineView):
 
     def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.GITHUB_INSTALLATION).capture() as lifecycle:
-
             installation_id = request.GET.get(
                 "installation_id", pipeline.fetch_state("installation_id")
             )
@@ -634,6 +632,24 @@ class GitHubInstallation(PipelineView):
                     self.active_organization,
                     error_short=GitHubInstallationError.PENDING_DELETION,
                     error_long=ERR_INTEGRATION_PENDING_DELETION,
+                )
+
+            try:
+                # We want to limit GitHub integrations to 1 organization
+                installations_exist = OrganizationIntegration.objects.filter(
+                    integration=Integration.objects.get(external_id=installation_id)
+                ).exists()
+
+            except Integration.DoesNotExist:
+                return pipeline.next_step()
+
+            if installations_exist:
+                lifecycle.record_failure(GitHubInstallationError.INSTALLATION_EXISTS)
+                return error(
+                    request,
+                    self.active_organization,
+                    error_short=GitHubInstallationError.INSTALLATION_EXISTS,
+                    error_long=ERR_INTEGRATION_EXISTS_ON_ANOTHER_ORG,
                 )
 
             # OrganizationIntegration does not exist, but Integration does exist.
