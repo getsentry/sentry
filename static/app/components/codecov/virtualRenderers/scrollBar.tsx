@@ -13,7 +13,7 @@ export function ScrollBar({scrollBarRef, wrapperWidth}: ScrollBarProps) {
     <ScrollBarDiv
       ref={scrollBarRef}
       style={{height: `${LINE_HEIGHT - 3}px`}}
-      data-testid="virtual-renderer-scroll-bar"
+      data-test-id="virtual-renderer-scroll-bar"
     >
       <div style={{width: wrapperWidth, height: '1px'}} />
     </ScrollBarDiv>
