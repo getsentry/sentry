@@ -11,6 +11,4 @@ class Migration(CheckedMigration):
 
     dependencies = []
 
-    allow_run_sql = False
-
     operations = [migrations.RunSQL("select 1;")]
