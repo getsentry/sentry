@@ -1,6 +1,7 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import type {NewQuery} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -34,9 +35,20 @@ export function useMultiQueryTableAggregateMode({
   enabled,
   queryExtras,
 }: Props) {
+  const canTriggerHighAccuracy = useCallback(
+    (results: ReturnType<typeof useSpansQuery<any[]>>) => {
+      const canGoToHigherAccuracyTier = results.meta?.dataScanned === 'partial';
+      const hasData = defined(results.data) && results.data.length > 0;
+      return !hasData && canGoToHigherAccuracyTier;
+    },
+    []
+  );
   return useProgressiveQuery({
     queryHookImplementation: useMultiQueryTableAggregateModeImpl,
     queryHookArgs: {groupBys, query, yAxes, sortBys, enabled, queryExtras},
+    queryOptions: {
+      canTriggerHighAccuracy,
+    },
   });
 }
 
@@ -98,10 +110,22 @@ function useMultiQueryTableAggregateModeImpl({
 }
 
 export function useMultiQueryTableSampleMode({query, yAxes, sortBys, enabled}: Props) {
+  const canTriggerHighAccuracy = useCallback(
+    (results: ReturnType<typeof useSpansQuery<any[]>>) => {
+      const canGoToHigherAccuracyTier = results.meta?.dataScanned === 'partial';
+      const hasData = defined(results.data) && results.data.length > 0;
+      return !hasData && canGoToHigherAccuracyTier;
+    },
+    []
+  );
   return useProgressiveQuery({
     queryHookImplementation: useMultiQueryTableSampleModeImpl,
     queryHookArgs: {query, yAxes, sortBys, enabled},
-    queryOptions: {queryMode: QUERY_MODE.SERIAL, withholdBestEffort: true},
+    queryOptions: {
+      queryMode: QUERY_MODE.SERIAL,
+      withholdBestEffort: true,
+      canTriggerHighAccuracy,
+    },
   });
 }
 

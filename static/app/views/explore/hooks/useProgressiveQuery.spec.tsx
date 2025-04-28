@@ -322,9 +322,11 @@ describe('useProgressiveQuery', function () {
             queryHookImplementation: useMockHookImpl,
             queryHookArgs: {enabled: true, query: 'test value'},
             queryOptions: {
-              canTriggerHighAccuracy: data => {
+              canTriggerHighAccuracy: results => {
                 // Simulate checking if there is data and more data is available
-                return defined(data) && data.meta.dataScanned === 'partial';
+                return (
+                  defined(results.data) && results.data.meta.dataScanned === 'partial'
+                );
               },
             },
           }),

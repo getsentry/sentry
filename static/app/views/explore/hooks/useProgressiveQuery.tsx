@@ -36,7 +36,7 @@ interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
   // Enforces that isFetched is always present in the result, required for the
   // progressive loading to surface the correct data.
   queryHookImplementation: (props: Parameters<TQueryFn>[0]) => ReturnType<TQueryFn> & {
-    result: {
+    result: ReturnType<TQueryFn>['result'] & {
       data: any;
       isFetched: boolean;
     };
@@ -45,7 +45,7 @@ interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
 }
 
 interface QueryOptions<TQueryFn extends (...args: any[]) => any> {
-  canTriggerHighAccuracy?: (data: ReturnType<TQueryFn>['result']['data']) => boolean;
+  canTriggerHighAccuracy?: (data: ReturnType<TQueryFn>['result']) => boolean;
   queryMode?: QueryMode;
   withholdBestEffort?: boolean;
 }
@@ -127,8 +127,7 @@ export function useProgressiveQuery<
   let triggerHighAccuracy = false;
   if (normalSamplingModeRequest.result.isFetched) {
     triggerHighAccuracy =
-      queryOptions?.canTriggerHighAccuracy?.(normalSamplingModeRequest.result.data) ??
-      false;
+      queryOptions?.canTriggerHighAccuracy?.(normalSamplingModeRequest.result) ?? false;
   }
   // queryExtras is not passed in here because this request should be unsampled.
   const highAccuracyRequest = queryHookImplementation({
