@@ -346,7 +346,7 @@ Object.keys(gettextData.translations).forEach(contextKey => {
 try {
   const outputFilePath = path.resolve(BASE_DIRECTORY, OUTPUT_FILE);
   ensureDirectoryExistence(outputFilePath);
-  const compiledPoBuffer = po.compile(gettextData, {});
+  const compiledPoBuffer = po.compile(gettextData, {sort: true});
 
   let compiledPoString = compiledPoBuffer.toString('utf8');
 
