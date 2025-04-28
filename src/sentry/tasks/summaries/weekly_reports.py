@@ -134,7 +134,7 @@ def prepare_organization_report(
     target_user: User | int | None = None,
     email_override: str | None = None,
 ):
-    if target_user and isinstance(target_user, User) and not hasattr(target_user, "id"):
+    if target_user and not isinstance(target_user, int) and not hasattr(target_user, "id"):
         logger.error(
             "Target user must have an ID",
             extra={
