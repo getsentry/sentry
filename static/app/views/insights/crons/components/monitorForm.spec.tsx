@@ -22,7 +22,7 @@ describe('MonitorForm', function () {
 
   const member = MemberFixture({user: UserFixture({name: 'John Smith'})});
   const team = TeamFixture({slug: 'test-team'});
-  const {project, router} = initializeOrg({organization});
+  const {project} = initializeOrg({organization});
 
   beforeEach(() => {
     ProjectsStore.loadInitialData([project]);
@@ -55,7 +55,9 @@ describe('MonitorForm', function () {
         apiEndpoint={`/organizations/${organization.slug}/monitors/`}
         onSubmitSuccess={jest.fn()}
       />,
-      {router, organization}
+      {
+        organization,
+      }
     );
 
     const schedule = screen.getByRole('textbox', {name: 'Crontab Schedule'});
@@ -77,7 +79,9 @@ describe('MonitorForm', function () {
         onSubmitSuccess={mockHandleSubmitSuccess}
         submitLabel="Add Monitor"
       />,
-      {router, organization}
+      {
+        organization,
+      }
     );
 
     await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'My Monitor');
@@ -178,7 +182,9 @@ describe('MonitorForm', function () {
         onSubmitSuccess={jest.fn()}
         submitLabel="Edit Monitor"
       />,
-      {router, organization}
+      {
+        organization,
+      }
     );
 
     // Name and slug

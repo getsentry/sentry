@@ -29,10 +29,10 @@ class RipplingSAML2Provider(SAML2Provider):
     name = "Rippling"
     key = "rippling"
 
-    def get_saml_setup_pipeline(self):
+    def get_saml_setup_pipeline(self) -> list[AuthView]:
         return [SelectIdP(), WaitForCompletion()]
 
-    def attribute_mapping(self):
+    def attribute_mapping(self) -> dict[str, str]:
         return {
             Attributes.IDENTIFIER: "user_id",
             Attributes.USER_EMAIL: "urn:oid:1.2.840.113549.1.9.1.1",

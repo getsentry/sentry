@@ -115,7 +115,6 @@ describe('ReleasesList', () => {
 
   it('renders list', async () => {
     render(<ReleasesList {...props} />, {
-      router,
       organization,
     });
     const items = await screen.findAllByTestId('release-panel');
@@ -165,7 +164,6 @@ describe('ReleasesList', () => {
         selection={{...props.selection, projects: [4]}}
       />,
       {
-        router,
         organization,
       }
     );
@@ -261,7 +259,6 @@ describe('ReleasesList', () => {
     });
 
     render(<ReleasesList {...props} selection={{...props.selection, projects: [3]}} />, {
-      router,
       organization,
     });
 
@@ -283,7 +280,6 @@ describe('ReleasesList', () => {
     });
 
     render(<ReleasesList {...props} />, {
-      router,
       organization,
     });
 
@@ -314,7 +310,6 @@ describe('ReleasesList', () => {
       body: [],
     });
     render(<ReleasesList {...props} />, {
-      router,
       organization: {...organization, features: ['search-query-builder-releases']},
     });
     const input = await screen.findByDisplayValue('derp');
@@ -339,7 +334,6 @@ describe('ReleasesList', () => {
 
   it('sorts releases', async () => {
     render(<ReleasesList {...props} />, {
-      router,
       organization,
     });
 
@@ -382,7 +376,6 @@ describe('ReleasesList', () => {
         selection={{...props.selection, environments: ['a', 'b']}}
       />,
       {
-        router,
         organization,
       }
     );
@@ -393,7 +386,6 @@ describe('ReleasesList', () => {
 
   it('display the right Crash Free column', async () => {
     render(<ReleasesList {...props} />, {
-      router,
       organization,
     });
 
@@ -431,7 +423,6 @@ describe('ReleasesList', () => {
         }}
       />,
       {
-        router,
         organization,
       }
     );
@@ -485,7 +476,6 @@ describe('ReleasesList', () => {
 
   it('calls api with only explicitly permitted query params', async () => {
     render(<ReleasesList {...props} />, {
-      router,
       organization,
     });
 
@@ -503,7 +493,6 @@ describe('ReleasesList', () => {
 
   it('calls session api for health data', async () => {
     render(<ReleasesList {...props} />, {
-      router,
       organization,
     });
 
@@ -576,7 +565,6 @@ describe('ReleasesList', () => {
       ],
     });
     render(<ReleasesList {...props} selection={{...props.selection, projects: [2]}} />, {
-      router,
       organization,
     });
     const hiddenProjectsMessage = await screen.findByTestId('hidden-projects');
@@ -593,7 +581,6 @@ describe('ReleasesList', () => {
       body: [ReleaseFixture({version: '2.0.0'})],
     });
     render(<ReleasesList {...props} selection={{...props.selection, projects: [-1]}} />, {
-      router,
       organization,
     });
 
@@ -620,7 +607,6 @@ describe('ReleasesList', () => {
       method: 'POST',
     });
     render(<ReleasesList {...props} location={{...props.location, query: {}}} />, {
-      router,
       organization,
     });
     const smartSearchBar = await screen.findByRole('combobox', {

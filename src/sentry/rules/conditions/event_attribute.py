@@ -66,6 +66,9 @@ ATTR_CHOICES: dict[str, Columns | None] = {
     "os.distribution_name": Columns.OS_DISTRIBUTION_NAME,
     "os.distribution_version": Columns.OS_DISTRIBUTION_VERSION,
     "symbolicated_in_app": Columns.SYMBOLICATED_IN_APP,
+    "expo_updates.channel": Columns.EXPO_UPDATES_CHANNEL,
+    "expo_updates.runtime_version": Columns.EXPO_UPDATES_RUNTIME_VERSION,
+    "expo_updates.update_id": Columns.EXPO_UPDATES_UPDATE_ID,
 }
 
 
@@ -431,4 +434,19 @@ class OsAttributeHandler(AttributeHandler):
             if os_context is None:
                 os_context = {}
             return [os_context.get(path[1])]
+        return []
+
+
+@attribute_registry.register("expo_updates")
+class ExpoUpdatesAttributeHandler(AttributeHandler):
+    minimum_path_length = 2
+
+    @classmethod
+    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
+        if path[1] in ("channel", "runtime_version", "update_id"):
+            contexts = event.data.get("contexts", {})
+            expo_updates_context = contexts.get("expo_updates")
+            if expo_updates_context is None:
+                expo_updates_context = {}
+            return [expo_updates_context.get(path[1])]
         return []

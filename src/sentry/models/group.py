@@ -597,7 +597,9 @@ class Group(Model):
         blank=True, null=True
     )
     short_id = BoundedBigIntegerField(null=True)
-    type = BoundedPositiveIntegerField(default=DEFAULT_TYPE_ID, db_index=True)
+    type = BoundedPositiveIntegerField(
+        default=DEFAULT_TYPE_ID, db_default=DEFAULT_TYPE_ID, db_index=True
+    )
     priority = models.PositiveSmallIntegerField(null=True)
     priority_locked_at = models.DateTimeField(null=True)
 
@@ -774,7 +776,9 @@ class Group(Model):
                     status = GroupStatus.UNRESOLVED
 
         if status == GroupStatus.UNRESOLVED and self.is_over_resolve_age():
-            return GroupStatus.RESOLVED
+            # Only auto-resolve if this group type has auto-resolve enabled
+            if self.issue_type.enable_auto_resolve:
+                return GroupStatus.RESOLVED
         return status
 
     def get_share_id(self):
@@ -1038,6 +1042,10 @@ class Group(Model):
     @property
     def issue_category(self):
         return GroupCategory(self.issue_type.category)
+
+    @property
+    def issue_category_v2(self):
+        return GroupCategory(self.issue_type.category_v2)
 
 
 @receiver(pre_save, sender=Group, dispatch_uid="pre_save_group_default_substatus", weak=False)
