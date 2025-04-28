@@ -206,7 +206,7 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
 
 MERGED_PR_COMMENT_BODY_TEMPLATE = """\
 ## Suspect Issues
-This pull request was deployed and Sentry observed the following issues:
+This merge request was deployed and Sentry observed the following issues:
 
 {issue_list}"""
 
