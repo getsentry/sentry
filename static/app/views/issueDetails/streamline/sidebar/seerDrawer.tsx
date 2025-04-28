@@ -2,7 +2,6 @@ import {Fragment, useCallback, useEffect, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {Flex} from 'sentry/components/container/flex';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
@@ -152,9 +151,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
         {!aiConfig.needsGenAIConsent && (
           <ButtonBarWrapper data-test-id="autofix-button-bar">
             <ButtonBar gap={1}>
-              <Feature features={['organizations:autofix-seer-preferences']}>
-                <AutofixPreferenceDropdown project={project} />
-              </Feature>
+              <AutofixPreferenceDropdown project={project} />
               <AutofixFeedback />
               {aiConfig.hasAutofix && (
                 <Button

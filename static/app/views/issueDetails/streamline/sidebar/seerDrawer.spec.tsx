@@ -144,6 +144,13 @@ describe('SeerDrawer', () => {
       url: `/issues/${mockGroup.id}/autofix/`,
       body: {autofix: null},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/repos/`,
+      method: 'GET',
+      body: {
+        repos: [],
+      },
+    });
 
     render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
       organization,
@@ -166,6 +173,13 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/`,
       body: {autofix: null},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/repos/`,
+      method: 'GET',
+      body: {
+        repos: [],
+      },
     });
 
     render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
@@ -198,6 +212,13 @@ describe('SeerDrawer', () => {
       url: `/issues/${mockGroup.id}/autofix/`,
       body: {autofix: null},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/repos/`,
+      method: 'GET',
+      body: {
+        repos: [],
+      },
+    });
 
     render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
       organization,
@@ -224,6 +245,13 @@ describe('SeerDrawer', () => {
       url: `/issues/${mockGroup.id}/autofix/`,
       method: 'GET',
       body: {autofix: null},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/repos/`,
+      method: 'GET',
+      body: {
+        repos: [],
+      },
     });
 
     render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
@@ -255,6 +283,13 @@ describe('SeerDrawer', () => {
       url: `/issues/${mockGroup.id}/autofix/`,
       body: {autofix: null},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/repos/`,
+      method: 'GET',
+      body: {
+        repos: [],
+      },
+    });
 
     render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
       organization,
@@ -282,6 +317,13 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/`,
       body: {autofix: null},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/repos/`,
+      method: 'GET',
+      body: {
+        repos: [],
+      },
     });
 
     // Use jest.spyOn instead of jest.mock inside the test
@@ -324,6 +366,13 @@ describe('SeerDrawer', () => {
       url: `/issues/${mockGroup.id}/autofix/`,
       body: {autofix: null},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/repos/`,
+      method: 'GET',
+      body: {
+        repos: [],
+      },
+    });
 
     render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
       organization,
@@ -354,6 +403,13 @@ describe('SeerDrawer', () => {
       url: `/issues/${mockGroup.id}/autofix/`,
       body: {autofix: mockAutofixData},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/repos/`,
+      method: 'GET',
+      body: {
+        repos: [],
+      },
+    });
 
     render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
       organization,
@@ -375,6 +431,13 @@ describe('SeerDrawer', () => {
       url: `/issues/${mockGroup.id}/autofix/`,
       body: {autofix: mockAutofixData},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/repos/`,
+      method: 'GET',
+      body: {
+        repos: [],
+      },
+    });
 
     render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
       organization,
@@ -387,6 +450,13 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/`,
       body: {autofix: null},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/repos/`,
+      method: 'GET',
+      body: {
+        repos: [],
+      },
     });
 
     render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
@@ -404,6 +474,13 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/`,
       body: {autofix: mockAutofixData},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/repos/`,
+      method: 'GET',
+      body: {
+        repos: [],
+      },
     });
 
     render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
@@ -435,6 +512,13 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/?provider_key=github&includeConfig=0',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/repos/`,
+      method: 'GET',
+      body: {
+        repos: [],
+      },
     });
 
     render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
@@ -468,6 +552,13 @@ describe('SeerDrawer', () => {
       url: `/issues/${mockGroup.id}/autofix/`,
       body: {autofix: mockAutofixWithReadableRepos},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/repos/`,
+      method: 'GET',
+      body: {
+        repos: [],
+      },
+    });
 
     render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
       organization,
@@ -493,6 +584,13 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/`,
       body: {autofix: mockAutofixWithUnreadableGithubRepos},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/repos/`,
+      method: 'GET',
+      body: {
+        repos: [],
+      },
     });
 
     render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
@@ -520,6 +618,13 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/`,
       body: {autofix: mockAutofixWithUnreadableNonGithubRepos},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/repos/`,
+      method: 'GET',
+      body: {
+        repos: [],
+      },
     });
 
     render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
