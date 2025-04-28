@@ -171,19 +171,15 @@ class AnomalyDetectionStoreDataTest(
             )
 
             result = fetch_historical_data(
-                self.organization, snuba_query, ["count(span.duration)"], self.project
+                self.organization, snuba_query, ["count()"], self.project
             )
             assert result
-            assert {"time": int(expected_ts_1), "count(span.duration)": 1} in result.data.get(
-                "data"
-            )
-            assert {"time": int(expected_ts_2), "count(span.duration)": 1} in result.data.get(
-                "data"
-            )
+            assert {"time": int(expected_ts_1), "count()": 1} in result.data.get("data")
+            assert {"time": int(expected_ts_2), "count()": 1} in result.data.get("data")
 
             formatted_result = format_historical_data(
                 data=result,
-                query_columns=["count(span.duration)"],
+                query_columns=["count()"],
                 dataset=spans_rpc,
                 organization=self.organization,
             )
