@@ -1,6 +1,7 @@
 import pytest
 
 from sentry.testutils.cases import TestMigrations
+from sentry.testutils.factories import DataConditionGroupAction
 from sentry.workflow_engine.models import (
     Action,
     AlertRuleWorkflow,
@@ -9,6 +10,7 @@ from sentry.workflow_engine.models import (
     DataConditionGroupAction,
     WorkflowDataConditionGroup,
     Workflow,
+    WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 
