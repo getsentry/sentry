@@ -1135,12 +1135,6 @@ class GSBanner extends Component<Props, State> {
         )
         .map(([key, _]) => key as EventType);
 
-      // Make an exception for when only crons has an overage to disable the See Usage button
-      strictlySeatOverage =
-        eventTypes.length <= 2 &&
-        every(eventTypes, eventType =>
-          [DataCategoryExact.MONITOR_SEAT, DataCategoryExact.UPTIME].includes(eventType)
-        );
       overquotaPrompt = tct(
         'You are about to exceed your [eventTypes] limit and we will drop any excess events.',
         {
@@ -1163,6 +1157,13 @@ class GSBanner extends Component<Props, State> {
             ) === null
         )
         .map(([key, _]) => key as EventType);
+
+      // Make an exception for when only seat-based categories have an overage to disable the See Usage button
+      strictlySeatOverage =
+        eventTypes.length <= 2 &&
+        every(eventTypes, eventType =>
+          [DataCategoryExact.MONITOR_SEAT, DataCategoryExact.UPTIME].includes(eventType)
+        );
 
       // Make an exception for when only crons has an overage to change the language to be more fitting and hide See Usage
       if (strictlySeatOverage) {

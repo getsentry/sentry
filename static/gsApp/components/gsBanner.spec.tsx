@@ -334,7 +334,7 @@ describe('GSBanner', function () {
       canSelfServe: true,
       productTrials: [
         {
-          category: 'spans',
+          category: DataCategory.SPANS,
           reasonCode: 1001,
           isStarted: false,
           lengthDays: undefined,
@@ -371,7 +371,7 @@ describe('GSBanner', function () {
       canSelfServe: true,
       productTrials: [
         {
-          category: 'spans',
+          category: DataCategory.SPANS,
           reasonCode: 1001,
           isStarted: true,
           lengthDays: 20,
@@ -533,7 +533,7 @@ describe('GSBanner', function () {
       canSelfServe: true,
       productTrials: [
         {
-          category: 'replays',
+          category: DataCategory.REPLAYS,
           reasonCode: 1001,
           isStarted: false,
           lengthDays: undefined,
@@ -569,7 +569,7 @@ describe('GSBanner', function () {
       canSelfServe: true,
       productTrials: [
         {
-          category: 'replays',
+          category: DataCategory.REPLAYS,
           reasonCode: 1001,
           isStarted: true,
           lengthDays: 20,
