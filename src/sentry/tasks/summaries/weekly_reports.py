@@ -78,7 +78,7 @@ def schedule_organizations(
         # The total timespan that the task covers
         duration = ONE_DAY * 7
 
-    batch_id = uuid.uuid4()
+    batch_id = str(uuid.uuid4())
 
     def min_org_id_redis_key(timestamp: float) -> str:
         return f"weekly_reports_org_id_min:{timestamp}"
@@ -102,7 +102,7 @@ def schedule_organizations(
         logger.info(
             "weekly_reports.schedule_organizations",
             extra={
-                "batch_id": str(batch_id),
+                "batch_id": batch_id,
                 "organization": organization.id,
                 "minimum_organization_id": minimum_organization_id,
             },
@@ -129,9 +129,9 @@ def prepare_organization_report(
     timestamp: float,
     duration: int,
     organization_id: int,
-    batch_id: uuid.UUID,
+    batch_id: uuid.UUID | str,
     dry_run: bool = False,
-    target_user: User | None = None,
+    target_user: User | str | None = None,
     email_override: str | None = None,
 ):
     if target_user and not hasattr(target_user, "id"):
@@ -262,10 +262,10 @@ def prepare_organization_report(
 @dataclass(frozen=True)
 class OrganizationReportBatch:
     ctx: OrganizationReportContext
-    batch_id: uuid.UUID
+    batch_id: uuid.UUID | str
 
     dry_run: bool = False
-    target_user: User | None = None
+    target_user: User | str | None = None
     email_override: str | None = None
 
     def deliver_reports(self) -> None:
@@ -273,11 +273,11 @@ class OrganizationReportBatch:
         For all users in the organization, we generate the template context for the user, and send the email.
         """
         if self.email_override:
-            target_user_id = (
-                self.target_user.id if self.target_user else None
-            )  # if None, generates report for a user with access to all projects
+            # if None, generates report for a user with access to all projects
+            if isinstance(self.target_user, User):
+                self.target_user = self.target_user.id
             user_template_context_by_user_id_list = prepare_template_context(
-                ctx=self.ctx, user_ids=[target_user_id]
+                ctx=self.ctx, user_ids=[self.target_user]
             )
             if user_template_context_by_user_id_list:
                 self._send_to_user(user_template_context_by_user_id_list[0])
