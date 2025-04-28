@@ -72,14 +72,13 @@ def event_to_record(
 
     rule_ids = []
     identifier_key = IdentifierKey.RULE
-    # TODO(iamrajjoshi): This will only work during the dual write period of the rollout!
-    if features.has("organizations:workflow-engine-trigger-actions", event.organization):
-        for rule in rules:
-            rule_ids.append(int(get_key_from_rule_data(rule, "legacy_rule_id")))
-    elif features.has("organizations:workflow-engine-ui-links", event.organization):
+    if features.has("organizations:workflow-engine-ui-links", event.organization):
         identifier_key = IdentifierKey.WORKFLOW
         for rule in rules:
             rule_ids.append(int(get_key_from_rule_data(rule, "workflow_id")))
+    elif features.has("organizations:workflow-engine-trigger-actions", event.organization):
+        for rule in rules:
+            rule_ids.append(int(get_key_from_rule_data(rule, "legacy_rule_id")))
     else:
         for rule in rules:
             rule_ids.append(rule.id)
