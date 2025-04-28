@@ -151,6 +151,4 @@ const TraceInnerLayout = styled('div')`
   padding: ${space(2)} ${space(3)};
   overflow-y: scroll;
   margin-bottom: ${space(1)};
-
-  background-color: ${p => p.theme.background};
 `;
