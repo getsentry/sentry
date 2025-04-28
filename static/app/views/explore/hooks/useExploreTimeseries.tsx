@@ -48,8 +48,8 @@ export const useExploreTimeseries = ({
   const isTopN = topEvents ? topEvents > 0 : false;
 
   const canTriggerHighAccuracy = useCallback(
-    (data: ReturnType<typeof useExploreTimeseriesImpl>['result']['data']) => {
-      return shouldTriggerHighAccuracy(data, visualizes, isTopN);
+    (result: ReturnType<typeof useExploreTimeseriesImpl>['result']) => {
+      return shouldTriggerHighAccuracy(result.data, visualizes, isTopN);
     },
     [visualizes, isTopN]
   );
