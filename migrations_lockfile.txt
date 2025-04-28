@@ -21,7 +21,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0868_delete_group_open_periods
+sentry: 0872_fix_drift_deleted_columns
 
 social_auth: 0002_default_auto_field
 
@@ -29,4 +29,4 @@ tempest: 0002_make_message_type_nullable
 
 uptime: 0037_fix_drift_default_to_db_default
 
-workflow_engine: 0047_migrate_issue_alerts
+workflow_engine: 0048_fix_some_drift

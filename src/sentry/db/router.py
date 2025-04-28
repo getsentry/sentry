@@ -66,15 +66,17 @@ class SiloRouter:
     """
 
     historical_silo_assignments = {
-        "sentry_actor": SiloMode.REGION,
-        "sentry_teamavatar": SiloMode.REGION,
-        "sentry_projectavatar": SiloMode.REGION,
-        "sentry_pagerdutyservice": SiloMode.REGION,
-        "sentry_notificationsetting": SiloMode.CONTROL,
-        "authprovider_duplicate": SiloMode.CONTROL,
         "authidentity_duplicate": SiloMode.CONTROL,
+        "authprovider_duplicate": SiloMode.CONTROL,
+        "sentry_actor": SiloMode.REGION,
         "sentry_alertruleactivations": SiloMode.REGION,
         "sentry_monitorlocation": SiloMode.REGION,
+        "sentry_notificationsetting": SiloMode.CONTROL,
+        "sentry_pagerdutyservice": SiloMode.REGION,
+        "sentry_projectavatar": SiloMode.REGION,
+        "sentry_scheduledjob": SiloMode.CONTROL,
+        "sentry_teamavatar": SiloMode.REGION,
+        "workflow_engine_workflowaction": SiloMode.REGION,
     }
     """
     When we remove models, we are no longer able to resolve silo assignments

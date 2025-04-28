@@ -43,7 +43,6 @@ from sentry.api.endpoints.organization_unsubscribe import (
     OrganizationUnsubscribeIssue,
     OrganizationUnsubscribeProject,
 )
-from sentry.api.endpoints.organization_user_rollback import OrganizationRollbackUserEndpoint
 from sentry.api.endpoints.project_overview import ProjectOverviewEndpoint
 from sentry.api.endpoints.project_seer_preferences import ProjectSeerPreferencesEndpoint
 from sentry.api.endpoints.project_stacktrace_coverage import ProjectStacktraceCoverageEndpoint
@@ -2027,11 +2026,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/user-feedback/$",
         OrganizationUserReportsEndpoint.as_view(),
         name="sentry-api-0-organization-user-feedback",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/user-rollback/$",
-        OrganizationRollbackUserEndpoint.as_view(),
-        name="sentry-api-0-organization-user-rollback",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/user-teams/$",

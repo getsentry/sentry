@@ -34,7 +34,7 @@ import ModalStore from 'sentry/stores/modalStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 
-import {FREE_EVENTS_KEYS} from 'admin/components/addGiftEventsAction';
+import {getFreeEventsKey} from 'admin/components/addGiftEventsAction';
 import type {StatsGroup} from 'admin/components/customers/customerStats';
 import {populateChartData, useSeries} from 'admin/components/customers/customerStats';
 import CustomerDetails from 'admin/views/customerDetails';
@@ -3272,7 +3272,7 @@ describe('Customer Details', function () {
         })[0]!
       );
 
-      const freeEventsKey = FREE_EVENTS_KEYS[DataCategory.ERRORS];
+      const freeEventsKey = getFreeEventsKey(DataCategory.ERRORS);
       const updateMock = MockApiClient.addMockResponse({
         url: `/customers/${organization.slug}/`,
         method: 'PUT',
@@ -3332,7 +3332,7 @@ describe('Customer Details', function () {
         })[0]!
       );
 
-      const freeEventsKey = FREE_EVENTS_KEYS[DataCategory.TRANSACTIONS];
+      const freeEventsKey = getFreeEventsKey(DataCategory.TRANSACTIONS);
       const updateMock = MockApiClient.addMockResponse({
         url: `/customers/${organization.slug}/`,
         method: 'PUT',
@@ -3394,7 +3394,7 @@ describe('Customer Details', function () {
       })[0]!
     );
 
-    const freeEventsKey = FREE_EVENTS_KEYS[DataCategory.REPLAYS];
+    const freeEventsKey = getFreeEventsKey(DataCategory.REPLAYS);
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,
       method: 'PUT',
@@ -3455,7 +3455,7 @@ describe('Customer Details', function () {
       })[0]!
     );
 
-    const freeEventsKey = FREE_EVENTS_KEYS[DataCategory.SPANS];
+    const freeEventsKey = getFreeEventsKey(DataCategory.SPANS);
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,
       method: 'PUT',
@@ -3574,7 +3574,7 @@ describe('Customer Details', function () {
       })[0]!
     );
 
-    const freeEventsKey = FREE_EVENTS_KEYS[DataCategory.MONITOR_SEATS];
+    const freeEventsKey = getFreeEventsKey(DataCategory.MONITOR_SEATS);
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,
       method: 'PUT',
