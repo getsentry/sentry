@@ -1,14 +1,12 @@
 import os.path
 import zipfile
 from base64 import b64encode
-from hashlib import sha1
 from io import BytesIO
 from uuid import uuid4
 
 import pytest
 import responses
 from django.conf import settings
-from django.core.files.base import ContentFile
 
 from sentry.models.artifactbundle import (
     ArtifactBundle,
@@ -18,10 +16,8 @@ from sentry.models.artifactbundle import (
     SourceFileType,
 )
 from sentry.models.files.file import File
-from sentry.models.files.fileblob import FileBlob
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile, update_artifact_index
-from sentry.tasks.assemble import assemble_artifacts
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.relay import RelayStoreHelper
@@ -60,48 +56,6 @@ def get_fixture_path(name):
 def load_fixture(name):
     with open(get_fixture_path(name), "rb") as fp:
         return fp.read()
-
-
-def make_compressed_zip_file(files):
-    def remove_and_return(dictionary, key):
-        dictionary.pop(key)
-        return dictionary
-
-    compressed = BytesIO(b"SYSB")
-    with zipfile.ZipFile(compressed, "a") as zip_file:
-        for file_path, info in files.items():
-            zip_file.writestr(file_path, bytes(info["content"]))
-
-        zip_file.writestr(
-            "manifest.json",
-            json.dumps(
-                {
-                    # We remove the "content" key in the original dict, thus no subsequent calls should be made.
-                    "files": {
-                        file_path: remove_and_return(info, "content")
-                        for file_path, info in files.items()
-                    }
-                }
-            ),
-        )
-    compressed.seek(0)
-
-    return compressed.getvalue()
-
-
-def upload_bundle(bundle_file, project, release=None, dist=None, upload_as_artifact_bundle=True):
-    blob1 = FileBlob.from_file(ContentFile(bundle_file))
-    total_checksum = sha1(bundle_file).hexdigest()
-
-    return assemble_artifacts(
-        org_id=project.organization.id,
-        project_ids=[project.id],
-        version=release,
-        dist=dist,
-        checksum=total_checksum,
-        chunks=[blob1.checksum],
-        upload_as_artifact_bundle=upload_as_artifact_bundle,
-    )
 
 
 @django_db_all(transaction=True)

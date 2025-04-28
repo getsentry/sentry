@@ -93,6 +93,7 @@ from sentry.models.files.file import File
 from sentry.models.group import Group
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
@@ -183,6 +184,7 @@ from sentry.workflow_engine.models import (
     Detector,
     DetectorState,
     DetectorWorkflow,
+    IncidentGroupOpenPeriod,
     Workflow,
     WorkflowDataConditionGroup,
 )
@@ -2009,6 +2011,8 @@ class Factories:
         headers,
         body,
         date_updated: datetime,
+        uptime_status: UptimeStatus,
+        uptime_status_update_date: datetime,
         trace_sampling: bool = False,
     ):
         if url is None:
@@ -2031,6 +2035,8 @@ class Factories:
             headers=headers,
             body=body,
             trace_sampling=trace_sampling,
+            uptime_status=uptime_status,
+            uptime_status_update_date=uptime_status_update_date,
         )
 
     @staticmethod
@@ -2302,6 +2308,17 @@ class Factories:
 
         return AlertRuleWorkflow.objects.create(
             alert_rule_id=alert_rule_id, rule_id=rule_id, workflow=workflow, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_incident_group_open_period(
+        incident: Incident,
+        group_open_period: GroupOpenPeriod,
+        **kwargs,
+    ) -> IncidentGroupOpenPeriod:
+        return IncidentGroupOpenPeriod.objects.create(
+            incident_id=incident.id, group_open_period=group_open_period, **kwargs
         )
 
     @staticmethod

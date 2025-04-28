@@ -13,6 +13,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -52,6 +53,10 @@ function getEndpointSort(
       return ['-name', '-visited', '-created'];
     case GroupSearchViewSort.VIEWED:
       return ['-visited', '-popularity', '-created'];
+    case GroupSearchViewSort.CREATED_ASC:
+      return ['created', '-popularity', '-visited'];
+    case GroupSearchViewSort.CREATED_DESC:
+      return ['-created', '-popularity', '-visited'];
     default:
       unreachable(sort);
       return [];
@@ -131,6 +136,14 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
     },
   });
 
+  useRouteAnalyticsParams(
+    isPending
+      ? {}
+      : {
+          [`num_results_${createdBy}`]: views.length,
+        }
+  );
+
   const pageLinks = getResponseHeader?.('Link');
 
   return (
@@ -151,13 +164,18 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
       <Pagination
         pageLinks={pageLinks}
         onCursor={newCursor => {
-          navigate({
-            pathname: location.pathname,
-            query: {
-              ...location.query,
-              [cursorQueryParam]: newCursor,
+          navigate(
+            {
+              pathname: location.pathname,
+              query: {
+                ...location.query,
+                [cursorQueryParam]: newCursor,
+              },
             },
-          });
+            {
+              preventScrollReset: true,
+            }
+          );
         }}
       />
     </Fragment>
@@ -202,6 +220,14 @@ function SortDropdown() {
         {
           label: t('Name (Z-A)'),
           value: GroupSearchViewSort.NAME_DESC,
+        },
+        {
+          label: t('Created (Newest)'),
+          value: GroupSearchViewSort.CREATED_DESC,
+        },
+        {
+          label: t('Created (Oldest)'),
+          value: GroupSearchViewSort.CREATED_ASC,
         },
       ]}
     />
@@ -262,7 +288,7 @@ export default function IssueViewsList() {
         </Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>
-        <Layout.Main fullWidth>
+        <MainTableLayout fullWidth>
           <FilterSortBar>
             <SearchBar
               defaultQuery={query}
@@ -271,8 +297,12 @@ export default function IssueViewsList() {
                   pathname: location.pathname,
                   query: {...location.query, query: newQuery},
                 });
+                trackAnalytics('issue_views.table.search', {
+                  organization,
+                  query: newQuery,
+                });
               }}
-              placeholder=""
+              placeholder={t('Search views by name or query')}
             />
             <SortDropdown />
           </FilterSortBar>
@@ -288,7 +318,7 @@ export default function IssueViewsList() {
             limit={20}
             cursorQueryParam="sc"
           />
-        </Layout.Main>
+        </MainTableLayout>
       </Layout.Body>
     </Layout.Page>
   );
@@ -308,4 +338,8 @@ const TableHeading = styled('h2')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin-top: ${space(3)};
   margin-bottom: ${space(1.5)};
+`;
+
+const MainTableLayout = styled(Layout.Main)`
+  container-type: inline-size;
 `;
