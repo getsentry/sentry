@@ -75,7 +75,7 @@ class SeriesMeta(TypedDict):
 
 class TimeSeries(TypedDict):
     values: list[Row]
-    yaxis: str
+    yAxis: str
     groupBy: NotRequired[list[str]]
     meta: SeriesMeta
 
@@ -349,7 +349,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
 
         timeseries = TimeSeries(
             values=[],
-            yaxis=axis,
+            yAxis=axis,
             meta=series_meta,
         )
 
