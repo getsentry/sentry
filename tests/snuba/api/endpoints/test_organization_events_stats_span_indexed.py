@@ -1995,7 +1995,6 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         )
 
         assert response.data["meta"]["dataScanned"] == "full"
-        assert response.data["meta"]["canGoToHigherAccuracyTier"] is False
 
         # Use preflight to test that we can go to a higher accuracy tier
         response = self._do_request(
@@ -2011,4 +2010,3 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         )
 
         assert response.data["meta"]["dataScanned"] == "partial"
-        assert response.data["meta"]["canGoToHigherAccuracyTier"] is True

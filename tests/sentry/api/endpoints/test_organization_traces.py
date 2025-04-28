@@ -339,7 +339,6 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         assert response.data == {
             "data": [],
             "meta": {
-                "canGoToHigherAccuracyTier": False,
                 "dataScanned": "full",
                 "dataset": "unknown",
                 "datasetReason": "unchanged",
@@ -390,7 +389,6 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         assert response.status_code == 200, response.data
 
         assert response.data["meta"] == {
-            "canGoToHigherAccuracyTier": False,
             "dataScanned": "full",
             "dataset": "unknown",
             "datasetReason": "unchanged",
@@ -723,7 +721,6 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 assert response.status_code == 200, response.data
 
                 assert response.data["meta"] == {
-                    "canGoToHigherAccuracyTier": False,
                     "dataScanned": "full",
                     "dataset": "unknown",
                     "datasetReason": "unchanged",
@@ -962,7 +959,6 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
         response = self.do_request(trace_id, query)
         assert response.status_code == 200, response.data
         assert response.data["meta"] == {
-            "canGoToHigherAccuracyTier": False,
             "dataScanned": "full",
             "dataset": "unknown",
             "datasetReason": "unchanged",
@@ -1003,7 +999,6 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
             response = self.do_request(trace_id, query)
             assert response.status_code == 200, response.data
             assert response.data["meta"] == {
-                "canGoToHigherAccuracyTier": False,
                 "dataScanned": "full",
                 "dataset": "unknown",
                 "datasetReason": "unchanged",

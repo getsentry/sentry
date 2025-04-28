@@ -109,7 +109,7 @@ def run_timeseries_query(
     result = rpc_dataset_common.ProcessedTimeseries()
     final_meta: EventsMeta = EventsMeta(
         fields={},
-        **handle_downsample_meta(rpc_response.meta.downsampled_storage_meta),
+        full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta),
     )
     for resolved_field in aggregates + groupbys:
         final_meta["fields"][resolved_field.public_alias] = resolved_field.search_type

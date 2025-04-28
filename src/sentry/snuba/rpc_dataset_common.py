@@ -235,7 +235,7 @@ def run_table_query(
     final_confidence: ConfidenceData = []
     final_meta: EventsMeta = EventsMeta(
         fields={},
-        **handle_downsample_meta(rpc_response.meta.downsampled_storage_meta),
+        full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta),
     )
     # Mapping from public alias to resolved column so we know type etc.
     columns_by_name = {col.public_alias: col for col in columns}

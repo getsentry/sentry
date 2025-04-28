@@ -142,22 +142,15 @@ def can_expose_attribute(attribute: str, item_type: SupportedTraceItemType) -> b
     return attribute not in PRIVATE_ATTRIBUTES.get(item_type, {})
 
 
-def handle_downsample_meta(meta: DownsampledStorageMeta) -> DownsampleMetadata:
-    downsampled_metadata: DownsampleMetadata = {
-        "full_scan": False,
-        "can_go_to_higher_accuracy_tier": False,
-    }
-    if meta.tier in {
-        DownsampledStorageMeta.SELECTED_TIER_1,
-        DownsampledStorageMeta.SELECTED_TIER_UNSPECIFIED,
-    }:
-        downsampled_metadata["full_scan"] = True
+def handle_downsample_meta(meta: DownsampledStorageMeta) -> bool:
+    if (
+        meta.tier
+        in {
+            DownsampledStorageMeta.SELECTED_TIER_1,
+            DownsampledStorageMeta.SELECTED_TIER_UNSPECIFIED,
+        }
+        or not meta.can_go_to_higher_accuracy_tier
+    ):
+        return True
     else:
-        downsampled_metadata["full_scan"] = False
-
-    if meta.can_go_to_higher_accuracy_tier:
-        downsampled_metadata["can_go_to_higher_accuracy_tier"] = True
-    else:
-        downsampled_metadata["can_go_to_higher_accuracy_tier"] = False
-
-    return downsampled_metadata
+        return False
