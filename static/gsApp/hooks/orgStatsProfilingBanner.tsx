@@ -31,9 +31,7 @@ function OrgStatsProfilingBanner() {
         <div>
           <StyledProfilingButton
             size="sm"
-            icon={<IconShow size="sm" />}
-            title={t('Go to UI Profile Hours')}
-            aria-label={t('Go to UI Profile Hours')}
+            icon={<IconShow />}
             to={{
               ...location,
               query: {...location.query, dataCategory: 'profileDurationUI'},
@@ -54,9 +52,7 @@ function OrgStatsProfilingBanner() {
         <div>
           <StyledProfilingButton
             size="sm"
-            icon={<IconShow size="sm" />}
-            title={t('Go to Continuous Profile Hours')}
-            aria-label={t('Go to Continuous Profile Hours')}
+            icon={<IconShow />}
             to={{
               ...location,
               query: {...location.query, dataCategory: 'profileDuration'},
@@ -74,7 +70,7 @@ const BannerGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
   border: 1px solid ${p => p.theme.border};
-  border-radius: 5px;
+  border-radius: ${p => p.theme.borderRadius};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
