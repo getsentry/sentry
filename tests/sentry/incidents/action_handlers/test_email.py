@@ -38,6 +38,7 @@ from sentry.incidents.typings.metric_detector import (
     MetricIssueContext,
     OpenPeriodContext,
 )
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.sentry_metrics import indexer
@@ -303,6 +304,50 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule)
         action = self.create_alert_rule_trigger_action(triggered_for_incident=incident)
+        alert_link = self.organization.absolute_url(
+            reverse(
+                "sentry-metric-alert",
+                kwargs={
+                    "organization_slug": incident.organization.slug,
+                    "incident_id": incident.identifier,
+                },
+            ),
+            query="referrer=metric_alert_email",
+        )
+        expected = {
+            "link": alert_link,
+            "incident_name": incident.title,
+            "aggregate": action.alert_rule_trigger.alert_rule.snuba_query.aggregate,
+            "query": action.alert_rule_trigger.alert_rule.snuba_query.query,
+            "threshold": action.alert_rule_trigger.alert_threshold,
+            "status": INCIDENT_STATUS[IncidentStatus(incident.status)],
+            "status_key": INCIDENT_STATUS[IncidentStatus(incident.status)].lower(),
+            "environment": "All",
+            "is_critical": False,
+            "is_warning": False,
+            "threshold_prefix_string": ">",
+            "time_window": "10 minutes",
+            "triggered_at": timezone.now(),
+            "project_slug": self.project.slug,
+            "unsubscribe_link": None,
+            "chart_url": None,
+            "timezone": settings.SENTRY_DEFAULT_TIME_ZONE,
+            "snooze_alert": True,
+            "snooze_alert_url": alert_link + "&mute=1",
+        }
+
+        assert expected == self._generate_email_context(
+            incident=incident,
+            trigger_status=trigger_status,
+            trigger_threshold=action.alert_rule_trigger.alert_threshold,
+        )
+
+    @with_feature("organizations:workflow-engine-trigger-actions")
+    def test_simple_with_workflow_engine_dual_write(self):
+        trigger_status = TriggerStatus.ACTIVE
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(alert_rule=alert_rule)
+        action = self.create_alert_rule_trigger_action(triggered_for_incident=incident)
         aggregate = action.alert_rule_trigger.alert_rule.snuba_query.aggregate
         alert_link = self.organization.absolute_url(
             reverse(
@@ -336,10 +381,109 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             "snooze_alert_url": alert_link + "&mute=1",
         }
 
-        assert expected == self._generate_email_context(
-            incident=incident,
+        open_period = GroupOpenPeriod.objects.create(
+            group=self.group,
+            project=self.project,
+            date_started=timezone.now(),
+        )
+        self.create_incident_group_open_period(incident=incident, group_open_period=open_period)
+
+        metric_issue_context = MetricIssueContext(
+            id=self.group.id,
+            open_period_identifier=open_period.id,
+            title=incident.title,
+            snuba_query=incident.alert_rule.snuba_query,
+            new_status=IncidentStatus(incident.status),
+            subscription=None,
+            metric_value=None,
+            group=self.group,
+        )
+
+        assert expected == generate_incident_trigger_email_context(
+            project=self.project,
+            organization=incident.organization,
+            metric_issue_context=metric_issue_context,
+            alert_rule_serialized_response=self.serialize_alert_rule(incident.alert_rule),
+            incident_serialized_response=self.serialize_incident(incident),
+            alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+            open_period_context=OpenPeriodContext.from_incident(incident),
             trigger_status=trigger_status,
             trigger_threshold=action.alert_rule_trigger.alert_threshold,
+            user=self.user,
+            notification_uuid=None,
+        )
+
+    @with_feature("organizations:workflow-engine-ui-links")
+    def test_simple_with_workflow_engine_ui_link(self):
+        trigger_status = TriggerStatus.ACTIVE
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(alert_rule=alert_rule)
+        action = self.create_alert_rule_trigger_action(triggered_for_incident=incident)
+        aggregate = action.alert_rule_trigger.alert_rule.snuba_query.aggregate
+        group_link = self.organization.absolute_url(
+            reverse(
+                "sentry-group",
+                kwargs={
+                    "organization_slug": incident.organization.slug,
+                    "project_id": self.project.id,
+                    "group_id": self.group.id,
+                },
+            ),
+            query="referrer=metric_alert_email",
+        )
+        expected = {
+            "link": group_link,
+            "incident_name": incident.title,
+            "aggregate": aggregate,
+            "query": action.alert_rule_trigger.alert_rule.snuba_query.query,
+            "threshold": action.alert_rule_trigger.alert_threshold,
+            "status": INCIDENT_STATUS[IncidentStatus(incident.status)],
+            "status_key": INCIDENT_STATUS[IncidentStatus(incident.status)].lower(),
+            "environment": "All",
+            "is_critical": False,
+            "is_warning": False,
+            "threshold_prefix_string": ">",
+            "time_window": "10 minutes",
+            "triggered_at": timezone.now(),
+            "project_slug": self.project.slug,
+            "unsubscribe_link": None,
+            "chart_url": None,
+            "timezone": settings.SENTRY_DEFAULT_TIME_ZONE,
+            # We don't have user muting for workflows in the new workflow engine system
+            "snooze_alert": False,
+            "snooze_alert_url": None,
+        }
+
+        open_period = GroupOpenPeriod.objects.create(
+            group=self.group,
+            project=self.project,
+            date_started=timezone.now(),
+        )
+        self.create_incident_group_open_period(incident=incident, group_open_period=open_period)
+
+        metric_issue_context = MetricIssueContext(
+            id=self.group.id,
+            open_period_identifier=open_period.id,
+            title=incident.title,
+            snuba_query=incident.alert_rule.snuba_query,
+            new_status=IncidentStatus(incident.status),
+            subscription=None,
+            metric_value=None,
+            group=self.group,
+        )
+
+        assert expected == generate_incident_trigger_email_context(
+            project=self.project,
+            organization=incident.organization,
+            metric_issue_context=metric_issue_context,
+            alert_rule_serialized_response=self.serialize_alert_rule(incident.alert_rule),
+            incident_serialized_response=self.serialize_incident(incident),
+            alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+            open_period_context=OpenPeriodContext.from_incident(incident),
+            trigger_status=trigger_status,
+            trigger_threshold=action.alert_rule_trigger.alert_threshold,
+            user=self.user,
+            notification_uuid=None,
         )
 
     @with_feature("organizations:anomaly-detection-alerts")

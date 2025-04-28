@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -15,11 +15,18 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {unreachable} from 'sentry/utils/unreachable';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssueViewQueryParams';
+import {
+  DEFAULT_ENVIRONMENTS,
+  DEFAULT_TIME_FILTERS,
+} from 'sentry/views/issueList/issueViews/issueViews';
 import {IssueViewsTable} from 'sentry/views/issueList/issueViews/issueViewsList/issueViewsTable';
+import {useCreateGroupSearchView} from 'sentry/views/issueList/mutations/useCreateGroupSearchView';
 import {useDeleteGroupSearchView} from 'sentry/views/issueList/mutations/useDeleteGroupSearchView';
 import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
 import type {GroupSearchViewBackendSortOption} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
@@ -32,6 +39,8 @@ import {
   GroupSearchViewCreatedBy,
   GroupSearchViewSort,
 } from 'sentry/views/issueList/types';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
+import useDefaultProject from 'sentry/views/nav/secondary/sections/issues/issueViews/useDefaultProject';
 
 type IssueViewSectionProps = {
   createdBy: GroupSearchViewCreatedBy;
@@ -240,6 +249,9 @@ export default function IssueViewsList() {
   const location = useLocation();
   const query = typeof location.query.query === 'string' ? location.query.query : '';
   const openFeedbackForm = useFeedbackForm();
+  const {mutate: createGroupSearchView, isPending: isCreatingView} =
+    useCreateGroupSearchView();
+  const defaultProject = useDefaultProject();
 
   if (!organization.features.includes('issue-view-sharing')) {
     return <Redirect to={`/organizations/${organization.slug}/issues/`} />;
@@ -271,19 +283,44 @@ export default function IssueViewsList() {
                 {t('Give Feedback')}
               </Button>
             ) : null}
-            <LinkButton
-              to={`/organizations/${organization.slug}/issues/views/new/`}
+            <Button
               priority="primary"
               icon={<IconAdd />}
               size="sm"
+              disabled={isCreatingView}
+              busy={isCreatingView}
               onClick={() => {
                 trackAnalytics('issue_views.table.create_view_clicked', {
                   organization,
                 });
+                createGroupSearchView(
+                  {
+                    name: t('New View'),
+                    query: 'is:unresolved',
+                    projects: defaultProject,
+                    environments: DEFAULT_ENVIRONMENTS,
+                    timeFilters: DEFAULT_TIME_FILTERS,
+                    querySort: IssueSortOptions.DATE,
+                    starred: true,
+                  },
+                  {
+                    onSuccess: data => {
+                      navigate({
+                        pathname: normalizeUrl(
+                          `/organizations/${organization.slug}/issues/views/${data.id}/`
+                        ),
+                        query: {
+                          ...getIssueViewQueryParams({view: data}),
+                          new: 'true',
+                        },
+                      });
+                    },
+                  }
+                );
               }}
             >
               {t('Create View')}
-            </LinkButton>
+            </Button>
           </ButtonBar>
         </Layout.HeaderActions>
       </Layout.Header>
