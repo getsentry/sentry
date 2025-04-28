@@ -20,17 +20,20 @@ describe('HTTPSamplesPanel', () => {
 
   let eventsRequestMock: jest.Mock;
 
-  const selection = {
-    datetime: {
-      period: '10d',
-      start: null,
-      end: null,
-      utc: false,
-    },
-    environments: [],
-    projects: [],
-  };
-  jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture({selection}));
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects: [],
+      },
+    })
+  );
 
   jest.mocked(useLocation).mockReturnValue({
     pathname: '',

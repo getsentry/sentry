@@ -32,17 +32,20 @@ const requestMocks = {
 describe('CacheLandingPage', function () {
   const organization = OrganizationFixture({features: ['insights-addon-modules']});
 
-  const selection = {
-    datetime: {
-      period: '10d',
-      start: null,
-      end: null,
-      utc: false,
-    },
-    environments: [],
-    projects: [],
-  };
-  jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture({selection}));
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects: [],
+      },
+    })
+  );
 
   jest.mocked(useLocation).mockReturnValue({
     pathname: '',

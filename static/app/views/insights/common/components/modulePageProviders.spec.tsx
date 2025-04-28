@@ -14,17 +14,7 @@ jest.mock('sentry/views/insights/common/utils/useHasDataTrackAnalytics');
 
 describe('ModulePageProviders', () => {
   beforeEach(() => {
-    const selection = {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
-      },
-      environments: [],
-      projects: [2],
-    };
-    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture({selection}));
+    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
   });
 
   afterEach(() => {

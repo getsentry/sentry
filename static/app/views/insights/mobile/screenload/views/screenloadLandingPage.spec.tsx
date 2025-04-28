@@ -37,17 +37,20 @@ describe('PageloadModule', function () {
     state: undefined,
   } as Location);
 
-  const selection = {
-    datetime: {
-      period: '10d',
-      start: null,
-      end: null,
-      utc: false,
-    },
-    environments: [],
-    projects: [parseInt(project.id, 10)],
-  };
-  jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture({selection}));
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects: [parseInt(project.id, 10)],
+      },
+    })
+  );
 
   let eventsMock: jest.Mock;
   beforeEach(function () {

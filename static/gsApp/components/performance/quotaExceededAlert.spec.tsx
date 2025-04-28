@@ -30,17 +30,20 @@ describe('Renders QuotaExceededAlert correctly', function () {
   });
   beforeEach(function () {
     setMockDate(new Date('2024-12-14').getTime());
-    const selection = {
-      datetime: {
-        period: '7d',
-        start: null,
-        end: null,
-        utc: false,
-      },
-      environments: [],
-      projects: [2],
-    };
-    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture({selection}));
+    jest.mocked(usePageFilters).mockReturnValue(
+      PageFilterStateFixture({
+        selection: {
+          datetime: {
+            period: '7d',
+            start: null,
+            end: null,
+            utc: false,
+          },
+          environments: [],
+          projects: [2],
+        },
+      })
+    );
 
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',

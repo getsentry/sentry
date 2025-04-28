@@ -1,6 +1,6 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {GetPageFiltersStorageFixture} from 'sentry-fixture/pageFilters';
+import {PageFiltersStorageFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -488,7 +488,7 @@ describe('Discover > Homepage', () => {
     };
     jest
       .spyOn(pageFilterUtils, 'getPageFilterStorage')
-      .mockReturnValueOnce(GetPageFiltersStorageFixture({state}));
+      .mockReturnValueOnce(PageFiltersStorageFixture({state}));
 
     render(
       <Homepage

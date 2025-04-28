@@ -63,17 +63,7 @@ const setupMocks = () => {
   const mockProjects = [ProjectFixture()];
   ProjectsStore.loadInitialData(mockProjects);
 
-  const selection = {
-    datetime: {
-      period: '10d',
-      start: null,
-      end: null,
-      utc: false,
-    },
-    environments: [],
-    projects: [],
-  };
-  jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture({selection}));
+  jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
   jest.mocked(useLocation).mockReturnValue({
     pathname: '',

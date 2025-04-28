@@ -23,17 +23,7 @@ describe('ModulesOnboarding', () => {
 
     ProjectsStore.loadInitialData([project]);
 
-    const selection = {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
-      },
-      environments: [],
-      projects: [2],
-    };
-    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture({selection}));
+    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
     render(
       <ModulesOnboarding moduleName={ModuleName.CACHE}>
@@ -54,17 +44,20 @@ describe('ModulesOnboarding', () => {
       body: [project],
     });
 
-    const selection = {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
-      },
-      environments: [],
-      projects: [Number(project.id)],
-    };
-    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture({selection}));
+    jest.mocked(usePageFilters).mockReturnValue(
+      PageFilterStateFixture({
+        selection: {
+          datetime: {
+            period: '10d',
+            start: null,
+            end: null,
+            utc: false,
+          },
+          environments: [],
+          projects: [Number(project.id)],
+        },
+      })
+    );
 
     render(
       <ModulesOnboarding moduleName={ModuleName.CACHE}>
@@ -80,17 +73,20 @@ describe('ModulesOnboarding', () => {
     project.hasInsightsCaches = true;
     ProjectsStore.loadInitialData([project]);
 
-    const selection = {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
-      },
-      environments: [],
-      projects: [Number(project.id)],
-    };
-    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture({selection}));
+    jest.mocked(usePageFilters).mockReturnValue(
+      PageFilterStateFixture({
+        selection: {
+          datetime: {
+            period: '10d',
+            start: null,
+            end: null,
+            utc: false,
+          },
+          environments: [],
+          projects: [Number(project.id)],
+        },
+      })
+    );
 
     render(
       <ModulesOnboarding moduleName={ModuleName.CACHE}>

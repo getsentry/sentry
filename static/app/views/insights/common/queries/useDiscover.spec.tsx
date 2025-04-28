@@ -36,17 +36,7 @@ describe('useDiscover', () => {
   describe('useSpanMetrics', () => {
     const organization = OrganizationFixture();
 
-    const selection = {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
-      },
-      environments: [],
-      projects: [],
-    };
-    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture({selection}));
+    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
     jest.mocked(useLocation).mockReturnValue(
       LocationFixture({
@@ -155,17 +145,20 @@ describe('useDiscover', () => {
   describe('useSpanIndexed', () => {
     const organization = OrganizationFixture();
 
-    const selection = {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
-      },
-      environments: [],
-      projects: [],
-    };
-    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture({selection}));
+    jest.mocked(usePageFilters).mockReturnValue(
+      PageFilterStateFixture({
+        selection: {
+          datetime: {
+            period: '10d',
+            start: null,
+            end: null,
+            utc: false,
+          },
+          environments: [],
+          projects: [],
+        },
+      })
+    );
 
     jest.mocked(useLocation).mockReturnValue(
       LocationFixture({

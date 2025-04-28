@@ -27,17 +27,7 @@ describe('PagePerformanceTable', function () {
   beforeEach(function () {
     jest.mocked(useLocation).mockReturnValue(router.location);
 
-    const selection = {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
-      },
-      environments: [],
-      projects: [],
-    };
-    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture({selection}));
+    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
     ProjectsStore.loadInitialData([
       ProjectFixture({

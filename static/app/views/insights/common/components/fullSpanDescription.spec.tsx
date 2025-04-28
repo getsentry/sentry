@@ -20,17 +20,7 @@ describe('FullSpanDescription', function () {
 
   const project = ProjectFixture();
 
-  const selection = {
-    datetime: {
-      period: '10d',
-      start: null,
-      end: null,
-      utc: false,
-    },
-    environments: [],
-    projects: [],
-  };
-  jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture({selection}));
+  jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
   const groupId = '2ed2abf6ce7e3577';
   const spanId = 'abfed2aabf';

@@ -34,17 +34,7 @@ describe('WebVitalMeters', function () {
       action: 'PUSH',
       key: '',
     });
-    const selection = {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
-      },
-      environments: [],
-      projects: [],
-    };
-    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture({selection}));
+    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
   });
 
   it('renders web vital meters with interaction to next paint', async () => {

@@ -16,7 +16,7 @@ export function PageFiltersFixture(params: Partial<PageFilters> = {}): PageFilte
   };
 }
 
-export function GetPageFiltersStorageFixture(params = {}) {
+export function PageFiltersStorageFixture(params = {}) {
   return {
     pinnedFilters: new Set<PinnedPageFilter>(['projects']),
     state: {
@@ -31,7 +31,7 @@ export function GetPageFiltersStorageFixture(params = {}) {
   };
 }
 
-export function PageFilterStateFixture(params: Partial<PageFiltersState> = {}) {
+export function PageFilterStateFixture(params: Partial<PageFiltersState> = {}): PageFiltersState {
   return {
     isReady: true,
     desyncedFilters: new Set<PinnedPageFilter>(),

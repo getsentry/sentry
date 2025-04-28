@@ -8,17 +8,7 @@ import {Referrer} from 'sentry/views/insights/mobile/ui/referrers';
 
 jest.mock('sentry/utils/usePageFilters');
 
-const selection = {
-  datetime: {
-    period: '10d',
-    start: null,
-    end: null,
-    utc: false,
-  },
-  environments: [],
-  projects: [],
-};
-jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture({selection}));
+jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
 describe('SpanOperationTable', () => {
   it('renders and fetches the proper data', () => {

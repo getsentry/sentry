@@ -14,17 +14,20 @@ jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');
 
 function mockPageFilters(projects: number[]) {
-  const selection = {
-    datetime: {
-      period: '10d',
-      start: null,
-      end: null,
-      utc: false,
-    },
-    environments: [],
-    projects,
-  };
-  jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture({selection}));
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects,
+      },
+    })
+  );
 }
 
 describe('useCrossPlatformProject', () => {

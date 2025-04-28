@@ -54,12 +54,15 @@ describe('FrontendOverviewPage', () => {
     });
 
     it('fetches correct data with unknown platform', async () => {
-      const selection = {
-        datetime: pageFilterSelection.datetime,
-        environments: [],
-        projects: [2],
-      };
-      jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture({selection}));
+      jest.mocked(usePageFilters).mockReturnValue(
+        PageFilterStateFixture({
+          selection: {
+            datetime: pageFilterSelection.datetime,
+            environments: [],
+            projects: [2],
+          },
+        })
+      );
       render(<FrontendOverviewPage />, {organization});
 
       expect(await screen.findByRole('heading', {level: 1})).toHaveTextContent(

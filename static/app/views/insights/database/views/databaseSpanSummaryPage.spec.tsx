@@ -25,17 +25,20 @@ describe('DatabaseSpanSummaryPage', function () {
   const group = GroupFixture();
   const groupId = '1756baf8fd19c116';
 
-  const selection = {
-    datetime: {
-      period: '10d',
-      start: null,
-      end: null,
-      utc: false,
-    },
-    environments: [],
-    projects: [],
-  };
-  jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture({selection}));
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects: [],
+      },
+    })
+  );
 
   jest.mocked(useParams).mockReturnValue({
     groupId,
