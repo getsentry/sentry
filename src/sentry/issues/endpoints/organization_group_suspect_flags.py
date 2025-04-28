@@ -67,24 +67,20 @@ class OrganizationGroupSuspectFlagsEndpoint(GroupEndpoint):
             ]
         }
 
-        # A sum of all the scores is kept to give us a gross understanding on the range of scores
-        # typically seen.
-        total_score = sum(i["score"] for i in response_data["data"])
-        metrics.distribution("flags.suspect.total_score", total_score)
-
-        # Interesting scores are logged for deeper inspection.
-        if response_data["data"] and response_data["data"][0]["score"] >= 1:
-            metrics.distribution("flags.suspect.max_score", response_data["data"][0]["score"])
-            logging.info(
-                "sentry.replays.slow_click",
-                extra={
-                    "event_type": "flag_score_log",
-                    "org_id": group.organization.id,
-                    "project_id": group.project.id,
-                    "flag": response_data["data"][0]["flag"],
-                    "score": response_data["data"][0]["score"],
-                    "issue_id": group.id,
-                },
-            )
+        # Record a distribution of suspect flag scores.
+        for item in response_data["data"]:
+            metrics.distribution("flags.suspect.score", item["score"])
+            if item["score"] >= 1:
+                logging.info(
+                    "sentry.replays.slow_click",
+                    extra={
+                        "event_type": "flag_score_log",
+                        "org_id": group.organization.id,
+                        "project_id": group.project.id,
+                        "flag": item["flag"],
+                        "score": item["score"],
+                        "issue_id": group.id,
+                    },
+                )
 
         return Response(response_data, status=200)
