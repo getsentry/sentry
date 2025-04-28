@@ -1,3 +1,5 @@
+import datetime
+
 from django.db import models
 from django.utils import timezone
 
@@ -40,7 +42,7 @@ class UserReport(Model):
         def convert_datetime_in_dict_to_timestamp(obj):
             if isinstance(obj, dict):
                 return {k: convert_datetime_in_dict_to_timestamp(v) for k, v in obj.items()}
-            elif isinstance(obj, timezone.datetime):
+            elif isinstance(obj, datetime.datetime):
                 return obj.isoformat()
             return obj
 
