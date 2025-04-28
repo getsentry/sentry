@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 import {logger} from '@sentry/core';
 
+import type {ChartId} from 'sentry/components/charts/chartWidgetLoader';
 import {
   EventDrawerBody,
   EventDrawerContainer,
@@ -72,7 +73,7 @@ export function ReleasesDrawer() {
   }
 
   if (start && end) {
-    return <ReleasesDrawerList chart={rdChart} pageFilters={pageFilters} />;
+    return <ReleasesDrawerList chart={rdChart as ChartId} pageFilters={pageFilters} />;
   }
 
   return (
