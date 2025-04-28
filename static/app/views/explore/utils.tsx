@@ -15,7 +15,10 @@ import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {newExploreTarget} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {
+  BaseVisualize,
+  Visualize,
+} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
