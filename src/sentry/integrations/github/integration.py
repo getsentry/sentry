@@ -16,7 +16,11 @@ from django.utils.translation import gettext_lazy as _
 from sentry import features, options
 from sentry.constants import ObjectStatus
 from sentry.http import safe_urlopen, safe_urlread
-from sentry.identity.github import GitHubIdentityProvider, get_user_info
+from sentry.identity.github.provider import (
+    GitHubIdentityProvider,
+    get_user_info,
+    get_user_info_installations,
+)
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -460,7 +464,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
         )
 
     def get_pipeline_views(self) -> list[PipelineView | Callable[[], PipelineView]]:
-        return [OAuthLoginView(), GitHubInstallation()]
+        return [OAuthLoginView(), GithubOrganizationSelection(), GitHubInstallation()]
 
     def get_installation_info(self, installation_id: str) -> Mapping[str, Any]:
         client = self.get_client()
@@ -583,6 +587,17 @@ class OAuthLoginView(PipelineView):
                 )
 
             authenticated_user_info = get_user_info(payload["access_token"])
+
+            resp = get_user_info_installations(payload["access_token"])
+            installation_id = resp["installations"][0]["id"]
+            installation_info = [
+                {
+                    "id": installation.get("id"),
+                    "login": installation.get("account").get("login"),
+                    "avatar_url": installation.get("account").get("avatar_url"),
+                }
+                for installation in resp["installations"]
+            ]
             if "login" not in authenticated_user_info:
                 lifecycle.record_failure(GitHubInstallationError.MISSING_LOGIN)
                 return error(
@@ -590,6 +605,9 @@ class OAuthLoginView(PipelineView):
                     self.active_organization,
                     error_short=GitHubInstallationError.MISSING_LOGIN,
                 )
+
+            pipeline.bind_state("mutl_org_install_id", installation_id)
+            pipeline.bind_state("existing_installation_info", installation_info)
 
             pipeline.bind_state("github_authenticated_user", authenticated_user_info["login"])
             return pipeline.next_step()
@@ -602,6 +620,11 @@ class GitHubInstallation(PipelineView):
 
     def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.GITHUB_INSTALLATION).capture() as lifecycle:
+            chosen_installation = pipeline.fetch_state("chosen_installation")
+            if chosen_installation is not None:
+                pipeline.bind_state("installation_id", chosen_installation)
+                return pipeline.next_step()
+
             installation_id = request.GET.get(
                 "installation_id", pipeline.fetch_state("installation_id")
             )
@@ -633,33 +656,12 @@ class GitHubInstallation(PipelineView):
                     error_short=GitHubInstallationError.PENDING_DELETION,
                     error_long=ERR_INTEGRATION_PENDING_DELETION,
                 )
-
-            try:
-                # We want to limit GitHub integrations to 1 organization
-                installations_exist = OrganizationIntegration.objects.filter(
-                    integration=Integration.objects.get(external_id=installation_id)
-                ).exists()
-
-            except Integration.DoesNotExist:
-                return pipeline.next_step()
-
-            if installations_exist:
-                lifecycle.record_failure(GitHubInstallationError.INSTALLATION_EXISTS)
-                return error(
-                    request,
-                    self.active_organization,
-                    error_short=GitHubInstallationError.INSTALLATION_EXISTS,
-                    error_long=ERR_INTEGRATION_EXISTS_ON_ANOTHER_ORG,
-                )
-
-            # OrganizationIntegration does not exist, but Integration does exist.
             try:
                 integration = Integration.objects.get(
                     external_id=installation_id, status=ObjectStatus.ACTIVE
                 )
             except Integration.DoesNotExist:
-                lifecycle.record_failure(GitHubInstallationError.MISSING_INTEGRATION)
-                return error(request, self.active_organization)
+                return pipeline.next_step()
 
             # Check that the authenticated GitHub user is the same as who installed the app.
             if (
@@ -674,3 +676,19 @@ class GitHubInstallation(PipelineView):
                 )
 
             return pipeline.next_step()
+
+
+class GithubOrganizationSelection(PipelineView):
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+        if "chosen_installation_id" in request.GET:
+            chosen_installation_id = request.GET["chosen_installation_id"]
+            if chosen_installation_id == "-1":
+                return pipeline.next_step()
+
+            pipeline.bind_state("chosen_installation", chosen_installation_id)
+            return pipeline.next_step()
+
+        installation_info = pipeline.fetch_state("existing_installation_info")
+        return self.render_react_view(
+            request, "githubInstallationSelect", {"installation_info": installation_info}
+        )
