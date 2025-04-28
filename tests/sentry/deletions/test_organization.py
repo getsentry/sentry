@@ -2,6 +2,7 @@ from uuid import uuid4
 
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.commit import Commit
@@ -30,9 +31,11 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor
+from sentry.workflow_engine.models import Detector, Workflow
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
-class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
+class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWorkflowTest):
     def test_simple(self):
         org_owner = self.create_user()
         org = self.create_organization(name="test", owner=org_owner)
@@ -363,3 +366,23 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
             .exclude(environment=None)
             .exists()
         )
+
+    def test_workflow_engine_cleanup(self):
+        org = self.create_organization(name="test")
+        project = self.create_project(organization=org)
+
+        detector = self.create_detector(
+            project_id=project.id,
+            name="Test Detector",
+            type=MetricIssue.slug,
+        )
+        workflow = self.create_workflow(organization=org, name="Test Workflow")
+
+        org.update(status=OrganizationStatus.PENDING_DELETION)
+        self.ScheduledDeletion.schedule(instance=org, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not Detector.objects.filter(id=detector.id).exists()
+        assert not Workflow.objects.filter(id=workflow.id).exists()

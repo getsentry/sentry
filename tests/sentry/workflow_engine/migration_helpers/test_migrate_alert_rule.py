@@ -4,6 +4,7 @@ from unittest import mock
 import pytest
 from django.forms import ValidationError
 
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import update_alert_rule_trigger_action
 from sentry.incidents.models.alert_rule import (
@@ -472,6 +473,8 @@ class DualDeleteAlertRuleTest(BaseMetricAlertMigrationTest):
 
     def test_dual_delete_metric_alert_workflow(self):
         dual_delete_migrated_alert_rule(self.metric_alert)
+        with self.tasks():
+            run_scheduled_deletions()
 
         # check workflow-related tables
         assert not Workflow.objects.filter(id=self.workflow.id).exists()
@@ -479,6 +482,8 @@ class DualDeleteAlertRuleTest(BaseMetricAlertMigrationTest):
 
     def test_dual_delete_metric_alert_detector(self):
         dual_delete_migrated_alert_rule(self.metric_alert)
+        with self.tasks():
+            run_scheduled_deletions()
 
         # check detector-related tables
         assert not Detector.objects.filter(id=self.detector.id).exists()
@@ -492,6 +497,8 @@ class DualDeleteAlertRuleTest(BaseMetricAlertMigrationTest):
 
     def test_dual_delete_metric_alert_data_source(self):
         dual_delete_migrated_alert_rule(self.metric_alert)
+        with self.tasks():
+            run_scheduled_deletions()
 
         # check data source
         assert not DataSource.objects.filter(id=self.data_source.id).exists()
@@ -517,6 +524,8 @@ class DualDeleteAlertRuleTest(BaseMetricAlertMigrationTest):
         )
 
         dual_delete_migrated_alert_rule(self.metric_alert)
+        with self.tasks():
+            run_scheduled_deletions()
 
         # check trigger action objects
         assert not Action.objects.filter(id=action.id).exists()
@@ -543,13 +552,28 @@ class DualDeleteAlertRuleTest(BaseMetricAlertMigrationTest):
         second time.
         """
         dual_delete_migrated_alert_rule(self.metric_alert)
+        with self.tasks():
+            run_scheduled_deletions()
         assert not Detector.objects.filter(id=self.detector.id).exists()
 
         dual_delete_migrated_alert_rule(self.metric_alert)
+        with self.tasks():
+            run_scheduled_deletions()
         mock_logger.info.assert_called_with(
             "alert rule was not dual written or objects were already deleted, returning early",
             extra={"alert_rule_id": self.metric_alert.id},
         )
+
+    def test_dual_delete_twice_before_running_scheduled_deletions(self):
+        """
+        Test that nothing happens if dual delete is run twice (before scheduled deletions
+        are run).
+        """
+        dual_delete_migrated_alert_rule(self.metric_alert)
+        dual_delete_migrated_alert_rule(self.metric_alert)
+        with self.tasks():
+            run_scheduled_deletions()
+        assert not Detector.objects.filter(id=self.detector.id).exists()
 
 
 class DualUpdateAlertRuleTest(BaseMetricAlertMigrationTest):
