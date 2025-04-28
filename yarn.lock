@@ -7362,14 +7362,14 @@ get-tsconfig@^4.10.0:
   dependencies:
     resolve-pkg-maps "^1.0.0"
 
-gettext-parser@8.0.0:
-  version "8.0.0"
-  resolved "https://registry.yarnpkg.com/gettext-parser/-/gettext-parser-8.0.0.tgz#2c47676ac2817d4fbb30fadf5b95450d52b804bc"
-  integrity sha512-eFmhDi2xQ+2reMRY2AbJ2oa10uFOl1oyGbAKdCZiNOk94NJHi7aN0OBELSC9v35ZAPQdr+uRBi93/Gu4SlBdrA==
+gettext-parser@7.0.1:
+  version "7.0.1"
+  resolved "https://registry.yarnpkg.com/gettext-parser/-/gettext-parser-7.0.1.tgz#1d0308b6d7b0ac2250cafddb988d03ce170c2a3b"
+  integrity sha512-LU+ieGH3L9HmKEArTlX816/iiAlyA0fx/n/QSeQpkAaH/+jxMk/5UtDkAzcVvW+KlY25/U+IE6dnfkJ8ynt8pQ==
   dependencies:
     content-type "^1.0.5"
     encoding "^0.1.13"
-    readable-stream "^4.5.2"
+    readable-stream "^4.3.0"
     safe-buffer "^5.2.1"
 
 gl-matrix@^3.4.3:
@@ -10655,7 +10655,7 @@ readable-stream@^3.0.6:
     string_decoder "^1.1.1"
     util-deprecate "^1.0.1"
 
-readable-stream@^4.5.2:
+readable-stream@^4.3.0:
   version "4.7.0"
   resolved "https://registry.yarnpkg.com/readable-stream/-/readable-stream-4.7.0.tgz#cedbd8a1146c13dfff8dab14068028d58c15ac91"
   integrity sha512-oIGGmcpTLwPga8Bn6/Z75SVaH1z5dUut2ibSyAMVhmUggWpmDn2dapB0n7f8nwaSiRtepAsfJyfXIO5DCVAODg==

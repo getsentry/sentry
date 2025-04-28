@@ -117,7 +117,7 @@
     "fork-ts-checker-webpack-plugin": "^9.0.2",
     "framer-motion": "12.7.3",
     "fuse.js": "^6.6.2",
-    "gettext-parser": "8.0.0",
+    "gettext-parser": "7.0.1",
     "gl-matrix": "^3.4.3",
     "idb-keyval": "^6.2.1",
     "invariant": "^2.2.4",

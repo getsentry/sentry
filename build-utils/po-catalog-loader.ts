@@ -1,4 +1,12 @@
-import {GetTextTranslation, po} from 'gettext-parser';
+import type {GetTextTranslation} from 'gettext-parser';
+import * as gettextParser from 'gettext-parser';
+import type * as webpack from 'webpack';
+
+interface LoaderOptions {
+  referenceExtensions?: string[];
+  domain?: string;
+  raw?: boolean;
+}
 
 function isEmptyMessage(msg: GetTextTranslation): boolean {
   return msg.msgstr.some((str: string | null) => str === '' || str === null);
@@ -24,9 +32,9 @@ function messageIsExcluded(
   return true;
 }
 
-export default function (this: any, source: string) {
+export default function (this: webpack.LoaderContext<LoaderOptions>, source: string) {
   const options = this.getOptions();
-  const catalog = po.parse(source, {defaultCharset: 'UTF-8'});
+  const catalog = gettextParser.po.parse(source, {defaultCharset: 'UTF-8'});
 
   this.cacheable();
 
