@@ -7,7 +7,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 
-import {ChartWidgetLoader} from './chartWidgetLoader';
+import {ChartId, ChartWidgetLoader} from './chartWidgetLoader';
 
 // Mock this component so it doesn't yell at us for no plottables
 jest.mock(
@@ -274,7 +274,7 @@ describe('ChartWidgetLoader - unmocked imports', () => {
   // - `id` must match the filename
   // - have a `default` export that is a React component (component name should be TitleCase of `id`)
   // - be mapped via `id` -> dynamic import in `chartWidgetLoader.tsx`
-  it.each(widgetIds)('can load widget: %s', async (widgetId: string) => {
+  it.each(widgetIds as ChartId[])('can load widget: %s', async widgetId => {
     render(<ChartWidgetLoader id={widgetId} />);
 
     // Initially should show loading state from ChartWidgetLoader, it will disappear when dynamic import completes.
@@ -295,6 +295,7 @@ describe('ChartWidgetLoader - unmocked imports', () => {
 
   it('shows error state for invalid widget id', async () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    // @ts-expect-error - fails type check because `invalid-widget` is not a valid chart id, but we want to test that it shows an error state
     render(<ChartWidgetLoader id="invalid-widget" />);
 
     await waitFor(() => {

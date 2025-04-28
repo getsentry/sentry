@@ -7,7 +7,7 @@ import {
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {ChartWidgetLoader} from './chartWidgetLoader';
+import {ChartId, ChartWidgetLoader} from './chartWidgetLoader';
 
 const mockUseQuery = jest.fn();
 jest.mock('@sentry/core', () => ({
@@ -39,7 +39,7 @@ describe('ChartWidgetLoader', () => {
   });
 
   const defaultProps = {
-    id: 'test-widget',
+    id: 'test-widget' as ChartId,
     height: '200px',
   };
 
