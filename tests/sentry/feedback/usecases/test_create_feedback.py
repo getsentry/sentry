@@ -777,7 +777,6 @@ def test_create_feedback_adds_associated_event_id(
 def test_create_feedback_tags(default_project, mock_produce_occurrence_to_kafka):
     """We want to surface these tags in the UI. We also use user.email for alert conditions."""
     event = mock_feedback_event(default_project.id)
-    event["release"] = "frontend@daf1316f209d961443664cd6eb4231ca154db502"
     event["user"]["email"] = "josh.ferge@sentry.io"
     event["contexts"]["feedback"]["contact_email"] = "andrew@sentry.io"
     event["contexts"]["trace"] = {"trace_id": "abc123"}
@@ -958,7 +957,6 @@ def test_denylist_not_in_list(set_sentry_option, default_project):
 @django_db_all
 def test_create_feedback_release(default_project, mock_produce_occurrence_to_kafka):
     event = mock_feedback_event(default_project.id)
-    event["release"] = "frontend@daf1316f209d961443664cd6eb4231ca154db502"
     create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     assert mock_produce_occurrence_to_kafka.call_count == 1
