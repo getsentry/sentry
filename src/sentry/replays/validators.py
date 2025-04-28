@@ -77,6 +77,8 @@ UTC ISO8601 or epoch seconds. Use along with `start` instead of `statsPeriod`.
     )
     environment = serializers.CharField(help_text="The environment to filter by.", required=False)
     sort = serializers.CharField(help_text="The field to sort the output by.", required=False)
+    sortBy = serializers.CharField(help_text="The field to sort the output by.", required=False)
+    orderBy = serializers.CharField(help_text="The field to sort the output by.", required=False)
     query = serializers.CharField(
         help_text="A structured query string to filter the output by.", required=False
     )
@@ -123,3 +125,5 @@ class ReplaySelectorValidator(serializers.Serializer):
         help_text=("A list of project slugs to filter your results by."),
     )
     sort = serializers.CharField(help_text="The field to sort the output by.", required=False)
+    sortBy = serializers.CharField(help_text="The field to sort the output by.", required=False)
+    orderBy = serializers.CharField(help_text="The field to sort the output by.", required=False)

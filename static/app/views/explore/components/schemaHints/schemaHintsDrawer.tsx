@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
@@ -161,21 +161,23 @@ function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDraw
   }
 
   return (
-    <Fragment>
+    <DrawerContainer>
       <DrawerHeader hideBar />
       <StyledDrawerBody>
         <HeaderContainer>
           <SchemaHintsHeader>{t('Filter Attributes')}</SchemaHintsHeader>
           <StyledInputGroup>
+            <InputGroup.LeadingItems disablePointerEvents>
+              <IconSearch size="sm" />
+            </InputGroup.LeadingItems>
             <SearchInput
               size="sm"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               aria-label={t('Search attributes')}
+              placeholder={t('Search')}
+              autoFocus
             />
-            <InputGroup.TrailingItems disablePointerEvents>
-              <IconSearch size="md" />
-            </InputGroup.TrailingItems>
           </StyledInputGroup>
         </HeaderContainer>
         <StyledMultipleCheckbox name={t('Filter keys')} value={selectedFilterKeys}>
@@ -196,7 +198,7 @@ function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDraw
           </ScrollContainer>
         </StyledMultipleCheckbox>
       </StyledDrawerBody>
-    </Fragment>
+    </DrawerContainer>
   );
 }
 
@@ -208,15 +210,17 @@ const SchemaHintsHeader = styled('h4')`
 `;
 
 const StyledDrawerBody = styled(DrawerBody)`
-  height: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 `;
 
 const HeaderContainer = styled('div')`
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
   margin-bottom: ${space(2)};
-  gap: ${space(1.5)};
+  gap: ${space(1)};
 `;
 
 const CheckboxLabelContainer = styled('div')`
@@ -305,5 +309,15 @@ const NoAttributesMessage = styled('div')`
 const StyledInputGroup = styled(InputGroup)`
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     max-width: 175px;
+  }
+`;
+
+const DrawerContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  > header {
+    flex-shrink: 0;
   }
 `;

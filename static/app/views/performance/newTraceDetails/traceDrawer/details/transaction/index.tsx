@@ -7,7 +7,6 @@ import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
-import type {LazyRenderProps} from 'sentry/components/lazyRender';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -44,10 +43,6 @@ import {hasMeasurements, Measurements} from './sections/measurements';
 import ReplayPreview from './sections/replayPreview';
 import {Request} from './sections/request';
 import {hasSDKContext} from './sections/sdk';
-
-export const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
-  observerOptions: {rootMargin: '50px'},
-};
 
 type TransactionNodeDetailHeaderProps = {
   event: EventTransaction;
