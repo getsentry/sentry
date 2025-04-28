@@ -78,7 +78,7 @@ def schedule_organizations(
         # The total timespan that the task covers
         duration = ONE_DAY * 7
 
-    batch_id = str(uuid.uuid4())
+    batch_id = uuid.uuid4()
 
     def min_org_id_redis_key(timestamp: float) -> str:
         return f"weekly_reports_org_id_min:{timestamp}"
@@ -102,7 +102,7 @@ def schedule_organizations(
         logger.info(
             "weekly_reports.schedule_organizations",
             extra={
-                "batch_id": batch_id,
+                "batch_id": str(batch_id),
                 "organization": organization.id,
                 "minimum_organization_id": minimum_organization_id,
             },
@@ -134,7 +134,7 @@ def prepare_organization_report(
     target_user: User | int | None = None,
     email_override: str | None = None,
 ):
-    if target_user and not hasattr(target_user, "id"):
+    if target_user and isinstance(target_user, User) and not hasattr(target_user, "id"):
         logger.error(
             "Target user must have an ID",
             extra={
