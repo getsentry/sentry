@@ -33,7 +33,7 @@ function Projects({projects, logs, tree}: Props) {
   const projectSlugs = useMemo(() => {
     if (logs.length > 0 && tree.shape === TraceShape.EMPTY_TRACE) {
       // Create a map of project IDs to slugs once
-      const projectIdToSlug = new Map(projects.map(p => [Number(p.id), p.slug]));
+      const projectIdToSlug = new Map(projects.map(p => [p.id, p.slug]));
 
       // Get unique project IDs and map to slugs in one pass
       return Array.from(
