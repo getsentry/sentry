@@ -1,5 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {PageFiltersFixture, PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -54,17 +54,15 @@ describe('FrontendOverviewPage', () => {
     });
 
     it('fetches correct data with unknown platform', async () => {
-      jest.mocked(usePageFilters).mockReturnValue({
-        isReady: true,
-        desyncedFilters: new Set(),
-        pinnedFilters: new Set(),
-        shouldPersist: true,
-        selection: {
-          projects: [2],
-          datetime: pageFilterSelection.datetime,
-          environments: [],
-        },
-      });
+      jest.mocked(usePageFilters).mockReturnValue(
+        PageFilterStateFixture({
+          selection: {
+            datetime: pageFilterSelection.datetime,
+            environments: [],
+            projects: [2],
+          },
+        })
+      );
       render(<FrontendOverviewPage />, {organization});
 
       expect(await screen.findByRole('heading', {level: 1})).toHaveTextContent(
@@ -188,12 +186,8 @@ const setupMocks = () => {
     key: '',
   });
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: pageFilterSelection,
-  });
+  jest
+    .mocked(usePageFilters)
+    .mockReturnValue(PageFilterStateFixture({selection: pageFilterSelection}));
   ProjectsStore.loadInitialData(projects);
 };
