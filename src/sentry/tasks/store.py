@@ -515,13 +515,6 @@ def _do_save_event(
     """
     start_save_event_time = time()
 
-    if start_time:
-        metrics.timing(
-            "events.start-to-start-save-event",
-            time() - start_time,
-            instance=data["platform"],
-        )
-
     set_current_event_project(project_id)
 
     from sentry.event_manager import EventManager
@@ -632,6 +625,12 @@ def _do_save_event(
                             "true" if reprocessing2.is_reprocessed_event(data) else "false"
                         ),
                     },
+                )
+
+                metrics.timing(
+                    "events.start-to-start-save-event",
+                    start_save_event_time - start_time,
+                    instance=data["platform"],
                 )
 
             metrics.timing(
