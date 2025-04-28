@@ -1,11 +1,13 @@
-import {po} from 'gettext-parser';
-import loaderUtils from 'loader-utils';
+import {GetTextTranslation, po} from 'gettext-parser';
 
-function isEmptyMessage(msg: any): boolean {
+function isEmptyMessage(msg: GetTextTranslation): boolean {
   return msg.msgstr.some((str: string | null) => str === '' || str === null);
 }
 
-function messageIsExcluded(msg: any, extensions: string[] | undefined): boolean {
+function messageIsExcluded(
+  msg: GetTextTranslation,
+  extensions: string[] | undefined
+): boolean {
   if (!extensions) {
     return false;
   }
@@ -23,7 +25,7 @@ function messageIsExcluded(msg: any, extensions: string[] | undefined): boolean 
 }
 
 export default function (this: any, source: string) {
-  const options = loaderUtils.getOptions(this);
+  const options = this.getOptions();
   const catalog = po.parse(source, {defaultCharset: 'UTF-8'});
 
   this.cacheable();
