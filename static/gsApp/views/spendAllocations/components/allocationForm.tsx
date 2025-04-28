@@ -202,7 +202,7 @@ function AllocationForm({
       await api.requestPromise(PATH, {
         method: METHOD as APIRequestMethod,
         data: {
-          billing_metric: selectedMetric,
+          billing_metric: getCategoryInfoFromPlural(selectedMetric)?.name, // TODO: we should update the endpoint to use camelCase api name
           target_id: targetId,
           target_type: AllocationTargetTypes.PROJECT,
           desired_quantity: String(Number(allocationVolume) * incrementSize),
