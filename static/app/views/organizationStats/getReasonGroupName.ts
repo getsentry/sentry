@@ -45,6 +45,11 @@ enum DiscardReason {
   TOO_LARGE_OTEL_SPAN = 'too_large:otel_span',
   TOO_LARGE_PROFILE_CHUNK = 'too_large:profile_chunk',
   TOO_LARGE_PROFILE = 'too_large:profile',
+  TOO_LARGE_ATTACHMENT_MINIDUMP = 'too_large:attachment:minidump',
+  TOO_LARGE_ATTACHMENT_APPLE_CRASH_REPORT = 'too_large:attachment:apple_crash_report',
+  TOO_LARGE_ATTACHMENT_PROSPERODUMP = 'too_large:attachment:prosperodump',
+  TOO_LARGE_ATTACHMENT_UNREAL_CONTEXT = 'too_large:attachment:unreal_context',
+  TOO_LARGE_ATTACHMENT_UNREAL_LOGS = 'too_large:attachment:unreal_logs',
   MISSING_MINIDUMP_UPLOAD = 'missing_minidump_upload',
   INVALID_MINIDUMP = 'invalid_minidump',
   SECURITY_REPORT = 'security_report',
@@ -115,6 +120,11 @@ const invalidReasonsGroup: Record<string, DiscardReason[]> = {
   too_large_event: [DiscardReason.TOO_LARGE_EVENT],
   too_large_transaction: [DiscardReason.TOO_LARGE_TRANSACTION],
   too_large_attachment: [DiscardReason.TOO_LARGE_ATTACHMENT],
+  too_large_minidump: [DiscardReason.TOO_LARGE_ATTACHMENT_MINIDUMP],
+  too_large_apple_crash_report: [DiscardReason.TOO_LARGE_ATTACHMENT_APPLE_CRASH_REPORT],
+  too_large_prosperodump: [DiscardReason.TOO_LARGE_ATTACHMENT_PROSPERODUMP],
+  too_large_unreal_context: [DiscardReason.TOO_LARGE_ATTACHMENT_UNREAL_CONTEXT],
+  too_large_unreal_logs: [DiscardReason.TOO_LARGE_ATTACHMENT_UNREAL_LOGS],
   too_large_form_data: [DiscardReason.TOO_LARGE_FORM_DATA],
   too_large_nel: [DiscardReason.TOO_LARGE_NEL],
   too_large_unreal_report: [DiscardReason.TOO_LARGE_UNREAL_REPORT],
@@ -153,12 +163,17 @@ function getInvalidReasonGroupName(reason: string): string {
       return group;
     }
   }
-  // 2. If there is no direct match check if there is a match for the baseReason
-  const baseReason = reason.split(':')[0];
-  for (const [group, reasons] of Object.entries(invalidReasonsGroup)) {
-    if (reasons.includes(baseReason as DiscardReason)) {
-      return group;
+  // 2. If there is no direct match check if there is a match for any of the baseReasons
+  // starting with the longest.
+  let lastColonIndex = reason.lastIndexOf(':');
+  while (lastColonIndex !== -1) {
+    const baseReason = reason.substring(0, lastColonIndex);
+    for (const [group, reasons] of Object.entries(invalidReasonsGroup)) {
+      if (reasons.includes(baseReason as DiscardReason)) {
+        return group;
+      }
     }
+    lastColonIndex = baseReason.lastIndexOf(':');
   }
   // 3. Else just return internal
   return 'internal';
