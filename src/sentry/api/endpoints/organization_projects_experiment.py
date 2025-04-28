@@ -20,6 +20,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.endpoints.team_projects import ProjectPostSerializer
 from sentry.api.exceptions import ConflictError, ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.project import ProjectSummarySerializer
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -217,7 +218,9 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
             "created team through project creation flow",
             extra={"team_slug": default_team_slug, "project_slug": project_name},
         )
-        serialized_response = serialize(project, request.user)
+        serialized_response = serialize(
+            project, request.user, ProjectSummarySerializer(collapse=["unusedFeatures"])
+        )
         serialized_response["team_slug"] = team.slug
 
         return Response(serialized_response, status=201)
