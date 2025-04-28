@@ -30,10 +30,6 @@ export class Line extends ContinuousTimeSeries implements Plottable {
     this.#incompleteTimeSeries = incompleteTimeSeries;
   }
 
-  constrain(boundaryStart: Date | null, boundaryEnd: Date | null) {
-    return new Line(this.constrainTimeSeries(boundaryStart, boundaryEnd), this.config);
-  }
-
   onHighlight(seriesDataIndex: number): void {
     const {config = {}} = this;
     // The incomplete series prepends the final data point from the complete

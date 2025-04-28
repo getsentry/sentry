@@ -203,10 +203,6 @@ export class Samples implements Plottable {
     };
   }
 
-  constrain(boundaryStart: Date | null, boundaryEnd: Date | null) {
-    return new Samples(this.constrainSamples(boundaryStart, boundaryEnd), this.config);
-  }
-
   #getSampleByIndex(dataIndex: number): ValidSampleRow | undefined {
     const sample = this.sampleTableData.data.at(dataIndex);
 
