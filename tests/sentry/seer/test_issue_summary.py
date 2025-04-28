@@ -1,10 +1,13 @@
 import datetime
+import threading
+import time
 from typing import Any
 from unittest.mock import ANY, Mock, call, patch
 
 import orjson
 
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
+from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.seer.issue_summary import (
     _call_seer,
@@ -17,6 +20,7 @@ from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
+from sentry.utils.locking import UnableToAcquireLock
 
 pytestmark = [requires_snuba]
 
@@ -407,3 +411,113 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
             ]
         )
         mock_serialize.assert_called_once()
+
+    @patch("sentry.seer.issue_summary._generate_summary")
+    def test_get_issue_summary_concurrent_wait_for_lock(self, mock_generate_summary):
+        """Test that a second request waits for the lock and reads from cache."""
+        cache_key = f"ai-group-summary-v2:{self.group.id}"
+
+        # Mock summary generation to take time and cache the result
+        generated_summary = {"headline": "Generated Summary", "event_id": "gen_event"}
+        cache_key = f"ai-group-summary-v2:{self.group.id}"
+
+        def side_effect_generate(*args, **kwargs):
+            # Simulate work
+            time.sleep(0.3)
+            # Write to cache before returning (simulates behavior after lock release)
+            cache.set(cache_key, generated_summary, timeout=60)
+            return generated_summary, 200
+
+        mock_generate_summary.side_effect = side_effect_generate
+
+        results = {}
+        exceptions = {}
+
+        def target(req_id):
+            try:
+                summary_data, status_code = get_issue_summary(self.group, self.user)
+                results[req_id] = (summary_data, status_code)
+            except Exception as e:
+                exceptions[req_id] = e
+
+        # Start two threads concurrently
+        thread1 = threading.Thread(target=target, args=(1,))
+        thread2 = threading.Thread(target=target, args=(2,))
+
+        thread1.start()
+        # Give thread1 a slight head start, but the lock should handle the race
+        time.sleep(0.01)
+        thread2.start()
+
+        # Wait for both threads to complete
+        thread1.join(timeout=5)
+        thread2.join(timeout=5)
+
+        # Assertions
+        if exceptions:
+            raise AssertionError(f"Threads raised exceptions: {exceptions}")
+
+        assert 1 in results, "Thread 1 did not complete in time"
+        assert 2 in results, "Thread 2 did not complete in time"
+
+        # Both should succeed and get the same summary
+        assert results[1][1] == 200, f"Thread 1 failed with status {results[1][1]}"
+        assert results[2][1] == 200, f"Thread 2 failed with status {results[2][1]}"
+        expected_result = convert_dict_key_case(generated_summary, snake_to_camel_case)
+        assert results[1][0] == expected_result, "Thread 1 returned wrong summary"
+        assert results[2][0] == expected_result, "Thread 2 returned wrong summary"
+
+        # Check that _generate_summary was only called once
+        # (by the thread that acquired the lock)
+        mock_generate_summary.assert_called_once()
+
+        # Ensure the cache contains the final result
+        assert cache.get(cache_key) == generated_summary
+
+    @patch("sentry.seer.issue_summary._generate_summary")
+    def test_get_issue_summary_concurrent_force_event_id_bypasses_lock(self, mock_generate_summary):
+        """Test that force_event_id bypasses lock waiting."""
+        # Mock summary generation
+        forced_summary = {"headline": "Forced Summary", "event_id": "force_event"}
+        mock_generate_summary.return_value = (forced_summary, 200)
+
+        # Ensure cache is empty and lock *could* be acquired if attempted
+        cache_key = f"ai-group-summary-v2:{self.group.id}"
+        lock_key = f"ai-group-summary-v2-lock:{self.group.id}"
+        cache.delete(cache_key)
+
+        locks.get(lock_key, duration=1).release()  # Ensure lock isn't held
+
+        # Call with force_event_id=True
+        summary_data, status_code = get_issue_summary(
+            self.group, self.user, force_event_id="some_event"
+        )
+
+        assert status_code == 200
+        assert summary_data == convert_dict_key_case(forced_summary, snake_to_camel_case)
+
+        # Ensure generation was called directly
+        mock_generate_summary.assert_called_once()
+
+    @patch("sentry.seer.issue_summary.cache.get")
+    @patch("sentry.seer.issue_summary._generate_summary")
+    @patch("sentry.utils.locking.lock.Lock.blocking_acquire")
+    def test_get_issue_summary_lock_timeout(
+        self, mock_blocking_acquire, mock_generate_summary_core, mock_cache_get
+    ):
+        """Test that a timeout waiting for the lock returns 503."""
+        # Simulate lock acquisition always failing with the specific exception
+        mock_blocking_acquire.side_effect = UnableToAcquireLock
+        # Simulate cache miss even after timeout
+        mock_cache_get.return_value = None
+
+        summary_data, status_code = get_issue_summary(self.group, self.user)
+
+        assert status_code == 503
+        assert summary_data == {"detail": "Timeout waiting for summary generation lock"}
+        # Ensure lock acquisition was attempted
+        mock_blocking_acquire.assert_called_once()
+        # Ensure generation was NOT called
+        mock_generate_summary_core.assert_not_called()
+        # Ensure cache was checked twice (once initially, once after lock failure)
+        assert mock_cache_get.call_count == 2
