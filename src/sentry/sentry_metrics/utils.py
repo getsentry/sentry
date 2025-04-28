@@ -1,17 +1,21 @@
 from collections.abc import Collection, Mapping, Sequence
-from typing import Union, cast
+from typing import Optional, Union, cast
 
 from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import to_use_case_id
 from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
+from sentry.utils import metrics
 
 #: Special integer used to represent a string missing from the indexer
 STRING_NOT_FOUND = -1
 
 #: Special integer returned by Snuba as tag value when a tag has not been set
 TAG_NOT_SET = 0
+
+#: Maximum number of attempts to record a string
+MAX_RECORD_ATTEMPTS = 3
 
 
 class MetricIndexNotFound(InvalidParams):
@@ -129,11 +133,35 @@ def resolve(
     use_case_id: UseCaseID | UseCaseKey,
     org_id: int,
     string: str,
-) -> int:
+) -> int | None:
     use_case_id = to_use_case_id(use_case_id)
     resolved = indexer.resolve(use_case_id, org_id, string)
     if resolved is None:
-        raise MetricIndexNotFound(f"Unknown string: {string!r}")
+        # Attempt to record the unknown string
+        for attempt in range(MAX_RECORD_ATTEMPTS):
+            try:
+                recorded = indexer.record(use_case_id, org_id, string)
+                if recorded is not None:
+                    metrics.incr(
+                        "sentry_metrics.indexer.string_recorded_on_resolve",
+                        tags={"attempt": attempt + 1},
+                    )
+                    return recorded
+            except Exception as e:
+                metrics.incr(
+                    "sentry_metrics.indexer.record_error", tags={"error_type": type(e).__name__}
+                )
+                if attempt == MAX_RECORD_ATTEMPTS - 1:
+                    raise MetricIndexNotFound(
+                        f"Unable to resolve or record unknown string: {string!r} "
+                        f"for use case {use_case_id} and org_id {org_id}"
+                    ) from e
+
+        # If we've exhausted all attempts, raise the exception
+        raise MetricIndexNotFound(
+            f"Unable to resolve or record unknown string: {string!r} "
+            f"for use case {use_case_id} and org_id {org_id} after {MAX_RECORD_ATTEMPTS} attempts"
+        )
 
     return resolved
 
@@ -141,7 +169,15 @@ def resolve(
 def resolve_tag_key(use_case_id: UseCaseID | UseCaseKey, org_id: int, string: str) -> str:
     use_case_id = to_use_case_id(use_case_id)
     resolved = resolve(use_case_id, org_id, string)
-    assert isinstance(use_case_id, UseCaseID)
+    if resolved is None:
+        metrics.incr("sentry_metrics.indexer.unresolved_tag_key")
+        return f"unresolved_tag[{string}]"
+
+    if resolved < 0:
+        metrics.incr("sentry_metrics.indexer.negative_tag_key")
+        return f"invalid_tag[{string}]"
+
+    assert isinstance(use_case_id, UseCaseID)  # This assertion is kept for type checking purposes
     if METRIC_PATH_MAPPING[use_case_id] is UseCaseKey.PERFORMANCE:
         return f"tags_raw[{resolved}]"
     else:
