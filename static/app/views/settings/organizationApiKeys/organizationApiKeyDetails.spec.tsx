@@ -22,7 +22,10 @@ describe('OrganizationApiKeyDetails', function () {
   });
 
   it('renders', async function () {
-    render(<OrganizationApiKeyDetails />, {router});
+    render(<OrganizationApiKeyDetails />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
 
     expect(await screen.findByRole('textbox', {name: 'API Key'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'API Key'})).toHaveValue(apiKey.key);
