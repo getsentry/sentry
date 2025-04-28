@@ -355,6 +355,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     "isMetricsExtractedData": isMetricsExtractedData,
                     "tips": meta.get("tips", {}),
                     "datasetReason": meta.get("datasetReason", discover.DEFAULT_DATASET_REASON),
+                    "canGoToHigherAccuracyTier": meta.get("can_go_to_higher_accuracy_tier", False),
                 }
                 if dataset is not None:
                     meta["dataset"] = DATASET_LABELS.get(dataset, "unknown")

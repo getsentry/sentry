@@ -74,6 +74,7 @@ class EventsMeta(TypedDict):
     # only returned when debug=True
     query: NotRequired[dict[str, Any] | str]
     full_scan: NotRequired[bool]
+    canGoToHigherAccuracyTier: NotRequired[bool]
 
 
 class EventsResponse(TypedDict):

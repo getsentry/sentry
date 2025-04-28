@@ -1854,6 +1854,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         assert response.status_code == 200, response.content
         for datum in response.data.values():
             assert datum["meta"] == {
+                "canGoToHigherAccuracyTier": False,
                 "dataScanned": "full",
                 "dataset": "metricsEnhanced",
                 "datasetReason": "unchanged",
@@ -1912,6 +1913,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         assert response.status_code == 200, response.content
         assert response.data["meta"] == {
             "dataScanned": "full",
+            "canGoToHigherAccuracyTier": False,
             "fields": {"time": "date", "epm": "rate"},
             "units": {"time": None, "epm": None},
             "isMetricsData": True,
@@ -2045,6 +2047,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         for datum in response.data.values():
             assert datum["meta"] == {
                 "dataScanned": "full",
+                "canGoToHigherAccuracyTier": False,
                 "dataset": "metricsEnhanced",
                 "datasetReason": "unchanged",
                 "fields": {"count": "integer", "networkId": "string", "time": "date"},
@@ -2088,6 +2091,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         for datum in response.data.values():
             assert datum["meta"] == {
                 "dataScanned": "full",
+                "canGoToHigherAccuracyTier": False,
                 "dataset": "metricsEnhanced",
                 "datasetReason": "unchanged",
                 "fields": {"count": "integer", "networkId": "string", "time": "date"},
@@ -2131,6 +2135,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         for datum in response.data.values():
             assert datum["meta"] == {
                 "dataScanned": "full",
+                "canGoToHigherAccuracyTier": False,
                 "dataset": "metricsEnhanced",
                 "datasetReason": "unchanged",
                 "fields": {
