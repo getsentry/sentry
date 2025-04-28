@@ -23,7 +23,6 @@ from sentry.snuba import (
     metrics_enhanced_performance,
     metrics_performance,
     ourlogs,
-    spans_eap,
     spans_indexed,
     spans_metrics,
     spans_rpc,
@@ -260,7 +259,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         metrics_enhanced_performance,
                         spans_indexed,
                         spans_metrics,
-                        spans_eap,
+                        spans_rpc,
                         errors,
                         transactions,
                     ]
@@ -280,13 +279,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             return Response({"detail": f"Metric type must be one of: {metric_types}"}, status=400)
 
         force_metrics_layer = request.GET.get("forceMetricsLayer") == "true"
-        use_rpc = (
-            request.GET.get("useRpc", "0") == "1" and dataset == spans_eap
-        ) or dataset == ourlogs
+        use_rpc = dataset in {spans_rpc, ourlogs}
         transform_alias_to_input_format = (
             request.GET.get("transformAliasToInputFormat") == "1" or use_rpc
         )
-        sentry_sdk.set_tag("performance.use_rpc", use_rpc)
 
         def _get_event_stats(
             scoped_dataset: Any,
@@ -341,8 +337,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 )
 
             if use_rpc:
-                if scoped_dataset == spans_eap:
-                    scoped_dataset = spans_rpc
                 return scoped_dataset.run_timeseries_query(
                     params=snuba_params,
                     query_string=query,
