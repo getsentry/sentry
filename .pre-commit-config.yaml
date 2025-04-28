@@ -79,7 +79,7 @@ repos:
         files: ^requirements-getsentry-overrides\.txt$
       - id: check-mypy-bypass
         name: do not bypass the type checker
-        entry: '(^# *mypy: *ignore-errors|^# *type: *ignore|\bno_type_check\b)'
+        entry: '(^# *mypy: *ignore-errors|^# *type: *ignore|\bno_type_check\b|ignore\[import-untyped\])'
         language: pygrep
         types: [python]
       - id: sort-stronger-mypy-list
