@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from datetime import datetime
-from typing import Any, Literal, cast
+from typing import Any, Literal, TypedDict, cast
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import (
@@ -32,6 +32,11 @@ BINARY_FORMULA_OPERATOR_MAP = {
     Column.BinaryFormula.OP_DIVIDE: Expression.BinaryFormula.OP_DIVIDE,
     Column.BinaryFormula.OP_UNSPECIFIED: Expression.BinaryFormula.OP_UNSPECIFIED,
 }
+
+
+class DownsampleMetadata(TypedDict):
+    full_scan: bool
+    can_go_to_higher_accuracy_tier: bool
 
 
 def literal_validator(values: list[Any]) -> Callable[[str], bool]:
@@ -137,7 +142,7 @@ def can_expose_attribute(attribute: str, item_type: SupportedTraceItemType) -> b
     return attribute not in PRIVATE_ATTRIBUTES.get(item_type, {})
 
 
-def handle_downsample_meta(meta: DownsampledStorageMeta) -> dict[str, bool]:
+def handle_downsample_meta(meta: DownsampledStorageMeta) -> DownsampleMetadata:
     downsampled_metadata = {}
     if meta.tier in {
         DownsampledStorageMeta.SELECTED_TIER_1,
