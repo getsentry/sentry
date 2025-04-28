@@ -41,7 +41,7 @@ class UserReport(Model):
             if isinstance(obj, dict):
                 return {k: convert_datetime_in_dict_to_timestamp(v) for k, v in obj.items()}
             elif isinstance(obj, timezone.datetime):
-                return obj.timestamp()
+                return obj.isoformat()
             return obj
 
         report = serialize(self, AnonymousUser(), UserReportWithGroupSerializer())
