@@ -6,8 +6,8 @@ import {
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
+import type {LinkButtonProps} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button';
 import Link from 'sentry/components/links/link';
 import {IconSiren} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
@@ -26,7 +26,7 @@ import {
   DEFAULT_WIZARD_TEMPLATE,
 } from 'sentry/views/alerts/wizard/options';
 
-type CreateAlertFromViewButtonProps = Omit<ButtonProps, 'aria-label'> & {
+type CreateAlertFromViewButtonProps = Omit<LinkButtonProps, 'aria-label'> & {
   /**
    * Discover query used to create the alert
    */
@@ -121,7 +121,7 @@ type CreateAlertButtonProps = {
   projectSlug?: string;
   referrer?: string;
   showPermissionGuide?: boolean;
-} & ButtonProps;
+} & LinkButtonProps;
 
 export default function CreateAlertButton({
   organization,
@@ -185,7 +185,7 @@ export default function CreateAlertButton({
   );
 
   const renderButton = (hasAccess: boolean) => (
-    <Button
+    <LinkButton
       disabled={!hasAccess}
       title={hasAccess ? undefined : permissionTooltipText}
       icon={!hideIcon && <IconSiren {...iconProps} />}
@@ -201,7 +201,7 @@ export default function CreateAlertButton({
       {...buttonProps}
     >
       {buttonProps.children ?? t('Create Alert')}
-    </Button>
+    </LinkButton>
   );
 
   const showGuide = !organization.alertsMemberWrite && !!showPermissionGuide;

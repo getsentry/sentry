@@ -1,4 +1,5 @@
-import {Button, type ButtonProps} from 'sentry/components/core/button';
+import type {LinkButtonProps} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import type {Organization} from 'sentry/types/organization';
@@ -14,7 +15,7 @@ type Props = React.PropsWithChildren<
     onTrialFailed?: () => void;
     onTrialStarted?: () => void;
     requestData?: Record<string, unknown>;
-  } & ButtonProps
+  } & LinkButtonProps
 >;
 
 function StartTrialButton({
@@ -40,7 +41,7 @@ function StartTrialButton({
       requestData={requestData}
     >
       {({startTrial, trialStarting, trialStarted}) => (
-        <Button
+        <LinkButton
           disabled={trialStarting || trialStarted}
           data-test-id="start-trial-button"
           onClick={() => {
@@ -50,7 +51,7 @@ function StartTrialButton({
           {...buttonProps}
         >
           {children || t('Start trial')}
-        </Button>
+        </LinkButton>
       )}
     </TrialStarter>
   );

@@ -1,8 +1,8 @@
 import {useState} from 'react';
 
 import type {Client} from 'sentry/api';
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
+import type {ButtonProps, LinkButtonProps} from 'sentry/components/core/button';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import withApi from 'sentry/utils/withApi';
@@ -20,7 +20,8 @@ type ChildRenderProps = {
 
 type ChildRenderFunction = (options: ChildRenderProps) => React.ReactNode;
 
-interface Props extends Omit<ButtonProps, 'to' | 'onClick' | 'busy' | 'children'> {
+interface Props
+  extends Omit<ButtonProps & LinkButtonProps, 'to' | 'onClick' | 'busy' | 'children'> {
   api: Client;
   organization: Organization;
   source: string;
@@ -149,14 +150,14 @@ function UpgradeOrTrialButton({
       : `/settings/${slug}/billing/overview/`;
 
     return (
-      <Button
+      <LinkButton
         onClick={handleSuccess}
         to={`${baseUrl}?referrer=upgrade-${source}`}
         priority={buttonPriority}
         {...props}
       >
         {childComponent || t('Upgrade now')}
-      </Button>
+      </LinkButton>
     );
   }
   return (

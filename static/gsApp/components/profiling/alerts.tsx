@@ -2,7 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -96,14 +96,14 @@ interface GraceAlertProps {
 function GraceAlert({children, action, dismiss, type, disableAction}: GraceAlertProps) {
   const trailingItems = (
     <Fragment>
-      <StyledButton
+      <LinkButton
         size="xs"
         onClick={action.onClick}
         to={action.to}
         disabled={disableAction}
       >
         {action.label}
-      </StyledButton>
+      </LinkButton>
       {dismiss ? (
         <StyledButton priority="link" size="sm" onClick={dismiss}>
           <IconClose color="gray500" size="sm" />

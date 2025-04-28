@@ -93,14 +93,10 @@ type ElementProps<E> = Omit<React.ButtonHTMLAttributes<E>, 'label' | 'size' | 't
 
 export interface BaseButtonProps
   extends CommonButtonProps,
-    ElementProps<HTMLButtonElement | HTMLAnchorElement> {
-  download?: HTMLAnchorElement['download'];
-  external?: boolean;
-  href?: string;
-  preventScrollReset?: boolean;
-  ref?: React.Ref<HTMLButtonElement | HTMLAnchorElement>;
-  replace?: boolean;
-  to?: string | LocationDescriptor;
+    ElementProps<HTMLButtonElement> {
+  href?: never;
+  ref?: React.Ref<HTMLButtonElement>;
+  to?: never;
 }
 
 interface ButtonPropsWithoutAriaLabel extends BaseButtonProps {
@@ -189,8 +185,6 @@ const useButtonFunctionality = (props: ButtonProps | LinkButtonProps) => {
 
 export function Button({
   size = 'md',
-  to,
-  href,
   disabled,
   type = 'button',
   tooltipProps,
@@ -198,8 +192,6 @@ export function Button({
 }: ButtonProps) {
   const {handleClick, hasChildren, accessibleLabel} = useButtonFunctionality({
     ...props,
-    to,
-    href,
     type,
     disabled,
   });
@@ -210,8 +202,6 @@ export function Button({
         aria-label={accessibleLabel}
         aria-disabled={disabled}
         disabled={disabled}
-        to={disabled ? undefined : to}
-        href={disabled ? undefined : href}
         size={size}
         type={type}
         {...props}
@@ -252,56 +242,8 @@ type StyledButtonProps =
   | StyledButtonPropsWithoutAriaLabel;
 
 export const StyledButton = styled(
-  ({
-    size: _size,
-    title: _title,
-    type,
-    external,
-    to,
-    replace,
-    preventScrollReset,
-    href,
-    disabled,
-    ref,
-    ...props
-  }: ButtonProps) => {
-    // Get component to use based on existence of `to` or `href` properties
-    // Can be react-router `Link`, `a`, or `button`
-    if (to) {
-      return (
-        <Link
-          {...props}
-          ref={ref as React.Ref<HTMLAnchorElement>}
-          to={to}
-          replace={replace}
-          preventScrollReset={preventScrollReset}
-          disabled={disabled}
-          role="button"
-        />
-      );
-    }
-
-    if (href) {
-      return (
-        <a
-          {...props}
-          ref={ref as React.Ref<HTMLAnchorElement>}
-          href={href}
-          aria-disabled={disabled}
-          role="button"
-          {...(external ? {target: '_blank', rel: 'noreferrer noopener'} : {})}
-        />
-      );
-    }
-
-    return (
-      <button
-        {...props}
-        type={type}
-        ref={ref as React.Ref<HTMLButtonElement>}
-        disabled={disabled}
-      />
-    );
+  ({size: _size, title: _title, type, disabled, ...props}: ButtonProps) => {
+    return <button {...props} type={type} disabled={disabled} />;
   },
   {
     shouldForwardProp: prop =>
@@ -515,12 +457,11 @@ const Icon = styled('span')<{hasChildren?: boolean; size?: ButtonProps['size']}>
 
 export interface LinkButtonProps
   extends CommonButtonProps,
-    Omit<ElementProps<HTMLAnchorElement>, 'role' | 'href'> {
+    Omit<ElementProps<HTMLAnchorElement>, 'role'> {
   download?: HTMLAnchorElement['download'];
   external?: boolean;
   href?: string;
   preventScrollReset?: boolean;
-  ref?: React.Ref<HTMLAnchorElement>;
   replace?: boolean;
   to?: string | LocationDescriptor;
 }

@@ -25,7 +25,6 @@ export default storyBook('Button', (story, APIReference) => {
       priority: variants as Array<ButtonProps['priority']>,
       size: ['md', 'sm', 'xs', 'zero'],
       disabled: [false, true],
-      external: [false, true],
       title: [undefined, 'Delete this'],
       translucentBorder: [false, true],
     };
