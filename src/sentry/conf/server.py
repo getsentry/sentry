@@ -1871,6 +1871,10 @@ SENTRY_DIGESTS_OPTIONS: dict[str, Any] = {}
 SENTRY_QUOTAS = "sentry.quotas.Quota"
 SENTRY_QUOTA_OPTIONS: dict[str, str] = {}
 
+# Partnership backend
+SENTRY_PARTNERSHIPS = "sentry.partnerships.Partnership"
+SENTRY_PARTNERSHIP_OPTIONS: dict[str, str] = {}
+
 # Cache for Relay project configs
 SENTRY_RELAY_PROJECTCONFIG_CACHE = "sentry.relay.projectconfig_cache.redis.RedisProjectConfigCache"
 SENTRY_RELAY_PROJECTCONFIG_CACHE_OPTIONS: dict[str, str] = {}
@@ -3294,7 +3298,6 @@ PG_VERSION: str = os.getenv("PG_VERSION") or "14"
 ZERO_DOWNTIME_MIGRATIONS_RAISE_FOR_UNSAFE = True
 ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT: str | None = None
 ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT: str | None = None
-ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT_FORCE = False
 ZERO_DOWNTIME_MIGRATIONS_IDEMPOTENT_SQL = False
 
 if int(PG_VERSION.split(".", maxsplit=1)[0]) < 12:

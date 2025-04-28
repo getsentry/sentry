@@ -74,11 +74,11 @@ function CodeBody({
           let label = 'line';
           if (isHighlighted) {
             label = 'highlighted line';
-          } else if (coverage.get(lineNumber)?.coverage === 'H') {
+          } else if (coverage[lineNumber] === 'H') {
             label = 'covered line';
-          } else if (coverage.get(lineNumber)?.coverage === 'M') {
+          } else if (coverage[lineNumber] === 'M') {
             label = 'missed line';
-          } else if (coverage.get(lineNumber)?.coverage === 'P') {
+          } else if (coverage[lineNumber] === 'P') {
             label = 'partial line';
           }
 
@@ -86,7 +86,7 @@ function CodeBody({
             <LineNumber
               ariaLabel={label}
               key={virtualItem.key}
-              coverage={coverage.get(lineNumber)?.coverage}
+              coverage={coverage[lineNumber]}
               lineNumber={lineNumber}
               virtualItem={virtualItem}
               virtualizer={virtualizer}
@@ -220,7 +220,10 @@ export function VirtualFileRenderer({
   });
 
   return (
-    <VirtualCodeRenderer ref={virtualCodeRendererRef}>
+    <VirtualCodeRenderer
+      ref={virtualCodeRendererRef}
+      data-test-id="virtual-file-renderer"
+    >
       <TextArea
         ref={textAreaRef}
         value={content}
@@ -235,10 +238,12 @@ export function VirtualFileRenderer({
         tabIndex={0}
         aria-multiline="true"
         aria-haspopup="false"
+        data-test-id="virtual-file-renderer-text-area"
       />
       <CodeDisplayOverlay
         ref={codeDisplayOverlayRef}
         styleHeight={virtualizer.getTotalSize()}
+        data-test-id="virtual-file-renderer-overlay"
       >
         <CodePreWrapper
           ref={widthDivRef}

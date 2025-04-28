@@ -14,7 +14,6 @@ pytestmark = pytest.mark.sentry_metrics
 class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpointTestBase):
     endpoint = "sentry-api-0-organization-events-stats"
     is_eap = False
-    is_rpc = False
 
     @property
     def dataset(self):
@@ -37,8 +36,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
     def _do_request(self, data, url=None, features=None):
         if features is None:
             features = {"organizations:discover-basic": True}
-        if self.is_rpc:
-            data["useRpc"] = "1"
         features.update(self.features)
         with self.feature(features):
             return self.client.get(self.url if url is None else url, data=data, format="json")
@@ -671,7 +668,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
 class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetricsEndpointTest):
     is_eap = True
-    is_rpc = True
 
     def test_count_extrapolation(self):
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -1964,3 +1960,49 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         rows = response.data["foo"]["data"][0:6]
         for expected, result in zip([0, 1, 0], rows):
             assert result[1][0]["count"] == expected
+
+    def test_downsampling_can_go_to_higher_accuracy_tier(self):
+        span = self.create_span(
+            {"description": "foo", "sentry_tags": {"status": "success"}},
+            duration=100,
+            start_ts=self.day_ago + timedelta(minutes=1),
+        )
+        span["span_id"] = KNOWN_PREFLIGHT_ID
+        span2 = self.create_span(
+            {"description": "zoo", "sentry_tags": {"status": "failure"}},
+            duration=10,
+            start_ts=self.day_ago + timedelta(minutes=1),
+        )
+        span2["span_id"] = "b" * 16
+        self.store_spans(
+            [span, span2],
+            is_eap=self.is_eap,
+        )
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=3),
+                "interval": "1m",
+                "yAxis": "count()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "sampling": "NORMAL",
+            },
+        )
+
+        assert response.data["meta"]["dataScanned"] == "full"
+
+        # Use preflight to test that we can go to a higher accuracy tier
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=3),
+                "interval": "1m",
+                "yAxis": "count()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "sampling": "PREFLIGHT",
+            },
+        )
+
+        assert response.data["meta"]["dataScanned"] == "partial"

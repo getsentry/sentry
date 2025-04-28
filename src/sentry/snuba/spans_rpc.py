@@ -85,7 +85,8 @@ def run_timeseries_query(
     """Process the results"""
     result = rpc_dataset_common.ProcessedTimeseries()
     final_meta: EventsMeta = EventsMeta(
-        fields={}, full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta)
+        fields={},
+        full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta),
     )
     for resolved_field in aggregates + groupbys:
         final_meta["fields"][resolved_field.public_alias] = resolved_field.search_type
@@ -272,7 +273,8 @@ def run_top_events_timeseries_query(
     map_result_key_to_timeseries = defaultdict(list)
 
     final_meta: EventsMeta = EventsMeta(
-        fields={}, full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta)
+        fields={},
+        full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta),
     )
     for resolved_field in aggregates + groupbys:
         final_meta["fields"][resolved_field.public_alias] = resolved_field.search_type
