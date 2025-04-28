@@ -43,6 +43,9 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["autofix"] is not None
         assert response.data["autofix"]["status"] == "PROCESSING"
         assert "issue" not in response.data["autofix"]["request"]
+        assert "trace_tree" not in response.data["autofix"]["request"]
+        assert "profile" not in response.data["autofix"]["request"]
+        assert "issue_summary" not in response.data["autofix"]["request"]
 
         mock_get_autofix_state.assert_called_once_with(group_id=group.id, check_repo_access=True)
 
