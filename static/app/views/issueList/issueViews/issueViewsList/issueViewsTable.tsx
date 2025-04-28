@@ -64,6 +64,9 @@ export function IssueViewsTable({
           <SavedEntityTable.HeaderCell data-column="last-visited">
             {t('Last Viewed')}
           </SavedEntityTable.HeaderCell>
+          <SavedEntityTable.HeaderCell data-column="created">
+            {t('Created')}
+          </SavedEntityTable.HeaderCell>
           <SavedEntityTable.HeaderCell data-column="stars" noBorder>
             {t('Stars')}
           </SavedEntityTable.HeaderCell>
@@ -123,6 +126,9 @@ export function IssueViewsTable({
             <SavedEntityTable.Cell data-column="last-visited">
               <SavedEntityTable.CellTimeSince date={view.lastVisited} />
             </SavedEntityTable.Cell>
+            <SavedEntityTable.Cell data-column="created">
+              <SavedEntityTable.CellTimeSince date={view.dateCreated} />
+            </SavedEntityTable.Cell>
             <SavedEntityTable.Cell data-column="stars">
               <SavedEntityTable.CellTextContent>
                 {view.stars.toLocaleString()}
@@ -165,15 +171,15 @@ export function IssueViewsTable({
 }
 
 const SavedEntityTableWithColumns = styled(SavedEntityTable)<{hideCreatedBy?: boolean}>`
-  grid-template-areas: 'star name project envs query creator last-visited stars actions';
+  grid-template-areas: 'star name project envs query creator last-visited created stars actions';
   grid-template-columns:
     40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(0, 1fr)
-    auto auto auto 48px;
+    auto auto auto auto 48px;
 
   ${p =>
     p.hideCreatedBy &&
     css`
-      grid-template-areas: 'star name project envs query last-visited stars actions';
+      grid-template-areas: 'star name project envs query last-visited created stars actions';
       grid-template-columns:
         40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(0, 1fr)
         auto auto 48px;
@@ -192,6 +198,7 @@ const SavedEntityTableWithColumns = styled(SavedEntityTable)<{hideCreatedBy?: bo
 
     div[data-column='envs'],
     div[data-column='last-visited'],
+    div[data-column='created'],
     div[data-column='stars'] {
       display: none;
     }
@@ -203,6 +210,7 @@ const SavedEntityTableWithColumns = styled(SavedEntityTable)<{hideCreatedBy?: bo
 
     div[data-column='envs'],
     div[data-column='last-visited'],
+    div[data-column='created'],
     div[data-column='stars'],
     div[data-column='creator'],
     div[data-column='project'] {

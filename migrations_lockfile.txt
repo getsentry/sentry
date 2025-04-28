@@ -21,7 +21,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0871_fix_some_drift
+sentry: 0872_fix_drift_deleted_columns
 
 social_auth: 0002_default_auto_field
 
