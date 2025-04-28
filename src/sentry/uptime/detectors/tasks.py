@@ -89,7 +89,7 @@ def schedule_detections():
             for _ in range(minutes_since_last_processed):
                 metrics.incr("uptime.detectors.scheduler.scheduled_bucket")
                 last_processed = last_processed + timedelta(minutes=1)
-                process_detection_bucket.delay(last_processed)
+                process_detection_bucket.delay(last_processed.isoformat())
 
             cluster.set(LAST_PROCESSED_KEY, int(last_processed.timestamp()), timedelta(hours=1))
     except UnableToAcquireLock:

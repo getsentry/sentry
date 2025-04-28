@@ -97,7 +97,7 @@ class ProcessDetectionBucketTest(UptimeTestCase):
         with mock.patch(
             "sentry.uptime.detectors.tasks.process_organization_url_ranking"
         ) as mock_process_project_url_ranking:
-            process_detection_bucket(timezone.now().replace(second=0, microsecond=0))
+            process_detection_bucket(timezone.now().replace(second=0, microsecond=0).isoformat())
             mock_process_project_url_ranking.delay.assert_not_called()
 
     def test_bucket(self):
@@ -115,7 +115,7 @@ class ProcessDetectionBucketTest(UptimeTestCase):
         with mock.patch(
             "sentry.uptime.detectors.tasks.process_organization_url_ranking"
         ) as mock_process_organization_url_ranking:
-            process_detection_bucket(bucket)
+            process_detection_bucket(bucket.isoformat())
             mock_process_organization_url_ranking.delay.assert_has_calls(
                 [call(self.project.organization.id), call(other_project.organization.id)],
                 any_order=True,
