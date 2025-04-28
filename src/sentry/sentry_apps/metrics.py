@@ -17,6 +17,9 @@ class SentryAppInteractionType(StrEnum):
     # External Requests
     EXTERNAL_REQUEST = "external_request"
 
+    # Authorizations
+    AUTHORIZATIONS = "authorizations"
+
 
 @dataclass
 class SentryAppInteractionEvent(EventLifecycleMetric):
@@ -116,3 +119,7 @@ class SentryAppEventType(StrEnum):
     ISSUE_UNRESOLVED = "issue.unresolved"
     ISSUE_RESOLVED = "issue.resolved"
     ISSUE_ASSIGNED = "issue.assigned"
+
+    # authorizations
+    GRANT_EXCHANGER = "grant_exchanger"
+    REFRESHER = "refresher"
