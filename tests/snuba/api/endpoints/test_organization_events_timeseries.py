@@ -192,7 +192,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
                 "end": self.end,
                 "interval": "1h",
                 "yAxis": ["count()", "p95()"],
-                "field": ["count()", "message"],
+                "groupBy": ["count()", "message"],
                 "orderby": ["-count()"],
                 "topEvents": 5,
                 "project": [self.project.id, self.project2.id],
