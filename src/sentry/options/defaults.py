@@ -1635,40 +1635,22 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "performance.issues.compressed_assets.la-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-register(
-    "performance.issues.compressed_assets.ea-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-register(
-    "performance.issues.compressed_assets.ga-rollout", default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-register(
     "performance.issues.consecutive_db.problem-creation",
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "performance.issues.consecutive_db.la-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "performance.issues.consecutive_http.problem-creation",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "performance.issues.consecutive_db.ea-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-register(
-    "performance.issues.consecutive_db.ga-rollout", default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-register(
-    "performance.issues.n_plus_one_db.problem-detection",
-    default=1.0,
+    "performance.issues.large_http_payload.problem-creation",
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "performance.issues.n_plus_one_db.problem-creation",
-    default=1.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "performance.issues.n_plus_one_db_ext.problem-creation",
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -1688,51 +1670,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "performance.issues.n_plus_one_api_calls.la-rollout",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "performance.issues.n_plus_one_api_calls.ea-rollout",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "performance.issues.n_plus_one_api_calls.ga-rollout",
-    default=1.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "performance.issues.slow_db_query.problem-creation",
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "performance.issues.slow_db_query.la-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-register(
-    "performance.issues.slow_db_query.ea-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-register(
-    "performance.issues.slow_db_query.ga-rollout", default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-register(
     "performance.issues.render_blocking_assets.problem-creation",
-    default=1.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "performance.issues.render_blocking_assets.la-rollout",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "performance.issues.render_blocking_assets.ea-rollout",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "performance.issues.render_blocking_assets.ga-rollout",
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -1742,27 +1685,9 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "performance.issues.m_n_plus_one_db.la-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-register(
-    "performance.issues.m_n_plus_one_db.ea-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-register(
-    "performance.issues.m_n_plus_one_db.ga-rollout", default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-register(
     "performance.issues.http_overhead.problem-creation",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "performance.issues.http_overhead.la-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-register(
-    "performance.issues.http_overhead.ea-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-register(
-    "performance.issues.http_overhead.ga-rollout", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
 # System-wide options for default performance detection settings for any org opted into the performance-issues-ingest feature. Meant for rollout.
