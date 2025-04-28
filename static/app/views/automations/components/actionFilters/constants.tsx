@@ -111,6 +111,12 @@ export const MATCH_CHOICES = [
   {value: MatchType.NOT_IN, label: 'is not one of'},
 ];
 
+export const PRIORITY_CHOICES = [
+  {value: Priority.HIGH, label: t('high')},
+  {value: Priority.MEDIUM, label: t('medium')},
+  {value: Priority.LOW, label: t('low')},
+];
+
 export const AGE_COMPARISON_CHOICES = [
   {
     value: AgeComparison.OLDER,
@@ -131,4 +137,18 @@ export const MODEL_AGE_CHOICES = [
     value: ModelAge.NEWEST,
     label: t('newest'),
   },
+];
+
+export const LEVEL_MATCH_CHOICES = [
+  {value: MatchType.EQUAL, label: t('equals')},
+  {value: MatchType.NOT_EQUAL, label: t('does not equal')},
+];
+
+export const LEVEL_CHOICES = [
+  {value: Level.FATAL, label: t('fatal')},
+  {value: Level.ERROR, label: t('error')},
+  {value: Level.WARNING, label: t('warning')},
+  {value: Level.INFO, label: t('info')},
+  {value: Level.DEBUG, label: t('debug')},
+  {value: Level.SAMPLING, label: t('sampling')},
 ];

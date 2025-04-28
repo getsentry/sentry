@@ -29,6 +29,7 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/charts';
 import {WidgetExtrapolationFooter} from 'sentry/views/explore/charts/widgetExtrapolationFooter';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useAddCompareQueryToDashboard} from 'sentry/views/explore/multiQueryMode/hooks/useAddCompareQueryToDashboard';
@@ -137,16 +138,14 @@ export function MultiQueryModeChart({
     isTopN
   );
 
+  const chartType = queryParts.chartType || determineDefaultChartType(yAxes);
+
   const visualizationType =
-    queryParts.chartType === ChartType.LINE
-      ? 'line'
-      : queryParts.chartType === ChartType.AREA
-        ? 'area'
-        : 'bar';
+    chartType === ChartType.LINE ? 'line' : chartType === ChartType.AREA ? 'area' : 'bar';
 
   const chartInfo = {
     chartIcon: <IconGraph type={visualizationType} />,
-    chartType: queryParts.chartType,
+    chartType,
     yAxes,
     formattedYAxes,
     data,
@@ -174,7 +173,10 @@ export function MultiQueryModeChart({
         Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
         revealActions="always"
         Footer={
-          organization.features.includes('visibility-explore-progressive-loading') && (
+          organization.features.includes('visibility-explore-progressive-loading') &&
+          !organization.features.includes(
+            'visibility-explore-progressive-loading-normal-sampling-mode'
+          ) && (
             <WidgetExtrapolationFooter
               samplingMode={undefined}
               sampleCount={0}

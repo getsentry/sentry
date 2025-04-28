@@ -14,8 +14,10 @@ import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FieldValueType} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjectFromId from 'sentry/utils/useProjectFromId';
 import CellAction, {Actions} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
+import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {
   useLogsAnalyticsPageSource,
   useLogsFields,
@@ -23,17 +25,18 @@ import {
   useSetLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {HiddenLogDetailFields} from 'sentry/views/explore/logs/constants';
+import type {RendererExtra} from 'sentry/views/explore/logs/fieldRenderers';
 import {
   LogAttributesRendererMap,
   LogBodyRenderer,
   LogFieldRenderer,
   SeverityCircleRenderer,
 } from 'sentry/views/explore/logs/fieldRenderers';
-import {LogFieldsTree} from 'sentry/views/explore/logs/logFieldsTree';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
+import {useLogAttributesTreeActions} from 'sentry/views/explore/logs/useLogAttributesTreeActions';
 import {
   useExploreLogsTableRow,
   usePrefetchLogTableRowOnHover,
@@ -52,7 +55,7 @@ import {
   LogTableRow,
   StyledChevronButton,
 } from './styles';
-import {getLogRowItem, getLogSeverityLevel} from './utils';
+import {adjustAliases, getLogRowItem, getLogSeverityLevel} from './utils';
 
 type LogsRowProps = {
   dataRow: OurLogsResponseItem;
@@ -131,6 +134,10 @@ export function LogRowContent({
 
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
   const severityText = dataRow[OurLogKnownFieldKey.SEVERITY];
+  const project = useProjectFromId({
+    project_id: '' + dataRow[OurLogKnownFieldKey.PROJECT_ID],
+  });
+  const projectSlug = project?.slug ?? '';
 
   const level = getLogSeverityLevel(
     typeof severityNumber === 'number' ? severityNumber : null,
@@ -151,11 +158,19 @@ export function LogRowContent({
     renderSeverityCircle: true,
     location,
     organization,
+    attributes: dataRow,
+    theme,
+    projectSlug,
   };
 
   return (
     <Fragment>
-      <LogTableRow onPointerUp={onPointerUp} onTouchEnd={onPointerUp} {...hoverProps}>
+      <LogTableRow
+        data-test-id="log-table-row"
+        onPointerUp={onPointerUp}
+        onTouchEnd={onPointerUp}
+        {...hoverProps}
+      >
         <LogsTableBodyFirstCell key={'first'}>
           <LogFirstCellContent>
             <StyledChevronButton
@@ -166,11 +181,7 @@ export function LogRowContent({
               borderless
               onClick={() => toggleExpanded()}
             />
-            <SeverityCircleRenderer
-              extra={rendererExtra}
-              meta={meta}
-              tableResultLogRow={dataRow}
-            />
+            <SeverityCircleRenderer extra={rendererExtra} meta={meta} />
           </LogFirstCellContent>
         </LogsTableBodyFirstCell>
         {fields?.map(field => {
@@ -223,7 +234,6 @@ export function LogRowContent({
                   item={getLogRowItem(field, dataRow, meta)}
                   meta={meta}
                   extra={rendererExtra}
-                  tableResultLogRow={dataRow}
                 />
               </CellAction>
             </LogTableBodyCell>
@@ -248,7 +258,12 @@ function LogRowDetails({
 }) {
   const location = useLocation();
   const organization = useOrganization();
+  const project = useProjectFromId({
+    project_id: '' + dataRow[OurLogKnownFieldKey.PROJECT_ID],
+  });
+  const projectSlug = project?.slug ?? '';
   const fields = useLogsFields();
+  const getActions = useLogAttributesTreeActions();
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
   const severityText = dataRow[OurLogKnownFieldKey.SEVERITY];
 
@@ -266,6 +281,8 @@ function LogRowDetails({
 
   const theme = useTheme();
   const logColors = getLogColors(level, theme);
+  const attributes =
+    data?.attributes?.reduce((it, {name, value}) => ({...it, [name]: value}), {}) ?? {};
 
   if (missingLogId) {
     return (
@@ -292,21 +309,28 @@ function LogRowDetails({
                     wrapBody: true,
                     location,
                     organization,
+                    projectSlug,
+                    attributes,
+                    theme,
                   },
                 })}
               </DetailsBody>
               <LogDetailPanelItem>
-                <LogFieldsTree
+                <AttributesTree<RendererExtra>
                   attributes={data.attributes}
                   hiddenAttributes={HiddenLogDetailFields}
+                  getCustomActions={getActions}
+                  getAdjustedAttributeKey={adjustAliases}
                   renderers={LogAttributesRendererMap}
-                  renderExtra={{
+                  rendererExtra={{
                     highlightTerms,
                     logColors,
                     location,
                     organization,
+                    projectSlug,
+                    attributes,
+                    theme,
                   }}
-                  tableResultLogRow={dataRow}
                 />
               </LogDetailPanelItem>
             </DetailsContent>

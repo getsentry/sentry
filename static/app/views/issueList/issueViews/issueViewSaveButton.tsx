@@ -1,6 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -57,11 +58,18 @@ function SegmentedIssueViewSaveButton({
 
   const saveView = () => {
     if (view) {
-      updateGroupSearchView({
-        id: view.id,
-        name: view.name,
-        ...createIssueViewFromUrl({query: location.query}),
-      });
+      updateGroupSearchView(
+        {
+          id: view.id,
+          name: view.name,
+          ...createIssueViewFromUrl({query: location.query}),
+        },
+        {
+          onSuccess: () => {
+            addSuccessMessage(t('Saved changes'));
+          },
+        }
+      );
     }
   };
 
@@ -69,7 +77,9 @@ function SegmentedIssueViewSaveButton({
     <ButtonBar merged>
       <PrimarySaveButton
         priority={buttonPriority}
-        analyticsEventName="issue_views.save.clicked"
+        analyticsEventName={
+          canEdit ? 'issue_views.save.clicked' : 'issue_views.save_as.clicked'
+        }
         data-test-id={hasUnsavedChanges ? 'save-button-unsaved' : 'save-button'}
         onClick={canEdit ? saveView : openCreateIssueViewModal}
         disabled={isSaving}
@@ -121,7 +131,7 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
     openModal(props => (
       <CreateIssueViewModal
         {...props}
-        name={view?.name}
+        name={view ? `${view.name} (Copy)` : undefined}
         query={query}
         querySort={sort}
         projects={selection.projects}

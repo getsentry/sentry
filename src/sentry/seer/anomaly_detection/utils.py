@@ -211,6 +211,8 @@ def get_dataset_from_label(dataset_label: str):
     if dataset_label == "events":
         # DATASET_OPTIONS expects the name 'errors'
         dataset_label = "errors"
+    elif dataset_label == "events_analytics_platform":
+        dataset_label = "spans"
     elif dataset_label in ["generic_metrics", "transactions"]:
         # XXX: performance alerts dataset differs locally vs in prod
         dataset_label = "metricsEnhanced"
@@ -243,17 +245,7 @@ def fetch_historical_data(
         start = end - timedelta(days=NUM_DAYS)
     granularity = snuba_query.time_window
 
-    dataset_label = snuba_query.dataset
-
-    if dataset_label == "events":
-        # DATASET_OPTIONS expects the name 'errors'
-        dataset_label = "errors"
-    elif dataset_label == "events_analytics_platform":
-        dataset_label = "spans"
-    elif dataset_label in ["generic_metrics", "transactions"]:
-        # XXX: performance alerts dataset differs locally vs in prod
-        dataset_label = "metricsEnhanced"
-    dataset = get_dataset_from_label(dataset_label)
+    dataset = get_dataset_from_label(snuba_query.dataset)
 
     if not project or not dataset or not organization:
         return None

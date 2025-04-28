@@ -31,6 +31,7 @@ from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
+from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
@@ -39,6 +40,7 @@ from sentry.ratelimits.sliding_windows import RequestedQuota
 from sentry.receivers import create_default_projects
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import PriorityLevel
 from sentry.utils import json
@@ -476,6 +478,35 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         group_info = save_issue_from_occurrence(occurrence, event, None)
         assert group_info is not None
         assert group_info.group.priority == PriorityLevel.HIGH
+
+    @with_feature("organizations:issue-open-periods")
+    def test_update_open_period(self) -> None:
+        fingerprint = ["some-fingerprint"]
+        occurrence = self.build_occurrence(
+            initial_issue_priority=PriorityLevel.MEDIUM,
+            fingerprint=fingerprint,
+        )
+        event = self.store_event(data={}, project_id=self.project.id)
+        group_info = save_issue_from_occurrence(occurrence, event, None)
+        assert group_info is not None
+        group = group_info.group
+        assert group.priority == PriorityLevel.MEDIUM
+        open_period = get_latest_open_period(group)
+        assert open_period is not None
+        assert open_period.data["highest_seen_priority"] == PriorityLevel.MEDIUM
+
+        new_event = self.store_event(data={}, project_id=self.project.id)
+        new_occurrence = self.build_occurrence(
+            fingerprint=["some-fingerprint"],
+            initial_issue_priority=PriorityLevel.HIGH,
+        )
+        with self.tasks():
+            updated_group_info = save_issue_from_occurrence(new_occurrence, new_event, None)
+        assert updated_group_info is not None
+        group.refresh_from_db()
+        assert group.priority == PriorityLevel.HIGH
+        open_period.refresh_from_db()
+        assert open_period.data["highest_seen_priority"] == PriorityLevel.HIGH
 
     def test_group_with_priority_locked(self) -> None:
         occurrence = self.build_occurrence(priority=PriorityLevel.HIGH)

@@ -8,7 +8,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 
-export function hasNextJsInsightsFeature(organization: Organization) {
+function hasNextJsInsightsFeature(organization: Organization) {
   return organization.features.includes('nextjs-insights');
 }
 
