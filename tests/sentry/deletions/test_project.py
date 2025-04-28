@@ -1,5 +1,6 @@
 from sentry import eventstore
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident
 from sentry.models.commit import Commit
@@ -27,16 +28,25 @@ from sentry.monitors.models import (
 )
 from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.snuba.models import QuerySubscription, SnubaQuery
-from sentry.testutils.cases import APITestCase, TransactionTestCase
+from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.skips import requires_snuba
 from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
+from sentry.workflow_engine.models import (
+    DataCondition,
+    DataConditionGroup,
+    DataSource,
+    DataSourceDetector,
+    Detector,
+    DetectorWorkflow,
+)
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 pytestmark = [requires_snuba]
 
 
-class DeleteProjectTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
+class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMixin):
     def test_simple(self):
         project = self.create_project(name="test")
         event = self.store_event(data={}, project_id=project.id)
@@ -125,6 +135,33 @@ class DeleteProjectTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
         )
 
         rule_snooze = self.snooze_rule(user_id=self.user.id, alert_rule=metric_alert_rule)
+
+        self.data_condition_group = self.create_data_condition_group()
+        self.data_condition = self.create_data_condition(condition_group=self.data_condition_group)
+        self.snuba_query = self.create_snuba_query()
+        self.subscription = QuerySubscription.objects.create(
+            project=project,
+            status=QuerySubscription.Status.ACTIVE.value,
+            subscription_id="123",
+            snuba_query=self.snuba_query,
+        )
+        self.data_source = self.create_data_source(
+            organization=self.organization, source_id=self.subscription.id
+        )
+        self.detector = self.create_detector(
+            project_id=project.id,
+            name="Test Detector",
+            type=MetricIssue.slug,
+            workflow_condition_group=self.data_condition_group,
+        )
+        self.workflow = self.create_workflow()
+        self.data_source_detector = self.create_data_source_detector(
+            data_source=self.data_source, detector=self.detector
+        )
+        self.detector_workflow = DetectorWorkflow.objects.create(
+            detector=self.detector, workflow=self.workflow
+        )
+
         self.ScheduledDeletion.schedule(instance=project, days=0)
 
         with self.tasks():
@@ -155,6 +192,15 @@ class DeleteProjectTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
 
         assert AlertRule.objects.filter(id=metric_alert_rule.id).exists()
         assert RuleSnooze.objects.filter(id=rule_snooze.id).exists()
+
+        assert not Detector.objects.filter(id=self.detector.id).exists()
+        assert not DataSourceDetector.objects.filter(id=self.data_source_detector.id).exists()
+        assert not DetectorWorkflow.objects.filter(id=self.detector_workflow.id).exists()
+        assert not DataConditionGroup.objects.filter(id=self.data_condition_group.id).exists()
+        assert not DataCondition.objects.filter(id=self.data_condition.id).exists()
+        assert not DataSource.objects.filter(id=self.data_source.id).exists()
+        assert not QuerySubscription.objects.filter(id=self.subscription.id).exists()
+        assert not SnubaQuery.objects.filter(id=self.snuba_query.id).exists()
 
     def test_delete_error_events(self):
         keeper = self.create_project(name="keeper")
