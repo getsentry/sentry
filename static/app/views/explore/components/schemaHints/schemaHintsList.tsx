@@ -38,6 +38,7 @@ import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 
 const SCHEMA_HINTS_DRAWER_WIDTH = '350px';
+const LOGS_QUERY_BUILDER_WIDTH_OFFSET = 130;
 
 interface SchemaHintsListProps extends SchemaHintsPageParams {
   numberTags: TagCollection;
@@ -241,7 +242,7 @@ function SchemaHintsList({
   useEffect(() => {
     const adjustSearchBarWidth = () => {
       if (isDrawerOpen && searchBarWrapperRef.current && panelRef.current) {
-        searchBarWrapperRef.current.style.width = `calc(100% - ${panelRef.current.clientWidth}px)`;
+        searchBarWrapperRef.current.style.width = `calc(100% - ${source === SchemaHintsSources.LOGS ? panelRef.current.clientWidth - LOGS_QUERY_BUILDER_WIDTH_OFFSET : panelRef.current.clientWidth}px)`;
       }
     };
 
@@ -254,7 +255,7 @@ function SchemaHintsList({
     }
 
     return () => resizeObserver.disconnect();
-  }, [isDrawerOpen, panelRef, searchBarWrapperRef]);
+  }, [isDrawerOpen, panelRef, searchBarWrapperRef, source]);
 
   const onHintClick = useCallback(
     (hint: Tag) => {
@@ -282,8 +283,8 @@ function SchemaHintsList({
                   location.pathname !== newLocation.pathname ||
                   // will close if anything but the filter query has changed
                   !isEqual(
-                    omit(location.query, ['query', 'field', 'search', 'logsQuery']),
-                    omit(newLocation.query, ['query', 'field', 'search', 'logsQuery'])
+                    omit(location.query, ['query', 'field', 'logsFields', 'logsQuery']),
+                    omit(newLocation.query, ['query', 'field', 'logsFields', 'logsQuery'])
                   )
                 );
               },
