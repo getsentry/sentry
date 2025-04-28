@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping, Sequence
 
 from sentry.digests.notifications import Digest, DigestInfo, build_digest, event_to_record
+from sentry.digests.types import IdentifierKey
 from sentry.digests.utils import (
     get_event_from_groups_in_digest,
     get_participants_by_event,
@@ -52,14 +53,45 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
             ),
         ]
 
-        digest = build_digest(
-            project, sort_records([event_to_record(event, (rule,)) for event in events])
-        )[0]
+        records = [event_to_record(event, (rule,)) for event in events]
+
+        digest = build_digest(project, sort_records(records))[0]
 
         events.pop(0)  # remove event with same group
         assert {e.event_id for e in get_event_from_groups_in_digest(digest)} == {
             e.event_id for e in events
         }
+
+        # Make sure that the target_identifier = RULE
+        assert {record.value.identifier_key == IdentifierKey.RULE for record in records}
+
+    @with_feature("organizations:workflow-engine-ui-links")
+    def test_event_to_record_with_workflow_id(self):
+        project = self.create_project(fire_project_created=True)
+        rule = self.create_project_rule(project, action_data=[{"workflow_id": "123"}])
+
+        event = self.store_event(
+            data={"fingerprint": ["group1"], "timestamp": before_now(minutes=2).isoformat()},
+            project_id=project.id,
+        )
+
+        record = event_to_record(event, (rule,))
+        assert record.value.identifier_key == IdentifierKey.WORKFLOW
+        assert record.value.rules == [123]
+
+    @with_feature("organizations:workflow-engine-trigger-actions")
+    def test_event_to_record_with_legacy_rule_id(self):
+        project = self.create_project(fire_project_created=True)
+        rule = self.create_project_rule(project, action_data=[{"legacy_rule_id": "123"}])
+
+        event = self.store_event(
+            data={"fingerprint": ["group1"], "timestamp": before_now(minutes=2).isoformat()},
+            project_id=project.id,
+        )
+
+        record = event_to_record(event, (rule,))
+        assert record.value.identifier_key == IdentifierKey.RULE
+        assert record.value.rules == [123]
 
 
 def assert_rule_ids(digest: Digest, expected_rule_ids: list[str]):
