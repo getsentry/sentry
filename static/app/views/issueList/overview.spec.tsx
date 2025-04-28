@@ -1492,7 +1492,7 @@ describe('IssueList', function () {
             location: {
               ...initialRouterConfig.location,
               pathname: '/organizations/org-slug/issues/views/new/',
-              query: {},
+              query: {new: 'true'},
             },
           },
         }
@@ -1510,6 +1510,9 @@ describe('IssueList', function () {
       await waitFor(() => {
         expect(testRouter.location.query.query).toBe('is:unresolved timesSeen:>100');
       });
+      // ?new=true should be removed
+      expect(testRouter.location.query.new).toBeUndefined();
+
       expect(fetchDataMock).toHaveBeenCalledTimes(1);
       expect(screen.queryByText('Suggested Queries')).not.toBeInTheDocument();
     });

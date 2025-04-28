@@ -501,8 +501,30 @@ function IssueListOverview({
     [getEndpointParams, api, organization.slug]
   );
 
+  // Blank views are created with ?new=true, in order to show the empty state.
+  // We want to clear this query param when data is fetched.
+  const resetNewViewQueryParam = useCallback(() => {
+    if (location.query.new) {
+      navigate(
+        {
+          pathname: location.pathname,
+          query: {
+            ...location.query,
+            new: undefined,
+          },
+        },
+        {
+          replace: true,
+          preventScrollReset: true,
+        }
+      );
+    }
+  }, [location.pathname, navigate, location.query]);
+
   const fetchData = useCallback(
     (fetchAllCounts = false) => {
+      resetNewViewQueryParam();
+
       if (realtimeActive || (!actionTakenRef.current && !undoRef.current)) {
         GroupStore.loadInitialData([]);
 
@@ -614,13 +636,14 @@ function IssueListOverview({
       });
     },
     [
+      resetNewViewQueryParam,
       realtimeActive,
       sort,
       api,
       organization,
       requestParams,
-      fetchStats,
       fetchCounts,
+      fetchStats,
       navigate,
       location.query,
       query,
