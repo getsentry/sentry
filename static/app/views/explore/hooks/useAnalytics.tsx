@@ -8,7 +8,6 @@ import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
-import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {
   useLogsFields,
@@ -28,7 +27,10 @@ import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTrace
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
-import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
+import {
+  combineConfidenceForSeries,
+  computeVisualizeSampleTotals,
+} from 'sentry/views/explore/utils';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {usePerformanceSubscriptionDetails} from 'sentry/views/performance/newTraceDetails/traceTypeWarnings/usePerformanceSubscriptionDetails';
 
@@ -109,7 +111,11 @@ function useTrackAnalytics({
       title: title || '',
       empty_buckets_percentage: computeEmptyBuckets(visualizes, timeseriesResult.data),
       confidences: computeConfidence(visualizes, timeseriesResult.data),
-      sample_counts: computeTotals(visualizes, timeseriesResult.data, isTopN),
+      sample_counts: computeVisualizeSampleTotals(
+        visualizes,
+        timeseriesResult.data,
+        isTopN
+      ),
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
       page_source,
       interval,
@@ -181,7 +187,11 @@ function useTrackAnalytics({
       title: title || '',
       empty_buckets_percentage: computeEmptyBuckets(visualizes, timeseriesResult.data),
       confidences: computeConfidence(visualizes, timeseriesResult.data),
-      sample_counts: computeTotals(visualizes, timeseriesResult.data, isTopN),
+      sample_counts: computeVisualizeSampleTotals(
+        visualizes,
+        timeseriesResult.data,
+        isTopN
+      ),
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
       page_source,
       interval,
@@ -264,7 +274,11 @@ function useTrackAnalytics({
       title: title || '',
       empty_buckets_percentage: computeEmptyBuckets(visualizes, timeseriesResult.data),
       confidences: computeConfidence(visualizes, timeseriesResult.data),
-      sample_counts: computeTotals(visualizes, timeseriesResult.data, isTopN),
+      sample_counts: computeVisualizeSampleTotals(
+        visualizes,
+        timeseriesResult.data,
+        isTopN
+      ),
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
       page_source,
       interval,
@@ -457,19 +471,6 @@ function computeConfidence(
     const dedupedYAxes = dedupeArray(visualize.yAxes);
     const series = dedupedYAxes.flatMap(yAxis => data[yAxis]).filter(defined);
     return String(combineConfidenceForSeries(series));
-  });
-}
-
-function computeTotals(
-  visualizes: Visualize[],
-  data: ReturnType<typeof useSortedTimeSeries>['data'],
-  isTopN: boolean
-) {
-  return visualizes.map(visualize => {
-    const dedupedYAxes = dedupeArray(visualize.yAxes);
-    const series = dedupedYAxes.flatMap(yAxis => data[yAxis]).filter(defined);
-    const {sampleCount} = determineSeriesSampleCountAndIsSampled(series, isTopN);
-    return sampleCount;
   });
 }
 
