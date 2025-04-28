@@ -333,6 +333,17 @@ class PerformanceNPlusOneGroupType(PerformanceGroupTypeDefaults, GroupType):
 
 
 @dataclass(frozen=True)
+class PerformanceNPlusOneExperimentalGroupType(PerformanceGroupTypeDefaults, GroupType):
+    type_id = 1906
+    slug = "performance_n_plus_one_db_queries_experimental"
+    description = "N+1 Query (Experimental)"
+    category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.PERFORMANCE_BEST_PRACTICE.value
+    default_priority = PriorityLevel.LOW
+    released = False
+
+
+@dataclass(frozen=True)
 class PerformanceConsecutiveDBQueriesGroupType(PerformanceGroupTypeDefaults, GroupType):
     type_id = 1007
     slug = "performance_consecutive_db_queries"

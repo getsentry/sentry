@@ -30,6 +30,7 @@ class DetectorType(Enum):
     DB_MAIN_THREAD = "db_main_thread"
     HTTP_OVERHEAD = "http_overhead"
     EXPERIMENTAL_N_PLUS_ONE_API_CALLS = "experimental_n_plus_one_api_calls"
+    EXPERIMENTAL_N_PLUS_ONE_DB_QUERIES = "experimental_n_plus_one_db_queries"
 
 
 # Detector and the corresponding system option must be added to this list to have issues created.
