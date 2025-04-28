@@ -5,6 +5,11 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FieldKind} from 'sentry/utils/fields';
+import {
+  PageParamsProvider,
+  useExploreFields,
+  useExploreGroupBys,
+} from 'sentry/views/explore/contexts/pageParamsContext';
 import * as spanTagsModule from 'sentry/views/explore/contexts/spanTagsContext';
 import {SpansTabContent} from 'sentry/views/explore/spans/spansTab';
 
@@ -19,37 +24,6 @@ const mockNumberTags: TagCollection = {
   numberTag1: {key: 'numberTag1', kind: FieldKind.MEASUREMENT, name: 'numberTag1'},
   numberTag2: {key: 'numberTag2', kind: FieldKind.MEASUREMENT, name: 'numberTag2'},
 };
-
-// Mock getBoundingClientRect for container
-jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
-  this: HTMLElement
-) {
-  // Mock individual hint items
-  if (this.hasAttribute('data-type')) {
-    return {
-      width: 200,
-      right: 200,
-      left: 0,
-      top: 0,
-      bottom: 100,
-      height: 100,
-      x: 0,
-      y: 0,
-      toJSON: () => {},
-    };
-  }
-  return {
-    width: 1000,
-    right: 1000,
-    left: 0,
-    top: 0,
-    bottom: 100,
-    height: 100,
-    x: 0,
-    y: 0,
-    toJSON: () => {},
-  };
-});
 
 describe('SpansTabContent', function () {
   const {organization, project} = initializeOrg();
@@ -130,9 +104,7 @@ describe('SpansTabContent', function () {
     );
 
     (trackAnalytics as jest.Mock).mockClear();
-    await userEvent.click(
-      within(screen.getByTestId('section-mode')).getByRole('radio', {name: 'Aggregates'})
-    );
+    await userEvent.click(await screen.findByRole('tab', {name: 'Aggregates'}));
 
     await screen.findByText(/No spans found/);
     expect(trackAnalytics).toHaveBeenCalledTimes(1);
@@ -142,38 +114,150 @@ describe('SpansTabContent', function () {
     );
   });
 
-  it('should show hints when the feature flag is enabled', function () {
-    jest.spyOn(spanTagsModule, 'useSpanTags').mockImplementation(type => {
-      switch (type) {
-        case 'number':
-          return {tags: mockNumberTags, isLoading: false};
-        case 'string':
-          return {tags: mockStringTags, isLoading: false};
-        default:
-          return {tags: {}, isLoading: false};
-      }
-    });
-
-    const {organization: schemaHintsOrganization} = initializeOrg({
-      organization: {...organization, features: ['traces-schema-hints']},
-    });
-
-    // Mock clientWidth before rendering to display hints
-    jest.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(1000);
+  it('inserts group bys from aggregate mode as fields in samples mode', async function () {
+    let fields: string[] = [];
+    let groupBys: string[] = [];
+    function Component() {
+      fields = useExploreFields();
+      groupBys = useExploreGroupBys();
+      return (
+        <SpansTabContent
+          defaultPeriod="7d"
+          maxPickableDays={7}
+          relativeOptions={{
+            '1h': 'Last hour',
+            '24h': 'Last 24 hours',
+            '7d': 'Last 7 days',
+          }}
+        />
+      );
+    }
 
     render(
-      <SpansTabContent
-        defaultPeriod="7d"
-        maxPickableDays={7}
-        relativeOptions={{'1h': 'Last hour', '24h': 'Last 24 hours', '7d': 'Last 7 days'}}
-      />,
-      {enableRouterMocks: false, organization: schemaHintsOrganization}
+      <PageParamsProvider>
+        <Component />
+      </PageParamsProvider>,
+      {enableRouterMocks: false, organization}
     );
 
-    expect(screen.getByText('stringTag1')).toBeInTheDocument();
-    expect(screen.getByText('stringTag2')).toBeInTheDocument();
-    expect(screen.getByText('numberTag1')).toBeInTheDocument();
-    expect(screen.getByText('numberTag2')).toBeInTheDocument();
-    expect(screen.getByText('See full list')).toBeInTheDocument();
+    const samples = screen.getByRole('tab', {name: 'Span Samples'});
+    const aggregates = screen.getByRole('tab', {name: 'Aggregates'});
+    const groupBy = screen.getByTestId('section-group-by');
+
+    expect(fields).toEqual([
+      'id',
+      'span.op',
+      'span.description',
+      'span.duration',
+      'transaction',
+      'timestamp',
+    ]); // default
+    expect(groupBys).toEqual(['']);
+
+    // Add a group by, and leave one unselected
+    await userEvent.click(aggregates);
+    await userEvent.click(within(groupBy).getByRole('button', {name: '\u2014'}));
+    await userEvent.click(within(groupBy).getByRole('option', {name: 'release'}));
+
+    expect(groupBys).toEqual(['release']);
+    await userEvent.click(within(groupBy).getByRole('button', {name: 'Add Group'}));
+    expect(groupBys).toEqual(['release', '']);
+
+    await userEvent.click(samples);
+    expect(fields).toEqual([
+      'id',
+      'span.op',
+      'span.description',
+      'span.duration',
+      'transaction',
+      'timestamp',
+      'release',
+    ]);
+  });
+
+  describe('schema hints', function () {
+    let spies: jest.SpyInstance[];
+
+    beforeEach(function () {
+      const useSpanTagsSpy = jest
+        .spyOn(spanTagsModule, 'useSpanTags')
+        .mockImplementation(type => {
+          switch (type) {
+            case 'number':
+              return {tags: mockNumberTags, isLoading: false};
+            case 'string':
+              return {tags: mockStringTags, isLoading: false};
+            default:
+              return {tags: {}, isLoading: false};
+          }
+        });
+
+      // Mock getBoundingClientRect for container
+      const getBoundingClientRectSpy = jest
+        .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+        .mockImplementation(function (this: HTMLElement) {
+          // Mock individual hint items
+          if (this.hasAttribute('data-type')) {
+            return {
+              width: 200,
+              right: 200,
+              left: 0,
+              top: 0,
+              bottom: 100,
+              height: 100,
+              x: 0,
+              y: 0,
+              toJSON: () => {},
+            };
+          }
+          return {
+            width: 1000,
+            right: 1000,
+            left: 0,
+            top: 0,
+            bottom: 100,
+            height: 100,
+            x: 0,
+            y: 0,
+            toJSON: () => {},
+          };
+        });
+
+      // Mock clientWidth before rendering to display hints
+      const clientWidthGetSpy = jest
+        .spyOn(HTMLElement.prototype, 'clientWidth', 'get')
+        .mockReturnValue(1000);
+
+      spies = [useSpanTagsSpy, getBoundingClientRectSpy, clientWidthGetSpy];
+    });
+
+    afterEach(function () {
+      spies.forEach(spy => spy.mockRestore());
+    });
+
+    it('should show hints when the feature flag is enabled', function () {
+      const {organization: schemaHintsOrganization} = initializeOrg({
+        organization: {...organization, features: ['traces-schema-hints']},
+      });
+
+      render(
+        <SpansTabContent
+          defaultPeriod="7d"
+          maxPickableDays={7}
+          relativeOptions={{
+            '1h': 'Last hour',
+            '24h': 'Last 24 hours',
+            '7d': 'Last 7 days',
+          }}
+        />,
+        {enableRouterMocks: false, organization: schemaHintsOrganization}
+      );
+
+      expect(screen.getByText('stringTag1')).toBeInTheDocument();
+      expect(screen.getByText('stringTag2')).toBeInTheDocument();
+      expect(screen.getByText('numberTag1')).toBeInTheDocument();
+      expect(screen.getByText('numberTag2')).toBeInTheDocument();
+      expect(screen.getByText('See full list')).toBeInTheDocument();
+    });
   });
 });
