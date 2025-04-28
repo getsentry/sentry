@@ -119,9 +119,11 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
               />
               {hasTraceNewUi && (
                 <TraceContextPanel
+                  traceSlug={traceSlug}
                   tree={tree}
                   rootEvent={rootEvent}
                   onScrollToNode={traceWaterfallScroll.onScrollToNode}
+                  logs={logsTableData.logsData?.data}
                 />
               )}
             </TraceInnerLayout>
@@ -149,6 +151,4 @@ const TraceInnerLayout = styled('div')`
   padding: ${space(2)} ${space(3)};
   overflow-y: scroll;
   margin-bottom: ${space(1)};
-
-  background-color: ${p => p.theme.background};
 `;

@@ -6,17 +6,23 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {newExploreTarget} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {
+  BaseVisualize,
+  Visualize,
+} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
+import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 export function getExploreUrl({
@@ -35,7 +41,7 @@ export function getExploreUrl({
   interval: string;
   organization: Organization;
   selection: PageFilters;
-  visualize: Array<Omit<Visualize, 'label'>>;
+  visualize: BaseVisualize[];
   field?: string[];
   groupBy?: string[];
   id?: number;
@@ -126,7 +132,7 @@ export function getExploreUrlFromSavedQueryUrl({
   });
 }
 
-export function getExploreMultiQueryUrl({
+function getExploreMultiQueryUrl({
   organization,
   selection,
   interval,
@@ -274,13 +280,6 @@ export function limitMaxPickableDays(organization: Organization): {
   };
 }
 
-export function showConfidence(isSampled: boolean | null | undefined) {
-  if (defined(isSampled) && isSampled === false) {
-    return false;
-  }
-  return true;
-}
-
 export function getDefaultExploreRoute(organization: Organization) {
   if (organization.features.includes('performance-trace-explorer')) {
     return 'traces';
@@ -303,4 +302,17 @@ export function getDefaultExploreRoute(organization: Organization) {
   }
 
   return 'releases';
+}
+
+export function computeVisualizeSampleTotals(
+  visualizes: Visualize[],
+  data: ReturnType<typeof useSortedTimeSeries>['data'],
+  isTopN: boolean
+) {
+  return visualizes.map(visualize => {
+    const dedupedYAxes = dedupeArray(visualize.yAxes);
+    const series = dedupedYAxes.flatMap(yAxis => data[yAxis]).filter(defined);
+    const {sampleCount} = determineSeriesSampleCountAndIsSampled(series, isTopN);
+    return sampleCount;
+  });
 }

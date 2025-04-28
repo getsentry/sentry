@@ -36,6 +36,7 @@ import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
 import {isLinkActive} from 'sentry/views/nav/utils';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
 
 export function InsightsSecondaryNav() {
   const organization = useOrganization();
@@ -44,6 +45,8 @@ export function InsightsSecondaryNav() {
   const isProjectDetailsRedirectActive = useIsProjectDetailsRedirectActive();
 
   const {projects} = useProjects();
+
+  useReleasesDrawer();
 
   const [starredProjects, nonStarredProjects] = useMemo(() => {
     return partition(projects, project => project.isBookmarked);
@@ -105,7 +108,10 @@ export function InsightsSecondaryNav() {
           title={displayStarredProjects ? t('Starred Projects') : t('Projects')}
           trailingItems={
             <AddProjectButtonLink
-              to={makeProjectsPathname({path: '/new/', orgSlug: organization.slug})}
+              to={makeProjectsPathname({
+                path: '/new/',
+                orgSlug: organization.slug,
+              })}
               icon={<IconAdd />}
               size="zero"
               borderless
@@ -118,7 +124,10 @@ export function InsightsSecondaryNav() {
           {projectsToDisplay.map(project => (
             <SecondaryNav.Item
               key={project.id}
-              to={`${baseUrl}/projects/${project.slug}/`}
+              to={{
+                pathname: `${baseUrl}/projects/${project.slug}/`,
+                search: '?source=sidebar',
+              }}
               isActive={
                 isProjectDetailsRedirectActive
                   ? isProjectSelectedExclusively(project)

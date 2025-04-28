@@ -20,7 +20,7 @@ type FlamegraphThemeMutationCallback = (
   colorMode?: 'light' | 'dark'
 ) => FlamegraphTheme;
 
-export const FlamegraphThemeMutationContext = createContext<
+const FlamegraphThemeMutationContext = createContext<
   ((cb: FlamegraphThemeMutationCallback) => void) | null
 >(null);
 
