@@ -13,8 +13,6 @@ import storyBook from 'sentry/stories/storyBook';
 import type {DateString} from 'sentry/types/core';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {shiftTabularDataToNow} from 'sentry/utils/tabularData/shiftTabularDataToNow';
-import {shiftTimeSeriesToNow} from 'sentry/utils/timeSeries/shiftTimeSeriesToNow';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import type {
   LegendSelection,
@@ -23,6 +21,8 @@ import type {
   TimeSeriesMeta,
 } from 'sentry/views/dashboards/widgets/common/types';
 
+import {shiftTabularDataToNow} from './__stories__/shiftTabularDataToNow';
+import {shiftTimeSeriesToNow} from './__stories__/shiftTimeSeriesToNow';
 import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
 import {sampleScoreTimeSeries} from './fixtures/sampleScoreTimeSeries';
 import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
