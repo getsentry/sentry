@@ -36,4 +36,8 @@ export const PRIMARY_NAV_GROUP_CONFIG: PrimaryNavGroupConfig = {
     basePaths: ['codecov'],
     label: t('Codecov'),
   },
+  [PrimaryNavGroup.ADMIN]: {
+    basePaths: ['manage'],
+    label: t('Admin'),
+  },
 };
