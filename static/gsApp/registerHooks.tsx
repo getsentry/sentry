@@ -18,7 +18,6 @@ import DisabledCustomInboundFilters from 'getsentry/components/features/disabled
 import DisabledDataForwarding from 'getsentry/components/features/disabledDataForwarding';
 import DisabledDateRange from 'getsentry/components/features/disabledDateRange';
 import DisabledDiscardGroup from 'getsentry/components/features/disabledDiscardGroup';
-import DisabledMetricsAlertTooltip from 'getsentry/components/features/disabledMetricsAlertTooltip';
 import DisabledQuickTrace from 'getsentry/components/features/disabledQuickTrace';
 import DisabledRateLimits from 'getsentry/components/features/disabledRateLimits';
 import DisabledRelay from 'getsentry/components/features/disabledRelay';
@@ -66,8 +65,6 @@ import EnhancedOrganizationStats from 'getsentry/hooks/spendVisibility/enhancedI
 import SpikeProtectionProjectSettings from 'getsentry/hooks/spendVisibility/spikeProtectionProjectSettings';
 import SuperuserAccessCategory from 'getsentry/hooks/superuserAccessCategory';
 import TargetedOnboardingHeader from 'getsentry/hooks/targetedOnboardingHeader';
-import {useExperiment} from 'getsentry/hooks/useExperiment';
-import logExperiment from 'getsentry/utils/logExperiment';
 import rawTrackAnalyticsEvent from 'getsentry/utils/rawTrackAnalyticsEvent';
 import trackMetric from 'getsentry/utils/trackMetric';
 
@@ -77,9 +74,7 @@ import OpenInDiscoverBtn from './components/openInDiscoverBtn';
 import {
   ContinuousProfilingBetaAlertBanner,
   ContinuousProfilingBetaSDKAlertBanner,
-  ProfilingAM1OrMMXUpgrade,
   ProfilingBetaAlertBanner,
-  ProfilingUpgradePlanButton,
 } from './components/profiling/alerts';
 import ReplayOnboardingAlert from './components/replayOnboardingAlert';
 import ReplaySettingsAlert from './components/replaySettingsAlert';
@@ -115,7 +110,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
    */
   'analytics:raw-track-event': rawTrackAnalyticsEvent,
   'analytics:init-user': hookAnalyticsInitUser,
-  'analytics:log-experiment': logExperiment,
   'metrics:event': trackMetric,
 
   /**
@@ -239,8 +233,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:replay-settings-alert': () => ReplaySettingsAlert,
   'component:product-unavailable-cta': () => ProductUnavailableCTA,
   'component:profiling-billing-banner': () => ProfilingBetaAlertBanner,
-  'component:profiling-upgrade-plan-button': () => ProfilingUpgradePlanButton,
-  'component:profiling-am1-or-mmx-upgrade': () => ProfilingAM1OrMMXUpgrade,
   'component:product-selection-availability': () => ProductSelectionAvailability,
   'component:superuser-access-category': SuperuserAccessCategory,
   'component:superuser-warning': p => <SuperuserWarning {...p} />,
@@ -248,7 +240,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:crons-list-page-header': () => CronsBillingBanner,
   'react-hook:route-activated': useRouteActivatedHook,
   'react-hook:use-button-tracking': useButtonTracking,
-  'react-hook:use-experiment': useExperiment,
   'react-hook:use-get-max-retention-days': useGetMaxRetentionDays,
   'component:partnership-agreement': p => (
     <LazyLoad LazyComponent={PartnershipAgreement} {...p} />
@@ -267,19 +258,14 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'feature-disabled:relay': p => <DisabledRelay {...p} />,
   'feature-disabled:rate-limits': p => <DisabledRateLimits {...p} />,
   'feature-disabled:sso-basic': p => <DisabledAuthProvider {...p} />,
-  'feature-disabled:sso-saml2': p => <DisabledAuthProvider {...p} />,
   'feature-disabled:custom-inbound-filters': p => <DisabledCustomInboundFilters {...p} />,
   'feature-disabled:discover2-sidebar-item': p =>
-    typeof p.children === 'function' ? p.children(p) : p.children,
-  'feature-disabled:incidents-sidebar-item': p =>
     typeof p.children === 'function' ? p.children(p) : p.children,
   'feature-disabled:performance-new-project': p => (
     <PerformanceNewProjectPrompt {...p}>
       {typeof p.children === 'function' ? p.children(p) : p.children}
     </PerformanceNewProjectPrompt>
   ),
-  'feature-disabled:performance-sidebar-item': p =>
-    typeof p.children === 'function' ? p.children(p) : p.children,
   'feature-disabled:discover2-page': p => (
     <LazyLoad LazyComponent={DisabledDiscover2Page} {...p}>
       {typeof p.children === 'function' ? p.children(p) : p.children}
@@ -309,11 +295,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
     <DisabledAlertWizard {...p}>
       {typeof p.children === 'function' ? p.children(p) : p.children}
     </DisabledAlertWizard>
-  ),
-  'feature-disabled:create-metrics-alert-tooltip': p => (
-    <DisabledMetricsAlertTooltip {...p}>
-      {typeof p.children === 'function' ? p.children(p) : p.children}
-    </DisabledMetricsAlertTooltip>
   ),
   'feature-disabled:codecov-integration-setting': () => (
     <PowerFeatureHovercard
@@ -369,15 +350,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
     </PowerFeatureHovercard>
   ),
   'feature-disabled:open-in-discover': p => <OpenInDiscoverBtn {...p} />,
-  'feature-disabled:trace-view-link': p => (
-    <PowerFeatureHovercard
-      // TODO(wmak): Flip back to trace-view-summary when we add it to plans
-      features={['organizations:discover-query']}
-      id="trace-view-link"
-    >
-      {typeof p.children === 'function' ? p.children(p) : p.children}
-    </PowerFeatureHovercard>
-  ),
 
   /**
    * Augment integration installation modals with feature grouping based on

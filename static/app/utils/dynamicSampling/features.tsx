@@ -6,3 +6,6 @@ export function hasDynamicSamplingCustomFeature(organization: Organization) {
     organization.features.includes('dynamic-sampling-custom')
   );
 }
+export function hasDynamicSamplingFeature(organization: Organization) {
+  return organization.features.includes('dynamic-sampling');
+}

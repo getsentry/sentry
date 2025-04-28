@@ -2,7 +2,6 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
-import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
 import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -259,113 +258,6 @@ function ProfilingBetaAlertBannerComponent(props: ProfilingBetaAlertBannerProps)
 export const ProfilingBetaAlertBanner = withSubscription(
   ProfilingBetaAlertBannerComponent,
   {noLoader: true}
-);
-
-type UpgradePlanButtonProps = ButtonProps & {
-  children: React.ReactNode;
-  fallback: React.ReactNode;
-  organization: Organization;
-  subscription: Subscription;
-};
-
-const hidePromptTiers: string[] = [PlanTier.AM2, PlanTier.AM3];
-
-function UpgradePlanButton(props: UpgradePlanButtonProps) {
-  const {subscription, organization, ...buttonProps} = props;
-
-  if (hidePromptTiers.includes(subscription.planTier)) {
-    return <Fragment>{props.fallback}</Fragment>;
-  }
-
-  const userCanUpgradePlan = organization.access?.includes('org:billing');
-
-  if (subscription.canSelfServe) {
-    if (userCanUpgradePlan) {
-      return (
-        <Button
-          {...buttonProps}
-          onClick={evt => {
-            openAM2ProfilingUpsellModal({
-              organization,
-              subscription,
-            });
-            trackOpenModal({organization, subscription});
-            props.onClick?.(evt);
-          }}
-        >
-          {t('Update Plan')}
-        </Button>
-      );
-    }
-    return (
-      <Button
-        {...buttonProps}
-        to={makeLinkToOwnersAndBillingMembers(
-          organization,
-          `profiling_onboard_${
-            subscription.planTier === PlanTier.AM1 ? 'am1' : 'mmx'
-          }-alert`
-        )}
-        onClick={() => trackManageSubscriptionClicked({organization, subscription})}
-      >
-        {t('See who can update')}
-      </Button>
-    );
-  }
-  return (
-    <Button
-      {...buttonProps}
-      to={`/settings/${organization.slug}/billing/overview/?referrer=profiling_onboard_${
-        subscription.planTier === PlanTier.AM1 ? 'am1' : 'mmx'
-      }-alert`}
-      onClick={() => trackManageSubscriptionClicked({organization, subscription})}
-    >
-      {t('Manage subscription')}
-    </Button>
-  );
-}
-
-export const ProfilingUpgradePlanButton = withSubscription(UpgradePlanButton, {
-  noLoader: true,
-});
-
-interface ProfilingAM1OrMMXUpgradeProps {
-  fallback: React.ReactNode;
-  organization: Organization;
-  subscription: Subscription;
-}
-
-function ProfilingAM1OrMMXUpgradeComponent({
-  organization,
-  subscription,
-  fallback,
-}: ProfilingAM1OrMMXUpgradeProps) {
-  if (hidePromptTiers.includes(subscription.planTier)) {
-    return <Fragment>{fallback}</Fragment>;
-  }
-
-  const userCanUpgradePlan = organization.access?.includes('org:billing');
-  return (
-    <Fragment>
-      <h3>{t('Function level insights')}</h3>
-      <p>
-        {userCanUpgradePlan
-          ? t(
-              'Discover slow-to-execute or resource intensive functions within your application. To access profiling, please update to the latest version of your plan.'
-            )
-          : t(
-              'Discover slow-to-execute or resource intensive functions within your application. To access profiling, please request your account owner to update to the latest version of your plan.'
-            )}
-      </p>
-    </Fragment>
-  );
-}
-
-export const ProfilingAM1OrMMXUpgrade = withSubscription(
-  ProfilingAM1OrMMXUpgradeComponent,
-  {
-    noLoader: true,
-  }
 );
 
 interface ContinuousProfilingBetaAlertBannerInner {

@@ -24,6 +24,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
+import {isAggregateField} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   type AggregationKey,
@@ -112,9 +113,6 @@ function SpansTabContentImpl({
   const toolbarExtras = [
     ...(organization?.features?.includes('visibility-explore-equations')
       ? ['equations' as const]
-      : []),
-    ...(organization?.features?.includes('visibility-explore-tabs')
-      ? ['tabs' as const]
       : []),
   ];
 
@@ -213,7 +211,9 @@ function SpansTabContentImpl({
     onSearch: (newQuery: string) => {
       const newFields = new MutableSearch(newQuery)
         .getFilterKeys()
-        .map(key => (key.startsWith('!') ? key.slice(1) : key));
+        .map(key => (key.startsWith('!') ? key.slice(1) : key))
+        // don't add aggregate functions to table fields
+        .filter(key => !isAggregateField(key));
       setExplorePageParams({
         query: newQuery,
         fields: [...new Set([...fields, ...newFields])],
@@ -331,7 +331,6 @@ function SpansTabContentImpl({
                 samplesTab={samplesTab}
                 setSamplesTab={setSamplesTab}
                 isProgressivelyLoading={tableIsProgressivelyLoading}
-                useTabs={organization.features.includes('visibility-explore-tabs')}
               />
               <Toggle>
                 <StyledButton

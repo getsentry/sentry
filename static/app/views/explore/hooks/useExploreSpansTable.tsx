@@ -1,6 +1,7 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import type {NewQuery} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -33,10 +34,22 @@ export function useExploreSpansTable({
   limit,
   query,
 }: UseExploreSpansTableOptions) {
+  const canTriggerHighAccuracy = useCallback(
+    (results: ReturnType<typeof useSpansQuery<any[]>>) => {
+      const canGoToHigherAccuracyTier = results.meta?.dataScanned === 'partial';
+      const hasData = defined(results.data) && results.data.length > 0;
+      return !hasData && canGoToHigherAccuracyTier;
+    },
+    []
+  );
   return useProgressiveQuery<typeof useExploreSpansTableImp>({
     queryHookImplementation: useExploreSpansTableImp,
     queryHookArgs: {enabled, limit, query},
-    queryOptions: {queryMode: QUERY_MODE.SERIAL, withholdBestEffort: true},
+    queryOptions: {
+      queryMode: QUERY_MODE.SERIAL,
+      withholdBestEffort: true,
+      canTriggerHighAccuracy,
+    },
   });
 }
 

@@ -107,7 +107,11 @@ const createWrapper = (props = {}) => {
         userTeamIds={[]}
       />
     </ProjectAlerts>,
-    {router, organization}
+    {
+      router,
+      organization,
+      deprecatedRouterMocks: true,
+    }
   );
 
   return {
@@ -248,7 +252,7 @@ describe('IssueRuleEditor', function () {
         body: {},
       });
       const {router} = createWrapper();
-      renderGlobalModal({router});
+      renderGlobalModal({router, deprecatedRouterMocks: true});
       await userEvent.click(screen.getByLabelText('Delete Rule'));
 
       expect(
