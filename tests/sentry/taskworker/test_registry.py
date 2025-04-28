@@ -268,16 +268,22 @@ def test_registry_create_namespace_simple() -> None:
     assert ns.default_processing_deadline_duration == 10
     assert ns.name == "tests"
     assert ns.topic == Topic.TASKWORKER
+    assert ns.app_feature == "tests"
 
     retry = Retry(times=3)
     ns = registry.create_namespace(
-        "test-two", retry=retry, expires=60 * 10, processing_deadline_duration=60
+        "test-two",
+        retry=retry,
+        expires=60 * 10,
+        processing_deadline_duration=60,
+        app_feature="anvils",
     )
     assert ns.default_retry == retry
     assert ns.default_processing_deadline_duration == 60
     assert ns.default_expires == 60 * 10
     assert ns.name == "test-two"
     assert ns.topic == Topic.TASKWORKER
+    assert ns.app_feature == "anvils"
 
 
 @pytest.mark.django_db
