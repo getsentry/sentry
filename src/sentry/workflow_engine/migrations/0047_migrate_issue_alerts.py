@@ -1881,7 +1881,7 @@ def migrate_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) ->
     Environment = apps.get_model("sentry", "Environment")
 
     def _translate_rule_data_actions_to_notification_actions(
-        actions: list[dict[str, Any]]
+        actions: list[dict[str, Any]],
     ) -> list[Any]:
         """
         Builds notification actions from action field in Rule's data blob.
@@ -1948,7 +1948,7 @@ def migrate_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) ->
         return notification_actions
 
     def _build_notification_actions_from_rule_data_actions(
-        actions: list[dict[str, Any]]
+        actions: list[dict[str, Any]],
     ) -> list[Any]:
         notification_actions = _translate_rule_data_actions_to_notification_actions(actions)
 
