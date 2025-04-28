@@ -73,10 +73,15 @@ class SeriesMeta(TypedDict):
     interval: float
 
 
+class GroupBy(TypedDict):
+    key: str
+    value: str
+
+
 class TimeSeries(TypedDict):
     values: list[Row]
     yAxis: str
-    groupBy: NotRequired[list[str]]
+    groupBy: NotRequired[list[GroupBy]]
     meta: SeriesMeta
 
 

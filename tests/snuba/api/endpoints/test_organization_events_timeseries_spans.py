@@ -204,7 +204,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["values"] == build_expected_timeseries(
             seven_days_ago, interval, [0, 0, 0, 0, 0, 0, 2], ignore_accuracy=True
         )
-        assert timeseries["groupBy"] == [{"span.description": "bar"}]
+        assert timeseries["groupBy"] == [{"key": "span.description", "value": "bar"}]
         assert timeseries["meta"] == {
             "valueUnit": "millisecond",
             "valueType": "duration",
@@ -219,7 +219,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["values"] == build_expected_timeseries(
             seven_days_ago, interval, [0, 0, 0, 0, 0, 0, 2], ignore_accuracy=True
         )
-        assert timeseries["groupBy"] == [{"span.description": "bar"}]
+        assert timeseries["groupBy"] == [{"key": "span.description", "value": "bar"}]
         assert timeseries["meta"] == {
             "valueUnit": "millisecond",
             "valueType": "duration",
@@ -468,7 +468,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["values"] == build_expected_timeseries(
             self.start, 60_000, [0, 1, 0, 0, 0, 0], ignore_accuracy=True
         )
-        assert timeseries["groupBy"] == [{"transaction": "foo"}]
+        assert timeseries["groupBy"] == [{"key": "transaction", "value": "foo"}]
         assert timeseries["meta"] == {
             "valueType": "integer",
             "interval": 60_000,
@@ -482,7 +482,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["values"] == build_expected_timeseries(
             self.start, 60_000, [0, 1, 0, 0, 0, 0], ignore_accuracy=True
         )
-        assert timeseries["groupBy"] == [{"transaction": "bar"}]
+        assert timeseries["groupBy"] == [{"key": "transaction", "value": "bar"}]
         assert timeseries["meta"] == {
             "valueType": "integer",
             "interval": 60_000,
@@ -547,7 +547,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["values"] == build_expected_timeseries(
             self.start, 60_000, [0, 1, 0, 0, 0, 0], ignore_accuracy=True
         )
-        assert timeseries["groupBy"] == [{"transaction": "foo"}]
+        assert timeseries["groupBy"] == [{"key": "transaction", "value": "foo"}]
         assert timeseries["meta"] == {
             "valueType": "integer",
             "interval": 60_000,
@@ -561,7 +561,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["values"] == build_expected_timeseries(
             self.start, 60_000, [0, 1, 0, 0, 0, 0], ignore_accuracy=True
         )
-        assert timeseries["groupBy"] == [{"transaction": "bar"}]
+        assert timeseries["groupBy"] == [{"key": "transaction", "value": "bar"}]
         assert timeseries["meta"] == {
             "valueType": "integer",
             "interval": 60_000,
@@ -612,7 +612,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["values"] == build_expected_timeseries(
             self.start, 60_000, [0, 1, 0, 0, 0, 0], ignore_accuracy=True
         )
-        assert timeseries["groupBy"] == [{"transaction": "bar"}]
+        assert timeseries["groupBy"] == [{"key": "transaction", "value": "bar"}]
         assert timeseries["meta"] == {
             "valueType": "integer",
             "interval": 60_000,
@@ -626,7 +626,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["values"] == build_expected_timeseries(
             self.start, 60_000, [0, 2000, 0, 0, 0, 0], ignore_accuracy=True
         )
-        assert timeseries["groupBy"] == [{"transaction": "bar"}]
+        assert timeseries["groupBy"] == [{"key": "transaction", "value": "bar"}]
         assert timeseries["meta"] == {
             "valueUnit": "millisecond",
             "valueType": "duration",
@@ -641,7 +641,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["values"] == build_expected_timeseries(
             self.start, 60_000, [0, 1, 0, 0, 0, 0], ignore_accuracy=True
         )
-        assert timeseries["groupBy"] == [{"transaction": "baz"}]
+        assert timeseries["groupBy"] == [{"key": "transaction", "value": "baz"}]
         assert timeseries["meta"] == {
             "valueType": "integer",
             "interval": 60_000,
@@ -655,7 +655,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["values"] == build_expected_timeseries(
             self.start, 60_000, [0, 2000, 0, 0, 0, 0], ignore_accuracy=True
         )
-        assert timeseries["groupBy"] == [{"transaction": "baz"}]
+        assert timeseries["groupBy"] == [{"key": "transaction", "value": "baz"}]
         assert timeseries["meta"] == {
             "valueUnit": "millisecond",
             "valueType": "duration",
@@ -742,7 +742,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["values"] == build_expected_timeseries(
             self.start, 60_000, [0, 1, 0, 0, 0, 0], ignore_accuracy=True
         )
-        assert timeseries["groupBy"] == [{"project": projects[0].slug}]
+        assert timeseries["groupBy"] == [{"key": "project", "value": projects[0].slug}]
         assert timeseries["meta"] == {
             "valueType": "integer",
             "interval": 60_000,
@@ -756,7 +756,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert timeseries["values"] == build_expected_timeseries(
             self.start, 60_000, [0, 1, 0, 0, 0, 0], ignore_accuracy=True
         )
-        assert timeseries["groupBy"] == [{"project": projects[1].slug}]
+        assert timeseries["groupBy"] == [{"key": "project", "value": projects[1].slug}]
         assert timeseries["meta"] == {
             "valueType": "integer",
             "interval": 60_000,
@@ -826,8 +826,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             self.start, 60_000, [0, 1, 0, 0, 0, 0], ignore_accuracy=True
         )
         assert timeseries["groupBy"] == [
-            {"project": projects[0].slug},
-            {"project.id": str(projects[0].id)},
+            {"key": "project", "value": projects[0].slug},
+            {"key": "project.id", "value": str(projects[0].id)},
         ]
         assert timeseries["meta"] == {
             "valueType": "integer",
@@ -843,8 +843,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             self.start, 60_000, [0, 1, 0, 0, 0, 0], ignore_accuracy=True
         )
         assert timeseries["groupBy"] == [
-            {"project": projects[1].slug},
-            {"project.id": str(projects[1].id)},
+            {"key": "project", "value": projects[1].slug},
+            {"key": "project.id", "value": str(projects[1].id)},
         ]
         assert timeseries["meta"] == {
             "valueType": "integer",
@@ -1116,7 +1116,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             assert len(timeseries["values"]) == 6
             assert timeseries["yAxis"] == "count()"
             if groupby is not None:
-                assert timeseries["groupBy"] == [{"transaction": groupby}]
+                assert timeseries["groupBy"] == [{"key": "transaction", "value": groupby}]
             else:
                 assert timeseries["groupBy"] is None
             assert timeseries["values"] == build_expected_timeseries(
