@@ -94,7 +94,7 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
         assert record.value.rules == [123]
 
 
-def assert_rule_ids(digest: Digest, expected_rule_ids: list[str]):
+def assert_rule_ids(digest: Digest, expected_rule_ids: list[int]):
     for rule, groups in digest.items():
         assert rule.id in expected_rule_ids
 
@@ -271,6 +271,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         }
 
         assert_get_personalized_digests(self.project, digest, expected_result)
+        assert_rule_ids(digest, [self.shadow_rule.id])
 
     def test_direct_email(self):
         """When the action type is not Issue Owners, then the target actor gets a digest."""
@@ -387,6 +388,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         assert not {
             actor for actors in participants_by_provider_by_event.values() for actor in actors
         }  # no users in this team no digests should be processed
+        assert_rule_ids(digest, [self.shadow_rule.id])
 
     def test_only_everyone(self):
         events = self.create_events_from_filenames(
