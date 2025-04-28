@@ -201,7 +201,7 @@ def process_profile_task(
             sentry_sdk.capture_exception(e)
 
     if (
-        features.has("organizations:continuous-profiling-vroomrs-processing", project)
+        features.has("projects:continuous-profiling-vroomrs-processing", project)
         and "profiler_id" in profile
     ):
         if not _process_vroomrs_profile(profile, project):
