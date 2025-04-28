@@ -133,9 +133,9 @@ export enum FieldKey {
   USER_SEGMENT = 'user.segment',
   APP_IN_FOREGROUND = 'app.in_foreground',
   FUNCTION_DURATION = 'function.duration',
-  EXPO_UPDATES_CHANNEL = 'expo_updates.channel',
-  EXPO_UPDATES_RUNTIME_VERSION = 'expo_updates.runtime_version',
-  EXPO_UPDATES_UPDATE_ID = 'expo_updates.update_id',
+  OTA_UPDATES_CHANNEL = 'ota_updates.channel',
+  OTA_UPDATES_RUNTIME_VERSION = 'ota_updates.runtime_version',
+  OTA_UPDATES_UPDATE_ID = 'ota_updates.update_id',
 }
 
 export enum FieldValueType {
@@ -1840,17 +1840,17 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.DURATION,
   },
-  [FieldKey.EXPO_UPDATES_CHANNEL]: {
+  [FieldKey.OTA_UPDATES_CHANNEL]: {
     desc: t('The channel name of the build from EAS Update'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [FieldKey.EXPO_UPDATES_RUNTIME_VERSION]: {
+  [FieldKey.OTA_UPDATES_RUNTIME_VERSION]: {
     desc: t('The runtime version of the current build from EAS Update'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [FieldKey.EXPO_UPDATES_UPDATE_ID]: {
+  [FieldKey.OTA_UPDATES_UPDATE_ID]: {
     desc: t('The UUID that uniquely identifies the update.'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
@@ -1960,9 +1960,9 @@ export const ISSUE_EVENT_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.USER_ID,
   FieldKey.USER_IP,
   FieldKey.USER_USERNAME,
-  FieldKey.EXPO_UPDATES_CHANNEL,
-  FieldKey.EXPO_UPDATES_RUNTIME_VERSION,
-  FieldKey.EXPO_UPDATES_UPDATE_ID,
+  FieldKey.OTA_UPDATES_CHANNEL,
+  FieldKey.OTA_UPDATES_RUNTIME_VERSION,
+  FieldKey.OTA_UPDATES_UPDATE_ID,
 ];
 
 export const ISSUE_FIELDS: FieldKey[] = [
@@ -2032,9 +2032,9 @@ export const ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS: Set<FieldKey> = new
   FieldKey.USER_ID,
   FieldKey.USER_IP,
   FieldKey.USER_USERNAME,
-  FieldKey.EXPO_UPDATES_CHANNEL,
-  FieldKey.EXPO_UPDATES_RUNTIME_VERSION,
-  FieldKey.EXPO_UPDATES_UPDATE_ID,
+  FieldKey.OTA_UPDATES_CHANNEL,
+  FieldKey.OTA_UPDATES_RUNTIME_VERSION,
+  FieldKey.OTA_UPDATES_UPDATE_ID,
 ]);
 
 /**
@@ -2150,9 +2150,9 @@ export const DISCOVER_FIELDS = [
   SpanOpBreakdown.SPANS_UI,
 
   // Expo Updates fields
-  FieldKey.EXPO_UPDATES_CHANNEL,
-  FieldKey.EXPO_UPDATES_RUNTIME_VERSION,
-  FieldKey.EXPO_UPDATES_UPDATE_ID,
+  FieldKey.OTA_UPDATES_CHANNEL,
+  FieldKey.OTA_UPDATES_RUNTIME_VERSION,
+  FieldKey.OTA_UPDATES_UPDATE_ID,
 ];
 
 export enum ReplayFieldKey {
