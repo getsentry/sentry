@@ -149,7 +149,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
             size="sm"
           />
         </Flex>
-        {!aiConfig.needsGenAIConsent && (
+        {!aiConfig.needsGenAiAcknowledgement && (
           <ButtonBarWrapper data-test-id="autofix-button-bar">
             <ButtonBar gap={1}>
               <Feature features={['organizations:autofix-seer-preferences']}>
@@ -177,15 +177,15 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
         )}
       </SeerDrawerNavigator>
 
-      {!aiConfig.isAutofixSetupLoading && !aiConfig.needsGenAIConsent && autofixData && (
-        <AutofixProgressBar autofixData={autofixData} />
-      )}
+      {!aiConfig.isAutofixSetupLoading &&
+        !aiConfig.needsGenAiAcknowledgement &&
+        autofixData && <AutofixProgressBar autofixData={autofixData} />}
       <SeerDrawerBody ref={scrollContainerRef} onScroll={handleScroll}>
         {aiConfig.isAutofixSetupLoading ? (
           <div data-test-id="ai-setup-loading-indicator">
             <LoadingIndicator />
           </div>
-        ) : aiConfig.needsGenAIConsent ? (
+        ) : aiConfig.needsGenAiAcknowledgement ? (
           <AiSetupDataConsent groupId={group.id} />
         ) : (
           <Fragment>

@@ -10,19 +10,20 @@ interface AutofixSetupRepoDefinition extends AutofixRepoDefinition {
   ok: boolean;
 }
 
-type AutofixSetupResponse = {
-  genAIConsent: {
-    ok: boolean;
-  };
+export interface AutofixSetupResponse {
   integration: {
     ok: boolean;
     reason: string | null;
+  };
+  setupAcknowledgement: {
+    orgHasAcknowledged: boolean;
+    userHasAcknowledged: boolean;
   };
   githubWriteIntegration?: {
     ok: boolean;
     repos: AutofixSetupRepoDefinition[];
   } | null;
-};
+}
 
 function makeAutofixSetupQueryKey(
   groupId: string,
@@ -50,7 +51,8 @@ export function useAutofixSetup(
   return {
     ...queryData,
     canStartAutofix: Boolean(
-      queryData.data?.integration.ok && queryData.data?.genAIConsent.ok
+      queryData.data?.integration.ok &&
+        queryData.data?.setupAcknowledgement.userHasAcknowledged
     ),
     canCreatePullRequests: Boolean(queryData.data?.githubWriteIntegration?.ok),
   };

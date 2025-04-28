@@ -17,16 +17,11 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import type {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
 
 interface Props {
-  aiConfig: {
-    hasAutofix: boolean | null | undefined;
-    hasResources: boolean;
-    hasSummary: boolean;
-    isAutofixSetupLoading: boolean;
-    needsGenAIConsent: boolean;
-  };
+  aiConfig: ReturnType<typeof useAiConfig>;
   event: Event;
   group: Group;
   hasStreamlinedUI: boolean;
@@ -122,7 +117,7 @@ export function SeerSectionCtaButton({
   }, []);
 
   const showCtaButton =
-    aiConfig.needsGenAIConsent ||
+    aiConfig.needsGenAiAcknowledgement ||
     aiConfig.hasAutofix ||
     (aiConfig.hasSummary && aiConfig.hasResources);
   const isButtonLoading = aiConfig.isAutofixSetupLoading || isAutofixPending;
@@ -137,7 +132,7 @@ export function SeerSectionCtaButton({
     autofixData?.steps?.some(step => step.type === type);
 
   const getButtonText = () => {
-    if (aiConfig.needsGenAIConsent) {
+    if (aiConfig.needsGenAiAcknowledgement) {
       return t('Set Up Autofix');
     }
 
