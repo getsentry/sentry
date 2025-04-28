@@ -1,6 +1,6 @@
-import type {EventErrorData} from 'sentry/components/events/errorItem';
 import findBestThread from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
 import getThreadException from 'sentry/components/events/interfaces/threads/threadSelector/getThreadException';
+import type {EventErrorData} from 'sentry/components/events/interfaces/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import type {HttpProcessingErrors} from 'sentry/constants/eventErrors';
 import {
