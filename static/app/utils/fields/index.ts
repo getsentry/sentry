@@ -133,6 +133,9 @@ export enum FieldKey {
   USER_SEGMENT = 'user.segment',
   APP_IN_FOREGROUND = 'app.in_foreground',
   FUNCTION_DURATION = 'function.duration',
+  EXPO_UPDATES_CHANNEL = 'expo_updates.channel',
+  EXPO_UPDATES_RUNTIME_VERSION = 'expo_updates.runtime_version',
+  EXPO_UPDATES_UPDATE_ID = 'expo_updates.update_id',
 }
 
 export enum FieldValueType {
@@ -1585,10 +1588,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [FieldKey.PROJECT]: {
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
+  [FieldKey.PROJECT]: {kind: FieldKind.FIELD, valueType: FieldValueType.STRING},
   [FieldKey.FIRST_RELEASE]: {
     desc: t('Issues first seen in a given release'),
     kind: FieldKind.FIELD,
@@ -1840,6 +1840,21 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.DURATION,
   },
+  [FieldKey.EXPO_UPDATES_CHANNEL]: {
+    desc: t('The channel name of the build from EAS Update'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.EXPO_UPDATES_RUNTIME_VERSION]: {
+    desc: t('The runtime version of the current build from EAS Update'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.EXPO_UPDATES_UPDATE_ID]: {
+    desc: t('The UUID that uniquely identifies the update.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
 };
 
 const SPAN_HTTP_FIELD_DEFINITIONS: Record<SpanHttpField, FieldDefinition> = {
@@ -1945,6 +1960,9 @@ export const ISSUE_EVENT_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.USER_ID,
   FieldKey.USER_IP,
   FieldKey.USER_USERNAME,
+  FieldKey.EXPO_UPDATES_CHANNEL,
+  FieldKey.EXPO_UPDATES_RUNTIME_VERSION,
+  FieldKey.EXPO_UPDATES_UPDATE_ID,
 ];
 
 export const ISSUE_FIELDS: FieldKey[] = [
@@ -2014,6 +2032,9 @@ export const ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS: Set<FieldKey> = new
   FieldKey.USER_ID,
   FieldKey.USER_IP,
   FieldKey.USER_USERNAME,
+  FieldKey.EXPO_UPDATES_CHANNEL,
+  FieldKey.EXPO_UPDATES_RUNTIME_VERSION,
+  FieldKey.EXPO_UPDATES_UPDATE_ID,
 ]);
 
 /**
@@ -2127,6 +2148,11 @@ export const DISCOVER_FIELDS = [
   SpanOpBreakdown.SPANS_HTTP,
   SpanOpBreakdown.SPANS_RESOURCE,
   SpanOpBreakdown.SPANS_UI,
+
+  // Expo Updates fields
+  FieldKey.EXPO_UPDATES_CHANNEL,
+  FieldKey.EXPO_UPDATES_RUNTIME_VERSION,
+  FieldKey.EXPO_UPDATES_UPDATE_ID,
 ];
 
 export enum ReplayFieldKey {
@@ -2544,17 +2570,11 @@ export const getFieldDefinition = (
       // aggregate functions. We assign value type based on kind, so that we can filter
       // on them when suggesting function parameters.
       if (kind === FieldKind.MEASUREMENT) {
-        return {
-          kind: FieldKind.FIELD,
-          valueType: FieldValueType.NUMBER,
-        };
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.NUMBER};
       }
 
       if (kind === FieldKind.TAG) {
-        return {
-          kind: FieldKind.FIELD,
-          valueType: FieldValueType.STRING,
-        };
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.STRING};
       }
 
       return null;
@@ -2569,17 +2589,11 @@ export const getFieldDefinition = (
       // aggregate functions. We assign value type based on kind, so that we can filter
       // on them when suggesting function parameters.
       if (kind === FieldKind.MEASUREMENT) {
-        return {
-          kind: FieldKind.FIELD,
-          valueType: FieldValueType.NUMBER,
-        };
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.NUMBER};
       }
 
       if (kind === FieldKind.TAG) {
-        return {
-          kind: FieldKind.FIELD,
-          valueType: FieldValueType.STRING,
-        };
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.STRING};
       }
       return null;
 
@@ -2594,11 +2608,7 @@ export function makeTagCollection(fieldKeys: FieldKey[]): TagCollection {
   return Object.fromEntries(
     fieldKeys.map(fieldKey => [
       fieldKey,
-      {
-        key: fieldKey,
-        name: fieldKey,
-        kind: getFieldDefinition(fieldKey)?.kind,
-      },
+      {key: fieldKey, name: fieldKey, kind: getFieldDefinition(fieldKey)?.kind},
     ])
   );
 }
