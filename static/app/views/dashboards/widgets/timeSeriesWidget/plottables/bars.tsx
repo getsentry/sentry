@@ -23,10 +23,6 @@ interface BarsConfig extends ContinuousTimeSeriesConfig {
 }
 
 export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable {
-  constrain(boundaryStart: Date | null, boundaryEnd: Date | null) {
-    return new Bars(this.constrainTimeSeries(boundaryStart, boundaryEnd), this.config);
-  }
-
   onHighlight(dataIndex: number): void {
     const {config = {}} = this;
     const datum = this.timeSeries.values.at(dataIndex);

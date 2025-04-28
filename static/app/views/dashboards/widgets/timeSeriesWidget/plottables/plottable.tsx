@@ -12,11 +12,6 @@ export type PlottableTimeSeriesValueType =
  */
 export interface Plottable {
   /**
-   * Returns a cloned Plottable, constraining any time-series data within the
-   * date boundaries provided
-   */
-  constrain(boundaryStart: Date | null, boundaryEnd: Date | null): Plottable;
-  /**
    * Type of the underlying data
    */
   dataType: PlottableTimeSeriesValueType;
