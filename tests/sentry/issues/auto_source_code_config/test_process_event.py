@@ -82,7 +82,12 @@ class BaseDeriveCodeMappings(TestCase):
         return cast(GroupEvent, self.store_event(data=test_data, project_id=self.project.id))
 
     def create_repo_and_code_mapping(
-        self, repo_name: str, stack_root: str, source_root: str
+        self,
+        repo_name: str,
+        stack_root: str,
+        source_root: str,
+        automatically_generated: bool = False,
+        default_branch: str = "master",
     ) -> None:
         with assume_test_silo_mode_of(OrganizationIntegration):
             organization_integration = OrganizationIntegration.objects.get(
@@ -98,10 +103,12 @@ class BaseDeriveCodeMappings(TestCase):
             project_id=self.project.id,
             stack_root=stack_root,
             source_root=source_root,
+            default_branch=default_branch,
             repository=repository,
             organization_integration_id=organization_integration.id,
             integration_id=organization_integration.integration_id,
             organization_id=organization_integration.organization_id,
+            automatically_generated=automatically_generated,
         )
 
     def _process_and_assert_configuration_changes(
@@ -219,7 +226,6 @@ class BaseDeriveCodeMappings(TestCase):
         self,
         module: str,
         abs_path: str,
-        category: str | None = None,
         in_app: bool = False,
     ) -> dict[str, str | bool | Any]:
         frame: dict[str, str | bool | Any] = {}
@@ -229,8 +235,6 @@ class BaseDeriveCodeMappings(TestCase):
             frame["abs_path"] = abs_path
         if in_app and in_app is not None:
             frame["in_app"] = in_app
-        if category:
-            frame["data"] = {"category": category}
         return frame
 
     def code_mapping(

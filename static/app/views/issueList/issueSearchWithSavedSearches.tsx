@@ -1,7 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonLabel} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -81,11 +81,12 @@ const StyledButton = styled(Button)`
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
     border-right: none;
+    ${p => p.theme.overflowEllipsis};
 
-    ${ButtonLabel} {
+    > span {
+      ${p => p.theme.overflowEllipsis};
       height: auto;
       display: block;
-      ${p => p.theme.overflowEllipsis};
     }
   }
 `;
