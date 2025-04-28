@@ -170,6 +170,51 @@ def get_organization_autofix_consent(*, org_id: int) -> dict:
     }
 
 
+def get_fields(*, org_id: int, project_ids: list[int], stats_period: str) -> dict:
+    # organization = Organization.objects.get(id=org_id)
+    # projects = Project.objects.filter(id__in=project_ids, organization=organization, status=0)
+
+    return {"fields": ["op"]}
+
+    # TODO: Start based off stats period
+    # start = datetime.datetime.now() - datetime.timedelta(days=1)
+    # end = datetime.datetime.now()
+
+    # start_time_proto = ProtobufTimestamp()
+    # start_time_proto.FromDatetime(start)
+    # end_time_proto = ProtobufTimestamp()
+    # end_time_proto.FromDatetime(end)
+    # req = AggregateBucketRequest(
+    #     meta=RequestMeta(
+    #         organization_id=org_id,
+    #         cogs_category="events_analytics_platform",
+    #         referrer="seer_rpc",
+    #         project_ids=project_ids,
+    #         start_timestamp=start_time_proto,
+    #         end_timestamp=end_time_proto,
+    #         trace_item_name=TraceItemName.TRACE_ITEM_NAME_EAP_SPANS,
+    #     ),
+    #     aggregate=AggregateBucketRequest.FUNCTION_SUM,
+    #     filter=TraceItemFilter(
+    #         comparison_filter=ComparisonFilter(
+    #             key=AttributeKey(name="op", type=AttributeKey.Type.TYPE_STRING),
+    #             value=AttributeValue(val_str="ai.run"),
+    #         )
+    #     ),
+    #     granularity_secs=60,
+    #     key=AttributeKey(name="duration", type=AttributeKey.TYPE_FLOAT),
+    #     # attribute_key_transform_context=AttributeKeyTransformContext(),
+    # )
+    # aggregate_resp = snuba_rpc.rpc(req, AggregateBucketResponse)
+    # response = AggregateBucketResponse()
+    # # response.ParseFromString(aggregate_resp.result)
+    # print("aggregate_resp", aggregate_resp)
+    # print("response", response)
+    # print()
+
+    return {}
+
+
 seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_organization_slug": get_organization_slug,
     "get_organization_autofix_consent": get_organization_autofix_consent,
@@ -177,6 +222,7 @@ seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_issues_related_to_function_names": get_issues_related_to_function_names,
     "get_error_event_details": get_error_event_details,
     "get_profile_details": get_profile_details,
+    "get_fields": get_fields,
 }
 
 
