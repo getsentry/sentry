@@ -7,12 +7,15 @@ import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 
 import ResultGrid from 'admin/components/resultGrid';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
-import type {ReservedBudget, ReservedBudgetMetricHistory} from 'getsentry/types';
+import type {
+  BillingHistory,
+  ReservedBudget,
+  ReservedBudgetMetricHistory,
+} from 'getsentry/types';
 import {formatReservedWithUnits, formatUsageWithUnits} from 'getsentry/utils/billing';
 import {getPlanCategoryName, sortCategories} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
-import type {BillingHistory} from 'getsentry/types';
 
 type Props = Partial<React.ComponentProps<typeof ResultGrid>> & {
   orgId: string;
