@@ -48,11 +48,10 @@ function measureTokens(
 ) {
   if (cachedTokenCoordinates.current) {
     const hasAllKeys = keys.every(key => key in cachedTokenCoordinates.current!);
-    if (!hasAllKeys) {
-      cachedTokenCoordinates.current = null;
-    } else {
+    if (hasAllKeys) {
       return cachedTokenCoordinates.current;
     }
+    cachedTokenCoordinates.current = null;
   }
 
   if (!wrapperRef.current) {
