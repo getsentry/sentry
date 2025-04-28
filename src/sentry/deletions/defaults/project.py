@@ -6,7 +6,6 @@ from sentry.deletions.base import (
     ModelDeletionTask,
     ModelRelation,
 )
-from sentry.deletions.defaults.rule import RuleDeletionTask
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 
@@ -91,30 +90,29 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
         ):
             relations.append(ModelRelation(m1, {"project_id": instance.id}, BulkModelDeletionTask))
 
-        relations.append(ModelRelation(Monitor, {"project_id": instance.id}))
-        relations.append(ModelRelation(Group, {"project_id": instance.id}))
-        relations.append(ModelRelation(QuerySubscription, {"project_id": instance.id}))
+        for m2 in (
+            Monitor,
+            Group,
+            QuerySubscription,
+            Rule,
+        ):
+            relations.append(ModelRelation(m2, {"project_id": instance.id}))
+
         relations.append(
             ModelRelation(
                 AlertRule,
                 {"snuba_query__subscriptions__project": instance},
             )
         )
-        relations.append(
-            ModelRelation(
-                Rule,
-                {"project_id": instance.id},
-                RuleDeletionTask,
-            )
-        )
 
         # Release needs to handle deletes after Group is cleaned up as the foreign
         # key is protected
-        for m2 in (
+        for m3 in (
             ReleaseProject,
             ReleaseProjectEnvironment,
             EventAttachment,
             ProjectDebugFile,
         ):
-            relations.append(ModelRelation(m2, {"project_id": instance.id}, ModelDeletionTask))
+            relations.append(ModelRelation(m3, {"project_id": instance.id}, ModelDeletionTask))
+
         return relations
