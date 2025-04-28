@@ -19,6 +19,8 @@ export function getPythonInstallSnippet({
   minimumVersion?: string;
   packageManager?: 'pip' | 'uv' | 'poetry';
 }) {
+  // We are using consistent double quotes here for all package managers after aligning with the Python SDK team.
+  // Not using quotes may lead to some shells interpreting the square brackets, and using double quotes over single quotes is a convention.
   const versionedPackage = minimumVersion
     ? `"${packageName}>=${minimumVersion}"`
     : `"${packageName}"`;
