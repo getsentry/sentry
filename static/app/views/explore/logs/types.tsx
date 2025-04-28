@@ -43,7 +43,7 @@ type OurLogsKnownFieldResponseMap = {
   [OurLogKnownFieldKey.SEVERITY_NUMBER]: number;
   [OurLogKnownFieldKey.SEVERITY]: string;
   [OurLogKnownFieldKey.ORGANIZATION_ID]: number;
-  [OurLogKnownFieldKey.PROJECT_ID]: number;
+  [OurLogKnownFieldKey.PROJECT_ID]: string;
   [OurLogKnownFieldKey.TIMESTAMP]: string;
 };
 

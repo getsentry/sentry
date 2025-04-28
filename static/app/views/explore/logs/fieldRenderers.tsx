@@ -130,10 +130,7 @@ function CodePathRenderer(props: LogFieldRendererProps) {
           version: sdkVersion,
         }
       : undefined;
-  let filename = props.item.value;
-  if (typeof filename === 'string' && filename.startsWith('/usr/src/sentry/src/')) {
-    filename = filename.slice('/usr/src/sentry/src/'.length);
-  }
+  const filename = props.item.value;
 
   const {data: release} = useRelease({
     orgSlug: props.extra.organization.slug,
