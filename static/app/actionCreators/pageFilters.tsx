@@ -215,8 +215,7 @@ export function initializeUrlState({
   // Use period from default if we don't have a period set
   pageFilters.datetime.period ??= defaultDatetime.period;
 
-  const codecovDefaultFilters = getCodecovDefaultSelection();
-  const codecovPageFilters: CodecovPageFilters = codecovDefaultFilters;
+  const codecovPageFilters: CodecovPageFilters = getCodecovDefaultSelection();
 
   // Do not set a period if we have absolute start and end
   if (pageFilters.datetime.start && pageFilters.datetime.end) {
@@ -512,9 +511,9 @@ export function updateDateTime(
 /**
  * Updates store and global repository selection URL param if `router` is supplied
  *
- * @param {Object} repository Object with repository key
- * @param {Object} [router] Router object
- * @param {Object} [options] Options object
+ * @param repository Object with repository key
+ * @param router Router object
+ * @param options Options object
  */
 export function updateRepository(repository: string, router?: Router, options?: Options) {
   PageFiltersStore.updateRepository(repository);
