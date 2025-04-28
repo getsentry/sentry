@@ -11,6 +11,7 @@ from sentry.new_migrations.monkey.executor import (
     SentryMigrationExecutor,
     _check_bitfield_flags,
 )
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class DummyGetsentryAppConfig(AppConfig):
@@ -62,7 +63,7 @@ class TestSentryMigrationExecutor:
                     name="projects",
                     field=models.ManyToManyField(related_name="releases", to="sentry.Project"),
                 ),
-                migrations.RunSQL(
+                SafeRunSQL(
                     "TEST SQL",
                     hints={"tables": ["sentry_savedsearch"]},
                 ),
@@ -110,7 +111,7 @@ class TestSentryMigrationExecutor:
                                 related_name="releases", to="sentry.Project"
                             ),
                         ),
-                        migrations.RunSQL(
+                        SafeRunSQL(
                             "TEST SQL",
                             hints={"tables": ["sentry_savedsearch"]},
                         ),
@@ -142,7 +143,7 @@ class TestSentryMigrationExecutor:
                                 related_name="releases", to="sentry.Project"
                             ),
                         ),
-                        migrations.RunSQL("TEST SQL"),
+                        SafeRunSQL("TEST SQL"),
                         migrations.RunPython(
                             migrations.RunPython.noop,
                             migrations.RunPython.noop,
@@ -164,7 +165,7 @@ class TestSentryMigrationExecutor:
     def test_check_db_routing_missing_hints_2(self):
         class TestMigration(migrations.Migration):
             operations = [
-                migrations.RunSQL("TEST SQL"),
+                SafeRunSQL("TEST SQL"),
             ]
 
         with pytest.raises(MissingDatabaseRoutingInfo):
@@ -198,7 +199,7 @@ class TestSentryMigrationExecutor:
     def test_check_db_routing_dont_run_for_3rd_party(self):
         class TestMigration(migrations.Migration):
             operations = [
-                migrations.RunSQL("TEST SQL"),
+                SafeRunSQL("TEST SQL"),
             ]
 
         SentryMigrationExecutor._check_db_routing(TestMigration(name="test", app_label="auth"))

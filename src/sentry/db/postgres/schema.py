@@ -1,6 +1,5 @@
 from contextlib import contextmanager
 
-from django.conf import settings
 from django.db.backends.ddl_references import Statement
 from django.db.backends.postgresql.schema import (
     DatabaseSchemaEditor as PostgresDatabaseSchemaEditor,
@@ -72,12 +71,6 @@ class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDataba
         PostgresDatabaseSchemaEditor.alter_db_tablespace
     )
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.LOCK_TIMEOUT_FORCE = getattr(
-            settings, "ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT_FORCE", False
-        )
-
     def alter_db_table(self, model, old_db_table, new_db_table):
         """
         This didn't work correctly in  django_zero_downtime_migrations, so implementing here. This
@@ -140,9 +133,6 @@ class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDataba
             if not self._skip_applied(idempotent_condition):
                 if use_timeouts:
                     with self._set_operation_timeout(self.STATEMENT_TIMEOUT, self.LOCK_TIMEOUT):
-                        PostgresDatabaseSchemaEditor.execute(self, statement, params)
-                elif self.LOCK_TIMEOUT_FORCE:
-                    with self._set_operation_timeout(lock_timeout=self.LOCK_TIMEOUT):
                         PostgresDatabaseSchemaEditor.execute(self, statement, params)
                 elif disable_statement_timeout and self.FLEXIBLE_STATEMENT_TIMEOUT:
                     with self._set_operation_timeout(self.ZERO_TIMEOUT):
