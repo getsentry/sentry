@@ -51,7 +51,11 @@ describe('GroupCheckIns', () => {
       body: [],
     });
 
-    render(<GroupCheckIns />, {organization, router});
+    render(<GroupCheckIns />, {
+      organization,
+      router,
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByText('All Check-Ins')).toBeInTheDocument();
     for (const column of [
       'Timestamp',
@@ -73,7 +77,11 @@ describe('GroupCheckIns', () => {
       body: [check],
     });
 
-    render(<GroupCheckIns />, {organization, router});
+    render(<GroupCheckIns />, {
+      organization,
+      router,
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByText('All Check-Ins')).toBeInTheDocument();
     expect(screen.queryByText('No matching check-ins found')).not.toBeInTheDocument();
     expect(screen.getByText('Showing 1-1 matching check-ins')).toBeInTheDocument();

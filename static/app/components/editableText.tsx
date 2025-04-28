@@ -181,7 +181,7 @@ function EditableText({
 
 export default EditableText;
 
-export const Label = styled('div')<{isDisabled: boolean}>`
+const Label = styled('div')<{isDisabled: boolean}>`
   display: grid;
   grid-auto-flow: column;
   align-items: center;

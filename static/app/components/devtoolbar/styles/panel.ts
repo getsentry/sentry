@@ -17,11 +17,6 @@ export const panelHeadingCss = css`
   border-bottom: 1px solid var(--gray200);
 `;
 
-export const panelHeadingLeftCss = css`
-  position: absolute;
-  left: 0;
-`;
-
 export const panelHeadingRightCss = css`
   position: absolute;
   right: 0;

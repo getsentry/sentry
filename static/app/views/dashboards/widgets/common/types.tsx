@@ -18,24 +18,27 @@ type AttributeValueType =
 
 type AttributeValueUnit = DataUnit | null;
 
-export type TimeSeriesValueType = AttributeValueType;
+type TimeSeriesValueType = AttributeValueType;
 export type TimeSeriesValueUnit = AttributeValueUnit;
 export type TimeSeriesMeta = {
-  type: TimeSeriesValueType;
-  unit: TimeSeriesValueUnit;
+  valueType: TimeSeriesValueType;
+  valueUnit: TimeSeriesValueUnit;
   isOther?: boolean;
 };
 
 export type TimeSeriesItem = {
-  timestamp: string;
+  /**
+   * Milliseconds since Unix epoch
+   */
+  timestamp: number;
   value: number | null;
   delayed?: boolean;
 };
 
 export type TimeSeries = {
-  data: TimeSeriesItem[];
   field: string;
   meta: TimeSeriesMeta;
+  values: TimeSeriesItem[];
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
   sampleCount?: AccuracyStats<number>;
@@ -44,7 +47,7 @@ export type TimeSeries = {
 
 export type TabularValueType = AttributeValueType;
 export type TabularValueUnit = AttributeValueUnit;
-export type TabularMeta<TFields extends string = string> = {
+type TabularMeta<TFields extends string = string> = {
   fields: Record<TFields, TabularValueType>;
   units: Record<TFields, TabularValueUnit>;
 };
@@ -59,7 +62,7 @@ export type TabularData<TFields extends string = string> = {
   meta: TabularMeta<TFields>;
 };
 
-export type ErrorProp = Error | string;
+type ErrorProp = Error | string;
 export interface ErrorPropWithResponseJSON extends Error {
   responseJSON?: {detail: string};
 }

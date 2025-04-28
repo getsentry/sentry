@@ -61,7 +61,6 @@ function AutomationListTable({automations}: AutomationListTableProps) {
             link={automation.link}
             monitorIds={automation.monitorIds}
             name={automation.name}
-            project={automation.project}
             details={automation.details}
             handleSelect={handleSelect}
             selected={selectedRows.includes(automation.id)}

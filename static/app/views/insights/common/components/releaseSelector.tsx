@@ -39,7 +39,7 @@ type Props = {
   triggerLabelPrefix?: string;
 };
 
-export function ReleaseSelector({
+function ReleaseSelector({
   selectorKey,
   selectorValue,
   triggerLabelPrefix,

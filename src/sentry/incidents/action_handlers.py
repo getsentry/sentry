@@ -59,11 +59,12 @@ from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.users.services.user_option import RpcUserOption, user_option_service
 from sentry.utils.email import MessageBuilder, get_email_addresses
+from sentry.workflow_engine.models.incident_groupopenperiod import IncidentGroupOpenPeriod
+
+EMAIL_STATUS_DISPLAY = {TriggerStatus.ACTIVE: "Fired", TriggerStatus.RESOLVED: "Resolved"}
 
 
 class ActionHandler(metaclass=abc.ABCMeta):
-    status_display = {TriggerStatus.ACTIVE: "Fired", TriggerStatus.RESOLVED: "Resolved"}
-
     @property
     @abc.abstractmethod
     def provider(self) -> str:
@@ -95,18 +96,18 @@ class ActionHandler(metaclass=abc.ABCMeta):
 
     def record_alert_sent_analytics(
         self,
-        action: AlertRuleTriggerAction,
-        incident: Incident,
-        project: Project,
+        organization_id: int,
+        project_id: int,
+        alert_id: int,
         external_id: int | str | None = None,
         notification_uuid: str | None = None,
     ) -> None:
         analytics.record(
             "alert.sent",
-            organization_id=incident.organization_id,
-            project_id=project.id,
+            organization_id=organization_id,
+            project_id=project_id,
             provider=self.provider,
-            alert_id=incident.alert_rule_id,
+            alert_id=alert_id,
             alert_type="metric_alert",
             external_id=str(external_id) if external_id is not None else "",
             notification_uuid=notification_uuid or "",
@@ -235,12 +236,13 @@ class EmailActionHandler(ActionHandler):
         new_status: IncidentStatus,
         notification_uuid: str | None = None,
     ) -> None:
-        self.email_users(
-            action,
-            incident,
-            project,
+        self._email_users(
+            action=action,
+            incident=incident,
+            project=project,
+            metric_value=metric_value,
+            new_status=new_status,
             trigger_status=TriggerStatus.ACTIVE,
-            incident_status=new_status,
             notification_uuid=notification_uuid,
         )
 
@@ -253,73 +255,66 @@ class EmailActionHandler(ActionHandler):
         new_status: IncidentStatus,
         notification_uuid: str | None = None,
     ) -> None:
-        self.email_users(
-            action,
-            incident,
-            project,
+        self._email_users(
+            action=action,
+            incident=incident,
+            project=project,
+            metric_value=metric_value,
+            new_status=new_status,
             trigger_status=TriggerStatus.RESOLVED,
-            incident_status=new_status,
             notification_uuid=notification_uuid,
         )
 
-    def email_users(
+    def _email_users(
         self,
         action: AlertRuleTriggerAction,
         incident: Incident,
         project: Project,
+        metric_value: int | float | None,
+        new_status: IncidentStatus,
         trigger_status: TriggerStatus,
-        incident_status: IncidentStatus,
         notification_uuid: str | None = None,
-    ) -> None:
+    ):
         alert_rule_serialized_response: AlertRuleSerializerResponse = serialize(
             incident.alert_rule, None, AlertRuleSerializer()
         )
         incident_serialized_response: DetailedIncidentSerializerResponse = serialize(
             incident, None, DetailedIncidentSerializer()
         )
+
         metric_issue_context = MetricIssueContext.from_legacy_models(
             incident=incident,
-            new_status=incident_status,
+            new_status=new_status,
+            metric_value=metric_value,
         )
         open_period_context = OpenPeriodContext.from_incident(incident)
-        alert_context = AlertContext.from_alert_rule_incident(incident.alert_rule)
+        alert_context = AlertContext.from_alert_rule_incident(
+            incident.alert_rule, alert_rule_threshold=action.alert_rule_trigger.alert_threshold
+        )
         targets = [
             (user_id, email) for user_id, email in self.get_targets(action, incident, project)
         ]
-        users = user_service.get_many_by_id(ids=[user_id for user_id, _ in targets])
-        for index, (user_id, email) in enumerate(targets):
-            user = users[index]
-            email_context = generate_incident_trigger_email_context(
-                project=project,
-                organization=incident.organization,
-                metric_issue_context=metric_issue_context,
-                alert_rule_serialized_response=alert_rule_serialized_response,
-                incident_serialized_response=incident_serialized_response,
-                alert_context=alert_context,
-                open_period_context=open_period_context,
-                trigger_status=trigger_status,
-                trigger_threshold=action.alert_rule_trigger.alert_threshold,
-                user=user,
+
+        users_sent_to = email_users(
+            metric_issue_context=metric_issue_context,
+            open_period_context=open_period_context,
+            alert_context=alert_context,
+            alert_rule_serialized_response=alert_rule_serialized_response,
+            incident_serialized_response=incident_serialized_response,
+            trigger_status=trigger_status,
+            targets=targets,
+            project=project,
+            notification_uuid=notification_uuid,
+        )
+
+        for user_id in users_sent_to:
+            self.record_alert_sent_analytics(
+                organization_id=incident.organization.id,
+                project_id=project.id,
+                alert_id=incident.alert_rule.id,
+                external_id=user_id,
                 notification_uuid=notification_uuid,
             )
-            self.build_message(email_context, trigger_status, user_id).send_async(to=[email])
-            self.record_alert_sent_analytics(action, incident, project, user_id, notification_uuid)
-
-    def build_message(
-        self, context: dict[str, Any], status: TriggerStatus, user_id: int
-    ) -> MessageBuilder:
-        display = self.status_display[status]
-
-        return MessageBuilder(
-            subject="[{}] {} - {}".format(
-                context["status"], context["incident_name"], context["project_slug"]
-            ),
-            template="sentry/emails/incidents/trigger.txt",
-            html_template="sentry/emails/incidents/trigger.html",
-            type=f"incident.alert_rule_{display.lower()}",
-            context=context,
-            headers={"X-SMTPAPI": orjson.dumps({"category": "metric_alert_email"}).decode()},
-        )
 
 
 @AlertRuleTriggerAction.register_type(
@@ -364,7 +359,11 @@ class PagerDutyActionHandler(DefaultActionHandler):
         )
         if success:
             self.record_alert_sent_analytics(
-                action, incident, project, action.target_identifier, notification_uuid
+                organization_id=incident.organization.id,
+                project_id=project.id,
+                alert_id=incident.alert_rule.id,
+                external_id=action.target_identifier,
+                notification_uuid=notification_uuid,
             )
 
 
@@ -410,7 +409,11 @@ class OpsgenieActionHandler(DefaultActionHandler):
         )
         if success:
             self.record_alert_sent_analytics(
-                action, incident, project, action.target_identifier, notification_uuid
+                organization_id=incident.organization.id,
+                project_id=project.id,
+                alert_id=incident.alert_rule.id,
+                external_id=action.target_identifier,
+                notification_uuid=notification_uuid,
             )
 
 
@@ -458,7 +461,11 @@ class SentryAppActionHandler(DefaultActionHandler):
         )
         if success:
             self.record_alert_sent_analytics(
-                action, incident, project, action.sentry_app_id, notification_uuid
+                organization_id=incident.organization.id,
+                project_id=project.id,
+                alert_id=incident.alert_rule.id,
+                external_id=action.sentry_app_id,
+                notification_uuid=notification_uuid,
             )
 
 
@@ -557,20 +564,60 @@ def generate_incident_trigger_email_context(
     if notification_uuid:
         alert_link_params["notification_uuid"] = notification_uuid
 
-    alert_link = organization.absolute_url(
-        reverse(
-            "sentry-metric-alert",
-            kwargs={
-                "organization_slug": organization.slug,
-                "incident_id": metric_issue_context.open_period_identifier,
-            },
-        ),
-        query=urlencode(alert_link_params),
-    )
+    if features.has("organizations:workflow-engine-ui-links", organization):
+        assert (
+            metric_issue_context.group is not None
+        ), "Group should not be None when workflow engine ui links are enabled"
+        alert_link = organization.absolute_url(
+            reverse(
+                "sentry-group",
+                kwargs={
+                    "organization_slug": organization.slug,
+                    "project_id": project.id,
+                    "group_id": metric_issue_context.group.id,
+                },
+            ),
+            query=urlencode(alert_link_params),
+        )
+    elif features.has("organizations:workflow-engine-trigger-actions", organization):
+        # lookup the incident_id from the open_period_identifier
+        try:
+            incident_group_open_period = IncidentGroupOpenPeriod.objects.get(
+                group_open_period_id=metric_issue_context.open_period_identifier
+            )
+        except IncidentGroupOpenPeriod.DoesNotExist:
+            raise ValueError("IncidentGroupOpenPeriod does not exist")
+
+        incident = Incident.objects.get(id=incident_group_open_period.incident_id)
+        alert_link = organization.absolute_url(
+            reverse(
+                "sentry-metric-alert",
+                kwargs={
+                    "organization_slug": organization.slug,
+                    "incident_id": incident.identifier,
+                },
+            ),
+            query=urlencode(alert_link_params),
+        )
+    else:
+        alert_link = organization.absolute_url(
+            reverse(
+                "sentry-metric-alert",
+                kwargs={
+                    "organization_slug": organization.slug,
+                    "incident_id": metric_issue_context.open_period_identifier,
+                },
+            ),
+            query=urlencode(alert_link_params),
+        )
 
     snooze_alert_url = None
-    snooze_alert = True
-    snooze_alert_url = alert_link + "&" + urlencode({"mute": "1"})
+    snooze_alert = False
+    # We don't have user muting for workflows in the new workflow engine system
+    # so we don't need to show the snooze alert url
+    if not features.has("organizations:workflow-engine-ui-links", organization):
+        snooze_alert = True
+        snooze_alert_url = alert_link + "&" + urlencode({"mute": "1"})
 
     query_str = build_query_strings(subscription=subscription, snuba_query=snuba_query).query_string
     return {
@@ -596,3 +643,56 @@ def generate_incident_trigger_email_context(
         "snooze_alert": snooze_alert,
         "snooze_alert_url": snooze_alert_url,
     }
+
+
+def build_message(context: dict[str, Any], status: TriggerStatus, user_id: int) -> MessageBuilder:
+    display = EMAIL_STATUS_DISPLAY[status]
+
+    return MessageBuilder(
+        subject="[{}] {} - {}".format(
+            context["status"], context["incident_name"], context["project_slug"]
+        ),
+        template="sentry/emails/incidents/trigger.txt",
+        html_template="sentry/emails/incidents/trigger.html",
+        type=f"incident.alert_rule_{display.lower()}",
+        context=context,
+        headers={"X-SMTPAPI": orjson.dumps({"category": "metric_alert_email"}).decode()},
+    )
+
+
+def email_users(
+    metric_issue_context: MetricIssueContext,
+    open_period_context: OpenPeriodContext,
+    alert_context: AlertContext,
+    alert_rule_serialized_response: AlertRuleSerializerResponse,
+    incident_serialized_response: DetailedIncidentSerializerResponse,
+    trigger_status: TriggerStatus,
+    targets: list[tuple[int, str]],
+    project: Project,
+    notification_uuid: str | None = None,
+) -> list[int]:
+    users = user_service.get_many_by_id(ids=[user_id for user_id, _ in targets])
+    sent_to_users = []
+    for index, (user_id, email) in enumerate(targets):
+        user = users[index]
+        # TODO(iamrajjoshi): Temporarily assert that alert_threshold is not None
+        # This should be removed when we update the typing and fetch the trigger_threshold in the new system
+        assert alert_context.alert_threshold is not None
+
+        email_context = generate_incident_trigger_email_context(
+            project=project,
+            organization=project.organization,
+            metric_issue_context=metric_issue_context,
+            alert_rule_serialized_response=alert_rule_serialized_response,
+            incident_serialized_response=incident_serialized_response,
+            alert_context=alert_context,
+            open_period_context=open_period_context,
+            trigger_status=trigger_status,
+            trigger_threshold=alert_context.alert_threshold,
+            user=user,
+            notification_uuid=notification_uuid,
+        )
+        build_message(email_context, trigger_status, user_id).send_async(to=[email])
+        sent_to_users.append(user_id)
+
+    return sent_to_users

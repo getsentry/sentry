@@ -27,7 +27,7 @@ export default function ReleaseSessionPercentageChartWidget(
       interactiveTitle={() => (
         <ChartSelectionTitle title={CHART_TITLES.ReleaseSessionPercentageChartWidget} />
       )}
-      height={SESSION_HEALTH_CHART_HEIGHT}
+      height={props.height || SESSION_HEALTH_CHART_HEIGHT}
       description={t(
         'The percentage of total sessions that each release accounted for. The 5 most recent releases are shown.'
       )}

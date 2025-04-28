@@ -33,6 +33,7 @@ describe('IncidentRedirect', () => {
   it('redirects to alert details page', async () => {
     render(<IncidentRedirect organization={organization} {...routerProps} />, {
       router,
+      deprecatedRouterMocks: true,
     });
 
     expect(trackAnalytics).toHaveBeenCalledWith(

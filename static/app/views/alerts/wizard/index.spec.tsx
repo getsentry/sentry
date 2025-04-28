@@ -26,7 +26,11 @@ describe('AlertWizard', () => {
         projectId={project.slug}
         {...routerProps}
       />,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(screen.getByText('Crash Free Session Rate'));
@@ -65,7 +69,11 @@ describe('AlertWizard', () => {
         projectId={project.slug}
         {...routerProps}
       />,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.getByText('Errors')).toBeInTheDocument();
@@ -98,7 +106,11 @@ describe('AlertWizard', () => {
         projectId={project.slug}
         {...routerProps}
       />,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.getByText('Errors')).toBeInTheDocument();
@@ -126,7 +138,11 @@ describe('AlertWizard', () => {
         projectId={project.slug}
         {...routerProps}
       />,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.getByText('Uptime Monitor')).toBeInTheDocument();
