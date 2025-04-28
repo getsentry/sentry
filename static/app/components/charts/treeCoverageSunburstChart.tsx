@@ -40,6 +40,18 @@ function bfsFilter(root: ProcessedTreeCoverageSunburstData, maxDepth: number) {
   return editableTree;
 }
 
+/**
+ * The ideal data structure for the sunburst chart coming from the backend is
+ * as follows:
+ *
+ * {
+ *   name: string;
+ *   fullPath: string;
+ *   value: 1 | undefined - value should be only for file nodes, directory nodes should not have a value
+ *   coverage: number - coverage should be for both file and directory nodes
+ *   children: <recursive structure>[] | undefined - only dir nodes should have the children field;
+ * }
+ */
 export interface TreeCoverageSunburstData {
   children: TreeCoverageSunburstData[];
   coverage: number;
