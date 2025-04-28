@@ -19,6 +19,7 @@ from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.project import Project
 from sentry.models.pullrequest import PullRequest
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
@@ -384,5 +385,6 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
         with self.tasks():
             run_scheduled_deletions()
 
+        assert not Project.objects.filter(id=project.id).exists()
         assert not Detector.objects.filter(id=detector.id).exists()
         assert not Workflow.objects.filter(id=workflow.id).exists()
