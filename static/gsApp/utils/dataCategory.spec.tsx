@@ -207,17 +207,27 @@ describe('getPlanCategoryName', function () {
   const plan = PlanDetailsLookupFixture('am3_team');
 
   it('should capitalize category', function () {
-    expect(getPlanCategoryName({plan, category: 'transactions'})).toBe('Transactions');
-    expect(getPlanCategoryName({plan, category: 'errors'})).toBe('Errors');
-    expect(getPlanCategoryName({plan, category: 'replays'})).toBe('Replays');
-    expect(getPlanCategoryName({plan, category: 'spans'})).toBe('Spans');
-    expect(getPlanCategoryName({plan, category: 'profiles'})).toBe('Profiles');
-    expect(getPlanCategoryName({plan, category: 'monitorSeats'})).toBe('Cron monitors');
+    expect(getPlanCategoryName({plan, category: DataCategory.TRANSACTIONS})).toBe(
+      'Transactions'
+    );
+    expect(getPlanCategoryName({plan, category: DataCategory.ERRORS})).toBe('Errors');
+    expect(getPlanCategoryName({plan, category: DataCategory.REPLAYS})).toBe('Replays');
+    expect(getPlanCategoryName({plan, category: DataCategory.SPANS})).toBe('Spans');
+    expect(getPlanCategoryName({plan, category: DataCategory.PROFILE_DURATION})).toBe(
+      'Profiles'
+    );
+    expect(getPlanCategoryName({plan, category: DataCategory.MONITOR_SEATS})).toBe(
+      'Cron monitors'
+    );
   });
 
   it('should display spans as accepted spans for DS', function () {
     expect(
-      getPlanCategoryName({plan, category: 'spans', hadCustomDynamicSampling: true})
+      getPlanCategoryName({
+        plan,
+        category: DataCategory.SPANS,
+        hadCustomDynamicSampling: true,
+      })
     ).toBe('Accepted spans');
   });
 });
@@ -232,7 +242,7 @@ describe('getReservedBudgetDisplayName', function () {
     expect(
       getReservedBudgetDisplayName({
         plan: am1Plan,
-        categories: am1Plan?.categories ?? [],
+        categories: am1Plan?.categories as DataCategory[],
         hadCustomDynamicSampling: false,
       })
     ).toBe(
@@ -244,7 +254,7 @@ describe('getReservedBudgetDisplayName', function () {
     expect(
       getReservedBudgetDisplayName({
         plan: am2Plan,
-        categories: am2Plan?.categories ?? [],
+        categories: am2Plan?.categories as DataCategory[],
         hadCustomDynamicSampling: false,
       })
     ).toBe(
@@ -256,7 +266,7 @@ describe('getReservedBudgetDisplayName', function () {
     expect(
       getReservedBudgetDisplayName({
         plan: am3Plan,
-        categories: am3Plan?.categories ?? [],
+        categories: am3Plan?.categories as DataCategory[],
         hadCustomDynamicSampling: false,
       })
     ).toBe(
@@ -268,7 +278,7 @@ describe('getReservedBudgetDisplayName', function () {
     expect(
       getReservedBudgetDisplayName({
         plan: am3DsPlan,
-        categories: ['spans', 'spansIndexed'],
+        categories: [DataCategory.SPANS, DataCategory.SPANS_INDEXED],
         hadCustomDynamicSampling: true,
       })
     ).toBe('accepted spans and stored spans');
@@ -276,7 +286,7 @@ describe('getReservedBudgetDisplayName', function () {
     expect(
       getReservedBudgetDisplayName({
         plan: am3DsPlan,
-        categories: ['spans', 'spansIndexed'],
+        categories: [DataCategory.SPANS, DataCategory.SPANS_INDEXED],
         hadCustomDynamicSampling: false,
       })
     ).toBe('spans and stored spans');
@@ -286,7 +296,7 @@ describe('getReservedBudgetDisplayName', function () {
     expect(
       getReservedBudgetDisplayName({
         plan: am3Plan,
-        categories: am3Plan?.categories ?? [],
+        categories: am3Plan?.categories as DataCategory[],
         shouldTitleCase: true,
       })
     ).toBe(
@@ -303,12 +313,12 @@ describe('listDisplayNames', function () {
       listDisplayNames({
         plan: plan!,
         categories: [
-          'spans',
-          'transactions',
-          'errors',
-          'replays',
-          'monitorSeats',
-          'attachments',
+          DataCategory.SPANS,
+          DataCategory.TRANSACTIONS,
+          DataCategory.ERRORS,
+          DataCategory.REPLAYS,
+          DataCategory.MONITOR_SEATS,
+          DataCategory.ATTACHMENTS,
         ],
       })
     ).toBe('spans, transactions, errors, replays, cron monitors, and attachments');
@@ -318,7 +328,7 @@ describe('listDisplayNames', function () {
     expect(
       listDisplayNames({
         plan: plan!,
-        categories: plan!.checkoutCategories,
+        categories: plan!.checkoutCategories as DataCategory[],
         hadCustomDynamicSampling: false,
       })
     ).toBe('errors, replays, attachments, cron monitors, spans, and uptime monitors');
@@ -328,7 +338,7 @@ describe('listDisplayNames', function () {
     expect(
       listDisplayNames({
         plan: plan!,
-        categories: plan!.checkoutCategories,
+        categories: plan!.checkoutCategories as DataCategory[],
         hadCustomDynamicSampling: true,
       })
     ).toBe(

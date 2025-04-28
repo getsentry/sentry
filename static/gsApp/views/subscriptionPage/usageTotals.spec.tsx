@@ -50,7 +50,7 @@ describe('Subscription > UsageTotals', function () {
     });
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={totals}
         reservedUnits={100_000}
         prepaidUnits={100_000}
@@ -89,7 +89,7 @@ describe('Subscription > UsageTotals', function () {
     render(
       <UsageTotals
         showEventBreakdown
-        category="transactions"
+        category={DataCategory.TRANSACTIONS}
         totals={totals}
         eventTotals={{transactions: totals, profiles: totals}}
         reservedUnits={100_000}
@@ -146,7 +146,7 @@ describe('Subscription > UsageTotals', function () {
 
     render(
       <UsageTotals
-        category="profileDuration"
+        category={DataCategory.PROFILE_DURATION}
         totals={profileDurationTotals}
         eventTotals={{profileChunks: profileChunksTotals, profiles: profilesTotals}}
         subscription={subscription}
@@ -213,7 +213,7 @@ describe('Subscription > UsageTotals', function () {
 
     render(
       <UsageTotals
-        category="profileDuration"
+        category={DataCategory.PROFILE_DURATION}
         totals={profileDurationTotals}
         eventTotals={{profileChunks: profileChunksTotals, profiles: profilesTotals}}
         subscription={am2Subscription}
@@ -255,7 +255,7 @@ describe('Subscription > UsageTotals', function () {
     SubscriptionStore.set(organization.slug, am2Subscription);
     render(
       <UsageTotals
-        category="transactions"
+        category={DataCategory.TRANSACTIONS}
         totals={totals}
         eventTotals={{transactions: totals, profiles: totals}}
         reservedUnits={100_000}
@@ -290,7 +290,7 @@ describe('Subscription > UsageTotals', function () {
     render(
       <UsageTotals
         showEventBreakdown
-        category="spans"
+        category={DataCategory.SPANS}
         totals={totals}
         eventTotals={{spans: totals}}
         reservedUnits={RESERVED_BUDGET_QUOTA}
@@ -335,7 +335,7 @@ describe('Subscription > UsageTotals', function () {
     render(
       <UsageTotals
         showEventBreakdown
-        category="spans"
+        category={DataCategory.SPANS}
         totals={totals}
         eventTotals={{spans: totals}}
         reservedUnits={RESERVED_BUDGET_QUOTA}
@@ -372,7 +372,7 @@ describe('Subscription > UsageTotals', function () {
     });
     render(
       <UsageTotals
-        category="spans"
+        category={DataCategory.SPANS}
         totals={totals}
         eventTotals={{spans: totals}}
         reservedUnits={RESERVED_BUDGET_QUOTA}
@@ -409,7 +409,7 @@ describe('Subscription > UsageTotals', function () {
     });
     render(
       <UsageTotals
-        category="spans"
+        category={DataCategory.SPANS}
         totals={totals}
         eventTotals={{spans: totals}}
         reservedUnits={RESERVED_BUDGET_QUOTA}
@@ -435,7 +435,7 @@ describe('Subscription > UsageTotals', function () {
     });
     render(
       <UsageTotals
-        category="attachments"
+        category={DataCategory.ATTACHMENTS}
         totals={totals}
         reservedUnits={100}
         prepaidUnits={100}
@@ -470,7 +470,7 @@ describe('Subscription > UsageTotals', function () {
     });
     render(
       <UsageTotals
-        category="transactions"
+        category={DataCategory.TRANSACTIONS}
         subscription={subscription}
         organization={organization}
         displayMode="usage"
@@ -485,7 +485,7 @@ describe('Subscription > UsageTotals', function () {
     subscription.categories.errors = MetricHistoryFixture({usage: 175_000});
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={UsageTotalFixture({accepted: 175_000})}
         reservedUnits={50_000}
         freeUnits={150_000}
@@ -510,7 +510,7 @@ describe('Subscription > UsageTotals', function () {
     subscription.categories.transactions = MetricHistoryFixture({});
     render(
       <UsageTotals
-        category="transactions"
+        category={DataCategory.TRANSACTIONS}
         totals={totals}
         reservedUnits={100_000}
         freeUnits={200_000}
@@ -533,7 +533,7 @@ describe('Subscription > UsageTotals', function () {
     subscription.categories.transactions = MetricHistoryFixture({});
     render(
       <UsageTotals
-        category="transactions"
+        category={DataCategory.TRANSACTIONS}
         totals={totals}
         reservedUnits={UNLIMITED_RESERVED}
         freeUnits={200_000}
@@ -549,7 +549,7 @@ describe('Subscription > UsageTotals', function () {
   it('renders gifted attachments', function () {
     render(
       <UsageTotals
-        category="attachments"
+        category={DataCategory.ATTACHMENTS}
         totals={totals}
         freeUnits={2}
         reservedUnits={1}
@@ -571,7 +571,7 @@ describe('Subscription > UsageTotals', function () {
     const attachments = UsageTotalFixture({accepted: GIGABYTE * 0.6});
     render(
       <UsageTotals
-        category="attachments"
+        category={DataCategory.ATTACHMENTS}
         totals={attachments}
         reservedUnits={1}
         prepaidUnits={1}
@@ -629,7 +629,7 @@ describe('Subscription > UsageTotals', function () {
     render(
       <UsageTotals
         trueForward
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={totals}
         reservedUnits={100_000}
         prepaidUnits={100_000}
@@ -647,7 +647,7 @@ describe('Subscription > UsageTotals', function () {
     render(
       <UsageTotals
         softCapType="ON_DEMAND"
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={totals}
         reservedUnits={100_000}
         prepaidUnits={100_000}
@@ -665,7 +665,7 @@ describe('Subscription > UsageTotals', function () {
     render(
       <UsageTotals
         softCapType="TRUE_FORWARD"
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={totals}
         reservedUnits={100_000}
         prepaidUnits={100_000}
@@ -683,7 +683,7 @@ describe('Subscription > UsageTotals', function () {
     render(
       <UsageTotals
         trueForward
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={totals}
         reservedUnits={100_000}
         prepaidUnits={100_000}
@@ -702,7 +702,7 @@ describe('Subscription > UsageTotals', function () {
     render(
       <UsageTotals
         softCapType="ON_DEMAND"
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={totals}
         reservedUnits={100_000}
         prepaidUnits={100_000}
@@ -721,7 +721,7 @@ describe('Subscription > UsageTotals', function () {
     render(
       <UsageTotals
         softCapType="TRUE_FORWARD"
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={totals}
         reservedUnits={100_000}
         prepaidUnits={100_000}
@@ -748,7 +748,7 @@ describe('Subscription > UsageTotals', function () {
     ];
     render(
       <UsageTotals
-        category="replays"
+        category={DataCategory.REPLAYS}
         totals={totals}
         reservedUnits={500}
         prepaidUnits={500}
@@ -774,7 +774,7 @@ describe('Subscription > UsageTotals', function () {
     ];
     render(
       <UsageTotals
-        category="replays"
+        category={DataCategory.REPLAYS}
         totals={totals}
         reservedUnits={500}
         prepaidUnits={500}
@@ -801,7 +801,7 @@ describe('Subscription > UsageTotals', function () {
     ];
     render(
       <UsageTotals
-        category="replays"
+        category={DataCategory.REPLAYS}
         totals={totals}
         reservedUnits={500}
         prepaidUnits={500}
@@ -835,7 +835,7 @@ describe('Subscription > UsageTotals', function () {
     });
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={spendTotals}
         reservedUnits={200_000}
         prepaidUnits={200_000}
@@ -869,7 +869,7 @@ describe('Subscription > UsageTotals', function () {
     });
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={spendTotals}
         reservedUnits={200_000}
         prepaidUnits={200_000}
@@ -892,7 +892,7 @@ describe('Subscription > UsageTotals', function () {
     });
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={totals}
         reservedUnits={100_000}
         prepaidUnits={100_000}
@@ -935,7 +935,7 @@ describe('Subscription > UsageTotals', function () {
 
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={totals}
         reservedUnits={100_000}
         prepaidUnits={100_000}
@@ -975,7 +975,7 @@ describe('Subscription > UsageTotals', function () {
 
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={totals}
         reservedUnits={100_000}
         prepaidUnits={100_000}
@@ -1017,7 +1017,7 @@ describe('Subscription > UsageTotals', function () {
 
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={usageTotals}
         reservedUnits={100_000}
         prepaidUnits={100_000}
@@ -1082,7 +1082,7 @@ describe('Subscription > UsageTotals', function () {
 
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={usageTotals}
         reservedUnits={100_000}
         prepaidUnits={100_000}
@@ -1129,7 +1129,7 @@ describe('Subscription > UsageTotals', function () {
   it('renders gifted hours for profile duration when gifted present', function () {
     render(
       <UsageTotals
-        category="profileDuration"
+        category={DataCategory.PROFILE_DURATION}
         totals={UsageTotalFixture({accepted: 15 * MILLISECONDS_IN_HOUR})}
         reservedUnits={null}
         freeUnits={50}
@@ -1149,7 +1149,7 @@ describe('Subscription > UsageTotals', function () {
   it('renders gifted hours for profile duration ui when gifted present', function () {
     render(
       <UsageTotals
-        category="profileDurationUI"
+        category={DataCategory.PROFILE_DURATION_UI}
         totals={UsageTotalFixture({accepted: 15 * MILLISECONDS_IN_HOUR})}
         reservedUnits={null}
         freeUnits={50}
@@ -1492,7 +1492,7 @@ describe('hasReservedQuotaFunctionality', function () {
   it('does not render reserved quota section when reserved is null', function () {
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={UsageTotalFixture({accepted: 100})}
         reservedUnits={null}
         subscription={subscription}
@@ -1508,7 +1508,7 @@ describe('hasReservedQuotaFunctionality', function () {
   it('renders reserved quota section when reserved is UNLIMITED_RESERVED', function () {
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={UsageTotalFixture({accepted: 100})}
         reservedUnits={UNLIMITED_RESERVED}
         prepaidUnits={UNLIMITED_RESERVED}
@@ -1524,7 +1524,7 @@ describe('hasReservedQuotaFunctionality', function () {
   it('renders reserved quota section when reserved is greater than 0', function () {
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={UsageTotalFixture({accepted: 100})}
         reservedUnits={100_000}
         prepaidUnits={100_000}
@@ -1540,7 +1540,7 @@ describe('hasReservedQuotaFunctionality', function () {
   it('does not render reserved quota section when reserved is 0', function () {
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={UsageTotalFixture({accepted: 100})}
         reservedUnits={0}
         prepaidUnits={0}
@@ -1557,7 +1557,7 @@ describe('hasReservedQuotaFunctionality', function () {
   it('renders reserved quota with gifted amount when both present', function () {
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={UsageTotalFixture({accepted: 100})}
         reservedUnits={100_000}
         freeUnits={50_000}
@@ -1576,7 +1576,7 @@ describe('hasReservedQuotaFunctionality', function () {
   it('renders reserved budget quota when using budget-based reserved', function () {
     render(
       <UsageTotals
-        category="spans"
+        category={DataCategory.SPANS}
         totals={UsageTotalFixture({accepted: 100})}
         reservedUnits={RESERVED_BUDGET_QUOTA}
         prepaidUnits={RESERVED_BUDGET_QUOTA}
@@ -1595,7 +1595,7 @@ describe('hasReservedQuotaFunctionality', function () {
   it('renders reserved budget quota with gifted budget when both present', function () {
     render(
       <UsageTotals
-        category="spans"
+        category={DataCategory.SPANS}
         totals={UsageTotalFixture({accepted: 100})}
         reservedUnits={RESERVED_BUDGET_QUOTA}
         prepaidUnits={RESERVED_BUDGET_QUOTA}
@@ -1636,7 +1636,7 @@ describe('Usage Bar Rendering', function () {
     subscription.categories.errors = MetricHistoryFixture({usage: 0});
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={UsageTotalFixture({accepted: 0})}
         reservedUnits={0}
         prepaidUnits={0} // No prepaid units if reserved is 0
@@ -1666,7 +1666,7 @@ describe('Usage Bar Rendering', function () {
 
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={UsageTotalFixture({accepted: usage})}
         reservedUnits={reserved}
         prepaidUnits={reserved} // Prepaid matches reserved
@@ -1696,7 +1696,7 @@ describe('Usage Bar Rendering', function () {
 
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={UsageTotalFixture({accepted: 0})}
         reservedUnits={0} // Reserved is 0
         prepaidUnits={0} // Assume trial gives some implicit quota, or calculation handles 0
@@ -1727,7 +1727,7 @@ describe('Usage Bar Rendering', function () {
 
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={UsageTotalFixture({accepted: usage})}
         reservedUnits={0} // Reserved is 0
         prepaidUnits={trialQuota} // Pass the trial quota as prepaid for calculation
