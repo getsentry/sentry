@@ -1,14 +1,4 @@
-import {IncidentFixture} from 'sentry-fixture/incident';
-import {MetricRuleFixture} from 'sentry-fixture/metricRule';
-
-import {initializeOrg} from 'sentry-test/initializeOrg';
-
-import {
-  Dataset,
-  Datasource,
-  SessionsAggregate,
-} from 'sentry/views/alerts/rules/metric/types';
-import type {IncidentStats} from 'sentry/views/alerts/types';
+import {Datasource, SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
 import {
   alertAxisFormatter,
   alertTooltipValueFormatter,
@@ -16,89 +6,8 @@ import {
   getTeamParams,
   isSessionAggregate,
 } from 'sentry/views/alerts/utils';
-import {getIncidentDiscoverUrl} from 'sentry/views/alerts/utils/getIncidentDiscoverUrl';
 
 describe('Alert utils', function () {
-  const {organization, projects} = initializeOrg();
-
-  const mockStats: IncidentStats = {
-    eventStats: {
-      data: [
-        [0, [{count: 10}]],
-        [120, [{count: 10}]],
-      ],
-    },
-    totalEvents: 0,
-    uniqueUsers: 0,
-  };
-
-  describe('getIncidentDiscoverUrl', function () {
-    it('creates a discover query url for errors', function () {
-      const incident = IncidentFixture({
-        title: 'Test error alert',
-        discoverQuery: 'id:test',
-        projects: projects.map(project => project.id),
-        alertRule: MetricRuleFixture({
-          timeWindow: 1,
-          dataset: Dataset.ERRORS,
-          aggregate: 'count()',
-        }),
-      });
-
-      const to = getIncidentDiscoverUrl({
-        organization,
-        projects,
-        incident,
-        stats: mockStats,
-      });
-
-      expect(to).toEqual({
-        query: expect.objectContaining({
-          name: 'Test error alert',
-          field: ['issue', 'count()', 'count_unique(user)'],
-          sort: '-count',
-          query: 'id:test',
-          yAxis: 'count()',
-          start: '1970-01-01T00:00:00.000',
-          end: '1970-01-01T00:02:00.000',
-          interval: '1m',
-        }),
-        pathname: '/organizations/org-slug/discover/results/',
-      });
-    });
-
-    it('creates a discover query url for transactions', function () {
-      const incident = IncidentFixture({
-        title: 'Test transaction alert',
-        discoverQuery: 'id:test',
-        projects: projects.map(project => project.id),
-        alertRule: MetricRuleFixture({
-          timeWindow: 1,
-          dataset: Dataset.TRANSACTIONS,
-          aggregate: 'p90()',
-        }),
-      });
-
-      const to = getIncidentDiscoverUrl({
-        organization,
-        projects,
-        incident,
-        stats: mockStats,
-      });
-
-      expect(to).toEqual({
-        query: expect.objectContaining({
-          name: 'Test transaction alert',
-          field: ['transaction', 'p90()'],
-          sort: '-p90',
-          query: 'id:test',
-          yAxis: 'p90()',
-        }),
-        pathname: '/organizations/org-slug/discover/results/',
-      });
-    });
-  });
-
   describe('getQuerySource', () => {
     it('should parse event type error or default', () => {
       expect(getQueryDatasource('event.type:default OR event.type:error')).toEqual({
