@@ -32,6 +32,11 @@ jest.mock('sentry/components/searchQueryBuilder/context', () => ({
   SearchQueryBuilderProvider: ({children}: {children: React.ReactNode}) => children,
 }));
 
+const searchQueryBuilderModule = jest.requireMock(
+  'sentry/components/searchQueryBuilder/context'
+);
+const originalUseSearchQueryBuilder = searchQueryBuilderModule.useSearchQueryBuilder;
+
 function Subject(
   props: Omit<
     Parameters<typeof SchemaHintsList>[0],
@@ -92,6 +97,10 @@ describe('SchemaHintsList', () => {
   });
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    searchQueryBuilderModule.useSearchQueryBuilder = originalUseSearchQueryBuilder;
   });
 
   it('should render', () => {
@@ -238,9 +247,6 @@ describe('SchemaHintsList', () => {
   });
 
   it('should remove hint from query when checkbox is unchecked on drawer', async () => {
-    const searchQueryBuilderModule = jest.requireMock(
-      'sentry/components/searchQueryBuilder/context'
-    );
     searchQueryBuilderModule.useSearchQueryBuilder = () => ({
       query: '!stringTag1:"" numberTag1:>0',
       getTagValues: () => Promise.resolve(['tagValue1', 'tagValue2']),
@@ -287,9 +293,6 @@ describe('SchemaHintsList', () => {
   });
 
   it('should remove aggregate hint from query when checkbox is unchecked on drawer', async () => {
-    const searchQueryBuilderModule = jest.requireMock(
-      'sentry/components/searchQueryBuilder/context'
-    );
     searchQueryBuilderModule.useSearchQueryBuilder = () => ({
       query: 'stringTag1:"" numberTag1:>0 count_unique(user):>0',
       getTagValues: () => Promise.resolve(['tagValue1', 'tagValue2']),
