@@ -1,13 +1,10 @@
 import {useState} from 'react';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import OptionSelector from 'sentry/components/charts/optionSelector';
 
 describe('Charts > OptionSelector (Multiple)', function () {
-  const features = ['discover-basic'];
   const yAxisValue = ['count()', 'failure_count()'];
   const yAxisOptions = [
     {label: 'count()', value: 'count()'},
@@ -16,9 +13,6 @@ describe('Charts > OptionSelector (Multiple)', function () {
     {label: 'avg(transaction.duration)', value: 'avg(transaction.duration)'},
   ];
   const onChangeStub = jest.fn();
-  const organization = OrganizationFixture({
-    features: [...features],
-  });
 
   afterEach(() => {
     jest.resetAllMocks();
@@ -43,16 +37,7 @@ describe('Charts > OptionSelector (Multiple)', function () {
   }
 
   const renderComponent = () => {
-    // Start off with an invalid view (empty is invalid)
-    const initialData = initializeOrg({
-      organization,
-      router: {
-        location: {query: {query: 'tag:value'}},
-      },
-      projects: [],
-    });
-
-    return render(<TestComponent />, {router: initialData.router});
+    return render(<TestComponent />);
   };
 
   it('renders yAxisOptions with yAxisValue selected', async function () {

@@ -1,6 +1,5 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -10,9 +9,6 @@ describe('Related Issues View', function () {
   const organization = OrganizationFixture({features: ['global-views']});
   const groupId = '12345678';
   const group = GroupFixture({id: groupId});
-  const router = RouterFixture({
-    params: {groupId: group.id},
-  });
   const orgSlug = organization.slug;
   const group1 = '15';
   const group2 = '20';
@@ -98,7 +94,9 @@ describe('Related Issues View', function () {
       body: issuesData,
     });
 
-    render(<GroupRelatedIssues group={group} />, {router, organization});
+    render(<GroupRelatedIssues group={group} />, {
+      organization,
+    });
 
     // Wait for the issues showing up on the table
     expect(await screen.findByText(`EARTH-${group1}`)).toBeInTheDocument();
@@ -137,7 +135,9 @@ describe('Related Issues View', function () {
       url: orgIssuesEndpoint,
       body: issuesData,
     });
-    render(<GroupRelatedIssues group={group} />, {router, organization});
+    render(<GroupRelatedIssues group={group} />, {
+      organization,
+    });
 
     // Wait for the issues showing up on the table
     expect(await screen.findByText(`EARTH-${group1}`)).toBeInTheDocument();
@@ -185,7 +185,6 @@ describe('Related Issues View', function () {
     });
     const noGlobalViewsOrganization = OrganizationFixture({features: []});
     render(<GroupRelatedIssues group={group} />, {
-      router,
       organization: noGlobalViewsOrganization,
     });
     expect(await screen.findByText(`EARTH-${group1}`)).toBeInTheDocument();

@@ -42,7 +42,11 @@ describe('Dashboards > WidgetCard', function () {
       <DashboardsMEPProvider>
         <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>
       </DashboardsMEPProvider>,
-      {organization, router}
+      {
+        organization,
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
   const multipleQueryWidget: Widget = {

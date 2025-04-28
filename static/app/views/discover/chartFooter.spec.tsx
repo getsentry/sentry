@@ -1,7 +1,5 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
@@ -9,7 +7,6 @@ import {DisplayModes} from 'sentry/utils/discover/types';
 import ChartFooter from 'sentry/views/discover/chartFooter';
 
 describe('Discover > ChartFooter', function () {
-  const features = ['discover-basic'];
   const yAxisValue = ['count()', 'failure_count()'];
   const yAxisOptions = [
     {label: 'count()', value: 'count()'},
@@ -27,19 +24,6 @@ describe('Discover > ChartFooter', function () {
   afterEach(function () {});
 
   it('renders yAxis option using OptionCheckboxSelector using entire yAxisValue', async function () {
-    const organization = OrganizationFixture({
-      features: [...features],
-    });
-
-    // Start off with an invalid view (empty is invalid)
-    const initialData = initializeOrg({
-      organization,
-      router: {
-        location: {query: {query: 'tag:value'}},
-      },
-      projects: [],
-    });
-
     const chartFooter = (
       <ChartFooter
         total={100}
@@ -56,7 +40,7 @@ describe('Discover > ChartFooter', function () {
       />
     );
 
-    render(chartFooter, {router: initialData.router});
+    render(chartFooter);
 
     expect(
       await screen.findByRole('button', {
@@ -68,18 +52,6 @@ describe('Discover > ChartFooter', function () {
   });
 
   it('renders display limits with default limit when top 5 mode is selected', async function () {
-    const organization = OrganizationFixture({
-      features,
-    });
-    // Start off with an invalid view (empty is invalid)
-    const initialData = initializeOrg({
-      organization,
-      router: {
-        location: {query: {query: 'tag:value'}},
-      },
-      projects: [],
-    });
-
     const limit = '5';
 
     const chartFooter = (
@@ -98,7 +70,7 @@ describe('Discover > ChartFooter', function () {
       />
     );
 
-    render(chartFooter, {router: initialData.router});
+    render(chartFooter);
 
     expect(
       await screen.findByRole('button', {name: `Limit ${limit}`})

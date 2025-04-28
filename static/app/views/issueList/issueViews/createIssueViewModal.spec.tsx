@@ -71,7 +71,6 @@ describe('CreateIssueViewModal', function () {
     });
 
     const {router} = render(<CreateIssueViewModal {...defaultProps} />, {
-      enableRouterMocks: false,
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/issues/views/',

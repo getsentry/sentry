@@ -1,6 +1,3 @@
-import {GroupFixture} from 'sentry-fixture/group';
-
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   screen,
@@ -14,20 +11,6 @@ const mockNavigate = jest.fn();
 jest.mock('sentry/utils/useNavigate', () => ({
   useNavigate: () => mockNavigate,
 }));
-
-const group = GroupFixture();
-
-function init(tagKey: string) {
-  return initializeOrg({
-    router: {
-      location: {
-        pathname: '/organizations/:orgId/issues/:groupId/',
-        query: {},
-      },
-      params: {orgId: 'org-slug', groupId: group.id, tagKey},
-    },
-  });
-}
 
 describe('FlagDetailsDrawerContent', () => {
   beforeEach(() => {
@@ -53,8 +36,7 @@ describe('FlagDetailsDrawerContent', () => {
   });
 
   it('renders a list of tag values', async () => {
-    const {router} = init('test-flag-key');
-    render(<FlagDetailsDrawerContent />, {router});
+    render(<FlagDetailsDrawerContent />);
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -87,14 +69,12 @@ describe('FlagDetailsDrawerContent', () => {
   });
 
   it('renders an error message if flag values request fails', async () => {
-    const {router} = init('test-flag-key');
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/flags/logs/',
       statusCode: 500,
     });
 
-    render(<FlagDetailsDrawerContent />, {router});
+    render(<FlagDetailsDrawerContent />);
 
     expect(
       await screen.findByText('There was an error loading feature flag details.')
@@ -102,14 +82,12 @@ describe('FlagDetailsDrawerContent', () => {
   });
 
   it('renders an empty state message if audit log values are empty', async () => {
-    const {router} = init('test-flag-key');
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/flags/logs/',
       body: {data: []},
     });
 
-    render(<FlagDetailsDrawerContent />, {router});
+    render(<FlagDetailsDrawerContent />);
 
     expect(
       await screen.findByText('No audit logs were found for this feature flag.')

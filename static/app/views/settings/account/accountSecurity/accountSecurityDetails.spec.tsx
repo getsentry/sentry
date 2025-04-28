@@ -64,7 +64,10 @@ describe('AccountSecurityDetails', function () {
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       expect(await screen.findByTestId('auth-status-enabled')).toBeInTheDocument();
@@ -96,7 +99,10 @@ describe('AccountSecurityDetails', function () {
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(await screen.findByRole('button', {name: 'Remove'}));
@@ -135,7 +141,10 @@ describe('AccountSecurityDetails', function () {
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(await screen.findByRole('button', {name: 'Remove'}));
@@ -175,7 +184,10 @@ describe('AccountSecurityDetails', function () {
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       expect(await screen.findByRole('button', {name: 'Remove'})).toBeDisabled();
@@ -223,7 +235,10 @@ describe('AccountSecurityDetails', function () {
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       expect(await screen.findByTestId('auth-status-enabled')).toBeInTheDocument();
@@ -254,7 +269,10 @@ describe('AccountSecurityDetails', function () {
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(
@@ -296,7 +314,10 @@ describe('AccountSecurityDetails', function () {
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       expect(await screen.findByRole('button', {name: 'print'})).toBeInTheDocument();

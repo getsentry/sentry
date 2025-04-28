@@ -66,7 +66,10 @@ describe('GroupActions', function () {
     it('renders correctly', async function () {
       render(
         <GroupActions group={group} project={project} disabled={false} event={null} />,
-        {organization}
+        {
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
       expect(await screen.findByRole('button', {name: 'Resolve'})).toBeInTheDocument();
     });
@@ -85,7 +88,10 @@ describe('GroupActions', function () {
     it('can subscribe', async function () {
       render(
         <GroupActions group={group} project={project} disabled={false} event={null} />,
-        {organization}
+        {
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
       await userEvent.click(screen.getByRole('button', {name: 'Subscribe'}));
 
@@ -112,7 +118,10 @@ describe('GroupActions', function () {
     it('can bookmark', async function () {
       render(
         <GroupActions group={group} project={project} disabled={false} event={null} />,
-        {organization}
+        {
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(screen.getByLabelText('More Actions'));
@@ -137,7 +146,10 @@ describe('GroupActions', function () {
 
       render(
         <GroupActions group={group} project={project} event={event} disabled={false} />,
-        {organization}
+        {
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(screen.getByLabelText('More Actions'));
@@ -153,7 +165,10 @@ describe('GroupActions', function () {
 
       render(
         <GroupActions group={group} project={project} event={event} disabled={false} />,
-        {organization}
+        {
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       const onReprocessEventFunc = jest.spyOn(ModalStore, 'openModal');
@@ -178,7 +193,10 @@ describe('GroupActions', function () {
         <GlobalModal />
         <GroupActions group={group} project={project} disabled={false} event={null} />
       </Fragment>,
-      {organization: org}
+      {
+        organization: org,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(screen.getByLabelText('More Actions'));
@@ -210,7 +228,11 @@ describe('GroupActions', function () {
           <GlobalModal />
           <GroupActions group={group} project={project} disabled={false} event={null} />
         </Fragment>,
-        {router, organization: org}
+        {
+          router,
+          organization: org,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(screen.getByLabelText('More Actions'));
@@ -241,7 +263,10 @@ describe('GroupActions', function () {
           disabled={false}
           event={null}
         />,
-        {organization: org}
+        {
+          organization: org,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(screen.getByLabelText('More Actions'));
@@ -266,7 +291,10 @@ describe('GroupActions', function () {
           disabled={false}
           event={null}
         />,
-        {organization: org}
+        {
+          organization: org,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(screen.getByLabelText('More Actions'));
@@ -289,7 +317,10 @@ describe('GroupActions', function () {
 
     const {rerender} = render(
       <GroupActions group={group} project={project} disabled={false} event={null} />,
-      {organization}
+      {
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
@@ -335,7 +366,10 @@ describe('GroupActions', function () {
 
     render(
       <GroupActions group={group} project={project} disabled={false} event={null} />,
-      {organization}
+      {
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Archive'}));
