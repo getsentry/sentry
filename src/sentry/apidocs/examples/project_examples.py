@@ -376,6 +376,83 @@ DETAILED_PROJECT = {
     "highlightPreset": {"tags": [], "context": {}},
 }
 
+PROJECT_SUMMARY = {
+    "team": {
+        "id": "2349234102",
+        "name": "Prime Mover",
+        "slug": "prime-mover",
+    },
+    "teams": [
+        {
+            "id": "2349234102",
+            "name": "Prime Mover",
+            "slug": "prime-mover",
+        },
+        {
+            "id": "47584447",
+            "name": "Powerful Abolitionist",
+            "slug": "powerful-abolitionist",
+        },
+    ],
+    "id": "6758470122493650",
+    "slug": "the-spoiled-yoghurt",
+    "name": "The Spoiled Yoghurt",
+    "isBookmarked": False,
+    "isMember": True,
+    "access": [
+        "project:read",
+        "event:read",
+        "team:read",
+        "alerts:read",
+        "org:read",
+        "event:write",
+        "project:releases",
+        "member:read",
+    ],
+    "hasAccess": True,
+    "dateCreated": "2023-03-29T15:25:21.344565Z",
+    "environments": ["production"],
+    "eventProcessing": {"symbolicationDegraded": False},
+    "features": [
+        "alert-filters",
+        "custom-inbound-filters",
+        "data-forwarding",
+        "discard-groups",
+        "minidump",
+        "rate-limits",
+        "servicehooks",
+        "similarity-indexing",
+        "similarity-indexing-v2",
+        "similarity-view",
+        "similarity-view-v2",
+    ],
+    "firstEvent": None,
+    "firstTransactionEvent": True,
+    "hasSessions": False,
+    "hasProfiles": False,
+    "hasReplays": False,
+    "hasFlags": False,
+    "hasMonitors": False,
+    "hasFeedbacks": False,
+    "hasNewFeedbacks": False,
+    "hasMinifiedStackTrace": False,
+    "hasInsightsHttp": True,
+    "hasInsightsDb": False,
+    "hasInsightsAssets": False,
+    "hasInsightsAppStart": False,
+    "hasInsightsScreenLoad": False,
+    "hasInsightsVitals": False,
+    "hasInsightsCaches": True,
+    "hasInsightsQueues": True,
+    "hasInsightsLlmMonitoring": False,
+    "platform": "node-express",
+    "platforms": [],
+    "latestRelease": None,
+    "hasUserReports": False,
+    "latestDeploys": None,
+}
+
+
 SYMBOL_SOURCES = [
     {
         "id": "honk",
@@ -418,8 +495,8 @@ def project_with_team(extra_team: bool = False):
     return {
         **BASE_PROJECT,
         "id": "6758470122493650",
-        "slug": "The Spoiled Yoghurt",
-        "name": "the-spoiled-yoghurt",
+        "slug": "the-spoiled-yoghurt",
+        "name": "The Spoiled Yoghurt",
         "platform": "javascript",
         "dateCreated": "2023-03-29T15:25:21.344565Z",
         "color": "#5cbf3f",
@@ -467,7 +544,7 @@ class ProjectExamples:
     CREATE_PROJECT = [
         OpenApiExample(
             "Project successfully created",
-            value=BASE_PROJECT,
+            value=PROJECT_SUMMARY,
             status_codes=["201"],
             response_only=True,
         ),
