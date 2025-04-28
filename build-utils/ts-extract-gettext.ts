@@ -347,10 +347,7 @@ try {
   const outputFilePath = path.resolve(BASE_DIRECTORY, OUTPUT_FILE);
   ensureDirectoryExistence(outputFilePath);
   const compiledPoBuffer = po.compile(gettextData, {sort: true});
-
-  let compiledPoString = compiledPoBuffer.toString('utf8');
-
-  fs.writeFileSync(outputFilePath, compiledPoString, 'utf8');
+  fs.writeFileSync(outputFilePath, compiledPoBuffer, 'utf8');
 
   console.log(`Successfully wrote translations to ${OUTPUT_FILE}`);
   console.log(`Processed ${filesProcessed} out of ${files.length} files.`);
