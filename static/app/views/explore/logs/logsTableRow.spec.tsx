@@ -1,8 +1,11 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStacktraceLink';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
@@ -19,6 +22,23 @@ jest.mock('sentry/views/explore/logs/useLogsQuery', () => ({
   usePrefetchLogTableRowOnHover: jest.fn().mockReturnValue({}),
 }));
 
+jest.mock('sentry/components/events/interfaces/frame/useStacktraceLink', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+const mockedUseStacktraceLink = jest.mocked(useStacktraceLink);
+
+jest.mock('sentry/utils/useRelease', () => ({
+  useRelease: jest.fn().mockReturnValue({
+    data: {
+      id: 10,
+      lastCommit: {
+        id: '1e5a9462e6ac23908299b218e18377837297bda1',
+      },
+    },
+  }),
+}));
 const mockedUseExploreLogsTableRow = jest.mocked(useExploreLogsTableRow);
 
 function ProviderWrapper({children}: {children?: React.ReactNode}) {
@@ -34,33 +54,39 @@ describe('logsTableRow', () => {
     features: ['trace-view-v1'],
   });
 
-  const defaultAttributes: TraceItemResponseAttribute[] = [
-    {
-      type: 'str',
-      value: '123',
-      name: 'sentry.project_id',
-    } as TraceItemResponseAttribute,
-    {
-      type: 'str',
-      value: '456',
-      name: OurLogKnownFieldKey.SEVERITY_NUMBER,
-    } as TraceItemResponseAttribute,
-    {
-      type: 'str',
-      value: '7b91699f',
-      name: OurLogKnownFieldKey.TRACE_ID,
-    } as TraceItemResponseAttribute,
-  ];
+  const projects = [ProjectFixture()];
+  ProjectsStore.loadInitialData(projects);
 
-  const dataRow = {
+  // These are the values in the actual row - e.g., the ones loaded before you click the row
+  const rowData = {
     [OurLogKnownFieldKey.ID]: 1,
-    [OurLogKnownFieldKey.PROJECT_ID]: 123,
+    [OurLogKnownFieldKey.PROJECT_ID]: projects[0]!.id,
     [OurLogKnownFieldKey.ORGANIZATION_ID]: 1,
     [OurLogKnownFieldKey.MESSAGE]: 'test log body',
     [OurLogKnownFieldKey.SEVERITY_NUMBER]: 456,
     [OurLogKnownFieldKey.SEVERITY]: 'error',
     [OurLogKnownFieldKey.TIMESTAMP]: '2025-04-03T15:50:10+00:00',
+    [OurLogKnownFieldKey.TRACE_ID]: '7b91699f',
   };
+
+  // These are the detailed attributes of the row - only displayed when you click the row.
+  const rowDetails = [
+    ...Object.entries(rowData),
+    ...Object.entries({
+      [OurLogKnownFieldKey.CODE_FUNCTION_NAME]: 'derp',
+      [OurLogKnownFieldKey.CODE_LINE_NUMBER]: '10',
+      [OurLogKnownFieldKey.CODE_FILE_PATH]: 'herp/merp/derp.py',
+      [OurLogKnownFieldKey.SDK_NAME]: 'sentry.python',
+      [OurLogKnownFieldKey.SDK_VERSION]: '2.27.0',
+    }),
+  ].map(
+    ([k, v]) =>
+      ({
+        name: k,
+        value: v,
+        type: typeof v === 'string' ? 'str' : 'float',
+      }) as TraceItemResponseAttribute
+  );
 
   beforeEach(function () {
     mockedUsedLocation.mockReturnValue(LocationFixture());
@@ -71,15 +97,24 @@ describe('logsTableRow', () => {
 
     mockedUseExploreLogsTableRow.mockReturnValue({
       data: {
-        attributes: defaultAttributes,
+        attributes: rowDetails,
       },
       isPending: false,
     } as unknown as ReturnType<typeof useExploreLogsTableRow>);
 
+    mockedUseStacktraceLink.mockReturnValue({
+      data: {
+        sourceUrl: 'https://some-stacktrace-link',
+        integrations: [],
+      },
+      error: null,
+      isPending: false,
+    } as unknown as ReturnType<typeof useStacktraceLink>);
+
     render(
       <ProviderWrapper>
         <LogRowContent
-          dataRow={dataRow}
+          dataRow={rowData}
           highlightTerms={[]}
           meta={undefined}
           sharedHoverTimeoutRef={
@@ -102,13 +137,13 @@ describe('logsTableRow', () => {
     await userEvent.click(logTableRow);
 
     // Check that the attribute values are rendered
-    expect(screen.getByText('123')).toBeInTheDocument();
+    expect(screen.getByText(projects[0]!.id)).toBeInTheDocument();
     expect(screen.getByText('456')).toBeInTheDocument();
     expect(screen.getByText('7b91699f')).toBeInTheDocument();
 
     // Check that the attributes keys are rendered
     expect(screen.getByTestId('tree-key-project.id')).toBeInTheDocument();
-    expect(screen.getByTestId('tree-key-project.id')).toHaveTextContent('project_id');
+    expect(screen.getByTestId('tree-key-project.id')).toHaveTextContent('id');
     expect(screen.getByTestId('tree-key-severity_number')).toBeInTheDocument();
     expect(screen.getByTestId('tree-key-severity_number')).toHaveTextContent(
       'severity_number'
@@ -121,5 +156,24 @@ describe('logsTableRow', () => {
       'href',
       '/organizations/org-slug/explore/logs/trace/7b91699f/?source=logs&timestamp=1743695410'
     );
+
+    // Check that stack trace links work
+    expect(mockedUseStacktraceLink).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: {
+          release: {id: 10, lastCommit: {id: '1e5a9462e6ac23908299b218e18377837297bda1'}},
+          sdk: {name: 'sentry.python', version: '2.27.0'},
+        },
+        frame: {
+          filename: 'herp/merp/derp.py',
+          function: 'derp',
+          lineNo: 10,
+        },
+        orgSlug: 'org-slug',
+        projectSlug: projects[0]!.slug,
+      })
+    );
+    const codeLink = screen.getByText('herp/merp/derp.py').closest('a');
+    expect(codeLink).toHaveAttribute('href', 'https://some-stacktrace-link');
   });
 });
