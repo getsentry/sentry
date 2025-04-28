@@ -191,7 +191,9 @@ describe('OrganizationSettingsForm', function () {
       method: 'PUT',
     });
 
-    const checkbox = screen.getByRole('checkbox', {name: 'Enable Seer Features'});
+    const checkbox = screen.getByRole('checkbox', {
+      name: 'Enable Generative AI features',
+    });
 
     // Inverted from hideAiFeatures
     expect(checkbox).not.toBeChecked();
@@ -243,7 +245,7 @@ describe('OrganizationSettingsForm', function () {
       }
     );
 
-    const toggle = screen.getByRole('checkbox', {name: 'Enable Seer Features'});
+    const toggle = screen.getByRole('checkbox', {name: 'Enable Generative AI features'});
     expect(toggle).toBeDisabled();
   });
 });
