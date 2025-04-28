@@ -146,9 +146,14 @@ class BaseIssueAlertHandler(ABC):
             if job.workflow_id == -1:
                 data["actions"][0]["legacy_rule_id"] = -1
             else:
-                alert_rule_workflow = AlertRuleWorkflow.objects.get(
-                    workflow_id=job.workflow_id,
-                )
+                try:
+                    alert_rule_workflow = AlertRuleWorkflow.objects.get(
+                        workflow_id=job.workflow_id,
+                    )
+                except AlertRuleWorkflow.DoesNotExist:
+                    raise ValueError(
+                        "AlertRuleWorkflow not found when querying for AlertRuleWorkflow"
+                    )
 
                 if alert_rule_workflow.rule_id is None:
                     raise ValueError("Rule not found when querying for AlertRuleWorkflow")

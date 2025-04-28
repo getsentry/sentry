@@ -110,7 +110,7 @@ class TestSlackMetricAlertHandler(MetricAlertHandlerBase):
 
         self.assert_metric_issue_context(
             metric_issue_context,
-            open_period_identifier=self.group_event.group.id,
+            open_period_identifier=self.open_period.id,
             snuba_query=self.snuba_query,
             new_status=IncidentStatus.CRITICAL,
             metric_value=123.45,
