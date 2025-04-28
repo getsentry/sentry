@@ -13,6 +13,7 @@ from sentry.silo.base import SiloMode, region_silo_function
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import notifications_tasks
+from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
 if TYPE_CHECKING:
@@ -27,9 +28,10 @@ def serialize_lazy_object_user(arg: SimpleLazyObject, key: str | None = None) ->
             v = v.isoformat()
 
         parsed_data[k] = v
-
+    classname = "RpcUser" if isinstance(arg._wrapped, RpcUser) else "User"
     return {
         "type": "lazyobjectuser",
+        "class": classname,
         "data": parsed_data,
         "key": key,
     }
@@ -103,7 +105,10 @@ def _send_notification(notification_class_name: str, arg_list: Iterable[Mapping[
             else:
                 output_args.append(instance)
         elif arg["type"] == "lazyobjectuser":
-            user = RpcUser.parse_obj(arg["data"])
+            if arg["class"] == "RpcUser":
+                user = RpcUser.parse_obj(arg["data"])
+            else:
+                user = User.parse_obj(arg["data"])
 
             if arg["key"]:
                 output_kwargs[arg["key"]] = user
