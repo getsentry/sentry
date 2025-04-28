@@ -6,7 +6,9 @@ from sentry.deletions.base import (
     ModelDeletionTask,
     ModelRelation,
 )
+from sentry.deletions.defaults.rule import RuleDeletionTask
 from sentry.models.project import Project
+from sentry.models.rule import Rule
 
 
 class ProjectDeletionTask(ModelDeletionTask[Project]):
@@ -96,6 +98,13 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
             ModelRelation(
                 AlertRule,
                 {"snuba_query__subscriptions__project": instance},
+            )
+        )
+        relations.append(
+            ModelRelation(
+                Rule,
+                {"project_id": instance.id},
+                RuleDeletionTask,
             )
         )
 
