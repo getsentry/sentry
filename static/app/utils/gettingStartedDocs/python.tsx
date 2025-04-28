@@ -10,27 +10,36 @@ import type {
 import {AlternativeConfiguration} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
-const getProfilingInstallSnippet = (basePackage: string, minimumVersion?: string) =>
-  `pip install --upgrade ${minimumVersion ? `${basePackage}>=${minimumVersion}` : basePackage}`;
-
 export function getPythonInstallSnippet({
   packageName,
-  packageManager,
+  packageManager = 'pip',
+  minimumVersion,
 }: {
-  packageManager: 'pip' | 'uv';
   packageName: string;
+  minimumVersion?: string;
+  packageManager?: 'pip' | 'uv';
 }) {
-  if (packageManager === 'uv') {
-    return `uv add --upgrade ${packageName}`;
-  }
-  return `pip install --upgrade ${packageName}`;
+  const versionedPackage = minimumVersion
+    ? `${packageName}>=${minimumVersion}`
+    : packageName;
+
+  const upgradeFlag = minimumVersion ? '--upgrade ' : '';
+
+  const packageManagerCommands = {
+    uv: `uv add ${upgradeFlag}${versionedPackage}`,
+    pip: `pip install ${upgradeFlag}${versionedPackage}`,
+  };
+
+  return packageManagerCommands[packageManager].trim();
 }
 
 export function getPythonInstallConfig({
   packageName = "'sentry-sdk'",
   description,
+  minimumVersion,
 }: {
   description?: React.ReactNode;
+  minimumVersion?: string;
   packageName?: string;
 } = {}): Configuration[] {
   return [
@@ -45,6 +54,7 @@ export function getPythonInstallConfig({
           code: getPythonInstallSnippet({
             packageName,
             packageManager: 'pip',
+            minimumVersion,
           }),
         },
         {
@@ -54,6 +64,7 @@ export function getPythonInstallConfig({
           code: getPythonInstallSnippet({
             packageName,
             packageManager: 'uv',
+            minimumVersion,
           }),
         },
       ],
@@ -103,12 +114,10 @@ export const getPythonProfilingOnboarding = ({
           code: <code />,
         }
       ),
-      configurations: [
-        {
-          language: 'bash',
-          code: getProfilingInstallSnippet(basePackage),
-        },
-      ],
+      configurations: getPythonInstallConfig({
+        packageName: basePackage,
+        minimumVersion: '2.24.1',
+      }),
     },
   ],
   configure: (params: DocsParams) => [
