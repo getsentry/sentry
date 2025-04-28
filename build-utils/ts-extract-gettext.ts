@@ -32,71 +32,6 @@ function stripIndent(str: string | null | undefined): string {
   return (indent > 0 ? str.replace(regexp, '') : str).trim();
 }
 
-/**
- * Represents the comments associated with a translation entry.
- */
-interface Comments {
-  reference?: string;
-  translator?: string;
-  extracted?: string;
-  flag?: string;
-  previous?: string;
-}
-
-/**
- * Represents a single translation entry.
- */
-interface TranslationEntry {
-  msgid: string;
-  msgctxt?: string;
-  msgid_plural?: string;
-  msgstr?: string[]; // msgstr is typically an array for plural forms
-  comments?: Comments;
-}
-
-/**
- * Represents the structure for gettext data.
- * Contexts map to objects containing msgid keys mapped to TranslationEntry objects.
- */
-interface GettextDataStructure {
-  charset: string;
-  headers: Record<string, string>;
-  translations: {
-    [context: string]: {
-      [msgid: string]: TranslationEntry;
-    };
-  };
-}
-
-/**
- * Sorts the keys of an object containing gettext translation entries
- * based on their reference comments.
- */
-function sortObjectKeysByRef(
-  unordered: {[msgid: string]: GetTextTranslation} | undefined
-): {[msgid: string]: GetTextTranslation} {
-  if (!unordered) {
-    return {};
-  }
-  const ordered: {[msgid: string]: GetTextTranslation} = {};
-  Object.keys(unordered)
-    .sort((a, b) => {
-      const refA = (unordered[a]?.comments?.reference || '').toLowerCase();
-      const refB = (unordered[b]?.comments?.reference || '').toLowerCase();
-      if (refA < refB) {
-        return -1;
-      }
-      if (refA > refB) {
-        return 1;
-      }
-      return 0;
-    })
-    .forEach(function (key) {
-      ordered[key] = unordered[key];
-    });
-  return ordered;
-}
-
 // --- Configuration ---
 const OUTPUT_FILE = 'build/javascript.po';
 const BASE_DIRECTORY = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -333,13 +268,6 @@ files.forEach(filePath => {
       `Error processing file ${relativePath} with TypeScript API:`,
       error instanceof Error ? error.message : String(error)
     );
-  }
-});
-
-Object.keys(gettextData.translations).forEach(contextKey => {
-  const context = gettextData.translations[contextKey];
-  if (context && typeof context === 'object' && Object.keys(context).length > 0) {
-    gettextData.translations[contextKey] = sortObjectKeysByRef(context);
   }
 });
 
