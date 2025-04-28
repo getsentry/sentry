@@ -3,6 +3,7 @@
 from django.db import migrations, models
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -20,8 +21,6 @@ class Migration(CheckedMigration):
 
     is_post_deployment = False
 
-    allow_run_sql = True
-
     dependencies = [
         ("uptime", "0004_projectuptimesubscription_mode"),
     ]
@@ -29,7 +28,7 @@ class Migration(CheckedMigration):
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     'ALTER TABLE "uptime_projectuptimesubscription" ADD COLUMN "uptime_status" smallint DEFAULT 1 NOT NULL CHECK ("uptime_status" >= 0);',
                     reverse_sql='ALTER TABLE "uptime_projectuptimesubscription" DROP COLUMN "uptime_status";',
                     hints={"tables": ["uptime_projectuptimesubscription"]},

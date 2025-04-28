@@ -21,8 +21,8 @@ type AttributeValueUnit = DataUnit | null;
 type TimeSeriesValueType = AttributeValueType;
 export type TimeSeriesValueUnit = AttributeValueUnit;
 export type TimeSeriesMeta = {
-  type: TimeSeriesValueType;
-  unit: TimeSeriesValueUnit;
+  valueType: TimeSeriesValueType;
+  valueUnit: TimeSeriesValueUnit;
   isOther?: boolean;
 };
 
@@ -36,9 +36,9 @@ export type TimeSeriesItem = {
 };
 
 export type TimeSeries = {
-  data: TimeSeriesItem[];
   field: string;
   meta: TimeSeriesMeta;
+  values: TimeSeriesItem[];
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
   sampleCount?: AccuracyStats<number>;

@@ -27,7 +27,7 @@ export type ContinuousTimeSeriesConfig = {
   /**
    * Callback for ECharts' `onHighlight`. Called with the data point that corresponds to the highlighted point in the chart
    */
-  onHighlight?: (datum: Readonly<TimeSeries['data'][number]>) => void;
+  onHighlight?: (datum: Readonly<TimeSeries['values'][number]>) => void;
 };
 
 export type ContinuousTimeSeriesPlottingOptions = {
@@ -58,7 +58,7 @@ export abstract class ContinuousTimeSeries<
 
   constructor(timeSeries: TimeSeries, config?: TConfig) {
     this.timeSeries = timeSeries;
-    this.#timestamps = timeSeries.data.map(datum => datum.timestamp).toSorted();
+    this.#timestamps = timeSeries.values.map(datum => datum.timestamp).toSorted();
     this.config = config;
   }
 
@@ -71,7 +71,7 @@ export abstract class ContinuousTimeSeries<
   }
 
   get isEmpty(): boolean {
-    return this.timeSeries.data.every(datum => datum.value === null);
+    return this.timeSeries.values.every(datum => datum.value === null);
   }
 
   get needsColor(): boolean {
@@ -79,13 +79,13 @@ export abstract class ContinuousTimeSeries<
   }
 
   get dataType(): PlottableTimeSeriesValueType {
-    return isAPlottableTimeSeriesValueType(this.timeSeries.meta.type)
-      ? this.timeSeries.meta.type
+    return isAPlottableTimeSeriesValueType(this.timeSeries.meta.valueType)
+      ? this.timeSeries.meta.valueType
       : FALLBACK_TYPE;
   }
 
   get dataUnit(): TimeSeriesValueUnit {
-    return this.timeSeries.meta.unit;
+    return this.timeSeries.meta.valueUnit;
   }
 
   get start(): number | null {
@@ -103,7 +103,7 @@ export abstract class ContinuousTimeSeries<
   constrainTimeSeries(boundaryStart: Date | null, boundaryEnd: Date | null) {
     return {
       ...this.timeSeries,
-      data: this.timeSeries.data.filter(dataItem => {
+      data: this.timeSeries.values.filter(dataItem => {
         const ts = new Date(dataItem.timestamp);
         return (
           (!boundaryStart || ts >= boundaryStart) && (!boundaryEnd || ts <= boundaryEnd)

@@ -43,8 +43,9 @@ export function IssueViewNavEllipsisMenu({
   const {mutate: updateIssueView} = useUpdateGroupSearchView({
     onSuccess: () => {
       trackAnalytics('issue_views.saved_changes', {
-        leftNav: true,
         organization: organization.slug,
+        ownership: 'personal',
+        surface: 'navigation',
       });
     },
   });

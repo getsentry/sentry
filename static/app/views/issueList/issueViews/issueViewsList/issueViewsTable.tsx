@@ -3,20 +3,24 @@ import styled from '@emotion/styled';
 
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {
   canEditIssueView,
   confirmDeleteIssueView,
 } from 'sentry/views/issueList/issueViews/utils';
-import type {GroupSearchView} from 'sentry/views/issueList/types';
+import {
+  type GroupSearchView,
+  GroupSearchViewCreatedBy,
+} from 'sentry/views/issueList/types';
 
 type IssueViewsTableProps = {
   handleDeleteView: (view: GroupSearchView) => void;
   handleStarView: (view: GroupSearchView) => void;
   isError: boolean;
   isPending: boolean;
-  type: string;
+  type: GroupSearchViewCreatedBy;
   views: GroupSearchView[];
   hideCreatedBy?: boolean;
 };
@@ -60,6 +64,9 @@ export function IssueViewsTable({
           <SavedEntityTable.HeaderCell data-column="last-visited">
             {t('Last Viewed')}
           </SavedEntityTable.HeaderCell>
+          <SavedEntityTable.HeaderCell data-column="created">
+            {t('Created')}
+          </SavedEntityTable.HeaderCell>
           <SavedEntityTable.HeaderCell data-column="stars" noBorder>
             {t('Stars')}
           </SavedEntityTable.HeaderCell>
@@ -84,6 +91,13 @@ export function IssueViewsTable({
               <SavedEntityTable.CellStar
                 isStarred={view.starred}
                 onClick={() => {
+                  trackAnalytics('issue_views.star_view', {
+                    organization,
+                    ownership:
+                      type === GroupSearchViewCreatedBy.ME ? 'personal' : 'organization',
+                    starred: !view.starred,
+                    surface: 'issue-views-list',
+                  });
                   handleStarView(view);
                 }}
               />
@@ -112,6 +126,9 @@ export function IssueViewsTable({
             <SavedEntityTable.Cell data-column="last-visited">
               <SavedEntityTable.CellTimeSince date={view.lastVisited} />
             </SavedEntityTable.Cell>
+            <SavedEntityTable.Cell data-column="created">
+              <SavedEntityTable.CellTimeSince date={view.dateCreated} />
+            </SavedEntityTable.Cell>
             <SavedEntityTable.Cell data-column="stars">
               <SavedEntityTable.CellTextContent>
                 {view.stars.toLocaleString()}
@@ -125,6 +142,14 @@ export function IssueViewsTable({
                     label: t('Delete'),
                     priority: 'danger',
                     onAction: () => {
+                      trackAnalytics('issue_views.delete_view', {
+                        organization,
+                        ownership:
+                          type === GroupSearchViewCreatedBy.ME
+                            ? 'personal'
+                            : 'organization',
+                        surface: 'issue-views-list',
+                      });
                       confirmDeleteIssueView({
                         handleDelete: () => handleDeleteView(view),
                         groupSearchView: view,
@@ -146,15 +171,15 @@ export function IssueViewsTable({
 }
 
 const SavedEntityTableWithColumns = styled(SavedEntityTable)<{hideCreatedBy?: boolean}>`
-  grid-template-areas: 'star name project envs query creator last-visited stars actions';
+  grid-template-areas: 'star name project envs query creator last-visited created stars actions';
   grid-template-columns:
     40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(0, 1fr)
-    auto auto auto 48px;
+    auto auto auto auto 48px;
 
   ${p =>
     p.hideCreatedBy &&
     css`
-      grid-template-areas: 'star name project envs query last-visited stars actions';
+      grid-template-areas: 'star name project envs query last-visited created stars actions';
       grid-template-columns:
         40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(0, 1fr)
         auto auto 48px;
@@ -173,6 +198,7 @@ const SavedEntityTableWithColumns = styled(SavedEntityTable)<{hideCreatedBy?: bo
 
     div[data-column='envs'],
     div[data-column='last-visited'],
+    div[data-column='created'],
     div[data-column='stars'] {
       display: none;
     }
@@ -184,6 +210,7 @@ const SavedEntityTableWithColumns = styled(SavedEntityTable)<{hideCreatedBy?: bo
 
     div[data-column='envs'],
     div[data-column='last-visited'],
+    div[data-column='created'],
     div[data-column='stars'],
     div[data-column='creator'],
     div[data-column='project'] {
