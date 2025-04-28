@@ -49,11 +49,11 @@ import DetailsPage from 'admin/components/detailsPage';
 import ForkCustomerAction from 'admin/components/forkCustomer';
 import triggerEndPeriodEarlyModal from 'admin/components/nextBillingPeriodAction';
 import triggerProvisionSubscription from 'admin/components/provisionSubscriptionAction';
+import refundVercelRequest from 'admin/components/refundVercelRequestModal';
 import SelectableContainer from 'admin/components/selectableContainer';
 import SendWeeklyEmailAction from 'admin/components/sendWeeklyEmailAction';
 import SponsorshipAction from 'admin/components/sponsorshipAction';
 import SuspendAccountAction from 'admin/components/suspendAccountAction';
-import testVercelApiEndpoint from 'admin/components/testVCApiEndpoints';
 import toggleSpendAllocationModal from 'admin/components/toggleSpendAllocationModal';
 import TrialSubscriptionAction from 'admin/components/trialSubscriptionAction';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
@@ -772,13 +772,13 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
                 }),
             },
             {
-              key: 'testVercelApi',
-              name: 'Test Vercel API',
-              help: 'Send API requests to Vercel',
+              key: 'refundVercel',
+              name: 'Vercel Refund',
+              help: 'Send request to Vercel to initiate a refund for a given invoice.',
               skipConfirmModal: true,
               visible: data.isSelfServePartner && hasActiveVCFeature(organization),
               onAction: () =>
-                testVercelApiEndpoint({
+                refundVercelRequest({
                   onSuccess: () => this.reloadData(),
                   subscription: data,
                 }),
