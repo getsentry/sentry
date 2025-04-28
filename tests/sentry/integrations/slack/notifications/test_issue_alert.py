@@ -234,9 +234,10 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
         group_event = event.for_group(event.groups[0])
 
+        # Create a rule with the legacy rule id being another rule
         rule = self.create_project_rule(
             project=self.project,
-            action_data=[{"legacy_rule_id": "1234567890"}],
+            action_data=[{"legacy_rule_id": self.rule.id}],
             name="ja rule",
         )
 
@@ -251,7 +252,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         # Assert we are using the legacy rule id
         assert (
             fallback_text
-            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/alerts/rules/{event.project.slug}/1234567890/details/|ja rule>"
+            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/alerts/rules/{event.project.slug}/{self.rule.id}/details/|ja rule>"
         )
         assert blocks[0]["text"]["text"] == fallback_text
 
@@ -262,7 +263,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             event.group,
             "issue_alert-slack",
             alert_type="alerts",
-            issue_link_extra_params="&alert_rule_id=1234567890&alert_type=issue",
+            issue_link_extra_params=f"&alert_rule_id={self.rule.id}&alert_type=issue",
         )
 
     @patch(
