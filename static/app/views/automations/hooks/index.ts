@@ -8,12 +8,12 @@ export interface UseAutomationsQueryOptions {
   sort?: string;
 }
 export function useAutomationsQuery(_options: UseAutomationsQueryOptions = {}) {
-  const { slug } = useOrganization();
+  const {slug} = useOrganization();
 
   return useApiQuery<Automation[]>([`/organizations/${slug}/workflows/`], {
     staleTime: 0,
     retry: false,
-  })
+  });
 }
 
 export const makeAutomationQueryKey = (
