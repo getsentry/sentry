@@ -40,7 +40,8 @@ void UMyGameInstance::ConfigureSentrySettings(USentrySettings* Settings)
 {
     Settings->Dsn = TEXT("${params.dsn.public}");
 
-    // Add data like request headers, user ip address, device name, etc.
+    // Add data like user ip address and device name
+    // See https://docs.sentry.io/platforms/unreal/data-management/data-collected/ for more info
     Settings->SendDefaultPii = true;
 }
 
