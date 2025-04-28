@@ -592,8 +592,8 @@ class OAuthLoginView(PipelineView):
             installation_id = resp["installations"][0]["id"]
             installation_info = [
                 {
-                    "id": installation.get("id"),
-                    "login": installation.get("account").get("login"),
+                    "installation_id": installation.get("id"),
+                    "github_organization": installation.get("account").get("login"),
                     "avatar_url": installation.get("account").get("avatar_url"),
                 }
                 for installation in resp["installations"]
@@ -689,6 +689,16 @@ class GithubOrganizationSelection(PipelineView):
             return pipeline.next_step()
 
         installation_info = pipeline.fetch_state("existing_installation_info")
+
+        # add an option for users to install on a new GH organization
+        installation_info.append(
+            {
+                "installation_id": -1,
+                "github_organization": "Install integration on a new GitHub organization",
+                "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pog-surprise.png",
+            }
+        )
+
         return self.render_react_view(
             request, "githubInstallationSelect", {"installation_info": installation_info}
         )

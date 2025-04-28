@@ -1,6 +1,5 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import {Observer} from 'mobx-react';
 import * as qs from 'query-string';
 
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
@@ -8,7 +7,6 @@ import {BaseAvatar} from 'sentry/components/core/avatar/baseAvatar';
 import {Button} from 'sentry/components/core/button';
 import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import List from 'sentry/components/list';
@@ -18,8 +16,8 @@ import {space} from 'sentry/styles/space';
 
 type Installation = {
   avatar_url: string;
-  id: number;
-  login: string;
+  github_organization: string;
+  installation_id: number;
 };
 
 type GithubInstallationProps = {
@@ -28,12 +26,16 @@ type GithubInstallationProps = {
 
 export function GithubInstallationSelect({installation_info}: GithubInstallationProps) {
   const [model] = useState<FormModel>(() => new FormModel());
+  const [installationID, setInstallationID] = useState<SelectKey | null>(null);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
 
   const handleSubmit = (e: React.MouseEvent) => {
     e.preventDefault();
     const data = model.getData();
-    addLoadingMessage(t('Submitting\u2026'));
+    addLoadingMessage(t('Submitting'));
+    setIsSaving(true);
     model.setFormSaving();
+
     const {
       location: {origin},
     } = window;
@@ -53,21 +55,22 @@ export function GithubInstallationSelect({installation_info}: GithubInstallation
   };
 
   const handleSelect = ({value}: SelectOption<SelectKey>) => {
+    setInstallationID(value);
     model.setValue('installation_id', value);
   };
 
   const selectOptions = installation_info.map(
     (installation): SelectOption<SelectKey> => ({
-      value: installation.id,
+      value: installation.installation_id,
       label: (
         <OptionLabelWrapper>
           <StyledAvatar
             type="upload"
             uploadUrl={installation.avatar_url}
             size={16}
-            title={installation.login}
+            title={installation.github_organization}
           />
-          <span>{`${installation.login}`}</span>
+          <span>{`${installation.github_organization}`}</span>
         </OptionLabelWrapper>
       ),
     })
@@ -88,29 +91,9 @@ export function GithubInstallationSelect({installation_info}: GithubInstallation
         </ListItem>
       </StyledList>
       <Footer>
-        <Observer>
-          {() => (
-            <Tooltip
-              title={t(
-                'Skip to install the Sentry integration on a new Github organization'
-              )}
-            >
-              <StyledButton onClick={handleSubmit} disabled={model.isSaving}>
-                Skip
-              </StyledButton>
-            </Tooltip>
-          )}
-        </Observer>
-        <Observer>
-          {() => (
-            <StyledButton
-              onClick={handleSubmit}
-              disabled={model.isSaving || !model.getValue('installation_id')}
-            >
-              Next
-            </StyledButton>
-          )}
-        </Observer>
+        <StyledButton onClick={handleSubmit} disabled={isSaving || !installationID}>
+          Next
+        </StyledButton>
       </Footer>
     </Fragment>
   );
