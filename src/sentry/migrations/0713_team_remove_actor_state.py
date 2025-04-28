@@ -3,6 +3,7 @@
 from django.db import migrations
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -20,8 +21,6 @@ class Migration(CheckedMigration):
 
     is_post_deployment = False
 
-    allow_run_sql = True
-
     dependencies = [
         ("sentry", "0712_create_tombstone_compound_indexes"),
     ]
@@ -35,12 +34,13 @@ class Migration(CheckedMigration):
                 ),
             ],
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql="""
                     ALTER TABLE "sentry_team" DROP CONSTRAINT IF EXISTS "sentry_team_actor_idx_fk_sentry_actor_id"
                     """,
                     reverse_sql="",
                     hints={"tables": ["sentry_team"]},
+                    use_statement_timeout=False,
                 )
             ],
         )
