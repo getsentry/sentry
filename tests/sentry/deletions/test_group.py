@@ -1,3 +1,4 @@
+import os
 import random
 from datetime import datetime, timedelta
 from time import time
@@ -139,16 +140,18 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert GroupHistory.objects.filter(id=other_history_one.id).exists() is False
         assert GroupHistory.objects.filter(id=other_history_two.id).exists() is False
 
-    @mock.patch("os.environ.get")
     @mock.patch("sentry.nodestore.delete_multi")
-    def test_cleanup(self, nodestore_delete_multi: mock.Mock, os_environ: mock.Mock) -> None:
-        os_environ.side_effect = lambda key: "1" if key == "_SENTRY_CLEANUP" else None
-        group = self.event.group
+    def test_cleanup(self, nodestore_delete_multi: mock.Mock) -> None:
+        os.environ["_SENTRY_CLEANUP"] = "1"
+        try:
+            group = self.event.group
 
-        with self.tasks():
-            delete_groups(object_ids=[group.id])
+            with self.tasks():
+                delete_groups(object_ids=[group.id])
 
-        assert nodestore_delete_multi.call_count == 0
+            assert nodestore_delete_multi.call_count == 0
+        finally:
+            del os.environ["_SENTRY_CLEANUP"]
 
     @mock.patch(
         "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"

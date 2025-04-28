@@ -1,4 +1,5 @@
 import gc
+import os
 from datetime import datetime
 from itertools import chain
 from typing import Any
@@ -7,6 +8,7 @@ from celery import Celery, Task, signals
 from celery.worker.request import Request
 from django.conf import settings
 from django.db import models
+from django.utils.safestring import SafeString
 
 from sentry.utils import metrics
 
@@ -44,6 +46,12 @@ def holds_bad_pickle_object(value, memo=None):
     if app_module.startswith(("sentry.", "getsentry.")):
         return value, "do not pickle custom classes"
 
+    if os.getenv("TASK_TYPE_CHECKING") and os.getenv("TASK_TYPE_CHECKING") != "0":
+        if isinstance(value, SafeString):
+            # Django string wrappers json encode fine
+            return None
+        elif app_module != "builtins":
+            return value, "do not pickle custom classes"
     return None
 
 
