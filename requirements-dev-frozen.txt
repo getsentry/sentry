@@ -43,7 +43,7 @@ distro==1.8.0
 django==5.1.7
 django-crispy-forms==1.14.0
 django-csp==3.8
-django-pg-zero-downtime-migrations==0.16
+django-pg-zero-downtime-migrations==0.18
 django-stubs-ext==5.1.3
 djangorestframework==3.16.0
 docker==7.1.0
