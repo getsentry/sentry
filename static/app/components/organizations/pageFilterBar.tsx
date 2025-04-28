@@ -167,8 +167,6 @@ except in mobile */
   display: flex;
   position: relative;
 
-  height: ${p.theme.form.md.height};
-
   & button[aria-haspopup] {
     height: 100%;
     width: 100%;
