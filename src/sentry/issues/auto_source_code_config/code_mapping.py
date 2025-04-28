@@ -387,7 +387,7 @@ def convert_stacktrace_frame_path_to_source_path(
     code_mapping: RepositoryProjectPathConfig,
     platform: str | None,
     sdk_name: str | None,
-    organization: Organization | None = None,
+    organization: Organization | None,
 ) -> str | None:
     """
     Applies the given code mapping to the given stacktrace frame and returns the source path.
