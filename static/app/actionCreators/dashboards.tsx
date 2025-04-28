@@ -8,6 +8,7 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import type {PageFilters} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {TOP_N} from 'sentry/utils/discover/types';
+import type {QueryClient} from 'sentry/utils/queryClient';
 import {
   type DashboardDetails,
   type DashboardListItem,
@@ -103,6 +104,7 @@ export function updateDashboardVisit(
 
 export async function updateDashboardFavorite(
   api: Client,
+  queryClient: QueryClient,
   orgId: string,
   dashboardId: string | string[],
   isFavorited: boolean
@@ -117,6 +119,12 @@ export async function updateDashboardFavorite(
         },
       }
     );
+    queryClient.invalidateQueries({
+      queryKey: [
+        `/organizations/${orgId}/dashboards/`,
+        {query: {filter: 'onlyFavorites'}},
+      ],
+    });
     addSuccessMessage(isFavorited ? t('Added as favorite') : t('Removed as favorite'));
   } catch (response) {
     const errorResponse = response?.responseJSON ?? null;
