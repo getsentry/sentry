@@ -12,6 +12,7 @@ from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.issues.auto_source_code_config.code_mapping import FrameInfo, find_roots
 from sentry.models.repository import Repository
 
@@ -50,7 +51,7 @@ class PathMappingSerializer(CamelSnakeSerializer):
         def integration_match(integration: RpcIntegration):
             installation = integration.get_installation(self.org_id)
             # Check if the installation has the source_url_matches method
-            if hasattr(installation, "source_url_matches"):
+            if isinstance(installation, RepositoryIntegration):
                 return installation.source_url_matches(source_url)
             # Fallback to a basic check if the method doesn't exist
             return False
