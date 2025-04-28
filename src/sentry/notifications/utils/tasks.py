@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from sentry.notifications.notifications.base import BaseNotification
 
 
-def serialize_lazy_object(arg: SimpleLazyObject, key: str | None = None) -> dict[str, Any]:
+def serialize_lazy_object_user(arg: SimpleLazyObject, key: str | None = None) -> dict[str, Any]:
     raw_data = arg.dict()
     parsed_data = {}
     for k, v in raw_data.items():
@@ -29,7 +29,7 @@ def serialize_lazy_object(arg: SimpleLazyObject, key: str | None = None) -> dict
         parsed_data[k] = v
 
     return {
-        "type": "lazyobject",
+        "type": "lazyobjectuser",
         "data": parsed_data,
         "key": key,
     }
@@ -65,7 +65,7 @@ def async_send_notification(
         if isinstance(arg, Model):
             task_args.append(serialize_model(arg))
         elif isinstance(arg, SimpleLazyObject):
-            task_args.append(serialize_lazy_object(arg))
+            task_args.append(serialize_lazy_object_user(arg))
         # maybe we need an explicit check if it's a primitive?
         else:
             task_args.append({"type": "other", "value": arg, "key": None})
@@ -73,7 +73,7 @@ def async_send_notification(
         if isinstance(val, Model):
             task_args.append(serialize_model(val, key))
         elif isinstance(arg, SimpleLazyObject):
-            task_args.append(serialize_lazy_object(arg, key))
+            task_args.append(serialize_lazy_object_user(arg, key))
         # maybe we need an explicit check if it's a primitive?
         else:
             task_args.append({"type": "other", "value": val, "key": key})
@@ -102,13 +102,13 @@ def _send_notification(notification_class_name: str, arg_list: Iterable[Mapping[
                 output_kwargs[arg["key"]] = instance
             else:
                 output_args.append(instance)
-        elif arg["type"] == "lazyobject":
-            arg = RpcUser.parse_obj(arg["data"])
+        elif arg["type"] == "lazyobjectuser":
+            user = RpcUser.parse_obj(arg["data"])
 
             if arg["key"]:
-                output_kwargs[arg["key"]] = SimpleLazyObject(lambda: instance)
+                output_kwargs[arg["key"]] = user
             else:
-                output_args.append(SimpleLazyObject(lambda: instance))
+                output_args.append(user)
         elif arg["key"]:
             output_kwargs[arg["key"]] = arg["value"]
         else:
