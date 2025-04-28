@@ -13,7 +13,6 @@ describe('GithubInstallationSelect', () => {
     render(<GithubInstallationSelect installation_info={installation_info} />);
 
     expect(screen.getByText('Select a Github Installation')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Skip'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Next'})).toBeDisabled();
 
@@ -26,6 +25,9 @@ describe('GithubInstallationSelect', () => {
 
     expect(screen.getByText('sentaur')).toBeInTheDocument();
     expect(screen.getByText('bufo-bot')).toBeInTheDocument();
+    expect(
+      screen.getByText('Install integration on a new GitHub organization')
+    ).toBeInTheDocument();
   });
 
   it('enables next button after selecting an installation', async () => {
@@ -34,7 +36,7 @@ describe('GithubInstallationSelect', () => {
     // Next button should be disabled initially
     expect(screen.getByRole('button', {name: 'Next'})).toBeDisabled();
 
-    // Select an installation
+    // Click the select dropdown
     await userEvent.click(
       screen.getByRole('button', {
         name: 'None',
@@ -54,7 +56,7 @@ describe('GithubInstallationSelect', () => {
     // Next button should be disabled initially
     expect(screen.getByRole('button', {name: 'Next'})).toBeDisabled();
 
-    // Select an installation
+    // Click the select dropdown
     await userEvent.click(
       screen.getByRole('button', {
         name: 'None',
@@ -72,33 +74,31 @@ describe('GithubInstallationSelect', () => {
 
     expect(window.location.assign).toHaveBeenCalledWith(
       expect.stringContaining(
-        `/extensions/github/setup/?chosen_installation_id=${installation_info[1]?.id}`
+        `/extensions/github/setup/?chosen_installation_id=${installation_info[1]!.installation_id}`
       )
     );
   });
 
-  it('redirects to setup page when clicking skip', async () => {
+  it('redirects to setup page when selecting skip option', async () => {
     render(<GithubInstallationSelect installation_info={installation_info} />);
 
-    // Click skip
-    await userEvent.click(screen.getByRole('button', {name: 'Skip'}));
+    // Initial selection is None as no installation has been selected
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: 'None',
+      })
+    );
+
+    // Select the new installation option
+    await userEvent.click(
+      screen.getByText('Install integration on a new GitHub organization')
+    );
+
+    // Click next
+    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
     expect(window.location.assign).toHaveBeenCalledWith(
       expect.stringContaining('/extensions/github/setup/?chosen_installation_id=-1')
     );
-  });
-
-  it('shows tooltip on skip button', async () => {
-    render(<GithubInstallationSelect installation_info={installation_info} />);
-
-    // Hover over skip button
-    await userEvent.hover(screen.getByRole('button', {name: 'Skip'}));
-
-    // Tooltip should be visible
-    expect(
-      await screen.findByText(
-        'Skip to install the Sentry integration on a new Github organization'
-      )
-    ).toBeInTheDocument();
   });
 });
