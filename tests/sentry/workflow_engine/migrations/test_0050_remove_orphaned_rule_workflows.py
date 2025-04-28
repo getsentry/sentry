@@ -7,8 +7,8 @@ from sentry.workflow_engine.models import (
     DataCondition,
     DataConditionGroup,
     DataConditionGroupAction,
-    Workflow,
     WorkflowDataConditionGroup,
+    Workflow,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 
