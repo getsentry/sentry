@@ -37,7 +37,17 @@ class UserReport(Model):
         from sentry.api.serializers import UserReportWithGroupSerializer, serialize
         from sentry.tasks.user_report import user_report
 
+        def convert_datetime_in_dict_to_timestamp(obj):
+            if isinstance(obj, dict):
+                return {k: convert_datetime_in_dict_to_timestamp(v) for k, v in obj.items()}
+            elif isinstance(obj, timezone.datetime):
+                return obj.timestamp()
+            return obj
+
+        report = serialize(self, AnonymousUser(), UserReportWithGroupSerializer())
+        report = convert_datetime_in_dict_to_timestamp(report)
+
         user_report.delay(
             project_id=self.project_id,
-            report=serialize(self, AnonymousUser(), UserReportWithGroupSerializer()),
+            report=report,
         )
