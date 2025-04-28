@@ -314,7 +314,7 @@ class TestGetCommentBody(GitlabCommentTestCase):
         )
 
         expected_comment = f"""## Suspect Issues
-This pull request was deployed and Sentry observed the following issues:
+This merge request was deployed and Sentry observed the following issues:
 
 - ‼️ **issue 1** `issue1` [View Issue](http://testserver/organizations/baz/issues/{ev1.group.id}/?referrer=gitlab-pr-bot)
 - ‼️ **issue 2** `issue2` [View Issue](http://testserver/organizations/baz/issues/{ev2.group.id}/?referrer=gitlab-pr-bot)
@@ -354,7 +354,7 @@ class TestCommentWorkflow(GitlabCommentTestCase):
         assert request_body == {
             "body": f"""\
 ## Suspect Issues
-This pull request was deployed and Sentry observed the following issues:
+This merge request was deployed and Sentry observed the following issues:
 
 - ‼️ **{titles[0]}** `{culprits[0]}` [View Issue](http://testserver/organizations/baz/issues/{groups[0]}/?referrer=gitlab-pr-bot)
 - ‼️ **{titles[1]}** `{culprits[1]}` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=gitlab-pr-bot)"""
@@ -405,7 +405,7 @@ This pull request was deployed and Sentry observed the following issues:
         assert request_body == {
             "body": f"""\
 ## Suspect Issues
-This pull request was deployed and Sentry observed the following issues:
+This merge request was deployed and Sentry observed the following issues:
 
 - ‼️ **issue 1** `issue1` [View Issue](http://testserver/organizations/baz/issues/{groups[0]}/?referrer=gitlab-pr-bot)
 - ‼️ **issue 2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=gitlab-pr-bot)"""
