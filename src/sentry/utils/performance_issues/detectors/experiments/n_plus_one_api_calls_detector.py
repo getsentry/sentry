@@ -48,7 +48,8 @@ class NPlusOneAPICallsExperimentalDetector(PerformanceDetector):
         self.stored_problems: PerformanceProblemsMap = {}
         self.spans: list[Span] = []
 
-    def is_creation_allowed_for_system(self) -> bool:
+    @classmethod
+    def is_creation_allowed_for_system(cls) -> bool:
         # Defer to the issue platform for whether to create issues
         # See https://develop.sentry.dev/backend/issue-platform/#releasing-your-issue-type
         return True

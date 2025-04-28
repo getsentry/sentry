@@ -95,8 +95,9 @@ class PerformanceDetector(ABC):
     def on_complete(self) -> None:
         pass
 
-    def is_creation_allowed_for_system(self) -> bool:
-        system_option = DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION.get(self.__class__.type, None)
+    @classmethod
+    def is_creation_allowed_for_system(cls) -> bool:
+        system_option = DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION.get(cls.type, None)
 
         if not system_option:
             return False
@@ -119,10 +120,6 @@ class PerformanceDetector(ABC):
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return False  # Creation is off by default. Ideally, it should auto-generate the project option name, and check its value
-
-    @classmethod
-    def is_detector_enabled(cls) -> bool:
-        return True
 
     @classmethod
     def is_event_eligible(cls, event, project: Project | None = None) -> bool:
