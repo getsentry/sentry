@@ -28,6 +28,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {fields} from 'sentry/data/forms/projectGeneralSettings';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Project} from 'sentry/types/project';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
@@ -35,6 +36,7 @@ import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryCl
 import recreateRoute from 'sentry/utils/recreateRoute';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -383,6 +385,9 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
 function ProjectGeneralSettingsContainer() {
   const routes = useRoutes();
   const navigate = useNavigate();
+  const projects = useLegacyStore(ProjectsStore);
+  const organization = useOrganization();
+  const location = useLocation();
 
   // Use a ref to track the most current slug value
   const changedSlugRef = useRef<string | undefined>(undefined);
@@ -392,35 +397,25 @@ function ProjectGeneralSettingsContainer() {
   }, []);
 
   useEffect(() => {
-    const onProjectsUpdate = () => {
-      const currentSlug = changedSlugRef.current;
+    if (changedSlugRef.current) {
+      const project = projects.projects.find(p => p.slug === changedSlugRef.current);
 
-      if (!currentSlug) {
-        return;
+      if (project) {
+        navigate(
+          recreateRoute('', {
+            params: {
+              orgId: organization.slug,
+              projectId: changedSlugRef.current,
+            },
+            routes,
+            location,
+          }),
+          {replace: true}
+        );
       }
+    }
+  }, [projects, navigate, routes, location, organization.slug]);
 
-      const project = ProjectsStore.getBySlug(currentSlug);
-      if (!project) {
-        return;
-      }
-
-      navigate(
-        recreateRoute('', {
-          params: {
-            projectId: currentSlug,
-          },
-          routes,
-        }),
-        {replace: true}
-      );
-    };
-
-    const unsubscribe = ProjectsStore.listen(onProjectsUpdate, undefined);
-
-    return () => {
-      unsubscribe();
-    };
-  }, [navigate, routes]);
   return <ProjectGeneralSettings onChangeSlug={setChangedSlug} />;
 }
 
