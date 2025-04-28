@@ -43,10 +43,16 @@ function setTokenPointerEvents(
  */
 function measureTokens(
   wrapperRef: React.RefObject<HTMLDivElement | null>,
-  cachedTokenCoordinates: React.MutableRefObject<TokenCoordinateCache | null>
+  cachedTokenCoordinates: React.MutableRefObject<TokenCoordinateCache | null>,
+  keys: Key[]
 ) {
   if (cachedTokenCoordinates.current) {
-    return cachedTokenCoordinates.current;
+    const hasAllKeys = keys.every(key => key in cachedTokenCoordinates.current!);
+    if (!hasAllKeys) {
+      cachedTokenCoordinates.current = null;
+    } else {
+      return cachedTokenCoordinates.current;
+    }
   }
 
   if (!wrapperRef.current) {
@@ -88,7 +94,8 @@ function getItemIndexAtPosition(
 ) {
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i]!;
-    const coords = coordinates[key]!;
+    const coords = coordinates[key];
+    if (!coords) continue;
 
     // If we are above this item, we must be in between this and the
     // previous item on the row above it.
@@ -145,8 +152,8 @@ export function useSelectOnDrag(state: ListState<ParseResultToken>) {
       updatePending.current = true;
 
       requestAnimationFrame(() => {
-        const coordinates = measureTokens(wrapperRef, cachedTokenCoordinates);
         const keys = [...state.collection.getKeys()];
+        const coordinates = measureTokens(wrapperRef, cachedTokenCoordinates, keys);
 
         const startIndex = getItemIndexAtPosition(
           keys,
@@ -229,6 +236,7 @@ export function useSelectOnDrag(state: ListState<ParseResultToken>) {
   // On unmount, make sure we've re-enabled pointer events
   useEffect(() => {
     return () => {
+      cachedTokenCoordinates.current = null;
       setTokenPointerEvents(wrapperRef, true);
     };
   }, [wrapperRef]);
