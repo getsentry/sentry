@@ -40,7 +40,7 @@ interface UseDiscoverOptions<Fields> {
 }
 
 // The default sampling mode for eap queries
-export const DEFAULT_SAMPLING_MODE: SamplingMode = 'BEST_EFFORT';
+export const DEFAULT_SAMPLING_MODE: SamplingMode = 'NORMAL';
 
 export const useSpansIndexed = <Fields extends SpanIndexedProperty[]>(
   options: UseDiscoverOptions<Fields> = {},
