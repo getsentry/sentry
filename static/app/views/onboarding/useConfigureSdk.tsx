@@ -135,5 +135,8 @@ export function useConfigureSdk({
     [createPlatformProject, onboardingContext, organization, createProject]
   );
 
-  return {configureSdk, isLoadingData: isLoadingTeams || !projectsLoaded};
+  return {
+    configureSdk,
+    isLoadingData: isLoadingTeams || !projectsLoaded || createProject.isPending,
+  };
 }
