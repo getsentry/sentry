@@ -220,15 +220,20 @@ def update_group_open_period(
     if new_status not in (GroupStatus.RESOLVED, GroupStatus.UNRESOLVED):
         return
 
-    find_open = new_status != GroupStatus.UNRESOLVED
-    open_period = (
-        GroupOpenPeriod.objects.filter(group=group, date_ended__isnull=find_open)
-        .order_by("-date_started")
-        .first()
-    )
-    if not open_period:
-        logger.error(
-            "Unable to update open period, no open period found",
+    open_period = get_latest_open_period(group)
+    if open_period is None:
+        return
+
+    if open_period.date_ended is None and new_status == GroupStatus.UNRESOLVED:
+        logger.warning(
+            "Attempting to unresolve group with no closed open period",
+            extra={"group_id": group.id},
+        )
+        return
+
+    if open_period.date_ended is not None and new_status == GroupStatus.RESOLVED:
+        logger.warning(
+            "Attempting to resolve group with no active open period",
             extra={"group_id": group.id},
         )
         return
@@ -260,3 +265,7 @@ def update_group_open_period(
 
 def has_initial_open_period(group: Group) -> bool:
     return GroupOpenPeriod.objects.filter(group=group, date_started__lte=group.first_seen).exists()
+
+
+def get_latest_open_period(group: Group) -> GroupOpenPeriod | None:
+    return GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()

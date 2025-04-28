@@ -37,7 +37,7 @@ from sentry.models.groupinbox import (
     remove_group_from_inbox,
 )
 from sentry.models.grouplink import GroupLink
-from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.models.groupopenperiod import GroupOpenPeriod, get_latest_open_period
 from sentry.models.groupowner import GROUP_OWNER_TYPE, GroupOwner, GroupOwnerType
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupsearchview import GroupSearchView
@@ -4684,7 +4684,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_RELEASE
         ).exists()
 
-        open_period = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()
+        open_period = get_latest_open_period(group)
         assert open_period is not None
         assert open_period.date_ended == group.resolved_at
         assert open_period.resolution_activity == activity
@@ -4768,7 +4768,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         assert activity.data["version"] == release.version
 
-        open_period = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()
+        open_period = get_latest_open_period(group)
         assert open_period is not None
         assert open_period.date_ended == group.resolved_at
         assert open_period.resolution_activity == activity
@@ -4821,7 +4821,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert GroupResolution.has_resolution(group=group, release=release_2)
         assert not GroupResolution.has_resolution(group=group, release=release_3)
 
-        open_period = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()
+        open_period = get_latest_open_period(group)
         assert open_period is not None
         assert open_period.date_ended == group.resolved_at
         assert open_period.resolution_activity == activity
@@ -4975,7 +4975,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT
         ).exists()
 
-        open_period = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()
+        open_period = get_latest_open_period(group)
         assert open_period is not None
         assert open_period.date_ended == group.resolved_at
         assert open_period.resolution_activity == activity
@@ -5001,7 +5001,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT
         ).exists()
 
-        open_period = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()
+        open_period = get_latest_open_period(group)
         assert open_period is not None
         assert open_period.date_ended is None
 
