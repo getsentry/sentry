@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 
 import {unreachable} from 'sentry/utils/unreachable';
+import {AdminSecondaryNav} from 'sentry/views/nav/secondary/sections/admin/adminSecondaryNav';
 import CodecovSecondaryNav from 'sentry/views/nav/secondary/sections/codecov/codecovSecondaryNav';
 import {DashboardsSecondaryNav} from 'sentry/views/nav/secondary/sections/dashboards/dashboardsSecondaryNav';
 import {ExploreSecondaryNav} from 'sentry/views/nav/secondary/sections/explore/exploreSecondaryNav';
@@ -26,6 +27,8 @@ export function SecondaryNavContent(): ReactNode {
       return <CodecovSecondaryNav />;
     case PrimaryNavGroup.SETTINGS:
       return <SettingsSecondaryNav />;
+    case PrimaryNavGroup.ADMIN:
+      return <AdminSecondaryNav />;
     default:
       unreachable(activeNavGroup);
       return null;

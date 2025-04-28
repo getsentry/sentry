@@ -10,4 +10,5 @@ export enum PrimaryNavGroup {
   INSIGHTS = 'insights',
   SETTINGS = 'settings',
   CODECOV = 'codecov',
+  ADMIN = 'admin',
 }

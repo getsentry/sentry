@@ -17,7 +17,9 @@ import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useNavContext} from 'sentry/views/nav/context';
+import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {NavLayout} from 'sentry/views/nav/types';
+import {useActiveNavGroup} from 'sentry/views/nav/useActiveNavGroup';
 import {isLinkActive} from 'sentry/views/nav/utils';
 
 type SecondaryNavProps = {
@@ -53,8 +55,9 @@ export function SecondaryNav({children}: SecondaryNavProps) {
   return createPortal(children, secondaryNavEl);
 }
 
-SecondaryNav.Header = function SecondaryNavHeader({children}: {children: ReactNode}) {
+SecondaryNav.Header = function SecondaryNavHeader({children}: {children?: ReactNode}) {
   const {isCollapsed, setIsCollapsed, layout} = useNavContext();
+  const group = useActiveNavGroup();
 
   if (layout === NavLayout.MOBILE) {
     return null;
@@ -62,7 +65,7 @@ SecondaryNav.Header = function SecondaryNavHeader({children}: {children: ReactNo
 
   return (
     <Header>
-      <div>{children}</div>
+      <div>{children ?? PRIMARY_NAV_GROUP_CONFIG[group].label}</div>
       <div>
         <Button
           borderless
