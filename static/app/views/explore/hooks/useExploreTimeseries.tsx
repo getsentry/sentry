@@ -15,7 +15,7 @@ import {
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
-import {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
   type SpansRPCQueryExtras,
