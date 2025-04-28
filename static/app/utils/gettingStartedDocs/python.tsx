@@ -20,8 +20,8 @@ export function getPythonInstallSnippet({
   packageManager?: 'pip' | 'uv' | 'poetry';
 }) {
   const versionedPackage = minimumVersion
-    ? `"${packageName}>=${minimumVersion}"`
-    : packageName;
+    ? `'${packageName}>=${minimumVersion}'`
+    : `'${packageName}'`;
 
   const upgradeFlag = minimumVersion ? '--upgrade ' : '';
 
@@ -35,7 +35,7 @@ export function getPythonInstallSnippet({
 }
 
 export function getPythonInstallConfig({
-  packageName = "'sentry-sdk'",
+  packageName = 'sentry-sdk',
   description,
   minimumVersion,
 }: {
@@ -104,7 +104,7 @@ export function getPythonAiocontextvarsConfig({
   );
 
   return getPythonInstallConfig({
-    packageName: "'aiocontextvars'",
+    packageName: 'aiocontextvars',
     description: description ?? defaultDescription,
   });
 }
