@@ -106,7 +106,7 @@ function getFilteredProjectsBasedOnTeams({
   const myTeams = includeMyTeams ? allTeams.filter(team => myTeamIds.has(team.id)) : [];
   const otherTeams = isAllTeams
     ? allTeams
-    : [...allTeams].filter(team => selectedOtherTeamIds.has(String(team.id)));
+    : allTeams.filter(team => selectedOtherTeamIds.has(String(team.id)));
 
   const visibleTeams = [...myTeams, ...otherTeams].filter(team => {
     if (showNonMemberProjects) {
