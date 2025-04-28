@@ -152,8 +152,9 @@ def handle_downsample_meta(meta: DownsampledStorageMeta) -> DownsampleMetadata:
     else:
         downsampled_metadata["full_scan"] = False
 
-    downsampled_metadata["can_go_to_higher_accuracy_tier"] = meta.get(
-        "can_go_to_higher_accuracy_tier", False
-    )
+    if meta.can_go_to_higher_accuracy_tier:
+        downsampled_metadata["can_go_to_higher_accuracy_tier"] = True
+    else:
+        downsampled_metadata["can_go_to_higher_accuracy_tier"] = False
 
     return downsampled_metadata
