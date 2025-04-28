@@ -27,7 +27,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.issues.priority import PriorityChangeReason, update_priority
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphash import GroupHash
-from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.models.release import Release
 from sentry.ratelimits.sliding_windows import RedisSlidingWindowRateLimiter, RequestedQuota
 from sentry.types.group import PriorityLevel
@@ -226,9 +226,7 @@ def save_issue_from_occurrence(
             group, is_new, primary_grouphash = save_grouphash_and_group(
                 project, event, primary_hash, **issue_kwargs
             )
-            open_period = (
-                GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()
-            )
+            open_period = get_latest_open_period(group)
             if open_period is not None:
                 highest_seen_priority = group.priority
                 open_period.update(
@@ -300,9 +298,7 @@ def save_issue_from_occurrence(
                 project=project,
             )
 
-            open_period = (
-                GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()
-            )
+            open_period = get_latest_open_period(group)
             if open_period is not None:
                 highest_seen_priority = open_period.data.get("highest_seen_priority", None)
                 if highest_seen_priority is None:
