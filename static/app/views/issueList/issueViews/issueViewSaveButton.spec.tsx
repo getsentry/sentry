@@ -72,7 +72,6 @@ describe('IssueViewSaveButton', function () {
         <GlobalModal />
       </Fragment>,
       {
-        enableRouterMocks: false,
         initialRouterConfig: initialRouterConfigFeed,
       }
     );
@@ -124,7 +123,6 @@ describe('IssueViewSaveButton', function () {
         <GlobalModal />
       </Fragment>,
       {
-        enableRouterMocks: false,
         initialRouterConfig: initialRouterConfigView,
       }
     );
@@ -172,7 +170,6 @@ describe('IssueViewSaveButton', function () {
     });
 
     render(<IssueViewSaveButton {...defaultProps} />, {
-      enableRouterMocks: false,
       initialRouterConfig: {
         ...initialRouterConfigView,
         location: {
@@ -235,7 +232,7 @@ describe('IssueViewSaveButton', function () {
         organization: OrganizationFixture({
           access: ['org:read'],
         }),
-        enableRouterMocks: false,
+
         initialRouterConfig: initialRouterConfigView,
       }
     );
@@ -278,7 +275,6 @@ describe('IssueViewSaveButton', function () {
     PageFiltersStore.onInitializeUrlState(defaultPageFilters, new Set());
 
     const {router} = render(<IssueViewSaveButton {...defaultProps} />, {
-      enableRouterMocks: false,
       initialRouterConfig: {
         ...initialRouterConfigView,
         location: {
