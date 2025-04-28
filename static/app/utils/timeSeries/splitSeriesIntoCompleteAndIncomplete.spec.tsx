@@ -17,7 +17,7 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
   it('Does not split a series with all complete data', () => {
     const serie: TimeSeries = {
       field: 'p99(span.duration)',
-      data: [
+      values: [
         {
           value: 90,
           timestamp: 1729785240000, // '2024-10-24T15:54:00.000Z'
@@ -32,8 +32,8 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
         },
       ],
       meta: {
-        type: 'duration',
-        unit: DurationUnit.MILLISECOND,
+        valueType: 'duration',
+        valueUnit: DurationUnit.MILLISECOND,
       },
     };
 
@@ -42,7 +42,7 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
       90
     );
 
-    expect(completeSerie?.data).toEqual([
+    expect(completeSerie?.values).toEqual([
       {
         value: 90,
         timestamp: 1729785240000, // '2024-10-24T15:54:00.000Z'
@@ -63,7 +63,7 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
   it('Does not split a series with all incomplete data', () => {
     const serie: TimeSeries = {
       field: 'p99(span.duration)',
-      data: [
+      values: [
         {
           value: 90,
           timestamp: 1729785485000, // '2024-10-24T15:58:05.000Z'
@@ -82,8 +82,8 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
         },
       ],
       meta: {
-        type: 'duration',
-        unit: DurationUnit.MILLISECOND,
+        valueType: 'duration',
+        valueUnit: DurationUnit.MILLISECOND,
       },
     };
 
@@ -94,7 +94,7 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
 
     expect(completeSerie).toBeUndefined();
 
-    expect(incompleteSerie?.data).toEqual([
+    expect(incompleteSerie?.values).toEqual([
       {
         value: 90,
         timestamp: 1729785485000, // '2024-10-24T15:58:05.000Z'
@@ -117,7 +117,7 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
   it('Splits a series with partial incomplete data', () => {
     const serie: TimeSeries = {
       field: 'p99(span.duration)',
-      data: [
+      values: [
         {
           value: 100,
           timestamp: 1729785300000, // '2024-10-24T15:55:00.000Z'
@@ -140,8 +140,8 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
         },
       ],
       meta: {
-        type: 'duration',
-        unit: DurationUnit.MILLISECOND,
+        valueType: 'duration',
+        valueUnit: DurationUnit.MILLISECOND,
       },
     };
 
@@ -150,7 +150,7 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
       90
     );
 
-    expect(completeSerie?.data).toEqual([
+    expect(completeSerie?.values).toEqual([
       {
         value: 100,
         timestamp: 1729785300000, // '2024-10-24T15:55:00.000Z'
@@ -161,7 +161,7 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
       },
     ]);
 
-    expect(incompleteSerie?.data).toEqual([
+    expect(incompleteSerie?.values).toEqual([
       {
         value: 110,
         timestamp: 1729785360000, // '2024-10-24T15:56:00.000Z'
@@ -186,7 +186,7 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
 
     const serie: TimeSeries = {
       field: 'p99(span.duration)',
-      data: [
+      values: [
         {
           value: 110,
           timestamp: 1729771200000, // '2024-10-24T12:00:00.000Z'
@@ -205,8 +205,8 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
         },
       ],
       meta: {
-        type: 'duration',
-        unit: DurationUnit.MILLISECOND,
+        valueType: 'duration',
+        valueUnit: DurationUnit.MILLISECOND,
       },
     };
 
@@ -215,7 +215,7 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
       90
     );
 
-    expect(completeSerie?.data).toEqual([
+    expect(completeSerie?.values).toEqual([
       {
         value: 110,
         timestamp: 1729771200000, // '2024-10-24T12:00:00.000Z'
@@ -230,7 +230,7 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
       },
     ]);
 
-    expect(incompleteSerie?.data).toEqual([
+    expect(incompleteSerie?.values).toEqual([
       {
         value: 130,
         timestamp: 1729778400000, // '2024-10-24T14:00:00.000Z'

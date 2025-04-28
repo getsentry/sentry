@@ -131,7 +131,10 @@ describe('SchemaHintsList', () => {
         stringTags={mockStringTags}
         numberTags={mockNumberTags}
         supportedAggregates={[]}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     const stringTag1Hint = screen.getByText('stringTag1');
@@ -149,7 +152,10 @@ describe('SchemaHintsList', () => {
 
   it('should render loading indicator when isLoading is true', () => {
     render(
-      <Subject stringTags={{}} numberTags={{}} supportedAggregates={[]} isLoading />
+      <Subject stringTags={{}} numberTags={{}} supportedAggregates={[]} isLoading />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -162,7 +168,11 @@ describe('SchemaHintsList', () => {
         numberTags={mockNumberTags}
         supportedAggregates={[]}
       />,
-      {organization, router}
+      {
+        organization,
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     const seeFullList = screen.getByText('See full list');
@@ -186,7 +196,11 @@ describe('SchemaHintsList', () => {
         numberTags={mockNumberTags}
         supportedAggregates={[]}
       />,
-      {organization, router}
+      {
+        organization,
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     const seeFullList = screen.getByText('See full list');
@@ -215,7 +229,7 @@ describe('SchemaHintsList', () => {
         numberTags={mockNumberTags}
         supportedAggregates={[AggregationKey.COUNT_UNIQUE]}
       />,
-      {organization, router}
+      {organization, router, deprecatedRouterMocks: true}
     );
     const countUniquePill = screen.getByText('count_unique(...)');
     await userEvent.click(countUniquePill);
@@ -262,6 +276,7 @@ describe('SchemaHintsList', () => {
       />,
       {
         organization,
+
         router: {
           ...router,
           location: {
@@ -272,6 +287,8 @@ describe('SchemaHintsList', () => {
             },
           },
         },
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -308,16 +325,6 @@ describe('SchemaHintsList', () => {
       />,
       {
         organization,
-        router: {
-          ...router,
-          location: {
-            ...router.location,
-            query: {
-              query: 'stringTag1:"" numberTag1:>0 count_unique(user):>0',
-              field: ['stringTag1', 'numberTag1'],
-            },
-          },
-        },
       }
     );
 
@@ -345,7 +352,11 @@ describe('SchemaHintsList', () => {
         numberTags={mockNumberTags}
         supportedAggregates={[]}
       />,
-      {organization, router}
+      {
+        organization,
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     const seeFullList = screen.getByText('See full list');
@@ -370,7 +381,11 @@ describe('SchemaHintsList', () => {
         numberTags={mockNumberTags}
         supportedAggregates={[]}
       />,
-      {organization, router}
+      {
+        organization,
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     const seeFullList = screen.getByText('See full list');

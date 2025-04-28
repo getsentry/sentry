@@ -427,6 +427,7 @@ def create_data_condition_group(organization_id: int) -> DataConditionGroup:
 
 
 def create_workflow(
+    alert_rule: AlertRule,
     name: str,
     organization_id: int,
     user: RpcUser | None = None,
@@ -437,6 +438,8 @@ def create_workflow(
         when_condition_group=None,
         enabled=True,
         created_by_id=user.id if user else None,
+        owner_user_id=alert_rule.user_id,
+        owner_team=alert_rule.team,
         config={},
     )
 
@@ -521,7 +524,7 @@ def migrate_alert_rule(
     detector = create_detector(alert_rule, project.id, detector_data_condition_group, user)
 
     workflow_name = get_workflow_name(alert_rule)
-    workflow = create_workflow(workflow_name, organization_id, user)
+    workflow = create_workflow(alert_rule, workflow_name, organization_id, user)
 
     open_incident = Incident.objects.get_active_incident(alert_rule, project)
     if open_incident:

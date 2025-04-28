@@ -38,7 +38,6 @@ describe('useActiveNavGroup', function () {
       [PrimaryNavGroup.CODECOV, '/codecov/foo/'],
     ])('correctly matches %s nav group', async function (navGroup, path) {
       render(<TestComponent />, {
-        enableRouterMocks: false,
         initialRouterConfig: {
           location: {
             pathname: path,
@@ -63,7 +62,6 @@ describe('useActiveNavGroup', function () {
     ])('correctly matches %s nav group', async function (navGroup, path) {
       mockUsingCustomerDomain.mockReturnValue(false);
       render(<TestComponent />, {
-        enableRouterMocks: false,
         initialRouterConfig: {
           location: {
             pathname: path,
