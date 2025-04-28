@@ -3,6 +3,7 @@
 from django.db import migrations, models
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -18,8 +19,6 @@ class Migration(CheckedMigration):
     #   change, it's completely safe to run the operation after the code has deployed.
     is_post_deployment = True
 
-    allow_run_sql = True
-
     dependencies = [
         ("sentry", "0681_unpickle_authenticator_again"),
     ]
@@ -27,7 +26,7 @@ class Migration(CheckedMigration):
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     [
                         'CREATE UNIQUE INDEX CONCURRENTLY "sentry_monitor_project_id_slug_1f4d3dc3_uniq" ON "sentry_monitor" ("project_id", "slug");',
                         'ALTER TABLE "sentry_monitor" ADD CONSTRAINT "sentry_monitor_project_id_slug_1f4d3dc3_uniq" UNIQUE USING INDEX "sentry_monitor_project_id_slug_1f4d3dc3_uniq";',
@@ -41,6 +40,7 @@ class Migration(CheckedMigration):
                         'DROP INDEX CONCURRENTLY "sentry_moni_organiz_a62466_idx";',
                     ],
                     hints={"tables": ["sentry_monitor"]},
+                    use_statement_timeout=False,
                 ),
             ],
             state_operations=[

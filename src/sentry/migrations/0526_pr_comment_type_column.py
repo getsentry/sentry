@@ -6,6 +6,7 @@ from django.db import migrations
 import sentry.db.models.fields.bounded
 import sentry.db.models.fields.foreignkey
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -21,8 +22,6 @@ class Migration(CheckedMigration):
     #   change, it's completely safe to run the operation after the code has deployed.
     is_post_deployment = False
 
-    allow_run_sql = True
-
     dependencies = [
         ("sentry", "0525_add_next_checkin_latest"),
     ]
@@ -30,7 +29,7 @@ class Migration(CheckedMigration):
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     """
                     ALTER TABLE "sentry_pullrequest_comment" ADD COLUMN "comment_type" integer NOT NULL DEFAULT 0;
                     """,

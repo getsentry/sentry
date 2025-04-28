@@ -4,6 +4,7 @@ import django.utils.timezone
 from django.db import migrations, models
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -19,8 +20,6 @@ class Migration(CheckedMigration):
     #   change, it's completely safe to run the operation after the code has deployed.
     is_post_deployment = False
 
-    allow_run_sql = True
-
     dependencies = [
         ("sentry", "0642_index_together_release"),
     ]
@@ -28,7 +27,7 @@ class Migration(CheckedMigration):
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql="""
                     ALTER TABLE "sentry_dashboardwidgetquery" ADD COLUMN "date_modified" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP;
                     """,

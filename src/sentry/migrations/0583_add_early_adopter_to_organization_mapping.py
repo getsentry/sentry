@@ -3,6 +3,7 @@
 from django.db import migrations, models
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -17,8 +18,6 @@ class Migration(CheckedMigration):
     #   have ops run this and not block the deploy. Note that while adding an index is a schema
     #   change, it's completely safe to run the operation after the code has deployed.
     is_post_deployment = False
-
-    allow_run_sql = True
 
     dependencies = [
         ("sentry", "0582_add_status_indexes_checkins"),
@@ -37,7 +36,7 @@ class Migration(CheckedMigration):
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     f"""
                     ALTER TABLE "sentry_organizationmapping" ADD COLUMN "{column}" BOOLEAN NOT NULL DEFAULT false;
                     """,

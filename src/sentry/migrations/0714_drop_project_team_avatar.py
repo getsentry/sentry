@@ -3,6 +3,7 @@
 from django.db import migrations
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -20,8 +21,6 @@ class Migration(CheckedMigration):
 
     is_post_deployment = False
 
-    allow_run_sql = True
-
     dependencies = [
         ("sentry", "0713_team_remove_actor_state"),
     ]
@@ -29,12 +28,12 @@ class Migration(CheckedMigration):
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='DROP TABLE IF EXISTS "sentry_projectavatar"',
                     reverse_sql="CREATE TABLE sentry_projectavatar (id BIGSERIAL)",
                     hints={"tables": ["sentry_teamavatar"]},
                 ),
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='DROP TABLE IF EXISTS "sentry_teamavatar"',
                     reverse_sql="CREATE TABLE sentry_teamavatar (id BIGSERIAL)",
                     hints={"tables": ["sentry_teamavatar"]},

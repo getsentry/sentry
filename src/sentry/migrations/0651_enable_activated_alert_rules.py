@@ -8,6 +8,7 @@ import sentry.db.models.fields.bounded
 import sentry.db.models.fields.foreignkey
 import sentry.incidents.models.alert_rule
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -23,8 +24,6 @@ class Migration(CheckedMigration):
     #   change, it's completely safe to run the operation after the code has deployed.
     is_post_deployment = False
 
-    allow_run_sql = True
-
     dependencies = [
         ("sentry", "0650_create_sentryshot"),
     ]
@@ -32,7 +31,7 @@ class Migration(CheckedMigration):
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     """
                     ALTER TABLE "sentry_alertrule" ADD COLUMN "monitor_type" integer NOT NULL DEFAULT 0;
                     """,

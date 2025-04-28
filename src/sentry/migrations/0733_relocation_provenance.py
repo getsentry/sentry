@@ -3,6 +3,7 @@
 from django.db import migrations, models
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -20,8 +21,6 @@ class Migration(CheckedMigration):
 
     is_post_deployment = False
 
-    allow_run_sql = True
-
     dependencies = [
         ("sentry", "0732_add_span_attribute_extraction_rules"),
     ]
@@ -29,7 +28,7 @@ class Migration(CheckedMigration):
     operations = (
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     """
                         ALTER TABLE "sentry_relocation" ADD COLUMN "provenance" integer NOT NULL DEFAULT 0;
                         """,

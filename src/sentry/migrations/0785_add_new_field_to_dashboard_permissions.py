@@ -6,6 +6,7 @@ from django.db import migrations, models
 import sentry.db.models.fields.bounded
 import sentry.db.models.fields.foreignkey
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -23,8 +24,6 @@ class Migration(CheckedMigration):
 
     is_post_deployment = False
 
-    allow_run_sql = True
-
     dependencies = [
         ("sentry", "0784_remove_broadcasts_cta_column"),
     ]
@@ -32,7 +31,7 @@ class Migration(CheckedMigration):
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     """
                     ALTER TABLE "sentry_dashboardpermissions" ADD COLUMN "is_editable_by_everyone" boolean NOT NULL DEFAULT true;
                     """,

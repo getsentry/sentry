@@ -5,6 +5,7 @@ from django.db import migrations, models
 
 import sentry.db.models.fields.foreignkey
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -19,8 +20,6 @@ class Migration(CheckedMigration):
     #   have ops run this and not block the deploy. Note that while adding an index is a schema
     #   change, it's completely safe to run the operation after the code has deployed.
     is_post_deployment = True
-
-    allow_run_sql = True
 
     dependencies = [
         ("sentry", "0548_add_is_unclaimed_boolean_to_user"),
@@ -45,7 +44,7 @@ class Migration(CheckedMigration):
                 ),
             ],
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     reverse_sql="""
                     ALTER TABLE "sentry_groupsubscription" ALTER COLUMN "user_id" SET NOT NULL;
                     """,

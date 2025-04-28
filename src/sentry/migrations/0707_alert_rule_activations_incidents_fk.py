@@ -5,6 +5,7 @@ from django.db import migrations, models
 
 import sentry.db.models.fields.foreignkey
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -22,8 +23,6 @@ class Migration(CheckedMigration):
 
     is_post_deployment = False
 
-    allow_run_sql = True
-
     dependencies = [
         ("sentry", "0706_grouphistory_userteam_backfill"),
     ]
@@ -31,7 +30,7 @@ class Migration(CheckedMigration):
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     """
                     ALTER TABLE "sentry_alertruleactivations" ADD COLUMN "activator" VARCHAR(250) NOT NULL DEFAULT 'default_activator';
                     """,
@@ -40,7 +39,7 @@ class Migration(CheckedMigration):
                     """,
                     hints={"tables": ["sentry_alertruleactivations"]},
                 ),
-                migrations.RunSQL(
+                SafeRunSQL(
                     """
                     ALTER TABLE "sentry_alertruleactivations" ADD COLUMN "condition_type" SMALLINT NOT NULL DEFAULT 0;
                     """,

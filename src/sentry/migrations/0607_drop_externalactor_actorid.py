@@ -3,6 +3,7 @@
 from django.db import migrations
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -18,8 +19,6 @@ class Migration(CheckedMigration):
     #   change, it's completely safe to run the operation after the code has deployed.
     is_post_deployment = False
 
-    allow_run_sql = True
-
     dependencies = [
         ("sentry", "0606_update_user_to_optional_organization_slug_reservation"),
     ]
@@ -28,7 +27,7 @@ class Migration(CheckedMigration):
         migrations.SeparateDatabaseAndState(
             state_operations=[],
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql="""
                     ALTER TABLE "sentry_externalactor" DROP COLUMN actor_id;
                     """,

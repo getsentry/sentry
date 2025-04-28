@@ -3,6 +3,7 @@
 from django.db import migrations, models
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -19,8 +20,6 @@ class Migration(CheckedMigration):
     # Once deployed, run these manually via: https://develop.sentry.dev/database-migrations/#migration-deployment
 
     is_post_deployment = False
-
-    allow_run_sql = True
 
     dependencies = [
         ("sentry", "0740_one_relocation_file_kind_per_relocation"),
@@ -39,7 +38,7 @@ class Migration(CheckedMigration):
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     """
                     ALTER TABLE "sentry_alertrule" ADD COLUMN "detection_type" VARCHAR(32) NOT NULL DEFAULT 'static';
                     """,

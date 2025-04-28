@@ -3,6 +3,7 @@
 from django.db import migrations, models
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -18,14 +19,12 @@ class Migration(CheckedMigration):
     #   change, it's completely safe to run the operation after the code has deployed.
     is_post_deployment = False
 
-    allow_run_sql = True
-
     dependencies = [
         ("sentry", "0490_add_is_test_to_org"),
     ]
 
     operations = [
-        migrations.RunSQL(
+        SafeRunSQL(
             sql="""
             ALTER TABLE "sentry_organizationmembermapping" DROP CONSTRAINT "sentry_organizationmembe_organization_id_email_66a560fc_uniq";
             ALTER TABLE "sentry_organizationmembermapping" DROP CONSTRAINT "sentry_organizationmembe_organization_id_user_id_feb6bdf0_uniq";
