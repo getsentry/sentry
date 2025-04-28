@@ -189,7 +189,7 @@ def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
 
     groups = Group.objects.in_bulk(record.value.event.group_id for record in records)
     group_ids = list(groups)
-    rules = Rule.objects.in_bulk(rule_id for record in records for rule_id in record.value.rules)
+    rules = Rule.objects.in_bulk(rule_ids)
 
     if features.has("organizations:workflow-engine-trigger-actions", project.organization):
         for rule in rules.values():
@@ -230,7 +230,6 @@ def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
         end,
         tenant_ids=tenant_ids,
     )
-
     digest = _build_digest_impl(records, groups, rules, event_counts, user_counts)
 
     return DigestInfo(digest, event_counts, user_counts)

@@ -196,6 +196,19 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
             fallthrough=True,
         )
 
+        self.rule = self.create_project_rule()
+
+        # Represents the "original" rule during dual-write
+        self.shadow_rule = self.create_project_rule()
+        self.workflow = self.create_workflow(organization=self.organization)
+
+        self.rule_with_workflow_id = self.create_project_rule(
+            action_data=[{"workflow_id": self.workflow.id}]
+        )
+        self.rule_with_legacy_rule_id = self.create_project_rule(
+            action_data=[{"legacy_rule_id": self.shadow_rule.id}]
+        )
+
     def create_events_from_filenames(
         self, project: Project, filenames: Sequence[str] | None = None
     ) -> list[Event]:
@@ -213,9 +226,40 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         ]
 
     def test_simple(self):
-        rule = self.project.rule_set.all()[0]
         records = [
-            event_to_record(event, (rule,))
+            event_to_record(event, (self.rule,))
+            for event in self.team1_events + self.team2_events + self.user4_events
+        ]
+        digest = build_digest(self.project, sort_records(records))[0]
+
+        expected_result = {
+            self.user2.id: set(self.team2_events),
+            self.user3.id: set(self.team1_events + self.team2_events),
+            self.user4.id: set(self.user4_events),
+        }
+
+        assert_get_personalized_digests(self.project, digest, expected_result)
+
+    @with_feature("organizations:workflow-engine-ui-links")
+    def test_simple_with_workflow_id(self):
+        records = [
+            event_to_record(event, (self.rule_with_workflow_id,))
+            for event in self.team1_events + self.team2_events + self.user4_events
+        ]
+        digest = build_digest(self.project, sort_records(records))[0]
+
+        expected_result = {
+            self.user2.id: set(self.team2_events),
+            self.user3.id: set(self.team1_events + self.team2_events),
+            self.user4.id: set(self.user4_events),
+        }
+
+        assert_get_personalized_digests(self.project, digest, expected_result)
+
+    @with_feature("organizations:workflow-engine-trigger-actions")
+    def test_simple_with_legacy_rule_id(self):
+        records = [
+            event_to_record(event, (self.rule_with_legacy_rule_id,))
             for event in self.team1_events + self.team2_events + self.user4_events
         ]
         digest = build_digest(self.project, sort_records(records))[0]
@@ -231,8 +275,21 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
     def test_direct_email(self):
         """When the action type is not Issue Owners, then the target actor gets a digest."""
         self.project_ownership.update(fallthrough=False)
-        rule = self.project.rule_set.all()[0]
-        records = [event_to_record(event, (rule,)) for event in self.team1_events]
+        records = [event_to_record(event, (self.rule,)) for event in self.team1_events]
+        digest = build_digest(self.project, sort_records(records))[0]
+
+        expected_result = {self.user1.id: set(self.team1_events)}
+        assert_get_personalized_digests(
+            self.project, digest, expected_result, ActionTargetType.MEMBER, self.user1.id
+        )
+
+    @with_feature("organizations:workflow-engine-ui-links")
+    def test_direct_email_with_workflow_id(self):
+        """When the action type is not Issue Owners, then the target actor gets a digest. - Workflow ID"""
+        self.project_ownership.update(fallthrough=False)
+        records = [
+            event_to_record(event, (self.rule_with_workflow_id,)) for event in self.team1_events
+        ]
         digest = build_digest(self.project, sort_records(records))[0]
 
         expected_result = {self.user1.id: set(self.team1_events)}
@@ -244,27 +301,27 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
     def test_direct_email_with_legacy_rule_id(self):
         """When the action type is not Issue Owners, then the target actor gets a digest."""
         self.project_ownership.update(fallthrough=False)
-        rule = self.project.rule_set.all()[0]
+        records = [
+            event_to_record(event, (self.rule_with_legacy_rule_id,)) for event in self.team1_events
+        ]
 
-        rule.data["actions"][0]["legacy_rule_id"] = rule.id
-        records = [event_to_record(event, (rule,)) for event in self.team1_events]
         digest = build_digest(self.project, sort_records(records))[0]
 
         expected_result = {self.user1.id: set(self.team1_events)}
         assert_get_personalized_digests(
             self.project, digest, expected_result, ActionTargetType.MEMBER, self.user1.id
         )
-        assert_rule_ids(digest, [rule.id])
+        assert_rule_ids(digest, [self.shadow_rule.id])
 
     def test_team_without_members(self):
         team = self.create_team()
         project = self.create_project(teams=[team], fire_project_created=True)
+        rule = self.create_project_rule(project)
         ProjectOwnership.objects.create(
             project_id=project.id,
             schema=dump_schema([Rule(Matcher("path", "*.cpp"), [Owner("team", team.slug)])]),
             fallthrough=True,
         )
-        rule = project.rule_set.all()[0]
         records = [
             event_to_record(event, (rule,))
             for event in self.create_events_from_filenames(
@@ -279,12 +336,63 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
             actor for actors in participants_by_provider_by_event.values() for actor in actors
         }  # no users in this team no digests should be processed
 
+    @with_feature("organizations:workflow-engine-ui-links")
+    def test_team_without_members_with_workflow_id(self):
+        team = self.create_team()
+        project = self.create_project(teams=[team], fire_project_created=True)
+        ProjectOwnership.objects.create(
+            project_id=project.id,
+            schema=dump_schema([Rule(Matcher("path", "*.cpp"), [Owner("team", team.slug)])]),
+            fallthrough=True,
+        )
+        records = [
+            event_to_record(event, (self.rule_with_workflow_id,))
+            for event in self.create_events_from_filenames(
+                project, ["hello.py", "goodbye.py", "hola.py", "adios.py"]
+            )
+        ]
+        digest = build_digest(project, sort_records(records))[0]
+        user_ids = [member.user_id for member in team.member_set]
+        assert not user_ids
+        participants_by_provider_by_event = get_participants_by_event(digest, project)
+        assert not {
+            actor for actors in participants_by_provider_by_event.values() for actor in actors
+        }  # no users in this team no digests should be processed
+
+    @with_feature("organizations:workflow-engine-trigger-actions")
+    def test_team_without_members_with_legacy_rule_id(self):
+        team = self.create_team()
+        project = self.create_project(teams=[team], fire_project_created=True)
+        self.shadow_rule.project_id = project.id
+        self.shadow_rule.save()
+        rule = self.create_project_rule(
+            project, action_data=[{"legacy_rule_id": self.shadow_rule.id}]
+        )
+        ProjectOwnership.objects.create(
+            project_id=project.id,
+            schema=dump_schema([Rule(Matcher("path", "*.cpp"), [Owner("team", team.slug)])]),
+            fallthrough=True,
+        )
+        records = [
+            event_to_record(event, (rule,))
+            for event in self.create_events_from_filenames(
+                project, ["hello.py", "goodbye.py", "hola.py", "adios.py"]
+            )
+        ]
+
+        digest = build_digest(project, sort_records(records))[0]
+        user_ids = [member.user_id for member in team.member_set]
+        assert not user_ids
+        participants_by_provider_by_event = get_participants_by_event(digest, project)
+        assert not {
+            actor for actors in participants_by_provider_by_event.values() for actor in actors
+        }  # no users in this team no digests should be processed
+
     def test_only_everyone(self):
-        rule = self.project.rule_set.all()[0]
         events = self.create_events_from_filenames(
             self.project, ["hello.moz", "goodbye.moz", "hola.moz", "adios.moz"]
         )
-        records = [event_to_record(event, (rule,)) for event in events]
+        records = [event_to_record(event, (self.rule,)) for event in events]
         digest = build_digest(self.project, sort_records(records))[0]
         expected_result = {
             self.user1.id: set(events),
@@ -296,11 +404,48 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         assert_get_personalized_digests(self.project, digest, expected_result)
 
     def test_everyone_with_owners(self):
-        rule = self.project.rule_set.all()[0]
         events = self.create_events_from_filenames(
             self.project, ["hello.moz", "goodbye.moz", "hola.moz", "adios.moz"]
         )
-        records = [event_to_record(event, (rule,)) for event in events + self.team1_events]
+        records = [event_to_record(event, (self.rule,)) for event in events + self.team1_events]
+        digest = build_digest(self.project, sort_records(records))[0]
+        expected_result = {
+            self.user1.id: set(events),
+            self.user2.id: set(events),
+            self.user3.id: set(events + self.team1_events),
+            self.user4.id: set(events),
+            self.user5.id: set(events),
+        }
+        assert_get_personalized_digests(self.project, digest, expected_result)
+
+    @with_feature("organizations:workflow-engine-ui-links")
+    def test_everyone_with_owners_with_workflow_id(self):
+        events = self.create_events_from_filenames(
+            self.project, ["hello.moz", "goodbye.moz", "hola.moz", "adios.moz"]
+        )
+        records = [
+            event_to_record(event, (self.rule_with_workflow_id,))
+            for event in events + self.team1_events
+        ]
+        digest = build_digest(self.project, sort_records(records))[0]
+        expected_result = {
+            self.user1.id: set(events),
+            self.user2.id: set(events),
+            self.user3.id: set(events + self.team1_events),
+            self.user4.id: set(events),
+            self.user5.id: set(events),
+        }
+        assert_get_personalized_digests(self.project, digest, expected_result)
+
+    @with_feature("organizations:workflow-engine-trigger-actions")
+    def test_everyone_with_owners_with_legacy_rule_id(self):
+        events = self.create_events_from_filenames(
+            self.project, ["hello.moz", "goodbye.moz", "hola.moz", "adios.moz"]
+        )
+        records = [
+            event_to_record(event, (self.rule_with_legacy_rule_id,))
+            for event in events + self.team1_events
+        ]
         digest = build_digest(self.project, sort_records(records))[0]
         expected_result = {
             self.user1.id: set(events),
