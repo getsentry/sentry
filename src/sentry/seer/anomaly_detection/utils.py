@@ -219,6 +219,9 @@ def get_dataset_from_label(dataset_label: str):
     dataset = get_dataset(dataset_label)
     if dataset is None:
         raise ParseError(detail=f"dataset must be one of: {', '.join(DATASET_OPTIONS.keys())}")
+
+    if dataset == spans_eap:
+        return spans_rpc
     return dataset
 
 
@@ -290,7 +293,7 @@ def fetch_historical_data(
                 auto_fields=False,
                 use_aggregate_conditions=False,
             ),
-            sampling_mode="BEST_EFFORT",
+            sampling_mode="NORMAL",
         )
         return results
     else:
