@@ -99,7 +99,7 @@ function AiSetupDataConsent({
         </Button>
         <LinkButton
           external
-          href="/settings/legal/#genAIConsent"
+          href={`/settings/${organization.slug}/legal/#genAIConsent`}
           size="sm"
           analyticsEventKey="gen_ai_consent.view_in_settings_clicked"
           analyticsEventName="Gen AI Consent: View in Settings Clicked"
