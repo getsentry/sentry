@@ -102,7 +102,9 @@ describe('PagePerformanceTable', function () {
       ...router.location,
       query: {query: '/issues/*'},
     });
-    render(<PagePerformanceTable />, {router, organization});
+    render(<PagePerformanceTable />, {
+      organization,
+    });
     await waitFor(() => {
       expect(eventsMock).toHaveBeenCalledTimes(1);
     });
@@ -117,7 +119,9 @@ describe('PagePerformanceTable', function () {
   });
 
   it('renders a list of pages', async function () {
-    render(<PagePerformanceTable />, {router, organization});
+    render(<PagePerformanceTable />, {
+      organization,
+    });
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 

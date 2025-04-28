@@ -65,7 +65,7 @@ function renderDebugIdBundlesMockRequests({
 describe('ProjectSourceMaps', function () {
   describe('Artifact Bundles', function () {
     it('renders default state', async function () {
-      const {organization, project, router, routerProps} = initializeOrg({
+      const {organization, project, routerProps} = initializeOrg({
         router: {
           location: {
             query: {},
@@ -88,7 +88,6 @@ describe('ProjectSourceMaps', function () {
       });
 
       render(<SourceMapsList project={project} {...routerProps} />, {
-        router,
         organization,
       });
       expect(mockRequests.artifactBundles).toHaveBeenCalledTimes(1);
@@ -143,7 +142,7 @@ describe('ProjectSourceMaps', function () {
     });
 
     it('renders empty state', async function () {
-      const {organization, project, routerProps, router} = initializeOrg({
+      const {organization, project, routerProps} = initializeOrg({
         router: {
           location: {
             query: {},
@@ -167,7 +166,6 @@ describe('ProjectSourceMaps', function () {
       });
 
       render(<SourceMapsList project={project} {...routerProps} />, {
-        router,
         organization,
       });
 

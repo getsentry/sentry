@@ -76,7 +76,11 @@ describe('projectGeneralSettings', function () {
     render(
       <ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />,
 
-      {organization, router}
+      {
+        organization,
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(await screen.findByRole('textbox', {name: 'Name'})).toHaveValue(
@@ -104,6 +108,7 @@ describe('projectGeneralSettings', function () {
 
     render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
       organization: orgWithoutScrapeJavaScript,
+      deprecatedRouterMocks: true,
       router,
     });
 
@@ -123,6 +128,7 @@ describe('projectGeneralSettings', function () {
 
     render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
       organization,
+      deprecatedRouterMocks: true,
       router,
     });
 
@@ -144,6 +150,7 @@ describe('projectGeneralSettings', function () {
 
     render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
       organization,
+      deprecatedRouterMocks: true,
       router,
     });
 
@@ -179,6 +186,7 @@ describe('projectGeneralSettings', function () {
 
     render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
       organization,
+      deprecatedRouterMocks: true,
       router,
     });
 
@@ -195,7 +203,9 @@ describe('projectGeneralSettings', function () {
     expect(addErrorMessage).toHaveBeenCalled();
 
     // Check the error message
-    const {container} = render((addErrorMessage as jest.Mock).mock.calls[0][0]);
+    const {container} = render((addErrorMessage as jest.Mock).mock.calls[0][0], {
+      deprecatedRouterMocks: true,
+    });
     expect(container).toHaveTextContent(
       'Error transferring project-slug. An organization owner could not be found'
     );
@@ -208,6 +218,7 @@ describe('projectGeneralSettings', function () {
 
     render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
       organization: nonAdminOrg,
+      deprecatedRouterMocks: true,
       router,
     });
 
@@ -229,6 +240,7 @@ describe('projectGeneralSettings', function () {
 
     render(<ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />, {
       organization: readOnlyOrg,
+      deprecatedRouterMocks: true,
       router,
     });
 
@@ -254,7 +266,11 @@ describe('projectGeneralSettings', function () {
       <ProjectContextProvider projectSlug={project.slug}>
         <ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />
       </ProjectContextProvider>,
-      {organization, router}
+      {
+        organization,
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     const platformSelect = await screen.findByRole('textbox', {name: 'Platform'});
@@ -281,7 +297,11 @@ describe('projectGeneralSettings', function () {
       <ProjectContextProvider projectSlug={project.slug}>
         <ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />
       </ProjectContextProvider>,
-      {organization, router}
+      {
+        organization,
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.type(
@@ -321,7 +341,11 @@ describe('projectGeneralSettings', function () {
         <ProjectContextProvider projectSlug={project.slug}>
           <ProjectGeneralSettings onChangeSlug={mockOnChangeSlug} />
         </ProjectContextProvider>,
-        {organization, router}
+        {
+          organization,
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
     }
 
