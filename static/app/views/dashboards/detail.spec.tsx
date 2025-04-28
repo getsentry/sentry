@@ -223,7 +223,10 @@ describe('Dashboards > Detail', function () {
             {null}
           </ViewEditDashboard>
         </OrganizationContext>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       expect(await screen.findByText('Default Widget 1')).toBeInTheDocument();
@@ -243,7 +246,11 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </CreateDashboard>,
-        {router: initialData.router, organization: initialData.organization}
+        {
+          router: initialData.router,
+          organization: initialData.organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await waitFor(() => {
@@ -469,7 +476,10 @@ describe('Dashboards > Detail', function () {
             {null}
           </ViewEditDashboard>
         </OrganizationContext>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await waitFor(() => expect(mockVisit).toHaveBeenCalledTimes(1));
@@ -532,7 +542,10 @@ describe('Dashboards > Detail', function () {
             {null}
           </ViewEditDashboard>
         </OrganizationContext>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await waitFor(() =>
@@ -564,7 +577,10 @@ describe('Dashboards > Detail', function () {
             {null}
           </ViewEditDashboard>
         </OrganizationContext>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       // Enter edit mode.
@@ -604,7 +620,10 @@ describe('Dashboards > Detail', function () {
             {null}
           </ViewEditDashboard>
         </OrganizationContext>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
       expect(await screen.findByText('All Releases')).toBeInTheDocument();
       expect(mockReleases).toHaveBeenCalledTimes(2); // Called once when PageFiltersStore is initialized
@@ -629,7 +648,10 @@ describe('Dashboards > Detail', function () {
             {null}
           </ViewEditDashboard>
         </OrganizationContext>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       // Enter edit mode.
@@ -692,7 +714,11 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {router, organization: initialData.organization}
+        {
+          router,
+          organization: initialData.organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       expect(await screen.findByText('First Widget')).toBeInTheDocument();
@@ -738,7 +764,11 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {router, organization: initialData.organization}
+        {
+          router,
+          organization: initialData.organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(await screen.findByText('Edit Dashboard'));
@@ -787,7 +817,11 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {router, organization: initialData.organization}
+        {
+          router,
+          organization: initialData.organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(await screen.findByText('Edit Dashboard'));
@@ -839,7 +873,11 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {router, organization: initialData.organization}
+        {
+          router,
+          organization: initialData.organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(await screen.findByText('Edit Dashboard'));
@@ -884,7 +922,11 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {router, organization: initialData.organization}
+        {
+          router,
+          organization: initialData.organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await waitFor(() => {
@@ -920,7 +962,11 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {router, organization: initialData.organization}
+        {
+          router,
+          organization: initialData.organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       expect(await screen.findByText('All Releases')).toBeInTheDocument();
@@ -961,6 +1007,7 @@ describe('Dashboards > Detail', function () {
         {
           router: initialData.router,
           organization: initialData.organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1004,6 +1051,7 @@ describe('Dashboards > Detail', function () {
         {
           router: initialData.router,
           organization: initialData.organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1043,6 +1091,7 @@ describe('Dashboards > Detail', function () {
         {
           router: initialData.router,
           organization: initialData.organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1077,7 +1126,11 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {router, organization: initialData.organization}
+        {
+          router,
+          organization: initialData.organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await waitFor(() => {
@@ -1120,7 +1173,11 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {router, organization: initialData.organization}
+        {
+          router,
+          organization: initialData.organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await waitFor(() => {
@@ -1181,7 +1238,11 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {router, organization: testData.organization}
+        {
+          router,
+          organization: testData.organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(await screen.findByText('Save'));
@@ -1253,7 +1314,11 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {router, organization: testData.organization}
+        {
+          router,
+          organization: testData.organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await screen.findByText('7D');
@@ -1314,7 +1379,11 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {router, organization: testData.organization}
+        {
+          router,
+          organization: testData.organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(await screen.findByText('Save'));
@@ -1379,7 +1448,11 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {router, organization: testData.organization}
+        {
+          router,
+          organization: testData.organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await screen.findByText('7D');
@@ -1450,7 +1523,11 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {router, organization: testData.organization}
+        {
+          router,
+          organization: testData.organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       expect(await screen.findByText('Save')).toBeInTheDocument();
@@ -1515,7 +1592,11 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {router, organization: testData.organization}
+        {
+          router,
+          organization: testData.organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await waitFor(() => expect(screen.queryAllByText('Loading\u2026')).toEqual([]));
@@ -1571,7 +1652,11 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {router, organization: testData.organization}
+        {
+          router,
+          organization: testData.organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await screen.findByText(/not-selected-1/);
@@ -1626,7 +1711,11 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {router, organization: testData.organization}
+        {
+          router,
+          organization: testData.organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await screen.findByText(/not-selected-1/);
@@ -1683,7 +1772,11 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {router, organization: testData.organization}
+        {
+          router,
+          organization: testData.organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(await screen.findByText('All Releases'));
@@ -1751,7 +1844,11 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {router, organization: testData.organization}
+        {
+          router,
+          organization: testData.organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(await screen.findByText('All Releases'));
@@ -1772,6 +1869,7 @@ describe('Dashboards > Detail', function () {
         {
           router: initialData.router,
           organization: initialData.organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1803,6 +1901,7 @@ describe('Dashboards > Detail', function () {
         {
           router,
           organization: initialData.organization,
+          deprecatedRouterMocks: true,
         }
       );
       await userEvent.click(await screen.findByText('Edit Access:'));
@@ -1869,6 +1968,7 @@ describe('Dashboards > Detail', function () {
         {
           router,
           organization: initialData.organization,
+          deprecatedRouterMocks: true,
         }
       );
       await userEvent.click(await screen.findByText('Edit Access:'));
@@ -1956,6 +2056,7 @@ describe('Dashboards > Detail', function () {
         {
           router,
           organization: initialData.organization,
+          deprecatedRouterMocks: true,
         }
       );
       await userEvent.click(await screen.findByText('Edit Access:'));
@@ -2023,10 +2124,13 @@ describe('Dashboards > Detail', function () {
         </ViewEditDashboard>,
         {
           router,
+
           organization: {
             features: initialData.organization.features,
             access: ['org:read'],
           },
+
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -2086,10 +2190,13 @@ describe('Dashboards > Detail', function () {
         </ViewEditDashboard>,
         {
           router,
+
           organization: {
             features: initialData.organization.features,
             access: ['org:read'],
           },
+
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -2130,9 +2237,12 @@ describe('Dashboards > Detail', function () {
         </ViewEditDashboard>,
         {
           router,
+
           organization: {
             features: ['dashboards-favourite', ...initialData.organization.features],
           },
+
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -2161,9 +2271,12 @@ describe('Dashboards > Detail', function () {
         </ViewEditDashboard>,
         {
           router,
+
           organization: {
             features: ['dashboards-favourite', ...initialData.organization.features],
           },
+
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -2198,9 +2311,12 @@ describe('Dashboards > Detail', function () {
         </ViewEditDashboard>,
         {
           router,
+
           organization: {
             features: ['dashboards-favourite', ...initialData.organization.features],
           },
+
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -2257,7 +2373,10 @@ describe('Dashboards > Detail', function () {
             newWidget={undefined}
             onSetNewWidget={() => {}}
           />,
-          {organization: initialData.organization}
+          {
+            organization: initialData.organization,
+            deprecatedRouterMocks: true,
+          }
         );
         await userEvent.click(await screen.findByRole('button', {name: 'Add Widget'}));
         await userEvent.click(
@@ -2278,7 +2397,10 @@ describe('Dashboards > Detail', function () {
             newWidget={undefined}
             onSetNewWidget={() => {}}
           />,
-          {organization: initialData.organization}
+          {
+            organization: initialData.organization,
+            deprecatedRouterMocks: true,
+          }
         );
         await userEvent.click(await screen.findByRole('button', {name: 'Add Widget'}));
         await userEvent.click(
@@ -2299,7 +2421,10 @@ describe('Dashboards > Detail', function () {
             newWidget={undefined}
             onSetNewWidget={() => {}}
           />,
-          {organization: initialData.organization}
+          {
+            organization: initialData.organization,
+            deprecatedRouterMocks: true,
+          }
         );
         await userEvent.click(await screen.findByLabelText('Add Widget'));
         await userEvent.click(
@@ -2320,7 +2445,10 @@ describe('Dashboards > Detail', function () {
             newWidget={undefined}
             onSetNewWidget={() => {}}
           />,
-          {organization: initialData.organization}
+          {
+            organization: initialData.organization,
+            deprecatedRouterMocks: true,
+          }
         );
         await userEvent.click(await screen.findByLabelText('Add Widget'));
         await userEvent.click(
@@ -2354,8 +2482,11 @@ describe('Dashboards > Detail', function () {
           />,
           {
             organization: initialData.organization,
+
             // Mock the widgetIndex param so it's available when the widget builder opens
             router: {...initialData.router, params: {widgetIndex: '0'}},
+
+            deprecatedRouterMocks: true,
           }
         );
 
@@ -2399,6 +2530,7 @@ describe('Dashboards > Detail', function () {
           />,
           {
             organization: initialData.organization,
+            deprecatedRouterMocks: true,
           }
         );
 
@@ -2445,8 +2577,11 @@ describe('Dashboards > Detail', function () {
           />,
           {
             organization: initialData.organization,
+
             // Mock the widgetIndex param so it's available when the widget builder opens
             router: {...initialData.router, params: {widgetIndex: '0'}},
+
+            deprecatedRouterMocks: true,
           }
         );
 
@@ -2499,6 +2634,7 @@ describe('Dashboards > Detail', function () {
           />,
           {
             organization: initialData.organization,
+            deprecatedRouterMocks: true,
           }
         );
 

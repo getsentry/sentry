@@ -62,7 +62,6 @@ describe('RuleConditionsForm', () => {
     render(
       <RuleConditionsForm {...props} organization={organization} router={router} />,
       {
-        router,
         organization: {...organization, features: ['search-query-builder-alerts']},
       }
     );
@@ -87,7 +86,6 @@ describe('RuleConditionsForm', () => {
         isLowConfidenceChartData
       />,
       {
-        router,
         organization: {
           ...organization,
           features: ['search-query-builder-alerts', 'alerts-eap'],

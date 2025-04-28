@@ -113,7 +113,7 @@ function ThresholdTypeForm({
       AlertRuleComparisonType.DYNAMIC,
       <ComparisonContainer key="Dynamic">
         {t('Anomaly: whenever values are outside of expected bounds')}
-        <FeatureBadge
+        <StyledFeatureBadge
           type="beta"
           tooltipProps={{
             title: t('Anomaly detection is in beta and may produce unexpected results'),
@@ -160,6 +160,10 @@ const StyledRadioGroup = styled(RadioGroup)`
   & > label {
     height: 33px;
   }
+`;
+
+const StyledFeatureBadge = styled(FeatureBadge)`
+  margin-left: ${space(0.25)};
 `;
 
 export default ThresholdTypeForm;

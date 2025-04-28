@@ -83,7 +83,7 @@ describe('SpansTabContent', function () {
         maxPickableDays={7}
         relativeOptions={{'1h': 'Last hour', '24h': 'Last 24 hours', '7d': 'Last 7 days'}}
       />,
-      {enableRouterMocks: false, organization}
+      {organization}
     );
 
     await screen.findByText(/No spans found/);
@@ -137,7 +137,7 @@ describe('SpansTabContent', function () {
       <PageParamsProvider>
         <Component />
       </PageParamsProvider>,
-      {enableRouterMocks: false, organization}
+      {organization}
     );
 
     const samples = screen.getByRole('tab', {name: 'Span Samples'});
@@ -250,7 +250,7 @@ describe('SpansTabContent', function () {
             '7d': 'Last 7 days',
           }}
         />,
-        {enableRouterMocks: false, organization: schemaHintsOrganization}
+        {organization: schemaHintsOrganization}
       );
 
       expect(screen.getByText('stringTag1')).toBeInTheDocument();
