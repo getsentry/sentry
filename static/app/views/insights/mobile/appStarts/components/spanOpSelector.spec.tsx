@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -12,22 +13,17 @@ describe('SpanOpSelector', function () {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
-      },
-      environments: [],
-      projects: [parseInt(project.id, 10)],
+  const selection = {
+    datetime: {
+      period: '10d',
+      start: null,
+      end: null,
+      utc: false,
     },
-  });
+    environments: [],
+    projects: [parseInt(project.id, 10)],
+  };
+  jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture({selection}));
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/events/`,

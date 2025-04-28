@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -35,22 +36,17 @@ describe('useDiscover', () => {
   describe('useSpanMetrics', () => {
     const organization = OrganizationFixture();
 
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [],
+    const selection = {
+      datetime: {
+        period: '10d',
+        start: null,
+        end: null,
+        utc: false,
       },
-    });
+      environments: [],
+      projects: [],
+    };
+    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture({selection}));
 
     jest.mocked(useLocation).mockReturnValue(
       LocationFixture({
@@ -159,22 +155,17 @@ describe('useDiscover', () => {
   describe('useSpanIndexed', () => {
     const organization = OrganizationFixture();
 
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [],
+    const selection = {
+      datetime: {
+        period: '10d',
+        start: null,
+        end: null,
+        utc: false,
       },
-    });
+      environments: [],
+      projects: [],
+    };
+    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture({selection}));
 
     jest.mocked(useLocation).mockReturnValue(
       LocationFixture({
