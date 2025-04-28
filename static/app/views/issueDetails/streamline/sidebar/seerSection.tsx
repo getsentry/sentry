@@ -114,13 +114,13 @@ export default function SeerSection({
   }
 
   const showCtaButton =
-    aiConfig.needsGenAIConsent ||
+    aiConfig.needsGenAiAcknowledgement ||
     aiConfig.hasAutofix ||
     (aiConfig.hasSummary && aiConfig.hasResources);
 
   const onlyHasResources =
     issueTypeDoesntHaveSeer ||
-    (!aiConfig.needsGenAIConsent &&
+    (!aiConfig.needsGenAiAcknowledgement &&
       !aiConfig.hasSummary &&
       !aiConfig.hasAutofix &&
       aiConfig.hasResources);
@@ -161,7 +161,7 @@ export default function SeerSection({
       preventCollapse={!hasStreamlinedUI}
     >
       <SeerSectionContainer>
-        {aiConfig.needsGenAIConsent ? (
+        {aiConfig.needsGenAiAcknowledgement ? (
           <Summary>
             {t('Explore potential root causes and solutions with Autofix.')}
           </Summary>

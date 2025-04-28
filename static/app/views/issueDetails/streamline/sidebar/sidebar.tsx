@@ -76,7 +76,9 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
           issueTypeConfig.issueSummary.enabled &&
           !organization.hideAiFeatures) ||
           issueTypeConfig.resources) && (
-          <SeerSection group={group} project={project} event={event} />
+          <ErrorBoundary mini>
+            <SeerSection group={group} project={project} event={event} />
+          </ErrorBoundary>
         )}
         {event && (
           <ErrorBoundary mini>
