@@ -136,32 +136,6 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
 
         rule_snooze = self.snooze_rule(user_id=self.user.id, alert_rule=metric_alert_rule)
 
-        self.data_condition_group = self.create_data_condition_group()
-        self.data_condition = self.create_data_condition(condition_group=self.data_condition_group)
-        self.snuba_query = self.create_snuba_query()
-        self.subscription = QuerySubscription.objects.create(
-            project=project,
-            status=QuerySubscription.Status.ACTIVE.value,
-            subscription_id="123",
-            snuba_query=self.snuba_query,
-        )
-        self.data_source = self.create_data_source(
-            organization=self.organization, source_id=self.subscription.id
-        )
-        self.detector = self.create_detector(
-            project_id=project.id,
-            name="Test Detector",
-            type=MetricIssue.slug,
-            workflow_condition_group=self.data_condition_group,
-        )
-        self.workflow = self.create_workflow()
-        self.data_source_detector = self.create_data_source_detector(
-            data_source=self.data_source, detector=self.detector
-        )
-        self.detector_workflow = DetectorWorkflow.objects.create(
-            detector=self.detector, workflow=self.workflow
-        )
-
         self.ScheduledDeletion.schedule(instance=project, days=0)
 
         with self.tasks():
@@ -192,15 +166,6 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
 
         assert AlertRule.objects.filter(id=metric_alert_rule.id).exists()
         assert RuleSnooze.objects.filter(id=rule_snooze.id).exists()
-
-        assert not Detector.objects.filter(id=self.detector.id).exists()
-        assert not DataSourceDetector.objects.filter(id=self.data_source_detector.id).exists()
-        assert not DetectorWorkflow.objects.filter(id=self.detector_workflow.id).exists()
-        assert not DataConditionGroup.objects.filter(id=self.data_condition_group.id).exists()
-        assert not DataCondition.objects.filter(id=self.data_condition.id).exists()
-        assert not DataSource.objects.filter(id=self.data_source.id).exists()
-        assert not QuerySubscription.objects.filter(id=self.subscription.id).exists()
-        assert not SnubaQuery.objects.filter(id=self.snuba_query.id).exists()
 
     def test_delete_error_events(self):
         keeper = self.create_project(name="keeper")
@@ -258,3 +223,44 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         assert not ProjectUptimeSubscription.objects.filter(
             id=project_uptime_subscription.id
         ).exists()
+
+    def test_delete_with_workflow_engine_models(self):
+        project = self.create_project(name="test")
+
+        data_condition_group = self.create_data_condition_group()
+        data_condition = self.create_data_condition(condition_group=data_condition_group)
+        snuba_query = self.create_snuba_query()
+        subscription = QuerySubscription.objects.create(
+            project=project,
+            status=QuerySubscription.Status.ACTIVE.value,
+            subscription_id="123",
+            snuba_query=snuba_query,
+        )
+        data_source = self.create_data_source(
+            organization=self.organization, source_id=subscription.id
+        )
+        detector = self.create_detector(
+            project_id=project.id,
+            name="Test Detector",
+            type=MetricIssue.slug,
+            workflow_condition_group=data_condition_group,
+        )
+        workflow = self.create_workflow()
+        data_source_detector = self.create_data_source_detector(
+            data_source=data_source, detector=detector
+        )
+        detector_workflow = DetectorWorkflow.objects.create(detector=detector, workflow=workflow)
+
+        self.ScheduledDeletion.schedule(instance=project, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not Detector.objects.filter(id=detector.id).exists()
+        assert not DataSourceDetector.objects.filter(id=data_source_detector.id).exists()
+        assert not DetectorWorkflow.objects.filter(id=detector_workflow.id).exists()
+        assert not DataConditionGroup.objects.filter(id=data_condition_group.id).exists()
+        assert not DataCondition.objects.filter(id=data_condition.id).exists()
+        assert not DataSource.objects.filter(id=data_source.id).exists()
+        assert not QuerySubscription.objects.filter(id=subscription.id).exists()
+        assert not SnubaQuery.objects.filter(id=snuba_query.id).exists()
