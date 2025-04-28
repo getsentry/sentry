@@ -82,9 +82,7 @@ describe('projectGeneralSettings', function () {
     expect(await screen.findByRole('textbox', {name: 'Name'})).toHaveValue(
       'Project Name'
     );
-    expect(await screen.findByRole('textbox', {name: 'Subject Prefix'})).toHaveValue(
-      '[my-org]'
-    );
+    expect(screen.getByRole('textbox', {name: 'Subject Prefix'})).toHaveValue('[my-org]');
 
     // Step 19 of the auto resolve slider equates to 48 hours. This is
     // different from thee actual field value (which will be 48)
@@ -113,7 +111,7 @@ describe('projectGeneralSettings', function () {
       await screen.findByRole('checkbox', {name: 'Enable JavaScript source fetching'})
     ).toBeDisabled();
     expect(
-      await screen.findByRole('checkbox', {name: 'Enable JavaScript source fetching'})
+      screen.getByRole('checkbox', {name: 'Enable JavaScript source fetching'})
     ).not.toBeChecked();
   });
 

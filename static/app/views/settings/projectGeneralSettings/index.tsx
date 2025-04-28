@@ -47,9 +47,8 @@ type Props = {
   onChangeSlug: (slug: string) => void;
 };
 
-function ProjectGeneralSettings(props: Props) {
+function ProjectGeneralSettings({onChangeSlug}: Props) {
   const form: Record<string, FieldValue> = {};
-  const {onChangeSlug} = props;
   const queryClient = useQueryClient();
 
   const organization = useOrganization();
@@ -312,7 +311,7 @@ function ProjectGeneralSettings(props: Props) {
     setValue(_, _name) {
       return project.id;
     },
-    help: `The unique identifier for this project. It cannot be modified.`,
+    help: t('The unique identifier for this project. It cannot be modified.'),
   };
 
   return (
