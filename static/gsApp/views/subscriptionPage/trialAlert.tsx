@@ -4,6 +4,7 @@ import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -43,7 +44,7 @@ function TrialAlert({organization, subscription}: Props) {
 
   const oxfordCategories = listDisplayNames({
     plan: subscription.planDetails,
-    categories: subscription.planDetails.categories,
+    categories: subscription.planDetails.categories as DataCategory[],
     hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
   });
 
