@@ -20,7 +20,6 @@ from sentry.utils.snuba import _snuba_query
 class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
     view: str
     is_eap: bool = False
-    use_rpc: bool = False
 
     def setUp(self):
         super().setUp()
@@ -291,7 +290,6 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
 
         if self.is_eap:
             query["dataset"] = "spans"
-        query["useRpc"] = "1" if self.use_rpc else "0"
 
         with self.feature(features):
             return self.client.get(
@@ -702,7 +700,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 "foo:baz",
             ],
         ]:
-            if len(q) > 1 and self.use_rpc:
+            if len(q) > 1 and self.is_eap:
                 continue
 
             for features in [
@@ -1013,128 +1011,6 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
                 },
             }
             assert response.data["data"] == [{"id": span_id} for span_id in sorted(span_ids[1:4])]
-
-
-class OrganizationTracesStatsEndpointTest(OrganizationTracesEndpointTestBase):
-    view = "sentry-api-0-organization-traces-stats"
-
-    def do_request(self, query, features=None, **kwargs):
-        if features is None:
-            features = [
-                "organizations:performance-trace-explorer",
-                "organizations:global-views",
-            ]
-
-        if self.is_eap:
-            query["dataset"] = "spans"
-
-        with self.feature(features):
-            return self.client.get(
-                reverse(
-                    self.view,
-                    kwargs={"organization_id_or_slug": self.organization.slug},
-                ),
-                query,
-                format="json",
-                **kwargs,
-            )
-
-    def test_no_feature(self):
-        response = self.do_request({}, features=[])
-        assert response.status_code == 404, response.data
-
-    def test_no_project(self):
-        response = self.do_request({})
-        assert response.status_code == 404, response.data
-
-    def test_bad_params_missing_y_axis(self):
-        response = self.do_request(
-            {
-                "project": [self.project.id],
-            }
-        )
-        assert response.status_code == 400, response.data
-        assert response.data == {
-            "yAxis": [
-                ErrorDetail(string="This field is required.", code="required"),
-            ],
-        }
-
-    def test_span_duration_filter(self):
-        for q in [
-            ["span.duration:>100"],
-        ]:
-            query = {
-                "yAxis": ["count()"],
-                "query": q,
-                "project": [self.project.id],
-            }
-
-            response = self.do_request(query)
-            assert response.status_code == 200, response.data
-
-    def test_stats(self):
-        project_1 = self.create_project()
-        project_2 = self.create_project()
-
-        timestamp = before_now()
-        timestamp = timestamp.replace(hour=0, minute=0, second=0, microsecond=0)
-        timestamp = timestamp - timedelta(minutes=10)
-
-        self.double_write_segment(
-            project=project_1,
-            trace_id=uuid4().hex,
-            transaction_id=uuid4().hex,
-            span_id="1" + uuid4().hex[:15],
-            timestamp=timestamp,
-            transaction="foo",
-            duration=100,
-            exclusive_time=100,
-        )
-
-        self.double_write_segment(
-            project=project_1,
-            trace_id=uuid4().hex,
-            transaction_id=uuid4().hex,
-            span_id="1" + uuid4().hex[:15],
-            timestamp=timestamp,
-            transaction="bar",
-            duration=100,
-            exclusive_time=100,
-        )
-
-        self.double_write_segment(
-            project=project_2,
-            trace_id=uuid4().hex,
-            transaction_id=uuid4().hex,
-            span_id="1" + uuid4().hex[:15],
-            timestamp=timestamp,
-            transaction="bar",
-            duration=100,
-            exclusive_time=100,
-        )
-
-        for q in [
-            [f"project:{project_1.slug}"],
-            [
-                f"project:{project_1.slug} transaction:bar",
-                f"project:{project_2.slug} transaction:bar",
-            ],
-        ]:
-            query = {
-                "yAxis": ["count()"],
-                "query": q,
-                "project": [],
-            }
-
-            response = self.do_request(query)
-            assert response.status_code == 200, response.data
-
-        if self.is_eap:
-            # When using EAP, this is extrapolated
-            assert sum(bucket[0]["count"] for _, bucket in response.data["data"]) == 20
-        else:
-            assert sum(bucket[0]["count"] for _, bucket in response.data["data"]) == 2
 
 
 @pytest.mark.parametrize(
@@ -2584,7 +2460,7 @@ class OrganizationTracesEAPEndpointTest(OrganizationTracesEndpointTest):
             ["foo:[bar, baz]"],
             ["foo:bar span.duration:>10s", "foo:baz"],
         ]:
-            if len(q) > 1 and self.use_rpc:
+            if len(q) > 1 and self.is_eap:
                 continue
 
             expected = sorted(
@@ -2630,11 +2506,6 @@ class OrganizationTracesEAPEndpointTest(OrganizationTracesEndpointTest):
             assert prev_link["results"] == "true"
             next_link = next(link for link in links.values() if link["rel"] == "next")
             assert next_link["results"] == "false"
-
-
-class OrganizationTracesEAPRPCEndpointTest(OrganizationTracesEAPEndpointTest):
-    use_rpc = True
-    allow_multiple_user_queries: bool = False
 
     def test_use_separate_referrers(self):
         now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -2687,15 +2558,3 @@ class OrganizationTracesEAPRPCEndpointTest(OrganizationTracesEAPEndpointTest):
             Referrer.API_TRACE_EXPLORER_TRACES_ERRORS.value,
             Referrer.API_TRACE_EXPLORER_TRACES_OCCURRENCES.value,
         } == actual_referrers
-
-
-class OrganizationTraceSpansEAPEndpointTest(OrganizationTraceSpansEndpointTest):
-    is_eap: bool = True
-
-    @pytest.mark.skip(reason="no support for metrics so not back porting this feature")
-    def test_get_spans_for_trace_matching_tags_metrics(self):
-        pass
-
-
-class OrganizationTracesStatsEAPEndpointTest(OrganizationTracesStatsEndpointTest):
-    is_eap: bool = True
