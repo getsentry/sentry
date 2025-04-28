@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from sentry.notifications.notifications.base import BaseNotification
 
 
-def serialize_lazy_object_user(arg: SimpleLazyObject, key: str | None = None) -> dict[str, Any]:
+def serialize_lazy_object_user(arg: User, key: str | None = None) -> dict[str, Any]:
     raw_data = arg.dict()
     parsed_data = {}
     for k, v in raw_data.items():
