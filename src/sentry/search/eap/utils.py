@@ -137,7 +137,7 @@ def can_expose_attribute(attribute: str, item_type: SupportedTraceItemType) -> b
     return attribute not in PRIVATE_ATTRIBUTES.get(item_type, {})
 
 
-def handle_downsample_meta(meta: DownsampledStorageMeta) -> bool:
+def handle_downsample_meta(meta: DownsampledStorageMeta) -> dict[str, bool]:
     downsampled_metadata = {}
     if meta.tier in {
         DownsampledStorageMeta.SELECTED_TIER_1,
