@@ -28,7 +28,7 @@ from sentry.workflow_engine.models.data_condition import Condition
 
 class TestMigrateRemainingIssueAlerts(TestMigrations):
     migrate_from = "0050_remove_orphaned_rule_workflows"
-    migrate_to = "0050_migrate_remaining_issue_alerts"
+    migrate_to = "0051_migrate_remaining_issue_alerts"
     app = "workflow_engine"
 
     def setup_initial_state(self):
