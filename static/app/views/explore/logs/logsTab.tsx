@@ -133,7 +133,7 @@ export function LogsTabContent({
       <Layout.Body noRowGap>
         <Layout.Main fullWidth>
           <FilterBarContainer>
-            <PageFilterBar condensed>
+            <StyledPageFilterBar condensed>
               <ProjectPageFilter />
               <EnvironmentPageFilter />
               <DatePageFilter
@@ -144,7 +144,7 @@ export function LogsTabContent({
                   ...relativeOptions,
                 })}
               />
-            </PageFilterBar>
+            </StyledPageFilterBar>
             <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
 
             <Button onClick={openColumnEditor} icon={<IconTable />}>
@@ -180,9 +180,13 @@ export function LogsTabContent({
 }
 
 const FilterBarContainer = styled('div')`
-  display: flex;
-  gap: ${space(2)};
+  gap: ${space(1)};
   margin-bottom: ${space(1)};
+  display: grid;
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    grid-template-columns: minmax(300px, auto) 1fr auto;
+  }
 `;
 
 const LogsItemContainer = styled('div')`
@@ -192,4 +196,8 @@ const LogsItemContainer = styled('div')`
 
 const LogsGraphContainer = styled(LogsItemContainer)`
   height: 200px;
+`;
+
+const StyledPageFilterBar = styled(PageFilterBar)`
+  width: auto;
 `;
