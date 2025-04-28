@@ -202,10 +202,26 @@ def delete_migrated_issue_alert(rule: Rule) -> int | None:
     workflow: Workflow = alert_rule_workflow.workflow
     workflow_id = workflow.id
 
-    delete_workflow(workflow)
-    alert_rule_workflow.delete()
+    try:
+        delete_workflow(workflow)
+    except DataConditionGroup.DoesNotExist:
+        logger.exception(
+            "workflow_engine.issue_alert.missing_model",
+            extra={"workflow_id": workflow_id, "rule_id": rule.id},
+        )
 
-    return workflow_id
+    try:
+        workflow.refresh_from_db()
+    except Workflow.DoesNotExist:
+        # expected. only delete the lookup if workflow is deleted
+        alert_rule_workflow.delete()
+        return workflow_id
+
+    logger.error(
+        "Workflow was not deleted, but the rule was. This should not happen.",
+        extra={"workflow_id": workflow_id, "rule_id": rule.id},
+    )
+    return None
 
 
 def delete_workflow_actions(if_dcg: DataConditionGroup):

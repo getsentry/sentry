@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
 from jsonschema.exceptions import ValidationError
 
@@ -359,6 +361,42 @@ class RuleMigrationHelpersTest(TestCase):
         delete_migrated_issue_alert(self.issue_alert)
 
         self.assert_issue_alert_deleted(workflow, when_dcg, if_dcg)
+
+    @patch("sentry.workflow_engine.models.workflow.Workflow")
+    def test_delete_issue_alert__handle_race_condition_deleted(self, mock_workflow):
+        mock_workflow = MagicMock()
+
+        IssueAlertMigrator(self.issue_alert, self.user.id).run()
+
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=self.issue_alert.id)
+        workflow = alert_rule_workflow.workflow
+
+        with patch.object(
+            mock_workflow, "when_condition_group", side_effect=DataConditionGroup.DoesNotExist
+        ):
+            delete_migrated_issue_alert(self.issue_alert)
+
+        assert not AlertRuleWorkflow.objects.filter(rule_id=self.issue_alert.id).exists()
+        assert not Workflow.objects.filter(id=workflow.id).exists()
+        assert not DataConditionGroup.objects.all().exists()
+        assert not DataCondition.objects.all().exists()
+        assert not DataConditionGroupAction.objects.all().exists()
+        assert not Action.objects.all().exists()
+
+    @patch("sentry.workflow_engine.migration_helpers.issue_alert_dual_write.delete_workflow")
+    def test_delete_issue_alert__handle_race_condition_not_deleted(self, mock_delete):
+        mock_delete.side_effect = DataConditionGroup.DoesNotExist
+
+        IssueAlertMigrator(self.issue_alert, self.user.id).run()
+
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=self.issue_alert.id)
+        workflow = alert_rule_workflow.workflow
+
+        result = delete_migrated_issue_alert(self.issue_alert)
+
+        assert result is None
+        assert AlertRuleWorkflow.objects.filter(rule_id=self.issue_alert.id).exists()
+        assert Workflow.objects.filter(id=workflow.id).exists()
 
     @with_feature("organizations:workflow-engine-issue-alert-dual-write")
     def test_delete_issue_alert__receiver(self):
