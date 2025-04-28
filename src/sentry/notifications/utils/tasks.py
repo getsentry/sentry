@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from django.apps import apps
+from django.utils.functional import SimpleLazyObject
 
 from sentry.db.models import Model
 from sentry.notifications.class_manager import NotificationClassNotSetException, get
@@ -11,9 +13,37 @@ from sentry.silo.base import SiloMode, region_silo_function
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import notifications_tasks
+from sentry.users.services.user.model import RpcUser
 
 if TYPE_CHECKING:
     from sentry.notifications.notifications.base import BaseNotification
+
+
+def serialize_lazy_object(arg: SimpleLazyObject, key: str | None = None) -> dict[str, Any]:
+    raw_data = arg.dict()
+    parsed_data = {}
+    for k, v in raw_data.items():
+        if isinstance(v, datetime):
+            v = v.isoformat()
+
+        parsed_data[k] = v
+
+    return {
+        "type": "lazyobject",
+        "data": parsed_data,
+        "key": key,
+    }
+
+
+def serialize_model(arg: Model, key: str | None = None) -> dict[str, Any]:
+    meta = type(arg)._meta
+    return {
+        "type": "model",
+        "app_label": meta.app_label,
+        "model_name": meta.model_name,
+        "pk": arg.pk,
+        "key": key,
+    }
 
 
 @region_silo_function
@@ -33,34 +63,21 @@ def async_send_notification(
     task_args = []
     for arg in args:
         if isinstance(arg, Model):
-            meta = type(arg)._meta
-            task_args.append(
-                {
-                    "type": "model",
-                    "app_label": meta.app_label,
-                    "model_name": meta.model_name,
-                    "pk": arg.pk,
-                    "key": None,
-                }
-            )
+            task_args.append(serialize_model(arg))
+        elif isinstance(arg, SimpleLazyObject):
+            task_args.append(serialize_lazy_object(arg))
         # maybe we need an explicit check if it's a primitive?
         else:
             task_args.append({"type": "other", "value": arg, "key": None})
     for key, val in kwargs.items():
         if isinstance(val, Model):
-            meta = type(val)._meta
-            task_args.append(
-                {
-                    "type": "model",
-                    "app_label": meta.app_label,
-                    "model_name": meta.model_name,
-                    "pk": val.pk,
-                    "key": key,
-                }
-            )
+            task_args.append(serialize_model(val, key))
+        elif isinstance(arg, SimpleLazyObject):
+            task_args.append(serialize_lazy_object(arg, key))
         # maybe we need an explicit check if it's a primitive?
         else:
             task_args.append({"type": "other", "value": val, "key": key})
+
     _send_notification.delay(class_name, task_args)
 
 
@@ -85,6 +102,13 @@ def _send_notification(notification_class_name: str, arg_list: Iterable[Mapping[
                 output_kwargs[arg["key"]] = instance
             else:
                 output_args.append(instance)
+        elif arg["type"] == "lazyobject":
+            arg = RpcUser.parse_obj(arg["data"])
+
+            if arg["key"]:
+                output_kwargs[arg["key"]] = SimpleLazyObject(lambda: instance)
+            else:
+                output_args.append(SimpleLazyObject(lambda: instance))
         elif arg["key"]:
             output_kwargs[arg["key"]] = arg["value"]
         else:
