@@ -1,10 +1,11 @@
 from unittest.mock import MagicMock, patch
 
 from django.contrib.sessions.backends.base import SessionBase
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponse
 
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.pipeline import Pipeline, PipelineProvider, PipelineView
+from sentry.pipeline.base import ERR_MISMATCHED_USER
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -89,3 +90,28 @@ class PipelineTestCase(TestCase):
             assert new_pipeline is not None
 
             assert not new_pipeline.is_valid()
+
+    @patch("sentry.pipeline.base.bind_organization_context")
+    def test_pipeline_intercept_fails(self, mock_bind_org_context: MagicMock):
+        pipeline = DummyPipeline(self.request, "dummy", self.org, config={"some_config": True})
+        pipeline.initialize()
+
+        assert pipeline.is_valid()
+        assert "some_config" in pipeline.provider.config
+        mock_bind_org_context.assert_called_with(self.org)
+
+        pipeline.current_step()
+        assert pipeline.dispatch_count == 1
+
+        # Pipeline advancer uses pipeline_cls.get_for_request() to fetch pipeline from new incoming request
+        request = HttpRequest()
+        request.session = self.request.session  # duplicate session
+        request.user = self.create_user()
+
+        intercepted_pipeline = DummyPipeline.get_for_request(request)
+        assert intercepted_pipeline is not None
+
+        # The pipeline errors because the user is different from the one that initialized it
+        resp = intercepted_pipeline.next_step()
+        assert isinstance(resp, HttpResponse)  # TODO(cathy): fix typing on
+        assert ERR_MISMATCHED_USER.encode() in resp.content

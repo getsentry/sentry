@@ -24,6 +24,8 @@ from .store import PipelineSessionStore
 from .types import PipelineAnalyticsEntry, PipelineRequestState
 from .views.nested import NestedPipelineView
 
+ERR_MISMATCHED_USER = "Current user does not match user that started the pipeline."
+
 
 class Pipeline(abc.ABC):
     """
@@ -170,6 +172,9 @@ class Pipeline(abc.ABC):
         """
         Render the current step.
         """
+        if self.state.uid is not None and self.state.uid != self.request.user.id:
+            return self.error(ERR_MISMATCHED_USER)
+
         step_index = self.step_index
 
         if step_index == len(self.pipeline_views):
