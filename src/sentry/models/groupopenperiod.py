@@ -221,6 +221,13 @@ def update_group_open_period(
         return
 
     open_period = get_latest_open_period(group)
+    if open_period is None:
+        logger.warning(
+            "Unable to update open period, no open period found",
+            extra={"group_id": group.id},
+        )
+        return
+
     if open_period.date_ended is None and new_status == GroupStatus.UNRESOLVED:
         logger.warning(
             "Attempting to unresolve group with no closed open period",
