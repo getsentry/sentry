@@ -374,7 +374,8 @@ class RuleMigrationHelpersTest(TestCase):
         with patch.object(
             mock_workflow, "when_condition_group", side_effect=DataConditionGroup.DoesNotExist
         ):
-            delete_migrated_issue_alert(self.issue_alert)
+            workflow_id = delete_migrated_issue_alert(self.issue_alert)
+            assert workflow_id == workflow.id
 
         assert not AlertRuleWorkflow.objects.filter(rule_id=self.issue_alert.id).exists()
         assert not Workflow.objects.filter(id=workflow.id).exists()
