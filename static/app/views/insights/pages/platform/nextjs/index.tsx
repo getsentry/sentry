@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
@@ -15,11 +16,13 @@ import {WebVitalsWidget} from 'sentry/views/insights/pages/platform/nextjs/webVi
 import {DurationWidget} from 'sentry/views/insights/pages/platform/shared/durationWidget';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {PlatformLandingPageLayout} from 'sentry/views/insights/pages/platform/shared/layout';
+import PagesTable from 'sentry/views/insights/pages/platform/shared/PagesTable';
 import {PathsTable} from 'sentry/views/insights/pages/platform/shared/pathsTable';
 import {TrafficWidget} from 'sentry/views/insights/pages/platform/shared/trafficWidget';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 type View = 'paths' | 'pages';
+type SpanOperation = 'pageload' | 'navigation';
 
 function PlaceholderWidget() {
   return <Widget Title={<Widget.WidgetTitle title="Placeholder Widget" />} />;
@@ -39,6 +42,8 @@ export function NextJsOverviewPage({
       version,
     })) ?? [];
   const [activeView, setActiveView] = useState<View>('paths');
+  const [spanOperationFilter, setSpanOperationFilter] =
+    useState<SpanOperation>('pageload');
 
   useEffect(() => {
     trackAnalytics('nextjs-insights.page-view', {
@@ -48,6 +53,11 @@ export function NextJsOverviewPage({
   }, []);
 
   const {query, setTransactionFilter} = useTransactionNameQuery();
+
+  const spanOperationOptions: Array<SelectOption<SpanOperation>> = [
+    {value: 'pageload', label: t('Pageloads')},
+    {value: 'navigation', label: t('Navigations')},
+  ];
 
   return (
     <PlatformLandingPageLayout performanceType={performanceType}>
@@ -77,7 +87,7 @@ export function NextJsOverviewPage({
           <PlaceholderWidget />
         </CachesContainer>
       </WidgetGrid>
-      <SegmentedControlWrapper>
+      <ControlsWrapper>
         <SegmentedControl
           value={activeView}
           onChange={value => setActiveView(value)}
@@ -86,7 +96,18 @@ export function NextJsOverviewPage({
           <SegmentedControl.Item key="paths">{t('Paths')}</SegmentedControl.Item>
           <SegmentedControl.Item key="pages">{t('Pages')}</SegmentedControl.Item>
         </SegmentedControl>
-      </SegmentedControlWrapper>
+        {activeView === 'pages' && (
+          <CompactSelect<SpanOperation>
+            size="sm"
+            triggerProps={{prefix: t('Type')}}
+            options={spanOperationOptions}
+            value={spanOperationFilter}
+            onChange={(option: SelectOption<SpanOperation>) =>
+              setSpanOperationFilter(option.value)
+            }
+          />
+        )}
+      </ControlsWrapper>
 
       {activeView === 'paths' && (
         <PathsTable
@@ -97,13 +118,7 @@ export function NextJsOverviewPage({
         />
       )}
 
-      {activeView === 'pages' && (
-        <PathsTable
-          handleAddTransactionFilter={setTransactionFilter}
-          query={query}
-          showHttpMethodColumn={false}
-        />
-      )}
+      {activeView === 'pages' && <PagesTable spanOperationFilter={spanOperationFilter} />}
     </PlatformLandingPageLayout>
   );
 }
@@ -176,8 +191,10 @@ const CachesContainer = styled('div')`
   grid-area: caches;
 `;
 
-const SegmentedControlWrapper = styled('div')`
+const ControlsWrapper = styled('div')`
   display: flex;
-  justify-content: left;
+  justify-content: space-between;
+  align-items: center;
+  gap: ${space(1)};
   margin: ${space(2)} 0;
 `;
