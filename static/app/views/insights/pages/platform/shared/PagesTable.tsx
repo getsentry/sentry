@@ -22,6 +22,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
+import {Referrer} from 'sentry/views/performance/newTraceDetails/referrers';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 interface SpansQueryResponse {
@@ -74,7 +75,7 @@ const defaultColumnOrder: Array<GridColumnOrder<SortableField>> = [
   {key: 'transaction', name: t('Page'), width: COL_WIDTH_UNDEFINED},
   {key: 'count(span.duration)', name: t('Page Views'), width: 120},
   {key: 'failure_rate()', name: t('Error Rate'), width: 110},
-  {key: 'sum(span.duration)', name: t('Total Time'), width: 110},
+  {key: 'sum(span.duration)', name: t('Total'), width: 90},
 ];
 
 function isSortField(value: string): value is SortableField {
@@ -136,7 +137,7 @@ export function PagesTable({spanOperationFilter}: PagesTableProps) {
             'avg(span.duration)',
           ],
           query: `span.op:[${spanOperationFilter}]`,
-          referrer: 'api.explore.spans-aggregates-table',
+          referrer: Referrer.PAGES_TABLE,
           orderby: getOrderBy(sortField, sortOrder),
           useRpc: 1,
           per_page: PER_PAGE,
