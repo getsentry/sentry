@@ -13,8 +13,6 @@ import storyBook from 'sentry/stories/storyBook';
 import type {DateString} from 'sentry/types/core';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {shiftTabularDataToNow} from 'sentry/utils/tabularData/shiftTabularDataToNow';
-import {shiftTimeSeriesToNow} from 'sentry/utils/timeSeries/shiftTimeSeriesToNow';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import type {
   LegendSelection,
@@ -23,6 +21,8 @@ import type {
   TimeSeriesMeta,
 } from 'sentry/views/dashboards/widgets/common/types';
 
+import {shiftTabularDataToNow} from './__stories__/shiftTabularDataToNow';
+import {shiftTimeSeriesToNow} from './__stories__/shiftTimeSeriesToNow';
 import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
 import {sampleScoreTimeSeries} from './fixtures/sampleScoreTimeSeries';
 import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
@@ -352,8 +352,8 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
                   ...sampleThroughputTimeSeries,
                   field: 'equation|spm() + 1',
                   meta: {
-                    type: 'number',
-                    unit: null,
+                    valueType: 'number',
+                    valueUnit: null,
                   },
                 }),
                 new Line({
@@ -372,24 +372,24 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
                   ...sampleDurationTimeSeries,
                   field: 'custom_agg(duration)',
                   meta: {
-                    type: 'number',
-                    unit: null,
+                    valueType: 'number',
+                    valueUnit: null,
                   },
                 }),
                 new Line({
                   ...sampleDurationTimeSeriesP50,
                   field: 'custom_agg2(duration)',
                   meta: {
-                    type: 'integer',
-                    unit: null,
+                    valueType: 'integer',
+                    valueUnit: null,
                   },
                 }),
                 new Line({
                   ...sampleThroughputTimeSeries,
                   field: 'custom_agg3(duration)',
                   meta: {
-                    type: 'duration',
-                    unit: DurationUnit.MILLISECOND,
+                    valueType: 'duration',
+                    valueUnit: DurationUnit.MILLISECOND,
                   },
                 }),
               ]}
@@ -435,8 +435,8 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
         };
       }),
       meta: {
-        type: 'duration',
-        unit: DurationUnit.SECOND,
+        valueType: 'duration',
+        valueUnit: DurationUnit.SECOND,
       },
     };
 
@@ -718,8 +718,8 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
       ...sampleThroughputTimeSeries,
       field: 'error_rate()',
       meta: {
-        type: 'rate',
-        unit: RateUnit.PER_SECOND,
+        valueType: 'rate',
+        valueUnit: RateUnit.PER_SECOND,
       },
     };
 
@@ -978,6 +978,6 @@ function hasTimestamp(release: Partial<Release>): release is Release {
 }
 
 const NULL_META: TimeSeriesMeta = {
-  type: null,
-  unit: null,
+  valueType: null,
+  valueUnit: null,
 };
