@@ -12,6 +12,7 @@ import {formatReservedWithUnits, formatUsageWithUnits} from 'getsentry/utils/bil
 import {getPlanCategoryName, sortCategories} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
+import type {BillingHistory} from 'getsentry/types';
 
 type Props = Partial<React.ComponentProps<typeof ResultGrid>> & {
   orgId: string;
@@ -40,17 +41,18 @@ function CustomerHistory({orgId, ...props}: Props) {
           Usage
         </th>,
       ]}
-      columnsForRow={(row: any) => {
+      columnsForRow={(row: BillingHistory) => {
         const sortedCategories = sortCategories(row.categories);
-        const reservedBudgets: ReservedBudget[] = row.reservedBudgets;
+        const reservedBudgets: ReservedBudget[] = row.reservedBudgets ?? [];
         const reservedBudgetMetricHistories: Record<string, ReservedBudgetMetricHistory> =
           {};
         const reservedBudgetNameMapping: Record<string, string> = {};
 
         // in _admin, always use DS names regardless of whether DS was actually used in the period
         // if DS is available (ie. when stored spans are billed)
-        const shouldUseDynamicSamplingNames =
-          DataCategory.SPANS_INDEXED in row.planDetails.planCategories;
+        const shouldUseDynamicSamplingNames = row.planDetails
+          ? DataCategory.SPANS_INDEXED in row.planDetails.planCategories
+          : false;
 
         if (row.hasReservedBudgets) {
           reservedBudgets.forEach(budget => {
