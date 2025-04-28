@@ -179,13 +179,17 @@ class MetricIssueContext:
         occurrence = group_event.occurrence
         if occurrence is None:
             raise ValueError("Occurrence is required for alert context")
+
+        open_period = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()
+        if open_period is None:
+            raise ValueError("No open periods found for group")
+
         return cls(
             # TODO(iamrajjoshi): Replace with something once we know how we want to build the link
             # If we store open periods in the database, we can use the id from that
             # Otherwise, we can use the issue id
             id=group.id,
-            # TODO(iamrajjoshi): This should probably be the id of the latest open period
-            open_period_identifier=group.id,
+            open_period_identifier=open_period.id,
             snuba_query=cls._get_snuba_query(occurrence),
             subscription=cls._get_subscription(occurrence),
             new_status=cls._get_new_status(group, occurrence),
