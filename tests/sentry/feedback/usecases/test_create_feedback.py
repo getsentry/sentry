@@ -959,9 +959,9 @@ def test_denylist_not_in_list(set_sentry_option, default_project):
 def test_create_feedback_release(default_project, mock_produce_occurrence_to_kafka):
     event = mock_feedback_event(default_project.id)
     event["release"] = "frontend@daf1316f209d961443664cd6eb4231ca154db502"
-    ret = create_feedback_issue(
-        event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
-    )
+    create_feedback_issue(event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     assert mock_produce_occurrence_to_kafka.call_count == 1
-    assert ret["release"] == "frontend@daf1316f209d961443664cd6eb4231ca154db502"
+    produced_event = mock_produce_occurrence_to_kafka.call_args.kwargs["event_data"]
+    assert produced_event.get("release") is not None
+    assert produced_event.get("release") == "frontend@daf1316f209d961443664cd6eb4231ca154db502"
