@@ -203,6 +203,9 @@ export function ExploreCharts({
                 Footer={
                   organization.features.includes(
                     'visibility-explore-progressive-loading'
+                  ) &&
+                  !organization.features.includes(
+                    'visibility-explore-progressive-loading-normal-sampling-mode'
                   ) && (
                     <WidgetExtrapolationFooter
                       samplingMode={undefined}
