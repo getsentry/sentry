@@ -14,7 +14,7 @@ from sentry.incidents.models.alert_rule import (
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group, GroupStatus
-from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.types.group import PriorityLevel
@@ -180,7 +180,7 @@ class MetricIssueContext:
         if occurrence is None:
             raise ValueError("Occurrence is required for alert context")
 
-        open_period = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()
+        open_period = get_latest_open_period(group)
         if open_period is None:
             raise ValueError("No open periods found for group")
 
@@ -236,7 +236,7 @@ class OpenPeriodContext:
 
     @classmethod
     def from_group(cls, group: Group) -> OpenPeriodContext:
-        open_period = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()
+        open_period = get_latest_open_period(group)
         if open_period is None:
             raise ValueError("No open periods found for group")
         return cls(
