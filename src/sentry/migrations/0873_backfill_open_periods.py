@@ -7,7 +7,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
-from django.db import migrations
+from django.db import migrations, router, transaction
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 
@@ -119,17 +119,19 @@ def _backfill_group_open_periods(
 
     group_ids = [group_id for group_id, _, _, _ in group_data]
     groups_with_open_periods = set(
-        GroupOpenPeriod.objects.filter(group_id__in=group_ids).values_list("group_id", flat=True)
+        GroupOpenPeriod.objects.filter(group_id__in=group_ids)
+        .values_list("group_id", flat=True)
+        .distinct()
     )
 
+    group_ids = [group_id for group_id in group_ids if group_id not in groups_with_open_periods]
     # Filter the relevant activities for groups that need to be backfilled.
     activities = defaultdict(list)
     for activity in Activity.objects.filter(
         group_id__in=group_ids,
         type__in=[ActivityType.SET_REGRESSION.value, ActivityType.SET_RESOLVED.value],
     ).order_by("-datetime"):
-        if activity.group_id not in groups_with_open_periods:
-            activities[activity.group_id].append(activity)
+        activities[activity.group_id].append(activity)
 
     open_periods = []
     for group_id, first_seen, status, project_id in group_data:
@@ -149,7 +151,8 @@ def _backfill_group_open_periods(
             )
         )
 
-    GroupOpenPeriod.objects.bulk_create(open_periods)
+    with transaction.atomic(router.db_for_write(GroupOpenPeriod)):
+        GroupOpenPeriod.objects.bulk_create(open_periods)
 
 
 def backfill_group_open_periods(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
@@ -193,7 +196,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "0868_delete_group_open_periods"),
+        ("sentry", "0872_fix_drift_deleted_columns"),
     ]
 
     operations = [
