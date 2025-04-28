@@ -829,3 +829,28 @@ class Columns(Enum):
         issue_platform_name=None,
         alias="symbolicated_in_app",
     )
+
+    EXPO_UPDATES_CHANNEL = Column(
+        group_name="events.contexts[expo_updates.channel]",
+        event_name="contexts[expo_updates.channel]",
+        transaction_name="contexts[expo_updates.channel]",
+        discover_name="contexts[expo_updates.channel]",
+        issue_platform_name="contexts[expo_updates.channel]",
+        alias="expo_updates.channel",
+    )
+
+    EXPO_UPDATES_RUNTIME_VERSION = Column(
+        group_name="events.contexts[expo_updates.runtime_version]",
+        event_name="contexts[expo_updates.runtime_version]",
+        transaction_name="contexts[expo_updates.runtime_version]",
+        discover_name="contexts[expo_updates.runtime_version]",
+        alias="expo_updates.runtime_version",
+    )
+
+    EXPO_UPDATES_UPDATE_ID = Column(
+        group_name="events.contexts[expo_updates.update_id]",
+        event_name="contexts[expo_updates.update_id]",
+        transaction_name="contexts[expo_updates.update_id]",
+        discover_name="contexts[expo_updates.update_id]",
+        alias="expo_updates.update_id",
+    )

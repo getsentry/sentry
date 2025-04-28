@@ -27,6 +27,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.issues.priority import PriorityChangeReason, update_priority
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphash import GroupHash
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.release import Release
 from sentry.ratelimits.sliding_windows import RedisSlidingWindowRateLimiter, RequestedQuota
 from sentry.types.group import PriorityLevel
@@ -225,6 +226,14 @@ def save_issue_from_occurrence(
             group, is_new, primary_grouphash = save_grouphash_and_group(
                 project, event, primary_hash, **issue_kwargs
             )
+            open_period = (
+                GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()
+            )
+            if open_period is not None:
+                highest_seen_priority = group.priority
+                open_period.update(
+                    data={**open_period.data, "highest_seen_priority": highest_seen_priority}
+                )
             is_regression = False
             span.set_tag("save_issue_from_occurrence.outcome", "new_group")
             metric_tags["save_issue_from_occurrence.outcome"] = "new_group"
@@ -290,6 +299,20 @@ def save_issue_from_occurrence(
                 reason=PriorityChangeReason.ISSUE_PLATFORM,
                 project=project,
             )
+
+            open_period = (
+                GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()
+            )
+            if open_period is not None:
+                highest_seen_priority = open_period.data.get("highest_seen_priority", None)
+                if highest_seen_priority is None:
+                    highest_seen_priority = group.priority
+                elif group.priority is not None:
+                    # XXX: we know this is not None, because we just set the group's priority
+                    highest_seen_priority = max(highest_seen_priority, group.priority)
+                open_period.update(
+                    data={**open_period.data, "highest_seen_priority": highest_seen_priority}
+                )
 
     additional_hashes = [f for f in occurrence.fingerprint if f != primary_grouphash.hash]
     for fingerprint_hash in additional_hashes:

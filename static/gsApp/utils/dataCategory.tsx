@@ -13,16 +13,7 @@ import type {
   RecurringCredit,
   Subscription,
 } from 'getsentry/types';
-
-const DATA_CATEGORY_FEATURES: Record<string, string | null> = {
-  [DataCategory.ERRORS]: null, // All plans have access to errors
-  [DataCategory.TRANSACTIONS]: 'performance-view',
-  [DataCategory.REPLAYS]: 'session-replay',
-  [DataCategory.ATTACHMENTS]: 'event-attachments',
-  [DataCategory.MONITOR_SEATS]: 'monitor-seat-billing',
-  [DataCategory.SPANS]: 'spans-usage-tracking',
-  [DataCategory.UPTIME]: 'uptime',
-};
+import {getCategoryInfoFromPlural} from 'getsentry/utils/billing';
 
 /**
  *
@@ -191,8 +182,8 @@ export function hasCategoryFeature(
     return true;
   }
 
-  const feature = DATA_CATEGORY_FEATURES[category];
-  if (typeof feature === 'undefined') {
+  const feature = getCategoryInfoFromPlural(category as DataCategory)?.feature;
+  if (!feature) {
     return false;
   }
   return feature ? organization.features.includes(feature) : true;

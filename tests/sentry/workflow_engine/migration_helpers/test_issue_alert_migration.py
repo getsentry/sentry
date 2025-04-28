@@ -342,6 +342,7 @@ class IssueAlertMigratorTest(TestCase):
     def test_run__every_event_condition__any(self):
         conditions = [
             {"id": EveryEventCondition.id},
+            {"id": EveryEventCondition.id},
             {"id": RegressionEventCondition.id},
         ]
         issue_alert = self.create_project_rule(
