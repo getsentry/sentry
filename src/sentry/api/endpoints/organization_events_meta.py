@@ -182,10 +182,13 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsV2EndpointBase):
         except NoProjects:
             return Response({})
 
-        use_rpc = request.GET.get("useRpc", "0") == "1"
+        # TODO: remove useRpc param
+        use_eap = (
+            request.GET.get("useRpc", "0") == "1" or request.GET.get("dataset", None) == "spans"
+        )
         orderby = self.get_orderby(request) or ["timestamp"]
 
-        if use_rpc:
+        if use_eap:
             result = get_eap_span_samples(request, snuba_params, orderby)
         else:
             result = get_span_samples(request, snuba_params, orderby)
