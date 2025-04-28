@@ -1641,12 +1641,12 @@ register(
 )
 register(
     "performance.issues.consecutive_http.problem-creation",
-    default=0.0,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "performance.issues.large_http_payload.problem-creation",
-    default=0.0,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1686,7 +1686,7 @@ register(
 )
 register(
     "performance.issues.http_overhead.problem-creation",
-    default=0.0,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
