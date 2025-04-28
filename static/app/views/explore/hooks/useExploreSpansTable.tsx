@@ -36,7 +36,7 @@ export function useExploreSpansTable({
 }: UseExploreSpansTableOptions) {
   const canTriggerHighAccuracy = useCallback(
     (results: ReturnType<typeof useSpansQuery<any[]>>) => {
-      const canGoToHigherAccuracyTier = results.meta?.canGoToHigherAccuracyTier;
+      const canGoToHigherAccuracyTier = results.meta?.dataScanned === 'partial';
       const hasData = defined(results.data) && results.data.length > 0;
       return !hasData && canGoToHigherAccuracyTier;
     },
