@@ -23,7 +23,7 @@ import DetailLabel from 'admin/components/detailLabel';
 import DetailList from 'admin/components/detailList';
 import DetailsContainer from 'admin/components/detailsContainer';
 import {getLogQuery} from 'admin/utils';
-import {PRODUCT_TRIAL_CATEGORIES, UNLIMITED} from 'getsentry/constants';
+import {BILLED_DATA_CATEGORY_INFO, UNLIMITED} from 'getsentry/constants';
 import type {
   Plan,
   ReservedBudget,
@@ -446,8 +446,10 @@ function CustomerOverview({customer, onAction, organization}: Props) {
   const region = regionMap[organization.links.regionUrl] ?? '??';
 
   const productTrialCategories = customer.canSelfServe
-    ? PRODUCT_TRIAL_CATEGORIES.filter(category =>
-        customer.planDetails.categories.includes(category)
+    ? Object.values(BILLED_DATA_CATEGORY_INFO).filter(
+        categoryInfo =>
+          categoryInfo.canProductTrial &&
+          customer.planDetails.categories.includes(categoryInfo.plural)
       )
     : [];
 
@@ -652,16 +654,16 @@ function CustomerOverview({customer, onAction, organization}: Props) {
           <Fragment>
             <h6>Product Trials</h6>
             <ProductTrialsDetailListContainer>
-              {productTrialCategories.map(category => {
+              {productTrialCategories.map(categoryInfo => {
                 const categoryName = getPlanCategoryName({
                   plan: customer.planDetails,
-                  category,
+                  category: categoryInfo.plural,
                   title: true,
                 });
-                const upperCategory = upperFirst(category);
+                const upperCategory = upperFirst(categoryInfo.plural);
 
                 return (
-                  <DetailLabel key={category} title={categoryName}>
+                  <DetailLabel key={categoryInfo.plural} title={categoryName}>
                     <TrialActions>
                       <Button
                         size="xs"

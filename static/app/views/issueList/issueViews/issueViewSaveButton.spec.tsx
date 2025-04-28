@@ -72,7 +72,6 @@ describe('IssueViewSaveButton', function () {
         <GlobalModal />
       </Fragment>,
       {
-        enableRouterMocks: false,
         initialRouterConfig: initialRouterConfigFeed,
       }
     );
@@ -103,7 +102,7 @@ describe('IssueViewSaveButton', function () {
           projects: [1],
           environments: ['prod'],
           timeFilters: {period: '7d', utc: null, start: null, end: null},
-          starred: false,
+          starred: true,
         },
       })
     );
@@ -124,7 +123,6 @@ describe('IssueViewSaveButton', function () {
         <GlobalModal />
       </Fragment>,
       {
-        enableRouterMocks: false,
         initialRouterConfig: initialRouterConfigView,
       }
     );
@@ -138,7 +136,7 @@ describe('IssueViewSaveButton', function () {
 
     const nameInput = within(modal).getByRole('textbox', {name: 'Name'});
 
-    expect(nameInput).toHaveValue(mockGroupSearchView.name);
+    expect(nameInput).toHaveValue(`${mockGroupSearchView.name} (Copy)`);
     await userEvent.clear(nameInput);
     await userEvent.type(nameInput, 'My View');
 
@@ -158,7 +156,7 @@ describe('IssueViewSaveButton', function () {
           projects: [1],
           environments: ['prod'],
           timeFilters: {period: '7d', utc: null, start: null, end: null},
-          starred: false,
+          starred: true,
         },
       })
     );
@@ -172,7 +170,6 @@ describe('IssueViewSaveButton', function () {
     });
 
     render(<IssueViewSaveButton {...defaultProps} />, {
-      enableRouterMocks: false,
       initialRouterConfig: {
         ...initialRouterConfigView,
         location: {
@@ -235,7 +232,7 @@ describe('IssueViewSaveButton', function () {
         organization: OrganizationFixture({
           access: ['org:read'],
         }),
-        enableRouterMocks: false,
+
         initialRouterConfig: initialRouterConfigView,
       }
     );
@@ -248,7 +245,7 @@ describe('IssueViewSaveButton', function () {
 
     const nameInput = within(modal).getByRole('textbox', {name: 'Name'});
 
-    expect(nameInput).toHaveValue(mockGroupSearchView.name);
+    expect(nameInput).toHaveValue(`${mockGroupSearchView.name} (Copy)`);
     await userEvent.clear(nameInput);
     await userEvent.type(nameInput, 'My View');
 
@@ -268,7 +265,7 @@ describe('IssueViewSaveButton', function () {
           projects: [1],
           environments: ['prod'],
           timeFilters: {period: '7d', utc: null, start: null, end: null},
-          starred: false,
+          starred: true,
         },
       })
     );
@@ -278,7 +275,6 @@ describe('IssueViewSaveButton', function () {
     PageFiltersStore.onInitializeUrlState(defaultPageFilters, new Set());
 
     const {router} = render(<IssueViewSaveButton {...defaultProps} />, {
-      enableRouterMocks: false,
       initialRouterConfig: {
         ...initialRouterConfigView,
         location: {

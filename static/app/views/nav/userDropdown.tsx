@@ -4,6 +4,7 @@ import {logout} from 'sentry/actionCreators/account';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import {t} from 'sentry/locale';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useApi from 'sentry/utils/useApi';
 import {useUser} from 'sentry/utils/useUser';
 import {useNavContext} from 'sentry/views/nav/context';
@@ -24,6 +25,7 @@ export function UserDropdown() {
     <SidebarMenu
       label={user.email}
       analyticsKey="account"
+      disableTooltip
       items={[
         {
           key: 'user',
@@ -43,7 +45,7 @@ export function UserDropdown() {
               key: 'admin',
               label: t('Admin'),
               to: '/manage/',
-              hidden: !user?.isSuperuser,
+              hidden: !isActiveSuperuser(),
             },
             {
               key: 'signout',
