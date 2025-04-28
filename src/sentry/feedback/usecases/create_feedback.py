@@ -133,6 +133,8 @@ def fix_for_issue_platform(event_data: dict[str, Any]) -> dict[str, Any]:
     ret_event["level"] = event_data.get("level", "info")
 
     ret_event["environment"] = event_data.get("environment", "production")
+    ret_event["release"] = event_data.get("release", None)
+
     if event_data.get("sdk"):
         ret_event["sdk"] = event_data["sdk"]
     ret_event["request"] = event_data.get("request", {})
@@ -381,6 +383,8 @@ def create_feedback_issue(
         event_fixed["tags"]["has_linked_error"] = "true"
     else:
         event_fixed["tags"]["has_linked_error"] = "false"
+
+    event_fixed["tags"]["release"] = event_fixed.get("release", None)
 
     # make sure event data is valid for issue platform
     validate_issue_platform_event_schema(event_fixed)

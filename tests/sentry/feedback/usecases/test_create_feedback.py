@@ -777,6 +777,7 @@ def test_create_feedback_adds_associated_event_id(
 def test_create_feedback_tags(default_project, mock_produce_occurrence_to_kafka):
     """We want to surface these tags in the UI. We also use user.email for alert conditions."""
     event = mock_feedback_event(default_project.id)
+    event["release"] = "frontend@daf1316f209d961443664cd6eb4231ca154db502"
     event["user"]["email"] = "josh.ferge@sentry.io"
     event["contexts"]["feedback"]["contact_email"] = "andrew@sentry.io"
     event["contexts"]["trace"] = {"trace_id": "abc123"}
@@ -801,6 +802,9 @@ def test_create_feedback_tags(default_project, mock_produce_occurrence_to_kafka)
     # Adds associated_event_id and has_linked_error to tags
     assert tags["associated_event_id"] == event_id
     assert tags["has_linked_error"] == "true"
+
+    # Adds release to tags
+    assert tags["release"] == "frontend@daf1316f209d961443664cd6eb4231ca154db502"
 
 
 @django_db_all
@@ -949,3 +953,15 @@ def test_denylist(set_sentry_option, default_project):
 def test_denylist_not_in_list(set_sentry_option, default_project):
     with set_sentry_option("feedback.organizations.slug-denylist", ["not-in-list"]):
         assert is_in_feedback_denylist(default_project.organization) is False
+
+
+@django_db_all
+def test_create_feedback_release(default_project, mock_produce_occurrence_to_kafka):
+    event = mock_feedback_event(default_project.id)
+    event["release"] = "frontend@daf1316f209d961443664cd6eb4231ca154db502"
+    ret = create_feedback_issue(
+        event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+    )
+
+    assert mock_produce_occurrence_to_kafka.call_count == 1
+    assert ret["release"] == "frontend@daf1316f209d961443664cd6eb4231ca154db502"
