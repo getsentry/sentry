@@ -42,7 +42,9 @@ function Projects({projects, logs, tree}: Props) {
     }
 
     // If there are no logs, or the trace is not empty, use the projects from the tree
-    return Array.from(tree.projects.values()).map(project => project.slug);
+    return Array.from(
+      new Set(Array.from(tree.projects.values()).map(project => project.slug))
+    );
   }, [tree.projects, tree.shape, logs, projects]);
 
   return (
