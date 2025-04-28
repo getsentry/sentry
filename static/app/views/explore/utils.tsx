@@ -133,7 +133,7 @@ export function getExploreUrlFromSavedQueryUrl({
   });
 }
 
-export function getExploreMultiQueryUrl({
+function getExploreMultiQueryUrl({
   organization,
   selection,
   interval,
@@ -141,15 +141,15 @@ export function getExploreMultiQueryUrl({
   title,
   id,
 }: {
+  interval: string;
   organization: Organization;
   queries: ReadableExploreQueryParts[];
+  selection: PageFilters;
   id?: number;
-  interval?: string;
-  selection?: PageFilters;
   title?: string;
 }) {
-  const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
-  const {environments, projects} = selection ?? {};
+  const {start, end, period: statsPeriod, utc} = selection.datetime;
+  const {environments, projects} = selection;
   const queryParams = {
     dataset: DiscoverDatasets.SPANS_EAP_RPC,
     project: projects,
