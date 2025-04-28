@@ -39,7 +39,7 @@ describe('TraceTreeNode', () => {
       }),
       metadata
     );
-    expect(node.occurences.has(issue)).toBe(true);
+    expect(node.occurrences.has(issue)).toBe(true);
   });
 
   it('stores error on node', () => {

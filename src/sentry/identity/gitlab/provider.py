@@ -80,7 +80,7 @@ class GitlabIdentityProvider(OAuth2Provider):
         }
 
     def get_refresh_token_params(
-        self, refresh_token: str, identity: Identity, **kwargs: Any
+        self, refresh_token: str, identity: Identity | RpcIdentity, **kwargs: Any
     ) -> dict[str, str | None]:
         client_id = identity.data.get("client_id")
         client_secret = identity.data.get("client_secret")
@@ -93,7 +93,9 @@ class GitlabIdentityProvider(OAuth2Provider):
             "client_secret": client_secret,
         }
 
-    def refresh_identity(self, identity: Identity, **kwargs: Any) -> RpcIdentity | None:
+    def refresh_identity(
+        self, identity: Identity | RpcIdentity, **kwargs: Any
+    ) -> RpcIdentity | None:
         refresh_token = identity.data.get("refresh_token")
         refresh_token_url = kwargs.get("refresh_token_url")
 

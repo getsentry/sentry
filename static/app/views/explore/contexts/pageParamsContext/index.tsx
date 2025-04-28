@@ -2,7 +2,6 @@ import type React from 'react';
 import {createContext, useCallback, useContext, useMemo} from 'react';
 import type {Location} from 'history';
 
-import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -52,7 +51,7 @@ interface ReadablePageParams {
   title?: string;
 }
 
-export interface WritablePageParams {
+interface WritablePageParams {
   dataset?: DiscoverDatasets | null;
   fields?: string[] | null;
   groupBys?: string[] | null;
@@ -144,12 +143,6 @@ export function useExplorePageParams(): ReadablePageParams {
 }
 
 export function useExploreDataset(): DiscoverDatasets {
-  const pageParams = useExplorePageParams();
-
-  if (defined(pageParams.dataset)) {
-    return pageParams.dataset;
-  }
-
   return DiscoverDatasets.SPANS_EAP_RPC;
 }
 
@@ -223,16 +216,6 @@ export function useSetExplorePageParams() {
   );
 }
 
-export function useSetExploreDataset() {
-  const setPageParams = useSetExplorePageParams();
-  return useCallback(
-    (dataset: DiscoverDatasets) => {
-      setPageParams({dataset});
-    },
-    [setPageParams]
-  );
-}
-
 export function useSetExploreFields() {
   const setPageParams = useSetExplorePageParams();
   return useCallback(
@@ -246,8 +229,12 @@ export function useSetExploreFields() {
 export function useSetExploreGroupBys() {
   const setPageParams = useSetExplorePageParams();
   return useCallback(
-    (groupBys: string[]) => {
-      setPageParams({groupBys});
+    (groupBys: string[], mode?: Mode) => {
+      if (mode) {
+        setPageParams({groupBys, mode});
+      } else {
+        setPageParams({groupBys});
+      }
     },
     [setPageParams]
   );

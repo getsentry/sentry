@@ -24,6 +24,9 @@ from sentry.rules.processing.buffer_processing import (
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.post_process import should_retry_fetch
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import issues_tasks
+from sentry.taskworker.retry import Retry
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.registry import NoRegistrationExistsError
@@ -48,7 +51,6 @@ from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
     create_workflow_fire_histories,
     evaluate_workflows_action_filters,
-    log_fired_workflows,
 )
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 
@@ -426,25 +428,20 @@ def fire_actions_for_groups(
         # temporary fetching of organization, so not passing in as parameter
         organization = group.project.organization
 
-        if features.has(
-            "organizations:workflow-engine-process-workflows",
-            organization,
-        ):
-            metrics.incr(
-                "workflow_engine.delayed_workflow.triggered_actions",
-                amount=len(filtered_actions),
-                tags={"event_type": group_event.group.type},
-            )
+        metrics.incr(
+            "workflow_engine.delayed_workflow.triggered_actions",
+            amount=len(filtered_actions),
+            tags={"event_type": group_event.group.type},
+        )
 
-        if features.has(
-            "organizations:workflow-engine-process-workflows-logs",
-            organization,
-        ):
-            log_fired_workflows(
-                log_name="workflow_engine.delayed_workflow.fired_workflow",
-                actions=list(filtered_actions),
-                event_data=event_data,
-            )
+        logger.info(
+            "workflow_engine.delayed_workflow.triggered_actions",
+            extra={
+                "workflow_ids": [workflow.id for workflow in workflows],
+                "actions": filtered_actions,
+                "event_data": event_data,
+            },
+        )
 
         if features.has(
             "organizations:workflow-engine-trigger-actions",
@@ -473,6 +470,13 @@ def cleanup_redis_buffer(
     soft_time_limit=50,
     time_limit=60,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        processing_deadline_duration=60,
+        retry=Retry(
+            times=5,
+        ),
+    ),
 )
 def process_delayed_workflows(
     project_id: int, batch_key: str | None = None, *args: Any, **kwargs: Any

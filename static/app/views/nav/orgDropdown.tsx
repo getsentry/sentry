@@ -2,12 +2,10 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 
-import {logout} from 'sentry/actionCreators/account';
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
 import {Button} from 'sentry/components/core/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import OrganizationBadge from 'sentry/components/idBadge/organizationBadge';
-import UserBadge from 'sentry/components/idBadge/userBadge';
 import {IconAdd} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -15,12 +13,11 @@ import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
-import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {useUser} from 'sentry/utils/useUser';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 function createOrganizationMenuItem(): MenuItemProps {
   const configFeatures = ConfigStore.get('features');
@@ -47,13 +44,17 @@ function createOrganizationMenuItem(): MenuItemProps {
   };
 }
 
-export function OrgDropdown({className}: {className?: string}) {
-  const api = useApi();
+export function OrgDropdown({
+  className,
+  hideOrgLinks,
+}: {
+  className?: string;
+  hideOrgLinks?: boolean;
+}) {
   const theme = useTheme();
 
   const config = useLegacyStore(ConfigStore);
   const organization = useOrganization();
-  const user = useUser();
 
   // It's possible we do not have an org in context (e.g. RouteNotFound)
   // Otherwise, we should have the full org
@@ -69,27 +70,24 @@ export function OrgDropdown({className}: {className?: string}) {
   const {layout} = useNavContext();
   const isMobile = layout === NavLayout.MOBILE;
 
-  function handleLogout() {
-    logout(api);
-  }
-
   return (
     <DropdownMenu
       className={className}
       trigger={props => (
         <OrgDropdownTrigger
           borderless={!theme.isChonk}
-          width={isMobile ? 32 : 44}
+          width={isMobile ? 32 : 48}
           aria-label={t('Toggle organization menu')}
           {...props}
         >
           <StyledOrganizationAvatar
-            size={isMobile ? 24 : 32}
+            size={isMobile ? 24 : 36}
             round={false}
             organization={organization}
           />
         </OrgDropdownTrigger>
       )}
+      position="right-start"
       minMenuWidth={200}
       items={[
         {
@@ -108,77 +106,56 @@ export function OrgDropdown({className}: {className?: string}) {
               key: 'organization-settings',
               label: t('Organization Settings'),
               to: `/organizations/${organization.slug}/settings/`,
-              hidden: !hasOrgRead,
+              hidden: !hasOrgRead || hideOrgLinks,
+            },
+            {
+              key: 'projects',
+              label: t('Projects'),
+              to: makeProjectsPathname({path: '/', orgSlug: organization.slug}),
+              hidden: hideOrgLinks,
             },
             {
               key: 'members',
               label: t('Members'),
               to: `/organizations/${organization.slug}/settings/members/`,
-              hidden: !hasMemberRead,
+              hidden: !hasMemberRead || hideOrgLinks,
             },
             {
               key: 'teams',
               label: t('Teams'),
               to: `/organizations/${organization.slug}/settings/teams/`,
-              hidden: !hasTeamRead,
+              hidden: !hasTeamRead || hideOrgLinks,
             },
             {
               key: 'billing',
               label: t('Usage & Billing'),
               to: `/organizations/${organization.slug}/settings/billing/`,
-              hidden: !hasBillingAccess,
+              hidden: !hasBillingAccess || hideOrgLinks,
             },
             {
               key: 'switch-organization',
               label: t('Switch Organization'),
               isSubmenu: true,
-              disabled: !organizations?.length,
               hidden: config.singleOrganization || isDemoModeActive(),
               children: [
-                ...orderBy(organizations, ['status.id', 'name']).map(switchOrg => ({
-                  key: switchOrg.id,
-                  label: <OrganizationBadge organization={switchOrg} />,
-                  textValue: switchOrg.name,
-                  to: resolveRoute(
-                    `/organizations/${switchOrg.slug}/issues/`,
-                    organization,
-                    switchOrg
-                  ),
-                })),
+                ...orderBy(organizations, ['status.id', 'name']).map(switchOrg => {
+                  const pendingDeletion = switchOrg.status.id === 'pending_deletion';
+
+                  return {
+                    key: switchOrg.id,
+                    label: <OrganizationBadge organization={switchOrg} />,
+                    textValue: switchOrg.name,
+                    to: resolveRoute(
+                      `/organizations/${switchOrg.slug}/issues/`,
+                      organization,
+                      switchOrg
+                    ),
+                    priority: pendingDeletion ? ('danger' as const) : undefined,
+                    tooltip: pendingDeletion ? t('Pending deletion') : undefined,
+                  };
+                }),
                 createOrganizationMenuItem(),
               ],
-            },
-          ],
-        },
-        {
-          key: 'user',
-          label: (
-            <SectionTitleWrapper>
-              <UserBadge user={user} avatarSize={32} />
-            </SectionTitleWrapper>
-          ),
-          textValue: t('User Summary'),
-          children: [
-            {
-              key: 'user-settings',
-              label: t('User Settings'),
-              to: '/settings/account/',
-            },
-            {
-              key: 'user-auth-tokens',
-              label: t('User Auth Tokens'),
-              to: '/settings/account/api/',
-            },
-            {
-              key: 'admin',
-              label: t('Admin'),
-              to: '/manage/',
-              hidden: !user?.isSuperuser,
-            },
-            {
-              key: 'signout',
-              label: t('Sign Out'),
-              onAction: handleLogout,
             },
           ],
         },

@@ -174,7 +174,6 @@ DETAILED_PROJECT = {
     "secondaryGroupingExpiry": 1687010243,
     "secondaryGroupingConfig": LEGACY_GROUPING_CONFIG,
     "fingerprintingRules": "",
-    "uptimeAutodetection": True,
     "organization": {
         "id": "1",
         "slug": "sentry",
@@ -221,7 +220,6 @@ DETAILED_PROJECT = {
             "performance-n-plus-one-api-calls-post-process-group",
             "performance-db-main-thread-post-process-group",
             "performance-metrics-backed-transaction-summary",
-            "performance-db-main-thread-detector",
             "issue-platform",
             "performance-consecutive-db-issue",
             "performance-consecutive-http-post-process-group",
@@ -270,7 +268,6 @@ DETAILED_PROJECT = {
             "performance-issues-compressed-assets-detector",
             "device-class-synthesis",
             "profiling-billing",
-            "performance-file-io-main-thread-detector",
             "integrations-deployment",
             "performance-m-n-plus-one-db-queries-visible",
             "mobile-cpu-memory-in-transactions",

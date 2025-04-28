@@ -37,6 +37,7 @@ function ReplayClipPreview({
     orgSlug,
     replaySlug,
     clipWindow,
+    eventTimestampMs,
   });
 
   const {fetching, replay} = replayReaderResult;

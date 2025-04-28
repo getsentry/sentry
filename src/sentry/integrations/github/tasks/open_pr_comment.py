@@ -23,13 +23,7 @@ from snuba_sdk import Request as SnubaRequest
 
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.integrations.github.client import GitHubApiClient
-from sentry.integrations.github.constants import (
-    ISSUE_LOCKED_ERROR_MESSAGE,
-    RATE_LIMITED_MESSAGE,
-    STACKFRAME_COUNT,
-)
-from sentry.integrations.github.tasks.language_parsers import PATCH_PARSERS
-from sentry.integrations.github.tasks.pr_comment import format_comment_url
+from sentry.integrations.github.constants import RATE_LIMITED_MESSAGE
 from sentry.integrations.github.tasks.utils import (
     GithubAPIErrorType,
     PullRequestFile,
@@ -38,6 +32,8 @@ from sentry.integrations.github.tasks.utils import (
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
+from sentry.integrations.source_code_management.constants import STACKFRAME_COUNT
+from sentry.integrations.source_code_management.language_parsers import PATCH_PARSERS
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -92,6 +88,10 @@ OPEN_PR_ISSUE_TABLE_TOGGLE_TEMPLATE = """\
 OPEN_PR_ISSUE_DESCRIPTION_LENGTH = 52
 
 MAX_RECENT_ISSUES = 5000
+
+
+def format_comment_url(url: str, referrer: str) -> str:
+    return url + "?referrer=" + referrer
 
 
 def format_open_pr_comment(issue_tables: list[str]) -> str:
@@ -618,29 +618,18 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     try:
         installation.create_or_update_comment(
             repo=repo,
-            pr_key=pull_request.key,
+            pr=pull_request,
             comment_data={"body": comment_body},
-            pullrequest_id=pull_request.id,
             issue_list=issue_id_list,
             comment_type=CommentType.OPEN_PR,
             metrics_base=OPEN_PR_METRICS_BASE,
             language=language,
         )
     except ApiError as e:
-        if e.json:
-            if ISSUE_LOCKED_ERROR_MESSAGE in e.json.get("message", ""):
-                metrics.incr(
-                    OPEN_PR_METRICS_BASE.format(integration="github", key="error"),
-                    tags={"type": "issue_locked_error"},
-                )
-                return
-
-            elif RATE_LIMITED_MESSAGE in e.json.get("message", ""):
-                metrics.incr(
-                    OPEN_PR_METRICS_BASE.format(integration="github", key="error"),
-                    tags={"type": "rate_limited_error"},
-                )
-                return
+        if installation.on_create_or_update_comment_error(
+            api_error=e, metrics_base=OPEN_PR_METRICS_BASE
+        ):
+            return
 
         metrics.incr(
             OPEN_PR_METRICS_BASE.format(integration="github", key="error"),

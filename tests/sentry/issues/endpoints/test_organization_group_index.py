@@ -17,7 +17,6 @@ from sentry.issues.grouptype import (
     PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
     PerformanceSlowDBQueryGroupType,
-    ProfileFileIOGroupType,
 )
 from sentry.models.activity import Activity
 from sentry.models.apitoken import ApiToken
@@ -3195,11 +3194,10 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.login_as(user=self.user)
         # give time for consumers to run and propogate changes to clickhouse
         sleep(1)
-        with self.feature([ProfileFileIOGroupType.build_visible_feature_name()]):
-            response = self.get_success_response(
-                sort="new",
-                query="user.email:myemail@example.com",
-            )
+        response = self.get_success_response(
+            sort="new",
+            query="user.email:myemail@example.com",
+        )
         assert len(response.data) == 2
         assert {r["id"] for r in response.data} == {
             str(perf_group_id),
@@ -4075,26 +4073,17 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         self.login_as(user=self.user)
 
-        # Test statement timeout when option is disabled (default)
         mock_query.side_effect = TimeoutError()
         response = self.get_response()
-        assert response.status_code == 500  # Should propagate original error
+        assert response.status_code == 429
+        assert (
+            response.data["detail"]
+            == "Query timeout. Please try with a smaller date range or fewer conditions."
+        )
 
-        # Test statement timeout when option is enabled
-        with override_options({"api.postgres-query-timeout-error-handling.enabled": True}):
-            mock_query.side_effect = TimeoutError()
-            response = self.get_response()
-            assert response.status_code == 429
-            assert (
-                response.data["detail"]
-                == "Query timeout. Please try with a smaller date range or fewer conditions."
-            )
-
-        # Test user cancellation - should return 500 regardless of feature flag
-        with override_options({"api.postgres-query-timeout-error-handling.enabled": True}):
-            mock_query.side_effect = UserCancelError()
-            response = self.get_response()
-            assert response.status_code == 500
+        mock_query.side_effect = UserCancelError()
+        response = self.get_response()
+        assert response.status_code == 500
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
@@ -4699,6 +4688,46 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert open_period is not None
         assert open_period.date_ended == group.resolved_at
         assert open_period.resolution_activity == activity
+
+    @with_feature("organizations:issue-open-periods")
+    def test_set_resolved_in_current_release_without_open_period(self) -> None:
+        release = Release.objects.create(organization_id=self.project.organization_id, version="a")
+        release.add_project(self.project)
+
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+        GroupOpenPeriod.objects.all().delete()
+
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(
+            qs_params={"id": group.id}, status="resolved", statusDetails={"inRelease": "latest"}
+        )
+        assert response.data["status"] == "resolved"
+        assert response.data["statusDetails"]["inRelease"] == release.version
+        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.RESOLVED
+
+        resolution = GroupResolution.objects.get(group=group)
+        assert resolution.release == release
+        assert resolution.type == GroupResolution.Type.in_release
+        assert resolution.status == GroupResolution.Status.resolved
+        assert resolution.actor_id == self.user.id
+
+        assert GroupSubscription.objects.filter(
+            user_id=self.user.id, group=group, is_active=True
+        ).exists()
+
+        activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+        )
+        assert activity.data["version"] == release.version
+        assert GroupHistory.objects.filter(
+            group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_RELEASE
+        ).exists()
+
+        assert GroupOpenPeriod.objects.filter(group=group).count() == 0
 
     @with_feature("organizations:issue-open-periods")
     def test_set_resolved_in_explicit_release(self) -> None:

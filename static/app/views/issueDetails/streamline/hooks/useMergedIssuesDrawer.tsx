@@ -35,7 +35,7 @@ export function useMergedIssuesDrawer({
               cursor: undefined,
             },
           },
-          {replace: true}
+          {preventScrollReset: true}
         );
       },
     });

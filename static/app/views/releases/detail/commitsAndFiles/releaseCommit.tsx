@@ -6,11 +6,11 @@ import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import CommitLink from 'sentry/components/commitLink';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {LinkButton} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Link from 'sentry/components/links/link';
 import PanelItem from 'sentry/components/panels/panelItem';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -25,7 +25,7 @@ function formatCommitMessage(message: string | null) {
   return message.split(/\n/)[0];
 }
 
-export interface ReleaseCommitProps {
+interface ReleaseCommitProps {
   commit: Commit;
 }
 

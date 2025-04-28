@@ -97,7 +97,7 @@ export function TraceTransactionRow(
           color={makeTraceNodeBarColor(props.theme, props.node)}
           node_space={props.node.space}
           errors={props.node.errors}
-          occurences={props.node.occurences}
+          occurrences={props.node.occurrences}
           profiles={props.node.profiles}
         />
         <button

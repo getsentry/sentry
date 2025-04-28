@@ -73,6 +73,11 @@ class TestEventAttributeCondition(ConditionTestCase):
                     "crash_type": "crash",
                 },
                 "os": {"distribution_name": "ubuntu", "distribution_version": "22.04"},
+                "expo_updates": {
+                    "channel": "production",
+                    "runtime_version": "1.0.0",
+                    "update_id": "123",
+                },
             },
             "threads": {
                 "values": [
@@ -137,6 +142,21 @@ class TestEventAttributeCondition(ConditionTestCase):
         assert dc.condition_result is True
         assert dc.condition_group == dcg
 
+        payload = {
+            "id": EventAttributeCondition.id,
+            "match": MatchType.IS_SET,
+            "attribute": "platform",
+        }
+        dc = self.translate_to_data_condition(payload, dcg)
+
+        assert dc.type == self.condition
+        assert dc.comparison == {
+            "match": MatchType.IS_SET,
+            "attribute": "platform",
+        }
+        assert dc.condition_result is True
+        assert dc.condition_group == dcg
+
     def test_dual_write_filter(self):
         self.payload["id"] = EventAttributeFilter.id
         dcg = self.create_data_condition_group()
@@ -188,6 +208,16 @@ class TestEventAttributeCondition(ConditionTestCase):
         self.dc.comparison.update(
             {"match": MatchType.EQUAL, "attribute": "platform", "value": 2000, "extra": "extra"}
         )
+        with pytest.raises(ValidationError):
+            self.dc.save()
+
+        self.dc.comparison.update(
+            {"match": MatchType.IS_SET, "attribute": "platform", "value": 2000}
+        )
+        with pytest.raises(ValidationError):
+            self.dc.save()
+
+        self.dc.comparison.update({"match": MatchType.EQUAL, "attribute": "asdf", "value": 2000})
         with pytest.raises(ValidationError):
             self.dc.save()
 
@@ -1103,6 +1133,70 @@ class TestEventAttributeCondition(ConditionTestCase):
                 "match": MatchType.EQUAL,
                 "attribute": "os.distribution_version",
                 "value": "20.04",
+            }
+        )
+        self.assert_does_not_pass(self.dc, self.event_data)
+
+    def test_expo_updates(self):
+        self.dc.comparison.update(
+            {
+                "match": MatchType.EQUAL,
+                "attribute": "expo_updates.channel",
+                "value": "production",
+            }
+        )
+        self.assert_passes(self.dc, self.event_data)
+
+        self.dc.comparison.update(
+            {
+                "match": MatchType.EQUAL,
+                "attribute": "expo_updates.channel",
+                "value": "development",
+            }
+        )
+        self.assert_does_not_pass(self.dc, self.event_data)
+
+        self.dc.comparison.update(
+            {
+                "match": MatchType.EQUAL,
+                "attribute": "expo_updates.runtime_version",
+                "value": "1.0.0",
+            }
+        )
+        self.assert_passes(self.dc, self.event_data)
+
+        self.dc.comparison.update(
+            {
+                "match": MatchType.EQUAL,
+                "attribute": "expo_updates.runtime_version",
+                "value": "2.0.0",
+            }
+        )
+        self.assert_does_not_pass(self.dc, self.event_data)
+
+        self.dc.comparison.update(
+            {
+                "match": MatchType.EQUAL,
+                "attribute": "expo_updates.update_id",
+                "value": "123",
+            }
+        )
+        self.assert_passes(self.dc, self.event_data)
+
+        self.dc.comparison.update(
+            {
+                "match": MatchType.EQUAL,
+                "attribute": "expo_updates.update_id",
+                "value": "876",
+            }
+        )
+        self.assert_does_not_pass(self.dc, self.event_data)
+
+        self.dc.comparison.update(
+            {
+                "match": MatchType.EQUAL,
+                "attribute": "expo_updates.non_existent",
+                "value": "876",
             }
         )
         self.assert_does_not_pass(self.dc, self.event_data)

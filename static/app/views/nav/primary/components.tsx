@@ -2,12 +2,13 @@ import {Fragment, type MouseEventHandler} from 'react';
 import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonLabel} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {linkStyles} from 'sentry/components/links/styles';
-import {Tooltip} from 'sentry/components/tooltip';
+import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -17,9 +18,10 @@ import {withChonk} from 'sentry/utils/theme/withChonk';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
-import {isLinkActive, makeLinkPropsFromTo} from 'sentry/views/nav/utils';
+import {isLinkActive} from 'sentry/views/nav/utils';
 
 interface SidebarItemLinkProps {
   analyticsKey: string;
@@ -36,6 +38,7 @@ interface SidebarItemDropdownProps {
   label: string;
   children?: React.ReactNode;
   forceLabel?: boolean;
+  onOpen?: MouseEventHandler<HTMLButtonElement>;
 }
 
 interface SidebarButtonProps {
@@ -62,7 +65,7 @@ interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
 export function SidebarItem({children, label, showLabel, ...props}: SidebarItemProps) {
   const {layout} = useNavContext();
   return (
-    <IconDefaultsProvider legacySize={layout === NavLayout.MOBILE ? '14px' : '19px'}>
+    <IconDefaultsProvider legacySize={layout === NavLayout.MOBILE ? '16px' : '21px'}>
       <Tooltip title={label} disabled={showLabel} position="right" skipWrapper delay={0}>
         <SidebarListItem {...props}>{children}</SidebarListItem>
       </Tooltip>
@@ -76,7 +79,9 @@ export function SidebarMenu({
   analyticsKey,
   label,
   forceLabel,
+  onOpen,
 }: SidebarItemDropdownProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const {layout} = useNavContext();
 
@@ -86,6 +91,7 @@ export function SidebarMenu({
     <DropdownMenu
       position={layout === NavLayout.MOBILE ? 'bottom' : 'right-end'}
       shouldApplyMinWidth={false}
+      minMenuWidth={200}
       trigger={(props, isOpen) => {
         return (
           <SidebarItem label={label} showLabel={showLabel}>
@@ -95,10 +101,13 @@ export function SidebarMenu({
               onClick={event => {
                 recordPrimaryItemClick(analyticsKey, organization);
                 props.onClick?.(event);
+                onOpen?.(event);
               }}
               isMobile={layout === NavLayout.MOBILE}
             >
-              <InteractionStateLayer hasSelectedBackground={isOpen} />
+              {theme.isChonk ? null : (
+                <InteractionStateLayer hasSelectedBackground={isOpen} />
+              )}
               {children}
               {showLabel ? label : null}
             </NavButton>
@@ -117,17 +126,17 @@ export function SidebarLink({
   analyticsKey,
   label,
 }: SidebarItemLinkProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
   const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
-  const linkProps = makeLinkPropsFromTo(to);
-
   const {layout} = useNavContext();
 
   return (
     <SidebarItem label={label} showLabel>
       <NavLink
-        {...linkProps}
+        to={to}
+        state={{source: SIDEBAR_NAVIGATION_SOURCE}}
         onClick={() => recordPrimaryItemClick(analyticsKey, organization)}
         aria-selected={isActive}
         aria-current={isActive ? 'page' : undefined}
@@ -135,7 +144,7 @@ export function SidebarLink({
       >
         {layout === NavLayout.MOBILE ? (
           <Fragment>
-            <InteractionStateLayer />
+            {theme.isChonk ? null : <InteractionStateLayer />}
             {children}
             {label}
           </Fragment>
@@ -157,6 +166,7 @@ export function SidebarButton({
   onClick,
   label,
 }: SidebarButtonProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const {layout} = useNavContext();
   const showLabel = layout === NavLayout.MOBILE;
@@ -173,7 +183,7 @@ export function SidebarButton({
           onClick?.(e);
         }}
       >
-        <InteractionStateLayer />
+        {theme.isChonk ? null : <InteractionStateLayer />}
         {children}
         {showLabel ? label : null}
       </NavButton>
@@ -181,9 +191,15 @@ export function SidebarButton({
   );
 }
 
-export function SeparatorItem() {
+export function SeparatorItem({
+  className,
+  hasMargin,
+}: {
+  className?: string;
+  hasMargin?: boolean;
+}) {
   return (
-    <SeparatorListItem aria-hidden>
+    <SeparatorListItem aria-hidden className={className} hasMargin={hasMargin}>
       <Separator />
     </SeparatorListItem>
   );
@@ -195,10 +211,15 @@ const SidebarListItem = styled('li')`
   justify-content: center;
 `;
 
-const SeparatorListItem = styled('li')`
+const SeparatorListItem = styled('li')<{hasMargin?: boolean}>`
   list-style: none;
   width: 100%;
   padding: 0 ${space(1.5)};
+  ${p =>
+    p.hasMargin &&
+    css`
+      margin: ${space(0.5)} 0;
+    `}
 `;
 
 const Separator = styled('hr')`
@@ -241,11 +262,9 @@ const baseNavItemStyles = (p: {isMobile: boolean; theme: Theme}) => css`
     border-radius: ${p.theme.borderRadius};
     margin-inline: 0 auto;
     gap: ${space(0.75)};
-    padding: ${space(1.5)} 0;
-    min-height: 40px;
-    width: 44px;
-    letter-spacing: -0.02em;
-    font-size: 10px;
+    padding: ${space(1)} 0;
+    min-height: 42px;
+    width: 46px;
   `}
 `;
 
@@ -263,8 +282,8 @@ const NavLinkIconContainer = withChonk(
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 32px;
+    width: 46px;
+    height: 42px;
     border-radius: ${p => p.theme.borderRadius};
     overflow: hidden;
 
@@ -288,6 +307,7 @@ const NavLinkLabel = styled('div')`
   justify-content: center;
   font-size: ${p => p.theme.fontSizeExtraSmall};
   font-weight: ${p => p.theme.fontWeightBold};
+  letter-spacing: -0.05em;
 `;
 
 const ChonkNavLink = chonkStyled(Link, {
@@ -374,9 +394,10 @@ const StyledNavLink = styled(Link, {
   ${p =>
     !p.isMobile &&
     css`
-      width: 56px;
-      padding-top: ${space(0.75)};
-      padding-bottom: ${space(1.5)};
+      width: ${PRIMARY_SIDEBAR_WIDTH - 8}px;
+      padding-top: ${space(0.5)};
+      padding-bottom: ${space(1)};
+      gap: ${space(0.5)};
 
       &:hover {
         ${NavLinkIconContainer} {
@@ -408,7 +429,7 @@ const StyledNavLink = styled(Link, {
     `}
 `;
 
-export const NavLink = withChonk(StyledNavLink, ChonkNavLink);
+const NavLink = withChonk(StyledNavLink, ChonkNavLink);
 
 const ChonkNavButton = styled(Button, {
   shouldForwardProp: prop => prop !== 'isMobile',
@@ -422,13 +443,13 @@ const ChonkNavButton = styled(Button, {
   width: ${p => (p.isMobile ? '100%' : '44px')};
   padding: ${p => (p.isMobile ? `${space(1)} ${space(3)}` : undefined)};
 
-  ${ButtonLabel} {
-    gap: ${space(1)};
+  svg {
+    margin-right: ${p => (p.isMobile ? space(1) : undefined)};
+  }
 
-    /* Disable interactionstatelayer hover */
-    [data-isl] {
-      display: none;
-    }
+  /* Disable interactionstatelayer hover */
+  [data-isl] {
+    display: none;
   }
 `;
 

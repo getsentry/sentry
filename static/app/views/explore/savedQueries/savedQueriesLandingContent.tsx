@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -43,31 +43,22 @@ export function SavedQueriesLandingContent() {
           onChange={option => setSort(option.value)}
         />
       </FilterContainer>
-      {searchQuery.length > 0 ? (
-        <SavedQueriesTable
-          mode="all"
-          perPage={15}
-          sort={sort}
-          searchQuery={searchQuery}
-        />
-      ) : (
-        <Fragment>
-          <h4>{t('Created by Me')}</h4>
-          <SavedQueriesTable
-            mode="owned"
-            perPage={5}
-            cursorKey="ownedCursor"
-            sort={sort}
-          />
-          <h4>{t('Created by Others')}</h4>
-          <SavedQueriesTable
-            mode="shared"
-            perPage={8}
-            cursorKey="sharedCursor"
-            sort={sort}
-          />
-        </Fragment>
-      )}
+      <h4>{t('Created by Me')}</h4>
+      <SavedQueriesTable
+        mode="owned"
+        perPage={20}
+        cursorKey="ownedCursor"
+        sort={sort}
+        searchQuery={searchQuery}
+      />
+      <h4>{t('Created by Others')}</h4>
+      <SavedQueriesTable
+        mode="shared"
+        perPage={20}
+        cursorKey="sharedCursor"
+        sort={sort}
+        searchQuery={searchQuery}
+      />
     </div>
   );
 }

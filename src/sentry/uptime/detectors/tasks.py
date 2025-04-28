@@ -4,6 +4,7 @@ from datetime import timedelta
 from urllib.parse import urljoin
 from urllib.robotparser import RobotFileParser
 
+from dateutil.parser import parse as parse_datetime
 from django.utils import timezone
 
 from sentry import audit_log, features
@@ -24,13 +25,14 @@ from sentry.uptime.detectors.ranking import (
     should_detect_for_organization,
     should_detect_for_project,
 )
-from sentry.uptime.models import ProjectUptimeSubscription, ProjectUptimeSubscriptionMode
+from sentry.uptime.models import ProjectUptimeSubscription
 from sentry.uptime.subscriptions.subscriptions import (
     create_project_uptime_subscription,
-    delete_project_uptime_subscription,
-    get_auto_monitored_subscriptions_for_project,
+    delete_uptime_detector,
+    get_auto_monitored_detectors_for_project,
     is_url_auto_monitored_for_project,
 )
+from sentry.uptime.types import ProjectUptimeSubscriptionMode
 from sentry.utils import metrics
 from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.hashlib import md5_text
@@ -103,10 +105,13 @@ def schedule_detections():
         namespace=uptime_tasks,
     ),
 )
-def process_detection_bucket(bucket: datetime.datetime):
+def process_detection_bucket(bucket: datetime.datetime | str):
     """
     Schedules url detection for all projects in this time bucket that saw promising urls.
     """
+    if isinstance(bucket, str):
+        bucket = parse_datetime(bucket)
+
     for organization_id in get_organization_bucket(bucket):
         metrics.incr("uptime.detectors.scheduler.scheduled_organization")
         process_organization_url_ranking.delay(organization_id)
@@ -253,8 +258,8 @@ def monitor_url_for_project(project: Project, url: str) -> ProjectUptimeSubscrip
     Start monitoring a url for a project. Creates a subscription using our onboarding interval and links the project to
     it. Also deletes any other auto-detected monitors since this one should replace them.
     """
-    for monitored_subscription in get_auto_monitored_subscriptions_for_project(project):
-        delete_project_uptime_subscription(monitored_subscription)
+    for uptime_detector in get_auto_monitored_detectors_for_project(project):
+        delete_uptime_detector(uptime_detector)
     metrics.incr("uptime.detectors.candidate_url.monitor_created", sample_rate=1.0)
     return create_project_uptime_subscription(
         project,

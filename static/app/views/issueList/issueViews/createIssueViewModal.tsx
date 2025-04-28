@@ -11,23 +11,27 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useCreateGroupSearchView} from 'sentry/views/issueList/mutations/useCreateGroupSearchView';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 interface CreateIssueViewModalProps
   extends ModalRenderProps,
-    Pick<
-      GroupSearchView,
-      'query' | 'querySort' | 'projects' | 'environments' | 'timeFilters'
+    Partial<
+      Pick<
+        GroupSearchView,
+        'name' | 'query' | 'querySort' | 'projects' | 'environments' | 'timeFilters'
+      >
     > {}
 
 export function CreateIssueViewModal({
   Header,
   Body,
   closeModal,
-  query,
-  querySort,
-  projects,
-  environments,
-  timeFilters,
+  query: incomingQuery,
+  querySort: incomingQuerySort,
+  projects: incomingProjects,
+  environments: incomingEnvironments,
+  timeFilters: incomingTimeFilters,
+  name: incomingName,
 }: CreateIssueViewModalProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
@@ -42,7 +46,7 @@ export function CreateIssueViewModal({
         normalizeUrl(`/organizations/${organization.slug}/issues/views/${data.id}/`)
       );
 
-      trackAnalytics('issue_views.created', {
+      trackAnalytics('issue_views.save_as.created', {
         organization,
         starred: variables.starred ?? false,
       });
@@ -54,12 +58,27 @@ export function CreateIssueViewModal({
     createIssueView({
       name: data.name,
       starred: data.starred,
-      query,
-      querySort,
-      projects,
-      environments,
-      timeFilters,
+      query: data.query,
+      querySort: data.querySort,
+      projects: data.projects,
+      environments: data.environments,
+      timeFilters: data.timeFilters,
     });
+  };
+
+  const initialData = {
+    name: incomingName ?? '',
+    query: incomingQuery ?? 'is:unresolved',
+    querySort: incomingQuerySort ?? IssueSortOptions.DATE,
+    projects: incomingProjects ?? [],
+    environments: incomingEnvironments ?? [],
+    timeFilters: incomingTimeFilters ?? {
+      start: null,
+      end: null,
+      period: '14d',
+      utc: null,
+    },
+    starred: true,
   };
 
   return (
@@ -69,6 +88,7 @@ export function CreateIssueViewModal({
       saveOnBlur={false}
       submitLabel={t('Create View')}
       submitDisabled={isPending}
+      initialData={initialData}
     >
       <Header>
         <h4>{t('New Issue View')}</h4>

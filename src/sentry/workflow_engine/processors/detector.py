@@ -63,15 +63,25 @@ def process_detectors(
 
         for result in detector_results.values():
             if result.result is not None:
+                create_issue_occurrence_from_result(result)
                 metrics.incr(
                     "workflow_engine.process_detector.triggered",
                     tags={"detector_type": detector.type},
                 )
-                create_issue_occurrence_from_result(result)
+
+                logger.info(
+                    "detector_triggered",
+                    extra={
+                        "detector": detector,
+                        "evaluation_data": data_packet.packet,
+                        "result": result,
+                    },
+                )
 
         if detector_results:
             results.append((detector, detector_results))
 
+        # TODO - @saponifi3d - should we be committing the detector state here? :thinking:
         # Now that we've processed all results for this detector, commit any state changes
         handler.commit_state_updates()
 

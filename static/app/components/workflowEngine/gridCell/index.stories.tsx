@@ -24,7 +24,6 @@ import {
   UserCell,
   type UserCellProps,
 } from 'sentry/components/workflowEngine/gridCell/userCell';
-import {tn} from 'sentry/locale';
 import storyBook from 'sentry/stories/storyBook';
 
 type ExampleAutomation = {
@@ -42,118 +41,57 @@ export default storyBook('Grid Cell Components', story => {
     {
       title: {
         name: 'Slack suggested assignees',
-        project: {slug: 'sentry', platform: 'python'},
+        projectId: '1',
         link: '/issues/monitors/1',
       },
       action: ['slack'],
       timeAgo: new Date(),
       linkedItems: {
-        items: [
-          {
-            name: 'my monitor',
-            project: {slug: 'ngrok-luver', platform: 'ruby'},
-            link: '/issues/monitors/abc123',
-          },
-        ],
-        renderText: count => tn('%s monitor', '%s monitors', count),
+        ids: ['abc123'],
+        type: 'workflow',
       },
       openIssues: 3,
-      creator: {
-        id: '1',
-        name: 'John Doe',
-        email: 'john.doe@example.com',
-        avatar: {
-          avatarType: 'gravatar',
-          avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e',
-          avatarUrl: 'https://sentry.io/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/',
-        },
-        ip_address: '127.0.0.1',
-        username: 'john.doe',
-      },
+      creator: '1',
       type: 'trace',
     },
     {
       title: {
         name: 'Send Discord notification',
-        project: {
-          slug: 'javascript',
-          platform: 'javascript',
-        },
+        projectId: '1',
         details: ['transaction.duration', '2s warn, 2.5s critical threshold'],
         link: '/issues/monitors/2',
       },
       action: ['discord'],
       timeAgo: new Date(Date.now() - 2 * 60 * 60 * 1000),
       linkedItems: {
-        items: [
-          {
-            name: '/endpoint',
-            project: {slug: 'javascript', platform: 'javascript'},
-            description: 'transaction.duration',
-            link: '/issues/monitors/def456',
-          },
-          {
-            name: '/checkout',
-            project: {slug: 'javascript', platform: 'javascript'},
-            description: 'transaction.duration',
-            link: '/issues/monitors/ghi789',
-          },
-        ],
-        renderText: count => tn('%s monitor', '%s monitors', count),
+        ids: ['abc123', 'def456', 'ghi789'],
+        type: 'detector',
       },
       openIssues: 1,
-      creator: {
-        id: '1',
-        name: 'John Doe',
-        email: 'john.doe@example.com',
-        avatar: {
-          avatarType: 'gravatar',
-          avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e',
-          avatarUrl: 'https://sentry.io/avatar/2d641b5d-8c74-44de-9cb6-fbd54701b35e/',
-        },
-        ip_address: '127.0.0.1',
-        username: 'john.doe',
-      },
+      creator: '1',
       type: 'metric',
     },
     {
       title: {
         name: 'Email suggested assignees',
-        project: {slug: 'javascript', platform: 'javascript'},
+        projectId: '1',
         details: ['Every hour'],
         link: '/issues/monitors/3',
       },
       action: ['email'],
       timeAgo: new Date(Date.now() - 25 * 60 * 60 * 1000),
       linkedItems: {
-        items: [
-          {
-            name: 'test automation',
-            project: {slug: 'bruh', platform: 'android'},
-            description: 'transaction.duration',
-            link: '/issues/automations/jkl012',
-          },
-          {
-            name: 'test python automation',
-            project: {slug: 'bruh.py', platform: 'python'},
-            link: '/issues/automations/mno345',
-          },
-          {
-            name: 'test swift automation',
-            project: {slug: 'bruh.swift', platform: 'swift'},
-            link: '/issues/automations/pqr678',
-          },
-        ],
-        renderText: count => tn('%s automation', '%s automations', count),
+        ids: ['abc123', 'def456'],
+        type: 'workflow',
       },
       creator: 'sentry',
-      type: 'metric',
+      type: 'uptime',
       openIssues: 0,
     },
     {
       title: {
         name: 'Send notification',
-        project: {slug: 'android', platform: 'android'},
+        projectId: '1',
         link: '/issues/monitors/4',
         disabled: true,
       },
@@ -162,8 +100,8 @@ export default storyBook('Grid Cell Components', story => {
       type: 'errors',
       timeAgo: null,
       linkedItems: {
-        items: [],
-        renderText: count => tn('%s automation', '%s automations', count),
+        ids: [],
+        type: 'detector',
       },
       openIssues: 0,
     },
@@ -209,7 +147,7 @@ export default storyBook('Grid Cell Components', story => {
           <TitleCell
             link={dataRow.title.link}
             name={dataRow.title.name}
-            project={dataRow.title.project}
+            projectId={dataRow.title.projectId}
             details={dataRow.title.details}
             disabled={dataRow.title.disabled}
           />
@@ -223,12 +161,7 @@ export default storyBook('Grid Cell Components', story => {
       case 'timeAgo':
         return <TimeAgoCell date={dataRow.timeAgo ?? undefined} />;
       case 'linkedItems':
-        return (
-          <ConnectionCell
-            items={dataRow.linkedItems.items}
-            renderText={dataRow.linkedItems.renderText}
-          />
-        );
+        return <ConnectionCell ids={dataRow.linkedItems.ids} type={'detector'} />;
       case 'openIssues':
         return <NumberCell number={dataRow.openIssues} />;
       default:

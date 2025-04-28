@@ -1,130 +1,74 @@
-import {useCallback, useMemo} from 'react';
+import {Fragment, useEffect} from 'react';
 
-import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/container/flex';
+import type {OrderBy, SortBy} from 'sentry/components/events/featureFlags/utils';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import SuspectTable from 'sentry/views/issueDetails/groupDistributions/suspectTable';
 import FlagDetailsLink from 'sentry/views/issueDetails/groupFeatureFlags/flagDetailsLink';
 import FlagDrawerCTA from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerCTA';
-import useGroupFeatureFlags from 'sentry/views/issueDetails/groupFeatureFlags/useGroupFeatureFlags';
-import {useGroupSuspectFlagScores} from 'sentry/views/issueDetails/groupFeatureFlags/useGroupSuspectFlagScores';
+import useGroupFlagDrawerData from 'sentry/views/issueDetails/groupFeatureFlags/useGroupFlagDrawerData';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {
   Container,
   StyledEmptyStateWarning,
 } from 'sentry/views/issueDetails/groupTags/tagDrawerContent';
-import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
-const SHOW_SCORES_LOCAL_STORAGE_KEY = 'flag-drawer-show-suspicion-scores';
-
-export default function FlagDrawerContent({
-  group,
-  environments,
-  search,
-}: {
+interface Props {
+  debugSuspectScores: boolean;
   environments: string[];
   group: Group;
+  orderBy: OrderBy;
   search: string;
-}) {
-  // Fetch data. Flags use the same endpoint and response type as tags, so we reuse some "tags" naming.
-  const {
-    data = [],
-    isPending,
-    isError,
-    refetch,
-  } = useGroupFeatureFlags({
-    groupId: group.id,
-    environment: environments,
-  });
+  sortBy: SortBy;
+}
 
-  const tagValues = useMemo(
-    () =>
-      data.reduce<Record<string, string>>((valueMap, tag) => {
-        valueMap[tag.key] = tag.topValues.map(tv => tv.value).join(' ');
-        return valueMap;
-      }, {}),
-    [data]
-  );
-
-  // Suspect flag scores. This is a rudimentary INTERNAL-ONLY feature for testing our scoring algorithms.
-  const [showScores, setShowScores] = useLocalStorageState(
-    SHOW_SCORES_LOCAL_STORAGE_KEY,
-    '0'
-  );
-
+export default function FlagDrawerContent({
+  debugSuspectScores,
+  environments,
+  group,
+  orderBy,
+  search,
+  sortBy,
+}: Props) {
   const organization = useOrganization();
-  const scoresEnabled =
-    organization.features.includes('suspect-scores-sandbox-ui') &&
-    organization.features.includes('feature-flag-suspect-flags');
 
-  const {data: suspectScores} = useGroupSuspectFlagScores({
-    groupId: group.id,
-    environment: environments.length ? environments : undefined,
-    enabled: scoresEnabled && showScores === '1',
-  });
+  // If we're showing the suspect section at all
+  const enableSuspectFlags = organization.features.includes('feature-flag-suspect-flags');
 
-  const suspectScoresMap = useMemo(() => {
-    return Object.fromEntries(
-      suspectScores?.data?.map(score => [score.flag, score]) ?? []
-    );
-  }, [suspectScores]);
-
-  const getSuspectDisplay = useCallback(
-    (flag: string) => {
-      const scoreObj = suspectScoresMap[flag];
-      return (
-        <div>
-          {`Suspicion Score: ${scoreObj?.score.toString() ?? '_'}`}
-          <br />
-          {`Baseline Percent: ${scoreObj?.baseline_percent === undefined ? '_' : `${scoreObj.baseline_percent * 100}%`}`}
-        </div>
-      );
-    },
-    [suspectScoresMap]
-  );
-
-  // Sort and filter results.
-  const sortTags = useCallback(
-    (tags: GroupTag[]) => {
-      if (scoresEnabled && showScores === '1') {
-        // Descending by score.
-        return tags.toSorted(
-          (t1, t2) =>
-            (suspectScoresMap[t2.key]?.score ?? 0) -
-            (suspectScoresMap[t1.key]?.score ?? 0)
-        );
-      }
-      // Alphabetical by key.
-      return tags.toSorted((t1, t2) => t1.key.localeCompare(t2.key));
-    },
-    [scoresEnabled, showScores, suspectScoresMap]
-  );
-
-  const displayTags = useMemo(() => {
-    const sortedTags = sortTags(data);
-    const searchedTags = sortedTags.filter(
-      tag =>
-        tag.key.includes(search) ||
-        tag.name.includes(search) ||
-        tagValues[tag.key]?.toLowerCase().includes(search.toLowerCase())
-    );
-    return searchedTags;
-  }, [data, search, sortTags, tagValues]);
+  const {displayFlags, allGroupFlagCount, isPending, isError, refetch} =
+    useGroupFlagDrawerData({
+      environments,
+      group,
+      orderBy,
+      search,
+      sortBy,
+    });
 
   // CTA logic
   const {projects} = useProjects();
   const project = projects.find(p => p.slug === group.project.slug)!;
 
   const showCTA =
-    data.length === 0 &&
+    allGroupFlagCount === 0 &&
     project &&
     !project.hasFlags &&
     featureFlagOnboardingPlatforms.includes(project.platform ?? 'other');
+
+  useEffect(() => {
+    if (!isPending && !isError && !showCTA) {
+      trackAnalytics('flags.drawer_rendered', {
+        organization,
+        numFlags: allGroupFlagCount,
+      });
+    }
+  }, [organization, allGroupFlagCount, isPending, isError, showCTA]);
 
   return isPending ? (
     <LoadingIndicator />
@@ -134,32 +78,52 @@ export default function FlagDrawerContent({
       onRetry={refetch}
     />
   ) : showCTA ? (
-    <FlagDrawerCTA />
-  ) : data.length === 0 ? (
+    <FlagDrawerCTA projectPlatform={project.platform} />
+  ) : allGroupFlagCount === 0 ? (
     <StyledEmptyStateWarning withIcon>
       {t('No feature flags were found for this issue')}
     </StyledEmptyStateWarning>
-  ) : displayTags.length === 0 ? (
+  ) : displayFlags.length === 0 ? (
     <StyledEmptyStateWarning withIcon>
       {t('No feature flags were found for this search')}
     </StyledEmptyStateWarning>
   ) : (
-    <div>
+    <Fragment>
+      {enableSuspectFlags ? (
+        <SuspectTable
+          debugSuspectScores={debugSuspectScores}
+          environments={environments}
+          group={group}
+        />
+      ) : null}
       <Container>
-        {displayTags.map(tag => (
-          <div key={tag.key}>
-            <FlagDetailsLink tag={tag} key={tag.key}>
-              <TagDistribution tag={tag} key={tag.key} />
+        {displayFlags.map(flag => (
+          <div key={flag.key}>
+            <FlagDetailsLink tag={flag} key={flag.key}>
+              <TagDistribution tag={flag} key={flag.key} />
             </FlagDetailsLink>
-            {scoresEnabled && showScores === '1' && getSuspectDisplay(tag.key)}
+            {debugSuspectScores && <DebugSuspectScore {...flag.suspect} />}
           </div>
         ))}
       </Container>
-      {scoresEnabled && (
-        <Button onClick={() => setShowScores(showScores === '1' ? '0' : '1')}>
-          {showScores === '1' ? t('Hide Suspicion Scores') : t('Show Suspicion Scores')}
-        </Button>
-      )}
-    </div>
+    </Fragment>
+  );
+}
+
+function DebugSuspectScore({
+  baselinePercent,
+  score,
+}: {
+  baselinePercent: undefined | number;
+  score: undefined | number;
+}) {
+  return (
+    <Flex justify="space-between" w="100%">
+      <span>Sus: {score?.toFixed(5) ?? '_'}</span>
+      <span>
+        Baseline:{' '}
+        {baselinePercent === undefined ? '_' : `${(baselinePercent * 100).toFixed(5)}%`}
+      </span>
+    </Flex>
   );
 }

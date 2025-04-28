@@ -1,13 +1,10 @@
-import {getDiffInMinutes} from 'sentry/components/charts/utils';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-
-// Bypass the preflight request if the time range is less than 7 days
-const SMALL_TIME_RANGE_THRESHOLD = getDiffInMinutes({period: '7d'});
 
 export const SAMPLING_MODE = {
   PREFLIGHT: 'PREFLIGHT',
   BEST_EFFORT: 'BEST_EFFORT',
+  NORMAL: 'NORMAL',
+  HIGH_ACCURACY: 'HIGH_ACCURACY',
 } as const;
 
 export const QUERY_MODE = {
@@ -23,7 +20,11 @@ const HIGH_SAMPLING_MODE_QUERY_EXTRAS = {
   samplingMode: SAMPLING_MODE.BEST_EFFORT,
 } as const;
 
-export type QueryMode = (typeof QUERY_MODE)[keyof typeof QUERY_MODE];
+const NORMAL_SAMPLING_MODE_QUERY_EXTRAS = {
+  samplingMode: SAMPLING_MODE.NORMAL,
+} as const;
+
+type QueryMode = (typeof QUERY_MODE)[keyof typeof QUERY_MODE];
 export type SamplingMode = (typeof SAMPLING_MODE)[keyof typeof SAMPLING_MODE];
 export type SpansRPCQueryExtras = {
   samplingMode?: SamplingMode;
@@ -36,13 +37,23 @@ interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
   // progressive loading to surface the correct data.
   queryHookImplementation: (props: Parameters<TQueryFn>[0]) => ReturnType<TQueryFn> & {
     result: {
+      data: any;
       isFetched: boolean;
     };
   };
-  queryMode: QueryMode;
+  queryOptions?: QueryOptions<TQueryFn>;
+}
+
+interface QueryOptions<TQueryFn extends (...args: any[]) => any> {
+  canTriggerHighAccuracy?: (data: ReturnType<TQueryFn>['result']['data']) => boolean;
+  queryMode?: QueryMode;
+  withholdBestEffort?: boolean;
 }
 
 /**
+ * Warning: This hook is experimental and subject to change, and currently should
+ * only be used with requests for spans RPC data.
+ *
  * A hook that composes the behavior of progressively loading from a preflight
  * endpoint and a best effort endpoint for quicker feedback for queries.
  *
@@ -58,35 +69,40 @@ export function useProgressiveQuery<
 >({
   queryHookImplementation,
   queryHookArgs,
-  queryMode,
+  queryOptions,
 }: ProgressiveQueryOptions<TQueryFn>): ReturnType<TQueryFn> & {
   samplingMode?: SamplingMode;
 } {
   const organization = useOrganization();
-  const {selection} = usePageFilters();
   const canUseProgressiveLoading = organization.features.includes(
     'visibility-explore-progressive-loading'
   );
+  const canUseNormalSamplingMode = organization.features.includes(
+    'visibility-explore-progressive-loading-normal-sampling-mode'
+  );
 
-  // If the time range is small enough, just go directly to the best effort request
-  const isSmallRange = getDiffInMinutes(selection.datetime) < SMALL_TIME_RANGE_THRESHOLD;
-
-  let skipPreflight = isSmallRange;
-  if (organization.features.includes('visibility-explore-skip-preflight')) {
-    // Override the time range check if the feature flag is enabled
-    skipPreflight = true;
-  }
+  const queryMode = queryOptions?.queryMode ?? QUERY_MODE.SERIAL;
 
   const singleQueryResult = queryHookImplementation({
     ...queryHookArgs,
-    enabled: queryHookArgs.enabled && !canUseProgressiveLoading,
+    enabled:
+      queryHookArgs.enabled && !canUseProgressiveLoading && !canUseNormalSamplingMode,
   });
 
+  // This is the execution of the PREFLIGHT -> BEST_EFFORT flow
   const preflightRequest = queryHookImplementation({
     ...queryHookArgs,
     queryExtras: LOW_SAMPLING_MODE_QUERY_EXTRAS,
-    enabled: queryHookArgs.enabled && canUseProgressiveLoading && !skipPreflight,
+    enabled:
+      queryHookArgs.enabled && canUseProgressiveLoading && !canUseNormalSamplingMode,
   });
+
+  const triggerBestEffortAfterPreflight =
+    !queryOptions?.withholdBestEffort && preflightRequest.result.isFetched;
+  const triggerBestEffortRequestForEmptyPreflight =
+    preflightRequest.result.isFetched &&
+    queryOptions?.withholdBestEffort &&
+    preflightRequest.result.data?.length === 0;
 
   const bestEffortRequest = queryHookImplementation({
     ...queryHookArgs,
@@ -94,24 +110,60 @@ export function useProgressiveQuery<
     enabled:
       queryHookArgs.enabled &&
       canUseProgressiveLoading &&
+      !canUseNormalSamplingMode &&
       (queryMode === QUERY_MODE.PARALLEL ||
-        preflightRequest.result.isFetched ||
-        skipPreflight),
+        triggerBestEffortAfterPreflight ||
+        triggerBestEffortRequestForEmptyPreflight),
+  });
+  // End of PREFLIGHT -> BEST_EFFORT flow
+
+  // This is the execution of the NORMAL -> HIGH_ACCURACY flow
+  const normalSamplingModeRequest = queryHookImplementation({
+    ...queryHookArgs,
+    queryExtras: NORMAL_SAMPLING_MODE_QUERY_EXTRAS,
+    enabled: queryHookArgs.enabled && canUseNormalSamplingMode,
   });
 
-  if (!canUseProgressiveLoading) {
-    return singleQueryResult;
+  let triggerHighAccuracy = false;
+  if (normalSamplingModeRequest.result.isFetched) {
+    triggerHighAccuracy =
+      queryOptions?.canTriggerHighAccuracy?.(normalSamplingModeRequest.result.data) ??
+      false;
   }
+  // queryExtras is not passed in here because this request should be unsampled.
+  const highAccuracyRequest = queryHookImplementation({
+    ...queryHookArgs,
+    enabled: queryHookArgs.enabled && canUseNormalSamplingMode && triggerHighAccuracy,
+  });
+  // End of NORMAL -> HIGH_ACCURACY flow
 
-  if (bestEffortRequest.result.isFetched) {
+  if (canUseNormalSamplingMode) {
+    if (highAccuracyRequest?.result?.isFetched) {
+      return {
+        ...highAccuracyRequest,
+        samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
+      };
+    }
+
     return {
-      ...bestEffortRequest,
-      samplingMode: SAMPLING_MODE.BEST_EFFORT,
+      ...normalSamplingModeRequest,
+      samplingMode: SAMPLING_MODE.NORMAL,
+    };
+  }
+  if (canUseProgressiveLoading) {
+    if (bestEffortRequest.result.isFetched) {
+      return {
+        ...bestEffortRequest,
+        samplingMode: SAMPLING_MODE.BEST_EFFORT,
+      };
+    }
+
+    return {
+      ...preflightRequest,
+      samplingMode: SAMPLING_MODE.PREFLIGHT,
     };
   }
 
-  return {
-    ...preflightRequest,
-    samplingMode: SAMPLING_MODE.PREFLIGHT,
-  };
+  // If neither of the sampling modes are available, return the single query result
+  return singleQueryResult;
 }

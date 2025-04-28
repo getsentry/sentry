@@ -1,8 +1,8 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {Polarity} from 'sentry/components/percentChange';
-import {Tooltip} from 'sentry/components/tooltip';
 import {defined} from 'sentry/utils';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -21,7 +21,7 @@ import type {
 import {DEEMPHASIS_COLOR_NAME, LOADING_PLACEHOLDER} from './settings';
 import {ThresholdsIndicator} from './thresholdsIndicator';
 
-export interface BigNumberWidgetVisualizationProps {
+interface BigNumberWidgetVisualizationProps {
   field: string;
   value: number | string;
   maximumValue?: number;

@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import Hook from 'sentry/components/hook';
 import {
   IconCodecov,
@@ -10,9 +11,10 @@ import {
   IconSearch,
   IconSettings,
 } from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {ChonkOptInBanner} from 'sentry/utils/theme/ChonkOptInBanner';
 import useOrganization from 'sentry/utils/useOrganization';
 import {CODECOV_BASE_URL, COVERAGE_BASE_URL} from 'sentry/views/codecov/settings';
+import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {useNavContext} from 'sentry/views/nav/context';
 import {
   SeparatorItem,
@@ -27,6 +29,7 @@ import {PrimaryNavigationServiceIncidents} from 'sentry/views/nav/primary/servic
 import {PrimaryNavigationWhatsNew} from 'sentry/views/nav/primary/whatsNew';
 import {NavTourElement, StackedNavigationTour} from 'sentry/views/nav/tour/tour';
 import {NavLayout, PrimaryNavGroup} from 'sentry/views/nav/types';
+import {UserDropdown} from 'sentry/views/nav/userDropdown';
 
 function SidebarBody({children}: {children: React.ReactNode}) {
   const {layout} = useNavContext();
@@ -49,7 +52,6 @@ function SidebarFooter({children}: {children: React.ReactNode}) {
 
 export function PrimaryNavigationItems() {
   const organization = useOrganization();
-  const {layout} = useNavContext();
   const prefix = `organizations/${organization.slug}`;
 
   return (
@@ -71,11 +73,7 @@ export function PrimaryNavigationItems() {
           description={null}
         >
           <SidebarLink
-            to={
-              organization.features.includes('performance-view')
-                ? `/${prefix}/explore/traces/`
-                : `/${prefix}/explore/profiling/`
-            }
+            to={`/${prefix}/explore/${getDefaultExploreRoute(organization)}/`}
             activeTo={`/${prefix}/explore`}
             analyticsKey="explore"
             label={PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.EXPLORE].label}
@@ -98,11 +96,7 @@ export function PrimaryNavigationItems() {
               to={`/${prefix}/dashboards/`}
               activeTo={`/${prefix}/dashboard`}
               analyticsKey="dashboards"
-              label={
-                layout === NavLayout.MOBILE
-                  ? PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.DASHBOARDS].label
-                  : t('Dash')
-              }
+              label={PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.DASHBOARDS].label}
             >
               <IconDashboard />
             </SidebarLink>
@@ -156,10 +150,8 @@ export function PrimaryNavigationItems() {
       </SidebarBody>
 
       <SidebarFooter>
+        <ChonkOptInBanner collapsed="never" />
         <PrimaryNavigationHelp />
-
-        <SeparatorItem />
-
         <PrimaryNavigationWhatsNew />
         <Hook
           name="sidebar:try-business"
@@ -168,7 +160,11 @@ export function PrimaryNavigationItems() {
         />
         <Hook name="sidebar:billing-status" organization={organization} />
         <PrimaryNavigationServiceIncidents />
-        <PrimaryNavigationOnboarding />
+        <ErrorBoundary customComponent={null}>
+          <PrimaryNavigationOnboarding />
+        </ErrorBoundary>
+        <SeparatorItem hasMargin />
+        <UserDropdown />
       </SidebarFooter>
     </Fragment>
   );

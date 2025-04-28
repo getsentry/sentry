@@ -1,6 +1,6 @@
 import type {Theme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
-import type {ScatterSeriesOption, SeriesOption} from 'echarts';
+import type {EChartsType, ScatterSeriesOption, SeriesOption} from 'echarts';
 
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
@@ -32,7 +32,7 @@ type ValidSampleRow = {
   timestamp: string;
 };
 
-export type SamplesConfig = {
+type SamplesConfig = {
   /**
    * The name of the data attribute to plot. This should be one of the keys in the data that's available in the `samples` parameter that's passed to the constructor.
    */
@@ -50,16 +50,20 @@ export type SamplesConfig = {
    */
   baselineValue?: number;
   /**
-   * Callback for ECharts' `onClick` mouse event. Called with the sample that corresponds to the highlighted sample in the chart
+   * Callback for ECharts' `onClick` mouse event. Called with the sample that corresponds to the clicked sample in the chart
    */
   onClick?: (datum: ValidSampleRow) => void;
   /**
-   * Callback for ECharts' `onHighlight`. Called with the sample that corresponds to the clicked sample in the chart
+   * Callback for ECharts' `onDownplay`. Called with the sample that corresponds to the downplayed sample in the chart.
+   */
+  onDownplay?: (datum: ValidSampleRow) => void;
+  /**
+   * Callback for ECharts' `onHighlight`. Called with the sample that corresponds to the highlighted sample in the chart.
    */
   onHighlight?: (datum: ValidSampleRow) => void;
 };
 
-export type SamplesPlottingOptions = {
+type SamplesPlottingOptions = {
   /**
    * The current theme.
    */
@@ -75,7 +79,7 @@ export type SamplesPlottingOptions = {
  */
 export class Samples implements Plottable {
   sampleTableData: Readonly<TabularData>;
-  #timestamps: readonly string[];
+  #timestamps: readonly number[];
   config: Readonly<SamplesConfig>;
   chartRef?: ReactEchartsRef;
 
@@ -83,7 +87,7 @@ export class Samples implements Plottable {
     this.sampleTableData = samples;
     this.#timestamps = samples.data
       .filter(isValidSampleRow)
-      .map(sample => sample.timestamp)
+      .map(sample => new Date(sample.timestamp).getTime())
       .toSorted();
     this.config = config;
   }
@@ -92,23 +96,40 @@ export class Samples implements Plottable {
     this.chartRef = chartRef;
   }
 
-  highlight(sample: TabularRow | undefined) {
-    const {config} = this;
+  /**
+   * Dispatch an action on a data point to the chart instance, if possible. If not possible, log the error, but noop. In all current cases, failing to dispatch an action is harmless, and only happens if the chart is removed from the DOM, in which case there's nothing to dispatch to, anyway. Telemetry added in case this happens a lot and we want to track down what's dispatching actions to a removed chart.
+   */
+  #dispatchPointAction(action: string, dataIndex: number): void {
+    let chart: EChartsType | undefined = undefined;
 
-    if (!this.chartRef) {
-      warn('`Samples.highlight` invoked before chart ref is ready');
-      return;
+    try {
+      chart = this.chartRef?.getEchartsInstance();
+    } catch (e) {
+      warn(
+        '`Samples` could not dispatch action because the chart was removed from the DOM'
+      );
+      return undefined;
     }
 
-    const chart = this.chartRef.getEchartsInstance();
-    const seriesName = this.name;
+    if (!chart) {
+      return undefined;
+    }
 
+    chart.dispatchAction({type: action, seriesName: this.name, dataIndex});
+    return undefined;
+  }
+
+  highlight(sample: TabularRow) {
     if (sample && isValidSampleRow(sample)) {
       const dataIndex = this.sampleTableData.data.indexOf(sample);
-      chart.dispatchAction({type: 'highlight', seriesName, dataIndex});
-      config.onHighlight?.(sample);
-    } else {
-      chart.dispatchAction({type: 'downplay', seriesName});
+      this.#dispatchPointAction('highlight', dataIndex);
+    }
+  }
+
+  downplay(sample: TabularRow) {
+    if (sample && isValidSampleRow(sample)) {
+      const dataIndex = this.sampleTableData.data.indexOf(sample);
+      this.#dispatchPointAction('downplay', dataIndex);
     }
   }
 
@@ -132,11 +153,11 @@ export class Samples implements Plottable {
     return this.sampleTableData.meta.units[this.config.attributeName] ?? null;
   }
 
-  get start(): string | null {
+  get start(): number | null {
     return this.#timestamps.at(0) ?? null;
   }
 
-  get end(): string | null {
+  get end(): number | null {
     return this.#timestamps.at(-1) ?? null;
   }
 
@@ -182,10 +203,6 @@ export class Samples implements Plottable {
     };
   }
 
-  constrain(boundaryStart: Date | null, boundaryEnd: Date | null) {
-    return new Samples(this.constrainSamples(boundaryStart, boundaryEnd), this.config);
-  }
-
   #getSampleByIndex(dataIndex: number): ValidSampleRow | undefined {
     const sample = this.sampleTableData.data.at(dataIndex);
 
@@ -224,6 +241,15 @@ export class Samples implements Plottable {
     }
   }
 
+  onDownplay(dataIndex: number): void {
+    const {config} = this;
+
+    const sample = this.#getSampleByIndex(dataIndex);
+    if (sample) {
+      config.onDownplay?.(sample);
+    }
+  }
+
   toSeries(plottingOptions: SamplesPlottingOptions): SeriesOption[] {
     const {sampleTableData: samples, config} = this;
     const {theme} = plottingOptions;
@@ -233,7 +259,8 @@ export class Samples implements Plottable {
       name: this.name,
       data: samples.data.filter(isValidSampleRow).map(sample => {
         const value = sample[config.attributeName];
-        return [sample.timestamp, value ?? ECHARTS_MISSING_DATA_VALUE, sample.id];
+        const timestamp = new Date(sample.timestamp).getTime();
+        return [timestamp, value ?? ECHARTS_MISSING_DATA_VALUE, sample.id];
       }),
       symbol: (value: ScatterPlotDatum) => {
         const {symbol} = config.baselineValue
@@ -243,7 +270,11 @@ export class Samples implements Plottable {
         return symbol;
       },
       markLine: config.baselineValue
-        ? BaselineMarkLine({value: config.baselineValue, label: config.baselineLabel})
+        ? BaselineMarkLine({
+            theme,
+            value: config.baselineValue,
+            label: config.baselineLabel,
+          })
         : undefined,
       animation: false,
       emphasis: {
@@ -267,6 +298,9 @@ export class Samples implements Plottable {
 }
 
 function isValidSampleRow(row: TabularRow): row is ValidSampleRow {
+  // Even though `TimeSeries` objects expect `timestamp` to be milliseconds
+  // since the Unix epoch, tabular data doesn't follow that convention. Instead
+  // we're looking for an ISO8601 string.
   if (typeof row.id === 'string' && typeof row.timestamp === 'string') {
     return true;
   }

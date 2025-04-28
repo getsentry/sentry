@@ -7,10 +7,8 @@ import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Automation} from 'sentry/views/automations/components/automationListRow';
-import type {Detector} from 'sentry/views/detectors/components/detectorListRow';
 
-export function useBulkActions(items: Detector[] | Automation[]) {
+export function useBulkActions(items: Array<{id: string}>) {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const itemIds = useMemo(() => items.map(item => item.id), [items]);
 

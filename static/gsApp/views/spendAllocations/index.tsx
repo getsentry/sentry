@@ -13,11 +13,10 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconAdd, IconBroadcast} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DataCategory, DataCategoryExact} from 'sentry/types/core';
+import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -27,13 +26,14 @@ import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/or
 import LearnMoreButton from 'getsentry/components/features/learnMoreButton';
 import PlanFeature from 'getsentry/components/features/planFeature';
 import withSubscription from 'getsentry/components/withSubscription';
-import {
-  ALLOCATION_SUPPORTED_CATEGORIES,
-  AllocationTargetTypes,
-} from 'getsentry/constants';
+import {AllocationTargetTypes} from 'getsentry/constants';
 import type {Subscription} from 'getsentry/types';
-import {displayPlanName, isAmEnterprisePlan} from 'getsentry/utils/billing';
-import {SINGULAR_DATA_CATEGORY} from 'getsentry/utils/dataCategory';
+import {
+  displayPlanName,
+  getCategoryInfoFromPlural,
+  isAmEnterprisePlan,
+} from 'getsentry/utils/billing';
+import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import {isDisabledByPartner} from 'getsentry/utils/partnerships';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import PartnershipNote from 'getsentry/views/subscriptionPage/partnershipNote';
@@ -56,9 +56,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
   const [errors, setErrors] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [orgEnabledFlag, setOrgEnabledFlag] = useState<boolean>(true);
-  const [selectedMetric, setSelectedMetric] = useState<string>(
-    DATA_CATEGORY_INFO[DataCategoryExact.ERROR].plural
-  ); // NOTE: plural lowercase datacategories ex. errors
+  const [selectedMetric, setSelectedMetric] = useState<DataCategory>(DataCategory.ERRORS);
   const [shouldRetry, setShouldRetry] = useState<boolean>(true);
   const [rootAllocations, setRootAllocations] = useState<SpendAllocation[]>([]);
   const [spendAllocations, setSpendAllocations] = useState<SpendAllocation[]>([]); // NOTE: we default to fetching 1 period
@@ -76,8 +74,8 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
       : BigNumUnits.NUMBERS;
   }, [selectedMetric]);
 
-  const supportedCategories = ALLOCATION_SUPPORTED_CATEGORIES.filter(category =>
-    planDetails.categories.includes(DATA_CATEGORY_INFO[category].plural)
+  const supportedCategories = planDetails.categories.filter(
+    category => getCategoryInfoFromPlural(category as DataCategory)?.canAllocate
   );
 
   const period = useMemo<Date[]>(() => {
@@ -126,8 +124,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
 
   const rootAllocationForMetric: SpendAllocation | undefined = useMemo(() => {
     const root = currentRootAllocations.find(
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      a => a.billingMetric === SINGULAR_DATA_CATEGORY[selectedMetric]
+      a => a.billingMetric === getCategoryInfoFromPlural(selectedMetric)?.name
     );
     return root;
   }, [currentRootAllocations, selectedMetric]);
@@ -167,8 +164,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
               periods,
               target_type: 'Project',
               cursor: currentCursor,
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              billing_metric: SINGULAR_DATA_CATEGORY[selectedMetric],
+              billing_metric: getCategoryInfoFromPlural(selectedMetric)?.name, // TODO: we should update the endpoint to use camelCase api name
             },
           }
         );
@@ -198,7 +194,12 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
   );
 
   const deleteSpendAllocation =
-    (billingMetric: string, targetId: number, targetType: string, timestamp: number) =>
+    (
+      billingMetric: DataCategory | null,
+      targetId: number,
+      targetType: string,
+      timestamp: number
+    ) =>
     async (e: React.MouseEvent) => {
       e.preventDefault();
       setErrors(null);
@@ -207,7 +208,9 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
         await api.requestPromise(PATH, {
           method: 'DELETE',
           query: {
-            billing_metric: billingMetric,
+            billing_metric: billingMetric
+              ? getCategoryInfoFromPlural(billingMetric)?.name // TODO: we should update the endpoint to use camelCase api name
+              : null,
             target_id: targetId,
             target_type: targetType,
             timestamp,
@@ -227,8 +230,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
       await api.requestPromise(PATH, {
         method: 'POST',
         data: {
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          billing_metric: SINGULAR_DATA_CATEGORY[selectedMetric],
+          billing_metric: getCategoryInfoFromPlural(selectedMetric)?.name, // TODO: we should update the endpoint to use camelCase api name
           target_id: organization.id,
           target_type: AllocationTargetTypes.ORGANIZATION,
           desired_quantity: 1,
@@ -427,17 +429,17 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
             triggerProps={{prefix: t('Category')}}
             value={selectedMetric}
             options={supportedCategories
-              .filter(category =>
-                subscription.planDetails.categories.includes(
-                  DATA_CATEGORY_INFO[category].plural
-                )
-              )
+              .filter(category => subscription.planDetails.categories.includes(category))
               .map(category => ({
-                value: DATA_CATEGORY_INFO[category].plural,
-                label: DATA_CATEGORY_INFO[category].titleName,
+                value: category,
+                label: getPlanCategoryName({
+                  plan: subscription.planDetails,
+                  category,
+                  title: true,
+                }),
               }))}
             onChange={opt => {
-              setSelectedMetric(String(opt?.value));
+              setSelectedMetric(opt?.value as DataCategory);
               setCurrentCursor('');
             }}
           />

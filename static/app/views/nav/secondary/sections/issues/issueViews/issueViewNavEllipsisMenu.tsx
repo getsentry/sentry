@@ -1,26 +1,30 @@
 import styled from '@emotion/styled';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {IconEllipsis, IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {IssueView} from 'sentry/views/issueList/issueViews/issueViews';
+import {useParams} from 'sentry/utils/useParams';
+import {createIssueViewFromUrl} from 'sentry/views/issueList/issueViews/createIssueViewFromUrl';
+import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useIssueViewUnsavedChanges';
+import {useCreateGroupSearchView} from 'sentry/views/issueList/mutations/useCreateGroupSearchView';
+import {useDeleteGroupSearchView} from 'sentry/views/issueList/mutations/useDeleteGroupSearchView';
+import {useUpdateGroupSearchView} from 'sentry/views/issueList/mutations/useUpdateGroupSearchView';
+import type {NavIssueView} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavItems';
 
 export interface IssueViewNavEllipsisMenuProps {
-  baseUrl: string;
+  // TODO(msun): Allow deleting last view once horizontal tab views are deleted
   isLastView: boolean;
-  onDeleteView: () => void;
-  onDuplicateView: () => void;
-  onUpdateView: (view: IssueView) => void;
   setIsEditing: (isEditing: boolean) => void;
-  view: IssueView;
+  view: NavIssueView;
   sectionRef?: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -28,47 +32,54 @@ export function IssueViewNavEllipsisMenu({
   sectionRef,
   setIsEditing,
   view,
-  onDeleteView,
-  onDuplicateView,
-  onUpdateView,
-  baseUrl,
   isLastView,
 }: IssueViewNavEllipsisMenuProps) {
   const navigate = useNavigate();
   const organization = useOrganization();
+  const location = useLocation();
+  const {viewId} = useParams<{viewId: string}>();
+  const isSelected = viewId === view.id;
 
-  const handleSaveChanges = () => {
-    const updatedView = {
-      ...view,
-      query: view.unsavedChanges?.query ?? view.query,
-      querySort: view.unsavedChanges?.querySort ?? view.querySort,
-      projects: view.unsavedChanges?.projects ?? view.projects,
-      environments: view.unsavedChanges?.environments ?? view.environments,
-      timeFilters: view.unsavedChanges?.timeFilters ?? view.timeFilters,
-      unsavedChanges: undefined,
-    };
-    onUpdateView(updatedView);
-    navigate(constructViewLink(baseUrl, updatedView));
+  const {mutate: updateIssueView} = useUpdateGroupSearchView({
+    onSuccess: () => {
+      trackAnalytics('issue_views.saved_changes', {
+        organization: organization.slug,
+        ownership: 'personal',
+        surface: 'navigation',
+      });
+    },
+  });
 
-    trackAnalytics('issue_views.saved_changes', {
-      leftNav: true,
-      organization: organization.slug,
-    });
-  };
+  const {mutate: deleteIssueView} = useDeleteGroupSearchView({
+    onSuccess: (_data, variables) => {
+      trackAnalytics('issue_views.deleted_view', {
+        leftNav: true,
+        organization: organization.slug,
+      });
 
-  const handleDiscardChanges = () => {
-    const updatedView = {
-      ...view,
-      unsavedChanges: undefined,
-    };
-    onUpdateView(updatedView);
-    navigate(constructViewLink(baseUrl, updatedView));
+      if (variables.id === viewId) {
+        navigate(normalizeUrl(`/organizations/${organization.slug}/issues/`));
+      }
+    },
+    onError: () => {
+      addErrorMessage(t('Failed to delete view'));
+    },
+  });
 
-    trackAnalytics('issue_views.discarded_changes', {
-      leftNav: true,
-      organization: organization.slug,
-    });
-  };
+  const {mutate: createIssueView} = useCreateGroupSearchView({
+    onSuccess: data => {
+      navigate(
+        normalizeUrl(`/organizations/${organization.slug}/issues/views/${data.id}/`)
+      );
+      trackAnalytics('issue_views.duplicated_view', {
+        leftNav: true,
+        organization,
+      });
+    },
+  });
+
+  const currentViewParams = createIssueViewFromUrl({query: location.query});
+  const {hasUnsavedChanges} = useIssueViewUnsavedChanges();
 
   return (
     <DropdownMenu
@@ -99,15 +110,26 @@ export function IssueViewNavEllipsisMenu({
               key: 'save-changes',
               label: t('Save Changes'),
               priority: 'primary',
-              onAction: handleSaveChanges,
+              onAction: () =>
+                updateIssueView({
+                  id: view.id,
+                  name: view.label,
+                  ...currentViewParams,
+                }),
             },
             {
               key: 'discard-changes',
               label: t('Discard Changes'),
-              onAction: handleDiscardChanges,
+              onAction: () => {
+                navigate(
+                  normalizeUrl(
+                    `/organizations/${organization.slug}/issues/views/${view.id}/`
+                  )
+                );
+              },
             },
           ],
-          hidden: !view.unsavedChanges,
+          hidden: !isSelected || !hasUnsavedChanges,
         },
         {
           key: 'default',
@@ -120,13 +142,23 @@ export function IssueViewNavEllipsisMenu({
             {
               key: 'duplicate-tab',
               label: t('Duplicate'),
-              onAction: onDuplicateView,
+              onAction: () =>
+                createIssueView({
+                  name: `${view.label} (Copy)`,
+                  query: view.query,
+                  querySort: view.querySort,
+                  projects: view.projects,
+                  environments: view.environments,
+                  timeFilters: view.timeFilters,
+                  starred: true,
+                }),
             },
             {
               key: 'delete-tab',
               label: t('Delete'),
               priority: 'danger',
-              onAction: onDeleteView,
+              // TODO(msun): Optimistically render deletion and handle error
+              onAction: () => deleteIssueView({id: view.id}),
               disabled: isLastView,
             },
           ],
@@ -167,21 +199,6 @@ function FeedbackFooter() {
     </SectionedOverlayFooter>
   );
 }
-
-const constructViewLink = (baseUrl: string, view: IssueView) => {
-  return normalizeUrl({
-    pathname: `${baseUrl}/views/${view.id}/`,
-    query: {
-      query: view.unsavedChanges?.query ?? view.query,
-      sort: view.unsavedChanges?.querySort ?? view.querySort,
-      project: view.unsavedChanges?.projects ?? view.projects,
-      environment: view.unsavedChanges?.environments ?? view.environments,
-      ...normalizeDateTimeParams(view.unsavedChanges?.timeFilters ?? view.timeFilters),
-      cursor: undefined,
-      page: undefined,
-    },
-  });
-};
 
 const TriggerWrapper = styled(Button)`
   display: flex;

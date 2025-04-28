@@ -33,7 +33,7 @@ export function OptInBanner({collapsed, organization}: Props) {
     <TranslucentBackgroundPanel isDarkMode={isDarkMode}>
       <Title>
         {t('New Navigation')}
-        <FeatureBadge type="alpha" />
+        <FeatureBadge type="beta" />
       </Title>
       <Description>
         {t('Say hello to your improved sidebar — less clutter, clearer workflows.')}

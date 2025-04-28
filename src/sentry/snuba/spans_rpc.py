@@ -16,7 +16,7 @@ from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.eap.utils import handle_downsample_meta
 from sentry.search.events.fields import is_function
-from sentry.search.events.types import EventsMeta, SnubaParams
+from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.discover import OTHER_KEY, create_groupby_dict, create_result_key, zerofill
 from sentry.utils import snuba_rpc
@@ -46,7 +46,7 @@ def run_table_query(
     limit: int,
     referrer: str,
     config: SearchResolverConfig,
-    sampling_mode: str | None,
+    sampling_mode: SAMPLING_MODES | None,
     search_resolver: SearchResolver | None = None,
     debug: bool = False,
 ) -> EAPResponse:
@@ -70,7 +70,7 @@ def run_timeseries_query(
     y_axes: list[str],
     referrer: str,
     config: SearchResolverConfig,
-    sampling_mode: str | None,
+    sampling_mode: SAMPLING_MODES | None,
     comparison_delta: timedelta | None = None,
 ) -> SnubaTSResult:
     """Make the query"""
@@ -199,7 +199,7 @@ def run_top_events_timeseries_query(
     limit: int,
     referrer: str,
     config: SearchResolverConfig,
-    sampling_mode: str | None,
+    sampling_mode: SAMPLING_MODES | None,
 ) -> Any:
     """We intentionally duplicate run_timeseries_query code here to reduce the complexity of needing multiple helper
     functions that both would call
@@ -207,9 +207,20 @@ def run_top_events_timeseries_query(
     change this"""
     """Make a table query first to get what we need to filter by"""
     rpc_dataset_common.validate_granularity(params)
-    search_resolver = get_resolver(params=params, config=config)
+
+    # Virtual context columns (VCCs) are currently only supported in TraceItemTable.
+    # For TopN queries, we want table and timeseries data to match.
+    # Here, we want to run the table request the the VCCs. SnubaParams has
+    # a property `is_timeseries_request` which resolves to true if granularity_secs is set.
+    # `is_timeseries_request` is used to evaluate if VCCs should be used.
+    # Unset granularity_secs, so this gets treated as a table request with
+    # the correct VCC.
+    table_query_params = params.copy()
+    table_query_params.granularity_secs = None
+    table_search_resolver = get_resolver(params=table_query_params, config=config)
+
     top_events = run_table_query(
-        params,
+        table_query_params,
         query_string,
         raw_groupby + y_axes,
         orderby,
@@ -218,10 +229,12 @@ def run_top_events_timeseries_query(
         referrer,
         config,
         sampling_mode,
-        search_resolver,
+        table_search_resolver,
     )
     if len(top_events["data"]) == 0:
         return {}
+
+    search_resolver = get_resolver(params=params, config=config)
     # Need to change the project slug columns to project.id because timeseries requests don't take virtual_column_contexts
     groupby_columns = [col for col in raw_groupby if not is_function(col)]
     groupby_columns_without_project = [
@@ -275,8 +288,22 @@ def run_top_events_timeseries_query(
                     int(groupby_attributes[resolved_groupby.internal_name])
                 ]
             else:
-                resolved_groupby, _ = search_resolver.resolve_attribute(col)
-                remapped_groupby[col] = groupby_attributes[resolved_groupby.internal_name]
+                resolved_groupby, context = search_resolver.resolve_attribute(col)
+
+                # Virtual context columns (VCCs) are currently only supported in TraceItemTable.
+                # Since timeseries run the query with the original column, we need to map
+                # them correctly so they map the table result. We need to map both the column name
+                # and the values.
+                if context is not None:
+                    resolved_groupby = search_resolver.map_context_to_original_column(context)
+
+                groupby_value = groupby_attributes[resolved_groupby.internal_name]
+                if context is not None:
+                    groupby_value = context.constructor(params).value_map[groupby_value]
+                    groupby_attributes[resolved_groupby.internal_name] = groupby_value
+
+                remapped_groupby[col] = groupby_value
+
         result_key = create_result_key(remapped_groupby, groupby_columns, {})
         map_result_key_to_timeseries[result_key].append(timeseries)
     final_result = {}
@@ -341,7 +368,18 @@ def run_trace_query(
         "profiler.id",
         "span.duration",
         "sdk.name",
+        "measurements.time_to_initial_display",
+        "measurements.time_to_full_display",
     ]
+    for key in {
+        "lcp",
+        "fcp",
+        "inp",
+        "cls",
+        "ttfb",
+    }:
+        trace_attributes.append(f"measurements.{key}")
+        trace_attributes.append(f"measurements.score.{key}")
     resolver = get_resolver(params=params, config=SearchResolverConfig())
     columns, _ = resolver.resolve_attributes(trace_attributes)
     meta = resolver.resolve_meta(referrer=referrer)

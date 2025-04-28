@@ -95,12 +95,9 @@ export function useSamplesDrawer({
   const shouldDrawerOpen = requiredParams.every(paramName =>
     Boolean(location.query[paramName])
   );
-
   useEffect(() => {
     if (shouldDrawerOpen) {
       openSamplesDrawer();
-    } else {
-      closeDrawer();
     }
   }, [shouldDrawerOpen, openSamplesDrawer, closeDrawer]);
 }

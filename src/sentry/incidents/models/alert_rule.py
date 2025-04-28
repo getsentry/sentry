@@ -220,7 +220,9 @@ class AlertRule(Model):
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
     name = models.TextField()
-    status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
+    status = models.SmallIntegerField(
+        default=AlertRuleStatus.PENDING.value, db_default=AlertRuleStatus.PENDING.value
+    )
     threshold_type = models.SmallIntegerField(null=True)
     resolve_threshold = models.FloatField(null=True)
     # How many times an alert value must exceed the threshold to fire/resolve the alert
@@ -230,10 +232,14 @@ class AlertRule(Model):
     comparison_delta = models.IntegerField(choices=ComparisonDeltaChoices.choices, null=True)
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
-    monitor_type = models.IntegerField(default=AlertRuleMonitorTypeInt.CONTINUOUS)
+    monitor_type = models.IntegerField(
+        default=AlertRuleMonitorTypeInt.CONTINUOUS, db_default=AlertRuleMonitorTypeInt.CONTINUOUS
+    )
     description = models.CharField(max_length=1000, null=True)
     detection_type = models.CharField(
-        default=AlertRuleDetectionType.STATIC, choices=AlertRuleDetectionType.choices
+        default=AlertRuleDetectionType.STATIC,
+        db_default=AlertRuleDetectionType.STATIC,
+        choices=AlertRuleDetectionType.choices,
     )
     sensitivity = models.CharField(choices=AlertRuleSensitivity.choices, null=True)
     seasonality = models.CharField(choices=AlertRuleSeasonality.choices, null=True)
@@ -459,7 +465,9 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         dict[str, Any] | list[dict[str, Any]] | None,
     ] = JSONField(null=True)
     status = BoundedPositiveIntegerField(
-        default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
+        default=ObjectStatus.ACTIVE,
+        db_default=ObjectStatus.ACTIVE,
+        choices=ObjectStatus.as_choices(),
     )
 
     class Meta:

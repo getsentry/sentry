@@ -3,6 +3,7 @@ import React from 'react';
 import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {getNodeDescriptionPrefix} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {
   makeTraceNodeBarColor,
@@ -80,6 +81,7 @@ export function TraceSpanRow(
             </React.Fragment>
           )}
           <span className="TraceDescription" title={props.node.value.description}>
+            {getNodeDescriptionPrefix(props.node)}
             {props.node.value.description
               ? props.node.value.description.length > 100
                 ? props.node.value.description.slice(0, 100).trim() + '\u2026'
@@ -100,7 +102,7 @@ export function TraceSpanRow(
           color={makeTraceNodeBarColor(props.theme, props.node)}
           node_space={props.node.space}
           errors={props.node.errors}
-          occurences={props.node.occurences}
+          occurrences={props.node.occurrences}
           profiles={NO_PROFILES}
         />
         <button

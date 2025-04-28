@@ -2,12 +2,12 @@ import {Fragment, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import type {Alignments} from 'sentry/components/gridEditable/sortLink';
 import {GridBodyCell, GridHeadCell} from 'sentry/components/gridEditable/styles';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
@@ -118,7 +118,9 @@ function AggregatesTable({
           <TableRow>
             <TableHeadCell isFirst={false}>
               <TableHeadCellContent>
-                {getProgressiveLoadingIndicator(isProgressivelyLoading)}
+                <LoadingIndicatorWrapper>
+                  {getProgressiveLoadingIndicator(isProgressivelyLoading, 'table')}
+                </LoadingIndicatorWrapper>
               </TableHeadCellContent>
             </TableHeadCell>
             {fields.map((field, i) => {
@@ -221,16 +223,10 @@ function AggregatesTable({
 }
 
 interface SampleTableProps extends MultiQueryTableBaseProps {
-  isProgressivelyLoading: boolean;
   spansTableResult: SpansTableResult;
 }
 
-function SpansTable({
-  spansTableResult,
-  query: queryParts,
-  index,
-  isProgressivelyLoading,
-}: SampleTableProps) {
+function SpansTable({spansTableResult, query: queryParts, index}: SampleTableProps) {
   const {result, eventView} = spansTableResult;
   const {fields, sortBys} = queryParts;
   const meta = result.meta ?? {};
@@ -274,7 +270,6 @@ function SpansTable({
                     <Tooltip showOnlyOnOverflow title={label}>
                       {label}
                     </Tooltip>
-                    {i === 0 && getProgressiveLoadingIndicator(isProgressivelyLoading)}
                     {defined(direction) && (
                       <IconArrow
                         size="xs"
@@ -362,4 +357,11 @@ const TableHeadCellContent = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
+`;
+
+const LoadingIndicatorWrapper = styled('div')`
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
 `;

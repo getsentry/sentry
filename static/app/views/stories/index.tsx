@@ -21,6 +21,14 @@ import {StoryTableOfContents} from 'sentry/views/stories/storyTableOfContents';
 import {StoryTree, useStoryTree} from 'sentry/views/stories/storyTree';
 import {useStoriesLoader, useStoryBookFiles} from 'sentry/views/stories/useStoriesLoader';
 
+function isCoreFile(file: string) {
+  return (
+    file.includes('components/core') ||
+    file.includes('app/styles') ||
+    file.includes('app/icons')
+  );
+}
+
 export default function Stories() {
   const searchInput = useRef<HTMLInputElement>(null);
   const location = useLocation<{name: string; query?: string}>();
@@ -43,8 +51,28 @@ export default function Stories() {
     'category' | 'filesystem'
   >('story-representation', 'category');
 
-  const nodes = useStoryTree(files, {
-    query: location.query.query ?? '',
+  const query = location.query.query ?? '';
+  const filesByOwner = useMemo(() => {
+    const map: Record<'core' | 'shared', string[]> = {
+      core: [],
+      shared: [],
+    };
+    for (const file of files) {
+      if (isCoreFile(file)) {
+        map.core.push(file);
+      } else {
+        map.shared.push(file);
+      }
+    }
+    return map;
+  }, [files]);
+
+  const coreTree = useStoryTree(filesByOwner.core, {
+    query,
+    representation: storyRepresentation,
+  });
+  const sharedTree = useStoryTree(filesByOwner.shared, {
+    query,
     representation: storyRepresentation,
   });
 
@@ -94,7 +122,10 @@ export default function Stories() {
               {/* @TODO (JonasBadalic): Implement clear button when there is an active query */}
             </InputGroup>
             <StoryTreeContainer>
-              <StoryTree nodes={nodes} />
+              <StoryTreeTitle>Design System</StoryTreeTitle>
+              <StoryTree nodes={coreTree} />
+              <StoryTreeTitle>Shared</StoryTreeTitle>
+              <StoryTree nodes={sharedTree} />
             </StoryTreeContainer>
           </SidebarContainer>
 
@@ -143,12 +174,13 @@ function StoryRepresentationToggle(props: {
           size="xs"
           aria-label="Toggle story representation"
           {...triggerProps}
+          tabIndex={-1}
         />
       )}
       defaultValue={props.storyRepresentation}
       options={[
-        {label: 'Filesystem', value: 'filesystem'},
         {label: 'Category', value: 'category'},
+        {label: 'Filesystem', value: 'filesystem'},
       ]}
       onChange={option => props.setStoryRepresentation(option.value)}
     />
@@ -186,6 +218,10 @@ const SidebarContainer = styled('div')`
 const StoryTreeContainer = styled('div')`
   overflow-y: scroll;
   flex-grow: 1;
+`;
+
+const StoryTreeTitle = styled('p')`
+  margin-bottom: ${space(1)};
 `;
 
 const StoryIndexContainer = styled('div')`

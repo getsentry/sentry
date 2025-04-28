@@ -445,7 +445,7 @@ describe('Onboarding Setup Docs', function () {
         await screen.findByRole('radio', {name: 'Loader Script'})
       ).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('checkbox', {name: 'Session Replay'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Session Replay'}));
       expect(updateLoaderMock).toHaveBeenCalledTimes(2);
 
       expect(updateLoaderMock).toHaveBeenLastCalledWith(

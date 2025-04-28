@@ -49,19 +49,6 @@ export function getCrashFreeRate(
   return defined(crashedRate) ? getCrashFreePercent(100 - crashedRate) : null;
 }
 
-export function getSeriesAverage(
-  groups: SessionApiResponse['groups'] = [],
-  field: SessionFieldWithOperation
-) {
-  const totalCount = getCount(groups, field);
-
-  const dataPoints = groups.filter(group => !!group.totals[field]).length;
-
-  return !defined(totalCount) || dataPoints === null || totalCount === 0
-    ? null
-    : totalCount / dataPoints;
-}
-
 export function getSeriesSum(
   groups: SessionApiResponse['groups'] = [],
   field: SessionFieldWithOperation,

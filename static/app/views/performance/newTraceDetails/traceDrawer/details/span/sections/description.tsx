@@ -49,7 +49,7 @@ import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/uti
 
 const formatter = new SQLishFormatter();
 
-export function hasFormattedSpanDescription(node: TraceTreeNode<TraceTree.Span>) {
+function hasFormattedSpanDescription(node: TraceTreeNode<TraceTree.Span>) {
   const span = node.value;
   const resolvedModule: ModuleName = resolveSpanModule(
     span.sentry_tags?.op,
@@ -80,7 +80,7 @@ export function SpanDescription({
 }) {
   const hasTraceNewUi = useHasTraceNewUi();
   const span = node.value;
-  const hasTraceDrawerAction = organization.features.includes('trace-drawer-action');
+  const hasExploreEnabled = organization.features.includes('visibility-explore-view');
   const resolvedModule: ModuleName = resolveSpanModule(
     span.sentry_tags?.op,
     span.sentry_tags?.category
@@ -121,7 +121,7 @@ export function SpanDescription({
   const groupHash = hasNewSpansUIFlag
     ? (span.sentry_tags?.group ?? '')
     : (span.hash ?? '');
-  const showAction = hasTraceDrawerAction ? !!span.description : !!span.op && !!span.hash;
+  const showAction = hasExploreEnabled ? !!span.description : !!span.op && !!span.hash;
   const averageSpanDuration: number | undefined =
     span['span.averageResults']?.['avg(span.duration)'];
 
@@ -131,10 +131,16 @@ export function SpanDescription({
         resolvedModule === ModuleName.DB ? `${space(1)} ${space(2)}` : `${space(1)}`
       }
     >
-      <SpanSummaryLink event={node.event!} organization={organization} span={span} />
+      <SpanSummaryLink
+        op={span.op}
+        category={span.sentry_tags?.category}
+        group={groupHash}
+        project_id={node.event?.projectID}
+        organization={organization}
+      />
       <Link
         to={
-          hasTraceDrawerAction
+          hasExploreEnabled
             ? getSearchInExploreTarget(
                 organization,
                 location,
@@ -152,7 +158,7 @@ export function SpanDescription({
               })
         }
         onClick={() => {
-          if (hasTraceDrawerAction) {
+          if (hasExploreEnabled) {
             traceAnalytics.trackExploreSearch(
               organization,
               SpanIndexedField.SPAN_DESCRIPTION,
@@ -175,7 +181,7 @@ export function SpanDescription({
         }}
       >
         <StyledIconGraph type="scatter" size="xs" />
-        {hasNewSpansUIFlag || hasTraceDrawerAction
+        {hasNewSpansUIFlag || hasExploreEnabled
           ? t('More Samples')
           : t('View Similar Spans')}
       </Link>
@@ -526,8 +532,9 @@ const DescriptionWrapper = styled('div')`
   width: 100%;
   justify-content: space-between;
   flex-direction: row;
-  gap: ${space(0.5)};
+  gap: ${space(1)};
   word-break: break-word;
+  line-height: 1.4;
   padding: ${space(1)};
 `;
 

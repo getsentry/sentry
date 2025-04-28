@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
@@ -15,7 +15,6 @@ import {defined} from 'sentry/utils';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import {
   useExploreGroupBys,
-  useExploreMode,
   useSetExploreGroupBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {UNGROUPED} from 'sentry/views/explore/contexts/pageParamsContext/groupBys';
@@ -31,28 +30,28 @@ import {
   ToolbarSection,
 } from './styles';
 
-interface ToolbarGroupByProps {
-  disabled?: boolean;
+interface ToolbarGroupBy {
+  autoSwitchToAggregates: boolean;
 }
 
-export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
+export function ToolbarGroupBy({autoSwitchToAggregates}: ToolbarGroupBy) {
   const {tags} = useSpanTags();
-  const mode = useExploreMode();
 
   const groupBys = useExploreGroupBys();
   const setGroupBys = useSetExploreGroupBys();
 
-  const disabledOptions: Array<SelectOption<string>> = useMemo(() => {
-    return [
-      {
-        label: <Disabled>{t('Samples not grouped')}</Disabled>,
-        value: UNGROUPED,
-        textValue: t('none'),
-      },
-    ];
-  }, []);
+  const setColumns = useCallback(
+    (columns: string[], op: 'insert' | 'update' | 'delete' | 'reorder') => {
+      if (autoSwitchToAggregates && (op === 'insert' || op === 'update')) {
+        setGroupBys(columns, Mode.AGGREGATE);
+      } else {
+        setGroupBys(columns);
+      }
+    },
+    [autoSwitchToAggregates, setGroupBys]
+  );
 
-  const enabledOptions: Array<SelectOption<string>> = useMemo(() => {
+  const options: Array<SelectOption<string>> = useMemo(() => {
     const potentialOptions = [
       // We do not support grouping by span id, we have a dedicated sample mode for that
       ...Object.keys(tags).filter(key => key !== 'id'),
@@ -68,13 +67,17 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
 
     return [
       // hard code in an empty option
-      {label: <Disabled>{t('None')}</Disabled>, value: UNGROUPED, textValue: t('none')},
+      {
+        label: <Disabled>{t('\u2014')}</Disabled>,
+        value: UNGROUPED,
+        textValue: t('\u2014'),
+      },
       ...potentialOptions.map(key => ({label: key, value: key, textValue: key})),
     ];
   }, [groupBys, tags]);
 
   return (
-    <DragNDropContext columns={groupBys} setColumns={setGroupBys}>
+    <DragNDropContext columns={groupBys} setColumns={setColumns}>
       {({editableColumns, insertColumn, updateColumnAtIndex, deleteColumnAtIndex}) => {
         return (
           <ToolbarSection data-test-id="section-group-by">
@@ -85,11 +88,10 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
                   'Aggregated data by a key attribute to calculate averages, percentiles, count and more'
                 )}
               >
-                <ToolbarLabel disabled={disabled}>{t('Group By')}</ToolbarLabel>
+                <ToolbarLabel>{t('Group By')}</ToolbarLabel>
               </Tooltip>
               <Tooltip title={t('Add a new group')}>
                 <ToolbarHeaderButton
-                  disabled={disabled}
                   size="zero"
                   onClick={insertColumn}
                   borderless
@@ -98,34 +100,16 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
                 />
               </Tooltip>
             </ToolbarHeader>
-            {disabled ? (
-              <FullWidthTooltip
-                title={t('Switch to aggregate results to apply grouping')}
-              >
-                <ColumnEditorRow
-                  disabled={disabled}
-                  canDelete={false}
-                  column={{id: 1, column: ''}}
-                  options={disabledOptions}
-                  onColumnChange={() => {}}
-                  onColumnDelete={() => {}}
-                />
-              </FullWidthTooltip>
-            ) : (
-              editableColumns.map((column, i) => (
-                <ColumnEditorRow
-                  disabled={mode === Mode.SAMPLES}
-                  key={column.id}
-                  canDelete={
-                    editableColumns.length > 1 || !['', undefined].includes(column.column)
-                  }
-                  column={column}
-                  options={enabledOptions}
-                  onColumnChange={c => updateColumnAtIndex(i, c)}
-                  onColumnDelete={() => deleteColumnAtIndex(i)}
-                />
-              ))
-            )}
+            {editableColumns.map((column, i) => (
+              <ColumnEditorRow
+                key={column.id}
+                canDelete={editableColumns.length > 1}
+                column={column}
+                options={options}
+                onColumnChange={c => updateColumnAtIndex(i, c)}
+                onColumnDelete={() => deleteColumnAtIndex(i)}
+              />
+            ))}
           </ToolbarSection>
         );
       }}
@@ -172,14 +156,16 @@ function ColumnEditorRow({
       style={{transform: CSS.Transform.toString(transform), transition}}
       {...attributes}
     >
-      <Button
-        aria-label={t('Drag to reorder')}
-        borderless
-        size="zero"
-        disabled={disabled}
-        icon={<IconGrabbable size="sm" />}
-        {...listeners}
-      />
+      {canDelete ? (
+        <Button
+          aria-label={t('Drag to reorder')}
+          borderless
+          size="zero"
+          disabled={disabled}
+          icon={<IconGrabbable size="sm" />}
+          {...listeners}
+        />
+      ) : null}
       <StyledCompactSelect
         data-test-id="editor-column"
         options={options}
@@ -190,14 +176,15 @@ function ColumnEditorRow({
         searchable
         triggerProps={{style: {width: '100%'}}}
       />
-      <Button
-        aria-label={t('Remove Column')}
-        borderless
-        disabled={!canDelete || disabled}
-        size="zero"
-        icon={<IconDelete size="sm" />}
-        onClick={() => onColumnDelete()}
-      />
+      {canDelete ? (
+        <Button
+          aria-label={t('Remove Column')}
+          borderless
+          size="zero"
+          icon={<IconDelete size="sm" />}
+          onClick={() => onColumnDelete()}
+        />
+      ) : null}
     </ToolbarRow>
   );
 }
@@ -217,8 +204,4 @@ const TriggerLabel = styled('span')`
 
 const Disabled = styled('span')`
   color: ${p => p.theme.subText};
-`;
-
-const FullWidthTooltip = styled(Tooltip)`
-  width: 100%;
 `;

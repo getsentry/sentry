@@ -38,6 +38,10 @@ export function useUrlPlatformOptions<PlatformOptions extends BasePlatformOption
 
 type OptionControlProps = {
   /**
+   * Click handler.
+   */
+  onChange: (option: string) => void;
+  /**
    * The platform options for which the control is rendered
    */
   option: PlatformOption<any>;
@@ -45,10 +49,6 @@ type OptionControlProps = {
    * Value of the currently selected item
    */
   value: string;
-  /**
-   * Click handler.
-   */
-  onChange?: (option: string) => void;
 };
 
 function OptionControl({option, value, onChange}: OptionControlProps) {
@@ -61,7 +61,7 @@ function OptionControl({option, value, onChange}: OptionControlProps) {
   );
 }
 
-export type PlatformOptionsControlProps = {
+type PlatformOptionsControlProps = {
   /**
    * Object with an option array for each platformOption
    */
