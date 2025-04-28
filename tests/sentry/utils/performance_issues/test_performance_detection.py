@@ -296,7 +296,7 @@ class PerformanceDetectionTest(TestCase):
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
         assert perf_problems == []
 
-    @override_options({"performance.issues.consecutive_http.flag_disabled": True})
+    @override_options({"performance.issues.consecutive_http.problem-creation": True})
     def test_boolean_system_option_disables_detector_issue_creation(self):
         event = get_event("consecutive-http/consecutive-http-basic")
         sdk_span_mock = Mock()
@@ -305,7 +305,7 @@ class PerformanceDetectionTest(TestCase):
             perf_problems = _detect_performance_problems(event, sdk_span_mock, self.project)
             assert perf_problems == []
 
-    @override_options({"performance.issues.consecutive_http.flag_disabled": False})
+    @override_options({"performance.issues.consecutive_http.problem-creation": False})
     def test_boolean_system_option_enables_detector_issue_creation(self):
         event = get_event("consecutive-http/consecutive-http-basic")
         sdk_span_mock = Mock()

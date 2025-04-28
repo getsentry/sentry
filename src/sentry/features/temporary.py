@@ -232,8 +232,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:performance-file-io-main-thread-detector", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enables updated all events tab in a performance issue
     manager.add("organizations:performance-issues-all-events-tab", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable performance issues dev options, includes changing parts of issues that we're using for development.
-    manager.add("organizations:performance-issues-dev", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Temporary flag to test search performance that's running slow in S4S
     manager.add("organizations:performance-issues-search", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=False)
     # Detect performance issues in the new standalone spans pipeline instead of on transactions
