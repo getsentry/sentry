@@ -45,8 +45,7 @@ export interface TreeCoverageSunburstData {
   coverage: number;
   fullPath: string;
   name: string;
-  value: number;
-  dir?: boolean;
+  value?: number;
 }
 
 interface ProcessedTreeCoverageSunburstData extends TreeCoverageSunburstData {
