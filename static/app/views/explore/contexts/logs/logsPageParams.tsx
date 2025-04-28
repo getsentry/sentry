@@ -4,7 +4,6 @@ import type {Location} from 'history';
 import type {CursorHandler} from 'sentry/components/pagination';
 import {defined} from 'sentry/utils';
 import type {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {decodeProjects} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import localStorage from 'sentry/utils/localStorage';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
@@ -13,6 +12,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   defaultLogFields,
   getLogFieldsFromLocation,
@@ -90,9 +90,11 @@ export function LogsPageParamsProvider({
   const sortBys = isTableEditingFrozen
     ? [logsTimestampDescendingSortBy]
     : getLogSortBysFromLocation(location, fields);
+  const pageFilters = usePageFilters();
   const projectIds = isOnEmbeddedView
     ? (limitToProjectIds ?? [-1])
-    : decodeProjects(location);
+    : pageFilters.selection.projects;
+  // TODO we should handle environments in a similar way to projects - otherwise page filters might break embedded views
 
   const cursor = getLogCursorFromLocation(location);
 
