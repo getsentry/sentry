@@ -20,9 +20,7 @@ import ProjectPerformance, {
 } from 'sentry/views/settings/projectPerformance/projectPerformance';
 
 describe('projectPerformance', function () {
-  const org = OrganizationFixture({
-    features: ['performance-view', 'performance-issues-dev'],
-  });
+  const org = OrganizationFixture({features: ['performance-view']});
   const project = ProjectFixture();
   const configUrl = '/projects/org-slug/project-slug/transaction-threshold/configure/';
   let getMock: jest.Mock;
