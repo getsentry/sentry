@@ -206,7 +206,7 @@ def delete_migrated_issue_alert(rule: Rule) -> int | None:
         delete_workflow(workflow)
     except DataConditionGroup.DoesNotExist:
         logger.exception(
-            "workflow_engine.issue_alert.missing_model",
+            "Deleting workflow but DCG does not exist",
             extra={"workflow_id": workflow_id, "rule_id": rule.id},
         )
 
