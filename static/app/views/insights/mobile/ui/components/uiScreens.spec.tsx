@@ -1,3 +1,4 @@
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -42,22 +43,20 @@ describe('Performance Mobile UI Screens', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
 
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
+    jest.mocked(usePageFilters).mockReturnValue(
+      PageFilterStateFixture({
+        selection: {
+          datetime: {
+            period: '10d',
+            start: null,
+            end: null,
+            utc: false,
+          },
+          environments: [],
+          projects: [parseInt(project.id, 10)],
         },
-        environments: [],
-        projects: [parseInt(project.id, 10)],
-      },
-    });
+      })
+    );
   });
 
   it('queries for the correct table data', async () => {
