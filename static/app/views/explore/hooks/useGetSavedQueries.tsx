@@ -4,11 +4,12 @@ import type {Actor} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 
 type Query = {
   fields: string[];
   groupby: string[];
-  mode: string;
+  mode: Mode;
   orderby: string;
   query: string;
   visualize: Array<{

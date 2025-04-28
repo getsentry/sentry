@@ -38,20 +38,20 @@ export function getExploreUrl({
   id,
   title,
 }: {
-  interval: string;
   organization: Organization;
-  selection: PageFilters;
   visualize: BaseVisualize[];
   field?: string[];
   groupBy?: string[];
   id?: number;
+  interval?: string;
   mode?: Mode;
   query?: string;
+  selection?: PageFilters;
   sort?: string;
   title?: string;
 }) {
-  const {start, end, period: statsPeriod, utc} = selection.datetime;
-  const {environments, projects} = selection;
+  const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
+  const {environments, projects} = selection ?? {};
   const queryParams = {
     dataset: DiscoverDatasets.SPANS_EAP_RPC,
     project: projects,
@@ -118,7 +118,8 @@ export function getExploreUrlFromSavedQueryUrl({
       savedQuery.query[0].groupby.length === 0 ? [''] : savedQuery.query[0].groupby,
     query: savedQuery.query[0].query,
     title: savedQuery.name,
-    mode: savedQuery.query[0].mode as Mode,
+    mode: savedQuery.query[0].mode,
+    field: savedQuery.query[0].fields,
     selection: {
       datetime: {
         end: savedQuery.end ?? null,
