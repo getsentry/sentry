@@ -118,9 +118,11 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
         source_url = data["source_url"]
         frame_info = get_frame_info_from_request(request)
 
+        # validated by `serializer.is_valid()`
+        assert serializer.repo is not None
+        assert serializer.integration is not None
         repo = serializer.repo
         integration = serializer.integration
-        assert integration is not None  # This helps with typing
         installation = integration.get_installation(project.organization_id)
 
         branch = installation.extract_branch_from_source_url(repo, source_url)
@@ -130,7 +132,7 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
         return self.respond(
             {
                 "integrationId": integration.id,
-                "repositoryId": repo.id if repo else None,
+                "repositoryId": repo.id,
                 "provider": integration.provider,
                 "stackRoot": stack_root,
                 "sourceRoot": source_root,
