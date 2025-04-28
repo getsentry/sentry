@@ -88,6 +88,11 @@ export function useConfigureSdk({
         return;
       }
 
+      if (createProject.isPending) {
+        // prevent multiple submissions at the same time
+        return;
+      }
+
       if (
         selectedPlatform.type !== 'language' ||
         !Object.values(SupportedLanguages).includes(
@@ -127,8 +132,11 @@ export function useConfigureSdk({
         }
       );
     },
-    [createPlatformProject, onboardingContext, organization]
+    [createPlatformProject, onboardingContext, organization, createProject]
   );
 
-  return {configureSdk, isLoadingData: isLoadingTeams || !projectsLoaded};
+  return {
+    configureSdk,
+    isLoadingData: isLoadingTeams || !projectsLoaded || createProject.isPending,
+  };
 }
