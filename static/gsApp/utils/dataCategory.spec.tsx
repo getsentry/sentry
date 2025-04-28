@@ -214,7 +214,7 @@ describe('getPlanCategoryName', function () {
     expect(getPlanCategoryName({plan, category: DataCategory.REPLAYS})).toBe('Replays');
     expect(getPlanCategoryName({plan, category: DataCategory.SPANS})).toBe('Spans');
     expect(getPlanCategoryName({plan, category: DataCategory.PROFILE_DURATION})).toBe(
-      'Profiles'
+      'Continuous profile hours'
     );
     expect(getPlanCategoryName({plan, category: DataCategory.MONITOR_SEATS})).toBe(
       'Cron monitors'
