@@ -16,7 +16,7 @@ describe('getPythonInstallSnippet', () => {
       packageName: 'sentry-sdk',
     });
 
-    expect(result).toBe(`pip install 'sentry-sdk'`);
+    expect(result).toBe(`pip install "sentry-sdk"`);
   });
 
   it('generates pip install command with minimum version and extras', () => {
@@ -24,7 +24,7 @@ describe('getPythonInstallSnippet', () => {
       packageName: 'sentry-sdk[with-extras]',
       minimumVersion: '1.2.3',
     });
-    expect(result).toBe(`pip install --upgrade 'sentry-sdk[with-extras]>=1.2.3'`);
+    expect(result).toBe(`pip install --upgrade "sentry-sdk[with-extras]>=1.2.3"`);
   });
 
   it('generates uv install command with default parameters', () => {
@@ -33,7 +33,7 @@ describe('getPythonInstallSnippet', () => {
       packageManager: 'uv',
     });
 
-    expect(result).toBe(`uv add 'sentry-sdk'`);
+    expect(result).toBe(`uv add "sentry-sdk"`);
   });
 
   it('generates uv install command with minimum version and extras', () => {
@@ -43,7 +43,7 @@ describe('getPythonInstallSnippet', () => {
       minimumVersion: '2.3.4',
     });
 
-    expect(result).toBe(`uv add --upgrade 'sentry-sdk[with-extras]>=2.3.4'`);
+    expect(result).toBe(`uv add --upgrade "sentry-sdk[with-extras]>=2.3.4"`);
   });
 
   it('generates poetry install command with default parameters', () => {
@@ -52,7 +52,7 @@ describe('getPythonInstallSnippet', () => {
       packageManager: 'poetry',
     });
 
-    expect(result).toBe(`poetry add 'sentry-sdk'`);
+    expect(result).toBe(`poetry add "sentry-sdk"`);
   });
 
   it('generates poetry install command with minimum version and extras', () => {
@@ -62,6 +62,6 @@ describe('getPythonInstallSnippet', () => {
       minimumVersion: '2.3.4',
     });
 
-    expect(result).toBe(`poetry add 'sentry-sdk[with-extras]>=2.3.4'`);
+    expect(result).toBe(`poetry add "sentry-sdk[with-extras]>=2.3.4"`);
   });
 });

@@ -20,8 +20,8 @@ export function getPythonInstallSnippet({
   packageManager?: 'pip' | 'uv' | 'poetry';
 }) {
   const versionedPackage = minimumVersion
-    ? `'${packageName}>=${minimumVersion}'`
-    : `'${packageName}'`;
+    ? `"${packageName}>=${minimumVersion}"`
+    : `"${packageName}"`;
 
   const upgradeFlag = minimumVersion ? '--upgrade ' : '';
 
