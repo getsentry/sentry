@@ -1,6 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -57,11 +58,18 @@ function SegmentedIssueViewSaveButton({
 
   const saveView = () => {
     if (view) {
-      updateGroupSearchView({
-        id: view.id,
-        name: view.name,
-        ...createIssueViewFromUrl({query: location.query}),
-      });
+      updateGroupSearchView(
+        {
+          id: view.id,
+          name: view.name,
+          ...createIssueViewFromUrl({query: location.query}),
+        },
+        {
+          onSuccess: () => {
+            addSuccessMessage(t('Saved changes'));
+          },
+        }
+      );
     }
   };
 

@@ -15,7 +15,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import IssueListActions from 'sentry/views/issueList/actions';
 import AddViewPage from 'sentry/views/issueList/addViewPage';
 import GroupListBody from 'sentry/views/issueList/groupListBody';
-import {isNewViewPage} from 'sentry/views/issueList/issueViews/utils';
 import {NewViewEmptyState} from 'sentry/views/issueList/newViewEmptyState';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {NewTabContext} from 'sentry/views/issueList/utils/newTabContext';
@@ -72,7 +71,7 @@ function IssueListTable({
   const {newViewActive} = useContext(NewTabContext);
 
   const isNewViewEmptyStateActive =
-    isNewViewPage(location.pathname) &&
+    location.query.new === 'true' &&
     !issuesLoading &&
     !error &&
     !issuesSuccessfullyLoaded;

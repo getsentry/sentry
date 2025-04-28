@@ -8,9 +8,11 @@ type OverviewWrapperProps = RouteComponentProps<
 >;
 
 export function OverviewWrapper(props: OverviewWrapperProps) {
+  const shouldFetchOnMount = !props.location.query.new;
+
   return (
     <IssueListContainer>
-      <IssueListOverview {...props} />
+      <IssueListOverview {...props} shouldFetchOnMount={shouldFetchOnMount} />
     </IssueListContainer>
   );
 }
