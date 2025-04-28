@@ -666,7 +666,6 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
             )
             assert response.status_code == 200, response.content
             expected = {
-                "canGoToHigherAccuracyTier": False,
                 "dataScanned": "full",
                 "dataset": mock.ANY,
                 "datasetReason": "unchanged",
@@ -1811,7 +1810,6 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
             },
         ]
         expected = {
-            "canGoToHigherAccuracyTier": False,
             "dataScanned": "full",
             "dataset": mock.ANY,
             "datasetReason": "unchanged",
