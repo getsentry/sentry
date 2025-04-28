@@ -21,7 +21,7 @@ from sentry.search.events.constants import (
 )
 from sentry.search.events.types import SnubaParams
 from sentry.search.utils import DEVICE_CLASS
-from sentry.utils.validators import is_event_id, is_span_id
+from sentry.utils.validators import is_empty_string, is_event_id, is_span_id
 
 
 def validate_event_id(value: str | list[str]) -> bool:
@@ -45,7 +45,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="parent_span",
             internal_name="sentry.parent_span_id",
             search_type="string",
-            validator=is_span_id,
+            validator=[is_empty_string, is_span_id],
         ),
         ResolvedAttribute(
             public_alias="span.action",

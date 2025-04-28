@@ -161,4 +161,5 @@ RESPONSE_CODE_MAP = {
 SAMPLING_MODE_MAP: dict[SAMPLING_MODES, DownsampledStorageConfig.Mode.ValueType] = {
     "BEST_EFFORT": DownsampledStorageConfig.MODE_BEST_EFFORT,
     "PREFLIGHT": DownsampledStorageConfig.MODE_PREFLIGHT,
+    "NORMAL": DownsampledStorageConfig.MODE_NORMAL,
 }
