@@ -61,6 +61,7 @@ describe('ProjectDetail', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -109,6 +110,7 @@ describe('ProjectDetail', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 

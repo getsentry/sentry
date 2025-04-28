@@ -8,7 +8,6 @@ import {
   SentryAppInstallsFixture,
 } from 'sentry-fixture/integrationListDirectory';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -23,7 +22,6 @@ describe('IntegrationListDirectory', function () {
     MockApiClient.clearMockResponses();
   });
 
-  const router = RouterFixture();
   const organization = OrganizationFixture();
 
   describe('Renders view', function () {
@@ -52,7 +50,9 @@ describe('IntegrationListDirectory', function () {
     });
 
     it('shows installed integrations at the top in order of weight', async function () {
-      render(<IntegrationListDirectory />, {organization, router});
+      render(<IntegrationListDirectory />, {
+        organization,
+      });
       expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
       expect(await screen.findByRole('textbox', {name: 'Filter'})).toBeInTheDocument();
@@ -69,7 +69,9 @@ describe('IntegrationListDirectory', function () {
     });
 
     it('does not show legacy plugin that has a First Party Integration if not installed', async function () {
-      render(<IntegrationListDirectory />, {organization, router});
+      render(<IntegrationListDirectory />, {
+        organization,
+      });
       expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
       expect(await screen.findByRole('textbox', {name: 'Filter'})).toBeInTheDocument();
@@ -77,7 +79,9 @@ describe('IntegrationListDirectory', function () {
     });
 
     it('shows legacy plugin that has a First Party Integration if installed', async function () {
-      render(<IntegrationListDirectory />, {organization, router});
+      render(<IntegrationListDirectory />, {
+        organization,
+      });
       expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
       expect(await screen.findByText('PagerDuty (Legacy)')).toBeInTheDocument();

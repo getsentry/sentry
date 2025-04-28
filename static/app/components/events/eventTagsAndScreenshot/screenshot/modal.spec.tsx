@@ -54,7 +54,6 @@ describe('ScreenshotModal', function () {
         attachments={attachments}
       />,
       {
-        router: initialData.router,
         organization: initialData.organization,
       }
     );
@@ -85,7 +84,6 @@ describe('ScreenshotModal', function () {
         groupId="group-id"
       />,
       {
-        router: initialData.router,
         organization: initialData.organization,
       }
     );
@@ -115,7 +113,6 @@ describe('ScreenshotModal', function () {
         groupId="group-id"
       />,
       {
-        router: initialData.router,
         organization: initialData.organization,
       }
     );

@@ -33,7 +33,11 @@ describe('GroupUserFeedback', () => {
       body: [],
     });
 
-    render(<GroupUserFeedback />, {organization, router});
+    render(<GroupUserFeedback />, {
+      organization,
+      router,
+      deprecatedRouterMocks: true,
+    });
     expect(
       await screen.findByRole('heading', {
         name: 'What do users think?',
@@ -68,7 +72,11 @@ describe('GroupUserFeedback', () => {
       ],
     });
 
-    render(<GroupUserFeedback />, {organization, router});
+    render(<GroupUserFeedback />, {
+      organization,
+      router,
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByText('Test User')).toBeInTheDocument();
     expect(await screen.findByText('custom comment')).toBeInTheDocument();
   });

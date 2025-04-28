@@ -73,7 +73,7 @@ describe('Screens Landing Page', function () {
     });
 
     it('shows the platform selector for hybrid sdks', async function () {
-      render(<ScreensLandingPage />, {organization});
+      render(<ScreensLandingPage />, {organization, deprecatedRouterMocks: true});
       expect(await screen.findByLabelText('Android')).toBeInTheDocument();
     });
 
@@ -155,7 +155,7 @@ describe('Screens Landing Page', function () {
         match: [MockApiClient.matchQuery({dataset: 'spansMetrics'})],
       });
 
-      render(<ScreensLandingPage />, {organization});
+      render(<ScreensLandingPage />, {organization, deprecatedRouterMocks: true});
 
       await waitFor(() => {
         expect(metricsMock).toHaveBeenCalled();
@@ -196,7 +196,7 @@ describe('Screens Landing Page', function () {
 
     it('shows no content if permission is missing', async function () {
       organization.features = [];
-      render(<ScreensLandingPage />, {organization});
+      render(<ScreensLandingPage />, {organization, deprecatedRouterMocks: true});
       expect(
         await screen.findByText("You don't have access to this feature")
       ).toBeInTheDocument();
@@ -204,7 +204,7 @@ describe('Screens Landing Page', function () {
 
     it('shows content if permission is there', async function () {
       organization.features = [MODULE_FEATURE, 'insights-entry-points'];
-      render(<ScreensLandingPage />, {organization});
+      render(<ScreensLandingPage />, {organization, deprecatedRouterMocks: true});
       expect(await screen.findAllByText('Mobile Vitals')).toHaveLength(2);
     });
   });

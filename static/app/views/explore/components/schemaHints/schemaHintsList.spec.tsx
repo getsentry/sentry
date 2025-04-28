@@ -100,7 +100,10 @@ describe('SchemaHintsList', () => {
         stringTags={mockStringTags}
         numberTags={mockNumberTags}
         supportedAggregates={[]}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     const container = screen.getByLabelText('Schema Hints List');
@@ -123,7 +126,10 @@ describe('SchemaHintsList', () => {
         stringTags={mockStringTags}
         numberTags={mockNumberTags}
         supportedAggregates={[]}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     const stringTag1Hint = screen.getByText('stringTag1');
@@ -141,7 +147,10 @@ describe('SchemaHintsList', () => {
 
   it('should render loading indicator when isLoading is true', () => {
     render(
-      <Subject stringTags={{}} numberTags={{}} supportedAggregates={[]} isLoading />
+      <Subject stringTags={{}} numberTags={{}} supportedAggregates={[]} isLoading />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -154,7 +163,11 @@ describe('SchemaHintsList', () => {
         numberTags={mockNumberTags}
         supportedAggregates={[]}
       />,
-      {organization, router}
+      {
+        organization,
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     const seeFullList = screen.getByText('See full list');
@@ -178,7 +191,11 @@ describe('SchemaHintsList', () => {
         numberTags={mockNumberTags}
         supportedAggregates={[]}
       />,
-      {organization, router}
+      {
+        organization,
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     const seeFullList = screen.getByText('See full list');
@@ -209,6 +226,7 @@ describe('SchemaHintsList', () => {
       />,
       {
         organization,
+
         router: {
           ...router,
           location: {
@@ -219,6 +237,8 @@ describe('SchemaHintsList', () => {
             },
           },
         },
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -246,7 +266,11 @@ describe('SchemaHintsList', () => {
         numberTags={mockNumberTags}
         supportedAggregates={[]}
       />,
-      {organization, router}
+      {
+        organization,
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     const seeFullList = screen.getByText('See full list');
@@ -271,7 +295,11 @@ describe('SchemaHintsList', () => {
         numberTags={mockNumberTags}
         supportedAggregates={[]}
       />,
-      {organization, router}
+      {
+        organization,
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     const seeFullList = screen.getByText('See full list');

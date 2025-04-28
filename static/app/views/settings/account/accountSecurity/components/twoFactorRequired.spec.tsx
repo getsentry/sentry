@@ -33,7 +33,7 @@ describe('TwoFactorRequired', function () {
     });
   });
 
-  const {router, routerProps} = initializeOrg();
+  const {routerProps} = initializeOrg();
 
   const baseProps = {
     authenticators: null,
@@ -55,8 +55,7 @@ describe('TwoFactorRequired', function () {
     render(
       <AccountSecurityWrapper>
         <TwoFactorRequired {...baseProps} />
-      </AccountSecurityWrapper>,
-      {router}
+      </AccountSecurityWrapper>
     );
 
     expect(await screen.findByText('Your current password')).toBeInTheDocument();
@@ -67,8 +66,7 @@ describe('TwoFactorRequired', function () {
     render(
       <AccountSecurityWrapper>
         <TwoFactorRequired {...baseProps} />
-      </AccountSecurityWrapper>,
-      {router}
+      </AccountSecurityWrapper>
     );
 
     expect(await screen.findByText('Your current password')).toBeInTheDocument();
@@ -84,8 +82,7 @@ describe('TwoFactorRequired', function () {
     render(
       <AccountSecurityWrapper>
         <TwoFactorRequired {...baseProps} />
-      </AccountSecurityWrapper>,
-      {router}
+      </AccountSecurityWrapper>
     );
 
     expect(await screen.findByText('Your current password')).toBeInTheDocument();
@@ -111,8 +108,7 @@ describe('TwoFactorRequired', function () {
     render(
       <AccountSecurityWrapper>
         <TwoFactorRequired {...baseProps} />
-      </AccountSecurityWrapper>,
-      {router}
+      </AccountSecurityWrapper>
     );
 
     expect(await screen.findByText('Your current password')).toBeInTheDocument();
@@ -130,8 +126,7 @@ describe('TwoFactorRequired', function () {
     render(
       <AccountSecurityWrapper>
         <TwoFactorRequired {...baseProps} />
-      </AccountSecurityWrapper>,
-      {router}
+      </AccountSecurityWrapper>
     );
 
     expect(await screen.findByTestId('require-2fa')).toBeInTheDocument();

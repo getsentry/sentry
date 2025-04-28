@@ -25,7 +25,7 @@ describe('ProfileEventsTable', function () {
   });
 
   it('renders loading', function () {
-    const {organization, router} = initializeOrg();
+    const {organization} = initializeOrg();
 
     const columns = ['count()' as const];
     const sort = {
@@ -41,14 +41,16 @@ describe('ProfileEventsTable', function () {
         isLoading
         sort={sort}
       />,
-      {router, organization}
+      {
+        organization,
+      }
     );
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
   });
 
   it('renders error', function () {
-    const {organization, router} = initializeOrg();
+    const {organization} = initializeOrg();
 
     const columns = ['count()' as const];
     const sort = {
@@ -64,14 +66,16 @@ describe('ProfileEventsTable', function () {
         isLoading={false}
         sort={sort}
       />,
-      {router, organization}
+      {
+        organization,
+      }
     );
 
     expect(screen.getByTestId('error-indicator')).toBeInTheDocument();
   });
 
   it('renders asc sort links on the header', function () {
-    const {organization, router} = initializeOrg();
+    const {organization} = initializeOrg();
 
     const columns = ['count()' as const];
     const sort = {
@@ -88,7 +92,9 @@ describe('ProfileEventsTable', function () {
         sort={sort}
         sortableColumns={new Set(columns)}
       />,
-      {router, organization}
+      {
+        organization,
+      }
     );
 
     const link = screen.getByRole('link', {name: 'Count()'});
@@ -100,7 +106,7 @@ describe('ProfileEventsTable', function () {
   });
 
   it('renders desc sort links on the header', function () {
-    const {organization, router} = initializeOrg();
+    const {organization} = initializeOrg();
 
     const columns = ['count()' as const];
     const sort = {
@@ -117,7 +123,9 @@ describe('ProfileEventsTable', function () {
         sort={sort}
         sortableColumns={new Set(columns)}
       />,
-      {router, organization}
+      {
+        organization,
+      }
     );
 
     const link = screen.getByRole('link', {name: 'Count()'});
@@ -129,7 +137,7 @@ describe('ProfileEventsTable', function () {
   });
 
   it('renders formatted values', function () {
-    const {organization, router} = initializeOrg();
+    const {organization} = initializeOrg();
 
     const columns = [
       'id',
@@ -189,7 +197,9 @@ describe('ProfileEventsTable', function () {
         sort={sort}
         sortableColumns={new Set(columns)}
       />,
-      {router, organization}
+      {
+        organization,
+      }
     );
 
     // id

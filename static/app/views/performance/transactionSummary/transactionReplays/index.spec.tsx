@@ -60,7 +60,11 @@ const renderComponent = ({
   ProjectsStore.init();
   ProjectsStore.loadInitialData(projects);
 
-  return render(<TransactionReplays />, {router, organization});
+  return render(<TransactionReplays />, {
+    router,
+    organization,
+    deprecatedRouterMocks: true,
+  });
 };
 
 describe('TransactionReplays', () => {

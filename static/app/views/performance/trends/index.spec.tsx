@@ -281,6 +281,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -297,6 +298,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -313,6 +315,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -337,6 +340,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -373,6 +377,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -401,6 +406,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -437,6 +443,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -473,6 +480,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -505,6 +513,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -521,6 +530,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -537,6 +547,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -553,6 +564,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -583,6 +595,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -638,6 +651,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -710,6 +724,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -739,6 +754,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 

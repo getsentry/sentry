@@ -43,8 +43,7 @@ function mountModal(
       measurementKeys={null}
       customMeasurements={customMeasurements}
       dataset={dataset}
-    />,
-    {router: initialData.router}
+    />
   );
 }
 

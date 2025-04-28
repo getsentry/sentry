@@ -187,7 +187,7 @@ describe('Discover > EventDetails', function () {
   });
 
   it('navigates when tag values are clicked', async function () {
-    const {organization, router} = initializeOrg({
+    const {organization} = initializeOrg({
       organization: OrganizationFixture(),
       router: {
         location: {
@@ -205,8 +205,7 @@ describe('Discover > EventDetails', function () {
           ...LocationFixture(),
           query: allEventsView.generateQueryStringObject(),
         }}
-      />,
-      {router}
+      />
     );
 
     // Get the first link as we wrap react-router's link
@@ -245,8 +244,7 @@ describe('Discover > EventDetails', function () {
         organization={organization}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={router.location}
-      />,
-      {router}
+      />
     );
 
     // Get the first link as we wrap react-router's link
@@ -270,7 +268,7 @@ describe('Discover > EventDetails', function () {
   });
 
   it('appends tag value to existing query when clicked', async function () {
-    const {organization, router} = initializeOrg({
+    const {organization} = initializeOrg({
       organization: OrganizationFixture(),
       router: {
         location: {
@@ -288,8 +286,7 @@ describe('Discover > EventDetails', function () {
           ...LocationFixture(),
           query: {...allEventsView.generateQueryStringObject(), query: 'Dumpster'},
         }}
-      />,
-      {router}
+      />
     );
 
     // Get the first link as we wrap react-router's link
@@ -329,7 +326,9 @@ describe('Discover > EventDetails', function () {
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={router.location}
       />,
-      {router, organization}
+      {
+        organization,
+      }
     );
 
     const breadcrumb = await screen.findByTestId('breadcrumb-link');

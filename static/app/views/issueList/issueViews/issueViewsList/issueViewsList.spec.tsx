@@ -108,7 +108,7 @@ describe('IssueViewsList', function () {
       ],
     });
 
-    render(<IssueViewsList />, {organization, enableRouterMocks: false});
+    render(<IssueViewsList />, {organization, deprecatedRouterMocks: false});
 
     // By default, sorts by popularity (desc) then visited (desc) then created (desc)
     await waitFor(() => {

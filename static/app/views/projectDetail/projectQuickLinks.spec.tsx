@@ -21,7 +21,10 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
         location={router.location}
         project={ProjectFixture()}
       />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.getByRole('heading', {name: 'Quick Links'})).toBeInTheDocument();
@@ -63,7 +66,10 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
         location={router.location}
         project={ProjectFixture()}
       />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     const keyTransactions = screen.getByText('View Transactions');

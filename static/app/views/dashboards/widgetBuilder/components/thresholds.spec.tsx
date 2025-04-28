@@ -29,6 +29,8 @@ describe('Thresholds', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -48,7 +50,10 @@ describe('Thresholds', () => {
     render(
       <WidgetBuilderProvider>
         <Thresholds dataType="duration" dataUnit="millisecond" />
-      </WidgetBuilderProvider>
+      </WidgetBuilderProvider>,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.type(screen.getByLabelText('First Maximum'), '100');
@@ -78,6 +83,8 @@ describe('Thresholds', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -111,6 +118,8 @@ describe('Thresholds', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -122,7 +131,10 @@ describe('Thresholds', () => {
     render(
       <WidgetBuilderProvider>
         <Thresholds dataType="duration" dataUnit="millisecond" />
-      </WidgetBuilderProvider>
+      </WidgetBuilderProvider>,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.type(screen.getByLabelText('First Maximum'), '0.5');

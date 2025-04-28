@@ -176,9 +176,7 @@ describe('Performance > TransactionSummary', function () {
 
     ProjectsStore.loadInitialData(projects);
 
-    render(<TransactionEvents organization={organization} location={router.location} />, {
-      router,
-    });
+    render(<TransactionEvents organization={organization} location={router.location} />);
 
     // Breadcrumb
     expect((await screen.findAllByTestId('breadcrumb-item'))[0]).toHaveTextContent(
@@ -209,9 +207,7 @@ describe('Performance > TransactionSummary', function () {
 
     ProjectsStore.loadInitialData(projects);
 
-    render(<TransactionEvents organization={organization} location={router.location} />, {
-      router,
-    });
+    render(<TransactionEvents organization={organization} location={router.location} />);
 
     expect(await screen.findByText('operation duration')).toBeInTheDocument();
     expect(screen.getAllByRole('columnheader')).toHaveLength(6);
@@ -224,9 +220,7 @@ describe('Performance > TransactionSummary', function () {
 
     ProjectsStore.loadInitialData(projects);
 
-    render(<TransactionEvents organization={organization} location={router.location} />, {
-      router,
-    });
+    render(<TransactionEvents organization={organization} location={router.location} />);
 
     const tableHeader = await screen.findAllByRole('columnheader');
     expect(tableHeader).toHaveLength(6);
@@ -255,9 +249,7 @@ describe('Performance > TransactionSummary', function () {
 
     ProjectsStore.loadInitialData(projects);
 
-    render(<TransactionEvents organization={organization} location={router.location} />, {
-      router,
-    });
+    render(<TransactionEvents organization={organization} location={router.location} />);
 
     const tableHeader = await screen.findAllByRole('columnheader');
     expect(tableHeader).toHaveLength(7);

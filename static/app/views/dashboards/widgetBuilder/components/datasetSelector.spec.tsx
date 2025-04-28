@@ -32,6 +32,7 @@ describe('DatasetSelector', function () {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 

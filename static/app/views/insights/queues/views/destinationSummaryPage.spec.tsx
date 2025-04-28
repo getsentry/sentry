@@ -81,7 +81,7 @@ describe('destinationSummaryPage', () => {
   });
 
   it('renders', async () => {
-    render(<PageWithProviders />, {organization});
+    render(<PageWithProviders />, {organization, deprecatedRouterMocks: true});
     await screen.findByRole('table', {name: 'Transactions'});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     screen.getByText('Average Duration');

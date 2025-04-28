@@ -117,7 +117,9 @@ describe('ProjectAlertsCreate', function () {
           />
         </AlertBuilderProjectProvider>
       </AlertsContainer>,
-      {organization, router}
+      {
+        organization,
+      }
     );
 
     return {

@@ -25,7 +25,10 @@ describe('DropdownMenu', function () {
           },
         ]}
         triggerLabel="This is a Menu"
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     // Open the mneu
@@ -68,7 +71,10 @@ describe('DropdownMenu', function () {
           },
         ]}
         triggerLabel="Menu"
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
@@ -89,7 +95,10 @@ describe('DropdownMenu', function () {
       <Fragment>
         <DropdownMenu items={[{key: 'item1', label: 'Item One'}]} triggerLabel="Menu A" />
         <DropdownMenu items={[{key: 'item2', label: 'Item Two'}]} triggerLabel="Menu B" />
-      </Fragment>
+      </Fragment>,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     // Can be dismissed by clicking outside
@@ -155,7 +164,10 @@ describe('DropdownMenu', function () {
           },
         ]}
         triggerLabel="Menu"
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
@@ -242,7 +254,10 @@ describe('DropdownMenu', function () {
           },
         ]}
         triggerLabel="Menu"
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
@@ -256,7 +271,10 @@ describe('DropdownMenu', function () {
       <DropdownMenu
         items={[{key: 'item1', label: 'Item One', to: '/test'}]}
         triggerLabel="Menu"
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
@@ -271,7 +289,10 @@ describe('DropdownMenu', function () {
       <DropdownMenu
         items={[{key: 'item1', label: 'Item One', externalHref: 'https://example.com'}]}
         triggerLabel="Menu"
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
@@ -292,7 +313,10 @@ describe('DropdownMenu', function () {
         ]}
         triggerLabel="Menu"
       />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
@@ -321,7 +345,10 @@ describe('DropdownMenu', function () {
         ]}
         triggerLabel="Menu"
       />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await user.click(screen.getByRole('button', {name: 'Menu'}));
@@ -355,7 +382,10 @@ describe('DropdownMenu', function () {
         ]}
         triggerLabel="Menu"
       />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await user.click(screen.getByRole('button', {name: 'Menu'}));

@@ -224,7 +224,9 @@ describe('Transaction Summary Content', function () {
         onChangeFilter={() => {}}
         router={router}
       />,
-      {router, organization}
+      {
+        organization,
+      }
     );
 
     expect(

@@ -60,7 +60,10 @@ describe('WidgetTemplatesList', () => {
           setOpenWidgetTemplates={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
         />
-      </WidgetBuilderProvider>
+      </WidgetBuilderProvider>,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(await screen.findByText('Duration Distribution')).toBeInTheDocument();
@@ -75,7 +78,10 @@ describe('WidgetTemplatesList', () => {
           setOpenWidgetTemplates={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
         />
-      </WidgetBuilderProvider>
+      </WidgetBuilderProvider>,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     const widgetTemplate = await screen.findByText('Duration Distribution');
@@ -97,7 +103,10 @@ describe('WidgetTemplatesList', () => {
           setIsPreviewDraggable={jest.fn()}
         />
       </WidgetBuilderProvider>,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     const widgetTemplate = await screen.findByText('Duration Distribution');
@@ -125,7 +134,10 @@ describe('WidgetTemplatesList', () => {
           setOpenWidgetTemplates={jest.fn()}
           setIsPreviewDraggable={jest.fn()}
         />
-      </WidgetBuilderProvider>
+      </WidgetBuilderProvider>,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     const widgetTemplate = await screen.findByText('Duration Distribution');

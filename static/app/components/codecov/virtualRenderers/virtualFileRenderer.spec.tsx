@@ -246,8 +246,7 @@ describe('VirtualFileRenderer', () => {
       it('updates the URL', async () => {
         const {user} = setup();
         const {router} = render(
-          <VirtualFileRenderer content={code} coverage={coverageData} fileName="tsx" />,
-          {enableRouterMocks: false}
+          <VirtualFileRenderer content={code} coverage={coverageData} fileName="tsx" />
         );
 
         const line = screen.getByText(1);
@@ -259,8 +258,7 @@ describe('VirtualFileRenderer', () => {
       it('highlights the line on click', async () => {
         const {user} = setup();
         render(
-          <VirtualFileRenderer content={code} coverage={coverageData} fileName="tsx" />,
-          {enableRouterMocks: false}
+          <VirtualFileRenderer content={code} coverage={coverageData} fileName="tsx" />
         );
 
         const line = screen.getByText(1);
@@ -273,8 +271,7 @@ describe('VirtualFileRenderer', () => {
       it('removes highlighting when clicking on highlighted line', async () => {
         const {user} = setup();
         const {router} = render(
-          <VirtualFileRenderer content={code} coverage={coverageData} fileName="tsx" />,
-          {enableRouterMocks: false}
+          <VirtualFileRenderer content={code} coverage={coverageData} fileName="tsx" />
         );
 
         const line = screen.getByText(1);
@@ -292,7 +289,6 @@ describe('VirtualFileRenderer', () => {
         render(
           <VirtualFileRenderer content={code} coverage={coverageData} fileName="tsx" />,
           {
-            enableRouterMocks: false,
             initialRouterConfig: {
               location: {
                 pathname: '/#L4',
@@ -310,7 +306,6 @@ describe('VirtualFileRenderer', () => {
         render(
           <VirtualFileRenderer content={code} coverage={coverageData} fileName="tsx" />,
           {
-            enableRouterMocks: false,
             initialRouterConfig: {
               location: {
                 pathname: '/#RandomNumber',

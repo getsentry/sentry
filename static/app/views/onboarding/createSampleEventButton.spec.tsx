@@ -26,7 +26,11 @@ describe('CreateSampleEventButton', function () {
       >
         {createSampleText}
       </CreateSampleEventButton>,
-      {organization: org, router}
+      {
+        organization: org,
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
   }
 

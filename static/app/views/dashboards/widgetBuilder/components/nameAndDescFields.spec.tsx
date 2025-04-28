@@ -38,6 +38,7 @@ describe('WidgetBuilder', () => {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -72,7 +73,11 @@ describe('WidgetBuilder', () => {
           error={{title: 'Title is required during creation.'}}
         />
       </WidgetBuilderProvider>,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(

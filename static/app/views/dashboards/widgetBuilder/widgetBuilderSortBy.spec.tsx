@@ -104,8 +104,9 @@ function renderTestComponent({
       widgetLegendState={widgetLegendState}
     />,
     {
-      router,
+      deprecatedRouterMocks: true,
       organization,
+      router,
     }
   );
 

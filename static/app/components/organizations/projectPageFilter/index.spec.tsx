@@ -54,6 +54,7 @@ describe('ProjectPageFilter', function () {
     render(<ProjectPageFilter />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     // Open menu
@@ -77,6 +78,7 @@ describe('ProjectPageFilter', function () {
     render(<ProjectPageFilter />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     // Open menu
@@ -108,6 +110,7 @@ describe('ProjectPageFilter', function () {
     render(<ProjectPageFilter />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     // Open the menu, search input has focus
@@ -169,6 +172,7 @@ describe('ProjectPageFilter', function () {
     render(<ProjectPageFilter onReset={onReset} />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     // Open the menu, select project-1
@@ -193,6 +197,7 @@ describe('ProjectPageFilter', function () {
     render(<ProjectPageFilter />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     // Confirm initial selection
@@ -237,6 +242,7 @@ describe('ProjectPageFilter', function () {
     render(<ProjectPageFilter />, {
       router: desyncRouter,
       organization: desyncOrganization,
+      deprecatedRouterMocks: true,
     });
 
     // Open menu
