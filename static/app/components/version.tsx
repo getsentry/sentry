@@ -80,16 +80,14 @@ function Version({
 
   const renderVersion = () => {
     if (anchor && organization?.slug) {
-      const props = organization.features.includes('release-bubbles-ui')
-        ? {
-            to: makeReleaseDrawerPathname({
+      const props = {
+        to: organization.features.includes('release-bubbles-ui')
+          ? makeReleaseDrawerPathname({
               location,
               release: version,
               projectId: releaseDetailProjectId,
-            }),
-          }
-        : {
-            to: {
+            })
+          : {
               pathname: makeReleasesPathname({
                 path: `/${encodeURIComponent(version)}/`,
                 organization,
@@ -98,8 +96,8 @@ function Version({
                 ? {project: releaseDetailProjectId}
                 : undefined,
             },
-            className,
-          };
+        className,
+      };
       if (preservePageFilters) {
         return (
           <GlobalSelectionLink {...props}>
@@ -183,7 +181,10 @@ const truncateStyles = css`
   text-overflow: ellipsis;
 `;
 
-const VersionText = styled('span')<{shouldWrapText?: boolean; truncate?: boolean}>`
+const VersionText = styled('span')<{
+  shouldWrapText?: boolean;
+  truncate?: boolean;
+}>`
   ${p => p.truncate && truncateStyles}
   white-space: ${p => (p.shouldWrapText ? 'normal' : 'nowrap')};
 `;
