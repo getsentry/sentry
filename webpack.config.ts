@@ -250,7 +250,7 @@ const appConfig: webpack.Configuration = {
       {
         test: /\.po$/,
         use: {
-          loader: 'po-catalog-loader',
+          loader: path.resolve(__dirname, './build-utils/po-catalog-loader.ts'),
           options: {
             referenceExtensions: ['.js', '.tsx'],
             domain: 'sentry',
