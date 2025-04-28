@@ -390,7 +390,7 @@ describe('ExploreToolbar', function () {
     function Component() {
       groupBys = useExploreGroupBys();
       mode = useExploreMode();
-      return <ExploreToolbar extras={['tabs']} />;
+      return <ExploreToolbar />;
     }
     render(
       <PageParamsProvider>
@@ -419,7 +419,7 @@ describe('ExploreToolbar', function () {
     function Component() {
       groupBys = useExploreGroupBys();
       mode = useExploreMode();
-      return <ExploreToolbar extras={['tabs']} />;
+      return <ExploreToolbar />;
     }
     render(
       <PageParamsProvider>
