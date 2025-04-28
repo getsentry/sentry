@@ -835,7 +835,7 @@ function UsageTotals({
                 .map(([categoryKey]) => (
                   <UsageTotalsTable
                     key={categoryKey}
-                    category={categoryKey}
+                    category={categoryKey as DataCategory}
                     totals={allTotalsByCategory?.[categoryKey] ?? EMPTY_STAT_TOTAL}
                     subscription={subscription}
                   />
@@ -848,7 +848,7 @@ function UsageTotals({
                 <UsageTotalsTable
                   isEventBreakdown
                   key={key}
-                  category={key}
+                  category={key as DataCategory}
                   totals={eventTotal}
                   subscription={subscription}
                   data-test-id={`event-breakdown-${key}`}

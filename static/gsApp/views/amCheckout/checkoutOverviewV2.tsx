@@ -120,15 +120,13 @@ function CheckoutOverviewV2({activePlan, formData}: Props) {
       <Section>
         <Subtitle>{t('All Sentry Products')}</Subtitle>
         <ReservedVolumes>
-          {activePlan.categories.map(category => {
+          {(activePlan.categories as DataCategory[]).map(category => {
             const eventBucket =
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+              activePlan.planCategories[category] &&
               activePlan.planCategories[category].length <= 1
                 ? null
                 : utils.getBucket({
-                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     events: formData.reserved[category],
-                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     buckets: activePlan.planCategories[category],
                   });
             const price = utils.displayPrice({
@@ -157,23 +155,27 @@ function CheckoutOverviewV2({activePlan, formData}: Props) {
                       </Fragment>
                     )
                   }
-                  {
-                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                    formData.reserved[category] === 1 &&
-                    category !== DataCategory.ATTACHMENTS
-                      ? getSingularCategoryName({
-                          plan: activePlan,
-                          category,
-                          title: true,
-                        })
-                      : getPlanCategoryName({plan: activePlan, category, title: true})
-                  }
-                  {paygCategories.includes(category as DataCategory) ? (
+                  {formData.reserved[category] === 1 &&
+                  category !== DataCategory.ATTACHMENTS
+                    ? getSingularCategoryName({
+                        plan: activePlan,
+                        category,
+                        title: true,
+                      })
+                    : getPlanCategoryName({
+                        plan: activePlan,
+                        category,
+                        title: true,
+                      })}
+                  {paygCategories.includes(category) ? (
                     <QuestionTooltip
                       size="xs"
                       title={t(
                         "%s use your pay-as-you-go budget. You'll only be charged for actual usage.",
-                        getPlanCategoryName({plan: activePlan, category})
+                        getPlanCategoryName({
+                          plan: activePlan,
+                          category,
+                        })
                       )}
                     />
                   ) : null}

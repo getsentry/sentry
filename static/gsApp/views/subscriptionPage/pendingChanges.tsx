@@ -89,12 +89,12 @@ class PendingChanges extends Component<Props> {
                 currentOnDemandBudgets: formatOnDemandBudget(
                   subscription.planDetails,
                   currentOnDemandBudgets,
-                  subscription.planDetails.onDemandCategories
+                  subscription.planDetails.onDemandCategories as DataCategory[]
                 ),
                 nextOnDemandBudgets: formatOnDemandBudget(
                   pendingChanges.planDetails,
                   nextOnDemandBudgets,
-                  pendingChanges.planDetails.onDemandCategories
+                  pendingChanges.planDetails.onDemandCategories as DataCategory[]
                 ),
               }
             )
@@ -191,7 +191,7 @@ class PendingChanges extends Component<Props> {
             tct('Reserved [displayName] change to [quantity]', {
               displayName: getPlanCategoryName({
                 plan: pendingChanges.planDetails,
-                category: plural,
+                category: plural as DataCategory,
                 capitalize: false,
               }),
               quantity: formatReservedWithUnits(
@@ -281,7 +281,7 @@ class PendingChanges extends Component<Props> {
         const newAmount = formatCurrency(budget.reservedBudget);
         const budgetName = getReservedBudgetDisplayName({
           plan: pendingChanges.planDetails,
-          categories: adjustedCategories,
+          categories: adjustedCategories as DataCategory[],
           hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
         });
         return `${newAmount} for ${budgetName}`;

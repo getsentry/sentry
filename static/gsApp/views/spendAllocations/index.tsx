@@ -73,8 +73,8 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
       : BigNumUnits.NUMBERS;
   }, [selectedMetric]);
 
-  const supportedCategories = planDetails.categories.filter(
-    category => getCategoryInfoFromPlural(category as DataCategory)?.canAllocate
+  const supportedCategories = (planDetails.categories as DataCategory[]).filter(
+    category => getCategoryInfoFromPlural(category)?.canAllocate
   );
 
   const period = useMemo<Date[]>(() => {

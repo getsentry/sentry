@@ -457,7 +457,6 @@ function ReservedUsageChart({
   const transform = selectedTransform(location);
 
   const currentHistory: BillingMetricHistory | undefined =
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     subscription.categories[category];
   const categoryStats = usageStats[category];
   const isReservedBudgetCategory =

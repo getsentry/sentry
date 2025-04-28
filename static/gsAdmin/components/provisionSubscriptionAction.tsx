@@ -767,7 +767,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                           }
                           const titleName = getPlanCategoryName({
                             plan: this.state.provisionablePlans[this.state.data.plan],
-                            category,
+                            category: category as DataCategory,
                             title: true,
                             hadCustomDynamicSampling: isAm3Ds,
                           });
@@ -917,7 +917,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                       }
                       const titleName = getPlanCategoryName({
                         plan: this.state.provisionablePlans[this.state.data.plan],
-                        category,
+                        category: category as DataCategory,
                         title: true,
                         hadCustomDynamicSampling: isAm3Ds,
                       });

@@ -11,6 +11,7 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {DataCategory} from 'sentry/types/core';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -117,7 +118,7 @@ class OnDemandBudgetEdit extends Component<Props> {
     ) {
       return (
         <InputFields>
-          {activePlan.onDemandCategories.map(category => {
+          {(activePlan.onDemandCategories as DataCategory[]).map(category => {
             const categoryBudgetKey = `${category}Budget`;
             const displayName = getPlanCategoryName({plan: activePlan, category});
             return (
@@ -141,7 +142,6 @@ class OnDemandBudgetEdit extends Component<Props> {
                         pattern="[0-9]*"
                         maxLength={7}
                         placeholder="e.g. 50"
-                        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                         value={coerceValue(onDemandBudget.budgets[category] ?? 0)}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                           const inputValue = parseInputValue(e);
@@ -189,7 +189,7 @@ class OnDemandBudgetEdit extends Component<Props> {
     const selectedBudgetMode = onDemandBudget.budgetMode;
     const oxfordCategories = listDisplayNames({
       plan: activePlan,
-      categories: activePlan.onDemandCategories,
+      categories: activePlan.onDemandCategories as DataCategory[],
     });
 
     if (subscription.planDetails.budgetTerm === 'pay-as-you-go') {

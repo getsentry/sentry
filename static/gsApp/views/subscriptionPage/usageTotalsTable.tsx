@@ -137,7 +137,7 @@ function OutcomeSection({
 }
 
 type Props = {
-  category: string;
+  category: DataCategory;
   subscription: Subscription;
   totals: BillingStatTotal;
   isEventBreakdown?: boolean;
@@ -167,8 +167,7 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
                 {isEventBreakdown
                   ? tct('[singularName] Events', {
                       singularName: toTitleCase(
-                        getCategoryInfoFromPlural(category as DataCategory)
-                          ?.displayName ?? category,
+                        getCategoryInfoFromPlural(category)?.displayName ?? category,
                         {allowInnerUpperCase: true}
                       ),
                     })

@@ -9,6 +9,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 
 import {openEditCreditCard} from 'getsentry/actionCreators/modal';
@@ -140,19 +141,16 @@ class OnDemandBudgets extends Component<Props> {
     if (onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
       return (
         <PerCategoryBudgetContainer data-test-id="per-category-budget-info">
-          {subscription.planDetails.onDemandCategories.map(category => (
-            <Category key={category}>
-              <DetailTitle>
-                {getPlanCategoryName({plan: subscription.planDetails, category})}
-              </DetailTitle>
-              <Amount>
-                {
-                  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                  formatCurrency(onDemandBudgets.budgets[category] ?? 0)
-                }
-              </Amount>
-            </Category>
-          ))}
+          {(subscription.planDetails.onDemandCategories as DataCategory[]).map(
+            category => (
+              <Category key={category}>
+                <DetailTitle>
+                  {getPlanCategoryName({plan: subscription.planDetails, category})}
+                </DetailTitle>
+                <Amount>{formatCurrency(onDemandBudgets.budgets[category] ?? 0)}</Amount>
+              </Category>
+            )
+          )}
         </PerCategoryBudgetContainer>
       );
     }
@@ -207,7 +205,7 @@ class OnDemandBudgets extends Component<Props> {
 
     const oxfordCategories = listDisplayNames({
       plan: subscription.planDetails,
-      categories: subscription.planDetails.onDemandCategories,
+      categories: subscription.planDetails.onDemandCategories as DataCategory[],
     });
     let description = t('Applies to %s.', oxfordCategories);
 

@@ -6,6 +6,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 
 import {ANNUAL, MONTHLY} from 'getsentry/constants';
@@ -79,7 +80,12 @@ class CheckoutOverview extends Component<Props> {
       return (
         <DetailItem key={category} data-test-id={category}>
           <div>
-            <DetailTitle>{getPlanCategoryName({plan: activePlan, category})}</DetailTitle>
+            <DetailTitle>
+              {getPlanCategoryName({
+                plan: activePlan,
+                category: category as DataCategory,
+              })}
+            </DetailTitle>
             {
               // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               formatReservedWithUnits(formData.reserved[category], category)
@@ -144,7 +150,10 @@ class CheckoutOverview extends Component<Props> {
         if (onDemandBudget.budgets[category]) {
           details.push(
             <Fragment key={`${category}-per-category-ondemand`}>
-              {getPlanCategoryName({plan: activePlan, category})}
+              {getPlanCategoryName({
+                plan: activePlan,
+                category: category as DataCategory,
+              })}
               <OnDemandPrice>
                 {tct('up to [onDemandPrice]/mo', {
                   onDemandPrice: utils.displayPrice({
