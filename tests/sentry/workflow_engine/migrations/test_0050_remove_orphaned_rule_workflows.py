@@ -1,10 +1,12 @@
 from sentry.testutils.cases import TestMigrations
+from sentry.testutils.factories import DataConditionGroupAction
 from sentry.workflow_engine.models import (
     Action,
     AlertRuleWorkflow,
     DataCondition,
     DataConditionGroup,
     Workflow,
+    WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 
@@ -77,13 +79,25 @@ class TestMigrateIssueAlerts(TestMigrations):
         assert not Workflow.objects.filter(id=self.orphaned_workflow.id).exists()
         assert not AlertRuleWorkflow.objects.filter(rule_id=self.orphaned_workflow.id).exists()
 
-        # only orphaned workflow had actions, DCGs, and DCs
         assert Action.objects.all().count() == 1
         assert DataConditionGroup.objects.all().count() == 2
         assert DataCondition.objects.all().count() == 2
 
         self.connected_workflow.refresh_from_db()
         assert self.connected_workflow
+        assert self.connected_workflow.when_condition_group
+        assert self.connected_workflow.when_condition_group.conditions.all().count() == 1
+        filter_dcg = WorkflowDataConditionGroup.objects.filter(
+            workflow=self.connected_workflow
+        ).first()
+        assert filter_dcg
+        assert filter_dcg.condition_group.conditions.all().count() == 1
+        assert (
+            DataConditionGroupAction.objects.filter(
+                condition_group=filter_dcg.condition_group
+            ).count()
+            == 1
+        )
 
         self.metric_workflow.refresh_from_db()
         assert self.metric_workflow
