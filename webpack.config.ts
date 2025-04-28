@@ -110,25 +110,6 @@ const sentryDjangoAppPath = path.join(__dirname, 'src/sentry/static/sentry');
 const distPath = path.join(sentryDjangoAppPath, 'dist');
 const staticPrefix = path.join(__dirname, 'static');
 
-// Locale file extraction build step
-if (env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
-  babelConfig.plugins?.push([
-    'module:babel-gettext-extractor',
-    {
-      fileName: 'build/javascript.po',
-      baseDirectory: path.join(__dirname),
-      functionNames: {
-        gettext: ['msgid'],
-        ngettext: ['msgid', 'msgid_plural', 'count'],
-        gettextComponentTemplate: ['msgid'],
-        t: ['msgid'],
-        tn: ['msgid', 'msgid_plural', 'count'],
-        tct: ['msgid'],
-      },
-    },
-  ]);
-}
-
 // Locale compilation and optimizations.
 //
 // Locales are code-split from the app and vendor chunk into separate chunks
