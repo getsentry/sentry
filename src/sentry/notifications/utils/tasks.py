@@ -20,8 +20,8 @@ if TYPE_CHECKING:
     from sentry.notifications.notifications.base import BaseNotification
 
 
-def serialize_lazy_object_user(arg: User, key: str | None = None) -> dict[str, Any]:
-    raw_data = arg.dict()
+def serialize_lazy_object_user(arg: SimpleLazyObject, key: str | None = None) -> dict[str, Any]:
+    raw_data = arg.dict()  # type: ignore[attr-defined]
     parsed_data = {}
     for k, v in raw_data.items():
         if isinstance(v, datetime):
@@ -108,7 +108,7 @@ def _send_notification(notification_class_name: str, arg_list: Iterable[Mapping[
             if arg["class"] == "RpcUser":
                 user = RpcUser.parse_obj(arg["data"])
             else:
-                user = User.parse_obj(arg["data"])
+                user = User.objects.get(pk=arg["data"]["pk"])
 
             if arg["key"]:
                 output_kwargs[arg["key"]] = user
