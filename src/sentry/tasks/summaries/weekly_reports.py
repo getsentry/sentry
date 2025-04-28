@@ -131,7 +131,7 @@ def prepare_organization_report(
     organization_id: int,
     batch_id: uuid.UUID | str,
     dry_run: bool = False,
-    target_user: User | str | None = None,
+    target_user: User | int | None = None,
     email_override: str | None = None,
 ):
     if target_user and not hasattr(target_user, "id"):
@@ -265,7 +265,7 @@ class OrganizationReportBatch:
     batch_id: uuid.UUID | str
 
     dry_run: bool = False
-    target_user: User | str | None = None
+    target_user: User | int | None = None
     email_override: str | None = None
 
     def deliver_reports(self) -> None:
@@ -274,10 +274,13 @@ class OrganizationReportBatch:
         """
         if self.email_override:
             # if None, generates report for a user with access to all projects
+            target_user_id: int | None = None
             if isinstance(self.target_user, User):
-                self.target_user = self.target_user.id
+                target_user_id = self.target_user.id
+            elif isinstance(self.target_user, int):
+                target_user_id = self.target_user
             user_template_context_by_user_id_list = prepare_template_context(
-                ctx=self.ctx, user_ids=[self.target_user]
+                ctx=self.ctx, user_ids=[target_user_id]
             )
             if user_template_context_by_user_id_list:
                 self._send_to_user(user_template_context_by_user_id_list[0])
