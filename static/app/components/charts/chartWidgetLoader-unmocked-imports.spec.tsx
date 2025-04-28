@@ -7,7 +7,8 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 
-import {ChartId, ChartWidgetLoader} from './chartWidgetLoader';
+import type {ChartId} from './chartWidgetLoader';
+import {ChartWidgetLoader} from './chartWidgetLoader';
 
 // Mock this component so it doesn't yell at us for no plottables
 jest.mock(

@@ -7,7 +7,8 @@ import {
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {ChartId, ChartWidgetLoader} from './chartWidgetLoader';
+import type {ChartId} from './chartWidgetLoader';
+import {ChartWidgetLoader} from './chartWidgetLoader';
 
 const mockUseQuery = jest.fn();
 jest.mock('@sentry/core', () => ({
