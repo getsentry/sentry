@@ -28,8 +28,6 @@ import type {
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {uniq} from 'sentry/utils/array/uniq';
-import type {Fuse} from 'sentry/utils/fuzzySearch';
-import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {
   getAlertText,
   getCategoriesForIntegration,
@@ -56,14 +54,6 @@ const FirstPartyIntegrationAlert = HookOrDefault({
   hookName: 'component:first-party-integration-alert',
   defaultComponent: () => null,
 });
-
-const fuseOptions: Fuse.IFuseOptions<AppOrProviderOrPlugin> = {
-  threshold: 0.3,
-  location: 0,
-  distance: 100,
-  includeScore: true as const,
-  keys: ['slug', 'key', 'name', 'id'],
-};
 
 /**
  * Debounce the tracking of integration search events to avoid spamming the
@@ -211,7 +201,6 @@ export default function IntegrationListDirectory() {
   const navigate = useNavigate();
   const {appInstalls, anyPending, integrations, list, anyError, publishedApps, plugins} =
     useIntegrationList();
-  const fuzzy = useFuzzySearch<AppOrProviderOrPlugin>(list, fuseOptions);
 
   const category = decodeScalar(location.query.category) ?? '';
   const search = decodeScalar(location.query.search) ?? '';
@@ -219,8 +208,10 @@ export default function IntegrationListDirectory() {
   const displayList = useMemo(() => {
     let listToDisplay = [...list];
 
-    if (search && fuzzy) {
-      listToDisplay = fuzzy.search(search).map(result => result.item);
+    if (search) {
+      listToDisplay = list.filter(integration =>
+        integration.name.toLowerCase().includes(search.toLowerCase())
+      );
     }
 
     if (category) {
@@ -234,7 +225,7 @@ export default function IntegrationListDirectory() {
       sentryAppInstalls: appInstalls,
       integrationInstalls: integrations,
     });
-  }, [list, appInstalls, integrations, category, search, fuzzy]);
+  }, [list, appInstalls, integrations, category, search]);
 
   const getAppInstall = useCallback(
     (app: SentryApp) => appInstalls.find(i => i.app.slug === app.slug),
