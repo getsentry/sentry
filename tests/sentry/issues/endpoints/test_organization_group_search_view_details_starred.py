@@ -28,7 +28,7 @@ class OrganizationGroupSearchViewDetailsStarredEndpointTest(APITestCase):
         self, user_id: int | None = None, visibility: str | None = None, starred: bool = False
     ) -> GroupSearchView:
         user_id = user_id or self.user.id
-        visibility = visibility or GroupSearchViewVisibility.OWNER
+        visibility = visibility or GroupSearchViewVisibility.ORGANIZATION
 
         view = GroupSearchView.objects.create(
             name="Test View",

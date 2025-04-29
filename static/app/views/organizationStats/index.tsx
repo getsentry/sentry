@@ -45,6 +45,9 @@ import UsageStatsOrg from './usageStatsOrg';
 import {UsageStatsProjects} from './usageStatsProjects';
 
 const HookHeader = HookOrDefault({hookName: 'component:org-stats-banner'});
+const HookOrgStatsProfilingBanner = HookOrDefault({
+  hookName: 'component:org-stats-profiling-banner',
+});
 
 export const PAGE_QUERY_PARAMS = [
   // From DatePageFilter
@@ -251,6 +254,11 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
 
     const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
+    const hasProfiling = organization.features.includes('continuous-profiling');
+    const hasProfilingStats = organization.features.includes(
+      'continuous-profiling-stats'
+    );
+
     const options = CHART_OPTIONS_DATACATEGORY.filter(opt => {
       if (isSelfHostedErrorsOnly) {
         return opt.value === DATA_CATEGORY_INFO.error.plural;
@@ -274,15 +282,20 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
         DATA_CATEGORY_INFO.profileDuration.plural === opt.value ||
         DATA_CATEGORY_INFO.profileDurationUI.plural === opt.value
       ) {
-        return (
-          organization.features.includes('continuous-profiling-stats') ||
-          organization.features.includes('continuous-profiling')
-        );
+        return hasProfiling || hasProfilingStats;
       }
       if (DATA_CATEGORY_INFO.profile.plural === opt.value) {
-        return !organization.features.includes('continuous-profiling-stats');
+        return !hasProfilingStats;
       }
       return true;
+    }).map(opt => {
+      if (
+        (hasProfiling || hasProfilingStats) &&
+        DATA_CATEGORY_INFO.profile.plural === opt.value
+      ) {
+        return {...opt, label: `${opt.label} (legacy)`};
+      }
+      return opt;
     });
 
     return (
@@ -352,6 +365,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
   render() {
     const {organization} = this.props;
     const hasTeamInsights = organization.features.includes('team-insights');
+    const showProfilingBanner = this.dataCategory === 'profiles';
 
     return (
       <SentryDocumentTitle title={t('Usage Stats')} orgSlug={organization.slug}>
@@ -383,6 +397,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
                   {this.renderProjectPageControl()}
                   {this.renderEstimationDisclaimer()}
                 </ControlsWrapper>
+                {showProfilingBanner && <HookOrgStatsProfilingBanner />}
                 <div>
                   <ErrorBoundary mini>{this.renderUsageStatsOrg()}</ErrorBoundary>
                 </div>

@@ -95,7 +95,7 @@ function AutofixInsightCard({
     };
   }, [displayedInsightTitle, newlineIndex]);
 
-  const hasFullJustification = !isUserMessage && !insight.justification;
+  const hasFullJustification = !isUserMessage && insight.justification;
 
   const fullJustificationText = useMemo(() => {
     let fullJustification = isUserMessage ? '' : insight.justification;
