@@ -228,6 +228,7 @@ def delete_assemble_status(task, scope, checksum):
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=attachments_tasks,
+        processing_deadline_duration=30,
     ),
 )
 def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
@@ -597,6 +598,7 @@ class ArtifactBundlePostAssembler:
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=attachments_tasks,
+        processing_deadline_duration=30,
     ),
 )
 def assemble_artifacts(
