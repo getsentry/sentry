@@ -706,3 +706,4 @@ class OrganizationSpansSamplesEAPRPCEndpointTest(OrganizationEventsEndpointTestB
         meta = response.data["meta"]
         assert meta["fields"]["span.duration"] == "duration"
         assert meta["units"]["span.duration"] == "millisecond"
+        assert meta["dataset"] == "spans"

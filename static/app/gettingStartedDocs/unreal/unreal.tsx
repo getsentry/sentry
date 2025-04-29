@@ -30,6 +30,26 @@ void Verify()
     SentrySubsystem->CaptureMessage(TEXT("Capture message"));
 }`;
 
+const getSettingsConfigureSnippet = (params: Params) => `
+#include "SentrySubsystem.h"
+
+FConfigureSettingsDelegate OnConfigureSettings;
+OnConfigureSettings.BindDynamic(this, &UMyGameInstance::ConfigureSentrySettings);
+
+void UMyGameInstance::ConfigureSentrySettings(USentrySettings* Settings)
+{
+    Settings->Dsn = TEXT("${params.dsn.public}");
+
+    // Add data like user ip address and device name
+    // See https://docs.sentry.io/platforms/unreal/data-management/data-collected/ for more info
+    Settings->SendDefaultPii = true;
+}
+
+...
+
+USentrySubsystem* SentrySubsystem = GEngine->GetEngineSubsystem<USentrySubsystem>();
+SentrySubsystem->InitializeWithSettings(OnConfigureSettings);`;
+
 const getCrashReporterConfigSnippet = (params: Params) => `
 [CrashReportClient]
 CrashReportClientVersion=1.0
@@ -86,6 +106,20 @@ const onboarding: OnboardingConfig = {
         {
           language: 'url',
           code: params.dsn.public,
+        },
+        {
+          description: (
+            <p>
+              {tct(
+                "By default, the SDK initializes automatically when the application starts. Alternatively, you can disable the [strong:Initialize SDK automatically] option, in which case you'll need to initialize the SDK manually",
+                {
+                  strong: <strong />,
+                }
+              )}
+            </p>
+          ),
+          language: 'cpp',
+          code: getSettingsConfigureSnippet(params),
         },
       ],
     },
