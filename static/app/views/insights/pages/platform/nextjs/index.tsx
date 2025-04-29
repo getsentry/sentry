@@ -62,6 +62,7 @@ export function NextJsOverviewPage({headerTitle}: {headerTitle: React.ReactNode}
         handleAddTransactionFilter={setTransactionFilter}
         query={query}
         showHttpMethodColumn={false}
+        showUsersColumn={false}
       />
     </PlatformLandingPageLayout>
   );
