@@ -241,7 +241,7 @@ function Dashboard() {
               }
               to={makeProjectsPathname({
                 path: '/new/',
-                orgSlug: organization.slug,
+                organization,
               })}
               icon={<IconAdd isCircled />}
               data-test-id="create-project"

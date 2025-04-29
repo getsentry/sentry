@@ -200,7 +200,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
         ...nextLocation,
         pathname: makeProjectsPathname({
           path: `/${project.slug}/`,
-          orgSlug: organization.slug,
+          organization,
         }),
       },
       issueList: {

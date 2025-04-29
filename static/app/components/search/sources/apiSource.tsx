@@ -76,7 +76,7 @@ async function createProjectResults(
       resultType: 'route',
       to:
         makeProjectsPathname({
-          orgSlug: organization.slug,
+          organization,
           path: `/${project.slug}/`,
         }) + `?project=${project.id}`,
       resolvedTs,

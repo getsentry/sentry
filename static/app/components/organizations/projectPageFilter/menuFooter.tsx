@@ -51,7 +51,7 @@ function ProjectPageFilterMenuFooter({
       <LinkButton
         size="xs"
         aria-label={t('Add Project')}
-        to={makeProjectsPathname({path: '/new/', orgSlug: organization.slug})}
+        to={makeProjectsPathname({path: '/new/', organization})}
         icon={<IconAdd isCircled />}
       >
         {t('Project')}
