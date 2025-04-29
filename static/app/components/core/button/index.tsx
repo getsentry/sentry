@@ -1,4 +1,3 @@
-import {useCallback} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import type {SerializedStyles, Theme} from '@emotion/react';
 import {css} from '@emotion/react';
@@ -156,21 +155,18 @@ const useButtonFunctionality = (props: ButtonProps | LinkButtonProps) => {
     'aria-label': accessibleLabel || '',
   });
 
-  const handleClick = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
-      // Don't allow clicks when disabled or busy
-      if (props.disabled || props.busy) {
-        e.preventDefault();
-        e.stopPropagation();
-        return;
-      }
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
+    // Don't allow clicks when disabled or busy
+    if (props.disabled || props.busy) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
 
-      buttonTracking();
-      // @ts-expect-error at this point, we don't know if the button is a button or a link
-      props.onClick?.(e);
-    },
-    [props, buttonTracking]
-  );
+    buttonTracking();
+    // @ts-expect-error at this point, we don't know if the button is a button or a link
+    props.onClick?.(e);
+  };
 
   const hasChildren = Array.isArray(props.children)
     ? props.children.some(child => !!child || String(child) === '0')
