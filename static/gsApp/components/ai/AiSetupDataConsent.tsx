@@ -78,6 +78,10 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
           disabled={autofixAcknowledgeMutation.isPending}
           analyticsEventKey="gen_ai_consent.in_drawer_clicked"
           analyticsEventName="Gen AI Consent: Clicked In Drawer"
+          analyticsParams={{
+            is_first_user_in_org:
+              !autofixSetupData?.setupAcknowledgement.orgHasAcknowledged,
+          }}
           size="sm"
         >
           {autofixAcknowledgeMutation.isPending ? (
