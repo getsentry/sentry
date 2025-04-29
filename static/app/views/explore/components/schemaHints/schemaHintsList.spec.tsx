@@ -235,7 +235,6 @@ describe('SchemaHintsList', () => {
       />,
       {
         organization,
-
         router: {
           ...router,
           location: {
@@ -246,7 +245,6 @@ describe('SchemaHintsList', () => {
             },
           },
         },
-
         deprecatedRouterMocks: true,
       }
     );
@@ -340,6 +338,7 @@ describe('SchemaHintsList', () => {
       />,
       {
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
