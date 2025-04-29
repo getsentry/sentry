@@ -224,6 +224,7 @@ class RuleConditionTranslationTest(ConditionTestCase):
                 "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
                 "match": "is",
                 "key": "environment",
+                "value": "",
             },
             {
                 "id": "sentry.rules.filters.event_attribute.EventAttributeFilter",

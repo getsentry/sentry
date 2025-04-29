@@ -1,7 +1,6 @@
 from typing import Any
 
 from sentry.rules.conditions.event_frequency import ComparisonType
-from sentry.rules.match import MatchType
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 
 ConditionAndFilters = tuple[dict[str, Any], list[dict[str, Any]]]
@@ -42,7 +41,7 @@ def create_event_attribute_condition(
     payload = {
         "id": id,
         "match": data_condition.comparison["match"],
-        "value": data_condition.comparison["value"],
+        "value": data_condition.comparison.get("value", ""),
         "attribute": data_condition.comparison["attribute"],
     }
 
@@ -95,7 +94,7 @@ def create_tagged_event_condition(
     payload = {
         "id": id,
         "match": data_condition.comparison["match"],
-        "value": data_condition.comparison.get("value"),
+        "value": data_condition.comparison.get("value", ""),
         "key": data_condition.comparison["key"],
     }
 
@@ -252,8 +251,7 @@ def create_event_unique_user_frequency_condition(
                     "key": filter["key"],
                     "match": filter["match"],
                 }
-            if filter["match"] not in {MatchType.IS_SET, MatchType.NOT_SET}:
-                filter_payload["value"] = filter["value"]
+            filter_payload["value"] = filter.get("value", "")
 
             filters.append(filter_payload)
 
