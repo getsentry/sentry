@@ -34,7 +34,9 @@ export function Slider({formatLabel = passthrough, ref, ...props}: SliderProps) 
           props.onChange?.(newValue, e);
         }}
       />
-      {props.disabled || !formattedLabel ? null : (
+      {props.disabled ||
+      formattedLabel === null ||
+      formattedLabel === undefined ? null : (
         <SliderOutput htmlFor={props.id}>
           <SliderLabel>{formattedLabel}</SliderLabel>
         </SliderOutput>
