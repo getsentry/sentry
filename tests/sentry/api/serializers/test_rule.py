@@ -98,7 +98,7 @@ class WorkflowRuleSerializerTest(TestCase):
         workflow = self.create_workflow()
 
         error_detector = self.create_detector(project=self.project, type="error")
-        metric_detector = self.create_detector(project=self.project, type="metric_alert_fire")
+        metric_detector = self.create_detector(project=self.project, type="metric_issue")
         workflow_2 = self.create_workflow()
         # Workflow connected to 2 detectors with the same project
         self.create_detector_workflow(detector=error_detector, workflow=workflow_2)
