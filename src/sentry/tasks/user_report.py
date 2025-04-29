@@ -1,3 +1,6 @@
+from collections.abc import Mapping
+from typing import Any
+
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
@@ -12,15 +15,22 @@ from sentry.utils.safe import safe_execute
         namespace=issues_tasks,
     ),
 )
-def user_report(report, project_id):
+def user_report(report: Mapping[str, Any], project_id: int, report_id: int | None = None):
     """
     Create and send a UserReport.
 
     :param report: Serialized `UserReport` object from the DB
     :param project_id: The user's project's ID
     """
+    from django.contrib.auth.models import AnonymousUser
+
+    from sentry.api.serializers import UserReportWithGroupSerializer, serialize
     from sentry.mail import mail_adapter
     from sentry.models.project import Project
+    from sentry.models.userreport import UserReport
 
     project = Project.objects.get_from_cache(id=project_id)
+    if report_id:
+        report = UserReport.objects.get(id=report_id)
+        report = serialize(report, AnonymousUser(), UserReportWithGroupSerializer())
     safe_execute(mail_adapter.handle_user_report, report=report, project=project)
