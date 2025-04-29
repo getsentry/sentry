@@ -45,9 +45,11 @@ function confidenceMessage({
   const partialScanTooltip = <_PartialScanTooltip />;
   const lowAccuracyFullSampleCount = <_LowAccuracyFullTooltip noSampling={noSampling} />;
   const sampleCountComponent = <Count value={sampleCount} />;
+  const showPartialScanMessage = dataScanned === 'partial' && !normalSamplingModeEnabled;
+
   if (confidence === 'low') {
     if (isTopN) {
-      if (dataScanned === 'partial' && !normalSamplingModeEnabled) {
+      if (showPartialScanMessage) {
         return tct(
           'Top [topEvents] groups based on [tooltip:[sampleCountComponent] samples (Max. Limit)]',
           {
@@ -68,7 +70,7 @@ function confidenceMessage({
       );
     }
 
-    if (dataScanned === 'partial' && !normalSamplingModeEnabled) {
+    if (showPartialScanMessage) {
       return tct('Based on [tooltip:[sampleCountComponent] samples (Max. Limit)]', {
         tooltip: partialScanTooltip,
         sampleCountComponent,
@@ -82,7 +84,7 @@ function confidenceMessage({
   }
 
   if (isTopN) {
-    if (dataScanned === 'partial' && !normalSamplingModeEnabled) {
+    if (showPartialScanMessage) {
       return tct(
         'Top [topEvents] groups based on [tooltip:[sampleCountComponent] samples (Max. Limit)]',
         {
@@ -99,7 +101,7 @@ function confidenceMessage({
     });
   }
 
-  if (dataScanned === 'partial' && !normalSamplingModeEnabled) {
+  if (showPartialScanMessage) {
     return tct('Based on [tooltip:[sampleCountComponent] samples (Max. Limit)]', {
       tooltip: partialScanTooltip,
       sampleCountComponent,
