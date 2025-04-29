@@ -17,7 +17,7 @@ from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_component
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
-from sentry.snuba.models import SnubaQuery
+from sentry.snuba.models import QuerySubscription
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -284,11 +284,13 @@ class WorkflowEngineDetectorSerializer(Serializer):
         # add information from snubaquery
         for detector in detectors.values():
             data_source_detector = DataSourceDetector.objects.get(detector_id=detector.id)
-            snuba_query = SnubaQuery.objects.get(id=data_source_detector.data_source.source_id)
-            result[detector]["query"] = snuba_query.query
-            result[detector]["aggregate"] = snuba_query.aggregate
-            result[detector]["timeWindow"] = snuba_query.time_window
-            result[detector]["resolution"] = snuba_query.resolution
+            query_subscription = QuerySubscription.objects.get(
+                id=data_source_detector.data_source.source_id
+            )
+            result[detector]["query"] = query_subscription.snuba_query.query
+            result[detector]["aggregate"] = query_subscription.snuba_query.aggregate
+            result[detector]["timeWindow"] = query_subscription.snuba_query.time_window
+            result[detector]["resolution"] = query_subscription.snuba_query.resolution
 
         return result
 
