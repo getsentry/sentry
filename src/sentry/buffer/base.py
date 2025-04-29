@@ -168,7 +168,7 @@ class Buffer(Service):
                 # datetime strings back into datetime objects. This ensures that
                 # the cache data contains the correct type.
                 for key in ("last_seen", "first_seen"):
-                    if key in extra:
+                    if key in extra and isinstance(extra[key], str):
                         extra[key] = datetime.fromisoformat(extra[key])
                 update_kwargs.update(extra)
             # HACK(dcramer): this is gross, but we don't have a good hook to compute this property today
