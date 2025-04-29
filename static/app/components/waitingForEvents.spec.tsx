@@ -30,6 +30,7 @@ describe('WaitingForEvents', function () {
         <WaitingForEvents org={OrganizationFixture()} project={ProjectFixture()} />,
         {
           router,
+          deprecatedRouterMocks: true,
         }
       );
     }
@@ -52,6 +53,7 @@ describe('WaitingForEvents', function () {
     function createWrapper() {
       return render(<WaitingForEvents org={OrganizationFixture()} />, {
         router,
+        deprecatedRouterMocks: true,
       });
     }
 

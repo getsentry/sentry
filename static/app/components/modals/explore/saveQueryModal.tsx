@@ -12,7 +12,6 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
 import {Switch} from 'sentry/components/core/switch';
-import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
@@ -20,13 +19,6 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSetExplorePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
-import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-
-type SingleQueryProps = {
-  query: string;
-  visualizes: BaseVisualize[];
-  groupBys?: string[]; // This needs to be passed in because saveQuery relies on being within the Explore PageParamsContext to fetch params
-};
 
 export type SaveQueryModalProps = {
   organization: Organization;
@@ -147,46 +139,6 @@ function SaveQueryModal({
   );
 }
 
-export function ExploreParams({
-  query,
-  visualizes,
-  groupBys,
-  className,
-}: SingleQueryProps & {className?: string}) {
-  const yAxes = visualizes.flatMap(visualize => visualize.yAxes);
-
-  return (
-    <ExploreParamsContainer className={className}>
-      <ExploreParamSection>
-        <ExploreParamTitle>{t('Visualize')}</ExploreParamTitle>
-        <ExploreParamSection>
-          {yAxes.map(yAxis => (
-            <ExploreVisualizes key={yAxis}>{yAxis}</ExploreVisualizes>
-          ))}
-        </ExploreParamSection>
-      </ExploreParamSection>
-      {query && (
-        <ExploreParamSection>
-          <ExploreParamTitle>{t('Filter')}</ExploreParamTitle>
-          <FormattedQueryWrapper>
-            <ProvidedFormattedQuery query={query} />
-          </FormattedQueryWrapper>
-        </ExploreParamSection>
-      )}
-      {groupBys && groupBys.length > 0 && (
-        <ExploreParamSection>
-          <ExploreParamTitle>{t('Group By')}</ExploreParamTitle>
-          <ExploreParamSection>
-            {groupBys.map(groupBy => (
-              <ExploreGroupBys key={groupBy}>{groupBy}</ExploreGroupBys>
-            ))}
-          </ExploreParamSection>
-        </ExploreParamSection>
-      )}
-    </ExploreParamsContainer>
-  );
-}
-
 export default SaveQueryModal;
 
 const Wrapper = styled('div')`
@@ -219,45 +171,4 @@ const StyledButtonBar = styled(ButtonBar)`
 const SectionHeader = styled('h6')`
   font-size: ${p => p.theme.form.md.fontSize};
   margin-bottom: ${space(0.5)};
-`;
-
-const ExploreParamsContainer = styled('span')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(1)};
-  flex-wrap: wrap;
-  margin-bottom: ${space(2)};
-`;
-
-const ExploreParamSection = styled('span')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(0.5)};
-  overflow: hidden;
-  flex-wrap: wrap;
-`;
-
-const ExploreParamTitle = styled('span')`
-  font-size: ${p => p.theme.form.sm.fontSize};
-  color: ${p => p.theme.subText};
-  white-space: nowrap;
-  padding-top: 3px;
-`;
-
-const ExploreVisualizes = styled('span')`
-  font-size: ${p => p.theme.form.sm.fontSize};
-  background: ${p => p.theme.background};
-  padding: ${space(0.25)} ${space(0.5)};
-  border: 1px solid ${p => p.theme.innerBorder};
-  border-radius: ${p => p.theme.borderRadius};
-  height: 24px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-`;
-
-const ExploreGroupBys = ExploreVisualizes;
-
-const FormattedQueryWrapper = styled('span')`
-  display: inline-block;
 `;

@@ -95,6 +95,8 @@ class OrganizationProjectsExperimentCreateTest(APITestCase):
         project = Project.objects.get(id=response.data["id"])
         assert project.name == project.slug == self.p1
         assert project.teams.first() == team
+        assert response.data["teams"] is not None
+        assert response.data["teams"][0]["id"] == str(team.id)
 
     @with_feature(["organizations:team-roles"])
     def test_project_slug_is_slugified(self):

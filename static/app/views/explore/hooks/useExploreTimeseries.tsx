@@ -48,8 +48,8 @@ export const useExploreTimeseries = ({
   const isTopN = topEvents ? topEvents > 0 : false;
 
   const canTriggerHighAccuracy = useCallback(
-    (data: ReturnType<typeof useExploreTimeseriesImpl>['result']['data']) => {
-      return shouldTriggerHighAccuracy(data, visualizes, isTopN);
+    (result: ReturnType<typeof useExploreTimeseriesImpl>['result']) => {
+      return shouldTriggerHighAccuracy(result.data, visualizes, isTopN);
     },
     [visualizes, isTopN]
   );
@@ -172,12 +172,10 @@ function _checkCanQueryForMoreData(
   visualizes: Visualize[],
   isTopN: boolean
 ) {
-  return visualizes
-    .map(visualize => {
-      const dedupedYAxes = dedupeArray(visualize.yAxes);
-      const series = dedupedYAxes.flatMap(yAxis => data[yAxis]).filter(defined);
-      const {dataScanned} = determineSeriesSampleCountAndIsSampled(series, isTopN);
-      return dataScanned === 'partial';
-    })
-    .some(Boolean);
+  return visualizes.some(visualize => {
+    const dedupedYAxes = dedupeArray(visualize.yAxes);
+    const series = dedupedYAxes.flatMap(yAxis => data[yAxis]).filter(defined);
+    const {dataScanned} = determineSeriesSampleCountAndIsSampled(series, isTopN);
+    return dataScanned === 'partial';
+  });
 }

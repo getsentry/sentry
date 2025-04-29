@@ -25,7 +25,6 @@ from django.http import HttpRequest
 from django.utils import timezone as django_timezone
 from django.utils.crypto import constant_time_compare, get_random_string
 from rest_framework import serializers, status
-from rest_framework.request import Request
 
 from sentry import options
 from sentry.api.exceptions import DataSecrecyError, SentryAPIException
@@ -105,7 +104,7 @@ def get_superuser_scopes(
 
 
 def superuser_has_permission(
-    request: HttpRequest | Request, permissions: Container[str] | None = None
+    request: HttpRequest, permissions: Container[str] | None = None
 ) -> bool:
     """
     This is used in place of is_active_superuser() in APIs / permission classes.
@@ -140,7 +139,7 @@ def superuser_has_permission(
     return request.method == "GET" or request.method == "OPTIONS"
 
 
-def is_active_superuser(request: HttpRequest | Request) -> bool:
+def is_active_superuser(request: HttpRequest) -> bool:
     if is_system_auth(getattr(request, "auth", None)):
         return True
     su = getattr(request, "superuser", None) or Superuser(request)
