@@ -139,22 +139,31 @@ interface PathsTableProps {
   handleAddTransactionFilter: (value: string) => void;
   query?: string;
   showHttpMethodColumn?: boolean;
+  showUsersColumn?: boolean;
 }
 
 export function PathsTable({
   query,
   handleAddTransactionFilter,
   showHttpMethodColumn = true,
+  showUsersColumn = true,
 }: PathsTableProps) {
   const organization = useOrganization();
   const location = useLocation();
   const router = useRouter();
   const pageFilterChartParams = usePageFilterChartParams();
   const [columnOrder, setColumnOrder] = useState(() => {
+    let columns = [...defaultColumnOrder];
+
     if (!showHttpMethodColumn) {
-      return defaultColumnOrder.filter(column => column.key !== 'http.method');
+      columns = columns.filter(column => column.key !== 'http.method');
     }
-    return defaultColumnOrder;
+
+    if (!showUsersColumn) {
+      columns = columns.filter(column => column.key !== 'count_unique(user)');
+    }
+
+    return columns;
   });
   const {sortField, sortOrder} = useTableSortParams();
 
