@@ -29,7 +29,7 @@ import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 const INVESTIGATION_MAX_SAMPLES_TRIGGER = 5;
 
 type Props = {
-  buttonProps: ButtonProps;
+  buttonProps: Partial<ButtonProps>;
   eventView: EventView;
   numSamples: number | null | undefined;
 };

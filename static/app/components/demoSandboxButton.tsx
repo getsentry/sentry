@@ -1,4 +1,4 @@
-import type {LinkButtonProps} from 'sentry/components/core/button';
+import type {LinkButtonProps} from 'sentry/components/core/button/linkButton';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {Organization} from 'sentry/types/organization';
 import type {SandboxData} from 'sentry/types/sandbox';
