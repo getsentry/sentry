@@ -97,8 +97,11 @@ type LinkElementProps = Omit<
   React.AnchorHTMLAttributes<HTMLAnchorElement>,
   'label' | 'size' | 'title'
 >;
+
 export interface BaseButtonProps extends CommonButtonProps, ButtonElementProps {
+  href?: never;
   ref?: React.Ref<HTMLButtonElement>;
+  to?: never;
 }
 
 interface ButtonPropsWithoutAriaLabel extends BaseButtonProps {
@@ -125,10 +128,6 @@ export function Button({
     type,
     disabled,
   });
-
-  if ('to' in props || 'href' in props) {
-    throw new Error('Button does not support `to` or `href` props');
-  }
 
   return (
     <Tooltip skipWrapper {...tooltipProps} title={title} disabled={!title}>
