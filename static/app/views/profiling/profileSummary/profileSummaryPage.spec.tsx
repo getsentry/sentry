@@ -22,17 +22,6 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
-// Replace the webgl renderer with a dom renderer for tests
-jest.mock('sentry/utils/profiling/renderers/flamegraphRendererWebGL', () => {
-  const {
-    FlamegraphRendererDOM,
-  } = require('sentry/utils/profiling/renderers/flamegraphRendererDOM');
-
-  return {
-    FlamegraphRendererWebGL: FlamegraphRendererDOM,
-  };
-});
-
 window.ResizeObserver =
   window.ResizeObserver ||
   jest.fn().mockImplementation(() => ({
