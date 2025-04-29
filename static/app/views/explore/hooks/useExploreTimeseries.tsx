@@ -172,12 +172,10 @@ function _checkCanQueryForMoreData(
   visualizes: Visualize[],
   isTopN: boolean
 ) {
-  return visualizes
-    .map(visualize => {
-      const dedupedYAxes = dedupeArray(visualize.yAxes);
-      const series = dedupedYAxes.flatMap(yAxis => data[yAxis]).filter(defined);
-      const {dataScanned} = determineSeriesSampleCountAndIsSampled(series, isTopN);
-      return dataScanned === 'partial';
-    })
-    .some(Boolean);
+  return visualizes.some(visualize => {
+    const dedupedYAxes = dedupeArray(visualize.yAxes);
+    const series = dedupedYAxes.flatMap(yAxis => data[yAxis]).filter(defined);
+    const {dataScanned} = determineSeriesSampleCountAndIsSampled(series, isTopN);
+    return dataScanned === 'partial';
+  });
 }
