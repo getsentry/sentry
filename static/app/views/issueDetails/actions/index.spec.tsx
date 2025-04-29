@@ -252,9 +252,37 @@ describe('GroupActions', function () {
       });
     });
 
-    it('delete for issue platform is enabled', async () => {
+    it('delete for issue platform', async () => {
       const org = OrganizationFixture({
         access: ['event:admin'], // Delete is only shown if this is present
+      });
+      render(
+        <GroupActions
+          group={issuePlatformGroup}
+          project={project}
+          disabled={false}
+          event={null}
+        />,
+        {
+          organization: org,
+          deprecatedRouterMocks: true,
+        }
+      );
+
+      await userEvent.click(screen.getByLabelText('More Actions'));
+      expect(await screen.findByTestId('delete-issue')).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+      expect(await screen.findByTestId('delete-and-discard')).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+    it('delete for issue platform is enabled with feature flag', async () => {
+      const org = OrganizationFixture({
+        access: ['event:admin'],
+        features: ['issue-platform-deletion-ui'],
       });
       render(
         <GroupActions

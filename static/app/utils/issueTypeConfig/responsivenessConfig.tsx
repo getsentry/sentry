@@ -8,7 +8,8 @@ const responsivenessConfig: IssueCategoryConfigMapping = {
     actions: {
       archiveUntilOccurrence: {enabled: true},
       delete: {
-        enabled: true,
+        enabled: false,
+        disabledReason: t('Not yet supported for responsiveness issues'),
       },
       deleteAndDiscard: {
         enabled: false,
