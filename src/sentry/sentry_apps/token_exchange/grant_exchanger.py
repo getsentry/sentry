@@ -38,10 +38,9 @@ class GrantExchanger:
     user: User
 
     def run(self):
-        event = SentryAppEventType("grant_exchanger")
         with SentryAppInteractionEvent(
             operation_type=SentryAppInteractionType.AUTHORIZATIONS,
-            event_type=event,
+            event_type=SentryAppEventType.GRANT_EXCHANGER,
         ).capture() as lifecycle:
 
             with transaction.atomic(using=router.db_for_write(ApiToken)):

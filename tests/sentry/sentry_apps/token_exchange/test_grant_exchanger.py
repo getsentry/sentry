@@ -241,7 +241,8 @@ class TestGrantExchanger(TestCase):
             mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
         )
 
-    def test_race_condition_on_grant_exchange(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_race_condition_on_grant_exchange(self, mock_record):
         from sentry.locks import locks
         from sentry.utils.locking import UnableToAcquireLock
 
@@ -256,6 +257,14 @@ class TestGrantExchanger(TestCase):
 
         with pytest.raises(UnableToAcquireLock):
             self.grant_exchanger.run()
+
+        # AUTHORIZATIONS (failure)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
+        )
 
     @patch("sentry.analytics.record")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
