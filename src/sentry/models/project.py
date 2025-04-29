@@ -374,11 +374,11 @@ class Project(Model):
             return Counter.increment(self, delta)
 
     def save(self, *args, **kwargs):
-        if not self.slug:
-            lock = locks.get(
-                f"slug:project:{self.organization_id}", duration=5, name="project_slug"
-            )
-            with TimedRetryPolicy(10)(lock.acquire):
+        lock = locks.get(
+            f"slug:project:{self.organization_id}", duration=5, name="project_creation"
+        )
+        with TimedRetryPolicy(10)(lock.acquire):
+            if not self.slug:
                 slugify_instance(
                     self,
                     self.name,
@@ -387,15 +387,15 @@ class Project(Model):
                     max_length=50,
                 )
 
-        if settings.SENTRY_USE_SNOWFLAKE:
-            snowflake_redis_key = "project_snowflake_key"
-            save_with_snowflake_id(
-                instance=self,
-                snowflake_redis_key=snowflake_redis_key,
-                save_callback=lambda: super(Project, self).save(*args, **kwargs),
-            )
-        else:
-            super().save(*args, **kwargs)
+            if settings.SENTRY_USE_SNOWFLAKE:
+                snowflake_redis_key = "project_snowflake_key"
+                save_with_snowflake_id(
+                    instance=self,
+                    snowflake_redis_key=snowflake_redis_key,
+                    save_callback=lambda: super(Project, self).save(*args, **kwargs),
+                )
+            else:
+                super().save(*args, **kwargs)
 
     def get_absolute_url(self, params=None):
         path = f"/organizations/{self.organization.slug}/issues/"
