@@ -8,7 +8,8 @@ const performanceRegressionConfig: IssueCategoryConfigMapping = {
     actions: {
       archiveUntilOccurrence: {enabled: true},
       delete: {
-        enabled: true,
+        enabled: false,
+        disabledReason: t('Not yet supported for regression issues'),
       },
       deleteAndDiscard: {
         enabled: false,

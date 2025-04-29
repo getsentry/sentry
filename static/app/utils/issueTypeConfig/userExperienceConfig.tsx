@@ -7,7 +7,8 @@ const userExperienceConfig: IssueCategoryConfigMapping = {
     actions: {
       archiveUntilOccurrence: {enabled: true},
       delete: {
-        enabled: true,
+        enabled: false,
+        disabledReason: t('Not yet supported for user experience issues'),
       },
       deleteAndDiscard: {
         enabled: false,
