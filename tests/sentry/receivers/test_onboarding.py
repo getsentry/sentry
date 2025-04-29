@@ -1352,28 +1352,28 @@ class OrganizationOnboardingTaskTest(TestCase):
             platform=project.platform,
         )
 
-        # project2 = self.create_project(platform="javascript-react")
-        # project_created.send(
-        #     project=project2, user=self.user, default_rules=False, sender=type(project2)
-        # )
-        # project2.organization = new_organization
-        # project_transferred.send(
-        #     old_org_id=self.organization.id,
-        #     updated_project=project2,
-        #     sender=type(project2),
-        # )
+        project2 = self.create_project(platform="javascript-react")
+        project_created.send(
+            project=project2, user=self.user, default_rules=False, sender=type(project2)
+        )
+        project2.organization = new_organization
+        project_transferred.send(
+            old_org_id=self.organization.id,
+            updated_project=project2,
+            sender=type(project2),
+        )
 
-        # record_analytics.assert_called_with(
-        #     "project.transferred",
-        #     old_organization_id=self.organization.id,
-        #     new_organization_id=new_organization.id,
-        #     project_id=project2.id,
-        #     platform=project2.platform,
-        # )
+        record_analytics.assert_called_with(
+            "project.transferred",
+            old_organization_id=self.organization.id,
+            new_organization_id=new_organization.id,
+            project_id=project2.id,
+            platform=project2.platform,
+        )
 
-        # transferred_tasks = OrganizationOnboardingTask.objects.filter(
-        #     organization_id=new_organization.id,
-        #     task__in=OrganizationOnboardingTask.TRANSFERABLE_TASKS,
-        # )
+        transferred_tasks = OrganizationOnboardingTask.objects.filter(
+            organization_id=new_organization.id,
+            task__in=OrganizationOnboardingTask.TRANSFERABLE_TASKS,
+        )
 
-        # self.assertEqual(len(transferred_tasks), len(OrganizationOnboardingTask.TRANSFERABLE_TASKS))
+        self.assertEqual(len(transferred_tasks), len(OrganizationOnboardingTask.TRANSFERABLE_TASKS))
