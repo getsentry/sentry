@@ -24,8 +24,10 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import marked from 'sentry/utils/marked';
 import testableTransition from 'sentry/utils/testableTransition';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 const pulseAnimation = {
   initial: {opacity: 1},
@@ -57,14 +59,12 @@ export function GroupSummaryWithAutofix({
   project,
   preview = false,
 }: {
-  event: Event | undefined;
+  event: Event;
   group: Group;
   project: Project;
   preview?: boolean;
 }) {
   const {data: autofixData, isPending} = useAutofixData({groupId: group.id});
-
-  const openSeerDrawer = useOpenSeerDrawer(group, project, event);
 
   const rootCauseDescription = useMemo(
     () => (autofixData ? getRootCauseDescription(autofixData) : null),
@@ -114,7 +114,6 @@ export function GroupSummaryWithAutofix({
         solutionIsLoading={solutionIsLoading}
         codeChangesDescription={codeChangesDescription}
         codeChangesIsLoading={codeChangesIsLoading}
-        openSeerDrawer={openSeerDrawer}
         rootCauseCopyText={rootCauseCopyText}
         solutionCopyText={solutionCopyText}
       />
@@ -131,14 +130,12 @@ function AutofixSummary({
   solutionIsLoading,
   codeChangesDescription,
   codeChangesIsLoading,
-  openSeerDrawer,
   rootCauseCopyText,
   solutionCopyText,
 }: {
   codeChangesDescription: string | null;
   codeChangesIsLoading: boolean;
   group: Group;
-  openSeerDrawer: () => void;
   rootCauseCopyText: string | null;
   rootCauseDescription: string | null;
   solutionCopyText: string | null;
@@ -146,6 +143,17 @@ function AutofixSummary({
   solutionIsLoading: boolean;
 }) {
   const organization = useOrganization();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const {baseUrl} = useGroupDetailsRoute();
+
+  const seerLink = {
+    pathname: baseUrl,
+    query: {
+      ...location.query,
+      seerDrawer: true,
+    },
+  };
 
   const insightCards: InsightCardObject[] = [
     {
@@ -158,7 +166,7 @@ function AutofixSummary({
           organization,
           group_id: group.id,
         });
-        openSeerDrawer();
+        navigate(seerLink);
       },
       copyTitle: t('Copy root cause as Markdown'),
       copyText: rootCauseCopyText,
@@ -177,7 +185,7 @@ function AutofixSummary({
                 organization,
                 group_id: group.id,
               });
-              openSeerDrawer();
+              navigate(seerLink);
             },
             copyTitle: t('Copy solution as Markdown'),
             copyText: solutionCopyText,
@@ -198,7 +206,7 @@ function AutofixSummary({
                 organization,
                 group_id: group.id,
               });
-              openSeerDrawer();
+              navigate(seerLink);
             },
           },
         ]
