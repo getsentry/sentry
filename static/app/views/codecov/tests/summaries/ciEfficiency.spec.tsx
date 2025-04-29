@@ -11,14 +11,14 @@ const testCIEfficiencyData = {
 
 describe('CIEfficiency', () => {
   it('renders formatted total tests run time', () => {
-    render(<CIEfficiency {...testCIEfficiencyData} />);
+    render(<CIEfficiency {...testCIEfficiencyData} isLoading={false} />);
 
     const formattedTotalTestsRunTime = screen.getByText('3h 25m 0s');
     expect(formattedTotalTestsRunTime).toBeInTheDocument();
   });
 
   it('renders the slowest tests with a filter link', () => {
-    render(<CIEfficiency {...testCIEfficiencyData} />);
+    render(<CIEfficiency {...testCIEfficiencyData} isLoading={false} />);
 
     const formattedSlowestTests = screen.getByRole('link', {name: '100'});
     expect(formattedSlowestTests).toBeInTheDocument();
@@ -32,7 +32,11 @@ describe('CIEfficiency', () => {
     describe('total tests run time is negative', () => {
       it('renders success tag', () => {
         render(
-          <CIEfficiency {...testCIEfficiencyData} totalTestsRunTimeChange={-0.46} />
+          <CIEfficiency
+            {...testCIEfficiencyData}
+            totalTestsRunTimeChange={-0.46}
+            isLoading={false}
+          />
         );
 
         const changeTag = screen.getByText('-0.46%');
@@ -42,7 +46,13 @@ describe('CIEfficiency', () => {
 
     describe('total tests run time is positive', () => {
       it('renders error tag', () => {
-        render(<CIEfficiency {...testCIEfficiencyData} totalTestsRunTimeChange={0.46} />);
+        render(
+          <CIEfficiency
+            {...testCIEfficiencyData}
+            totalTestsRunTimeChange={0.46}
+            isLoading={false}
+          />
+        );
 
         const changeTag = screen.getByText('+0.46%');
         expect(changeTag.parentElement).toHaveAttribute('type', 'error');
