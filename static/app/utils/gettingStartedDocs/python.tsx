@@ -1,14 +1,102 @@
 import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {AlternativeConfiguration} from 'sentry/gettingStartedDocs/python/python';
-import {t, tct} from 'sentry/locale';
-
-const getProfilingInstallSnippet = (basePackage: string, minimumVersion?: string) =>
-  `pip install --upgrade ${minimumVersion ? `${basePackage}>=${minimumVersion}` : basePackage}`;
+import {
+  type Configuration,
+  StepType,
+} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {AlternativeConfiguration} from 'sentry/gettingStartedDocs/python/python';
+import {t, tct} from 'sentry/locale';
+
+export function getPythonInstallSnippet({
+  packageName,
+  packageManager = 'pip',
+  minimumVersion,
+}: {
+  packageName: string;
+  minimumVersion?: string;
+  packageManager?: 'pip' | 'uv';
+}) {
+  const versionedPackage = minimumVersion
+    ? `${packageName}>=${minimumVersion}`
+    : packageName;
+
+  const upgradeFlag = minimumVersion ? '--upgrade ' : '';
+
+  const packageManagerCommands = {
+    uv: `uv add ${upgradeFlag}${versionedPackage}`,
+    pip: `pip install ${upgradeFlag}${versionedPackage}`,
+  };
+
+  return packageManagerCommands[packageManager].trim();
+}
+
+export function getPythonInstallConfig({
+  packageName = "'sentry-sdk'",
+  description,
+  minimumVersion,
+}: {
+  description?: React.ReactNode;
+  minimumVersion?: string;
+  packageName?: string;
+} = {}): Configuration[] {
+  return [
+    {
+      description,
+      language: 'bash',
+      code: [
+        {
+          label: 'pip',
+          value: 'pip',
+          language: 'bash',
+          code: getPythonInstallSnippet({
+            packageName,
+            packageManager: 'pip',
+            minimumVersion,
+          }),
+        },
+        {
+          label: 'uv',
+          value: 'uv',
+          language: 'bash',
+          code: getPythonInstallSnippet({
+            packageName,
+            packageManager: 'uv',
+            minimumVersion,
+          }),
+        },
+      ],
+    },
+  ];
+}
+
+export function getPythonProfilingMinVersionMessage() {
+  return tct(
+    'You need a minimum version [code:2.24.1] of the [code:sentry-python] SDK for the profiling feature.',
+    {
+      code: <code />,
+    }
+  );
+}
+export function getPythonAiocontextvarsConfig({
+  description,
+}: {
+  description?: React.ReactNode;
+} = {}): Configuration[] {
+  const defaultDescription = tct(
+    "If you're on Python 3.6, you also need the [code:aiocontextvars] package:",
+    {
+      code: <code />,
+    }
+  );
+
+  return getPythonInstallConfig({
+    packageName: "'aiocontextvars'",
+    description: description ?? defaultDescription,
+  });
+}
 
 export const getPythonProfilingOnboarding = ({
   basePackage = 'sentry-sdk',
@@ -26,12 +114,10 @@ export const getPythonProfilingOnboarding = ({
           code: <code />,
         }
       ),
-      configurations: [
-        {
-          language: 'bash',
-          code: getProfilingInstallSnippet(basePackage),
-        },
-      ],
+      configurations: getPythonInstallConfig({
+        packageName: basePackage,
+        minimumVersion: '2.24.1',
+      }),
     },
   ],
   configure: (params: DocsParams) => [
@@ -82,23 +168,31 @@ const getProfilingSdkSetupSnippet = (
 import sentry_sdk
 
 sentry_sdk.init(
-    dsn="${params.dsn.public}",
+    dsn="${params.dsn.public}",${
+      params.profilingOptions?.defaultProfilingMode === 'continuous'
+        ? traceLifecycle === 'trace'
+          ? `
     # Set traces_sample_rate to 1.0 to capture 100%
     # of transactions for tracing.
     traces_sample_rate=1.0,
-    ${
-      params.profilingOptions?.defaultProfilingMode === 'continuous'
-        ? `# Set profile_session_sample_rate to 1.0 to profile 100%
+    # Set profile_session_sample_rate to 1.0 to profile 100%
     # of profile sessions.
-    profile_session_sample_rate=1.0,${
-      traceLifecycle === 'trace'
-        ? `
+    profile_session_sample_rate=1.0,
     # Set profile_lifecycle to "trace" to automatically
     # run the profiler on when there is an active transaction
-    profile_lifecycle="trace",`
-        : ''
-    }`
-        : `# Set profiles_sample_rate to 1.0 to profile 100%
+    profile_lifecycle="trace"`
+          : `
+    # Tracing is not required for profiling to work
+    # but for the best experience we recommend enabling it
+    traces_sample_rate=1.0,
+    # Set profile_session_sample_rate to 1.0 to profile 100%
+    # of profile sessions.
+    profile_session_sample_rate=1.0`
+        : `
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for tracing.
+    traces_sample_rate=1.0,
+    # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
     profiles_sample_rate=1.0`

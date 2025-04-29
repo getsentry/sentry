@@ -13,24 +13,23 @@ import type {AggregationKeyWithAlias, Field, Sort} from 'sentry/utils/discover/f
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {
-  platformToPerformanceType,
-  ProjectPerformanceType,
-} from 'sentry/views/performance/utils';
-
 import type {
   NormalizedTrendsTransaction,
   TrendFunction,
   TrendParameter,
   TrendsTransaction,
   TrendView,
-} from '../types';
+} from 'sentry/views/performance/trends/types';
 import {
   TrendChangeType,
   TrendFunctionField,
   TrendParameterColumn,
   TrendParameterLabel,
-} from '../types';
+} from 'sentry/views/performance/trends/types';
+import {
+  platformToPerformanceType,
+  ProjectPerformanceType,
+} from 'sentry/views/performance/utils';
 
 export const DEFAULT_TRENDS_STATS_PERIOD = '14d';
 export const DEFAULT_MAX_DURATION = '15min';
@@ -130,12 +129,7 @@ export function makeTrendToColorMapping(theme: Theme) {
   };
 }
 
-export const trendSelectedQueryKeys = {
-  [TrendChangeType.IMPROVED]: 'improvedSelected',
-  [TrendChangeType.REGRESSION]: 'regressionSelected',
-};
-
-export const trendUnselectedSeries = {
+const trendUnselectedSeries = {
   [TrendChangeType.IMPROVED]: 'improvedUnselectedSeries',
   [TrendChangeType.REGRESSION]: 'regressionUnselectedSeries',
 };
@@ -211,7 +205,7 @@ export function performanceTypeToTrendParameterLabel(
   }
 }
 
-export function generateTrendFunctionAsString(
+function generateTrendFunctionAsString(
   trendFunction: TrendFunctionField,
   trendParameter: string
 ): string {
@@ -356,23 +350,9 @@ export function normalizeTrends(
   });
 }
 
-export function getSelectedQueryKey(trendChangeType: TrendChangeType) {
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  return trendSelectedQueryKeys[trendChangeType];
-}
-
 export function getUnselectedSeries(trendChangeType: TrendChangeType) {
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return trendUnselectedSeries[trendChangeType];
-}
-
-export function movingAverage(data: any, index: any, size: any) {
-  return (
-    data
-      .slice(index - size, index)
-      .map((a: any) => a.value)
-      .reduce((a: any, b: any) => a + b, 0) / size
-  );
 }
 
 /**
@@ -392,16 +372,12 @@ function getLimitTransactionItems(query: string) {
   return limitQuery.formatString();
 }
 
-export const smoothTrend = (data: Array<[number, number]>, resolution = 100) => {
+const smoothTrend = (data: Array<[number, number]>, resolution = 100) => {
   return ASAP(data, resolution);
 };
 
 export const replaceSeriesName = (seriesName: string) => {
   return ['p50', 'p75'].find(aggregate => seriesName.includes(aggregate));
-};
-
-export const replaceSmoothedSeriesName = (seriesName: string) => {
-  return `Smoothed ${['p50', 'p75'].find(aggregate => seriesName.includes(aggregate))}`;
 };
 
 export function transformEventStatsSmoothed(data?: Series[], seriesName?: string) {
@@ -464,4 +440,3 @@ export function modifyTransactionNameTrendsQuery(trendView: TrendView) {
 export function getTopTrendingEvents(location: Location) {
   return decodeScalar(location?.query?.topEvents);
 }
-export {platformToPerformanceType};

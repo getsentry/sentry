@@ -15,6 +15,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavTourModal, navTourModalCss} from 'sentry/views/nav/tour/tourModal';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
@@ -28,7 +29,7 @@ export const enum StackedNavigationTour {
   SETTINGS = 'settings',
 }
 
-export const ORDERED_STACKED_NAVIGATION_TOUR = [
+const ORDERED_STACKED_NAVIGATION_TOUR = [
   StackedNavigationTour.ISSUES,
   StackedNavigationTour.EXPLORE,
   StackedNavigationTour.DASHBOARDS,
@@ -69,9 +70,9 @@ export const STACKED_NAVIGATION_TOUR_CONTENT = {
   },
 };
 
-export const STACKED_NAVIGATION_TOUR_GUIDE_KEY = 'tour.stacked_navigation';
+const STACKED_NAVIGATION_TOUR_GUIDE_KEY = 'tour.stacked_navigation';
 
-export const StackedNavigationTourContext =
+const StackedNavigationTourContext =
   createContext<TourContextType<StackedNavigationTour> | null>(null);
 
 export function useStackedNavigationTour(): TourContextType<StackedNavigationTour> {
@@ -146,36 +147,54 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
       switch (stepId) {
         case StackedNavigationTour.ISSUES:
           if (activeGroup !== PrimaryNavGroup.ISSUES) {
-            navigate(normalizeUrl(`/${prefix}/issues/`), {replace: true});
+            const target = normalizeUrl({
+              pathname: `/${prefix}/issues/`,
+              query: {referrer: NAV_REFERRER},
+            });
+            navigate(target, {replace: true});
           }
           break;
         case StackedNavigationTour.EXPLORE:
           if (activeGroup !== PrimaryNavGroup.EXPLORE) {
-            navigate(normalizeUrl(`/${prefix}/explore/traces/`), {replace: true});
+            const target = normalizeUrl({
+              pathname: `/${prefix}/explore/${getDefaultExploreRoute(organization)}/`,
+              query: {referrer: NAV_REFERRER},
+            });
+            navigate(target, {replace: true});
           }
           break;
         case StackedNavigationTour.DASHBOARDS:
           if (activeGroup !== PrimaryNavGroup.DASHBOARDS) {
-            navigate(normalizeUrl(`/${prefix}/dashboards/`), {replace: true});
+            const target = normalizeUrl({
+              pathname: `/${prefix}/dashboards/`,
+              query: {referrer: NAV_REFERRER},
+            });
+            navigate(target, {replace: true});
           }
           break;
         case StackedNavigationTour.INSIGHTS:
           if (activeGroup !== PrimaryNavGroup.INSIGHTS) {
-            navigate(normalizeUrl(`/${prefix}/insights/frontend/`), {replace: true});
+            const target = normalizeUrl({
+              pathname: `/${prefix}/insights/frontend/`,
+              query: {referrer: NAV_REFERRER},
+            });
+            navigate(target, {replace: true});
           }
           break;
         case StackedNavigationTour.SETTINGS:
           if (activeGroup !== PrimaryNavGroup.SETTINGS) {
-            navigate(normalizeUrl(`/settings/${organization.slug}/`), {
-              replace: true,
+            const target = normalizeUrl({
+              pathname: `/settings/${organization.slug}/`,
+              query: {referrer: NAV_REFERRER},
             });
+            navigate(target, {replace: true});
           }
           break;
         default:
           break;
       }
     },
-    [activeGroup, navigate, organization.slug]
+    [activeGroup, navigate, organization]
   );
 
   return (
@@ -270,4 +289,11 @@ export function useTourModal() {
       );
     }
   }, [shouldShowTourModal, startTour, mutateAssistant, endTour]);
+}
+
+const NAV_REFERRER = 'nav-tour';
+
+export function useIsNavTourActive() {
+  const location = useLocation();
+  return location.query.referrer === NAV_REFERRER;
 }

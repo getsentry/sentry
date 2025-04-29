@@ -10,12 +10,12 @@ class OrganizationGroupSearchViewDetailsStarredEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-group-search-view-starred"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
 
-    def get_url(self, view_id):
+    def get_url(self, view_id: int) -> str:
         return reverse(
             self.endpoint,
             kwargs={
@@ -24,9 +24,11 @@ class OrganizationGroupSearchViewDetailsStarredEndpointTest(APITestCase):
             },
         )
 
-    def create_view(self, user_id=None, visibility=None, starred=False):
+    def create_view(
+        self, user_id: int | None = None, visibility: str | None = None, starred: bool = False
+    ) -> GroupSearchView:
         user_id = user_id or self.user.id
-        visibility = visibility or GroupSearchViewVisibility.OWNER
+        visibility = visibility or GroupSearchViewVisibility.ORGANIZATION
 
         view = GroupSearchView.objects.create(
             name="Test View",
@@ -44,14 +46,14 @@ class OrganizationGroupSearchViewDetailsStarredEndpointTest(APITestCase):
             )
         return view
 
-    @with_feature("organizations:issue-view-sharing")
-    def test_view_not_found(self):
+    @with_feature("organizations:issue-stream-custom-views")
+    def test_view_not_found(self) -> None:
         response = self.client.post(self.get_url(737373), data={"starred": True})
 
         assert response.status_code == 404
 
-    @with_feature("organizations:issue-view-sharing")
-    def test_organization_view_accessible(self):
+    @with_feature("organizations:issue-stream-custom-views")
+    def test_organization_view_accessible(self) -> None:
         other_user = self.create_user()
         view = self.create_view(
             user_id=other_user.id, visibility=GroupSearchViewVisibility.ORGANIZATION
@@ -66,8 +68,8 @@ class OrganizationGroupSearchViewDetailsStarredEndpointTest(APITestCase):
             group_search_view=view,
         ).exists()
 
-    @with_feature("organizations:issue-view-sharing")
-    def test_invalid_request_data(self):
+    @with_feature("organizations:issue-stream-custom-views")
+    def test_invalid_request_data(self) -> None:
         view = self.create_view()
 
         # Missing starred field
@@ -78,8 +80,8 @@ class OrganizationGroupSearchViewDetailsStarredEndpointTest(APITestCase):
         response = self.client.post(self.get_url(view.id), data={"starred": False, "position": 0})
         assert response.status_code == 400
 
-    @with_feature("organizations:issue-view-sharing")
-    def test_star_view_with_position(self):
+    @with_feature("organizations:issue-stream-custom-views")
+    def test_star_view_with_position(self) -> None:
         view1 = self.create_view(starred=True)
         view2 = self.create_view(starred=True)
         view_to_be_starred = self.create_view()
@@ -110,8 +112,8 @@ class OrganizationGroupSearchViewDetailsStarredEndpointTest(APITestCase):
             position=2,
         ).exists()
 
-    @with_feature("organizations:issue-view-sharing")
-    def test_star_view_without_position(self):
+    @with_feature("organizations:issue-stream-custom-views")
+    def test_star_view_without_position(self) -> None:
         view = self.create_view()
 
         response = self.client.post(self.get_url(view.id), data={"starred": True})
@@ -126,8 +128,8 @@ class OrganizationGroupSearchViewDetailsStarredEndpointTest(APITestCase):
 
         assert starred_view.position == 0
 
-    @with_feature("organizations:issue-view-sharing")
-    def test_unstar_view(self):
+    @with_feature("organizations:issue-stream-custom-views")
+    def test_unstar_view(self) -> None:
         starred_view = self.create_view(starred=True)
         view_to_be_unstarred = self.create_view(starred=True)
 
@@ -145,24 +147,24 @@ class OrganizationGroupSearchViewDetailsStarredEndpointTest(APITestCase):
             group_search_view=starred_view,
         ).exists()
 
-    @with_feature("organizations:issue-view-sharing")
-    def test_star_already_starred_view(self):
+    @with_feature("organizations:issue-stream-custom-views")
+    def test_star_already_starred_view(self) -> None:
         view = self.create_view(starred=True)
 
         response = self.client.post(self.get_url(view.id), data={"starred": True})
 
         assert response.status_code == 204
 
-    @with_feature("organizations:issue-view-sharing")
-    def test_unstar_not_starred_view(self):
+    @with_feature("organizations:issue-stream-custom-views")
+    def test_unstar_not_starred_view(self) -> None:
         view = self.create_view()
 
         response = self.client.post(self.get_url(view.id), data={"starred": False})
 
         assert response.status_code == 204
 
-    @with_feature("organizations:issue-view-sharing")
-    def test_multiple_starred_views_order(self):
+    @with_feature("organizations:issue-stream-custom-views")
+    def test_multiple_starred_views_order(self) -> None:
         view1 = self.create_view()
         view2 = self.create_view()
         view3 = self.create_view()
@@ -204,8 +206,8 @@ class OrganizationGroupSearchViewDetailsStarredEndpointTest(APITestCase):
             == 1
         )
 
-    @with_feature("organizations:issue-view-sharing")
-    def test_unstar_adjust_positions(self):
+    @with_feature("organizations:issue-stream-custom-views")
+    def test_unstar_adjust_positions(self) -> None:
         view1 = self.create_view(starred=True)
         view2 = self.create_view(starred=True)
         view3 = self.create_view(starred=True)
@@ -233,7 +235,7 @@ class OrganizationGroupSearchViewDetailsStarredEndpointTest(APITestCase):
             == 0
         )
 
-    def test_error_when_feature_flag_disabled(self):
+    def test_error_when_feature_flag_disabled(self) -> None:
         view = self.create_view()
 
         response = self.client.post(self.get_url(view.id), data={"starred": True})

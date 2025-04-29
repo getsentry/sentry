@@ -1,42 +1,34 @@
-import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import DiscoverButton from 'sentry/components/discoverButton';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
-import * as Layout from 'sentry/components/layouts/thirds';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
-import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
-import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
+import {
+  isEAPTraceNode,
+  isTraceNode,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import Highlights from 'sentry/views/performance/newTraceDetails/traceHeader/highlights';
 import {PlaceHolder} from 'sentry/views/performance/newTraceDetails/traceHeader/placeholder';
 import Projects from 'sentry/views/performance/newTraceDetails/traceHeader/projects';
 import ScrollToSectionLinks from 'sentry/views/performance/newTraceDetails/traceHeader/scrollToSectionLinks';
 import {TraceHeaderComponents} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
-
-import {isRootEvent} from '../../traceDetails/utils';
-import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
-import TraceConfigurations from '../traceConfigurations';
-import {isEAPTraceNode, isTraceNode} from '../traceGuards';
-import type {TraceTree} from '../traceModels/traceTree';
-import {useHasTraceNewUi} from '../useHasTraceNewUi';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {isRootEvent} from 'sentry/views/performance/traceDetails/utils';
 
 import {getTraceViewBreadcrumbs} from './breadcrumbs';
 import {Meta} from './meta';
@@ -110,65 +102,11 @@ const getRepresentativeEvent = (
   return firstRootEvent ?? candidateEvent ?? firstEvent;
 };
 
-function LegacyTraceMetadataHeader(props: TraceMetadataHeaderProps) {
-  const location = useLocation();
-  const {view} = useDomainViewFilters();
-  const moduleURLBuilder = useModuleURLBuilder(true);
-
-  const trackOpenInDiscover = useCallback(() => {
-    trackAnalytics('performance_views.trace_view.open_in_discover', {
-      organization: props.organization,
-    });
-  }, [props.organization]);
-
-  return (
-    <Layout.Header>
-      <Layout.HeaderContent>
-        <Breadcrumbs
-          crumbs={getTraceViewBreadcrumbs({
-            organization: props.organization,
-            location,
-            moduleURLBuilder,
-            traceSlug: props.traceSlug,
-            project: props.project,
-            view,
-          })}
-        />
-      </Layout.HeaderContent>
-      <Layout.HeaderActions>
-        <ButtonBar gap={1}>
-          <TraceConfigurations rootEventResults={props.rootEventResults} />
-          <DiscoverButton
-            size="sm"
-            to={props.traceEventView.getResultsViewUrlTarget(
-              props.organization,
-              false,
-              hasDatasetSelector(props.organization)
-                ? SavedQueryDatasets.TRANSACTIONS
-                : undefined
-            )}
-            onClick={trackOpenInDiscover}
-          >
-            {t('Open in Discover')}
-          </DiscoverButton>
-
-          <FeedbackWidgetButton />
-        </ButtonBar>
-      </Layout.HeaderActions>
-    </Layout.Header>
-  );
-}
-
 export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   const location = useLocation();
-  const hasNewTraceViewUi = useHasTraceNewUi();
   const {view} = useDomainViewFilters();
   const moduleURLBuilder = useModuleURLBuilder(true);
   const {projects} = useProjects();
-
-  if (!hasNewTraceViewUi) {
-    return <LegacyTraceMetadataHeader {...props} />;
-  }
 
   const isLoading =
     props.metaResults.status === 'pending' ||
@@ -188,7 +126,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   const project = representativeEvent
     ? OurLogKnownFieldKey.PROJECT_ID in representativeEvent
       ? projects.find(p => {
-          return Number(p.id) === representativeEvent[OurLogKnownFieldKey.PROJECT_ID];
+          return p.id === representativeEvent[OurLogKnownFieldKey.PROJECT_ID];
         })
       : projects.find(p => p.slug === representativeEvent.project_slug)
     : undefined;
@@ -239,7 +177,11 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
             organization={props.organization}
           />
           <Flex>
-            <ScrollToSectionLinks tree={props.tree} />
+            <ScrollToSectionLinks
+              rootEvent={props.rootEventResults}
+              tree={props.tree}
+              logs={props.logs}
+            />
             <Projects projects={projects} logs={props.logs} tree={props.tree} />
           </Flex>
         </TraceHeaderComponents.HeaderRow>

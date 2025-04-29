@@ -1,10 +1,19 @@
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {SuspectFlagScore} from 'sentry/views/issueDetails/streamline/featureFlagUtils';
+
+type SuspectFlagScore = {
+  baseline_percent: number;
+  flag: string;
+  score: number;
+};
+
+type SuspectFlagScoresResponse = {
+  data: SuspectFlagScore[];
+};
 
 /**
- * Query all feature flags and their scores for a given issue. Defaults to page filters for datetime and environment params.
+ * Query all feature flags and their scores for a given issue. Defaults to page filters if environment is not provided.
  */
 export function useGroupSuspectFlagScores({
   groupId,
@@ -23,12 +32,14 @@ export function useGroupSuspectFlagScores({
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const query = {
-    environment: environment ?? selection.environments,
-    statsPeriod: statsPeriod ?? selection.datetime.period,
-    start: start ?? selection.datetime.start?.toString(),
-    end: end ?? selection.datetime.end?.toString(),
-  };
+  const query = Object.fromEntries(
+    Object.entries({
+      environment: environment ?? selection.environments,
+      statsPeriod,
+      start,
+      end,
+    }).filter(([_, value]) => !!value)
+  );
 
   return useApiQuery<SuspectFlagScoresResponse>(
     [`/organizations/${organization.slug}/issues/${groupId}/suspect/flags/`, {query}],
@@ -38,7 +49,3 @@ export function useGroupSuspectFlagScores({
     }
   );
 }
-
-type SuspectFlagScoresResponse = {
-  data: SuspectFlagScore[];
-};

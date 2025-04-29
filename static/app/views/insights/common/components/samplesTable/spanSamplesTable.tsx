@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconProfiling} from 'sentry/icons/iconProfiling';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -61,11 +61,11 @@ type SpanTableRow = {
   op: string;
   trace: string;
   transaction: {
-    'project.name': string;
+    project: string;
+    'span.duration': number;
     timestamp: string;
-    'transaction.duration': number;
   };
-  'transaction.id': string;
+  'transaction.span_id': string;
 } & SpanSample;
 
 type Props = {
@@ -97,7 +97,7 @@ export function SpanSamplesTable({
   const organization = useOrganization();
   const {view} = useDomainViewFilters();
 
-  function renderHeadCell(column: GridColumnHeader): React.ReactNode {
+  function renderHeadCell(column: SamplesTableColumnHeader): React.ReactNode {
     if (
       column.key === 'p95_comparison' ||
       column.key === 'avg_comparison' ||
@@ -114,13 +114,16 @@ export function SpanSamplesTable({
     return <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>;
   }
 
-  function renderBodyCell(column: GridColumnHeader, row: SpanTableRow): React.ReactNode {
+  function renderBodyCell(
+    column: SamplesTableColumnHeader,
+    row: SpanTableRow
+  ): React.ReactNode {
     if (column.key === 'transaction_id') {
       return (
         <OverflowEllipsisTextContainer>
           <Link
             to={generateLinkToEventInTraceView({
-              eventId: row['transaction.id'],
+              targetId: row['transaction.span_id'],
               timestamp: row.timestamp,
               traceSlug: row.trace,
               projectSlug: row.project,
@@ -137,7 +140,7 @@ export function SpanSamplesTable({
               view,
             })}
           >
-            {row['transaction.id'].slice(0, 8)}
+            {row['transaction.span_id'].slice(0, 8)}
           </Link>
         </OverflowEllipsisTextContainer>
       );
@@ -154,7 +157,7 @@ export function SpanSamplesTable({
               })
             }
             to={generateLinkToEventInTraceView({
-              eventId: row['transaction.id'],
+              targetId: row['transaction.span_id'],
               timestamp: row.timestamp,
               traceSlug: row.trace,
               projectSlug: row.project,

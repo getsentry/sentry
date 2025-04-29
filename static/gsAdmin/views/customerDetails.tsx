@@ -49,21 +49,22 @@ import DetailsPage from 'admin/components/detailsPage';
 import ForkCustomerAction from 'admin/components/forkCustomer';
 import triggerEndPeriodEarlyModal from 'admin/components/nextBillingPeriodAction';
 import triggerProvisionSubscription from 'admin/components/provisionSubscriptionAction';
+import refundVercelRequest from 'admin/components/refundVercelRequestModal';
 import SelectableContainer from 'admin/components/selectableContainer';
 import SendWeeklyEmailAction from 'admin/components/sendWeeklyEmailAction';
 import SponsorshipAction from 'admin/components/sponsorshipAction';
 import SuspendAccountAction from 'admin/components/suspendAccountAction';
-import testVercelApiEndpoint from 'admin/components/testVCApiEndpoints';
 import toggleSpendAllocationModal from 'admin/components/toggleSpendAllocationModal';
 import TrialSubscriptionAction from 'admin/components/trialSubscriptionAction';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
-import type {BillingConfig, Subscription} from 'getsentry/types';
+import type {BillingConfig, DataCategories, Subscription} from 'getsentry/types';
 import {
+  getCategoryInfoFromPlural,
   hasActiveVCFeature,
   isBizPlanFamily,
   isUnlimitedReserved,
 } from 'getsentry/utils/billing';
-import {getPlanCategoryName, GIFT_CATEGORIES} from 'getsentry/utils/dataCategory';
+import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 
 const DEFAULT_ERROR_MESSAGE = 'Unable to update the customer account';
 
@@ -126,44 +127,48 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
   get giftCategories() {
     const {data} = this.state;
 
-    if (data === null || !data.planDetails) {
+    if (!data?.planDetails) {
       return {};
     }
-    // Can only gift for checkout categories
+    // We display all categories that are in either checkoutCategories or onDemandCategories,
+    // then disable the button if the category cannot be gifted to on this particular subscription (ie. unlimited quota).
+    // Categories that are not giftable in any state for the subscription are excluded (ie. plan does not include category).
     return Object.fromEntries(
-      GIFT_CATEGORIES.map(category => {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        const reserved = data.categories?.[category]?.reserved;
-        const isUnlimited = isUnlimitedReserved(reserved);
-        const isReservedBudgetQuota = reserved === RESERVED_BUDGET_QUOTA;
+      data.planDetails.categories
+        .filter(
+          category =>
+            data.planDetails.checkoutCategories.includes(category) ||
+            data.planDetails.onDemandCategories.includes(category)
+        )
+        .map(category => {
+          const reserved = data.categories?.[category as DataCategories]?.reserved;
+          const isUnlimited = isUnlimitedReserved(reserved);
+          const isReservedBudgetQuota = reserved === RESERVED_BUDGET_QUOTA;
 
-        // Check why categories are disabled
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        const categoryNotExists = !data.categories?.[category];
-        const notInCheckoutCategories =
-          !data.planDetails?.checkoutCategories?.includes(category);
-        const notInOnDemandCategories =
-          !data.planDetails?.onDemandCategories?.includes(category);
+          // Check why categories are disabled
+          const categoryNotExists = !data.categories?.[category as DataCategories];
+          const categoryInfo = getCategoryInfoFromPlural(category as DataCategory);
 
-        return [
-          category,
-          {
-            disabled:
-              categoryNotExists ||
-              (notInCheckoutCategories && notInOnDemandCategories) ||
-              isUnlimited ||
+          const isGiftable =
+            categoryInfo?.maxAdminGift && categoryInfo.freeEventsMultiple;
+
+          return [
+            category,
+            {
+              disabled:
+                categoryNotExists || isUnlimited || isReservedBudgetQuota || !isGiftable,
+              displayName: getPlanCategoryName({
+                plan: data.planDetails,
+                category,
+                capitalize: false,
+                hadCustomDynamicSampling: isReservedBudgetQuota,
+              }),
+              isUnlimited,
               isReservedBudgetQuota,
-            displayName: getPlanCategoryName({
-              plan: data.planDetails,
-              category,
-              capitalize: false,
-              hadCustomDynamicSampling: isReservedBudgetQuota,
-            }),
-            isUnlimited,
-            isReservedBudgetQuota,
-          },
-        ];
-      })
+              categoryInfo,
+            },
+          ];
+        })
     );
   }
 
@@ -527,7 +532,6 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
                   <TrialSubscriptionAction
                     subscription={data}
                     startEnterpriseTrial
-                    canUseTrialOverride={hasAdminTestFeatures}
                     {...deps}
                   />
                 ),
@@ -578,9 +582,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
               disabled:
                 // Enabling admin to modify NT for partnership support
                 data.partner?.partnership.id !== 'NT' &&
-                (data.partner?.isActive ||
-                  !data.paymentSource ||
-                  !data.paymentSource.last4),
+                (data.partner?.isActive || !data.paymentSource?.last4),
               disabledReason: data.partner?.isActive
                 ? 'This account is managed by a third-party.'
                 : 'No payment method on file.',
@@ -651,7 +653,6 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
                   orgId,
                   subscription: data,
                   billingConfig,
-                  canProvisionDsPlan: hasAdminTestFeatures,
                   onSuccess: () => this.reloadData(),
                 }),
             },
@@ -708,7 +709,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
             ...Object.entries(this.giftCategories).map<ActionItem>(
               ([
                 dataCategory,
-                {displayName, disabled, isUnlimited, isReservedBudgetQuota},
+                {displayName, disabled, isUnlimited, isReservedBudgetQuota, categoryInfo},
               ]) => ({
                 key: `gift-${dataCategory}`,
                 name: `Gift ${displayName}`,
@@ -722,6 +723,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
                 confirmModalOpts: {
                   renderModalSpecificContent: deps => (
                     <AddGiftEventsAction
+                      billedCategoryInfo={categoryInfo}
                       dataCategory={dataCategory as DataCategory}
                       subscription={data}
                       {...deps}
@@ -770,13 +772,13 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
                 }),
             },
             {
-              key: 'testVercelApi',
-              name: 'Test Vercel API',
-              help: 'Send API requests to Vercel',
+              key: 'refundVercel',
+              name: 'Vercel Refund',
+              help: 'Send request to Vercel to initiate a refund for a given invoice.',
               skipConfirmModal: true,
               visible: data.isSelfServePartner && hasActiveVCFeature(organization),
               onAction: () =>
-                testVercelApiEndpoint({
+                refundVercelRequest({
                   onSuccess: () => this.reloadData(),
                   subscription: data,
                 }),

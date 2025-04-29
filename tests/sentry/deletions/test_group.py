@@ -1,3 +1,4 @@
+import os
 import random
 from datetime import datetime, timedelta
 from time import time
@@ -139,16 +140,18 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert GroupHistory.objects.filter(id=other_history_one.id).exists() is False
         assert GroupHistory.objects.filter(id=other_history_two.id).exists() is False
 
-    @mock.patch("os.environ.get")
     @mock.patch("sentry.nodestore.delete_multi")
-    def test_cleanup(self, nodestore_delete_multi: mock.Mock, os_environ: mock.Mock) -> None:
-        os_environ.side_effect = lambda key: "1" if key == "_SENTRY_CLEANUP" else None
-        group = self.event.group
+    def test_cleanup(self, nodestore_delete_multi: mock.Mock) -> None:
+        os.environ["_SENTRY_CLEANUP"] = "1"
+        try:
+            group = self.event.group
 
-        with self.tasks():
-            delete_groups(object_ids=[group.id])
+            with self.tasks():
+                delete_groups(object_ids=[group.id])
 
-        assert nodestore_delete_multi.call_count == 0
+            assert nodestore_delete_multi.call_count == 0
+        finally:
+            del os.environ["_SENTRY_CLEANUP"]
 
     @mock.patch(
         "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
@@ -187,6 +190,50 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert mock_delete_seer_grouping_records_by_hash_apply_async.call_args[1] == {
             "args": [group.project.id, hashes, 0]
         }
+
+    @mock.patch(
+        "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
+    )
+    def test_invalid_group_type_handling(
+        self, mock_delete_seer_grouping_records_by_hash_apply_async: mock.Mock
+    ) -> None:
+        """
+        Test that groups with invalid types are still deleted without causing the entire deletion process to fail.
+        """
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+        error_group = self.store_event(
+            data={"timestamp": before_now(minutes=1).isoformat(), "fingerprint": ["error-group"]},
+            project_id=self.project.id,
+        ).group
+        invalid_group = self.store_event(
+            data={"timestamp": before_now(minutes=1).isoformat(), "fingerprint": ["invalid-group"]},
+            project_id=self.project.id,
+        ).group
+        keep_event = self.store_event(
+            data={"timestamp": before_now(minutes=1).isoformat(), "fingerprint": ["keep-group"]},
+            project_id=self.project.id,
+        )
+        keep_group = keep_event.group
+
+        Group.objects.filter(id=invalid_group.id).update(type=10000000)
+
+        error_group_hashes = [
+            grouphash.hash
+            for grouphash in GroupHash.objects.filter(
+                project_id=self.project.id, group_id=error_group.id
+            )
+        ]
+
+        with self.tasks():
+            delete_groups(object_ids=[error_group.id, invalid_group.id])
+
+        assert not Group.objects.filter(id__in=[error_group.id, invalid_group.id]).exists()
+        assert Group.objects.filter(id=keep_group.id).exists()
+
+        if error_group_hashes:
+            assert mock_delete_seer_grouping_records_by_hash_apply_async.call_args[1] == {
+                "args": [self.project.id, error_group_hashes, 0]
+            }
 
 
 class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):

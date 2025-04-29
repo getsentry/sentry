@@ -1,50 +1,57 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {NoAccess} from 'sentry/components/noAccess';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
-import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
-import {tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   canUseMetricsData,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
+import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
+import {decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {useUserTeams} from 'sentry/utils/useUserTeams';
+import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
-import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {
+  FrontendOverviewTable,
+  isAValidSort,
+  type ValidSort,
+} from 'sentry/views/insights/pages/frontend/frontendOverviewTable';
+import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {OldFrontendOverviewPage} from 'sentry/views/insights/pages/frontend/oldFrontendOverviewPage';
+import {
+  DEFAULT_SORT,
   FRONTEND_LANDING_TITLE,
   FRONTEND_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/frontend/settings';
+import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
+import {useIsNextJsInsightsEnabled} from 'sentry/views/insights/pages/platform/nextjs/features';
+import {NewNextJsExperienceButton} from 'sentry/views/insights/pages/platform/nextjs/newNextjsExperienceToggle';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
-import {
-  generateFrontendOtherPerformanceEventView,
-  USER_MISERY_TOOLTIP,
-} from 'sentry/views/performance/data';
+import type {EAPSpanProperty} from 'sentry/views/insights/types';
+import {generateFrontendOtherPerformanceEventView} from 'sentry/views/performance/data';
 import {
   DoubleChartRow,
   TripleChartRow,
@@ -52,51 +59,26 @@ import {
 import {filterAllowedChartsMetrics} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
-import Table from 'sentry/views/performance/table';
 import {
   getTransactionSearchQuery,
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
 
-const DURATION_TOOLTIP = tct(
-  'A heuristic measuring when a pageload or navigation completes. Based on whether the initial load of the webpage has become idle. [link:Learn more.]',
-  {
-    link: (
-      <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/instrumentation/automatic-instrumentation/#idletimeout" />
-    ),
-  }
-);
-
-export const FRONTEND_COLUMN_TITLES = [
-  {title: 'transaction'},
-  {title: 'operation'},
-  {title: 'project'},
-  {title: 'tpm'},
-  {title: 'p50()', tooltip: DURATION_TOOLTIP},
-  {title: 'p75()', tooltip: DURATION_TOOLTIP},
-  {title: 'p95()', tooltip: DURATION_TOOLTIP},
-  {title: 'users'},
-  {title: 'user misery', tooltip: USER_MISERY_TOOLTIP},
-];
-
-function FrontendOverviewPage() {
+function EAPOverviewPage() {
   useOverviewPageTrackPageload();
-  const theme = useTheme();
-
   const organization = useOrganization();
   const location = useLocation();
-  const {setPageError} = usePageAlert();
   const {projects} = useProjects();
   const onboardingProject = useOnboardingProject();
   const navigate = useNavigate();
-  const {teams} = useUserTeams();
   const mepSetting = useMEPSettingContext();
   const {selection} = usePageFilters();
 
   const withStaticFilters = canUseMetricsData(organization);
   const eventView = generateFrontendOtherPerformanceEventView(
     location,
-    withStaticFilters
+    withStaticFilters,
+    true
   );
   const searchBarEventView = eventView.clone();
 
@@ -106,7 +88,7 @@ function FrontendOverviewPage() {
   eventView.fields = [
     {field: 'team_key_transaction'},
     {field: 'transaction'},
-    {field: 'transaction.op'},
+    {field: 'span.op'},
     {field: 'project'},
     {field: 'tpm()'},
     {field: 'p50(transaction.duration)'},
@@ -129,7 +111,7 @@ function FrontendOverviewPage() {
   const existingQuery = new MutableSearch(eventView.query);
   // TODO - this query is getting complicated, once were on EAP, we should consider moving this to the backend
   existingQuery.addOp('(');
-  existingQuery.addDisjunctionFilterValues('transaction.op', OVERVIEW_PAGE_ALLOWED_OPS);
+  existingQuery.addDisjunctionFilterValues('span.op', OVERVIEW_PAGE_ALLOWED_OPS);
   // add disjunction filter creates a very long query as it seperates conditions with OR, project ids are numeric with no spaces, so we can use a comma seperated list
   if (selectedFrontendProjects.length > 0) {
     existingQuery.addOp('OR');
@@ -139,7 +121,7 @@ function FrontendOverviewPage() {
     );
   }
   existingQuery.addOp(')');
-  existingQuery.addFilterValues('!transaction.op', BACKEND_OVERVIEW_PAGE_ALLOWED_OPS);
+  existingQuery.addFilterValues('!span.op', BACKEND_OVERVIEW_PAGE_ALLOWED_OPS);
   eventView.query = existingQuery.formatString();
 
   const showOnboarding = onboardingProject !== undefined;
@@ -198,13 +180,46 @@ function FrontendOverviewPage() {
 
   const derivedQuery = getTransactionSearchQuery(location, eventView.query);
 
+  const sorts: [ValidSort, ValidSort] = [
+    {
+      field: 'is_starred_transaction' satisfies EAPSpanProperty,
+      kind: 'desc',
+    },
+    decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
+  ];
+
+  existingQuery.addFilterValue('is_transaction', 'true');
+
+  const response = useEAPSpans(
+    {
+      search: existingQuery,
+      sorts,
+      fields: [
+        'is_starred_transaction',
+        'transaction',
+        'span.op',
+        'project',
+        'epm()',
+        'p50(span.duration)',
+        'p95(span.duration)',
+        'failure_rate()',
+        'time_spent_percentage(span.duration)',
+        'sum(span.duration)',
+      ],
+    },
+    'api.performance.landing-table'
+  );
+
   return (
     <Feature
       features="performance-view"
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <FrontendHeader headerTitle={FRONTEND_LANDING_TITLE} />
+      <FrontendHeader
+        headerTitle={FRONTEND_LANDING_TITLE}
+        headerActions={<NewNextJsExperienceButton />}
+      />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
@@ -222,7 +237,7 @@ function FrontendOverviewPage() {
                     onSearch={(query: string) => {
                       handleSearch(query);
                     }}
-                    query={getFreeTextFromQuery(derivedQuery)!}
+                    query={getFreeTextFromQuery(derivedQuery) ?? ''}
                   />
                 )}
               </ToolRibbon>
@@ -239,20 +254,7 @@ function FrontendOverviewPage() {
                     eventView={doubleChartRowEventView}
                   />
                   <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
-                  <TeamKeyTransactionManager.Provider
-                    organization={organization}
-                    teams={teams}
-                    selectedTeams={['myteams']}
-                    selectedProjects={eventView.project.map(String)}
-                  >
-                    <Table
-                      theme={theme}
-                      projects={projects}
-                      columnTitles={FRONTEND_COLUMN_TITLES}
-                      setError={setPageError}
-                      {...sharedProps}
-                    />
-                  </TeamKeyTransactionManager.Provider>
+                  <FrontendOverviewTable response={response} sort={sorts[1]} />
                 </PerformanceDisplayProvider>
               )}
 
@@ -271,9 +273,21 @@ function FrontendOverviewPage() {
 }
 
 function FrontendOverviewPageWithProviders() {
+  const organization = useOrganization();
+  const [isNextJsPageEnabled] = useIsNextJsInsightsEnabled();
+  const useEap = useInsightsEap();
+
+  const {maxPickableDays} = limitMaxPickableDays(organization);
+
   return (
-    <DomainOverviewPageProviders>
-      <FrontendOverviewPage />
+    <DomainOverviewPageProviders maxPickableDays={maxPickableDays}>
+      {isNextJsPageEnabled ? (
+        <NextJsOverviewPage headerTitle={FRONTEND_LANDING_TITLE} />
+      ) : useEap ? (
+        <EAPOverviewPage />
+      ) : (
+        <OldFrontendOverviewPage />
+      )}
     </DomainOverviewPageProviders>
   );
 }

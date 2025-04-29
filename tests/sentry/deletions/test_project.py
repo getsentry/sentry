@@ -17,6 +17,7 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
+from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.monitors.models import (
     CheckInStatus,
@@ -31,6 +32,7 @@ from sentry.testutils.cases import APITestCase, TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.skips import requires_snuba
+from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
 
 pytestmark = [requires_snuba]
 
@@ -38,6 +40,10 @@ pytestmark = [requires_snuba]
 class DeleteProjectTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
     def test_simple(self):
         project = self.create_project(name="test")
+        rule = self.create_project_rule(project=project)
+        RuleActivity.objects.create(
+            rule=rule, user_id=self.user.id, type=RuleActivityType.CREATED.value
+        )
         event = self.store_event(data={}, project_id=project.id)
         assert event.group is not None
         group = event.group
@@ -130,6 +136,8 @@ class DeleteProjectTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
             run_scheduled_deletions()
 
         assert not Project.objects.filter(id=project.id).exists()
+        assert not Rule.objects.filter(id=rule.id).exists()
+        assert not RuleActivity.objects.filter(rule_id=rule.id).exists()
         assert not EnvironmentProject.objects.filter(
             project_id=project.id, environment_id=env.id
         ).exists()
@@ -183,3 +191,31 @@ class DeleteProjectTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
             conditions, tenant_ids={"organization_id": 123, "referrer": "r"}
         )
         assert len(events) == 0
+
+    def test_delete_with_uptime_monitors(self):
+        project = self.create_project(name="test")
+
+        # Create uptime subscription
+        uptime_subscription = UptimeSubscription.objects.create(
+            url="https://example.com",
+            url_domain="example",
+            url_domain_suffix="com",
+            interval_seconds=60,
+            timeout_ms=5000,
+            method="GET",
+        )
+
+        # Create project uptime subscription
+        project_uptime_subscription = ProjectUptimeSubscription.objects.create(
+            project=project, uptime_subscription=uptime_subscription, name="Test Monitor"
+        )
+
+        self.ScheduledDeletion.schedule(instance=project, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not Project.objects.filter(id=project.id).exists()
+        assert not ProjectUptimeSubscription.objects.filter(
+            id=project_uptime_subscription.id
+        ).exists()

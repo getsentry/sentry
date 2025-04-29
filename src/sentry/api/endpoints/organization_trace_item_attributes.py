@@ -22,6 +22,7 @@ from sentry.api.endpoints.organization_spans_fields import BaseSpanFieldValuesAu
 from sentry.api.event_search import translate_escape_sequences
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
+from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.search.eap import constants
 from sentry.search.eap.columns import ColumnDefinitions
@@ -29,7 +30,7 @@ from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
-from sentry.search.eap.utils import translate_internal_to_public_alias
+from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_public_alias
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.tagstore.types import TagValue
@@ -41,7 +42,23 @@ class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsV2EndpointBa
         "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.PERFORMANCE
-    feature_flag = "organizations:ourlogs-enabled"  # Can be changed to performance-trace-explorer once spans work.
+    feature_flags = [
+        "organizations:ourlogs-enabled",
+        "organizations:visibility-explore-view",
+    ]
+
+    def has_feature(self, organization: Organization, request: Request) -> bool:
+        batch_features = features.batch_has(
+            self.feature_flags, organization=organization, actor=request.user
+        )
+
+        if batch_features is None:
+            return False
+
+        key = f"organization:{organization.id}"
+        org_features = batch_features.get(key, {})
+
+        return any(org_features.get(feature) for feature in self.feature_flags)
 
 
 class OrganizationTraceItemAttributesEndpointSerializer(serializers.Serializer):
@@ -98,7 +115,7 @@ def as_attribute_key(
 @region_silo_endpoint
 class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEndpointBase):
     def get(self, request: Request, organization: Organization) -> Response:
-        if not features.has(self.feature_flag, organization, actor=request.user):
+        if not self.has_feature(organization, request):
             return Response(status=404)
 
         serializer = OrganizationTraceItemAttributesEndpointSerializer(data=request.GET)
@@ -161,7 +178,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                 [
                     as_attribute_key(attribute.name, serialized["attribute_type"], trace_item_type)
                     for attribute in rpc_response.attributes
-                    if attribute.name
+                    if attribute.name and can_expose_attribute(attribute.name, trace_item_type)
                 ],
             ],
             max_limit=max_attributes,
@@ -179,7 +196,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
 @region_silo_endpoint
 class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttributesEndpointBase):
     def get(self, request: Request, organization: Organization, key: str) -> Response:
-        if not features.has(self.feature_flag, organization, actor=request.user):
+        if not self.has_feature(organization, request):
             return Response(status=404)
 
         serializer = OrganizationTraceItemAttributesEndpointSerializer(data=request.GET)
@@ -217,7 +234,8 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
             definitions=definitions,
         )
 
-        tag_values = executor.execute()
+        with handle_query_errors():
+            tag_values = executor.execute()
         tag_values.sort(key=lambda tag: tag.value)
 
         paginator = ChainPaginator([tag_values], max_limit=max_attribute_values)

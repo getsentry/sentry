@@ -28,14 +28,13 @@ import {
 } from 'sentry/utils/sessions';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
-import {displayCrashFreePercent} from 'sentry/views/releases/utils';
-
 import {
   generateReleaseMarkLines,
   releaseComparisonChartHelp,
   releaseComparisonChartTitles,
   releaseMarkLinesLabels,
-} from '../../utils';
+} from 'sentry/views/releases/detail/utils';
+import {displayCrashFreePercent} from 'sentry/views/releases/utils';
 
 type Props = {
   allSessions: SessionApiResponse | null;

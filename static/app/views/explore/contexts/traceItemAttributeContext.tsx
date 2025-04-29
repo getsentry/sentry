@@ -3,16 +3,15 @@ import {createContext, useContext, useMemo} from 'react';
 
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
-import {useSpanFieldCustomTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
-
 import {
   SENTRY_LOG_NUMBER_TAGS,
   SENTRY_LOG_STRING_TAGS,
   SENTRY_SPAN_NUMBER_TAGS,
   SENTRY_SPAN_STRING_TAGS,
-} from '../constants';
-import {useTraceItemAttributeKeys} from '../hooks/useTraceItemAttributeKeys';
-import {TraceItemDataset} from '../types';
+} from 'sentry/views/explore/constants';
+import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
+import {TraceItemDataset} from 'sentry/views/explore/types';
+import {useSpanFieldCustomTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 type TypedTraceItemAttributes = {number: TagCollection; string: TagCollection};
 
@@ -24,7 +23,7 @@ type TypedTraceItemAttributesStatus = {
 type TypedTraceItemAttributesResult = TypedTraceItemAttributes &
   TypedTraceItemAttributesStatus;
 
-export const TraceItemAttributeContext = createContext<
+const TraceItemAttributeContext = createContext<
   TypedTraceItemAttributesResult | undefined
 >(undefined);
 
@@ -119,13 +118,6 @@ export function useTraceItemAttributes(type?: 'number' | 'string') {
     attributes: typedAttributesResult.string,
     isLoading: typedAttributesResult.stringAttributesLoading,
   };
-}
-
-export function useTraceItemAttribute(key: string) {
-  const {attributes: numberAttributes} = useTraceItemAttributes('number');
-  const {attributes: stringAttributes} = useTraceItemAttributes('string');
-
-  return stringAttributes[key] ?? numberAttributes[key] ?? null;
 }
 
 function getDefaultStringAttributes(itemType: TraceItemDataset) {

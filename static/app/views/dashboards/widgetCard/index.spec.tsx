@@ -22,8 +22,7 @@ import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
-
-import WidgetLegendSelectionState from '../widgetLegendSelectionState';
+import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 
 import {DashboardsMEPProvider} from './dashboardsMEPContext';
 
@@ -43,7 +42,11 @@ describe('Dashboards > WidgetCard', function () {
       <DashboardsMEPProvider>
         <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>
       </DashboardsMEPProvider>,
-      {organization, router}
+      {
+        organization,
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
   const multipleQueryWidget: Widget = {

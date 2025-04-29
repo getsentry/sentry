@@ -15,6 +15,7 @@ import {getCrashFreeRateSeries} from 'sentry/utils/sessions';
 import type {MetricRule, Trigger} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleTriggerType, Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {getAnomalyMarkerSeries} from 'sentry/views/alerts/rules/metric/utils/anomalyChart';
+import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 import type {Anomaly, Incident} from 'sentry/views/alerts/types';
 import {IncidentActivityType, IncidentStatus} from 'sentry/views/alerts/types';
 import {
@@ -26,8 +27,6 @@ import {
 } from 'sentry/views/alerts/utils';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
-
-import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
 
 function formatTooltipDate(date: moment.MomentInput, format: string): string {
   const {
@@ -184,9 +183,10 @@ export function getMetricAlertChartOption(
 
   const series: AreaChartSeries[] = timeseriesData.map(s => s);
   const areaSeries: AreaChartSeries[] = [];
+  const colors = theme.chart.getColorPalette(0);
   // Ensure series data appears below incident/mark lines
   series[0]!.z = 1;
-  series[0]!.color = theme.chart.colors[0][0];
+  series[0]!.color = colors[0];
 
   const dataArr = timeseriesData[0]!.data;
 

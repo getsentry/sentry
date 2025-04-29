@@ -34,7 +34,7 @@ import ModalStore from 'sentry/stores/modalStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 
-import {FREE_EVENTS_KEYS} from 'admin/components/addGiftEventsAction';
+import {getFreeEventsKey} from 'admin/components/addGiftEventsAction';
 import type {StatsGroup} from 'admin/components/customers/customerStats';
 import {populateChartData, useSeries} from 'admin/components/customers/customerStats';
 import CustomerDetails from 'admin/views/customerDetails';
@@ -1137,7 +1137,7 @@ describe('Customer Details', function () {
     await userEvent.click(
       screen.getAllByRole('button', {
         name: 'Customers Actions',
-      })[1]!
+      })[0]!
     );
 
     expect(screen.getByRole('option', {name: /Start Trial/})).toBeInTheDocument();
@@ -1177,7 +1177,7 @@ describe('Customer Details', function () {
     await userEvent.click(
       screen.getAllByRole('button', {
         name: 'Customers Actions',
-      })[1]!
+      })[0]!
     );
 
     await userEvent.click(screen.getByText('Convert to Sponsored'));
@@ -1224,16 +1224,16 @@ describe('Customer Details', function () {
       await screen.findByRole('heading', {name: 'Customers'});
 
       await userEvent.click(
-        screen.getAllByRole('button', {name: 'Customers Actions'})[1]!
+        screen.getAllByRole('button', {name: 'Customers Actions'})[0]!
       );
 
-      expect(screen.getByTestId('action-changeSoftCap')).toHaveAttribute(
+      expect(screen.getByTestId('changeSoftCap')).toHaveAttribute(
         'aria-disabled',
         'true'
       );
 
       await userEvent.hover(
-        within(screen.getByTestId('action-changeSoftCap')).getByTestId('icon-not')
+        within(screen.getByTestId('changeSoftCap')).getByText('Add Legacy Soft Cap')
       );
 
       expect(
@@ -1262,7 +1262,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       expect(screen.getByText('Add Legacy Soft Cap')).toBeInTheDocument();
@@ -1322,7 +1322,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       await userEvent.click(screen.getByText('Add Legacy Soft Cap'));
@@ -1371,7 +1371,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       await userEvent.click(screen.getByText('Remove Legacy Soft Cap'));
@@ -1427,7 +1427,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       expect(screen.getByText('Disable Overage Notification')).toBeInTheDocument();
@@ -1458,7 +1458,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       expect(screen.getByText('Enable Overage Notification')).toBeInTheDocument();
@@ -1495,7 +1495,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       await userEvent.click(screen.getByText('Disable Overage Notification'));
@@ -1547,7 +1547,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       renderGlobalModal();
@@ -1593,7 +1593,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       expect(screen.getByText('Clear Pending Changes')).toBeInTheDocument();
@@ -1619,7 +1619,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       expect(screen.queryByText('Clear Pending Changes')).not.toBeInTheDocument();
@@ -1649,7 +1649,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       expect(screen.getByRole('option', {name: /Allow Trial/})).toBeInTheDocument();
@@ -1675,7 +1675,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       expect(screen.queryByRole('option', {name: /Allow Trial/})).not.toBeInTheDocument();
@@ -1701,7 +1701,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       expect(screen.queryByRole('option', {name: /Allow Trial/})).not.toBeInTheDocument();
@@ -1733,7 +1733,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       renderGlobalModal();
@@ -1779,7 +1779,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       expect(screen.getByText('Allow Grace Period')).toBeInTheDocument();
@@ -1805,16 +1805,13 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
-      expect(screen.getByTestId('action-allowGrace')).toHaveAttribute(
-        'aria-disabled',
-        'true'
-      );
+      expect(screen.getByTestId('allowGrace')).toHaveAttribute('aria-disabled', 'true');
 
       await userEvent.hover(
-        within(screen.getByTestId('action-allowGrace')).getByTestId('icon-not')
+        within(screen.getByTestId('allowGrace')).getByText('Allow Grace Period')
       );
 
       expect(
@@ -1848,7 +1845,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       renderGlobalModal();
@@ -1900,16 +1897,16 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
-      expect(screen.getByTestId('action-terminateContract')).toHaveAttribute(
+      expect(screen.getByTestId('terminateContract')).toHaveAttribute(
         'aria-disabled',
         'true'
       );
 
       await userEvent.hover(
-        within(screen.getByTestId('action-terminateContract')).getByTestId('icon-not')
+        within(screen.getByTestId('terminateContract')).getByText('Terminate Contract')
       );
 
       expect(
@@ -1947,13 +1944,10 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
-      expect(screen.getByTestId('action-terminateContract')).toHaveAttribute(
-        'aria-disabled',
-        'false'
-      );
+      expect(screen.getByTestId('terminateContract')).toBeEnabled();
     });
 
     it("terminates an organization's contract", async function () {
@@ -1992,7 +1986,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       await userEvent.click(screen.getByText('Terminate Contract'));
@@ -2041,7 +2035,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       renderGlobalModal();
@@ -2071,167 +2065,6 @@ describe('Customer Details', function () {
   });
 
   describe('test vercel api endpoints', function () {
-    it('calls api with correct args', async function () {
-      organization.features.push('vc-marketplace-active-customer');
-      const subscription = SubscriptionFixture({
-        organization,
-        isSelfServePartner: true,
-        partner: {
-          externalId: '123',
-          name: 'test',
-          partnership: {
-            id: 'XX',
-            displayName: 'XX',
-            supportNote: '',
-          },
-          isActive: true,
-        },
-      });
-      setUpMocks(organization, subscription);
-
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />,
-        {organization}
-      );
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[1]!
-      );
-
-      renderGlobalModal();
-
-      await userEvent.click(screen.getByText('Test Vercel API'));
-
-      expect(
-        screen.getByText(
-          'Test Vercel API endpoints for development and debugging purposes.'
-        )
-      ).toBeInTheDocument();
-
-      await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Vercel Endpoint'}));
-
-      ['submit_billing_data', 'submit_invoice', 'create_event'].forEach(endpoint =>
-        expect(screen.getByRole('menuitemradio', {name: endpoint})).toBeInTheDocument()
-      );
-
-      await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Vercel Endpoint'}),
-        'submit_billing_data'
-      );
-
-      const apiMock = MockApiClient.addMockResponse({
-        url: `/_admin/${organization.slug}/test-vercel-api/`,
-        method: 'POST',
-        body: {},
-      });
-
-      await userEvent.click(screen.getByRole('button', {name: 'Send Request'}));
-
-      await waitFor(() =>
-        expect(apiMock).toHaveBeenCalledWith(
-          `/_admin/${organization.slug}/test-vercel-api/`,
-          expect.objectContaining({
-            method: 'POST',
-            data: {
-              extra: null,
-              vercel_endpoint: 'submit_billing_data',
-            },
-          })
-        )
-      );
-    });
-
-    it('calls api with extra data for submit invoice', async function () {
-      organization.features.push('vc-marketplace-active-customer');
-      const subscription = SubscriptionFixture({
-        organization,
-        isSelfServePartner: true,
-        partner: {
-          externalId: '123',
-          name: 'test',
-          partnership: {
-            id: 'XX',
-            displayName: 'XX',
-            supportNote: '',
-          },
-          isActive: true,
-        },
-      });
-      setUpMocks(organization, subscription);
-
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />,
-        {organization}
-      );
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[1]!
-      );
-
-      renderGlobalModal();
-
-      await userEvent.click(screen.getByText('Test Vercel API'));
-
-      expect(
-        screen.getByText(
-          'Test Vercel API endpoints for development and debugging purposes.'
-        )
-      ).toBeInTheDocument();
-
-      await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Vercel Endpoint'}),
-        'submit_invoice'
-      );
-
-      await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Invoice Result'}),
-        'paid'
-      );
-
-      const apiMock = MockApiClient.addMockResponse({
-        url: `/_admin/${organization.slug}/test-vercel-api/`,
-        method: 'POST',
-        body: {},
-      });
-
-      await userEvent.click(screen.getByRole('button', {name: 'Send Request'}));
-
-      await waitFor(() =>
-        expect(apiMock).toHaveBeenCalledWith(
-          `/_admin/${organization.slug}/test-vercel-api/`,
-          expect.objectContaining({
-            method: 'POST',
-            data: {
-              extra: 'paid',
-              vercel_endpoint: 'submit_invoice',
-            },
-          })
-        )
-      );
-    });
-
     it('calls api with extra data for refund', async function () {
       organization.features.push('vc-marketplace-active-customer');
       const subscription = SubscriptionFixture({
@@ -2267,28 +2100,24 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       renderGlobalModal();
 
-      await userEvent.click(screen.getByText('Test Vercel API'));
+      await userEvent.click(screen.getByText('Vercel Refund'));
 
       expect(
         screen.getByText(
-          'Test Vercel API endpoints for development and debugging purposes.'
+          'Send request to Vercel to initiate a refund for a given invoice.'
         )
       ).toBeInTheDocument();
 
-      await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Vercel Endpoint'}),
-        'refund'
-      );
-
-      await userEvent.type(screen.getByRole('textbox', {name: 'Invoice ID'}), '123');
+      await userEvent.type(screen.getByRole('textbox', {name: 'Invoice GUID'}), '123');
+      await userEvent.type(screen.getByRole('textbox', {name: 'Reason'}), 'test');
 
       const apiMock = MockApiClient.addMockResponse({
-        url: `/_admin/${organization.slug}/test-vercel-api/`,
+        url: `/_admin/${organization.slug}/refund-vercel/`,
         method: 'POST',
         body: {},
       });
@@ -2297,12 +2126,12 @@ describe('Customer Details', function () {
 
       await waitFor(() =>
         expect(apiMock).toHaveBeenCalledWith(
-          `/_admin/${organization.slug}/test-vercel-api/`,
+          `/_admin/${organization.slug}/refund-vercel/`,
           expect.objectContaining({
             method: 'POST',
             data: {
-              extra: '123',
-              vercel_endpoint: 'refund',
+              guid: '123',
+              reason: 'test',
             },
           })
         )
@@ -2344,12 +2173,12 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       renderGlobalModal();
 
-      expect(screen.queryByText('Test Vercel API')).not.toBeInTheDocument();
+      expect(screen.queryByText('Vercel Refund')).not.toBeInTheDocument();
     });
 
     it('does not render without vc-marketplace-active-customer feature', async function () {
@@ -2387,12 +2216,12 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       renderGlobalModal();
 
-      expect(screen.queryByText('Test Vercel API')).not.toBeInTheDocument();
+      expect(screen.queryByText('Vercel Refund')).not.toBeInTheDocument();
     });
   });
 
@@ -2464,7 +2293,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       renderGlobalModal();
@@ -2516,7 +2345,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       expect(screen.getByText('Cancel Subscription')).toBeInTheDocument();
@@ -2546,7 +2375,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       await userEvent.click(screen.getByText('Cancel Subscription'));
@@ -2625,12 +2454,9 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
-      expect(screen.getByTestId('action-changePlan')).toHaveAttribute(
-        'aria-disabled',
-        'false'
-      );
+      expect(screen.getByTestId('changePlan')).toBeEnabled();
     });
 
     it('is enabled for deactivated partner account', async function () {
@@ -2680,12 +2506,9 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
-      expect(screen.getByTestId('action-changePlan')).toHaveAttribute(
-        'aria-disabled',
-        'false'
-      );
+      expect(screen.getByTestId('changePlan')).toBeEnabled();
     });
 
     it('is disabled for active, non-XX partner account', async function () {
@@ -2723,13 +2546,10 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
-      expect(screen.getByTestId('action-changePlan')).toHaveAttribute(
-        'aria-disabled',
-        'true'
-      );
+      expect(screen.getByTestId('changePlan')).toHaveAttribute('aria-disabled', 'true');
     });
   });
 
@@ -2762,7 +2582,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       renderGlobalModal();
@@ -2804,10 +2624,10 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
-      expect(screen.getByTestId('action-endTrialEarly')).toHaveAttribute(
+      expect(screen.getByTestId('endTrialEarly')).toHaveAttribute(
         'aria-disabled',
         'true'
       );
@@ -2857,7 +2677,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       expect(screen.getByText('Disable On Demand Billing')).toBeInTheDocument();
@@ -2896,7 +2716,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       expect(screen.getByText('Enable On Demand Billing')).toBeInTheDocument();
@@ -2935,7 +2755,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       expect(screen.queryByText('Enable On Demand Billing')).not.toBeInTheDocument();
@@ -2979,7 +2799,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       renderGlobalModal();
@@ -3039,7 +2859,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       renderGlobalModal();
@@ -3089,7 +2909,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       await userEvent.click(screen.getByText('Convert to Sponsored'));
@@ -3159,7 +2979,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       await userEvent.click(screen.getByText('Convert to Sponsored'));
@@ -3212,10 +3032,10 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
-      expect(screen.getByTestId('action-convertToSponsored')).toHaveAttribute(
+      expect(screen.getByTestId('convertToSponsored')).toHaveAttribute(
         'aria-disabled',
         'true'
       );
@@ -3246,10 +3066,10 @@ describe('Customer Details', function () {
         await userEvent.click(
           screen.getAllByRole('button', {
             name: 'Customers Actions',
-          })[1]!
+          })[0]!
         );
 
-        await userEvent.click(screen.getByTestId(`action-gift-${dataCategory}`));
+        await userEvent.click(screen.getByTestId(`gift-${dataCategory}`));
 
         expect(
           await screen.findByText(
@@ -3284,17 +3104,17 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
-      const freeEventsKey = FREE_EVENTS_KEYS[DataCategory.ERRORS];
+      const freeEventsKey = getFreeEventsKey(DataCategory.ERRORS);
       const updateMock = MockApiClient.addMockResponse({
         url: `/customers/${organization.slug}/`,
         method: 'PUT',
         body: {...organization, [freeEventsKey]: 26000},
       });
 
-      await userEvent.click(screen.getByTestId(`action-gift-${DataCategory.ERRORS}`));
+      await userEvent.click(screen.getByTestId(`gift-${DataCategory.ERRORS}`));
 
       expect(screen.getByText('Total: 0')).toBeInTheDocument();
 
@@ -3344,19 +3164,17 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
-      const freeEventsKey = FREE_EVENTS_KEYS[DataCategory.TRANSACTIONS];
+      const freeEventsKey = getFreeEventsKey(DataCategory.TRANSACTIONS);
       const updateMock = MockApiClient.addMockResponse({
         url: `/customers/${organization.slug}/`,
         method: 'PUT',
         body: {...organization, [freeEventsKey]: 26000},
       });
 
-      await userEvent.click(
-        screen.getByTestId(`action-gift-${DataCategory.TRANSACTIONS}`)
-      );
+      await userEvent.click(screen.getByTestId(`gift-${DataCategory.TRANSACTIONS}`));
 
       expect(screen.getByText('Total: 0')).toBeInTheDocument();
 
@@ -3408,17 +3226,17 @@ describe('Customer Details', function () {
     await userEvent.click(
       screen.getAllByRole('button', {
         name: 'Customers Actions',
-      })[1]!
+      })[0]!
     );
 
-    const freeEventsKey = FREE_EVENTS_KEYS[DataCategory.REPLAYS];
+    const freeEventsKey = getFreeEventsKey(DataCategory.REPLAYS);
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,
       method: 'PUT',
       body: {...organization, [freeEventsKey]: 50},
     });
 
-    await userEvent.click(screen.getByTestId(`action-gift-${DataCategory.REPLAYS}`));
+    await userEvent.click(screen.getByTestId(`gift-${DataCategory.REPLAYS}`));
 
     expect(screen.getByText('Total: 0')).toBeInTheDocument();
 
@@ -3469,17 +3287,17 @@ describe('Customer Details', function () {
     await userEvent.click(
       screen.getAllByRole('button', {
         name: 'Customers Actions',
-      })[1]!
+      })[0]!
     );
 
-    const freeEventsKey = FREE_EVENTS_KEYS[DataCategory.SPANS];
+    const freeEventsKey = getFreeEventsKey(DataCategory.SPANS);
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,
       method: 'PUT',
       body: {...organization, [freeEventsKey]: 50},
     });
 
-    await userEvent.click(screen.getByTestId(`action-gift-${DataCategory.SPANS}`));
+    await userEvent.click(screen.getByTestId(`gift-${DataCategory.SPANS}`));
 
     expect(screen.getByText('Total: 0')).toBeInTheDocument();
 
@@ -3528,10 +3346,10 @@ describe('Customer Details', function () {
     await userEvent.click(
       screen.getAllByRole('button', {
         name: 'Customers Actions',
-      })[1]!
+      })[0]!
     );
 
-    const item = screen.getByTestId(`action-gift-${DataCategory.SPANS_INDEXED}`);
+    const item = screen.getByTestId(`gift-${DataCategory.SPANS_INDEXED}`);
     expect(item).toBeInTheDocument();
     expect(item).toHaveAttribute('aria-disabled', 'true');
   });
@@ -3558,12 +3376,11 @@ describe('Customer Details', function () {
     await userEvent.click(
       screen.getAllByRole('button', {
         name: 'Customers Actions',
-      })[1]!
+      })[0]!
     );
 
-    const item = screen.getByTestId(`action-gift-${DataCategory.SPANS_INDEXED}`);
-    expect(item).toBeInTheDocument();
-    expect(item).toHaveAttribute('aria-disabled', 'true');
+    const item = screen.queryByTestId(`gift-${DataCategory.SPANS_INDEXED}`);
+    expect(item).not.toBeInTheDocument();
   });
 
   it('can gift events - MONITOR SEATS', async function () {
@@ -3589,19 +3406,17 @@ describe('Customer Details', function () {
     await userEvent.click(
       screen.getAllByRole('button', {
         name: 'Customers Actions',
-      })[1]!
+      })[0]!
     );
 
-    const freeEventsKey = FREE_EVENTS_KEYS[DataCategory.MONITOR_SEATS];
+    const freeEventsKey = getFreeEventsKey(DataCategory.MONITOR_SEATS);
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,
       method: 'PUT',
       body: {...organization, [freeEventsKey]: 50},
     });
 
-    await userEvent.click(
-      screen.getByTestId(`action-gift-${DataCategory.MONITOR_SEATS}`)
-    );
+    await userEvent.click(screen.getByTestId(`gift-${DataCategory.MONITOR_SEATS}`));
 
     expect(screen.getByText('Total: 0')).toBeInTheDocument();
 
@@ -3658,7 +3473,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       expect(
@@ -3688,7 +3503,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       expect(screen.getByRole('button', {name: 'Oct 24, 2018'})).toBeInTheDocument();
@@ -3724,7 +3539,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       expect(screen.queryByText('Suspend Account')).not.toBeInTheDocument();
@@ -3756,7 +3571,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       renderGlobalModal();
@@ -3804,7 +3619,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen.getAllByRole('button', {
           name: 'Customers Actions',
-        })[1]!
+        })[0]!
       );
 
       renderGlobalModal();
@@ -3863,7 +3678,7 @@ describe('Customer Details', function () {
       await screen.findByRole('heading', {name: 'Customers'});
 
       await userEvent.click(
-        screen.getAllByRole('button', {name: /customers actions/i})[1]!
+        screen.getAllByRole('button', {name: 'Customers Actions'})[0]!
       );
 
       expect(screen.getByText('Gift to reserved budget')).toBeInTheDocument();
@@ -3891,7 +3706,7 @@ describe('Customer Details', function () {
       await screen.findByRole('heading', {name: 'Customers'});
 
       await userEvent.click(
-        screen.getAllByRole('button', {name: /customers actions/i})[1]!
+        screen.getAllByRole('button', {name: 'Customers Actions'})[0]!
       );
 
       expect(screen.queryByText('Gift to reserved budget')).not.toBeInTheDocument();
@@ -3927,7 +3742,7 @@ describe('Customer Details', function () {
 
       // Open actions dropdown and click gift budget action
       await userEvent.click(
-        screen.getAllByRole('button', {name: /customers actions/i})[1]!
+        screen.getAllByRole('button', {name: 'Customers Actions'})[0]!
       );
       await userEvent.click(screen.getByText('Gift to reserved budget'));
 
@@ -3992,7 +3807,7 @@ describe('Customer Details', function () {
 
       // Open the actions dropdown
       await userEvent.click(
-        screen.getAllByRole('button', {name: /customers actions/i})[1]!
+        screen.getAllByRole('button', {name: 'Customers Actions'})[0]!
       );
 
       // The delete option should be present
@@ -4022,7 +3837,7 @@ describe('Customer Details', function () {
 
       // Open the actions dropdown
       await userEvent.click(
-        screen.getAllByRole('button', {name: /customers actions/i})[1]!
+        screen.getAllByRole('button', {name: 'Customers Actions'})[0]!
       );
 
       // The delete option should not be present
@@ -4041,7 +3856,11 @@ describe('Gift Categories Availability', function () {
       organization,
       planDetails: {
         ...SubscriptionFixture({organization}).planDetails,
-        checkoutCategories: [DataCategory.ERRORS, DataCategory.REPLAYS],
+        checkoutCategories: [
+          DataCategory.ERRORS,
+          DataCategory.REPLAYS,
+          DataCategory.SPANS,
+        ],
         onDemandCategories: [DataCategory.ERRORS, DataCategory.PROFILE_DURATION],
         categories: [
           DataCategory.ERRORS,
@@ -4125,9 +3944,9 @@ describe('Gift Categories Availability', function () {
     expect(giftCategories[DataCategory.SPANS]?.disabled).toBe(true);
   });
 
-  it('disables categories in neither checkoutCategories nor onDemandCategories', function () {
+  it('filters out categories in neither checkoutCategories nor onDemandCategories', function () {
     const giftCategories = customerDetails.giftCategories;
     // PROFILE_DURATION_UI is not in either checkoutCategories or onDemandCategories
-    expect(giftCategories[DataCategory.PROFILE_DURATION_UI]?.disabled).toBe(true);
+    expect(Object.keys(giftCategories)).not.toContain(DataCategory.PROFILE_DURATION_UI);
   });
 });

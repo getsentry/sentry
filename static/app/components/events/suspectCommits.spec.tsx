@@ -6,10 +6,9 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {CommitRow} from 'sentry/components/commitRow';
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
-
-import {CommitRow} from '../commitRow';
 
 import {SuspectCommits} from './suspectCommits';
 

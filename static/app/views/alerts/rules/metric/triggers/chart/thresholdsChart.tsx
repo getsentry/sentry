@@ -14,6 +14,11 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {MetricRule, Trigger} from 'sentry/views/alerts/rules/metric/types';
+import {
+  AlertRuleThresholdType,
+  AlertRuleTriggerType,
+} from 'sentry/views/alerts/rules/metric/types';
 import {getAnomalyMarkerSeries} from 'sentry/views/alerts/rules/metric/utils/anomalyChart';
 import type {Anomaly} from 'sentry/views/alerts/types';
 import {
@@ -24,9 +29,6 @@ import {
   shouldScaleAlertChart,
 } from 'sentry/views/alerts/utils';
 import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
-
-import type {MetricRule, Trigger} from '../../types';
-import {AlertRuleThresholdType, AlertRuleTriggerType} from '../../types';
 
 type DefaultProps = {
   comparisonData: Series[];
@@ -154,7 +156,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
    */
   updateDimensions = () => {
     const chartRef = this.ref?.getEchartsInstance?.();
-    if (!chartRef || !chartRef.getWidth?.()) {
+    if (!chartRef?.getWidth?.()) {
       return;
     }
 
@@ -297,11 +299,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
 
   getChartPixelForThreshold = (threshold: number | '' | null) => {
     const chartRef = this.ref?.getEchartsInstance?.();
-    return (
-      threshold !== '' &&
-      chartRef &&
-      chartRef.convertToPixel({yAxisIndex: 0}, `${threshold}`)
-    );
+    return threshold !== '' && chartRef?.convertToPixel({yAxisIndex: 0}, `${threshold}`);
   };
 
   clampMaxValue(value: number) {
@@ -444,7 +442,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
             ...this.getThresholdLine(trigger, 'resolveThreshold', true),
           ]),
         })}
-        colors={this.props.theme.chart.colors[0]}
+        colors={this.props.theme.chart.getColorPalette(0)}
         series={[
           ...dataWithoutRecentBucket,
           ...comparisonMarkLines,

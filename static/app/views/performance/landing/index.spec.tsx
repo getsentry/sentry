@@ -147,7 +147,9 @@ describe('Performance > Landing > Index', function () {
   it('renders basic UI elements', async function () {
     const data = initializeData();
 
-    wrapper = render(<WrappedComponent data={data} />);
+    wrapper = render(<WrappedComponent data={data} />, {
+      deprecatedRouterMocks: true,
+    });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
   });
@@ -157,7 +159,9 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.FRONTEND_OTHER},
     });
 
-    wrapper = render(<WrappedComponent data={data} />);
+    wrapper = render(<WrappedComponent data={data} />, {
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByTestId('performance-table')).toBeInTheDocument();
   });
 
@@ -166,7 +170,9 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.BACKEND},
     });
 
-    wrapper = render(<WrappedComponent data={data} />);
+    wrapper = render(<WrappedComponent data={data} />, {
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByTestId('performance-table')).toBeInTheDocument();
   });
 
@@ -175,7 +181,9 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.MOBILE},
     });
 
-    wrapper = render(<WrappedComponent data={data} />);
+    wrapper = render(<WrappedComponent data={data} />, {
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByTestId('performance-table')).toBeInTheDocument();
   });
 
@@ -188,7 +196,9 @@ describe('Performance > Landing > Index', function () {
       projects,
     });
 
-    wrapper = render(<WrappedComponent data={data} />);
+    wrapper = render(<WrappedComponent data={data} />, {
+      deprecatedRouterMocks: true,
+    });
 
     expect(await screen.findByTestId('performance-table')).toBeInTheDocument();
     expect(screen.getByTestId('grid-editable')).toBeInTheDocument();
@@ -205,7 +215,9 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.ALL},
     });
 
-    wrapper = render(<WrappedComponent data={data} />);
+    wrapper = render(<WrappedComponent data={data} />, {
+      deprecatedRouterMocks: true,
+    });
 
     expect(await screen.findByTestId('performance-table')).toBeInTheDocument();
 
@@ -223,7 +235,7 @@ describe('Performance > Landing > Index', function () {
           query: 'event.type:transaction',
           referrer: 'api.performance.generic-widget-chart.user-misery-area',
           statsPeriod: '28d',
-          yAxis: ['user_misery()', 'tpm()', 'failure_rate()'],
+          yAxis: ['user_misery()', 'epm()', 'failure_rate()'],
         }),
       })
     );
@@ -246,7 +258,10 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.FRONTEND_OTHER, abc: '123'},
     });
 
-    wrapper = render(<WrappedComponent data={data} />, {router});
+    wrapper = render(<WrappedComponent data={data} />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByTestId('frontend-other-view')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('tab', {name: 'All Transactions'}));
 
@@ -264,7 +279,9 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.FRONTEND_OTHER},
     });
 
-    wrapper = render(<WrappedComponent data={data} />);
+    wrapper = render(<WrappedComponent data={data} />, {
+      deprecatedRouterMocks: true,
+    });
 
     expect(await screen.findByTestId('frontend-other-view')).toBeInTheDocument();
 
@@ -284,7 +301,9 @@ describe('Performance > Landing > Index', function () {
       selectedProject: 99,
     });
 
-    wrapper = render(<WrappedComponent data={data} />);
+    wrapper = render(<WrappedComponent data={data} />, {
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByTestId('frontend-other-view')).toBeInTheDocument();
   });
 
@@ -292,7 +311,9 @@ describe('Performance > Landing > Index', function () {
     it('does not search for empty string transaction', async function () {
       const data = initializeData();
 
-      render(<WrappedComponent data={data} withStaticFilters />);
+      render(<WrappedComponent data={data} withStaticFilters />, {
+        deprecatedRouterMocks: true,
+      });
 
       await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
       await userEvent.type(screen.getByPlaceholderText('Search Transactions'), '{enter}');
@@ -308,7 +329,9 @@ describe('Performance > Landing > Index', function () {
         },
       });
 
-      wrapper = render(<WrappedComponent data={data} withStaticFilters />);
+      wrapper = render(<WrappedComponent data={data} withStaticFilters />, {
+        deprecatedRouterMocks: true,
+      });
 
       expect(await screen.findByTestId('transaction-search-bar')).toBeInTheDocument();
     });
@@ -316,7 +339,9 @@ describe('Performance > Landing > Index', function () {
     it('extracts free text from the query', async function () {
       const data = initializeData();
 
-      wrapper = render(<WrappedComponent data={data} />);
+      wrapper = render(<WrappedComponent data={data} />, {
+        deprecatedRouterMocks: true,
+      });
 
       await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
@@ -335,7 +360,9 @@ describe('Performance > Landing > Index', function () {
         ],
       });
 
-      wrapper = render(<WrappedComponent data={data} />);
+      wrapper = render(<WrappedComponent data={data} />, {
+        deprecatedRouterMocks: true,
+      });
       const titles = await screen.findAllByTestId('performance-widget-title');
       expect(titles.at(0)).toHaveTextContent('Most Regressed');
     });

@@ -1,8 +1,7 @@
 from importlib import reload
-from unittest import mock
+from unittest import TestCase, mock
 
 from sentry.issues import json_schemas
-from sentry.testutils.cases import TestCase
 
 
 class JsonSchemasTest(TestCase):

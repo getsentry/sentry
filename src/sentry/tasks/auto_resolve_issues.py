@@ -14,12 +14,15 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
+from sentry.models.groupopenperiod import update_group_open_period
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.signals import issue_resolved
 from sentry.silo.base import SiloMode
 from sentry.tasks.auto_ongoing_issues import log_error_if_queue_has_items
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import issues_tasks
 from sentry.types.activity import ActivityType
 
 ONE_HOUR = 3600
@@ -31,6 +34,10 @@ ONE_HOUR = 3600
     time_limit=75,
     soft_time_limit=60,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        processing_deadline_duration=75,
+    ),
 )
 @log_error_if_queue_has_items
 def schedule_auto_resolution():
@@ -62,6 +69,10 @@ def schedule_auto_resolution():
     time_limit=75,
     soft_time_limit=60,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        processing_deadline_duration=75,
+    ),
 )
 @log_error_if_queue_has_items
 def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwargs):
@@ -107,13 +118,19 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
 
         if happened:
-            Activity.objects.create(
+            activity = Activity.objects.create(
                 group=group,
                 project=project,
                 type=ActivityType.SET_RESOLVED_BY_AGE.value,
                 data={"age": age},
             )
             record_group_history(group, GroupHistoryStatus.AUTO_RESOLVED)
+            update_group_open_period(
+                group=group,
+                new_status=GroupStatus.RESOLVED,
+                activity=activity,
+                should_reopen_open_period=False,
+            )
 
             kick_off_status_syncs.apply_async(
                 kwargs={"project_id": group.project_id, "group_id": group.id}

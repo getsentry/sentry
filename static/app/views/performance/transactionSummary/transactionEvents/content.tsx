@@ -26,14 +26,15 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
+import Filter, {
+  filterToSearchConditions,
+} from 'sentry/views/performance/transactionSummary/filter';
+import type {SetStateAction} from 'sentry/views/performance/transactionSummary/types';
 import {
   platformToPerformanceType,
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
-
-import type {SpanOperationBreakdownFilter} from '../filter';
-import Filter, {filterToSearchConditions} from '../filter';
-import type {SetStateAction} from '../types';
 
 import EventsTable from './eventsTable';
 import type {EventsDisplayFilterName} from './utils';
@@ -55,7 +56,7 @@ type Props = {
   webVital?: WebVital;
 };
 
-export const TRANSACTIONS_LIST_TITLES: readonly string[] = [
+const TRANSACTIONS_LIST_TITLES: readonly string[] = [
   t('event id'),
   t('user'),
   t('operation duration'),

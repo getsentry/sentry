@@ -52,6 +52,15 @@ import {capitalize} from 'sentry/utils/string/capitalize';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
+import type {MetricRule, Trigger} from 'sentry/views/alerts/rules/metric/types';
+import {
+  AlertRuleComparisonType,
+  Dataset,
+  SessionsAggregate,
+  TimePeriod,
+  TimeWindow,
+} from 'sentry/views/alerts/rules/metric/types';
+import {getMetricDatasetQueryExtras} from 'sentry/views/alerts/rules/metric/utils/getMetricDatasetQueryExtras';
 import {shouldUseErrorsDiscoverDataset} from 'sentry/views/alerts/rules/utils';
 import type {Anomaly} from 'sentry/views/alerts/types';
 import {isSessionAggregate, SESSION_AGGREGATE_TO_FIELD} from 'sentry/views/alerts/utils';
@@ -60,16 +69,6 @@ import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-
-import type {MetricRule, Trigger} from '../../types';
-import {
-  AlertRuleComparisonType,
-  Dataset,
-  SessionsAggregate,
-  TimePeriod,
-  TimeWindow,
-} from '../../types';
-import {getMetricDatasetQueryExtras} from '../../utils/getMetricDatasetQueryExtras';
 
 import ThresholdsChart from './thresholdsChart';
 
@@ -128,7 +127,7 @@ const MOST_TIME_PERIODS: readonly TimePeriod[] = [
  * TimeWindow determines data available in TimePeriod
  * If TimeWindow is small, lower TimePeriod to limit data points
  */
-export const AVAILABLE_TIME_PERIODS: Record<TimeWindow, readonly TimePeriod[]> = {
+const AVAILABLE_TIME_PERIODS: Record<TimeWindow, readonly TimePeriod[]> = {
   [TimeWindow.ONE_MINUTE]: [
     TimePeriod.SIX_HOURS,
     TimePeriod.ONE_DAY,
@@ -244,11 +243,10 @@ class TriggersChart extends PureComponent<Props, State> {
 
   componentDidMount() {
     const {aggregate, showTotalCount} = this.props;
-    if (showTotalCount && !isSessionAggregate(aggregate)) {
-      this.fetchTotalCount();
-    }
     if (this.props.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
       this.fetchExtrapolationSampleCount();
+    } else if (showTotalCount && !isSessionAggregate(aggregate)) {
+      this.fetchTotalCount();
     }
   }
 
@@ -263,11 +261,10 @@ class TriggersChart extends PureComponent<Props, State> {
       !isEqual(prevProps.timeWindow, timeWindow) ||
       !isEqual(prevState.statsPeriod, statsPeriod)
     ) {
-      if (showTotalCount && !isSessionAggregate(aggregate)) {
-        this.fetchTotalCount();
-      }
       if (this.props.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
         this.fetchExtrapolationSampleCount();
+      } else if (showTotalCount && !isSessionAggregate(aggregate)) {
+        this.fetchTotalCount();
       }
     }
   }

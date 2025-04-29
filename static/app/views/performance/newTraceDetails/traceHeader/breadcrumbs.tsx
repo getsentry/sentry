@@ -22,10 +22,9 @@ import {
 import {DOMAIN_VIEW_TITLES} from 'sentry/views/insights/pages/types';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
+import Tab from 'sentry/views/performance/transactionSummary/tabs';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
-
-import Tab from '../../transactionSummary/tabs';
 
 export enum TraceViewSources {
   TRACES = 'traces',
@@ -48,6 +47,7 @@ export enum TraceViewSources {
   ISSUE_DETAILS = 'issue_details',
   DASHBOARDS = 'dashboards',
   FEEDBACK_DETAILS = 'feedback_details',
+  LOGS = 'logs',
 }
 
 // Ideally every new entry to ModuleName, would require a new source to be added here so we don't miss any.
@@ -76,8 +76,9 @@ export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES_LEGACY: Partial<
   profiling_flamegraph: 'profiling',
   performance_transaction_summary: 'insights/summary',
   issue_details: 'issues',
-  feedback_details: 'feedback',
+  feedback_details: 'issues/feedback',
   dashboards: 'dashboards',
+  logs: 'explore/logs',
 };
 
 export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES: Partial<
@@ -91,6 +92,7 @@ export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES: Partial<
   issue_details: 'issues',
   feedback_details: 'issues/feedback',
   dashboards: 'dashboards',
+  logs: 'explore/logs',
 };
 
 function getBreadCrumbTarget(
@@ -513,6 +515,14 @@ export function getTraceViewBreadcrumbs({
       return getIssuesBreadCrumbs(organization, location, leafBreadcrumb);
     case TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY:
       return getPerformanceBreadCrumbs(organization, location, leafBreadcrumb, view);
+    case TraceViewSources.LOGS:
+      return [
+        {
+          label: t('Logs'),
+          to: getBreadCrumbTarget(`explore/logs`, location.query, organization),
+        },
+        leafBreadcrumb,
+      ];
     default:
       return [
         {

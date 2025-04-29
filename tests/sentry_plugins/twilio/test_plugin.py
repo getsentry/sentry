@@ -6,6 +6,7 @@ import responses
 from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
 from sentry.testutils.cases import PluginTestCase, TestCase
+from sentry.testutils.helpers.plugins import assert_plugin_installed
 from sentry_plugins.twilio.plugin import TwilioConfigurationForm, TwilioPlugin, split_sms_to
 
 
@@ -101,16 +102,18 @@ class TwilioConfigurationFormTest(TestCase):
         )
 
 
+def test_conf_key() -> None:
+    assert TwilioPlugin().conf_key == "twilio"
+
+
+def test_entry_point() -> None:
+    assert_plugin_installed("twilio", TwilioPlugin())
+
+
 class TwilioPluginTest(PluginTestCase):
     @cached_property
     def plugin(self):
         return TwilioPlugin()
-
-    def test_conf_key(self):
-        assert self.plugin.conf_key == "twilio"
-
-    def test_entry_point(self):
-        self.assertPluginInstalled("twilio", self.plugin)
 
     def test_is_configured(self):
         for o in ("account_sid", "auth_token", "sms_from", "sms_to"):

@@ -27,8 +27,7 @@ import {
 } from 'sentry/views/dashboards/types';
 import type {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
 import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
-
-import WidgetLegendSelectionState from '../widgetLegendSelectionState';
+import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 
 const defaultOrgFeatures = [
   'performance-view',
@@ -112,8 +111,9 @@ function renderTestComponent({
       widgetLegendState={widgetLegendState}
     />,
     {
-      router,
+      deprecatedRouterMocks: true,
       organization,
+      router,
     }
   );
 
@@ -815,11 +815,21 @@ describe('WidgetBuilder', function () {
 
       await screen.findByText('Table');
 
-      await userEvent.click(screen.getByText('Issues (States, Assignment, Time, etc.)'));
+      await userEvent.click(
+        await screen.findByText('Issues (States, Assignment, Time, etc.)'),
+        {skipHover: true, delay: null}
+      );
 
-      await userEvent.type(screen.getAllByPlaceholderText('Alias')[0]!, 'First Alias');
+      await userEvent.click(screen.getAllByPlaceholderText('Alias')[0]!, {
+        delay: null,
+        skipHover: true,
+      });
+      await userEvent.paste('First Alias', {delay: null, skipHover: true});
 
-      await userEvent.click(screen.getByText('Add Widget'));
+      await userEvent.click(await screen.findByText('Add Widget'), {
+        delay: null,
+        skipHover: true,
+      });
 
       await waitFor(() => {
         expect(handleSave).toHaveBeenCalledWith([
@@ -832,7 +842,7 @@ describe('WidgetBuilder', function () {
           }),
         ]);
       });
-    });
+    }, 20_000);
   });
   describe('Events Widgets', function () {
     describe('Custom Performance Metrics', function () {
@@ -866,16 +876,19 @@ describe('WidgetBuilder', function () {
 
         // 1 in the table header, 1 in the column selector, 1 in the sort field
         await waitFor(() => {
-          expect(screen.getAllByText('count()')).toHaveLength(3);
+          const countFields = screen.getAllByText('count()');
+          expect(countFields).toHaveLength(3);
         });
 
         const countFields = screen.getAllByText('count()');
         await selectEvent.select(countFields[1]!, ['p99(…)']);
-        await selectEvent.select(screen.getByText('transaction.duration'), [
-          'measurements.custom.measurement',
-        ]);
 
-        await userEvent.click(screen.getByText('Add Widget'));
+        // Open dropdown
+        await userEvent.click(await screen.findByText('transaction.duration'));
+        // Pick option measurements.custom.measurement
+        await userEvent.click(await screen.findByText('measurements.custom.measurement'));
+
+        await userEvent.click(await screen.findByText('Add Widget'));
 
         await waitFor(() => {
           expect(router.push).toHaveBeenCalledWith(

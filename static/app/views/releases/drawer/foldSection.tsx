@@ -8,7 +8,7 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-export interface FoldSectionProps {
+interface FoldSectionStatelessProps {
   children: React.ReactNode;
   sectionKey: string;
   /**
@@ -21,13 +21,26 @@ export interface FoldSectionProps {
   actions?: React.ReactNode;
   className?: string;
   /**
-   * Should this section be initially open, gets overridden by user preferences
+   * If this is defined on the initial render, then the component will be
+   * treated as a controlled component, meaning the parent component will need
+   * to handle this component's state. You will likely need to use `onChange`
+   * callback.
    */
-  initialCollapse?: boolean;
+  isCollapsed?: boolean;
   /**
    * Additional margin required to ensure that scrolling to `sectionKey` is correct.
    */
   navScrollMargin?: number;
+  /**
+   * Callback when the collapsed state changes
+   */
+  onChange?: (collapsed: boolean) => void;
+  /**
+   * Callback when scrolled to a collapsed section. If this is a controlled
+   * component, you'll likely want to update state to have "is collapsed" =
+   * false so that the section is expanded when you scroll to it.
+   */
+  onScrollToCollapsedSection?: (element?: HTMLElement) => void;
   /**
    * Disable the ability for the user to collapse the section
    */
@@ -36,24 +49,83 @@ export interface FoldSectionProps {
   style?: CSSProperties;
 }
 
+interface FoldSectionProps extends FoldSectionStatelessProps {
+  /**
+   * Should this section be initially open, gets overridden by user preferences
+   */
+  initialCollapse?: boolean;
+}
+
+export function FoldSection({
+  isCollapsed: isCollapsedProp,
+  onChange,
+  onScrollToCollapsedSection,
+  initialCollapse = false,
+  ...props
+}: FoldSectionProps) {
+  //
+  const isControlled = useRef(isCollapsedProp !== undefined);
+  const [isCollapsedState, setIsCollapsed] = useState(initialCollapse);
+
+  const handleScrollToCollapsedSection = useCallback(
+    (element: HTMLElement | undefined) => {
+      if (isControlled.current) {
+        onScrollToCollapsedSection?.(element);
+      } else {
+        setIsCollapsed(false);
+      }
+    },
+    [onScrollToCollapsedSection, setIsCollapsed]
+  );
+
+  const handleChange = useCallback(
+    (nextCollapsed: boolean) => {
+      if (isControlled.current) {
+        if (typeof onChange !== 'function') {
+          // eslint-disable-next-line no-console
+          console.warn(
+            new Error(
+              'Controlled prop `isCollapsed` used without on `onChange` prop. You likely need an `onChange` so parent component can handle the collapsed state.'
+            )
+          );
+        }
+        onChange?.(nextCollapsed);
+      } else {
+        setIsCollapsed(nextCollapsed);
+      }
+    },
+    [onChange, setIsCollapsed]
+  );
+
+  return (
+    <FoldSectionStateless
+      {...props}
+      isCollapsed={isCollapsedProp ?? isCollapsedState}
+      onChange={handleChange}
+      onScrollToCollapsedSection={handleScrollToCollapsedSection}
+    />
+  );
+}
+
 /**
  * This is a near-duplicate of the component in the
  * steamlined issues view, without localStorage syncing and
  * analytics.
  */
-export function FoldSection({
+function FoldSectionStateless({
   ref,
   children,
   title,
   sectionKey,
   actions,
   className,
+  isCollapsed,
+  onChange,
+  onScrollToCollapsedSection,
   navScrollMargin = 0,
-  initialCollapse = false,
   preventCollapse = false,
-}: FoldSectionProps) {
+}: FoldSectionStatelessProps) {
   const hasAttemptedScroll = useRef(false);
-  const [isCollapsed, setIsCollapsed] = useState(initialCollapse);
 
   const scrollToSection = useCallback(
     (element: HTMLElement | null) => {
@@ -68,7 +140,7 @@ export function FoldSection({
         const [, hash] = window.location.hash.split('#');
         if (hash === sectionKey) {
           if (isCollapsed) {
-            setIsCollapsed(false);
+            onScrollToCollapsedSection?.(element);
           }
 
           // Delay scrollIntoView to allow for layout changes to take place
@@ -76,7 +148,7 @@ export function FoldSection({
         }
       }
     },
-    [sectionKey, navScrollMargin, isCollapsed, setIsCollapsed]
+    [sectionKey, navScrollMargin, isCollapsed, onScrollToCollapsedSection]
   );
 
   // This controls disabling the InteractionStateLayer when hovering over action items. We don't
@@ -87,10 +159,9 @@ export function FoldSection({
     (e: React.MouseEvent) => {
       e.preventDefault(); // Prevent browser summary/details behaviour
       window.getSelection()?.removeAllRanges(); // Prevent text selection on expand
-      setIsCollapsed(!isCollapsed);
-      // onToggleCollapse
+      onChange?.(!isCollapsed);
     },
-    [isCollapsed, setIsCollapsed]
+    [isCollapsed, onChange]
   );
   const labelPrefix = isCollapsed ? t('View') : t('Collapse');
   const labelSuffix = typeof title === 'string' ? title + t(' Section') : t('Section');
@@ -148,11 +219,6 @@ export const SectionDivider = styled('hr')`
   &:last-child {
     display: none;
   }
-`;
-
-export const SidebarFoldSection = styled(FoldSection)`
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin: -${space(1)};
 `;
 
 const Section = styled('section')<{scrollMargin: number}>`

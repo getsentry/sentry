@@ -19,17 +19,19 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {determineSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
+import {
+  isEventsStats,
+  isMultiSeriesEventsStats,
+} from 'sentry/views/dashboards/utils/isEventsStats';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {FALLBACK_SERIES_NAME} from 'sentry/views/explore/settings';
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
-import type {SpanFunctions, SpanIndexedField} from 'sentry/views/insights/types';
-
 import {
-  isEventsStats,
-  isMultiSeriesEventsStats,
-} from '../../../dashboards/utils/isEventsStats';
-import {getRetryDelay, shouldRetryHandler} from '../utils/retryHandlers';
+  getRetryDelay,
+  shouldRetryHandler,
+} from 'sentry/views/insights/common/utils/retryHandlers';
+import type {SpanFunctions, SpanIndexedField} from 'sentry/views/insights/types';
 
 type SeriesMap = Record<string, TimeSeries[]>;
 
@@ -233,17 +235,18 @@ export function convertEventsStatsToTimeSeriesData(
 
   const serie: TimeSeries = {
     field: label,
-    data: seriesData.data.map(([timestamp, countsForTimestamp]) => ({
-      timestamp: new Date(timestamp * 1000).toISOString(),
+    values: seriesData.data.map(([timestamp, countsForTimestamp]) => ({
+      timestamp: timestamp * 1000,
       value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
     })),
     meta: {
-      type: seriesData.meta?.fields?.[seriesName]!,
-      unit: seriesData.meta?.units?.[seriesName] as DataUnit,
+      valueType: seriesData.meta?.fields?.[seriesName]!,
+      valueUnit: seriesData.meta?.units?.[seriesName] as DataUnit,
     },
     confidence: determineSeriesConfidence(seriesData),
     sampleCount: seriesData.meta?.accuracy?.sampleCount,
     samplingRate: seriesData.meta?.accuracy?.samplingRate,
+    dataScanned: seriesData.meta?.dataScanned,
   };
 
   return [seriesData.order ?? 0, serie];

@@ -1090,9 +1090,7 @@ function buildRoutes() {
       />
       <Route
         path=":projectId/getting-started/"
-        component={make(
-          () => import('sentry/views/projectInstall/platformOrIntegration')
-        )}
+        component={make(() => import('sentry/views/projectInstall/gettingStarted'))}
       />
     </Fragment>
   );
@@ -1924,6 +1922,14 @@ function buildRoutes() {
       />
     </Fragment>
   );
+
+  const logsChildRoutes = (
+    <Fragment>
+      <IndexRoute component={make(() => import('sentry/views/explore/logs'))} />
+      {traceViewRoute}
+    </Fragment>
+  );
+
   const tracesRoutes = (
     <Route
       path="/traces/"
@@ -1973,6 +1979,7 @@ function buildRoutes() {
 
   const exploreRoutes = (
     <Route path="/explore/" withOrgPath>
+      <IndexRoute component={make(() => import('sentry/views/explore/indexRedirect'))} />
       <Route path="profiling/" component={make(() => import('sentry/views/profiling'))}>
         {profilingChildRoutes}
       </Route>
@@ -1991,7 +1998,7 @@ function buildRoutes() {
       >
         {releasesChildRoutes}
       </Route>
-      <Route path="logs/" component={make(() => import('sentry/views/explore/logs'))} />
+      <Route path="logs/">{logsChildRoutes}</Route>
       <Route
         path="saved-queries/"
         component={make(() => import('sentry/views/explore/savedQueries'))}
@@ -2090,6 +2097,15 @@ function buildRoutes() {
           path="new/"
           component={make(() => import('sentry/views/codecov/tests/onboarding'))}
         />
+      </Route>
+      <Route path="tokens/">
+        <Route
+          component={make(() => import('sentry/views/codecov/tokens/tokensWrapper'))}
+        >
+          <IndexRoute
+            component={make(() => import('sentry/views/codecov/tokens/tokens'))}
+          />
+        </Route>
       </Route>
     </Fragment>
   );
@@ -2190,6 +2206,18 @@ function buildRoutes() {
   const issueRoutes = (
     <Route path="/issues/" withOrgPath>
       <IndexRoute component={errorHandler(OverviewWrapper)} />
+      <Route
+        path="errors-outages/"
+        component={make(() => import('sentry/views/issueList/pages/errorsOutages'))}
+      />
+      <Route
+        path="metrics/"
+        component={make(() => import('sentry/views/issueList/pages/metrics'))}
+      />
+      <Route
+        path="best-practices/"
+        component={make(() => import('sentry/views/issueList/pages/bestPractices'))}
+      />
       <Route
         path="views/"
         component={make(

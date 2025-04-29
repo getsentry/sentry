@@ -8,7 +8,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import {IconBusiness} from 'sentry/icons';
+import {IconBusiness, IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
@@ -19,7 +19,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import type {Policy, Subscription} from 'getsentry/types';
 import DataConsentForm from 'getsentry/views/legalAndCompliance/dataConsentForm';
-import {PolicyRow} from 'getsentry/views/legalAndCompliance/policyRow';
+import {PolicyRow, PolicyStatusRow} from 'getsentry/views/legalAndCompliance/policyRow';
+import {StatusIconWithTooltip} from 'getsentry/views/legalAndCompliance/policyStatus';
 import {PanelItemPolicy} from 'getsentry/views/legalAndCompliance/styles';
 
 const KNOWN_POLICIES = new Set([
@@ -163,11 +164,15 @@ export function TermsAndConditions({subscription}: TermsProps) {
             <div>
               <PolicyTitle>{t('Security Overview')}</PolicyTitle>
             </div>
-            <div>
+            <PolicyStatusRow>
+              <StatusIconWithTooltip
+                icon={<IconCheckmark isCircled size="sm" color="success" />}
+                tooltip="Included with all accounts"
+              />
               <LinkButton size="sm" external href="https://sentry.io/security/">
                 {t('Review')}
               </LinkButton>
-            </div>
+            </PolicyStatusRow>
           </PanelItemPolicy>
           {policies.pentest && (
             <PolicyRow

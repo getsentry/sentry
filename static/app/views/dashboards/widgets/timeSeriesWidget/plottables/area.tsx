@@ -5,8 +5,7 @@ import LineSeries from 'sentry/components/charts/series/lineSeries';
 import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
 import {splitSeriesIntoCompleteAndIncomplete} from 'sentry/utils/timeSeries/splitSeriesIntoCompleteAndIncomplete';
 import {timeSeriesItemToEChartsDataPoint} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
-
-import type {TimeSeries} from '../../common/types';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 import {
   ContinuousTimeSeries,
@@ -31,10 +30,6 @@ export class Area extends ContinuousTimeSeries implements Plottable {
     this.#incompleteTimeSeries = incompleteTimeSeries;
   }
 
-  constrain(boundaryStart: Date | null, boundaryEnd: Date | null) {
-    return new Area(this.constrainTimeSeries(boundaryStart, boundaryEnd), this.config);
-  }
-
   onHighlight(dataIndex: number): void {
     const {config = {}} = this;
     // The incomplete series prepends the final data point from the complete
@@ -42,8 +37,8 @@ export class Area extends ContinuousTimeSeries implements Plottable {
     // complete series has one more data points than we'd expect. Account for
     // this by reconstructing the data points from the split series
     const mergedData = [
-      ...(this.#completeTimeSeries?.data ?? []),
-      ...(this.#incompleteTimeSeries?.data ?? []),
+      ...(this.#completeTimeSeries?.values ?? []),
+      ...(this.#incompleteTimeSeries?.values ?? []),
     ];
 
     const datum = mergedData.at(dataIndex);
@@ -84,7 +79,7 @@ export class Area extends ContinuousTimeSeries implements Plottable {
           data: scaleTimeSeriesData(
             this.#completeTimeSeries,
             plottingOptions.unit
-          ).data.map(timeSeriesItemToEChartsDataPoint),
+          ).values.map(timeSeriesItemToEChartsDataPoint),
         })
       );
     }
@@ -97,7 +92,7 @@ export class Area extends ContinuousTimeSeries implements Plottable {
           data: scaleTimeSeriesData(
             this.#incompleteTimeSeries,
             plottingOptions.unit
-          ).data.map(timeSeriesItemToEChartsDataPoint),
+          ).values.map(timeSeriesItemToEChartsDataPoint),
           lineStyle: {
             type: 'dotted',
           },

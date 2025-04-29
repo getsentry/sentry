@@ -11,7 +11,9 @@ feedback: 0004_index_together
 
 hybridcloud: 0019_add_provider_webhook_payload
 
-monitors: 0001_initial
+insights: 0001_add_starred_transactions_model
+
+monitors: 0002_fix_drift_default_to_db_default
 
 nodestore: 0002_nodestore_no_dictfield
 
@@ -19,12 +21,12 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0865_file_offsets
+sentry: 0873_update_groupsearchview_visibility_default
 
 social_auth: 0002_default_auto_field
 
 tempest: 0002_make_message_type_nullable
 
-uptime: 0031_translate_uptime_object_headers_to_lists_take_three
+uptime: 0037_fix_drift_default_to_db_default
 
-workflow_engine: 0044_rm_detector_name_unique_constraint
+workflow_engine: 0049_migrate_metric_alerts

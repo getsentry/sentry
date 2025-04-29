@@ -121,7 +121,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
     name = models.CharField(max_length=255, null=True)
     token = models.CharField(max_length=71, unique=True, default=generate_token)
     hashed_token = models.CharField(max_length=128, unique=True, null=True)
-    token_type = models.CharField(max_length=7, choices=AuthTokenType, null=True)
+    token_type = models.CharField(max_length=7, choices=AuthTokenType.choices(), null=True)
     token_last_characters = models.CharField(max_length=4, null=True)
     refresh_token = models.CharField(max_length=71, unique=True, null=True, default=generate_token)
     hashed_refresh_token = models.CharField(max_length=128, unique=True, null=True)
@@ -299,10 +299,10 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
     def get_audit_log_data(self):
         return {"scopes": self.get_scopes()}
 
-    def get_allowed_origins(self):
+    def get_allowed_origins(self) -> list[str]:
         if self.application:
             return self.application.get_allowed_origins()
-        return ()
+        return []
 
     def refresh(self, expires_at=None):
         if self.token_type == AuthTokenType.USER:

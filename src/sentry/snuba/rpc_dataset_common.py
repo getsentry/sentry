@@ -25,7 +25,7 @@ from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse
 from sentry.search.eap.utils import handle_downsample_meta, transform_binary_formula_to_expression
 from sentry.search.events.fields import get_function_alias
-from sentry.search.events.types import EventsMeta, SnubaData, SnubaParams
+from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaData, SnubaParams
 from sentry.utils import json, snuba_rpc
 from sentry.utils.snuba import process_value
 
@@ -104,7 +104,7 @@ def get_timeseries_query(
     y_axes: list[str],
     groupby: list[str],
     referrer: str,
-    sampling_mode: str | None,
+    sampling_mode: SAMPLING_MODES | None,
     extra_conditions: TraceItemFilter | None = None,
 ) -> tuple[
     TimeSeriesRequest,
@@ -114,7 +114,17 @@ def get_timeseries_query(
     meta = search_resolver.resolve_meta(referrer=referrer, sampling_mode=sampling_mode)
     query, _, query_contexts = search_resolver.resolve_query(query_string)
     (functions, _) = search_resolver.resolve_functions(y_axes)
-    (groupbys, _) = search_resolver.resolve_attributes(groupby)
+    groupbys, groupby_contexts = search_resolver.resolve_attributes(groupby)
+
+    # Virtual context columns (VCCs) are currently only supported in TraceItemTable.
+    # Since they are not supported here - we map them manually back to the original
+    # column the virtual context column would have used.
+    for i, groupby_definition in enumerate(zip(groupbys, groupby_contexts)):
+        _, context = groupby_definition
+        if context is not None:
+            col = search_resolver.map_context_to_original_column(context)
+            groupbys[i] = col
+
     if extra_conditions is not None:
         if query is not None:
             query = TraceItemFilter(and_filter=AndFilter(filters=[query, extra_conditions]))
@@ -161,7 +171,7 @@ def run_table_query(
     offset: int,
     limit: int,
     referrer: str,
-    sampling_mode: str | None,
+    sampling_mode: SAMPLING_MODES | None,
     resolver: SearchResolver,
     debug: bool = False,
 ) -> EAPResponse:
@@ -224,7 +234,8 @@ def run_table_query(
     final_data: SnubaData = []
     final_confidence: ConfidenceData = []
     final_meta: EventsMeta = EventsMeta(
-        fields={}, full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta)
+        fields={},
+        full_scan=handle_downsample_meta(rpc_response.meta.downsampled_storage_meta),
     )
     # Mapping from public alias to resolved column so we know type etc.
     columns_by_name = {col.public_alias: col for col in columns}

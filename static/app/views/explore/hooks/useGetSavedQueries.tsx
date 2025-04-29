@@ -1,13 +1,15 @@
 import {useCallback} from 'react';
 
 import type {Actor} from 'sentry/types/core';
+import {defined} from 'sentry/utils';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 
 type Query = {
   fields: string[];
   groupby: string[];
-  mode: string;
+  mode: Mode;
   orderby: string;
   query: string;
   visualize: Array<{
@@ -18,8 +20,8 @@ type Query = {
 
 export type SortOption =
   | 'name'
-  | 'dateAdded'
-  | 'dateUpdated'
+  | '-dateAdded'
+  | '-dateUpdated'
   | 'mostPopular'
   | 'recentlyViewed'
   | 'starred'
@@ -30,18 +32,19 @@ export type SavedQuery = {
   createdBy: Actor;
   dateAdded: string;
   dateUpdated: string;
-  end: string;
   environment: string[];
   id: number;
   interval: string;
   lastVisited: string;
   name: string;
+  position: number | null;
   projects: number[];
   query: [Query, ...Query[]];
   queryDataset: string;
-  range: string;
   starred: boolean;
-  start: string;
+  end?: string;
+  range?: string;
+  start?: string;
 };
 
 type Props = {
@@ -96,4 +99,27 @@ export function useInvalidateSavedQueries() {
       queryKey: [`/organizations/${organization.slug}/explore/saved/`],
     });
   }, [queryClient, organization.slug]);
+}
+
+export function useGetSavedQuery(id?: string) {
+  const organization = useOrganization();
+  const {data, isLoading, ...rest} = useApiQuery<SavedQuery>(
+    [`/organizations/${organization.slug}/explore/saved/${id}/`],
+    {
+      staleTime: 0,
+      enabled: defined(id),
+    }
+  );
+  return {data, isLoading, ...rest};
+}
+
+export function useInvalidateSavedQuery(id?: string) {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+
+  return useCallback(() => {
+    queryClient.invalidateQueries({
+      queryKey: [`/organizations/${organization.slug}/explore/saved/${id}/`],
+    });
+  }, [queryClient, organization.slug, id]);
 }

@@ -52,12 +52,7 @@ describe('AccountSecurity', function () {
           routeParams={router.params}
           params={{...router.params, authId: '15'}}
         />
-      </AccountSecurityWrapper>,
-      {
-        router: {
-          params: {authId: '15'},
-        },
-      }
+      </AccountSecurityWrapper>
     );
   }
 

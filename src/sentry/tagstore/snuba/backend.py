@@ -65,7 +65,9 @@ SEEN_COLUMN = "timestamp"
 # all values for a given tag/column
 BLACKLISTED_COLUMNS = frozenset(["project_id"])
 
-BOOLEAN_KEYS = frozenset(["error.handled", "error.unhandled", "error.main_thread", "stack.in_app"])
+BOOLEAN_KEYS = frozenset(
+    ["error.handled", "error.unhandled", "error.main_thread", "stack.in_app", "symbolicated_in_app"]
+)
 
 FUZZY_NUMERIC_KEYS = frozenset(
     ["stack.colno", "stack.lineno", "stack.stack_level", "transaction.duration"]

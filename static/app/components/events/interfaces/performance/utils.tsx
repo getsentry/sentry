@@ -1,15 +1,13 @@
 import * as Sentry from '@sentry/react';
 import keyBy from 'lodash/keyBy';
 
+import type {
+  RawSpanType,
+  TraceContextSpanProxy,
+} from 'sentry/components/events/interfaces/spans/types';
 import type {EntrySpans, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
-import {
-  getIssueTypeFromOccurrenceType,
-  IssueCategory,
-  IssueType,
-} from 'sentry/types/group';
-
-import type {RawSpanType, TraceContextSpanProxy} from '../spans/types';
+import {getIssueTypeFromOccurrenceType, IssueType} from 'sentry/types/group';
 
 export function getSpanInfoFromTransactionEvent(
   event: Pick<
@@ -24,12 +22,7 @@ export function getSpanInfoFromTransactionEvent(
 ) {
   const perfEvidenceData = event.perfProblem ?? event?.occurrence?.evidenceData;
   if (!perfEvidenceData) {
-    if (
-      event.issueCategory === IssueCategory.PERFORMANCE &&
-      event.endTimestamp > 1663560000 //  (Sep 19, 2022 onward), Some events could have been missing evidence before EA
-    ) {
-      Sentry.captureException(new Error('Span Evidence missing for performance issue.'));
-    }
+    Sentry.captureException(new Error('Span Evidence missing for performance issue.'));
     return null;
   }
 

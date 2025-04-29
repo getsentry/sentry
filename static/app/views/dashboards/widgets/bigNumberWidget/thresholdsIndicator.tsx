@@ -2,10 +2,9 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {Polarity} from 'sentry/components/percentChange';
-
-import {normalizeUnit} from '../../utils';
-import {ThresholdsHoverWrapper} from '../../widgetBuilder/buildSteps/thresholdsStep/thresholdsHoverWrapper';
-import type {ThresholdsConfig} from '../../widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
+import {normalizeUnit} from 'sentry/views/dashboards/utils';
+import {ThresholdsHoverWrapper} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholdsHoverWrapper';
+import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 
 type ValidThresholds = {
   max_values: {

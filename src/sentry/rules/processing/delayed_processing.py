@@ -44,6 +44,9 @@ from sentry.rules.processing.processor import (
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.post_process import should_retry_fetch
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import issues_tasks
+from sentry.taskworker.retry import Retry
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
@@ -213,7 +216,7 @@ def bulk_fetch_events(event_ids: list[str], project_id: int) -> dict[str, Event]
 
 
 def parse_rulegroup_to_event_data(
-    rulegroup_to_event_data: dict[str, str]
+    rulegroup_to_event_data: dict[str, str],
 ) -> dict[tuple[int, int], dict[str, str]]:
     parsed_rulegroup_to_event_data = {}
     for rule_group, instance_data in rulegroup_to_event_data.items():
@@ -326,7 +329,7 @@ def get_group_to_groupevent(
 
 def get_condition_group_results(
     condition_groups: dict[UniqueConditionQuery, DataAndGroups], project: Project
-) -> dict[UniqueConditionQuery, dict[int, int]] | None:
+) -> dict[UniqueConditionQuery, dict[int, int | float]] | None:
     condition_group_results = {}
     current_time = datetime.now(tz=timezone.utc)
     project_id = project.id
@@ -377,7 +380,7 @@ def get_condition_group_results(
 
 
 def passes_comparison(
-    condition_group_results: dict[UniqueConditionQuery, dict[int, int]],
+    condition_group_results: dict[UniqueConditionQuery, dict[int, int | float]],
     condition_data: EventFrequencyConditionData,
     group_id: int,
     environment_id: int,
@@ -414,7 +417,7 @@ def passes_comparison(
 
 
 def get_rules_to_fire(
-    condition_group_results: dict[UniqueConditionQuery, dict[int, int]],
+    condition_group_results: dict[UniqueConditionQuery, dict[int, int | float]],
     rules_to_slow_conditions: DefaultDict[Rule, list[EventFrequencyConditionData]],
     rules_to_groups: DefaultDict[int, set[int]],
     project_id: int,
@@ -554,6 +557,13 @@ def cleanup_redis_buffer(
     soft_time_limit=50,
     time_limit=60,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        processing_deadline_duration=60,
+        retry=Retry(
+            times=5,
+        ),
+    ),
 )
 def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **kwargs: Any) -> None:
     """

@@ -87,21 +87,19 @@ def make_rpc_request(
     assert snuba_params.start is not None
     assert snuba_params.end is not None
 
-    with sentry_sdk.isolation_scope() as scope:
-        path, query = format_api_call(
-            organization.slug,
-            query=query_parts["query"],
-            useRpc=1,
-            project=snuba_params.project_ids[0],
-            yAxis=query_parts["selected_columns"][0],
-            dataset="spans",
-            interval=snuba_params.granularity_secs,
-            start=snuba_params.start.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-            end=snuba_params.end.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-            sampling="BEST_EFFORT",
-        )
-        api_call = organization.absolute_url(path, query)
-        scope.set_extra("eap_call", api_call)
+    path, query = format_api_call(
+        organization.slug,
+        query=query_parts["query"],
+        project=snuba_params.project_ids[0],
+        yAxis=query_parts["selected_columns"][0],
+        dataset="spans",
+        interval=snuba_params.granularity_secs,
+        start=snuba_params.start.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+        end=snuba_params.end.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+        sampling="BEST_EFFORT",
+    )
+    api_call = organization.absolute_url(path, query)
+    sentry_sdk.set_extra("eap_call", api_call)
 
     return TSResultForComparison(result=results, agg_alias=query_parts["selected_columns"][0])
 
@@ -130,19 +128,18 @@ def make_snql_request(
     assert snuba_params.start is not None
     assert snuba_params.end is not None
 
-    with sentry_sdk.isolation_scope() as scope:
-        path, query = format_api_call(
-            organization.slug,
-            query=query,
-            project=snuba_params.project_ids[0],
-            yAxis=aggregate,
-            dataset="metrics",
-            interval=snuba_params.granularity_secs,
-            start=snuba_params.start.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-            end=snuba_params.end.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-        )
-        api_call = organization.absolute_url(path, query)
-        scope.set_extra("metrics_call", api_call)
+    path, query = format_api_call(
+        organization.slug,
+        query=query,
+        project=snuba_params.project_ids[0],
+        yAxis=aggregate,
+        dataset="metricsEnhanced",
+        interval=snuba_params.granularity_secs,
+        start=snuba_params.start.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+        end=snuba_params.end.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+    )
+    api_call = organization.absolute_url(path, query)
+    sentry_sdk.set_extra("metrics_call", api_call)
 
     return TSResultForComparison(result=results, agg_alias=get_function_alias(aggregate))
 
@@ -288,7 +285,7 @@ def assert_timeseries_close(aligned_timeseries, alert_rule):
         sentry_sdk.capture_message("Multiple missing buckets", level="info")
         logger.info("Alert %s has multiple missing buckets", alert_rule.id)
 
-        return False, mismatches
+        return False, mismatches, all_zeros
 
     logger.info("Alert %s timeseries is close", alert_rule.id)
     return True, mismatches, all_zeros
@@ -318,9 +315,8 @@ def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
 
     organization = Organization.objects.get_from_cache(id=project.organization_id)
 
-    with sentry_sdk.isolation_scope() as scope:
-        scope.set_tag("organization", organization.slug)
-        scope.set_extra("alert_id", alert_rule.id)
+    sentry_sdk.set_tag("organization", organization.slug)
+    sentry_sdk.set_extra("alert_id", alert_rule.id)
 
     on_demand_metrics_enabled = features.has(
         "organizations:on-demand-metrics-extraction",

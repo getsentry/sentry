@@ -20,6 +20,7 @@ from sentry.utils import json
 from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
     EventFrequencyQueryHandler,
     EventUniqueUserFrequencyQueryHandler,
+    QueryResult,
 )
 from sentry.workflow_engine.models import (
     Action,
@@ -528,7 +529,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
         self.data_condition_groups = self.workflow1_dcgs + self.workflow2_dcgs + [self.detector_dcg]
         self.dcg_to_groups[self.detector_dcg.id] = {self.group1.id}
         self.workflows_to_envs = {self.workflow1.id: self.environment.id, self.workflow2.id: None}
-        self.condition_group_results = {
+        self.condition_group_results: dict[UniqueConditionQuery, QueryResult] = {
             UniqueConditionQuery(
                 handler=EventFrequencyQueryHandler,
                 interval="1h",

@@ -28,7 +28,7 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
             search_type="integer",
         ),
         ResolvedAttribute(
-            public_alias="severity_text",
+            public_alias="severity",
             internal_name="sentry.severity_text",
             search_type="string",
         ),
@@ -66,6 +66,12 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
             secondary_alias=True,
         ),
         # Deprecated
+        ResolvedAttribute(
+            public_alias="severity_text",
+            internal_name="sentry.severity_text",
+            search_type="string",
+            secondary_alias=True,
+        ),
         ResolvedAttribute(
             public_alias="log.severity_text",
             internal_name="sentry.severity_text",

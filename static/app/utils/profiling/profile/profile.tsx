@@ -1,7 +1,6 @@
+import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
+import {Frame} from 'sentry/utils/profiling/frame';
 import type {ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
-
-import {CallTreeNode} from '../callTreeNode';
-import {Frame} from '../frame';
 
 interface ProfileStats {
   discardedSamplesCount: number;

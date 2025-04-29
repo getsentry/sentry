@@ -1,6 +1,7 @@
+from unittest import TestCase
+
 from sentry.loader.dynamic_sdk_options import DynamicSdkLoaderOption, get_dynamic_sdk_loader_option
 from sentry.models.projectkey import ProjectKey
-from sentry.testutils.cases import TestCase
 
 
 class DynamicSdkOptions(TestCase):

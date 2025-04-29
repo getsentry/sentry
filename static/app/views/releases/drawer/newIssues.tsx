@@ -9,7 +9,7 @@ import {getReleaseBounds, getReleaseParams} from 'sentry/views/releases/utils';
 import {useReleaseDetails} from 'sentry/views/releases/utils/useReleaseDetails';
 
 interface Props {
-  projectId: string;
+  projectId: string | undefined;
   release: string;
   withChart?: boolean;
 }
@@ -29,10 +29,7 @@ export function NewIssues({release, projectId, withChart = false}: Props) {
     limit: 10,
     sort: IssueSortOptions.FREQ,
     groupStatsPeriod: 'auto',
-    query: new MutableSearch([
-      `first-release:${release}`,
-      'is:unresolved',
-    ]).formatString(),
+    query: new MutableSearch([`first-release:${release}`]).formatString(),
   };
 
   const renderEmptyMessage = () => {
@@ -48,8 +45,7 @@ export function NewIssues({release, projectId, withChart = false}: Props) {
       queryFilterDescription={queryFilterDescription}
       withChart={withChart}
       renderEmptyMessage={renderEmptyMessage}
-      withPagination={false}
-      // onFetchSuccess={}
+      withPagination
       source="release-drawer"
     />
   );

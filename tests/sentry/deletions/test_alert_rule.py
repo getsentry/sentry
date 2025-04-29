@@ -12,11 +12,17 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleSensitivity,
     AlertRuleTrigger,
 )
-from sentry.incidents.models.incident import Incident
+from sentry.incidents.models.incident import Incident, IncidentProject
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
-from sentry.workflow_engine.models import AlertRuleDetector, AlertRuleWorkflow
+from sentry.workflow_engine.models import (
+    AlertRuleDetector,
+    AlertRuleWorkflow,
+    IncidentGroupOpenPeriod,
+)
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -33,6 +39,18 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
             projects=[self.project],
             alert_rule=alert_rule,
         )
+        one_minute = before_now(minutes=1).isoformat()
+        event = self.store_event(
+            data={"timestamp": one_minute, "fingerprint": ["group1"]}, project_id=self.project.id
+        )
+        group = event.group
+        assert group
+        group_open_period = GroupOpenPeriod.objects.create(
+            project=self.project, group=group, user_id=self.user.id
+        )
+        IncidentGroupOpenPeriod.objects.create(
+            incident_id=incident.id, group_open_period=group_open_period
+        )
 
         detector = self.create_detector()
         workflow = self.create_workflow()
@@ -48,6 +66,13 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
         assert not AlertRule.objects.filter(id=alert_rule.id).exists()
         assert not AlertRuleTrigger.objects.filter(id=alert_rule_trigger.id).exists()
         assert not Incident.objects.filter(id=incident.id).exists()
+        assert not IncidentProject.objects.filter(incident=incident, project=self.project).exists()
+        assert not IncidentGroupOpenPeriod.objects.filter(
+            incident_id=incident.id, group_open_period=group_open_period
+        ).exists()
+        assert not GroupOpenPeriod.objects.filter(
+            project=self.project, group=group, user_id=self.user.id
+        )
         assert not AlertRuleDetector.objects.filter(alert_rule_id=alert_rule.id).exists()
         assert not AlertRuleWorkflow.objects.filter(alert_rule_id=alert_rule.id).exists()
 
