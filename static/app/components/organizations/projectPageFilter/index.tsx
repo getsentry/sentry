@@ -277,7 +277,7 @@ export function ProjectPageFilter({
               to={
                 makeProjectsPathname({
                   path: `/${project.slug}/`,
-                  orgSlug: organization.slug,
+                  organization,
                 }) + `?project=${project.id}`
               }
               visible={isFocused}
