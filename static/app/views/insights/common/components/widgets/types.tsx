@@ -6,6 +6,12 @@ import type {PageFilters} from 'sentry/types/core';
  */
 export interface LoadableChartWidgetProps {
   /**
+   * Chart height, needed to ensure that the chart height is consistent with
+   * the loading placeholder height
+   */
+  height?: string | number;
+
+  /**
    * Unique ID for the widget
    *
    * TODO(billy): This should be required when all chart widgets are converted

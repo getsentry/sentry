@@ -12,7 +12,6 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
     url_name = "sentry-api-0-organization-trace"
     FEATURES = [
         "organizations:trace-spans-format",
-        "organizations:performance-file-io-main-thread-detector",
         "organizations:performance-slow-db-issue",
     ]
 

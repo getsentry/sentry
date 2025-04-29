@@ -90,7 +90,6 @@ def make_rpc_request(
     path, query = format_api_call(
         organization.slug,
         query=query_parts["query"],
-        useRpc=1,
         project=snuba_params.project_ids[0],
         yAxis=query_parts["selected_columns"][0],
         dataset="spans",

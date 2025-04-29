@@ -69,15 +69,28 @@ function CodeBody({
       <LineNumberColumn>
         {virtualizer.getVirtualItems().map(virtualItem => {
           const lineNumber = virtualItem.index + 1;
+          const isHighlighted = location.hash === `#L${lineNumber}`;
+
+          let label = 'line';
+          if (isHighlighted) {
+            label = 'highlighted line';
+          } else if (coverage[lineNumber] === 'H') {
+            label = 'covered line';
+          } else if (coverage[lineNumber] === 'M') {
+            label = 'missed line';
+          } else if (coverage[lineNumber] === 'P') {
+            label = 'partial line';
+          }
 
           return (
             <LineNumber
+              ariaLabel={label}
               key={virtualItem.key}
-              coverage={coverage.get(lineNumber)?.coverage}
+              coverage={coverage[lineNumber]}
               lineNumber={lineNumber}
               virtualItem={virtualItem}
               virtualizer={virtualizer}
-              isHighlighted={location.hash === `#L${lineNumber}`}
+              isHighlighted={isHighlighted}
               onClick={() => {
                 location.hash =
                   location.hash === `#L${lineNumber}` ? '' : `#L${lineNumber}`;
@@ -207,7 +220,10 @@ export function VirtualFileRenderer({
   });
 
   return (
-    <VirtualCodeRenderer ref={virtualCodeRendererRef}>
+    <VirtualCodeRenderer
+      ref={virtualCodeRendererRef}
+      data-test-id="virtual-file-renderer"
+    >
       <TextArea
         ref={textAreaRef}
         value={content}
@@ -222,10 +238,12 @@ export function VirtualFileRenderer({
         tabIndex={0}
         aria-multiline="true"
         aria-haspopup="false"
+        data-test-id="virtual-file-renderer-text-area"
       />
       <CodeDisplayOverlay
         ref={codeDisplayOverlayRef}
         styleHeight={virtualizer.getTotalSize()}
+        data-test-id="virtual-file-renderer-overlay"
       >
         <CodePreWrapper
           ref={widthDivRef}

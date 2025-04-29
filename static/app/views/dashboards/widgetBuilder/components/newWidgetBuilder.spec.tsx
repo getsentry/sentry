@@ -118,6 +118,7 @@ describe('NewWidgetBuiler', function () {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -184,6 +185,7 @@ describe('NewWidgetBuiler', function () {
       {
         router: chartsRouter,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -212,6 +214,7 @@ describe('NewWidgetBuiler', function () {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -245,6 +248,7 @@ describe('NewWidgetBuiler', function () {
       {
         router: chartsRouter,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -264,7 +268,11 @@ describe('NewWidgetBuiler', function () {
         openWidgetTemplates
         setOpenWidgetTemplates={jest.fn()}
       />,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(await screen.findByText('Add from Widget Library')).toBeInTheDocument();
