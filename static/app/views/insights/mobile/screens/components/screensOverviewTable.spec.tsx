@@ -59,7 +59,7 @@ describe('ScreensOverviewTable', () => {
         'division(mobile.slow_frames,mobile.total_frames)': 0.12,
         'division(mobile.frozen_frames,mobile.total_frames)': 0.23,
         'count()': 45,
-        'project.id': project.id,
+        'project.id': parseInt(project.id, 10),
         'avg(mobile.frames_delay)': 0.1,
         'avg(measurements.app_start_cold)': 0.2,
         'avg(measurements.app_start_warm)': 0.3,
