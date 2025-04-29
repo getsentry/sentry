@@ -2,7 +2,8 @@ import {useState} from 'react';
 
 import type {Client} from 'sentry/api';
 import type {ButtonProps, LinkButtonProps} from 'sentry/components/core/button';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import withApi from 'sentry/utils/withApi';

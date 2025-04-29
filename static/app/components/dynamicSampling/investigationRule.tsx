@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 import moment from 'moment-timezone';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {BaseButtonProps} from 'sentry/components/core/button';
+import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -29,7 +29,7 @@ import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 const INVESTIGATION_MAX_SAMPLES_TRIGGER = 5;
 
 type Props = {
-  buttonProps: BaseButtonProps;
+  buttonProps: ButtonProps;
   eventView: EventView;
   numSamples: number | null | undefined;
 };

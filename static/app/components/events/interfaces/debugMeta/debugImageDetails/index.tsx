@@ -6,8 +6,8 @@ import sortBy from 'lodash/sortBy';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {getFileName} from 'sentry/components/events/interfaces/debugMeta/utils';
 import LoadingError from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';

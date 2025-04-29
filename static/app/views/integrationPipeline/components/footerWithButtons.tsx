@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
 import type {ButtonProps, LinkButtonProps} from 'sentry/components/core/button';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {space} from 'sentry/styles/space';
 
 interface FooterWithButtonsProps {

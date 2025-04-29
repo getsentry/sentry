@@ -2,7 +2,8 @@ import {type ReactNode, useMemo} from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import {platformsWithNestedInstrumentationGuides} from 'sentry/data/platformCategories';
 import {IconOpen, IconQuestion} from 'sentry/icons';
