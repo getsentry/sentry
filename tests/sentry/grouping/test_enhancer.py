@@ -658,6 +658,21 @@ class AssembleStacktraceComponentTest(TestCase):
               this rule, but it needs its own test - see
               `test_marks_app_stacktrace_non_contributing_if_no_in_app_frames` below.)
         """
+        incoming_frames = [
+            {"in_app": True},
+            {"in_app": True},
+            {"in_app": True},
+            {"in_app": True},
+            {"in_app": True},
+            {"in_app": True},
+            {"in_app": False},
+            {"in_app": False},
+            {"in_app": False},
+            {"in_app": False},
+            {"in_app": False},
+            {"in_app": False},
+        ]
+
         app_variant_frame_components = [
             self.in_app_frame(contributes=True, hint=None),
             self.in_app_frame(contributes=True, hint=None),
@@ -760,14 +775,14 @@ class AssembleStacktraceComponentTest(TestCase):
             app_stacktrace_component = enhancements.assemble_stacktrace_component(
                 variant_name="app",
                 frame_components=app_variant_frame_components,
-                frames=[{}] * 6,
+                frames=incoming_frames,
                 platform="javascript",
                 exception_data={},
             )
             system_stacktrace_component = enhancements.assemble_stacktrace_component(
                 variant_name="system",
                 frame_components=system_variant_frame_components,
-                frames=[{}] * 6,
+                frames=incoming_frames,
                 platform="javascript",
                 exception_data={},
             )
@@ -789,6 +804,11 @@ class AssembleStacktraceComponentTest(TestCase):
         Test that if frame special-casing for the app variant results in no contributing frames, the
         stacktrace is marked non-contributing.
         """
+        incoming_frames = [
+            {"in_app": False},
+            {"in_app": True},
+            {"in_app": True},
+        ]
         frame_components = [
             # All possibilities (all combos of app vs system, contributing vs not) except a
             # contributing system frame, since that will never be passed to
@@ -840,7 +860,7 @@ class AssembleStacktraceComponentTest(TestCase):
             stacktrace_component1 = enhancements1.assemble_stacktrace_component(
                 variant_name="app",
                 frame_components=frame_components,
-                frames=[{}] * 3,
+                frames=incoming_frames,
                 platform="javascript",
                 exception_data={},
             )
@@ -858,7 +878,7 @@ class AssembleStacktraceComponentTest(TestCase):
             stacktrace_component2 = enhancements2.assemble_stacktrace_component(
                 variant_name="app",
                 frame_components=frame_components,
-                frames=[{}] * 3,
+                frames=incoming_frames,
                 platform="javascript",
                 exception_data={},
             )
