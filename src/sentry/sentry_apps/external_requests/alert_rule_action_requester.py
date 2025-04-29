@@ -47,7 +47,7 @@ class SentryAppAlertRuleActionRequester:
     http_method: str | None = "POST"
 
     def run(self) -> SentryAppAlertRuleActionResult:
-        event = SentryAppEventType("alert_rule_action.requested")
+        event = SentryAppEventType.ALERT_RULE_ACTION_REQUESTED
         with SentryAppInteractionEvent(
             operation_type=SentryAppInteractionType.EXTERNAL_REQUEST,
             event_type=event,
