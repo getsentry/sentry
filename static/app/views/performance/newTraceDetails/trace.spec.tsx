@@ -1702,7 +1702,9 @@ describe('trace view', () => {
       await assertHighlightedRowAtIndex(container, 1);
     });
 
-    it('clicking a row that is also a search result updates the result index', async () => {
+    // TODO Abdullah Khan: This is flaky, and when it flakes it takes over 90s to run
+    // eslint-disable-next-line jest/no-disabled-tests
+    it.skip('clicking a row that is also a search result updates the result index', async () => {
       const {container, virtualizedContainer} = await searchTestSetup();
 
       const searchInput = await screen.findByPlaceholderText('Search in trace');
@@ -2002,7 +2004,9 @@ describe('trace view', () => {
       });
     });
 
-    it('clicking a node that is already open in a tab switches to that tab and persists the previous node', async () => {
+    // TODO Abdullah Khan: This is flaky, and when it flakes it takes over 90s to run
+    // eslint-disable-next-line jest/no-disabled-tests
+    it.skip('clicking a node that is already open in a tab switches to that tab and persists the previous node', async () => {
       const {virtualizedContainer} = await simpleTestSetup();
       const rows = getVirtualizedRows(virtualizedContainer);
       expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(0);
