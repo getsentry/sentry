@@ -7,7 +7,7 @@ will then be regenerated, and you should be able to merge without conflicts.
 
 explore: 0002_add_starred_explore_query_model
 
-feedback: 0004_index_together
+feedback: 0005_example1
 
 hybridcloud: 0019_add_provider_webhook_payload
 
@@ -19,7 +19,7 @@ nodestore: 0002_nodestore_no_dictfield
 
 remote_subscriptions: 0003_drop_remote_subscription
 
-replays: 0004_index_together
+replays: 0005_example2
 
 sentry: 0873_update_groupsearchview_visibility_default
 

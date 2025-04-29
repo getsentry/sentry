@@ -72,7 +72,7 @@ jobs:
           echo 'EOF' >> "$GITHUB_OUTPUT"
 
       - name: Generate SQL for migration
-        uses: getsentry/action-migrations@4d8ed0388dfc0774302bbfd5204e518f9ac4f066 # main
+        uses: getsentry/action-migrations@multi-migration # main
         env:
           SENTRY_LOG_LEVEL: ERROR
         with:
