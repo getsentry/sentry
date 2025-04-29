@@ -1,10 +1,10 @@
 from sentry.testutils.cases import TestMigrations
-from sentry.testutils.factories import DataConditionGroupAction
 from sentry.workflow_engine.models import (
     Action,
     AlertRuleWorkflow,
     DataCondition,
     DataConditionGroup,
+    DataConditionGroupAction,
     Workflow,
     WorkflowDataConditionGroup,
 )
