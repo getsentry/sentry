@@ -3,6 +3,7 @@ from unittest.mock import PropertyMock, patch
 
 import pytest
 
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apigrant import ApiGrant
 from sentry.sentry_apps.models.sentry_app import SentryApp
@@ -10,6 +11,12 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
+from sentry.testutils.asserts import (
+    assert_count_of_metric,
+    assert_failure_metric,
+    assert_halt_metric,
+    assert_success_metric,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -28,14 +35,39 @@ class TestGrantExchanger(TestCase):
             install=self.install, client_id=self.client_id, code=self.code, user=self.user
         )
 
-    def test_happy_path(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_happy_path(self, mock_record):
         assert self.grant_exchanger.run()
 
-    def test_adds_token_to_installation(self):
+        # SLO assertions
+        assert_success_metric(mock_record)
+
+        # AUTHORIZATIONS (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_adds_token_to_installation(self, mock_record):
         token = self.grant_exchanger.run()
         assert SentryAppInstallation.objects.get(id=self.install.id).api_token == token
 
-    def test_grant_must_belong_to_installations(self):
+        # SLO assertions
+        assert_success_metric(mock_record)
+
+        # AUTHORIZATIONS (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_grant_must_belong_to_installations(self, mock_record):
         other_install = self.create_sentry_app_installation(prevent_token_exchange=True)
         self.grant_exchanger.code = other_install.api_grant.code
 
@@ -45,7 +77,21 @@ class TestGrantExchanger(TestCase):
         assert e.value.webhook_context == {}
         assert e.value.public_context == {}
 
-    def test_request_user_owns_api_grant(self):
+        # SLO assertions
+        assert_halt_metric(
+            mock_record=mock_record, error_msg=SentryAppIntegratorError(message="Forbidden grant")
+        )
+
+        # AUTHORIZATIONS (halt)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_request_user_owns_api_grant(self, mock_record):
         self.grant_exchanger.user = self.create_user()
 
         with pytest.raises(SentryAppIntegratorError) as e:
@@ -54,7 +100,24 @@ class TestGrantExchanger(TestCase):
         assert e.value.webhook_context == {"user": self.grant_exchanger.user.name}
         assert e.value.public_context == {}
 
-    def test_grant_must_be_active(self):
+        # SLO assertions
+        assert_halt_metric(
+            mock_record=mock_record,
+            error_msg=SentryAppIntegratorError(
+                message="User is not a Sentry App(custom integration)"
+            ),
+        )
+
+        # AUTHORIZATIONS (halt)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_grant_must_be_active(self, mock_record):
         self.orm_install.api_grant.update(expires_at=(datetime.now(UTC) - timedelta(hours=1)))
 
         with pytest.raises(SentryAppIntegratorError) as e:
@@ -63,7 +126,22 @@ class TestGrantExchanger(TestCase):
         assert e.value.webhook_context == {}
         assert e.value.public_context == {}
 
-    def test_grant_must_exist(self):
+        # SLO assertions
+        assert_halt_metric(
+            mock_record=mock_record,
+            error_msg=SentryAppIntegratorError(message="Grant has already expired"),
+        )
+
+        # AUTHORIZATIONS (halt)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_grant_must_exist(self, mock_record):
         self.grant_exchanger.code = "123"
 
         with pytest.raises(SentryAppIntegratorError) as e:
@@ -75,9 +153,27 @@ class TestGrantExchanger(TestCase):
         }
         assert e.value.public_context == {}
 
+        # SLO assertions
+        assert_halt_metric(
+            mock_record,
+            error_msg=SentryAppIntegratorError(message="Could not find grant for given code"),
+        )
+
+        # AUTHORIZATIONS (halt)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.sentry_apps.token_exchange.grant_exchanger.GrantExchanger._validate")
-    @patch("sentry.models.ApiGrant.application", new_callable=PropertyMock)
-    def test_application_must_exist(self, application, validate):
+    @patch(
+        "sentry.models.ApiGrant.application",
+        new_callable=PropertyMock,
+    )
+    def test_application_must_exist(self, application, validate, mock_record):
         application.side_effect = ApiApplication.DoesNotExist()
 
         with pytest.raises(SentryAppSentryError) as e:
@@ -89,8 +185,23 @@ class TestGrantExchanger(TestCase):
         }
         assert e.value.public_context == {}
 
+        # SLO assertions
+        assert_failure_metric(
+            mock_record=mock_record,
+            error_msg=SentryAppSentryError(message="Could not find application from grant"),
+        )
+
+        # AUTHORIZATIONS (failure)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
+        )
+
     @patch("sentry.models.ApiApplication.sentry_app", new_callable=PropertyMock)
-    def test_sentry_app_must_exist(self, sentry_app):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_sentry_app_must_exist(self, mock_record, sentry_app):
         sentry_app.side_effect = SentryApp.DoesNotExist()
 
         with pytest.raises(SentryAppSentryError) as e:
@@ -99,13 +210,40 @@ class TestGrantExchanger(TestCase):
         assert e.value.webhook_context == {"application_id": self.install.sentry_app.application_id}
         assert e.value.public_context == {}
 
-    def test_deletes_grant_on_successful_exchange(self):
+        # SLO assertions
+        assert_failure_metric(
+            mock_record=mock_record,
+            error_msg=SentryAppSentryError(message="Integration does not exist"),
+        )
+
+        # AUTHORIZATIONS (failure)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_deletes_grant_on_successful_exchange(self, mock_record):
         grant_id = self.orm_install.api_grant_id
         self.grant_exchanger.run()
         assert not ApiGrant.objects.filter(id=grant_id)
 
+        # SLO assertions
+        assert_success_metric(mock_record)
+
+        # AUTHORIZATIONS (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
+        )
+
     @patch("sentry.analytics.record")
-    def test_records_analytics(self, record):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_records_analytics(self, mock_record, record):
         GrantExchanger(
             install=self.install, client_id=self.client_id, code=self.code, user=self.user
         ).run()
@@ -114,4 +252,15 @@ class TestGrantExchanger(TestCase):
             "sentry_app.token_exchanged",
             sentry_app_installation_id=self.install.id,
             exchange_type="authorization",
+        )
+
+        # SLO assertions
+        assert_success_metric(mock_record)
+
+        # AUTHORIZATIONS (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
         )
