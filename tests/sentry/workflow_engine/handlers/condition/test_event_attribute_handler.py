@@ -73,7 +73,7 @@ class TestEventAttributeCondition(ConditionTestCase):
                     "crash_type": "crash",
                 },
                 "os": {"distribution_name": "ubuntu", "distribution_version": "22.04"},
-                "expo_updates": {
+                "ota_updates": {
                     "channel": "production",
                     "runtime_version": "1.0.0",
                     "update_id": "123",
@@ -1137,11 +1137,11 @@ class TestEventAttributeCondition(ConditionTestCase):
         )
         self.assert_does_not_pass(self.dc, self.event_data)
 
-    def test_expo_updates(self):
+    def test_ota_updates(self):
         self.dc.comparison.update(
             {
                 "match": MatchType.EQUAL,
-                "attribute": "expo_updates.channel",
+                "attribute": "ota_updates.channel",
                 "value": "production",
             }
         )
@@ -1150,7 +1150,7 @@ class TestEventAttributeCondition(ConditionTestCase):
         self.dc.comparison.update(
             {
                 "match": MatchType.EQUAL,
-                "attribute": "expo_updates.channel",
+                "attribute": "ota_updates.channel",
                 "value": "development",
             }
         )
@@ -1159,7 +1159,7 @@ class TestEventAttributeCondition(ConditionTestCase):
         self.dc.comparison.update(
             {
                 "match": MatchType.EQUAL,
-                "attribute": "expo_updates.runtime_version",
+                "attribute": "ota_updates.runtime_version",
                 "value": "1.0.0",
             }
         )
@@ -1168,7 +1168,7 @@ class TestEventAttributeCondition(ConditionTestCase):
         self.dc.comparison.update(
             {
                 "match": MatchType.EQUAL,
-                "attribute": "expo_updates.runtime_version",
+                "attribute": "ota_updates.runtime_version",
                 "value": "2.0.0",
             }
         )
@@ -1177,7 +1177,7 @@ class TestEventAttributeCondition(ConditionTestCase):
         self.dc.comparison.update(
             {
                 "match": MatchType.EQUAL,
-                "attribute": "expo_updates.update_id",
+                "attribute": "ota_updates.update_id",
                 "value": "123",
             }
         )
@@ -1186,7 +1186,7 @@ class TestEventAttributeCondition(ConditionTestCase):
         self.dc.comparison.update(
             {
                 "match": MatchType.EQUAL,
-                "attribute": "expo_updates.update_id",
+                "attribute": "ota_updates.update_id",
                 "value": "876",
             }
         )
@@ -1195,7 +1195,7 @@ class TestEventAttributeCondition(ConditionTestCase):
         self.dc.comparison.update(
             {
                 "match": MatchType.EQUAL,
-                "attribute": "expo_updates.non_existent",
+                "attribute": "ota_updates.non_existent",
                 "value": "876",
             }
         )
