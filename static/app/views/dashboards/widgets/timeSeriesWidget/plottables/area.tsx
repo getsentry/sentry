@@ -30,10 +30,6 @@ export class Area extends ContinuousTimeSeries implements Plottable {
     this.#incompleteTimeSeries = incompleteTimeSeries;
   }
 
-  constrain(boundaryStart: Date | null, boundaryEnd: Date | null) {
-    return new Area(this.constrainTimeSeries(boundaryStart, boundaryEnd), this.config);
-  }
-
   onHighlight(dataIndex: number): void {
     const {config = {}} = this;
     // The incomplete series prepends the final data point from the complete

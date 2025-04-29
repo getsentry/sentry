@@ -199,7 +199,7 @@ class SiloRouter:
         if model:
             return self._db_for_table(model._meta.db_table, app_label) == db
 
-        # We use this hint in our RunSql/RunPython migrations to help resolve databases.
+        # We use this hint in our SafeRunSql/RunPython migrations to help resolve databases.
         if "tables" in hints:
             dbs = {self._db_for_table(table, app_label) for table in hints["tables"]}
             if len(dbs) > 1:

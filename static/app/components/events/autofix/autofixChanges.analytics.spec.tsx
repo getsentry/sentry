@@ -1,4 +1,5 @@
 import {AutofixCodebaseChangeData} from 'sentry-fixture/autofixCodebaseChangeData';
+import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {AutofixStepFixture} from 'sentry-fixture/autofixStep';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -66,11 +67,14 @@ describe('AutofixChanges', () => {
     MockApiClient.addMockResponse({
       url: '/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
-      body: {
-        genAIConsent: {ok: true},
-        integration: {ok: true},
-        githubWriteIntegration: {},
-      },
+      body: AutofixSetupFixture({
+        setupAcknowledgement: {
+          orgHasAcknowledged: true,
+          userHasAcknowledged: true,
+        },
+        integration: {ok: true, reason: null},
+        githubWriteIntegration: {ok: true, repos: []},
+      }),
     });
 
     MockApiClient.addMockResponse({
@@ -119,13 +123,17 @@ describe('AutofixChanges', () => {
     MockApiClient.addMockResponse({
       url: '/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
-      body: {
-        genAIConsent: {ok: true},
-        integration: {ok: true},
-        githubWriteIntegration: {
-          repos: [{ok: false, owner: 'owner', name: 'hello-world', id: 100}],
+      body: AutofixSetupFixture({
+        setupAcknowledgement: {
+          orgHasAcknowledged: true,
+          userHasAcknowledged: true,
         },
-      },
+        integration: {ok: true, reason: null},
+        githubWriteIntegration: {
+          ok: true,
+          repos: [{ok: false, owner: 'owner', name: 'hello-world', provider: 'github'}],
+        },
+      }),
     });
 
     jest.mocked(useAutofixRepos).mockReturnValue({
@@ -170,13 +178,17 @@ describe('AutofixChanges', () => {
     MockApiClient.addMockResponse({
       url: '/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
-      body: {
-        genAIConsent: {ok: true},
-        integration: {ok: true},
-        githubWriteIntegration: {
-          repos: [{ok: true, owner: 'owner', name: 'hello-world', id: 100}],
+      body: AutofixSetupFixture({
+        setupAcknowledgement: {
+          orgHasAcknowledged: true,
+          userHasAcknowledged: true,
         },
-      },
+        integration: {ok: true, reason: null},
+        githubWriteIntegration: {
+          ok: true,
+          repos: [{ok: true, owner: 'owner', name: 'hello-world', provider: 'github'}],
+        },
+      }),
     });
 
     MockApiClient.addMockResponse({
@@ -226,13 +238,17 @@ describe('AutofixChanges', () => {
     MockApiClient.addMockResponse({
       url: '/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
-      body: {
-        genAIConsent: {ok: true},
-        integration: {ok: true},
-        githubWriteIntegration: {
-          repos: [{ok: false, owner: 'owner', name: 'hello-world', id: 100}],
+      body: AutofixSetupFixture({
+        setupAcknowledgement: {
+          orgHasAcknowledged: true,
+          userHasAcknowledged: true,
         },
-      },
+        integration: {ok: true, reason: null},
+        githubWriteIntegration: {
+          ok: true,
+          repos: [{ok: false, owner: 'owner', name: 'hello-world', provider: 'github'}],
+        },
+      }),
     });
 
     jest.mocked(useAutofixRepos).mockReturnValue({
