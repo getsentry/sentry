@@ -1,3 +1,4 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import type {TagCollection} from 'sentry/types/group';
@@ -85,6 +86,15 @@ jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(fu
 });
 
 describe('SchemaHintsList', () => {
+  const {organization, router} = initializeOrg({
+    router: {
+      location: {
+        query: {
+          query: '',
+        },
+      },
+    },
+  });
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -99,7 +109,10 @@ describe('SchemaHintsList', () => {
         stringTags={mockStringTags}
         numberTags={mockNumberTags}
         supportedAggregates={[]}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     const container = screen.getByLabelText('Schema Hints List');
@@ -122,7 +135,10 @@ describe('SchemaHintsList', () => {
         stringTags={mockStringTags}
         numberTags={mockNumberTags}
         supportedAggregates={[]}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     const stringTag1Hint = screen.getByText('stringTag1');
@@ -140,7 +156,10 @@ describe('SchemaHintsList', () => {
 
   it('should render loading indicator when isLoading is true', () => {
     render(
-      <Subject stringTags={{}} numberTags={{}} supportedAggregates={[]} isLoading />
+      <Subject stringTags={{}} numberTags={{}} supportedAggregates={[]} isLoading />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -152,7 +171,12 @@ describe('SchemaHintsList', () => {
         stringTags={mockStringTags}
         numberTags={mockNumberTags}
         supportedAggregates={[]}
-      />
+      />,
+      {
+        organization,
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     const seeFullList = screen.getByText('See full list');
@@ -175,7 +199,12 @@ describe('SchemaHintsList', () => {
         stringTags={mockStringTags}
         numberTags={mockNumberTags}
         supportedAggregates={[]}
-      />
+      />,
+      {
+        organization,
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     const seeFullList = screen.getByText('See full list');
@@ -203,7 +232,23 @@ describe('SchemaHintsList', () => {
         stringTags={mockStringTags}
         numberTags={mockNumberTags}
         supportedAggregates={[]}
-      />
+      />,
+      {
+        organization,
+
+        router: {
+          ...router,
+          location: {
+            ...router.location,
+            query: {
+              query: '!stringTag1:"" numberTag1:>0',
+              field: ['stringTag1', 'numberTag1'],
+            },
+          },
+        },
+
+        deprecatedRouterMocks: true,
+      }
     );
 
     const seeFullList = screen.getByText('See full list');
@@ -224,21 +269,19 @@ describe('SchemaHintsList', () => {
   });
 
   it('should keep drawer open when query is updated', async () => {
-    const {router: newRouter} = render(
+    render(
       <Subject
         stringTags={mockStringTags}
         numberTags={mockNumberTags}
         supportedAggregates={[]}
       />,
       {
-        initialRouterConfig: {
-          location: {
-            pathname: '/test/path',
-            query: {query: ''},
-          },
-        },
+        organization,
+        router,
+        deprecatedRouterMocks: true,
       }
     );
+
     const seeFullList = screen.getByText('See full list');
     await userEvent.click(seeFullList);
 
@@ -246,9 +289,9 @@ describe('SchemaHintsList', () => {
     const stringTag1Checkbox = withinDrawer.getByText('stringTag1');
     await userEvent.click(stringTag1Checkbox);
 
-    newRouter.navigate({
-      pathname: '/test/path',
-      search: '?query=stringTag1:""',
+    router.push({
+      ...router.location,
+      query: {query: '!stringTag1:""'},
     });
 
     expect(screen.getByLabelText('Schema Hints Drawer')).toBeInTheDocument();
@@ -260,7 +303,12 @@ describe('SchemaHintsList', () => {
         stringTags={mockStringTags}
         numberTags={mockNumberTags}
         supportedAggregates={[]}
-      />
+      />,
+      {
+        organization,
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     const seeFullList = screen.getByText('See full list');
