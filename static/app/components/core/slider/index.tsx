@@ -12,7 +12,6 @@ interface BaseProps
   defaultValue?: number;
   /** Optional callback to format the label */
   formatLabel?: (value: number | '') => React.ReactNode;
-  hideLabel?: boolean;
   ref?: React.Ref<HTMLInputElement>;
 }
 

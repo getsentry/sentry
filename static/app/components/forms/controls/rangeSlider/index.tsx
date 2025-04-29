@@ -202,7 +202,7 @@ function RangeSlider({
             value={sliderValue}
             aria-valuetext={labelText}
             aria-label={props['aria-label']}
-            hideLabel={!showLabel}
+            formatLabel={showLabel ? undefined : () => null}
           />
           {showCustomInput && (
             <StyledInput
