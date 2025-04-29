@@ -45,6 +45,7 @@ from sentry.taskworker.namespaces import reports_tasks
 from sentry.taskworker.retry import Retry
 from sentry.types.group import GroupSubStatus
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from sentry.utils import json, redis
 from sentry.utils.dates import floor_to_utc_day, to_datetime
 from sentry.utils.email import MessageBuilder
@@ -134,6 +135,7 @@ def prepare_organization_report(
     target_user: User | int | None = None,
     email_override: str | None = None,
 ):
+    batch_id = str(batch_id)
     if target_user and not isinstance(target_user, int) and not hasattr(target_user, "id"):
         logger.error(
             "Target user must have an ID",
@@ -146,7 +148,7 @@ def prepare_organization_report(
         )
         return
     target_user_id: int | None = None
-    if isinstance(target_user, User):
+    if isinstance(target_user, User, RpcUser):
         target_user_id = target_user.id
     elif isinstance(target_user, int):
         target_user_id = target_user
@@ -267,7 +269,7 @@ def prepare_organization_report(
 @dataclass(frozen=True)
 class OrganizationReportBatch:
     ctx: OrganizationReportContext
-    batch_id: uuid.UUID | str
+    batch_id: str
 
     dry_run: bool = False
     target_user: int | None = None
@@ -344,7 +346,7 @@ class OrganizationReportBatch:
             logger.info(
                 "weekly_report.send_email",
                 extra={
-                    "batch_id": str(self.batch_id),
+                    "batch_id": self.batch_id,
                     "organization": self.ctx.organization.id,
                     "uuid": template_ctx["notification_uuid"],
                     "user_id": user_id,
