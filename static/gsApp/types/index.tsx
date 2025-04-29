@@ -412,7 +412,7 @@ export type DiscountInfo = {
   billingInterval: 'monthly' | 'annual';
   billingPeriods: number;
   // TODO: better typing
-  creditCategory: InvoiceItemType;
+  creditCategory: InvoiceItemType | null;
   disclaimerText: string;
   discountType: 'percentPoints' | 'events';
   durationText: string;

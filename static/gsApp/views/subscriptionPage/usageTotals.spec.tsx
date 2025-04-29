@@ -1182,7 +1182,9 @@ describe('calculateCategoryPrepaidUsage', () => {
       reserved: prepaid,
       usage: prepaidUsage,
     });
-    expect(calculateCategoryPrepaidUsage('errors', subscription, prepaid)).toEqual({
+    expect(
+      calculateCategoryPrepaidUsage(DataCategory.ERRORS, subscription, prepaid)
+    ).toEqual({
       onDemandUsage: 0,
       prepaidPercentUsed: 50,
       prepaidPrice: 5000,
@@ -1202,7 +1204,9 @@ describe('calculateCategoryPrepaidUsage', () => {
       {events: 100_000, price: prepaidPrice * 12, unitPrice: 0.1, onDemandPrice: 0.2},
     ];
     subscription.categories.errors = MetricHistoryFixture({});
-    expect(calculateCategoryPrepaidUsage('errors', subscription, prepaidPrice)).toEqual({
+    expect(
+      calculateCategoryPrepaidUsage(DataCategory.ERRORS, subscription, prepaidPrice)
+    ).toEqual({
       onDemandUsage: 0,
       prepaidPercentUsed: 0,
       prepaidPrice,
@@ -1221,7 +1225,11 @@ describe('calculateCategoryPrepaidUsage', () => {
     delete subscription.planDetails.planCategories.monitorSeats;
     subscription.categories.errors = MetricHistoryFixture({});
     expect(
-      calculateCategoryPrepaidUsage('monitorSeats', subscription, prepaidPrice)
+      calculateCategoryPrepaidUsage(
+        DataCategory.MONITOR_SEATS,
+        subscription,
+        prepaidPrice
+      )
     ).toEqual({
       onDemandUsage: 0,
       prepaidPercentUsed: 0,
@@ -1243,7 +1251,9 @@ describe('calculateCategoryPrepaidUsage', () => {
       reserved: prepaid,
       usage: prepaidUsage,
     });
-    expect(calculateCategoryPrepaidUsage('monitorSeats', subscription, prepaid)).toEqual({
+    expect(
+      calculateCategoryPrepaidUsage(DataCategory.MONITOR_SEATS, subscription, prepaid)
+    ).toEqual({
       onDemandUsage: 0,
       prepaidPercentUsed: 0,
       prepaidPrice: 0,
@@ -1265,7 +1275,11 @@ describe('calculateCategoryPrepaidUsage', () => {
       usage: 150_000,
     });
 
-    const result = calculateCategoryPrepaidUsage('errors', subscription, prepaid);
+    const result = calculateCategoryPrepaidUsage(
+      DataCategory.ERRORS,
+      subscription,
+      prepaid
+    );
 
     expect(result.onDemandUsage).toBe(50_000);
     expect(result.prepaidUsage).toBe(100_000);
@@ -1284,7 +1298,11 @@ describe('calculateCategoryPrepaidUsage', () => {
       usage: 80_000,
     });
 
-    const result = calculateCategoryPrepaidUsage('errors', subscription, prepaid);
+    const result = calculateCategoryPrepaidUsage(
+      DataCategory.ERRORS,
+      subscription,
+      prepaid
+    );
 
     expect(result.onDemandUsage).toBe(0);
     expect(result.prepaidUsage).toBe(80_000);
@@ -1304,7 +1322,11 @@ describe('calculateCategoryPrepaidUsage', () => {
       usage: 150_000,
     });
 
-    const result = calculateCategoryPrepaidUsage('errors', subscription, prepaid);
+    const result = calculateCategoryPrepaidUsage(
+      DataCategory.ERRORS,
+      subscription,
+      prepaid
+    );
 
     expect(result.onDemandUsage).toBe(0);
     expect(result.prepaidUsage).toBe(150_000);
@@ -1320,7 +1342,7 @@ describe('calculateCategoryPrepaidUsage', () => {
     });
 
     const result = calculateCategoryPrepaidUsage(
-      'spans',
+      DataCategory.SPANS,
       subscription,
       prepaid,
       null,
@@ -1337,7 +1359,7 @@ describe('calculateCategoryPrepaidUsage', () => {
     });
 
     const result2 = calculateCategoryPrepaidUsage(
-      'spans',
+      DataCategory.SPANS,
       subscription,
       prepaid,
       null,
@@ -1353,7 +1375,7 @@ describe('calculateCategoryPrepaidUsage', () => {
     });
 
     const result3 = calculateCategoryPrepaidUsage(
-      'spans',
+      DataCategory.SPANS,
       subscription,
       prepaid,
       null,
@@ -1379,7 +1401,7 @@ describe('calculateCategoryPrepaidUsage', () => {
     });
 
     const result = calculateCategoryPrepaidUsage(
-      'spans',
+      DataCategory.SPANS,
       subscription,
       prepaid,
       null,
@@ -1414,7 +1436,7 @@ describe('calculateCategoryOnDemandUsage', () => {
     subscription.categories.errors = MetricHistoryFixture({
       onDemandSpendUsed: onDemandCategoryMax,
     });
-    expect(calculateCategoryOnDemandUsage('errors', subscription)).toEqual({
+    expect(calculateCategoryOnDemandUsage(DataCategory.ERRORS, subscription)).toEqual({
       onDemandTotalAvailable: onDemandCategoryMax,
       onDemandCategoryMax,
       onDemandCategorySpend: onDemandCategoryMax,
@@ -1438,7 +1460,7 @@ describe('calculateCategoryOnDemandUsage', () => {
     subscription.categories.errors = MetricHistoryFixture({
       onDemandSpendUsed: 0,
     });
-    expect(calculateCategoryOnDemandUsage('errors', subscription)).toEqual({
+    expect(calculateCategoryOnDemandUsage(DataCategory.ERRORS, subscription)).toEqual({
       onDemandTotalAvailable: onDemandCategoryMax,
       onDemandCategoryMax,
       onDemandCategorySpend: 0,
@@ -1463,7 +1485,7 @@ describe('calculateCategoryOnDemandUsage', () => {
     subscription.categories.replays = MetricHistoryFixture({
       onDemandSpendUsed: onDemandCategoryMax / 2,
     });
-    expect(calculateCategoryOnDemandUsage('errors', subscription)).toEqual({
+    expect(calculateCategoryOnDemandUsage(DataCategory.ERRORS, subscription)).toEqual({
       onDemandTotalAvailable: onDemandCategoryMax,
       // Half is left for other categories
       onDemandCategoryMax: onDemandCategoryMax / 2,

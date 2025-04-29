@@ -246,7 +246,7 @@ export function getReservedTotal({
 type DiscountedPriceProps = {
   amount: number;
   basePrice: number;
-  creditCategory: InvoiceItemType;
+  creditCategory: InvoiceItemType | null;
   discountType: string;
 };
 
