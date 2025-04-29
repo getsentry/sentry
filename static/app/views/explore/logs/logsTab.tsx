@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -64,6 +64,8 @@ export function LogsTabContent({
   const tableData = useExploreLogsTable({});
   const pageFilters = usePageFilters();
   usePersistentLogsPageParameters(); // persist the columns you chose last time
+
+  const columnEditorButtonRef = useRef<HTMLButtonElement>(null);
   // always use the smallest interval possible (the most bars)
   const interval = getIntervalOptionsForPageFilter(pageFilters.selection.datetime)?.[0]
     ?.value;
@@ -147,7 +149,11 @@ export function LogsTabContent({
             </StyledPageFilterBar>
             <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />
 
-            <Button onClick={openColumnEditor} icon={<IconTable />}>
+            <Button
+              onClick={openColumnEditor}
+              icon={<IconTable />}
+              ref={columnEditorButtonRef}
+            >
               {t('Edit Table')}
             </Button>
           </FilterBarContainer>
@@ -160,6 +166,7 @@ export function LogsTabContent({
                 isLoading={numberAttributesLoading || stringAttributesLoading}
                 exploreQuery={logsSearch.formatString()}
                 source={SchemaHintsSources.LOGS}
+                searchBarWidthOffset={columnEditorButtonRef.current?.clientWidth}
               />
             </SchemaHintsSection>
           </Feature>

@@ -38,13 +38,20 @@ import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 
 const SCHEMA_HINTS_DRAWER_WIDTH = '350px';
-const LOGS_QUERY_BUILDER_WIDTH_OFFSET = 130;
 
 interface SchemaHintsListProps extends SchemaHintsPageParams {
   numberTags: TagCollection;
   stringTags: TagCollection;
   supportedAggregates: AggregationKey[];
   isLoading?: boolean;
+  /**
+   * The width of all elements to the right of the search bar.
+   * This is used to ensure that the search bar is the correct width when the drawer is open.
+   */
+  searchBarWidthOffset?: number;
+  /**
+   * The are of the product that the schema hints are being rendered in
+   */
   source?: SchemaHintsSources;
 }
 
@@ -99,6 +106,7 @@ function SchemaHintsList({
   stringTags,
   isLoading,
   source = SchemaHintsSources.EXPLORE,
+  searchBarWidthOffset,
 }: SchemaHintsListProps) {
   const schemaHintsContainerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
@@ -242,7 +250,7 @@ function SchemaHintsList({
   useEffect(() => {
     const adjustSearchBarWidth = () => {
       if (isDrawerOpen && searchBarWrapperRef.current && panelRef.current) {
-        searchBarWrapperRef.current.style.width = `calc(100% - ${source === SchemaHintsSources.LOGS ? panelRef.current.clientWidth - LOGS_QUERY_BUILDER_WIDTH_OFFSET : panelRef.current.clientWidth}px)`;
+        searchBarWrapperRef.current.style.width = `calc(100% - ${searchBarWidthOffset ? panelRef.current.clientWidth - searchBarWidthOffset : panelRef.current.clientWidth}px)`;
       }
     };
 
@@ -255,7 +263,7 @@ function SchemaHintsList({
     }
 
     return () => resizeObserver.disconnect();
-  }, [isDrawerOpen, panelRef, searchBarWrapperRef, source]);
+  }, [isDrawerOpen, panelRef, searchBarWidthOffset, searchBarWrapperRef]);
 
   const onHintClick = useCallback(
     (hint: Tag) => {
