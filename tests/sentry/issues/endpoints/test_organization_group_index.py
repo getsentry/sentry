@@ -5703,16 +5703,12 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             GroupHash.objects.create(project=g.project, hash=hash, group=g)
 
         self.login_as(user=self.user)
-        with self.feature("organizations:global-views"):
+        with self.feature("organizations:global-views"), self.tasks():
             response = self.get_response(qs_params={"id": [group1.id, group2.id]})
 
         assert response.status_code == 204
 
-        assert Group.objects.filter(id=group1.id).exists()
-        assert GroupHash.objects.filter(group_id=group1.id).exists()
-
-        assert Group.objects.filter(id=group2.id).exists()
-        assert GroupHash.objects.filter(group_id=group2.id).exists()
+        self.assert_deleted_groups([group1, group2])
 
     def test_bulk_delete(self) -> None:
         groups = self.create_n_groups(20)

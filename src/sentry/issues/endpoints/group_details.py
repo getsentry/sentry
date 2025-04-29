@@ -4,7 +4,6 @@ from collections.abc import Sequence
 from datetime import timedelta
 
 from django.utils import timezone
-from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -28,7 +27,6 @@ from sentry.integrations.api.serializers.models.external_issue import ExternalIs
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.constants import get_issue_tsdb_group_model
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
-from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group
@@ -401,9 +399,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
         :auth: required
         """
         from sentry.utils import snuba
-
-        if group.issue_category != GroupCategory.ERROR:
-            raise ValidationError(detail="Only error issues can be deleted.")
 
         try:
             delete_group_list(request, group.project, [group], "delete")
