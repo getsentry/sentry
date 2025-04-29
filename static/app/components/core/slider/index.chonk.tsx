@@ -16,6 +16,7 @@ export function Slider({formatLabel = passthrough, ref, ...props}: SliderProps) 
 
   const progress = getProgress(value, min, max);
   const numSteps = Math.abs(max - min) / step;
+  const formattedLabel = formatLabel(value);
 
   return (
     <SliderContainer
@@ -33,9 +34,9 @@ export function Slider({formatLabel = passthrough, ref, ...props}: SliderProps) 
           props.onChange?.(newValue, e);
         }}
       />
-      {props.disabled || !formatLabel(value) ? null : (
+      {props.disabled || !formattedLabel ? null : (
         <SliderOutput htmlFor={props.id}>
-          <SliderLabel>{formatLabel(value)}</SliderLabel>
+          <SliderLabel>{formattedLabel}</SliderLabel>
         </SliderOutput>
       )}
     </SliderContainer>
