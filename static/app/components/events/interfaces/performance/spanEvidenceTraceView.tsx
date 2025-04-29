@@ -103,7 +103,7 @@ function SpanEvidenceTraceViewImpl({
           tree={tree}
           trace={trace}
           traceSlug={traceId}
-          rootEvent={rootEvent}
+          rootEventResults={rootEvent}
           organization={organization}
           traceEventView={traceEventView}
           meta={meta}

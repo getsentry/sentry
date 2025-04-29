@@ -3,19 +3,20 @@ import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {EventTransaction} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 
+import {TraceRootEventQueryResults} from './traceApi/useTraceRootEvent';
 import {
+  findSpanAttributeValue,
   getSearchInExploreTarget,
   TraceDrawerActionKind,
 } from './traceDrawer/details/utils';
@@ -28,7 +29,7 @@ function TraceActionsMenu({
   rootEventResults,
   traceEventView,
 }: {
-  rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
+  rootEventResults: TraceRootEventQueryResults;
   traceEventView: EventView;
   traceSlug: string | undefined;
 }) {
@@ -38,9 +39,20 @@ function TraceActionsMenu({
   const navigate = useNavigate();
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
 
-  const traceProject = rootEventResults.data
-    ? projects.find(p => p.id === rootEventResults.data.projectID)
-    : undefined;
+  let traceProject;
+  if (rootEventResults.data) {
+    if (isTraceItemDetailsResponse(rootEventResults.data)) {
+      const attributes = rootEventResults.data.attributes;
+      const projectId =
+        OurLogKnownFieldKey.PROJECT_ID in attributes
+          ? attributes[OurLogKnownFieldKey.PROJECT_ID]
+          : findSpanAttributeValue(attributes, 'project_id');
+      traceProject = projects.find(p => p.id === projectId);
+    } else {
+      const projectSlug = rootEventResults.data.projectSlug;
+      traceProject = projects.find(p => p.slug === projectSlug);
+    }
+  }
 
   return (
     <DropdownMenu

@@ -6,52 +6,23 @@ import {
   ReleaseHighlight,
 } from 'sentry/components/events/highlights/highlightsIconSummary';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {
-  OurLogKnownFieldKey,
-  type OurLogsResponseItem,
-} from 'sentry/views/explore/logs/types';
-import {TraceItemDataset} from 'sentry/views/explore/types';
-import {TraceHeaderComponents} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
-import {
-  TraceShape,
-  type TraceTree,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceItemDetailsResponse} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
+import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 
-function LogsHighlights({
-  log,
+function AttributesHighlights({
+  traceItemDetail,
   organization,
   project,
 }: {
-  log: OurLogsResponseItem;
   organization: Organization;
   project: Project | undefined;
+  traceItemDetail: TraceItemDetailsResponse;
 }) {
-  const {data, isPending} = useTraceItemDetails({
-    traceItemId: String(log[OurLogKnownFieldKey.ID]),
-    projectId: String(log[OurLogKnownFieldKey.PROJECT_ID]),
-    traceId: String(log[OurLogKnownFieldKey.TRACE_ID]),
-    traceItemType: TraceItemDataset.LOGS,
-    referrer: 'api.explore.log-item-details', // TODO Abdullah Khan: Add new referrer for trace view header
-    enabled: true,
-  });
+  const {attributes} = traceItemDetail;
 
-  if (isPending) {
-    return (
-      <LogsHighlightsWrapper>
-        <TraceHeaderComponents.StyledPlaceholder _width={150} _height={20} />
-        <TraceHeaderComponents.StyledPlaceholder _width={150} _height={20} />
-        <TraceHeaderComponents.StyledPlaceholder _width={150} _height={20} />
-      </LogsHighlightsWrapper>
-    );
-  }
-
-  const attributes = data?.attributes;
   const releaseAttr = attributes?.find(attr => attr.name === 'sentry.release');
   const releaseTag = releaseAttr && {
     key: 'release',
@@ -86,32 +57,24 @@ const LogsHighlightsWrapper = styled('div')`
 `;
 
 type HighlightsProps = {
-  logs: OurLogsResponseItem[] | undefined;
   organization: Organization;
   project: Project | undefined;
-  rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
-  tree: TraceTree;
+  rootEventResults: TraceRootEventQueryResults;
 };
 
-function Highlights({
-  rootEventResults,
-  tree,
-  logs,
-  organization,
-  project,
-}: HighlightsProps) {
-  if (tree.shape === TraceShape.EMPTY_TRACE && logs && logs.length > 0) {
+function Highlights({rootEventResults, organization, project}: HighlightsProps) {
+  if (!rootEventResults.data) {
+    return null;
+  }
+
+  if (isTraceItemDetailsResponse(rootEventResults.data)) {
     return (
-      <LogsHighlights
-        log={logs[0] as OurLogsResponseItem}
+      <AttributesHighlights
+        traceItemDetail={rootEventResults.data}
         organization={organization}
         project={project}
       />
     );
-  }
-
-  if (!rootEventResults.data) {
-    return null;
   }
 
   return (

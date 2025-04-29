@@ -5,11 +5,9 @@ import Feature from 'sentry/components/acl/feature';
 import {LinkButton} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction} from 'sentry/types/event';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
 
@@ -61,18 +59,18 @@ function SectionLink({
 }
 
 function ScrollToSectionLinks({
-  rootEvent,
+  rootEventResults,
   tree,
   logs,
 }: {
   logs: OurLogsResponseItem[];
-  rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
+  rootEventResults: TraceRootEventQueryResults;
   tree: TraceTree;
 }) {
   const location = useLocation();
   const {hasVitals, hasProfiles, hasLogs, hasTags} = useTraceContextSections({
     tree,
-    rootEvent,
+    rootEventResults,
     logs,
   });
 
