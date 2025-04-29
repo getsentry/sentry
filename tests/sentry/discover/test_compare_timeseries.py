@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from unittest import mock
 from uuid import uuid4
 
 import pytest
@@ -141,8 +142,15 @@ class CompareAlertsTimeseriesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSp
             seconds_before_now=seconds_before_now,
         )
 
-    def test_compare_simple(self):
+    @mock.patch("sentry.discover.compare_timeseries.sentry_sdk.set_extra")
+    def test_compare_simple(self, mock_set_extra):
         result = compare_timeseries_for_alert_rule(self.alert_rule)
+        for call in mock_set_extra.call_args_list:
+            if call.args[0] in ["eap_call", "metrics_call"]:
+                self.assertRegex(
+                    call.args[1],
+                    r"http:\/\/.*.testserver\/api\/0\/organizations\/\S*\/events-stats\/\?query=.*",
+                )
         assert result["mismatches"] == {}
 
     def test_compare_mri_alert(self):
