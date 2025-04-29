@@ -361,10 +361,9 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
                   }
                 )}{' '}
                 {tct(
-                  'This will restrict requests based on the [Origin] and [Referer] headers.',
+                  'This will restrict requests based on the [code:Origin] and [code:Referer] headers.',
                   {
-                    Origin: <code>Origin</code>,
-                    Referer: <code>Referer</code>,
+                    code: <code />,
                   }
                 )}
               </TextBlock>
