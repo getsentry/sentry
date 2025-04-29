@@ -3,6 +3,7 @@
 from django.db import migrations
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -20,8 +21,6 @@ class Migration(CheckedMigration):
 
     is_post_deployment = False
 
-    allow_run_sql = True
-
     dependencies = [
         ("sentry", "0708_rule_remove_owner_state"),
     ]
@@ -29,20 +28,22 @@ class Migration(CheckedMigration):
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql="""
                     ALTER TABLE "sentry_alertrule" DROP CONSTRAINT IF EXISTS "sentry_alertrule_owner_id_477ec831_fk_sentry_actor_id"
                     """,
                     reverse_sql="",
                     hints={"tables": ["sentry_alertrule"]},
+                    use_statement_timeout=False,
                 ),
                 # Follow up from 0708
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql="""
                     ALTER TABLE "sentry_rule" DROP CONSTRAINT IF EXISTS "sentry_rule_owner_id_aa4e908b_fk_sentry_actor_id"
                     """,
                     reverse_sql="",
                     hints={"tables": ["sentry_rule"]},
+                    use_statement_timeout=False,
                 ),
             ],
             state_operations=[

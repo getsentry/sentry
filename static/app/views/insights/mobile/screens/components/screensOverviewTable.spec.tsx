@@ -1,5 +1,6 @@
 import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -34,22 +35,20 @@ describe('ScreensOverviewTable', () => {
   } as Location;
 
   jest.mocked(useLocation).mockReturnValue(location);
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects: [parseInt(project.id, 10)],
       },
-      environments: [],
-      projects: [parseInt(project.id, 10)],
-    },
-  });
+    })
+  );
 
   const mockEventView = EventView.fromLocation(location);
 

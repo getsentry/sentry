@@ -3,6 +3,7 @@
 from django.db import migrations, models
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -20,8 +21,6 @@ class Migration(CheckedMigration):
 
     is_post_deployment = False
 
-    allow_run_sql = True
-
     dependencies = [
         ("uptime", "0007_update_detected_subscription_interval"),
     ]
@@ -29,7 +28,7 @@ class Migration(CheckedMigration):
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     """
                     ALTER TABLE "uptime_uptimesubscription" ADD COLUMN "url_domain" character varying(255) NOT NULL DEFAULT '';
                     """,
@@ -38,7 +37,7 @@ class Migration(CheckedMigration):
                 """,
                     hints={"tables": ["uptime_uptimesubscription"]},
                 ),
-                migrations.RunSQL(
+                SafeRunSQL(
                     """
                     ALTER TABLE "uptime_uptimesubscription" ADD COLUMN "url_domain_suffix" character varying(255) NOT NULL DEFAULT '';
                     """,
@@ -47,7 +46,7 @@ class Migration(CheckedMigration):
                 """,
                     hints={"tables": ["uptime_uptimesubscription"]},
                 ),
-                migrations.RunSQL(
+                SafeRunSQL(
                     """
                     ALTER TABLE "uptime_uptimesubscription" ADD COLUMN "host_whois_orgname" character varying(255) NOT NULL DEFAULT '';
                     """,
@@ -56,7 +55,7 @@ class Migration(CheckedMigration):
                 """,
                     hints={"tables": ["uptime_uptimesubscription"]},
                 ),
-                migrations.RunSQL(
+                SafeRunSQL(
                     """
                     ALTER TABLE "uptime_uptimesubscription" ADD COLUMN "host_whois_orgid" character varying(255) NOT NULL DEFAULT '';
                     """,

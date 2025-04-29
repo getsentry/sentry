@@ -35,7 +35,10 @@ describe('UnsubscribeIssue', function () {
     });
     render(
       <UnsubscribeIssue {...routerProps} location={router.location} params={params} />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(await screen.findByText('selected issue')).toBeInTheDocument();
@@ -53,7 +56,10 @@ describe('UnsubscribeIssue', function () {
     });
     render(
       <UnsubscribeIssue {...routerProps} location={router.location} params={params} />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(await screen.findByText('selected issue')).toBeInTheDocument();

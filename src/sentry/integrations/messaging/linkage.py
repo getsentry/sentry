@@ -100,9 +100,7 @@ class LinkageView(BaseView, ABC):
         )
 
     @staticmethod
-    def render_error_page(
-        request: Request | HttpRequest, status: int, body_text: str
-    ) -> HttpResponse:
+    def render_error_page(request: HttpRequest, status: int, body_text: str) -> HttpResponse:
         template = "sentry/integrations/generic-error.html"
         context = {"body_text": body_text}
         return render_to_response(template, request=request, status=status, context=context)

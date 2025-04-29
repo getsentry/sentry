@@ -1,5 +1,6 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFiltersStorageFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -109,7 +110,11 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {router: initialData.router, organization: initialData.organization}
+      {
+        router: initialData.router,
+        organization: initialData.organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(mockHomepage).toHaveBeenCalled();
@@ -144,7 +149,11 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {router: initialData.router, organization: initialData.organization}
+      {
+        router: initialData.router,
+        organization: initialData.organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(mockHomepage).toHaveBeenCalled();
@@ -163,9 +172,13 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {router: initialData.router, organization: initialData.organization}
+      {
+        router: initialData.router,
+        organization: initialData.organization,
+        deprecatedRouterMocks: true,
+      }
     );
-    renderGlobalModal({router: initialData.router});
+    renderGlobalModal({router: initialData.router, deprecatedRouterMocks: true});
 
     await userEvent.click(await screen.findByText('Columns'));
 
@@ -194,7 +207,11 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {router: initialData.router, organization: initialData.organization}
+      {
+        router: initialData.router,
+        organization: initialData.organization,
+        deprecatedRouterMocks: true,
+      }
     );
     await waitFor(() => {
       expect(measurementsMetaMock).toHaveBeenCalled();
@@ -241,7 +258,11 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {router: initialData.router, organization: initialData.organization}
+      {
+        router: initialData.router,
+        organization: initialData.organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(await screen.findByText('Remove Default')).toBeInTheDocument();
@@ -274,7 +295,11 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {router: initialData.router, organization: initialData.organization}
+      {
+        router: initialData.router,
+        organization: initialData.organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await waitFor(() => {
@@ -310,7 +335,11 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {router: initialData.router, organization: initialData.organization}
+      {
+        router: initialData.router,
+        organization: initialData.organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(await screen.findByText('24H'));
@@ -348,7 +377,11 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {router: initialData.router, organization: initialData.organization}
+      {
+        router: initialData.router,
+        organization: initialData.organization,
+        deprecatedRouterMocks: true,
+      }
     );
     renderGlobalModal();
 
@@ -404,7 +437,11 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {router: initialData.router, organization: initialData.organization}
+      {
+        router: initialData.router,
+        organization: initialData.organization,
+        deprecatedRouterMocks: true,
+      }
     );
     renderGlobalModal();
 
@@ -440,17 +477,18 @@ describe('Discover > Homepage', () => {
 
   it('overrides homepage filters with pinned filters if they exist', async () => {
     ProjectsStore.loadInitialData([ProjectFixture({id: '1'}), ProjectFixture({id: '2'})]);
-    jest.spyOn(pageFilterUtils, 'getPageFilterStorage').mockReturnValueOnce({
-      pinnedFilters: new Set(['projects']),
-      state: {
-        project: [2],
-        environment: [],
-        start: null,
-        end: null,
-        period: '14d',
-        utc: null,
-      },
-    });
+    const state = {
+      project: [2],
+      environment: [],
+      start: null,
+      end: null,
+      period: '14d',
+      utc: null,
+      repository: null,
+    };
+    jest
+      .spyOn(pageFilterUtils, 'getPageFilterStorage')
+      .mockReturnValueOnce(PageFiltersStorageFixture({state}));
 
     render(
       <Homepage
@@ -460,7 +498,11 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {router: initialData.router, organization: initialData.organization}
+      {
+        router: initialData.router,
+        organization: initialData.organization,
+        deprecatedRouterMocks: true,
+      }
     );
     await waitFor(() => {
       expect(measurementsMetaMock).toHaveBeenCalled();
@@ -495,7 +537,11 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {router: initialData.router, organization: initialData.organization}
+      {
+        router: initialData.router,
+        organization: initialData.organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await waitFor(() => expect(screen.getByTestId('set-as-default')).toBeEnabled());
@@ -561,7 +607,11 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {router: initialData.router, organization: initialData.organization}
+      {
+        router: initialData.router,
+        organization: initialData.organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(await screen.findByText('Remove Default')).toBeInTheDocument();
@@ -642,7 +692,11 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {router: initialData.router, organization: initialData.organization}
+      {
+        router: initialData.router,
+        organization: initialData.organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(await screen.findByText('Remove Default')).toBeInTheDocument();

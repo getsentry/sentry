@@ -53,94 +53,6 @@ describe('ExploreToolbar', function () {
     });
   });
 
-  it('allows changing mode', async function () {
-    let mode: any;
-    function Component() {
-      mode = useExploreMode();
-      return <ExploreToolbar />;
-    }
-
-    render(
-      <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
-          <Component />
-        </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
-    );
-
-    const section = screen.getByTestId('section-mode');
-
-    const samples = within(section).getByRole('radio', {name: 'Samples'});
-    const aggregates = within(section).getByRole('radio', {name: 'Aggregates'});
-
-    expect(samples).toBeChecked();
-    expect(aggregates).not.toBeChecked();
-    expect(mode).toEqual(Mode.SAMPLES);
-
-    await userEvent.click(aggregates);
-    expect(samples).not.toBeChecked();
-    expect(aggregates).toBeChecked();
-    expect(mode).toEqual(Mode.AGGREGATE);
-
-    await userEvent.click(samples);
-    expect(samples).toBeChecked();
-    expect(aggregates).not.toBeChecked();
-    expect(mode).toEqual(Mode.SAMPLES);
-  });
-
-  it('inserts group bys from aggregate mode as fields in samples mode', async function () {
-    let fields, groupBys;
-    function Component() {
-      fields = useExploreFields();
-      groupBys = useExploreGroupBys();
-      return <ExploreToolbar />;
-    }
-
-    render(
-      <PageParamsProvider>
-        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
-          <Component />
-        </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
-    );
-
-    const section = screen.getByTestId('section-mode');
-
-    const samples = within(section).getByRole('radio', {name: 'Samples'});
-    const aggregates = within(section).getByRole('radio', {name: 'Aggregates'});
-
-    expect(fields).toEqual([
-      'id',
-      'span.op',
-      'span.description',
-      'span.duration',
-      'transaction',
-      'timestamp',
-    ]); // default
-
-    // Add a group by, and leave one unselected
-    await userEvent.click(aggregates);
-    const groupBy = screen.getByTestId('section-group-by');
-    await userEvent.click(within(groupBy).getByRole('button', {name: '\u2014'}));
-    await userEvent.click(within(groupBy).getByRole('option', {name: 'release'}));
-    expect(groupBys).toEqual(['release']);
-    await userEvent.click(within(groupBy).getByRole('button', {name: 'Add Group'}));
-    expect(groupBys).toEqual(['release', '']);
-
-    await userEvent.click(samples);
-    expect(fields).toEqual([
-      'id',
-      'span.op',
-      'span.description',
-      'span.duration',
-      'transaction',
-      'timestamp',
-      'release',
-    ]);
-  });
-
   it('disables changing visualize fields for count', function () {
     let visualizes: any;
     function Component() {
@@ -153,8 +65,7 @@ describe('ExploreToolbar', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </PageParamsProvider>
     );
 
     const section = screen.getByTestId('section-visualizes');
@@ -177,8 +88,7 @@ describe('ExploreToolbar', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </PageParamsProvider>
     );
 
     const section = screen.getByTestId('section-visualizes');
@@ -214,8 +124,7 @@ describe('ExploreToolbar', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </PageParamsProvider>
     );
 
     const section = screen.getByTestId('section-visualizes');
@@ -259,8 +168,7 @@ describe('ExploreToolbar', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </PageParamsProvider>
     );
 
     const section = screen.getByTestId('section-visualizes');
@@ -340,8 +248,7 @@ describe('ExploreToolbar', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </PageParamsProvider>
     );
 
     const section = screen.getByTestId('section-visualizes');
@@ -438,17 +345,7 @@ describe('ExploreToolbar', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
-    );
-
-    expect(screen.queryByTestId('section-group-by')).not.toBeInTheDocument();
-
-    // click the aggregates mode to enable
-    await userEvent.click(
-      within(screen.getByTestId('section-mode')).getByRole('radio', {
-        name: 'Aggregates',
-      })
+      </PageParamsProvider>
     );
 
     let options;
@@ -493,15 +390,14 @@ describe('ExploreToolbar', function () {
     function Component() {
       groupBys = useExploreGroupBys();
       mode = useExploreMode();
-      return <ExploreToolbar extras={['tabs']} />;
+      return <ExploreToolbar />;
     }
     render(
       <PageParamsProvider>
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </PageParamsProvider>
     );
 
     expect(mode).toEqual(Mode.SAMPLES);
@@ -523,15 +419,14 @@ describe('ExploreToolbar', function () {
     function Component() {
       groupBys = useExploreGroupBys();
       mode = useExploreMode();
-      return <ExploreToolbar extras={['tabs']} />;
+      return <ExploreToolbar />;
     }
     render(
       <PageParamsProvider>
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </PageParamsProvider>
     );
 
     expect(mode).toEqual(Mode.SAMPLES);
@@ -556,8 +451,7 @@ describe('ExploreToolbar', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </PageParamsProvider>
     );
 
     const section = screen.getByTestId('section-sort-by');
@@ -614,8 +508,7 @@ describe('ExploreToolbar', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </PageParamsProvider>
     );
 
     const section = screen.getByTestId('section-suggested-queries');
@@ -662,7 +555,11 @@ describe('ExploreToolbar', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     const section = screen.getByTestId('section-save-as');
@@ -698,7 +595,11 @@ describe('ExploreToolbar', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     const section = screen.getByTestId('section-save-as');
@@ -736,7 +637,11 @@ describe('ExploreToolbar', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     const section = screen.getByTestId('section-save-as');
@@ -844,7 +749,11 @@ describe('ExploreToolbar', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
     screen.getByText('Save as\u2026');
     const section = screen.getByTestId('section-sort-by');
@@ -867,7 +776,11 @@ describe('ExploreToolbar', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await waitFor(() => {
