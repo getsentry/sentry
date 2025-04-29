@@ -7,7 +7,7 @@ import {
   useReplayUserAction,
 } from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
 
-export default function ReplayPlayPauseButton(props: ButtonProps) {
+export default function ReplayPlayPauseButton(props: Partial<ButtonProps>) {
   const userAction = useReplayUserAction();
   const {playerState, isFinished} = useReplayPlayerState();
 
