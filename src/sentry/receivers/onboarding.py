@@ -578,7 +578,7 @@ def record_integration_added(
 
 
 @project_transferred.connect(weak=False, dispatch_uid="onboarding.record_project_transferred")
-def record_project_transferred(old_org_id, updated_project, **kwargs):
+def record_project_transferred(old_org_id: int, updated_project: Project, **kwargs):
 
     new_organization_id = updated_project.organization_id
 
