@@ -76,8 +76,8 @@ def async_send_notification(
     for key, val in kwargs.items():
         if isinstance(val, Model):
             task_args.append(serialize_model(val, key))
-        elif isinstance(arg, SimpleLazyObject):
-            task_args.append(serialize_lazy_object_user(arg, key))
+        elif isinstance(val, SimpleLazyObject):
+            task_args.append(serialize_lazy_object_user(val, key))
         # maybe we need an explicit check if it's a primitive?
         else:
             task_args.append({"type": "other", "value": val, "key": key})
