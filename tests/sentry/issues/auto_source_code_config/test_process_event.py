@@ -82,7 +82,12 @@ class BaseDeriveCodeMappings(TestCase):
         return cast(GroupEvent, self.store_event(data=test_data, project_id=self.project.id))
 
     def create_repo_and_code_mapping(
-        self, repo_name: str, stack_root: str, source_root: str
+        self,
+        repo_name: str,
+        stack_root: str,
+        source_root: str,
+        automatically_generated: bool = False,
+        default_branch: str = "master",
     ) -> None:
         with assume_test_silo_mode_of(OrganizationIntegration):
             organization_integration = OrganizationIntegration.objects.get(
@@ -98,10 +103,12 @@ class BaseDeriveCodeMappings(TestCase):
             project_id=self.project.id,
             stack_root=stack_root,
             source_root=source_root,
+            default_branch=default_branch,
             repository=repository,
             organization_integration_id=organization_integration.id,
             integration_id=organization_integration.integration_id,
             organization_id=organization_integration.organization_id,
+            automatically_generated=automatically_generated,
         )
 
     def _process_and_assert_configuration_changes(
@@ -179,12 +186,13 @@ class BaseDeriveCodeMappings(TestCase):
                     assert current_code_mappings.count() == starting_code_mappings_count
 
                 if expected_new_in_app_stack_trace_rules:
-                    expected_enhancements = "\n".join(expected_new_in_app_stack_trace_rules)
-                    assert current_enhancements == (
-                        f"{starting_enhancements}\n{expected_enhancements}"
+                    rules = (
+                        starting_enhancements.split("\n") + expected_new_in_app_stack_trace_rules
                         if starting_enhancements
-                        else expected_enhancements
+                        else expected_new_in_app_stack_trace_rules
                     )
+                    assert current_enhancements == "\n".join(sorted(rules))
+
                     mock_incr.assert_any_call(
                         key=f"{METRIC_PREFIX}.in_app_stack_trace_rules.created",
                         amount=len(expected_new_in_app_stack_trace_rules),
@@ -218,7 +226,6 @@ class BaseDeriveCodeMappings(TestCase):
         self,
         module: str,
         abs_path: str,
-        category: str | None = None,
         in_app: bool = False,
     ) -> dict[str, str | bool | Any]:
         frame: dict[str, str | bool | Any] = {}
@@ -228,8 +235,6 @@ class BaseDeriveCodeMappings(TestCase):
             frame["abs_path"] = abs_path
         if in_app and in_app is not None:
             frame["in_app"] = in_app
-        if category:
-            frame["data"] = {"category": category}
         return frame
 
     def code_mapping(
@@ -617,6 +622,38 @@ class TestPythonDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
 class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
     platform = "java"
 
+    def test_marked_in_app_already(self) -> None:
+        self._process_and_assert_configuration_changes(
+            repo_trees={REPO1: ["src/com/example/foo/Bar.kt"]},
+            # The developer may have marked the frame as in-app in the SDK
+            frames=[self.frame_from_module("com.example.foo.Bar", "Bar.kt", in_app=True)],
+            platform=self.platform,
+            expected_new_code_mappings=[
+                self.code_mapping("com/example/foo/", "src/com/example/foo/")
+            ],
+            expected_new_in_app_stack_trace_rules=[
+                "stack.module:com.example.** +app",
+            ],
+        )
+
+    def test_marked_in_app_and_code_mapping_already_exists(self) -> None:
+        """Test that the in-app rule is created regardless of whether the code mapping already exists"""
+        # The developer may have already created the code mapping and repository
+        self.create_repo_and_code_mapping("REPO1", "com/example/foo/", "src/com/example/foo/")
+        self._process_and_assert_configuration_changes(
+            repo_trees={REPO1: ["src/com/example/foo/Bar.kt"]},
+            # The developer may have marked the frame as in-app in the SDK
+            frames=[self.frame_from_module("com.example.foo.Bar", "Bar.kt", in_app=True)],
+            platform=self.platform,
+            # We're not expecting to create anything new
+            expected_new_code_mappings=[],
+            # The in-app rule will still be created
+            expected_new_in_app_stack_trace_rules=[
+                "stack.module:com.example.** +app",
+            ],
+        )
+        assert RepositoryProjectPathConfig.objects.count() == 1
+
     def test_short_packages(self) -> None:
         self._process_and_assert_configuration_changes(
             repo_trees={
@@ -624,6 +661,7 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
                     "src/Foo.java",
                     "src/a/Bar.java",
                     "src/x/y/Baz.java",
+                    "src/foo/bar/baz/Qux.java",
                 ]
             },
             frames=[
@@ -632,15 +670,20 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
                 self.frame_from_module("Foo", "Foo.java"),
                 self.frame_from_module("a.Bar", "Bar.java"),
                 self.frame_from_module("x.y.Baz", "Baz.java"),
+                self.frame_from_module("foo.bar.baz.Qux", "Qux.java"),
             ],
             platform=self.platform,
             expected_new_code_mappings=[
                 self.code_mapping("a/", "src/a/"),
                 self.code_mapping("x/y/", "src/x/y/"),
+                self.code_mapping("foo/bar/baz/", "src/foo/bar/baz/"),
             ],
             expected_new_in_app_stack_trace_rules=[
                 "stack.module:a.** +app",
                 "stack.module:x.y.** +app",
+                # This rule, unlike the previous two, does not have the same granularity
+                # as its related code mapping (foo/bar/baz/ vs foo/bar/)
+                "stack.module:foo.bar.** +app",
             ],
         )
 
@@ -649,29 +692,72 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             repo_trees={REPO1: ["src/com/example/foo/Bar.kt"]},
             frames=[self.frame_from_module("com.example.foo.Bar$InnerClass", "Bar.kt")],
             platform=self.platform,
-            expected_new_code_mappings=[self.code_mapping("com/example/", "src/com/example/")],
+            expected_new_code_mappings=[
+                self.code_mapping("com/example/foo/", "src/com/example/foo/")
+            ],
             expected_new_in_app_stack_trace_rules=["stack.module:com.example.** +app"],
         )
+
+    def test_multiple_configuration_changes_with_past_changes(self) -> None:
+        # This block is to emulate the past behavior
+        # A less granular code mapping already exists
+        # It would work for com.example.foo but not com.example.bar
+        # since one is stored under src/main/ while the other is under src/app/
+        self.create_repo_and_code_mapping("REPO1", "com/example/", "src/main/com/example/")
+        self.project.update_option(
+            DERIVED_ENHANCEMENTS_OPTION_KEY,
+            "stack.module:com.example.** +app",
+        )
+
+        # Test case with multiple frames from different packages
+        self._process_and_assert_configuration_changes(
+            repo_trees={
+                REPO1: [
+                    "src/main/com/example/foo/Bar.kt",
+                    "src/app/com/example/bar/Baz.kt",
+                    "src/lib/org/other/utils/Helper.kt",
+                ]
+            },
+            frames=[
+                self.frame_from_module("com.example.foo.Bar", "Bar.kt"),
+                self.frame_from_module("com.example.bar.Baz", "Baz.kt"),
+                self.frame_from_module("org.other.utils.Helper", "Helper.kt"),
+            ],
+            platform=self.platform,
+            expected_new_code_mappings=[
+                self.code_mapping("com/example/foo/", "src/main/com/example/foo/"),
+                self.code_mapping("com/example/bar/", "src/app/com/example/bar/"),
+                self.code_mapping("org/other/utils/", "src/lib/org/other/utils/"),
+            ],
+            expected_new_in_app_stack_trace_rules=["stack.module:org.other.** +app"],
+        )
+        # XXX: Ideally we would delete the old code mappings
+        assert RepositoryProjectPathConfig.objects.count() == 4
+        assert self.project.get_option(DERIVED_ENHANCEMENTS_OPTION_KEY).split("\n") == [
+            "stack.module:com.example.** +app",
+            "stack.module:org.other.** +app",
+        ]
 
     def test_multiple_configuration_changes(self) -> None:
         # Test case with multiple frames from different packages
         self._process_and_assert_configuration_changes(
             repo_trees={
                 REPO1: [
-                    "src/com/example/foo/bar/Baz.kt",
-                    "src/com/example/utils/Helper.kt",
-                    "src/org/other/service/Service.kt",
+                    "src/main/com/example/foo/Bar.kt",
+                    "src/app/com/example/bar/Baz.kt",
+                    "src/lib/org/other/utils/Helper.kt",
                 ]
             },
             frames=[
-                self.frame_from_module("com.example.foo.bar.Baz", "Baz.kt"),
-                self.frame_from_module("com.example.utils.Helper", "Helper.kt"),
-                self.frame_from_module("org.other.service.Service", "Service.kt"),
+                self.frame_from_module("com.example.foo.Bar", "Bar.kt"),
+                self.frame_from_module("com.example.bar.Baz", "Baz.kt"),
+                self.frame_from_module("org.other.utils.Helper", "Helper.kt"),
             ],
             platform=self.platform,
             expected_new_code_mappings=[
-                self.code_mapping(stack_root="com/example/", source_root="src/com/example/"),
-                self.code_mapping(stack_root="org/other/", source_root="src/org/other/"),
+                self.code_mapping("com/example/foo/", "src/main/com/example/foo/"),
+                self.code_mapping("com/example/bar/", "src/app/com/example/bar/"),
+                self.code_mapping("org/other/utils/", "src/lib/org/other/utils/"),
             ],
             expected_new_in_app_stack_trace_rules=[
                 "stack.module:com.example.** +app",
@@ -681,11 +767,16 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
 
     def test_country_code_tld(self) -> None:
         # We have two packages for the same domain
-        repo_trees = {REPO1: ["src/uk/co/example/foo/Bar.kt", "src/uk/co/example/bar/Baz.kt"]}
+        repo_trees = {
+            REPO1: [
+                "src/uk/co/example/foo/Bar.kt",
+                "src/uk/co/example/bar/Baz.kt",
+            ]
+        }
         foo_package = self.frame_from_module("uk.co.example.foo.Bar", "Bar.kt")
         bar_package = self.frame_from_module("uk.co.example.bar.Baz", "Baz.kt")
         third_party_package = self.frame_from_module("uk.co.not-example.baz.qux", "qux.kt")
-        # Only one of the packages are in the first event
+        # Only one of the packages is in the first event
         frames = [foo_package, third_party_package]
 
         event = self._process_and_assert_configuration_changes(
@@ -693,7 +784,9 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             frames=frames,
             platform=self.platform,
             expected_new_code_mappings=[
-                self.code_mapping(stack_root="uk/co/example/", source_root="src/uk/co/example/"),
+                self.code_mapping(
+                    stack_root="uk/co/example/foo/", source_root="src/uk/co/example/foo/"
+                ),
             ],
             expected_new_in_app_stack_trace_rules=["stack.module:uk.co.example.** +app"],
         )
@@ -713,12 +806,18 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
         assert event.data["stacktrace"]["frames"][1]["module"] == "uk.co.not-example.baz.qux"
         assert event.data["stacktrace"]["frames"][1]["in_app"] is False
 
-        # Let's try the 2nd package in the repo
+        # Trying the 2nd package will only create a new code mapping
+        # because the in-app rule is already in place
         frames = [bar_package, third_party_package]
         event = self._process_and_assert_configuration_changes(
             repo_trees=repo_trees,
             frames=frames,
             platform=self.platform,
+            expected_new_code_mappings=[
+                self.code_mapping(
+                    stack_root="uk/co/example/bar/", source_root="src/uk/co/example/bar/"
+                ),
+            ],
         )
         # The code mapping & in-app-rule of the first event does apply
         assert event.data["metadata"]["in_app_frame_mix"] == "mixed"
@@ -728,10 +827,16 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
         assert event.data["stacktrace"]["frames"][1]["in_app"] is False
 
     def test_country_code_tld_with_old_granularity(self) -> None:
-        # We have two packages for the same domain
-        repo_trees = {REPO1: ["src/uk/co/example/foo/Bar.kt", "src/uk/co/example/bar/Baz.kt"]}
+        # We have two packages for the same domain but source roots
+        repo_trees = {
+            REPO1: [
+                "src/main/uk/co/example/foo/Bar.kt",
+                "src/app/uk/co/example/bar/Baz.kt",
+            ]
+        }
         frames = [
             self.frame_from_module("uk.co.example.foo.Bar", "Bar.kt"),
+            self.frame_from_module("uk.co.example.bar.Baz", "Baz.kt"),
             # This does not belong to the org since it does not show up in the repos
             self.frame_from_module("uk.co.not-example.baz.qux", "qux.kt"),
         ]
@@ -739,29 +844,31 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
         # Let's pretend that we have already added the two level tld rule
         # This means that the uk.co.not-example.baz.qux will be in-app
         repo = RepoAndBranch(name="repo1", branch="default")
-        cm = CodeMapping(repo=repo, stacktrace_root="uk.co.**", source_path="src/uk/co/")
+        # The source root will only work for the foo package
+        cm = CodeMapping(repo=repo, stacktrace_root="uk/co/", source_path="src/main/uk/co/")
         create_code_mapping(self.organization, cm, self.project)
         self.project.update_option(DERIVED_ENHANCEMENTS_OPTION_KEY, "stack.module:uk.co.** +app")
 
+        # The new code will generate two code mappings with greater granularity
         event = self._process_and_assert_configuration_changes(
             repo_trees=repo_trees,
             frames=frames,
             platform=self.platform,
             expected_new_code_mappings=[
-                self.code_mapping(stack_root="uk/co/example/", source_root="src/uk/co/example/"),
+                self.code_mapping(
+                    stack_root="uk/co/example/foo/", source_root="src/main/uk/co/example/foo/"
+                ),
+                self.code_mapping(
+                    stack_root="uk/co/example/bar/", source_root="src/app/uk/co/example/bar/"
+                ),
             ],
             expected_new_in_app_stack_trace_rules=["stack.module:uk.co.example.** +app"],
         )
+
+        # XXX: Ideally we would remove the old rules and code mappings
         # All frames are in-app because the 2-level tld rule is already in place
         assert event.data["metadata"]["in_app_frame_mix"] == "in-app-only"
-        assert RepositoryProjectPathConfig.objects.count() == 2
-        config = RepositoryProjectPathConfig.objects.get(
-            project_id=self.project.id,
-            stack_root="uk/co/example/",
-            source_root="src/uk/co/example/",
-        )
-        assert config is not None
-        # XXX: Ideally we would remove the old rule and code mapping
+        assert RepositoryProjectPathConfig.objects.count() == 3
         assert self.project.get_option(DERIVED_ENHANCEMENTS_OPTION_KEY).split("\n") == [
             "stack.module:uk.co.** +app",
             "stack.module:uk.co.example.** +app",
@@ -784,6 +891,19 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             expected_new_in_app_stack_trace_rules=["stack.module:x.y.** +app"],
         )
 
+    def test_prevent_creating_duplicate_rules(self) -> None:
+        # Rules set by the customer prevent configuration changes
+        self.project.update_option("sentry:grouping_enhancements", "stack.module:foo.bar.** +app")
+        # Manually created code mapping
+        self.create_repo_and_code_mapping(REPO1, "foo/bar/", "src/foo/")
+        # We do not expect code mappings or in-app rules to be created since
+        # the developer already created the code mapping and in-app rule
+        self._process_and_assert_configuration_changes(
+            repo_trees={REPO1: ["src/foo/bar/Baz.java"]},
+            frames=[self.frame_from_module("foo.bar.Baz", "Baz.java")],
+            platform=self.platform,
+        )
+
     def test_basic_case(self) -> None:
         repo_trees = {REPO1: ["src/com/example/foo/Bar.kt"]}
         frames = [
@@ -798,7 +918,9 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             frames=frames,
             platform=self.platform,
             expected_new_code_mappings=[
-                self.code_mapping(stack_root="com/example/", source_root="src/com/example/"),
+                self.code_mapping(
+                    stack_root="com/example/foo/", source_root="src/com/example/foo/"
+                ),
             ],
             expected_new_in_app_stack_trace_rules=[expected_in_app_rule],
         )
@@ -856,18 +978,3 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
                 expected_new_code_mappings=[self.code_mapping("android/app/", "src/android/app/")],
                 expected_new_in_app_stack_trace_rules=["stack.module:android.app.** +app"],
             )
-
-    def test_unintended_rules_are_removed(self) -> None:
-        """Test that unintended rules will be removed without affecting other rules"""
-        key = "sentry:automatic_grouping_enhancements"
-        # Let's assume that the package was not categorized, thus, we created a rule for it
-        self.project.update_option(key, "stack.module:akka.** +app\nstack.module:foo.bar.** +app")
-        # This module is categorized, thus, we won't attempt derivation for it
-        frame = self.frame_from_module("com.sun.Activity", "Activity.java")
-        event = self.create_event([frame], self.platform)
-
-        # The rule will be removed after calling this
-        process_event(self.project.id, event.group_id, event.event_id)
-        rules = self.project.get_option(key)
-        # Other rules are not affected
-        assert rules.split("\n") == ["stack.module:foo.bar.** +app"]

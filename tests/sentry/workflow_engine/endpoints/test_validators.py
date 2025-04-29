@@ -5,7 +5,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail, ValidationError
 
 from sentry import audit_log
-from sentry.incidents.grouptype import MetricAlertFire
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.metric_alert_detector import (
     MetricAlertComparisonConditionValidator,
     MetricAlertsDetectorValidator,
@@ -119,6 +119,7 @@ class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
                 slug="test_type",
                 description="no handler",
                 category=GroupCategory.METRIC_ALERT.value,
+                category_v2=GroupCategory.PERFORMANCE_REGRESSION.value,
                 detector_settings=DetectorSettings(validator=MetricAlertsDetectorValidator),
             )
             validator = self.validator_class()
@@ -141,6 +142,7 @@ class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
                 slug="test_type",
                 description="no handler",
                 category=GroupCategory.METRIC_ALERT.value,
+                category_v2=GroupCategory.PERFORMANCE_REGRESSION.value,
             )
             validator = self.validator_class()
             with pytest.raises(
@@ -162,7 +164,7 @@ class DetectorValidatorTest(BaseValidatorTest):
         }
         self.valid_data = {
             "name": "Test Detector",
-            "detectorType": MetricAlertFire.slug,
+            "detectorType": MetricIssue.slug,
             "dataSource": {
                 "field1": "test",
                 "field2": 123,
@@ -196,7 +198,7 @@ class DetectorValidatorTest(BaseValidatorTest):
         # Verify detector in DB
         detector = Detector.objects.get(id=detector.id)
         assert detector.name == "Test Detector"
-        assert detector.type == MetricAlertFire.slug
+        assert detector.type == MetricIssue.slug
         assert detector.project_id == self.project.id
 
         # Verify data source in DB

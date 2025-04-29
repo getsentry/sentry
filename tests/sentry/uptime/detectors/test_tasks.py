@@ -7,6 +7,7 @@ from urllib.robotparser import RobotFileParser
 
 from django.utils import timezone
 
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -33,11 +34,12 @@ from sentry.uptime.detectors.tasks import (
     schedule_detections,
     set_failed_url,
 )
-from sentry.uptime.models import ProjectUptimeSubscription, ProjectUptimeSubscriptionMode
+from sentry.uptime.models import ProjectUptimeSubscription
 from sentry.uptime.subscriptions.subscriptions import (
-    get_auto_monitored_subscriptions_for_project,
+    get_auto_monitored_detectors_for_project,
     is_url_auto_monitored_for_project,
 )
+from sentry.uptime.types import ProjectUptimeSubscriptionMode
 
 
 @freeze_time()
@@ -252,10 +254,10 @@ class ProcessCandidateUrlTest(UptimeTestCase):
     def test_succeeds_existing_subscription_this_project(self):
         url = "https://sentry.io"
         assert process_candidate_url(self.project, 100, url, 50)
-        subscription = get_auto_monitored_subscriptions_for_project(self.project)[0]
+        detector = get_auto_monitored_detectors_for_project(self.project)[0]
         assert process_candidate_url(self.project, 100, url, 50)
-        new_subscription = get_auto_monitored_subscriptions_for_project(self.project)[0]
-        assert subscription.id == new_subscription.id
+        new_detector = get_auto_monitored_detectors_for_project(self.project)[0]
+        assert detector.id == new_detector.id
         assert self.project.get_option("sentry:uptime_autodetection") is False
         assert self.organization.get_option("sentry:uptime_autodetection") is False
 
@@ -347,6 +349,10 @@ class TestMonitorUrlForProject(UptimeTestCase):
         assert is_url_auto_monitored_for_project(self.project, url)
         url_2 = "http://santry.io"
         monitor_url_for_project(self.project, url_2)
+        # Execute scheduled deletions to ensure the first detector is cleaned
+        # up when re-detecting
+        with self.tasks():
+            run_scheduled_deletions()
         assert not is_url_auto_monitored_for_project(self.project, url)
         assert is_url_auto_monitored_for_project(self.project, url_2)
 

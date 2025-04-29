@@ -4,7 +4,9 @@ from unittest.mock import patch
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.integrations.types import ExternalProviderEnum
+from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution
@@ -139,6 +141,27 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         result = serialize(group, user)
         assert result["status"] == "resolved"
         assert result["statusDetails"] == {"autoResolved": True}
+
+    @patch("sentry.models.Group.is_over_resolve_age")
+    def test_auto_resolved_respects_enable_auto_resolve_flag(self, mock_is_over_resolve_age):
+        mock_is_over_resolve_age.return_value = True
+
+        user = self.create_user()
+
+        # Test with a group type that has auto-resolve enabled
+        error_type_id = ErrorGroupType.type_id
+        group_error = self.create_group(status=GroupStatus.UNRESOLVED, type=error_type_id)
+        result_error = serialize(group_error, user)
+        assert result_error["status"] == "resolved"
+        assert result_error["statusDetails"] == {"autoResolved": True}
+
+        # Test with a group type that has auto-resolve disabled (feedback)
+        feedback_type_id = FeedbackGroup.type_id
+        group_feedback = self.create_group(status=GroupStatus.UNRESOLVED, type=feedback_type_id)
+
+        result_feedback = serialize(group_feedback, user)
+        assert result_feedback["status"] == "unresolved"
+        assert "autoResolved" not in result_feedback.get("statusDetails", {})
 
     def test_subscribed(self):
         user = self.create_user()

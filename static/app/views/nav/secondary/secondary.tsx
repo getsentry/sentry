@@ -7,6 +7,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link, {type LinkProps} from 'sentry/components/links/link';
+import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -16,7 +17,9 @@ import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useNavContext} from 'sentry/views/nav/context';
+import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {NavLayout} from 'sentry/views/nav/types';
+import {useActiveNavGroup} from 'sentry/views/nav/useActiveNavGroup';
 import {isLinkActive} from 'sentry/views/nav/utils';
 
 type SecondaryNavProps = {
@@ -52,8 +55,9 @@ export function SecondaryNav({children}: SecondaryNavProps) {
   return createPortal(children, secondaryNavEl);
 }
 
-SecondaryNav.Header = function SecondaryNavHeader({children}: {children: ReactNode}) {
+SecondaryNav.Header = function SecondaryNavHeader({children}: {children?: ReactNode}) {
   const {isCollapsed, setIsCollapsed, layout} = useNavContext();
+  const group = useActiveNavGroup();
 
   if (layout === NavLayout.MOBILE) {
     return null;
@@ -61,7 +65,7 @@ SecondaryNav.Header = function SecondaryNavHeader({children}: {children: ReactNo
 
   return (
     <Header>
-      <div>{children}</div>
+      <div>{children ?? PRIMARY_NAV_GROUP_CONFIG[group].label}</div>
       <div>
         <Button
           borderless
@@ -126,6 +130,7 @@ SecondaryNav.Item = function SecondaryNavItem({
 
   return (
     <Item
+      state={{source: SIDEBAR_NAVIGATION_SOURCE}}
       {...linkProps}
       to={to}
       aria-current={isActive ? 'page' : undefined}
@@ -282,6 +287,11 @@ const StyledNavItem = styled(Link)<ItemProps>`
   line-height: 177.75%;
   border-radius: ${p => p.theme.borderRadius};
 
+  &:focus-visible {
+    box-shadow: 0 0 0 2px ${p => p.theme.focusBorder};
+    color: currentColor;
+  }
+
   &[aria-selected='true'] {
     color: ${p => p.theme.purple400};
     font-weight: ${p => p.theme.fontWeightBold};
@@ -313,7 +323,7 @@ const StyledNavItem = styled(Link)<ItemProps>`
     `}
 `;
 
-export const Item = withChonk(StyledNavItem, ChonkItem);
+const Item = withChonk(StyledNavItem, ChonkItem);
 
 const ItemText = styled('span')`
   ${p => p.theme.overflowEllipsis}

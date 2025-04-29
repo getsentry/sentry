@@ -18,7 +18,7 @@ import useRouter from 'sentry/utils/useRouter';
 
 import {EnvironmentPageFilterTrigger} from './trigger';
 
-export interface EnvironmentPageFilterProps
+interface EnvironmentPageFilterProps
   extends Partial<
     Omit<
       HybridFilterProps<string>,

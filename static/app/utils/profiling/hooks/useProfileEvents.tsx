@@ -1,16 +1,12 @@
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {mobile} from 'sentry/data/platformCategories';
-import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import type {EventsResults, Sort} from './types';
 
-export interface UseProfileEventsOptions<F extends string = ProfilingFieldType> {
+interface UseProfileEventsOptions<F extends string = ProfilingFieldType> {
   fields: readonly F[];
   referrer: string;
   sort: Sort<F>;
@@ -65,24 +61,6 @@ export function useProfileEvents<F extends string>({
   });
 }
 
-export function formatError(error: any): string | null {
-  if (!defined(error)) {
-    return null;
-  }
-
-  const detail = error.responseJSON?.detail;
-  if (typeof detail === 'string') {
-    return detail;
-  }
-
-  const message = detail?.message;
-  if (typeof message === 'string') {
-    return message;
-  }
-
-  return t('An unknown error occurred.');
-}
-
 export type ProfilingFieldType =
   | 'id'
   | 'trace'
@@ -104,28 +82,3 @@ export type ProfilingFieldType =
   | 'p99()'
   | 'count()'
   | 'last_seen()';
-
-export function getProfilesTableFields(platform: Project['platform']) {
-  if (mobile.includes(platform as any)) {
-    return MOBILE_FIELDS;
-  }
-
-  return DEFAULT_FIELDS;
-}
-
-const MOBILE_FIELDS: ProfilingFieldType[] = [
-  'profile.id',
-  'timestamp',
-  'release',
-  'device.model',
-  'device.classification',
-  'device.arch',
-  'transaction.duration',
-];
-
-const DEFAULT_FIELDS: ProfilingFieldType[] = [
-  'profile.id',
-  'timestamp',
-  'release',
-  'transaction.duration',
-];

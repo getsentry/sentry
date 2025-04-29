@@ -82,7 +82,7 @@ function InnerWrap({
   );
 }
 
-export function BaseTab({
+function BaseTab({
   to,
   children,
   ref,

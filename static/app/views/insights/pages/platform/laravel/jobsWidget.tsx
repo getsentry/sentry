@@ -22,9 +22,9 @@ import {
   SeriesColorIndicator,
   WidgetFooterTable,
 } from 'sentry/views/insights/pages/platform/laravel/styles';
-import {Toolbar} from 'sentry/views/insights/pages/platform/laravel/toolbar';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
+import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {QueuesWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 export function JobsWidget({query}: {query?: string}) {
@@ -95,7 +95,7 @@ export function JobsWidget({query}: {query?: string}) {
     () =>
       plottables.every(
         plottable =>
-          plottable.isEmpty || plottable.timeSeries.data.every(point => !point.value)
+          plottable.isEmpty || plottable.timeSeries.values.every(point => !point.value)
       ),
     [plottables]
   );
@@ -116,10 +116,10 @@ export function JobsWidget({query}: {query?: string}) {
 
   const {totalJobs, overallErrorRate} = useMemo(() => {
     const errorSeries = plottables[1]!.timeSeries;
-    const jobCounts = plottables[0]!.timeSeries.data;
+    const jobCounts = plottables[0]!.timeSeries.values;
     let jobsCount = 0;
     let errorCount = 0;
-    errorSeries.data.forEach((point, i) => {
+    errorSeries.values.forEach((point, i) => {
       const count = jobCounts[i]?.value!;
       jobsCount += count;
       errorCount += point.value! * count;

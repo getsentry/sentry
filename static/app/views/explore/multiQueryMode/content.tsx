@@ -116,7 +116,10 @@ function Content() {
             <DatePageFilter
               defaultPeriod={defaultPeriod}
               maxPickableDays={maxPickableDays}
-              relativeOptions={relativeOptions}
+              relativeOptions={({arbitraryOptions}) => ({
+                ...arbitraryOptions,
+                ...relativeOptions,
+              })}
             />
           </StyledPageFilterBar>
           <DropdownMenu
@@ -148,9 +151,16 @@ function Content() {
                 key: 'save-query',
                 label: t('A New Query'),
                 onAction: () => {
+                  trackAnalytics('trace_explorer.save_query_modal', {
+                    action: 'open',
+                    save_type: 'save_new_query',
+                    ui_source: 'toolbar',
+                    organization,
+                  });
                   openSaveQueryModal({
                     organization,
                     saveQuery,
+                    source: 'toolbar',
                   });
                 },
               },

@@ -35,7 +35,6 @@ describe('CodecovSecondaryNav', () => {
       </NavContextProvider>,
       {
         organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
-        enableRouterMocks: false,
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/codecov/coverage/commits/',
@@ -60,7 +59,6 @@ describe('CodecovSecondaryNav', () => {
       </NavContextProvider>,
       {
         organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
-        enableRouterMocks: false,
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/codecov/tests/',
@@ -72,5 +70,26 @@ describe('CodecovSecondaryNav', () => {
     const testsLink = screen.getByRole('link', {name: 'Tests'});
     expect(testsLink).toBeInTheDocument();
     expect(testsLink).toHaveAttribute('href', '/organizations/org-slug/codecov/tests/');
+  });
+
+  it('renders the correct tokens link', () => {
+    render(
+      <NavContextProvider>
+        <Nav />
+        <div id="main" />
+      </NavContextProvider>,
+      {
+        organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/codecov/tokens/',
+          },
+        },
+      }
+    );
+
+    const tokensLink = screen.getByRole('link', {name: 'Tokens'});
+    expect(tokensLink).toBeInTheDocument();
+    expect(tokensLink).toHaveAttribute('href', '/organizations/org-slug/codecov/tokens/');
   });
 });

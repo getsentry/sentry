@@ -61,6 +61,11 @@ describe('appendTagCondition', function () {
     expect(result).toBe('color:"id:red"');
   });
 
+  it('wraps values with a backslash', function () {
+    const result = utils.appendTagCondition(null, 'color', 'id\\red');
+    expect(result).toBe('color:"id\\red"');
+  });
+
   it('handles user tag values', function () {
     let result = utils.appendTagCondition('', 'user', 'something');
     expect(result).toBe('user:something');

@@ -4,7 +4,8 @@ import styled from '@emotion/styled';
 
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
-import {DropdownMenu, type DropdownMenuProps} from 'sentry/components/dropdownMenu';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
@@ -14,7 +15,6 @@ import {ProjectList} from 'sentry/components/projectList';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {getAbsoluteSummary} from 'sentry/components/timeRangeSelector/utils';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -83,9 +83,13 @@ SavedEntityTable.Header = styled('div')`
 
   height: 36px;
   background-color: ${p => p.theme.backgroundSecondary};
+  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
 `;
 
-SavedEntityTable.HeaderCell = styled('div')`
+SavedEntityTable.HeaderCell = styled('div')<{
+  gridArea?: string;
+  noBorder?: boolean;
+}>`
   display: flex;
   align-items: center;
   padding: 0 ${space(1.5)};
@@ -109,8 +113,20 @@ SavedEntityTable.HeaderCell = styled('div')`
     border: 0;
   }
 
+  ${p =>
+    p.noBorder &&
+    css`
+      border: 0;
+    `}
+
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightBold};
+
+  ${p =>
+    p.gridArea &&
+    css`
+      grid-area: ${p.gridArea};
+    `}
 `;
 
 SavedEntityTable.Row = styled('div')<{isFirst: boolean; disableHover?: boolean}>`
@@ -130,6 +146,10 @@ SavedEntityTable.Row = styled('div')<{isFirst: boolean; disableHover?: boolean}>
     border-bottom: 1px solid ${p => p.theme.innerBorder};
   }
 
+  &:last-child {
+    border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  }
+
   ${p =>
     !p.disableHover &&
     css`
@@ -139,15 +159,28 @@ SavedEntityTable.Row = styled('div')<{isFirst: boolean; disableHover?: boolean}>
     `}
 `;
 
-SavedEntityTable.Cell = styled('div')`
+SavedEntityTable.Cell = styled('div')<{
+  'data-column'?: string;
+  gridArea?: string;
+  hasButton?: boolean;
+}>`
   display: flex;
   align-items: center;
   padding: ${space(1)} ${space(1.5)};
+  height: 40px;
 
   /* Buttons already provide some padding */
-  &:has(> button:first-child) {
-    padding: 0 ${space(0.5)};
-  }
+  ${p =>
+    p.hasButton &&
+    css`
+      padding: 0 ${space(0.5)};
+    `}
+
+  ${p =>
+    p.gridArea &&
+    css`
+      grid-area: ${p['data-column']};
+    `}
 `;
 
 SavedEntityTable.CellStar = function CellStar({
@@ -214,14 +247,18 @@ SavedEntityTable.CellProjects = function CellProjects({
 };
 
 SavedEntityTable.CellQuery = function CellQuery({query}: {query: string}) {
-  return <FormattedQueryNoWrap query={query} />;
+  return (
+    <Tooltip
+      title={<ProvidedFormattedQuery query={query} />}
+      showOnlyOnOverflow
+      maxWidth={500}
+    >
+      <FormattedQueryNoWrap query={query} />
+    </Tooltip>
+  );
 };
 
-SavedEntityTable.CellActions = function CellActions({
-  items,
-}: {
-  items: DropdownMenuProps['items'];
-}) {
+SavedEntityTable.CellActions = function CellActions({items}: {items: MenuItemProps[]}) {
   return (
     <DropdownMenu
       trigger={triggerProps => (
@@ -230,12 +267,13 @@ SavedEntityTable.CellActions = function CellActions({
           aria-label={t('More options')}
           size="sm"
           borderless
-          icon={<IconEllipsis direction="down" size="sm" />}
+          icon={<IconEllipsis compact />}
           data-test-id="menu-trigger"
         />
       )}
       items={items}
       position="bottom-end"
+      size="sm"
     />
   );
 };
@@ -315,11 +353,6 @@ const StyledPanelTable = styled(Panel)`
   display: grid;
   white-space: nowrap;
   font-size: ${p => p.theme.fontSizeMedium};
-  overflow: auto;
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    overflow: hidden;
-  }
 `;
 
 const EmptyContainer = styled('div')`
@@ -332,6 +365,10 @@ const EmptyContainer = styled('div')`
 const FormattedQueryNoWrap = styled(ProvidedFormattedQuery)`
   flex-wrap: nowrap;
   overflow: hidden;
+
+  > * {
+    min-width: min-content;
+  }
 `;
 
 const OverflowEllipsis = styled('div')`

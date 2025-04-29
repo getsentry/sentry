@@ -29,17 +29,13 @@ const indexedDbPersister = createAsyncStoragePersister({
   key: cacheKey,
 });
 
-export const isProjectsCacheEnabled =
-  window.indexedDB &&
-  (window.__initialData?.features as unknown as string[])?.includes(
-    'organizations:cache-projects-ui'
-  );
+export const hasIndexedDb = !!window.indexedDB;
 
 /**
  * Enables the PersistQueryClientProvider when the flag is enabled
  */
 export function AppQueryClientProvider({children}: {children: React.ReactNode}) {
-  if (!isProjectsCacheEnabled) {
+  if (!hasIndexedDb) {
     return <QueryClientProvider client={appQueryClient}>{children}</QueryClientProvider>;
   }
 
@@ -74,7 +70,7 @@ export function AppQueryClientProvider({children}: {children: React.ReactNode}) 
 }
 
 export async function clearQueryCache() {
-  if (isProjectsCacheEnabled) {
+  if (hasIndexedDb) {
     // Mark queries as stale so they won't be re-cached
     appQueryClient.invalidateQueries({
       queryKey: ['bootstrap-projects'],
