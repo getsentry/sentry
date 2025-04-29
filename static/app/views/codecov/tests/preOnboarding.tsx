@@ -11,7 +11,7 @@ import {space} from 'sentry/styles/space';
 
 const INSTRUCTIONS_TEXT = {
   noOrgs: {
-    header: t('Add your GitHub Organization to Sentry'),
+    header: t('Get Started by installing the GitHub Sentry App'),
     subtext: t(
       "You need to install the Sentry app on your GitHub organization as an admin. If you're not an admin, you will need to make sure your GitHub organization admins approve the installation of the Sentry app on GitHub."
     ),
@@ -29,10 +29,9 @@ const INSTRUCTIONS_TEXT = {
   },
 };
 
-// TODO: change this
+// TODO: this should come from the backend
 const HAS_INTEGRATED_ORGS = false;
 
-// TODO: Add missing links
 export default function TestPreOnboardingPage() {
   const instructionSet = HAS_INTEGRATED_ORGS
     ? INSTRUCTIONS_TEXT.hasOrgs
@@ -120,6 +119,8 @@ export default function TestPreOnboardingPage() {
                   {t('disconnect')}
                 </Link>
                 {t(' disconnect then ')}
+                {/* TODO: figma file links to https://sentry.io/auth/login/?next=/auth/sso/account/settings/social/associate/co[…]D6ee6a67e71b4459e8e4c%26state%3D7nJAqWF3l4bkczXAPzTcfo8EKIvSHyiB
+                    but not sure how to get the link to that currently */}
                 <Link to="">{t('reconnect')}</Link>
                 {t(' your GitHub identity.')}
               </PrereqSubText>
