@@ -1,6 +1,7 @@
 import {QueryClientProvider} from '@tanstack/react-query';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -36,22 +37,7 @@ describe('useMultiQueryTimeseries', () => {
   beforeEach(() => {
     jest.mocked(useLocation).mockReturnValue(LocationFixture());
 
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '14d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [2],
-      },
-    });
+    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
     jest.clearAllMocks();
   });
 

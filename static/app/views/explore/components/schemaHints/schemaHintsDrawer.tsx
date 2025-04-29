@@ -119,7 +119,11 @@ function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDraw
         type: 'UPDATE_QUERY',
         query: filterQuery.formatString(),
         focusOverride: {
-          itemKey: `filter:${filterQuery.getFilterKeys().map(parseTagKey).indexOf(hint.key)}`,
+          itemKey: `filter:${filterQuery
+            .getTokenKeys()
+            .filter(key => key !== undefined)
+            .map(parseTagKey)
+            .lastIndexOf(hint.key)}`,
           part: 'value',
         },
       });
