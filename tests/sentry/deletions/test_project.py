@@ -226,50 +226,69 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
             id=project_uptime_subscription.id
         ).exists()
 
-    def test_delete_with_workflow_engine_models(self):
-        project = self.create_project(name="test")
-        snuba_query = self.create_snuba_query()
-        subscription = QuerySubscription.objects.create(
-            project=project,
+
+class DeleteWorkflowEngineModelsTest(DeleteProjectTest):
+    def setUp(self):
+        self.workflow_engine_project = self.create_project(name="workflow_engine_test")
+        self.snuba_query = self.create_snuba_query()
+        self.subscription = QuerySubscription.objects.create(
+            project=self.workflow_engine_project,
             status=QuerySubscription.Status.ACTIVE.value,
             subscription_id="123",
-            snuba_query=snuba_query,
+            snuba_query=self.snuba_query,
         )
-        data_source = self.create_data_source(
-            organization=self.organization, source_id=subscription.id
+        self.data_source = self.create_data_source(
+            organization=self.organization, source_id=self.subscription.id
         )
-        detector_data_condition_group = self.create_data_condition_group(
+        self.detector_data_condition_group = self.create_data_condition_group(
             organization=self.organization
         )
         (
-            workflow,
-            detector,
-            detector_workflow,
+            self.workflow,
+            self.detector,
+            self.detector_workflow,
             _,  # the workflow trigger group for a migrated metric alert rule is None
-        ) = self.create_detector_and_workflow(project=project)
-        detector.update(workflow_condition_group=detector_data_condition_group)
-        detector_trigger = self.create_data_condition(
+        ) = self.create_detector_and_workflow(project=self.workflow_engine_project)
+        self.detector.update(workflow_condition_group=self.detector_data_condition_group)
+        self.detector_trigger = self.create_data_condition(
             comparison=200,
             condition_result=DetectorPriorityLevel.HIGH,
             type=Condition.GREATER_OR_EQUAL,
-            condition_group=detector_data_condition_group,
+            condition_group=self.detector_data_condition_group,
         )
 
-        data_source_detector = self.create_data_source_detector(
-            data_source=data_source, detector=detector
+        self.data_source_detector = self.create_data_source_detector(
+            data_source=self.data_source, detector=self.detector
         )
 
-        self.ScheduledDeletion.schedule(instance=project, days=0)
+    def test_delete_detector_data_source(self):
+        self.ScheduledDeletion.schedule(instance=self.workflow_engine_project, days=0)
 
         with self.tasks():
             run_scheduled_deletions()
 
-        assert not Detector.objects.filter(id=detector.id).exists()
-        assert not DataSourceDetector.objects.filter(id=data_source_detector.id).exists()
-        assert not DetectorWorkflow.objects.filter(id=detector_workflow.id).exists()
-        assert not DataConditionGroup.objects.filter(id=detector_data_condition_group.id).exists()
-        assert not DataCondition.objects.filter(id=detector_trigger.id).exists()
-        assert not DataSource.objects.filter(id=data_source.id).exists()
-        assert not QuerySubscription.objects.filter(id=subscription.id).exists()
-        assert not SnubaQuery.objects.filter(id=snuba_query.id).exists()
-        assert Workflow.objects.filter(id=workflow.id).exists()
+        assert not Detector.objects.filter(id=self.detector.id).exists()
+        assert not DataSource.objects.filter(id=self.data_source.id).exists()
+        assert not DataSourceDetector.objects.filter(id=self.data_source_detector.id).exists()
+        assert not QuerySubscription.objects.filter(id=self.subscription.id).exists()
+        assert not SnubaQuery.objects.filter(id=self.snuba_query.id).exists()
+
+    def test_delete_detector_data_conditions(self):
+        self.ScheduledDeletion.schedule(instance=self.workflow_engine_project, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not DataConditionGroup.objects.filter(
+            id=self.detector_data_condition_group.id
+        ).exists()
+        assert not DataCondition.objects.filter(id=self.detector_trigger.id).exists()
+
+    def test_not_delete_workflow(self):
+        self.ScheduledDeletion.schedule(instance=self.workflow_engine_project, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not DetectorWorkflow.objects.filter(id=self.detector_workflow.id).exists()
+        assert Workflow.objects.filter(id=self.workflow.id).exists()
