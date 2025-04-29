@@ -44,6 +44,14 @@ interface SchemaHintsListProps extends SchemaHintsPageParams {
   stringTags: TagCollection;
   supportedAggregates: AggregationKey[];
   isLoading?: boolean;
+  /**
+   * The width of all elements to the right of the search bar.
+   * This is used to ensure that the search bar is the correct width when the drawer is open.
+   */
+  searchBarWidthOffset?: number;
+  /**
+   * The are of the product that the schema hints are being rendered in
+   */
   source?: SchemaHintsSources;
 }
 
@@ -98,6 +106,7 @@ function SchemaHintsList({
   stringTags,
   isLoading,
   source = SchemaHintsSources.EXPLORE,
+  searchBarWidthOffset,
 }: SchemaHintsListProps) {
   const schemaHintsContainerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
@@ -241,7 +250,7 @@ function SchemaHintsList({
   useEffect(() => {
     const adjustSearchBarWidth = () => {
       if (isDrawerOpen && searchBarWrapperRef.current && panelRef.current) {
-        searchBarWrapperRef.current.style.width = `calc(100% - ${panelRef.current.clientWidth}px)`;
+        searchBarWrapperRef.current.style.width = `calc(100% - ${searchBarWidthOffset ? panelRef.current.clientWidth - searchBarWidthOffset : panelRef.current.clientWidth}px)`;
       }
     };
 
@@ -254,7 +263,7 @@ function SchemaHintsList({
     }
 
     return () => resizeObserver.disconnect();
-  }, [isDrawerOpen, panelRef, searchBarWrapperRef]);
+  }, [isDrawerOpen, panelRef, searchBarWidthOffset, searchBarWrapperRef]);
 
   const onHintClick = useCallback(
     (hint: Tag) => {
@@ -282,8 +291,8 @@ function SchemaHintsList({
                   location.pathname !== newLocation.pathname ||
                   // will close if anything but the filter query has changed
                   !isEqual(
-                    omit(location.query, ['query', 'field', 'search', 'logsQuery']),
-                    omit(newLocation.query, ['query', 'field', 'search', 'logsQuery'])
+                    omit(location.query, ['query', 'field', 'logsFields', 'logsQuery']),
+                    omit(newLocation.query, ['query', 'field', 'logsFields', 'logsQuery'])
                   )
                 );
               },
