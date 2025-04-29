@@ -112,7 +112,7 @@ def make_rpc_request(
 def make_snql_request(
     query: str,
     aggregate: str,
-    granumarity_secs: int,
+    granularity_secs: int,
     on_demand_metrics_enabled: bool,
     snuba_params: SnubaParams,
     organization: Organization,
@@ -123,7 +123,7 @@ def make_snql_request(
         [aggregate],
         query,
         snuba_params=snuba_params,
-        rollup=granumarity_secs,
+        rollup=granularity_secs,
         referrer=Referrer.JOB_COMPARE_TIMESERIES.value,
         on_demand_metrics_enabled=on_demand_metrics_enabled,
         on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
