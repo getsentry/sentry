@@ -33,8 +33,9 @@ export default function ListContent() {
   });
 
   const {allMobileProj} = useAllMobileProj({replayPlatforms: true});
-
   const [widgetIsOpen, setWidgetIsOpen] = useState(true);
+
+  const showDeadRageClickCards = !rageClicksSdkVersion.needsUpdate && !allMobileProj;
 
   useRouteAnalyticsParams({
     hasSessionReplay,
@@ -68,33 +69,20 @@ export default function ListContent() {
     );
   }
 
-  // not eligible for dead/rage clicks
-  if (rageClicksSdkVersion.needsUpdate || allMobileProj) {
-    return (
-      <Fragment>
-        <FiltersContainer>
-          <ReplaysFilters />
-          <ReplaysSearch />
-        </FiltersContainer>
-        <ReplaysList />
-      </Fragment>
-    );
-  }
-
   return (
     <Fragment>
       <FiltersContainer>
         <ReplaysFilters />
         <SearchWrapper>
           <ReplaysSearch />
-          {!allMobileProj && (
+          {showDeadRageClickCards && (
             <Button onClick={() => setWidgetIsOpen(!widgetIsOpen)}>
               {widgetIsOpen ? t('Hide Widgets') : t('Show Widgets')}
             </Button>
           )}
         </SearchWrapper>
       </FiltersContainer>
-      {widgetIsOpen && !allMobileProj ? <DeadRageSelectorCards /> : null}
+      {widgetIsOpen && showDeadRageClickCards ? <DeadRageSelectorCards /> : null}
       <ReplaysList />
     </Fragment>
   );
