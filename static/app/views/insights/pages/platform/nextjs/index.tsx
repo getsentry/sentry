@@ -16,12 +16,12 @@ import {WebVitalsWidget} from 'sentry/views/insights/pages/platform/nextjs/webVi
 import {DurationWidget} from 'sentry/views/insights/pages/platform/shared/durationWidget';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {PlatformLandingPageLayout} from 'sentry/views/insights/pages/platform/shared/layout';
-import PagesTable from 'sentry/views/insights/pages/platform/shared/PagesTable';
+import PagesTable from 'sentry/views/insights/pages/platform/shared/pagesTable';
 import {PathsTable} from 'sentry/views/insights/pages/platform/shared/pathsTable';
 import {TrafficWidget} from 'sentry/views/insights/pages/platform/shared/trafficWidget';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
-type View = 'paths' | 'pages';
+type View = 'api' | 'pages';
 type SpanOperation = 'pageload' | 'navigation';
 
 function PlaceholderWidget() {
@@ -41,7 +41,7 @@ export function NextJsOverviewPage({
       timestamp: date,
       version,
     })) ?? [];
-  const [activeView, setActiveView] = useState<View>('paths');
+  const [activeView, setActiveView] = useState<View>('api');
   const [spanOperationFilter, setSpanOperationFilter] =
     useState<SpanOperation>('pageload');
 
@@ -93,13 +93,13 @@ export function NextJsOverviewPage({
           onChange={value => setActiveView(value)}
           size="sm"
         >
-          <SegmentedControl.Item key="paths">{t('Paths')}</SegmentedControl.Item>
+          <SegmentedControl.Item key="api">{t('API')}</SegmentedControl.Item>
           <SegmentedControl.Item key="pages">{t('Pages')}</SegmentedControl.Item>
         </SegmentedControl>
         {activeView === 'pages' && (
           <CompactSelect<SpanOperation>
             size="sm"
-            triggerProps={{prefix: t('Type')}}
+            triggerProps={{prefix: t('Display')}}
             options={spanOperationOptions}
             value={spanOperationFilter}
             onChange={(option: SelectOption<SpanOperation>) =>
@@ -109,7 +109,7 @@ export function NextJsOverviewPage({
         )}
       </ControlsWrapper>
 
-      {activeView === 'paths' && (
+      {activeView === 'api' && (
         <PathsTable
           handleAddTransactionFilter={setTransactionFilter}
           query={query}
