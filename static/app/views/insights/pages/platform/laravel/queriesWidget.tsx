@@ -27,6 +27,7 @@ import {
 } from 'sentry/views/insights/pages/platform/laravel/styles';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
+import {useReleaseBubbleProps} from 'sentry/views/insights/pages/platform/shared/getReleaseBubbleProps';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {ModuleName} from 'sentry/views/insights/types';
 import {TimeSpentInDatabaseWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
@@ -142,8 +143,7 @@ export function QueriesWidget({query, releases}: {query?: string; releases?: Rel
               alias: aliases[ts.seriesName],
             })
         ),
-        releases,
-        showReleaseAs: 'bubble',
+        ...useReleaseBubbleProps(releases),
       }}
     />
   );

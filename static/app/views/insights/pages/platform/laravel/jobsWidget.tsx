@@ -24,6 +24,7 @@ import {
 } from 'sentry/views/insights/pages/platform/laravel/styles';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
+import {useReleaseBubbleProps} from 'sentry/views/insights/pages/platform/shared/getReleaseBubbleProps';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {QueuesWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
@@ -110,8 +111,7 @@ export function JobsWidget({query, releases}: {query?: string; releases?: Releas
       visualizationProps={{
         showLegend: 'never',
         plottables,
-        releases,
-        showReleaseAs: 'bubble',
+        ...useReleaseBubbleProps(releases),
       }}
     />
   );

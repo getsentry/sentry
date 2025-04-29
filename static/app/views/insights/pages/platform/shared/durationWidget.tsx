@@ -19,6 +19,7 @@ import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {ModalChartContainer} from 'sentry/views/insights/pages/platform/laravel/styles';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
+import {useReleaseBubbleProps} from 'sentry/views/insights/pages/platform/shared/getReleaseBubbleProps';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 
 export function DurationWidget({
@@ -93,8 +94,7 @@ export function DurationWidget({
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
         plottables,
-        releases,
-        showReleaseAs: 'bubble',
+        ...useReleaseBubbleProps(releases),
       }}
     />
   );

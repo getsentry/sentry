@@ -25,6 +25,7 @@ import {
 } from 'sentry/views/insights/pages/platform/laravel/styles';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
+import {useReleaseBubbleProps} from 'sentry/views/insights/pages/platform/shared/getReleaseBubbleProps';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {HighestCacheMissRateTransactionsWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
@@ -125,8 +126,7 @@ export function CachesWidget({query, releases}: {query?: string; releases?: Rele
           (ts, index) =>
             new Line(convertSeriesToTimeseries(ts), {color: colorPalette[index]})
         ),
-        releases,
-        showReleaseAs: 'bubble',
+        ...useReleaseBubbleProps(releases),
       }}
     />
   );
