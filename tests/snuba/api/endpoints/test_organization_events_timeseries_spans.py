@@ -1421,28 +1421,17 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
     def test_interval_larger_than_period_uses_default_period(self):
         response = self._do_request(
             data={
-                "start": self.start,
-                "end": self.end,
-                "interval": "12h",
-                "yAxis": "count()",
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(seconds=10),
+                "interval": "15s",
+                "query": "",
+                "yAxis": ["count()"],
                 "project": self.project.id,
                 "dataset": "spans",
             },
         )
-        assert response.status_code == 200, response.content
-        assert response.data["meta"] == {
-            "dataset": "spans",
-            "start": self.start.timestamp() * 1000,
-            "end": self.end.timestamp() * 1000,
-        }
-
-        timeseries = response.data["timeseries"][0]
-        assert timeseries["yaxis"] == "count()"
-        assert len(timeseries["values"]) == 73
-        assert timeseries["meta"] == {
-            "valueType": "integer",
-            "interval": 300_000,
-        }
+        assert response.status_code == 400, response.content
+        assert "Interval cannot be larger than the date range" in response.data["detail"]
 
     def test_cache_miss_rate(self):
         self.store_spans(

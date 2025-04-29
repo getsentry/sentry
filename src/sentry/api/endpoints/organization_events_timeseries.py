@@ -173,12 +173,11 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
             except NoProjects:
                 return Response([], status=200)
 
-        self.validate_comparison_delta(comparison_delta, snuba_params, organization)
-        rollup = self.get_rollup(request, snuba_params, top_events, use_rpc)
-        snuba_params.granularity_secs = rollup
-        axes = request.GET.getlist("yAxis", ["count()"])
-
         with handle_query_errors():
+            self.validate_comparison_delta(comparison_delta, snuba_params, organization)
+            rollup = self.get_rollup(request, snuba_params, top_events, use_rpc)
+            snuba_params.granularity_secs = rollup
+            axes = request.GET.getlist("yAxis", ["count()"])
             events_stats = self.get_event_stats(
                 request,
                 organization,

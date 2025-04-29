@@ -1423,22 +1423,6 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
-    def test_interval_larger_than_period_uses_default_period(self):
-        response = self._do_request(
-            data={
-                "start": self.day_ago,
-                "end": self.day_ago + timedelta(hours=6),
-                "interval": "12h",
-                "yAxis": "count()",
-                "project": self.project.id,
-                "dataset": self.dataset,
-            },
-        )
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 73
-        assert response.data["meta"]["dataset"] == self.dataset
-
     def test_cache_miss_rate(self):
         self.store_spans(
             [
@@ -1961,7 +1945,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         for expected, result in zip([0, 1, 0], rows):
             assert result[1][0]["count"] == expected
 
-    def test_small_invalid_timerange(self):
+    def test_interval_larger_than_period_uses_default_period(self):
         response = self._do_request(
             data={
                 "start": self.day_ago,
