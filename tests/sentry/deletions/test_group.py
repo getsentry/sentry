@@ -325,3 +325,5 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert not Group.objects.filter(id=issue_platform_group.id).exists()
         occurrence_node_id = Event.generate_node_id(occurrence.project_id, occurrence.id)
         assert not nodestore.backend.get(occurrence_node_id)
+        # Assert that occurrence is gone
+        assert self.select_issue_platform_events(self.project.id) is None
