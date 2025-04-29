@@ -121,6 +121,11 @@ class Buffer(Service):
         in cases where we need to do additional processing before writing to the database and opt to do
         it in a `buffer_incr_complete` receiver.
         """
+        if extra:
+            for key, value in extra.items():
+                if isinstance(value, datetime):
+                    extra[key] = value.isoformat()
+
         process_incr.apply_async(
             kwargs={
                 "model_name": f"{model._meta.app_label}.{model._meta.model_name}",
