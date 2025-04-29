@@ -59,6 +59,7 @@ export function LogsTable({
   const search = useLogsSearch();
   const setCursor = useSetLogsCursor();
   const isTableEditingFrozen = useLogsIsTableEditingFrozen();
+  const hideTableBorder = !!isTableEditingFrozen;
 
   const {data, isError, isPending, pageLinks, meta} = tableData;
 
@@ -83,7 +84,7 @@ export function LogsTable({
         ref={tableRef}
         styles={initialTableStyles}
         data-test-id="logs-table"
-        hideBorder
+        hideBorder={hideTableBorder}
       >
         {showHeader ? (
           <TableHead>
