@@ -603,11 +603,12 @@ def record_project_transferred(old_org_id: int, updated_project: Project, **kwar
 
     tasks_to_be_transferred = []
 
-    for task in existing_tasks_in_old_org:
-        if task.task not in existing_tasks_in_new_org:
-            task_dict = {
-                key: value for key, value in task.__dict__.items() if key not in ["id", "_state"]
-            }
+    new_tasks = [task for task in existing_tasks_old_org if task.task not in existing_tasks_in_new_org]
+    for task in new_tasks:
+        copied_task = copy.deepcopy(task)
+        copied_task.pk = None
+        copied_task.org = new_organization_id
+        copied_task.save()
             new_task = OrganizationOnboardingTask(**task_dict)
             new_task.organization_id = new_organization_id
             tasks_to_be_transferred.append(new_task)
