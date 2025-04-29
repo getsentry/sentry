@@ -77,8 +77,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             assert alert_rule_id
             detector = None
             try:
-                # detector = detectors[int(alert_rule_id)]  # keyerror here? this is my best guess
-                detector = detectors[8456784536]
+                detector = detectors[int(alert_rule_id)]  # keyerror here? this is my best guess
             except KeyError:
                 raise serializers.ValidationError(
                     "Just a desperate temp thing to see if this is where it's failing in CI"
