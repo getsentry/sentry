@@ -2,9 +2,10 @@ import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import RadioGroupField from 'sentry/components/forms/fields/radioField';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
 import Form from 'sentry/components/forms/form';
@@ -34,46 +35,64 @@ import usePromotionTriggerCheck from 'getsentry/utils/usePromotionTriggerCheck';
 import withPromotions from 'getsentry/utils/withPromotions';
 
 type CancelReason = [string, React.ReactNode];
+type CancelCheckbox = [string, React.ReactNode];
 
-const CANCEL_STEPS: Array<{followup: React.ReactNode; reason: CancelReason}> = [
+const CANCEL_STEPS: Array<{
+  followup: React.ReactNode;
+  reason: CancelReason;
+  checkboxes?: CancelCheckbox[];
+}> = [
   {
-    reason: ['shutting_down', t('The project/product/company is shutting down.')],
-    followup: t('Sorry to hear that! Anything more we should know?'),
-  },
-  {
-    reason: ['only_need_free', t('We only need the features on the free plan.')],
+    reason: ['migration', t('Consolidating Sentry accounts.')],
     followup: t(
-      'Fair enough. Which features on the free plan are most important to you?'
+      'If migrating to another existing account, can you provide the org slug?'
     ),
   },
   {
-    reason: ['not_a_fit', t("Sentry doesn't fit our needs.")],
-    followup: t('Bummer. What features were missing for you?'),
-  },
-  {
     reason: ['competitor', t('We are switching to a different solution.')],
-    followup: t('Thanks for letting us know. Which solution(s)? Why?'),
+    followup: t("Care to share the solution you've chosen and why?"),
   },
   {
-    reason: ['pricing', t("The pricing doesn't fit our needs.")],
-    followup: t("What about it wasn't right for you?"),
+    reason: ['not_a_fit', t("Sentry doesn't fit our needs.")],
+    followup: t('Give us more feedback?'),
+    checkboxes: [
+      [
+        'reach_out',
+        t(
+          "Prefer to share feedback live? Let us know what you'd like to discuss and we'll have a Product Manager reach out!"
+        ),
+      ],
+    ],
+  },
+  {
+    reason: ['pricing_expensive', t('Pricing is too expensive.')],
+    followup: t('Anything more we should know?'),
+  },
+  {
+    reason: ['pricing_value', t("I didn't get the value I wanted.")],
+    followup: t('What was missing?'),
+  },
+  {
+    reason: ['only_need_free', t('We only need the free plan.')],
+    followup: t('Fair enough. Anything more we should know?'),
+    checkboxes: [
+      ['features', t("I don't need so much volume.")],
+      ['volume', t('Developer features are enough for me.')],
+    ],
   },
   {
     reason: ['self_hosted', t('We are hosting Sentry ourselves.')],
     followup: t('Are you interested in a single tenant version of Sentry?'),
   },
   {
-    reason: ['no_more_errors', t('We no longer get any errors.')],
-    followup: t("Congrats! What's your secret?"),
-  },
-  {
-    reason: ['other', t('Other')],
-    followup: t('Other reason?'),
+    reason: ['shutting_down', t('The project/product/company is shutting down.')],
+    followup: t('Sorry to hear that! Anything more we should know?'),
   },
 ];
 
 type State = {
   canSubmit: boolean;
+  checkboxes: Record<string, boolean>;
   showFollowup: boolean;
   understandsMembers: boolean;
   val: CancelReason[0] | null;
@@ -82,6 +101,7 @@ type State = {
 function CancelSubscriptionForm() {
   const organization = useOrganization();
   const navigate = useNavigate();
+  const api = useApi();
   const {data: subscription, isPending} = useApiQuery<Subscription>(
     [`/customers/${organization.slug}/`],
     {staleTime: 0}
@@ -91,7 +111,36 @@ function CancelSubscriptionForm() {
     showFollowup: false,
     understandsMembers: false,
     val: null,
+    checkboxes: {},
   });
+
+  const handleSubmitSuccess = (resp: any) => {
+    subscriptionStore.loadData(organization.slug);
+    const msg = resp?.responseJSON?.details || t('Successfully cancelled subscription');
+
+    addSuccessMessage(msg);
+    navigate({
+      pathname: normalizeUrl(`/settings/${organization.slug}/billing/`),
+    });
+  };
+
+  const handleSubmit = async (data: any) => {
+    try {
+      const submitData = {
+        ...data,
+        checkboxes: Object.keys(state.checkboxes).filter(key => state.checkboxes[key]),
+      };
+
+      const response = await api.requestPromise(`/customers/${subscription?.slug}/`, {
+        method: 'DELETE',
+        data: submitData,
+      });
+
+      handleSubmitSuccess(response);
+    } catch (error) {
+      addErrorMessage(error.responseJSON?.detail || t('Failed to cancel subscription'));
+    }
+  };
 
   if (isPending || !subscription) {
     return <LoadingIndicator />;
@@ -139,16 +188,6 @@ function CancelSubscriptionForm() {
 
   const followup = CANCEL_STEPS.find(cancel => cancel.reason[0] === state.val)?.followup;
 
-  const handleSubmitSuccess = (resp: any) => {
-    subscriptionStore.loadData(organization.slug);
-    const msg = resp?.responseJSON?.details || t('Successfully cancelled subscription');
-
-    addSuccessMessage(msg);
-    navigate({
-      pathname: normalizeUrl(`/settings/${organization.slug}/billing/`),
-    });
-  };
-
   return (
     <Fragment>
       <Alert.Container>
@@ -175,27 +214,51 @@ function CancelSubscriptionForm() {
         <PanelHeader>{t('Cancellation Reason')}</PanelHeader>
 
         <PanelBody withPadding>
-          <Form
-            apiMethod="DELETE"
-            apiEndpoint={`/customers/${subscription.slug}/`}
-            onSubmitSuccess={handleSubmitSuccess}
-            hideFooter
-          >
+          <Form onSubmit={handleSubmit} onSubmitSuccess={handleSubmitSuccess} hideFooter>
             <TextBlock>
               {t('Please help us understand why you are cancelling:')}
             </TextBlock>
 
-            <RadioGroupField
+            <RadioGroupContainer
               stacked
               name="reason"
               label=""
               inline={false}
-              choices={CANCEL_STEPS.map<CancelReason>(cancel => cancel.reason)}
+              choices={CANCEL_STEPS.map<CancelReason>(cancel => [
+                cancel.reason[0],
+                <RadioContainer key={cancel.reason[0]}>
+                  {cancel.reason[1]}
+                  {cancel.checkboxes && state.val === cancel.reason[0] && (
+                    <Fragment>
+                      {cancel.checkboxes.map(([name, label]) => (
+                        <ExtraContainer key={name}>
+                          <Checkbox
+                            data-test-id={`checkbox-${name}`}
+                            checked={state.checkboxes[name]}
+                            name={name}
+                            onChange={(value: any) => {
+                              setState(currentState => ({
+                                ...currentState,
+                                checkboxes: {
+                                  ...currentState.checkboxes,
+                                  [name]: value.target.checked,
+                                },
+                              }));
+                            }}
+                          />
+                          {label}
+                        </ExtraContainer>
+                      ))}
+                    </Fragment>
+                  )}
+                </RadioContainer>,
+              ])}
               onChange={(val: any) =>
                 setState(currentState => ({
                   ...currentState,
                   canSubmit: true,
                   showFollowup: true,
+                  checkboxes: {},
                   val,
                 }))
               }
@@ -275,6 +338,33 @@ function CancelSubscriptionWrapper({
     </div>
   );
 }
+
+const RadioContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+
+  label {
+    grid-template-columns: max-content 1fr;
+    grid-template-rows: auto auto;
+
+    > div:last-child {
+      grid-column: 2;
+    }
+  }
+`;
+
+const RadioGroupContainer = styled(RadioGroupField)`
+  label {
+    align-items: flex-start;
+  }
+`;
+
+const ExtraContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  padding: ${space(1)} 0;
+`;
 
 export default withSubscription(withPromotions(CancelSubscriptionWrapper), {
   noLoader: true,
