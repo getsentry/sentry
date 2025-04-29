@@ -76,7 +76,7 @@ const defaultColumnOrder: Array<GridColumnOrder<SortableField>> = [
   {key: 'transaction', name: t('Page'), width: COL_WIDTH_UNDEFINED},
   {key: 'count(span.duration)', name: t('Page Views'), width: 122},
   {key: 'failure_rate()', name: t('Error Rate'), width: 122},
-  {key: 'sum(span.duration)', name: t('Total'), width: 90},
+  {key: 'sum(span.duration)', name: t('Total'), width: 110},
 ];
 
 function isSortField(value: string): value is SortableField {
@@ -177,24 +177,7 @@ export function PagesTable({spanOperationFilter}: PagesTableProps) {
     []
   );
 
-  const pagesTablePageLinks = spansRequest.data?.link;
-
-  const pagination = useMemo(() => {
-    if (!pagesTablePageLinks) {
-      return null;
-    }
-    return (
-      <Pagination
-        pageLinks={pagesTablePageLinks}
-        onCursor={(cursor, path, currentQuery) => {
-          router.push({
-            pathname: path,
-            query: {...currentQuery, pagesCursor: cursor},
-          });
-        }}
-      />
-    );
-  }, [pagesTablePageLinks, router]);
+  const pagesTablePageLinks = spansRequest.getResponseHeader?.('Link');
 
   return (
     <Fragment>
@@ -212,7 +195,15 @@ export function PagesTable({spanOperationFilter}: PagesTableProps) {
           }}
         />
       </GridEditableContainer>
-      {pagination}
+      <Pagination
+        pageLinks={pagesTablePageLinks}
+        onCursor={(cursor, path, currentQuery) => {
+          router.push({
+            pathname: path,
+            query: {...currentQuery, pagesCursor: cursor},
+          });
+        }}
+      />
     </Fragment>
   );
 }
