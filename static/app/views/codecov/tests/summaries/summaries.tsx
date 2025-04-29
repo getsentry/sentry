@@ -11,7 +11,7 @@ const testCIEfficiencyData = {
 export function Summaries() {
   return (
     <SummaryContainer columns={24}>
-      <CIEfficiency {...testCIEfficiencyData} />
+      <CIEfficiency {...testCIEfficiencyData} isLoading={false} />
     </SummaryContainer>
   );
 }
