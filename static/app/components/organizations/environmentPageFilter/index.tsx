@@ -29,6 +29,7 @@ interface EnvironmentPageFilterProps
       | 'defaultValue'
       | 'onReplace'
       | 'onToggle'
+      | 'menuTitle'
       | 'menuBody'
       | 'menuFooter'
       | 'menuFooterMessage'
@@ -53,7 +54,6 @@ export function EnvironmentPageFilter({
   sizeLimit,
   sizeLimitMessage,
   emptyMessage,
-  menuTitle,
   menuWidth,
   trigger,
   resetParamsOnChange,
@@ -197,7 +197,7 @@ export function EnvironmentPageFilter({
       sizeLimit={sizeLimit ?? 25}
       sizeLimitMessage={sizeLimitMessage ?? t('Use search to find more environments…')}
       emptyMessage={emptyMessage ?? t('No environments found')}
-      menuTitle={menuTitle ?? t('Filter Environments')}
+      menuTitle={t('Filter Environments')}
       menuWidth={menuWidth ?? defaultMenuWidth}
       menuBody={desynced && <DesyncedFilterMessage />}
       menuFooterMessage={footerMessage}
