@@ -2,17 +2,16 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import type {LazyRenderProps} from 'sentry/components/lazyRender';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
@@ -49,10 +48,6 @@ import {hasMeasurements, Measurements} from './sections/measurements';
 import ReplayPreview from './sections/replayPreview';
 import {Request} from './sections/request';
 import {hasSDKContext, Sdk} from './sections/sdk';
-
-export const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
-  observerOptions: {rootMargin: '50px'},
-};
 
 type TransactionNodeDetailHeaderProps = {
   event: EventTransaction;

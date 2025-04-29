@@ -83,7 +83,10 @@ describe('projectGeneralSettings', function () {
     render(
       <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
 
-      {organization}
+      {
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(getField('textbox', 'Name')).toHaveValue('Project Name');
@@ -111,6 +114,7 @@ describe('projectGeneralSettings', function () {
       <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
       {
         organization: orgWithoutScrapeJavaScript,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -126,7 +130,10 @@ describe('projectGeneralSettings', function () {
 
     render(
       <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
-      {organization}
+      {
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Remove Project'}));
@@ -147,7 +154,10 @@ describe('projectGeneralSettings', function () {
 
     render(
       <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
-      {organization}
+      {
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Transfer Project'}));
@@ -182,7 +192,10 @@ describe('projectGeneralSettings', function () {
 
     render(
       <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
-      {organization}
+      {
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Transfer Project'}));
@@ -198,7 +211,9 @@ describe('projectGeneralSettings', function () {
     expect(addErrorMessage).toHaveBeenCalled();
 
     // Check the error message
-    const {container} = render((addErrorMessage as jest.Mock).mock.calls[0][0]);
+    const {container} = render((addErrorMessage as jest.Mock).mock.calls[0][0], {
+      deprecatedRouterMocks: true,
+    });
     expect(container).toHaveTextContent(
       'Error transferring project-slug. An organization owner could not be found'
     );
@@ -211,7 +226,10 @@ describe('projectGeneralSettings', function () {
 
     const {container} = render(
       <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
-      {organization: nonAdminOrg}
+      {
+        organization: nonAdminOrg,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(container).toHaveTextContent(
@@ -229,6 +247,7 @@ describe('projectGeneralSettings', function () {
       <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
       {
         organization: readOnlyOrg,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -260,7 +279,10 @@ describe('projectGeneralSettings', function () {
           params={params}
         />
       </ProjectContextProvider>,
-      {organization}
+      {
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     const platformSelect = await screen.findByRole('textbox', {name: 'Platform'});
@@ -294,7 +316,11 @@ describe('projectGeneralSettings', function () {
           params={params}
         />
       </ProjectContextProvider>,
-      {organization, router}
+      {
+        organization,
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.type(
@@ -338,7 +364,10 @@ describe('projectGeneralSettings', function () {
             params={params}
           />
         </ProjectContextProvider>,
-        {organization}
+        {
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
     }
 

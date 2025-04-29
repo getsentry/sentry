@@ -38,11 +38,11 @@ from sentry.api.endpoints.organization_trace_item_attributes import (
     OrganizationTraceItemAttributesEndpoint,
     OrganizationTraceItemAttributeValuesEndpoint,
 )
+from sentry.api.endpoints.organization_trace_summary import OrganizationTraceSummaryEndpoint
 from sentry.api.endpoints.organization_unsubscribe import (
     OrganizationUnsubscribeIssue,
     OrganizationUnsubscribeProject,
 )
-from sentry.api.endpoints.organization_user_rollback import OrganizationRollbackUserEndpoint
 from sentry.api.endpoints.project_overview import ProjectOverviewEndpoint
 from sentry.api.endpoints.project_seer_preferences import ProjectSeerPreferencesEndpoint
 from sentry.api.endpoints.project_stacktrace_coverage import ProjectStacktraceCoverageEndpoint
@@ -94,9 +94,6 @@ from sentry.flags.endpoints.logs import (
 from sentry.flags.endpoints.secrets import (
     OrganizationFlagsWebHookSigningSecretEndpoint,
     OrganizationFlagsWebHookSigningSecretsEndpoint,
-)
-from sentry.incidents.endpoints.organization_alert_rule_anomalies import (
-    OrganizationAlertRuleAnomaliesEndpoint,
 )
 from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
     OrganizationAlertRuleAvailableActionIndexEndpoint,
@@ -612,7 +609,6 @@ from .endpoints.organization_trace import OrganizationTraceEndpoint
 from .endpoints.organization_traces import (
     OrganizationTracesEndpoint,
     OrganizationTraceSpansEndpoint,
-    OrganizationTracesStatsEndpoint,
 )
 from .endpoints.organization_user_details import OrganizationUserDetailsEndpoint
 from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
@@ -1210,11 +1206,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         OrganizationAlertRuleDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-alert-rule-details",
     ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/anomalies/$",
-        OrganizationAlertRuleAnomaliesEndpoint.as_view(),
-        name="sentry-api-0-organization-alert-rule-anomalies",
-    ),
     re_path(  # fetch combined metric and issue alert rules
         r"^(?P<organization_id_or_slug>[^\/]+)/combined-rules/$",
         OrganizationCombinedRuleIndexEndpoint.as_view(),
@@ -1525,11 +1516,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-traces",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/traces-stats/$",
-        OrganizationTracesStatsEndpoint.as_view(),
-        name="sentry-api-0-organization-traces-stats",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/trace-items/attributes/$",
         OrganizationTraceItemAttributesEndpoint.as_view(),
         name="sentry-api-0-organization-trace-item-attributes",
@@ -1685,6 +1671,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/trace/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
         OrganizationTraceEndpoint.as_view(),
         name="sentry-api-0-organization-trace",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/trace-summary/$",
+        OrganizationTraceSummaryEndpoint.as_view(),
+        name="sentry-api-0-organization-trace-summary",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/measurements-meta/$",
@@ -2029,11 +2020,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/user-feedback/$",
         OrganizationUserReportsEndpoint.as_view(),
         name="sentry-api-0-organization-user-feedback",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/user-rollback/$",
-        OrganizationRollbackUserEndpoint.as_view(),
-        name="sentry-api-0-organization-user-rollback",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/user-teams/$",

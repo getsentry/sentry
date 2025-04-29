@@ -127,7 +127,7 @@ const MOST_TIME_PERIODS: readonly TimePeriod[] = [
  * TimeWindow determines data available in TimePeriod
  * If TimeWindow is small, lower TimePeriod to limit data points
  */
-export const AVAILABLE_TIME_PERIODS: Record<TimeWindow, readonly TimePeriod[]> = {
+const AVAILABLE_TIME_PERIODS: Record<TimeWindow, readonly TimePeriod[]> = {
   [TimeWindow.ONE_MINUTE]: [
     TimePeriod.SIX_HOURS,
     TimePeriod.ONE_DAY,

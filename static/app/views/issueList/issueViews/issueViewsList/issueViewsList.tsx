@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
@@ -14,13 +13,23 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {unreachable} from 'sentry/utils/unreachable';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {CreateIssueViewModal} from 'sentry/views/issueList/issueViews/createIssueViewModal';
+import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssueViewQueryParams';
+import {
+  DEFAULT_ENVIRONMENTS,
+  DEFAULT_TIME_FILTERS,
+} from 'sentry/views/issueList/issueViews/issueViews';
 import {IssueViewsTable} from 'sentry/views/issueList/issueViews/issueViewsList/issueViewsTable';
+import {useCreateGroupSearchView} from 'sentry/views/issueList/mutations/useCreateGroupSearchView';
+import {useDeleteGroupSearchView} from 'sentry/views/issueList/mutations/useDeleteGroupSearchView';
 import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
+import type {GroupSearchViewBackendSortOption} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 import {
   makeFetchGroupSearchViewsKey,
   useFetchGroupSearchViews,
@@ -30,6 +39,8 @@ import {
   GroupSearchViewCreatedBy,
   GroupSearchViewSort,
 } from 'sentry/views/issueList/types';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
+import useDefaultProject from 'sentry/views/nav/secondary/sections/issues/issueViews/useDefaultProject';
 
 type IssueViewSectionProps = {
   createdBy: GroupSearchViewCreatedBy;
@@ -37,9 +48,33 @@ type IssueViewSectionProps = {
   limit: number;
 };
 
+// We expose a few simplified sort options which are mapped to multiple
+// backend sorts to provide the best results.
+function getEndpointSort(
+  sort: GroupSearchViewSort = GroupSearchViewSort.POPULARITY
+): GroupSearchViewBackendSortOption[] {
+  switch (sort) {
+    case GroupSearchViewSort.POPULARITY:
+      return ['-popularity', '-visited', '-created'];
+    case GroupSearchViewSort.NAME_ASC:
+      return ['name', '-visited', '-created'];
+    case GroupSearchViewSort.NAME_DESC:
+      return ['-name', '-visited', '-created'];
+    case GroupSearchViewSort.VIEWED:
+      return ['-visited', '-popularity', '-created'];
+    case GroupSearchViewSort.CREATED_ASC:
+      return ['created', '-popularity', '-visited'];
+    case GroupSearchViewSort.CREATED_DESC:
+      return ['-created', '-popularity', '-visited'];
+    default:
+      unreachable(sort);
+      return [];
+  }
+}
+
 function useIssueViewSort(): GroupSearchViewSort {
   const location = useLocation();
-  const sort = location.query.sort ?? GroupSearchViewSort.POPULARITY_DESC;
+  const sort = location.query.sort ?? GroupSearchViewSort.POPULARITY;
 
   return sort as GroupSearchViewSort;
 }
@@ -55,6 +90,7 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
       ? location.query[cursorQueryParam]
       : undefined;
   const queryClient = useQueryClient();
+  const endpointSort = getEndpointSort(sort);
 
   const {
     data: views = [],
@@ -66,7 +102,7 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
       orgSlug: organization.slug,
       createdBy,
       limit,
-      sort,
+      sort: endpointSort,
       cursor,
       query,
     },
@@ -78,7 +114,7 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
     createdBy,
     limit,
     cursor,
-    sort,
+    sort: endpointSort,
     query,
   });
 
@@ -98,6 +134,24 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
       });
     },
   });
+  const {mutate: deleteView} = useDeleteGroupSearchView({
+    onMutate: variables => {
+      setApiQueryData<GroupSearchView[]>(queryClient, tableQueryKey, data => {
+        return data?.filter(v => v.id !== variables.id);
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({queryKey: tableQueryKey});
+    },
+  });
+
+  useRouteAnalyticsParams(
+    isPending
+      ? {}
+      : {
+          [`num_results_${createdBy}`]: views.length,
+        }
+  );
 
   const pageLinks = getResponseHeader?.('Link');
 
@@ -111,18 +165,26 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
         handleStarView={view => {
           mutateViewStarred({id: view.id, starred: !view.starred, view});
         }}
+        handleDeleteView={view => {
+          deleteView({id: view.id});
+        }}
         hideCreatedBy={createdBy === GroupSearchViewCreatedBy.ME}
       />
       <Pagination
         pageLinks={pageLinks}
         onCursor={newCursor => {
-          navigate({
-            pathname: location.pathname,
-            query: {
-              ...location.query,
-              [cursorQueryParam]: newCursor,
+          navigate(
+            {
+              pathname: location.pathname,
+              query: {
+                ...location.query,
+                [cursorQueryParam]: newCursor,
+              },
             },
-          });
+            {
+              preventScrollReset: true,
+            }
+          );
         }}
       />
     </Fragment>
@@ -148,17 +210,17 @@ function SortDropdown() {
         });
         navigate({
           pathname: location.pathname,
-          query: {sort: newSort.value},
+          query: {...location.query, sort: newSort.value},
         });
       }}
       options={[
         {
-          label: t('Recently Viewed'),
-          value: GroupSearchViewSort.VISITED_DESC,
+          label: t('Most Starred'),
+          value: GroupSearchViewSort.POPULARITY,
         },
         {
-          label: t('Most Starred'),
-          value: GroupSearchViewSort.POPULARITY_DESC,
+          label: t('Recently Viewed'),
+          value: GroupSearchViewSort.VIEWED,
         },
         {
           label: t('Name (A-Z)'),
@@ -167,6 +229,14 @@ function SortDropdown() {
         {
           label: t('Name (Z-A)'),
           value: GroupSearchViewSort.NAME_DESC,
+        },
+        {
+          label: t('Created (Newest)'),
+          value: GroupSearchViewSort.CREATED_DESC,
+        },
+        {
+          label: t('Created (Oldest)'),
+          value: GroupSearchViewSort.CREATED_ASC,
         },
       ]}
     />
@@ -179,6 +249,9 @@ export default function IssueViewsList() {
   const location = useLocation();
   const query = typeof location.query.query === 'string' ? location.query.query : '';
   const openFeedbackForm = useFeedbackForm();
+  const {mutate: createGroupSearchView, isPending: isCreatingView} =
+    useCreateGroupSearchView();
+  const defaultProject = useDefaultProject();
 
   if (!organization.features.includes('issue-view-sharing')) {
     return <Redirect to={`/organizations/${organization.slug}/issues/`} />;
@@ -214,11 +287,36 @@ export default function IssueViewsList() {
               priority="primary"
               icon={<IconAdd />}
               size="sm"
+              disabled={isCreatingView}
+              busy={isCreatingView}
               onClick={() => {
-                trackAnalytics('issue_views.create_view_clicked', {
+                trackAnalytics('issue_views.table.create_view_clicked', {
                   organization,
                 });
-                openModal(props => <CreateIssueViewModal {...props} />);
+                createGroupSearchView(
+                  {
+                    name: t('New View'),
+                    query: 'is:unresolved',
+                    projects: defaultProject,
+                    environments: DEFAULT_ENVIRONMENTS,
+                    timeFilters: DEFAULT_TIME_FILTERS,
+                    querySort: IssueSortOptions.DATE,
+                    starred: true,
+                  },
+                  {
+                    onSuccess: data => {
+                      navigate({
+                        pathname: normalizeUrl(
+                          `/organizations/${organization.slug}/issues/views/${data.id}/`
+                        ),
+                        query: {
+                          ...getIssueViewQueryParams({view: data}),
+                          new: 'true',
+                        },
+                      });
+                    },
+                  }
+                );
               }}
             >
               {t('Create View')}
@@ -227,7 +325,7 @@ export default function IssueViewsList() {
         </Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>
-        <Layout.Main fullWidth>
+        <MainTableLayout fullWidth>
           <FilterSortBar>
             <SearchBar
               defaultQuery={query}
@@ -236,8 +334,12 @@ export default function IssueViewsList() {
                   pathname: location.pathname,
                   query: {...location.query, query: newQuery},
                 });
+                trackAnalytics('issue_views.table.search', {
+                  organization,
+                  query: newQuery,
+                });
               }}
-              placeholder=""
+              placeholder={t('Search views by name or query')}
             />
             <SortDropdown />
           </FilterSortBar>
@@ -253,7 +355,7 @@ export default function IssueViewsList() {
             limit={20}
             cursorQueryParam="sc"
           />
-        </Layout.Main>
+        </MainTableLayout>
       </Layout.Body>
     </Layout.Page>
   );
@@ -273,4 +375,8 @@ const TableHeading = styled('h2')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin-top: ${space(3)};
   margin-bottom: ${space(1.5)};
+`;
+
+const MainTableLayout = styled(Layout.Main)`
+  container-type: inline-size;
 `;

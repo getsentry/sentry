@@ -1,25 +1,21 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {NoAccess} from 'sentry/components/noAccess';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
-import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
-import {tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   canUseMetricsData,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
+import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {decodeSorts} from 'sentry/utils/queryString';
@@ -29,7 +25,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
@@ -42,6 +37,7 @@ import {
   isAValidSort,
   type ValidSort,
 } from 'sentry/views/insights/pages/backend/backendTable';
+import {OldBackendOverviewPage} from 'sentry/views/insights/pages/backend/oldBackendOverviewPage';
 import {
   BACKEND_LANDING_TITLE,
   DEFAULT_SORT,
@@ -59,13 +55,11 @@ import {
 import {LaravelOverviewPage} from 'sentry/views/insights/pages/platform/laravel';
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
 import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
-import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
+import {useIsNextJsInsightsEnabled} from 'sentry/views/insights/pages/platform/nextjs/features';
+import {NewNextJsExperienceButton} from 'sentry/views/insights/pages/platform/nextjs/newNextjsExperienceToggle';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import type {EAPSpanProperty} from 'sentry/views/insights/types';
-import {
-  generateBackendPerformanceEventView,
-  USER_MISERY_TOOLTIP,
-} from 'sentry/views/performance/data';
+import {generateBackendPerformanceEventView} from 'sentry/views/performance/data';
 import {
   DoubleChartRow,
   TripleChartRow,
@@ -73,77 +67,51 @@ import {
 import {filterAllowedChartsMetrics} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
-import Table from 'sentry/views/performance/table';
 import {
   getTransactionSearchQuery,
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
 
-const APDEX_TOOLTIP = tct(
-  'An industry-standard metric used to measure user satisfaction based on your application response times. [link:Learn more.]',
-  {
-    link: (
-      <ExternalLink href="https://docs.sentry.io/product/performance/metrics/#apdex" />
-    ),
-  }
-);
-
-export const BACKEND_COLUMN_TITLES = [
-  {title: 'http method'},
-  {title: 'transaction'},
-  {title: 'operation'},
-  {title: 'project'},
-  {title: 'tpm'},
-  {title: 'p50()'},
-  {title: 'p95()'},
-  {title: 'failure rate'},
-  {title: 'apdex', tooltip: APDEX_TOOLTIP},
-  {title: 'users'},
-  {title: 'user misery', tooltip: USER_MISERY_TOOLTIP},
-];
-
 function BackendOverviewPage() {
   useOverviewPageTrackPageload();
   const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
-  const isNextJsPageAvailable = useIsNextJsInsightsAvailable();
-  return isLaravelPageAvailable ? (
-    <LaravelOverviewPage />
-  ) : isNextJsPageAvailable ? (
-    <NextJsOverviewPage headerTitle={BACKEND_LANDING_TITLE} />
-  ) : (
-    <GenericBackendOverviewPage />
-  );
+  const [isNextJsPageEnabled] = useIsNextJsInsightsEnabled();
+  const useEap = useInsightsEap();
+  if (isLaravelPageAvailable) {
+    return <LaravelOverviewPage />;
+  }
+  if (isNextJsPageEnabled) {
+    return <NextJsOverviewPage headerTitle={BACKEND_LANDING_TITLE} />;
+  }
+  if (useEap) {
+    return <EAPBackendOverviewPage />;
+  }
+  return <OldBackendOverviewPage />;
 }
 
-function GenericBackendOverviewPage() {
-  const theme = useTheme();
+function EAPBackendOverviewPage() {
   const organization = useOrganization();
   const location = useLocation();
-  const {setPageError} = usePageAlert();
   const {projects} = useProjects();
   const onboardingProject = useOnboardingProject();
   const navigate = useNavigate();
-  const {teams} = useUserTeams();
   const mepSetting = useMEPSettingContext();
   const {selection} = usePageFilters();
-  const useEap = useInsightsEap();
 
   const withStaticFilters = canUseMetricsData(organization);
   const eventView = generateBackendPerformanceEventView(
     location,
     withStaticFilters,
-    useEap
+    true
   );
   const searchBarEventView = eventView.clone();
-
-  const segmentOp = useEap ? 'span.op' : 'transaction.op';
 
   // TODO - this should come from MetricsField / EAP fields
   eventView.fields = [
     {field: 'team_key_transaction'},
     {field: 'http.method'},
     {field: 'transaction'},
-    {field: segmentOp},
+    {field: 'span.op'},
     {field: 'project'},
     {field: 'tpm()'},
     {field: 'p50()'},
@@ -177,7 +145,7 @@ function GenericBackendOverviewPage() {
   const existingQuery = new MutableSearch(eventView.query);
   existingQuery.addOp('(');
   existingQuery.addOp('(');
-  existingQuery.addFilterValues(`!${segmentOp}`, disallowedOps);
+  existingQuery.addFilterValues('!span.op', disallowedOps);
 
   if (selectedFrontendProjects.length > 0 || selectedMobileProjects.length > 0) {
     existingQuery.addFilterValue(
@@ -190,7 +158,7 @@ function GenericBackendOverviewPage() {
   }
   existingQuery.addOp(')');
   existingQuery.addOp('OR');
-  existingQuery.addDisjunctionFilterValues(segmentOp, OVERVIEW_PAGE_ALLOWED_OPS);
+  existingQuery.addDisjunctionFilterValues('span.op', OVERVIEW_PAGE_ALLOWED_OPS);
   existingQuery.addOp(')');
 
   eventView.query = existingQuery.formatString();
@@ -217,6 +185,9 @@ function GenericBackendOverviewPage() {
     mepSetting
   );
 
+  const sharedProps = {eventView, location, organization, withStaticFilters};
+
+  // Free tier does not have access to modules
   if (organization.features.includes('insights-initial-modules')) {
     doubleChartRowCharts.unshift(
       PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS
@@ -224,8 +195,6 @@ function GenericBackendOverviewPage() {
     doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
     doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES);
   }
-
-  const sharedProps = {eventView, location, organization, withStaticFilters};
 
   const getFreeTextFromQuery = (query: string) => {
     const conditions = new MutableSearch(query);
@@ -265,15 +234,12 @@ function GenericBackendOverviewPage() {
     decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
   ];
 
-  if (useEap) {
-    existingQuery.addFilterValue('is_transaction', 'true');
-  }
+  existingQuery.addFilterValue('is_transaction', 'true');
 
   const response = useEAPSpans(
     {
       search: existingQuery,
       sorts,
-      enabled: useEap,
       fields: [
         'is_starred_transaction',
         'request.method',
@@ -297,7 +263,10 @@ function GenericBackendOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <BackendHeader headerTitle={BACKEND_LANDING_TITLE} />
+      <BackendHeader
+        headerTitle={BACKEND_LANDING_TITLE}
+        headerActions={<NewNextJsExperienceButton />}
+      />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
@@ -315,7 +284,7 @@ function GenericBackendOverviewPage() {
                     onSearch={(query: string) => {
                       handleSearch(query);
                     }}
-                    query={getFreeTextFromQuery(derivedQuery)!}
+                    query={getFreeTextFromQuery(derivedQuery) ?? ''}
                   />
                 )}
               </ToolRibbon>
@@ -326,33 +295,13 @@ function GenericBackendOverviewPage() {
                 <PerformanceDisplayProvider
                   value={{performanceType: ProjectPerformanceType.BACKEND}}
                 >
-                  <TeamKeyTransactionManager.Provider
-                    organization={organization}
-                    teams={teams}
-                    selectedTeams={['myteams']}
-                    selectedProjects={eventView.project.map(String)}
-                  >
-                    <DoubleChartRow
-                      allowedCharts={doubleChartRowCharts}
-                      {...sharedProps}
-                      eventView={doubleChartRowEventView}
-                    />
-                    <TripleChartRow
-                      allowedCharts={tripleChartRowCharts}
-                      {...sharedProps}
-                    />
-                    {useEap ? (
-                      <BackendOverviewTable response={response} sort={sorts[1]} />
-                    ) : (
-                      <Table
-                        theme={theme}
-                        projects={projects}
-                        columnTitles={BACKEND_COLUMN_TITLES}
-                        setError={setPageError}
-                        {...sharedProps}
-                      />
-                    )}
-                  </TeamKeyTransactionManager.Provider>
+                  <DoubleChartRow
+                    allowedCharts={doubleChartRowCharts}
+                    {...sharedProps}
+                    eventView={doubleChartRowEventView}
+                  />
+                  <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
+                  <BackendOverviewTable response={response} sort={sorts[1]} />
                 </PerformanceDisplayProvider>
               )}
 
@@ -373,14 +322,14 @@ function GenericBackendOverviewPage() {
 function BackendOverviewPageWithProviders() {
   const organization = useOrganization();
   const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
-  const isNextJsPageAvailable = useIsNextJsInsightsAvailable();
+  const [isNextJsPageEnabled] = useIsNextJsInsightsEnabled();
 
   const {maxPickableDays} = limitMaxPickableDays(organization);
 
   return (
     <DomainOverviewPageProviders
       maxPickableDays={
-        isLaravelPageAvailable || isNextJsPageAvailable ? maxPickableDays : undefined
+        isLaravelPageAvailable || isNextJsPageEnabled ? maxPickableDays : undefined
       }
     >
       <BackendOverviewPage />

@@ -1,5 +1,7 @@
 import upperFirst from 'lodash/upperFirst';
 
+import {DATA_CATEGORY_INFO} from 'sentry/constants';
+import type {DataCategoryExact} from 'sentry/types/core';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
@@ -11,63 +13,20 @@ import type {
   RecurringCredit,
   Subscription,
 } from 'getsentry/types';
-import {CreditType} from 'getsentry/types';
-import titleCase from 'getsentry/utils/titleCase';
-
-export const GIFT_CATEGORIES: string[] = [
-  DataCategory.ERRORS,
-  DataCategory.TRANSACTIONS,
-  DataCategory.REPLAYS,
-  DataCategory.ATTACHMENTS,
-  DataCategory.MONITOR_SEATS,
-  DataCategory.SPANS,
-  DataCategory.SPANS_INDEXED,
-  DataCategory.PROFILE_DURATION,
-  DataCategory.PROFILE_DURATION_UI,
-  DataCategory.UPTIME,
-];
-
-const DATA_CATEGORY_FEATURES: Record<string, string | null> = {
-  [DataCategory.ERRORS]: null, // All plans have access to errors
-  [DataCategory.TRANSACTIONS]: 'performance-view',
-  [DataCategory.REPLAYS]: 'session-replay',
-  [DataCategory.ATTACHMENTS]: 'event-attachments',
-  [DataCategory.MONITOR_SEATS]: 'monitor-seat-billing',
-  [DataCategory.SPANS]: 'spans-usage-tracking',
-  [DataCategory.UPTIME]: 'uptime',
-};
-
-const CREDIT_TYPE_TO_DATA_CATEGORY = {
-  [CreditType.ERROR]: DataCategory.ERRORS,
-  [CreditType.TRANSACTION]: DataCategory.TRANSACTIONS,
-  [CreditType.SPAN]: DataCategory.SPANS,
-  [CreditType.PROFILE_DURATION]: DataCategory.PROFILE_DURATION,
-  [CreditType.PROFILE_DURATION_UI]: DataCategory.PROFILE_DURATION_UI,
-  [CreditType.ATTACHMENT]: DataCategory.ATTACHMENTS,
-  [CreditType.REPLAY]: DataCategory.REPLAYS,
-  [CreditType.MONITOR_SEAT]: DataCategory.MONITOR_SEATS,
-  [CreditType.UPTIME]: DataCategory.UPTIME,
-};
-
-export const SINGULAR_DATA_CATEGORY = {
-  default: 'default',
-  errors: 'error',
-  transactions: 'transaction',
-  profiles: 'profile',
-  attachments: 'attachment',
-  replays: 'replay',
-  monitorSeats: 'monitorSeat',
-  spans: 'span',
-  uptime: 'uptime',
-};
+import {getCategoryInfoFromPlural} from 'getsentry/utils/billing';
 
 /**
  *
  * Get the data category for a recurring credit type
  */
-export function getCreditDataCategory(credit: RecurringCredit) {
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  return CREDIT_TYPE_TO_DATA_CATEGORY[credit.type];
+export function getCreditDataCategory(credit: RecurringCredit): DataCategory | null {
+  const category =
+    (DATA_CATEGORY_INFO[credit.type as string as DataCategoryExact]
+      ?.plural as DataCategory) || null;
+  if (!category) {
+    return null;
+  }
+  return category;
 }
 
 type CategoryNameProps = {
@@ -122,7 +81,7 @@ export function getSingularCategoryName({
         ? displayNames.singular
         : category.substring(0, category.length - 1);
   return title
-    ? titleCase(categoryName)
+    ? toTitleCase(categoryName, {allowInnerUpperCase: true})
     : capitalize
       ? upperFirst(categoryName)
       : categoryName;
@@ -223,8 +182,8 @@ export function hasCategoryFeature(
     return true;
   }
 
-  const feature = DATA_CATEGORY_FEATURES[category];
-  if (typeof feature === 'undefined') {
+  const feature = getCategoryInfoFromPlural(category as DataCategory)?.feature;
+  if (!feature) {
     return false;
   }
   return feature ? organization.features.includes(feature) : true;

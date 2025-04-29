@@ -41,6 +41,7 @@ import {DEFAULT_RESULTS_LIMIT} from 'sentry/views/dashboards/widgetBuilder/utils
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
+import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import {getMenuOptions, useIndexedEventsWarning} from './widgetCardContextMenu';
@@ -48,7 +49,7 @@ import {WidgetFrame} from './widgetFrame';
 
 const SESSION_DURATION_INGESTION_STOP_DATE = new Date('2023-01-12');
 
-export const SESSION_DURATION_ALERT_TEXT = t(
+const SESSION_DURATION_ALERT_TEXT = t(
   'session.duration is no longer being recorded as of %s. Data in this widget may be incomplete.',
   getFormattedDate(SESSION_DURATION_INGESTION_STOP_DATE, 'MMM D, YYYY')
 );
@@ -266,10 +267,11 @@ function WidgetCard(props: Props) {
           borderless={props.borderless}
           revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
           noVisualizationPadding
-          isProgressivelyLoading={
+          titleBadges={getProgressiveLoadingIndicator(
             organization.features.includes('visibility-explore-progressive-loading') &&
-            isProgressivelyLoading
-          }
+              isProgressivelyLoading,
+            widget.displayType === DisplayType.TABLE ? 'table' : 'chart'
+          )}
         >
           <WidgetCardChartContainer
             location={location}
@@ -366,12 +368,6 @@ const ErrorCard = styled(Placeholder)`
   color: ${p => p.theme.alert.error.textLight};
   border-radius: ${p => p.theme.borderRadius};
   margin-bottom: ${space(2)};
-`;
-
-export const WidgetTitleRow = styled('span')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.75)};
 `;
 
 export const WidgetDescription = styled('small')`

@@ -190,7 +190,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   const project = representativeEvent
     ? OurLogKnownFieldKey.PROJECT_ID in representativeEvent
       ? projects.find(p => {
-          return Number(p.id) === representativeEvent[OurLogKnownFieldKey.PROJECT_ID];
+          return p.id === representativeEvent[OurLogKnownFieldKey.PROJECT_ID];
         })
       : projects.find(p => p.slug === representativeEvent.project_slug)
     : undefined;
@@ -241,7 +241,11 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
             organization={props.organization}
           />
           <Flex>
-            <ScrollToSectionLinks tree={props.tree} />
+            <ScrollToSectionLinks
+              rootEvent={props.rootEventResults}
+              tree={props.tree}
+              logs={props.logs}
+            />
             <Projects projects={projects} logs={props.logs} tree={props.tree} />
           </Flex>
         </TraceHeaderComponents.HeaderRow>

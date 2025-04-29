@@ -12,7 +12,7 @@ from sentry.notifications.helpers import (
 )
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.types import NotificationSettingEnum, NotificationSettingsOptionEnum
-from sentry.notifications.utils import (
+from sentry.notifications.utils.links import (
     get_email_link_extra_params,
     get_group_settings_link,
     get_rules,

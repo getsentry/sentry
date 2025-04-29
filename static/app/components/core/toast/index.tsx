@@ -1,4 +1,3 @@
-import {useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -24,28 +23,13 @@ import {
   ChonkToastUndoButtonContainer,
 } from './index.chonk';
 
-interface ToastProps {
+export interface ToastProps {
   indicator: Indicator;
   onDismiss: (indicator: Indicator, event: React.MouseEvent) => void;
 }
 
 export function Toast({indicator, onDismiss, ...props}: ToastProps) {
   const theme = useTheme();
-  // The types are allowing us to render an undo toast without an undo function, which defeats the purpose
-  // of an undo toast. Log these to Sentry so we can fix the issue.
-  useEffect(() => {
-    if (indicator.type === 'undo' && !indicator.options?.undo) {
-      Sentry.logger.error(
-        'Rendered undo toast without undo function, this should not happen.',
-        {
-          toast:
-            typeof indicator.message === 'string'
-              ? indicator.message
-              : '<Unknown React Node />',
-        }
-      );
-    }
-  }, [indicator]);
 
   return (
     <ToastContainer
@@ -62,10 +46,10 @@ export function Toast({indicator, onDismiss, ...props}: ToastProps) {
       <ToastMessage>
         <TextOverflow>{indicator.message}</TextOverflow>
       </ToastMessage>
-      {typeof indicator.options?.undo === 'function' ? (
+      {indicator.options.undo && typeof indicator.options.undo === 'function' ? (
         <ToastUndoButtonContainer type={indicator.type}>
           <ToastUndoButton
-            priority={theme.isChonk ? 'primary' : 'link'}
+            priority={theme.isChonk ? 'default' : 'link'}
             size={theme.isChonk ? 'xs' : undefined}
             onClick={indicator.options.undo}
             icon={<IconRefresh size="xs" />}

@@ -7,7 +7,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export const CRASH_REPORT_HASH = '#crashreport-sidequest';
-export const FEEDBACK_HASH = '#feedback-sidequest';
+const FEEDBACK_HASH = '#feedback-sidequest';
 
 export default function useHaveSelectedProjectsSetupFeedback() {
   const {hasField: hasSetupOneFeedback, fetching} =

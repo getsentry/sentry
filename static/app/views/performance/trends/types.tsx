@@ -72,7 +72,7 @@ export enum TrendParameterLabel {
   SPANS_RESOURCE = 'Spans (resource)',
 }
 
-export type TrendStat = {
+type TrendStat = {
   data: EventsStatsData;
   order: number;
 };

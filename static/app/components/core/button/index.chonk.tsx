@@ -1,7 +1,6 @@
 import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 
 import type {ButtonProps} from 'sentry/components/core/button';
-import {space} from 'sentry/styles/space';
 import type {StrictCSSObject} from 'sentry/utils/theme';
 
 // @TODO: remove Link type in the future
@@ -12,7 +11,6 @@ type ChonkButtonType =
   | 'warning'
   | 'danger'
   | 'link';
-type ChonkButtonSize = 'mini' | 'small' | 'medium' | 'large';
 
 function chonkPriorityToType(priority: ButtonProps['priority']): ChonkButtonType {
   switch (priority) {
@@ -35,63 +33,51 @@ function chonkPriorityToType(priority: ButtonProps['priority']): ChonkButtonType
   }
 }
 
-function chonkSizeMapping(size: ButtonProps['size']): ChonkButtonSize {
-  switch (size) {
-    case 'zero':
-      return 'mini';
-    case 'xs':
-      return 'small';
-    case 'sm':
-      return 'medium';
-    case 'md':
-      return 'large';
-    default:
-      return 'medium';
-  }
-}
-
 export function getChonkButtonStyles(
   p: Pick<ButtonProps, 'size' | 'priority' | 'busy' | 'disabled' | 'borderless'> & {
     theme: DO_NOT_USE_ChonkTheme;
   }
 ): StrictCSSObject {
   const type = chonkPriorityToType(p.priority);
-  const size = chonkSizeMapping(p.size);
 
   return {
     position: 'relative',
-    display: 'inline-block',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+
     fontWeight: p.theme.fontWeightBold,
 
     cursor: p.disabled ? 'not-allowed' : 'pointer',
     opacity: p.busy || p.disabled ? 0.6 : undefined,
 
-    padding: getChonkButtonSizeTheme(size, p.theme).padding,
-    borderRadius: getChonkButtonSizeTheme(size, p.theme).borderRadius,
+    padding: getChonkButtonSizeTheme(p.size, p.theme).padding,
+    borderRadius: getChonkButtonSizeTheme(p.size, p.theme).borderRadius,
+    border: 'none',
     color: getChonkButtonTheme(type, p.theme).color,
 
-    border: '1px solid transparent',
-    borderTopWidth: `3px`,
+    transform: 'translateY(0px)',
     background: 'none',
 
     height:
-      size === 'large'
-        ? '37px'
-        : size === 'medium'
-          ? '30px'
-          : size === 'small'
-            ? '25px'
-            : '20px',
+      p.size === 'md'
+        ? '36px'
+        : p.size === 'sm'
+          ? '32px'
+          : p.size === 'xs'
+            ? '28px'
+            : '24px',
 
-    fontSize: size === 'small' || size === 'mini' ? '12px' : '14px',
+    fontSize: p.size === 'xs' || p.size === 'zero' ? '12px' : '14px',
 
     '&::before': {
       content: '""',
       display: 'block',
       position: 'absolute',
-      inset: '-1px',
+      inset: '0px',
       bottom: '2px',
-      boxShadow: `0 3px 0 0px ${getChonkButtonTheme(type, p.theme).background}, inset 0px -1px 0 0px ${getChonkButtonTheme(type, p.theme).background}`,
+      boxShadow: `0 3px 0 0px ${getChonkButtonTheme(type, p.theme).background}`,
+      background: getChonkButtonTheme(type, p.theme).background,
       borderRadius: 'inherit',
     },
 
@@ -99,10 +85,7 @@ export function getChonkButtonStyles(
       content: '""',
       display: 'block',
       position: 'absolute',
-      top: '-1px',
-      left: '-1px',
-      right: '-1px',
-      bottom: '-1px',
+      inset: '0',
       background: getChonkButtonTheme(type, p.theme).surface,
       borderRadius: 'inherit',
       border: `1px solid ${getChonkButtonTheme(type, p.theme).background}`,
@@ -111,92 +94,84 @@ export function getChonkButtonStyles(
     },
 
     '&:focus-visible': {
-      ...p.theme.focusRing,
+      '&::after': {
+        ...p.theme.focusRing,
+      },
     },
 
-    ...(p.size === 'zero'
-      ? {
-          height: 'auto',
-          minHeight: 'auto',
-          padding: space(0.25),
+    '> span:last-child': {
+      zIndex: 1,
+      position: 'relative',
 
-          '&:before': {
-            display: 'none',
-          },
+      display: 'inherit',
+      alignItems: 'inherit',
+      justifyContent: 'inherit',
+      flex: 'inherit',
+      gap: 'inherit',
 
-          '&:after': {
-            display: 'none',
-          },
-        }
-      : {
-          '> span:last-child': {
-            position: 'relative',
-            zIndex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            whiteSpace: 'nowrap',
-            transform: 'translateY(-2px)',
-            transition: 'transform 0.06s ease-in-out',
-          },
+      whiteSpace: 'nowrap',
+      transform: 'translateY(-2px)',
+      transition: 'transform 0.06s ease-in-out',
+    },
 
-          '&:hover': {
-            color:
-              p.disabled || p.busy ? undefined : getChonkButtonTheme(type, p.theme).color,
+    '&:hover': {
+      color: p.disabled || p.busy ? undefined : getChonkButtonTheme(type, p.theme).color,
 
-            '&::after': {
-              transform: `translateY(-3px)`,
-            },
-            '> span:last-child': {
-              transform: `translateY(-3px)`,
-            },
-          },
+      '&::after': {
+        transform: `translateY(-3px)`,
+      },
+      '> span:last-child': {
+        transform: `translateY(-3px)`,
+      },
+    },
 
-          '&:active, &[aria-expanded="true"], &[aria-checked="true"]': {
-            '&::after': {
-              transform: 'translateY(0px)',
-            },
-            '> span:last-child': {
-              transform: 'translateY(0px)',
-            },
-          },
+    '&:active, &[aria-expanded="true"], &[aria-checked="true"]': {
+      '&::after': {
+        transform: 'translateY(0px)',
+      },
+      '> span:last-child': {
+        transform: 'translateY(0px)',
+      },
+    },
 
-          '&:disabled, &[aria-disabled="true"]': {
-            '&::after': {
-              transform: 'translateY(0px)',
-            },
-            '&::before': {
-              transform: 'translateY(0px)',
-            },
-            '> span:last-child': {
-              transform: 'translateY(0px)',
-            },
-          },
+    '&:disabled, &[aria-disabled="true"]': {
+      '&::after': {
+        transform: 'translateY(0px)',
+      },
+      '&::before': {
+        transform: 'translateY(0px)',
+      },
+      '> span:last-child': {
+        transform: 'translateY(0px)',
+      },
+    },
 
-          // Hides the interaction state layer
-          '> span:first-child': {
-            display: 'none',
-          },
+    // Hides the interaction state layer
+    '> span:first-child': {
+      display: 'none',
+    },
 
-          // Link buttons do not have interaction state layer
-          ...(p.priority === 'link' && {
-            '> span:first-child': {
-              transform: 'translateY(0px)',
-            },
+    // Link buttons do not have interaction state layer
+    ...(p.priority === 'link' && {
+      transform: 'translateY(0px)',
 
-            '&::before': {
-              display: 'none',
-            },
+      '> span:first-child': {
+        transform: 'translateY(0px)',
+      },
 
-            '&::after': {
-              display: 'none',
-            },
-          }),
-        }),
+      '&::before': {
+        display: 'none',
+      },
+
+      '&::after': {
+        display: 'none',
+      },
+    }),
 
     // Borderless buttons are not chonky
     ...((p.borderless || type === 'transparent' || type === 'link') && {
       border: 'none',
+      transform: 'translateY(0px)',
 
       '&::before': {
         display: 'none',
@@ -230,6 +205,7 @@ export function getChonkButtonStyles(
       height: 'auto',
       minHeight: 'auto',
       border: 'none',
+      transform: 'translateY(0px)',
 
       '> span:last-child': {
         color: 'inherit',
@@ -288,29 +264,29 @@ function getChonkButtonTheme(type: ChonkButtonType, theme: DO_NOT_USE_ChonkTheme
 }
 
 function getChonkButtonSizeTheme(
-  size: ChonkButtonSize,
+  size: ButtonProps['size'],
   theme: DO_NOT_USE_ChonkTheme
 ): StrictCSSObject {
   switch (size) {
-    case 'mini':
+    case 'md':
       return {
-        borderRadius: theme.radius.mini,
-        padding: `${theme.space.micro} ${theme.space.mini}`,
+        borderRadius: theme.radius.xl,
+        padding: `${theme.space.md} ${theme.space.xl}`,
       };
-    case 'small':
+    case 'sm':
       return {
-        borderRadius: theme.radius.sm,
-        padding: `${theme.space.mini} ${theme.space.sm}`,
+        borderRadius: theme.radius.lg,
+        padding: `${theme.space.md} ${theme.space.lg}`,
       };
-    case 'medium':
+    case 'xs':
       return {
         borderRadius: theme.radius.md,
         padding: `${theme.space.sm} ${theme.space.md}`,
       };
-    case 'large':
+    case 'zero':
       return {
-        borderRadius: theme.radius.lg,
-        padding: `${theme.space.md} ${theme.space.lg}`,
+        borderRadius: theme.radius.sm,
+        padding: `${theme.space.mini} ${theme.space.sm}`,
       };
     default:
       return {};
