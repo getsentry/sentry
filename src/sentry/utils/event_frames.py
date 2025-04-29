@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import logging
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, field
@@ -8,6 +9,8 @@ from typing import Any, Protocol, cast
 
 from sentry.utils import metrics
 from sentry.utils.safe import PathSearchable, get_path
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -65,7 +68,12 @@ def java_new_logic_frame_munger(frame: EventFrame) -> str | None:
 
     from sentry.issues.auto_source_code_config.code_mapping import get_path_from_module
 
-    _, stacktrace_path = get_path_from_module(frame.module, frame.abs_path)
+    try:
+        _, stacktrace_path = get_path_from_module(frame.module, frame.abs_path)
+    except Exception:
+        # Report but continue
+        logger.exception("Investigate. Error munging java frame")
+        return None
     return stacktrace_path
 
 
