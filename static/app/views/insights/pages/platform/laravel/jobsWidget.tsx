@@ -7,7 +7,7 @@ import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {Release, TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -27,7 +27,7 @@ import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/la
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {QueuesWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
-export function JobsWidget({query}: {query?: string}) {
+export function JobsWidget({query, releases}: {query?: string; releases?: Release[]}) {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({
     granularity: 'spans-low',
@@ -110,6 +110,8 @@ export function JobsWidget({query}: {query?: string}) {
       visualizationProps={{
         showLegend: 'never',
         plottables,
+        releases,
+        showReleaseAs: 'bubble',
       }}
     />
   );

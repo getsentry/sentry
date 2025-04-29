@@ -8,6 +8,7 @@ import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {Release} from 'sentry/views/dashboards/widgets/common/types';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -34,7 +35,7 @@ function getSeriesName(item: {'span.group': string; transaction: string}) {
   return `${item.transaction},${item['span.group']}`;
 }
 
-export function QueriesWidget({query}: {query?: string}) {
+export function QueriesWidget({query, releases}: {query?: string; releases?: Release[]}) {
   const theme = useTheme();
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({
@@ -141,6 +142,8 @@ export function QueriesWidget({query}: {query?: string}) {
               alias: aliases[ts.seriesName],
             })
         ),
+        releases,
+        showReleaseAs: 'bubble',
       }}
     />
   );

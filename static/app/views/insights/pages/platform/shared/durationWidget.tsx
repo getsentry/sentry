@@ -7,6 +7,7 @@ import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {Release} from 'sentry/views/dashboards/widgets/common/types';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -20,7 +21,13 @@ import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/lar
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 
-export function DurationWidget({query}: {query?: string}) {
+export function DurationWidget({
+  query,
+  releases,
+}: {
+  query?: string;
+  releases?: Release[];
+}) {
   const theme = useTheme();
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams();
@@ -86,6 +93,8 @@ export function DurationWidget({query}: {query?: string}) {
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
         plottables,
+        releases,
+        showReleaseAs: 'bubble',
       }}
     />
   );

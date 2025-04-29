@@ -6,7 +6,7 @@ import {t} from 'sentry/locale';
 import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {Release, TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -25,11 +25,13 @@ export function TrafficWidget({
   trafficSeriesName,
   baseQuery,
   query,
+  releases,
 }: {
   title: string;
   trafficSeriesName: string;
   baseQuery?: string;
   query?: string;
+  releases?: Release[];
 }) {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({granularity: 'spans-low'});
@@ -109,6 +111,8 @@ export function TrafficWidget({
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
         plottables,
+        releases,
+        showReleaseAs: 'bubble',
       }}
     />
   );
