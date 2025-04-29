@@ -79,7 +79,7 @@ function RecurringCredits({displayType, planDetails}: Props) {
       );
     }
 
-    return `+${formatReservedWithUnits(credit.amount, category, {
+    return `+${formatReservedWithUnits(credit.amount, category as DataCategory, {
       isAbbreviated: true,
       useUnitScaling: true,
     })}/mo`;

@@ -8,6 +8,8 @@ import {
 } from 'getsentry-test/fixtures/subscription';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {DataCategory} from 'sentry/types/core';
+
 import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import {ANNUAL, MONTHLY, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
@@ -83,7 +85,11 @@ describe('Subscription > PendingChanges', function () {
           name: 'Team',
           billingInterval: MONTHLY,
           contractInterval: MONTHLY,
-          categories: ['errors', 'transactions', 'attachments'],
+          categories: [
+            DataCategory.ERRORS,
+            DataCategory.TRANSACTIONS,
+            DataCategory.ATTACHMENTS,
+          ],
           budgetTerm: 'on-demand',
         }),
       }),
@@ -126,7 +132,11 @@ describe('Subscription > PendingChanges', function () {
           name: 'Team',
           billingInterval: MONTHLY,
           contractInterval: MONTHLY,
-          categories: ['errors', 'transactions', 'attachments'],
+          categories: [
+            DataCategory.ERRORS,
+            DataCategory.TRANSACTIONS,
+            DataCategory.ATTACHMENTS,
+          ],
           budgetTerm: 'on-demand',
         }),
       }),
@@ -176,7 +186,11 @@ describe('Subscription > PendingChanges', function () {
           name: 'Business',
           billingInterval: MONTHLY,
           contractInterval: MONTHLY,
-          categories: ['errors', 'transactions', 'attachments'],
+          categories: [
+            DataCategory.ERRORS,
+            DataCategory.TRANSACTIONS,
+            DataCategory.ATTACHMENTS,
+          ],
           budgetTerm: 'on-demand',
         }),
       }),
@@ -236,7 +250,11 @@ describe('Subscription > PendingChanges', function () {
           name: 'Team',
           billingInterval: MONTHLY,
           contractInterval: MONTHLY,
-          categories: ['errors', 'transactions', 'attachments'],
+          categories: [
+            DataCategory.ERRORS,
+            DataCategory.TRANSACTIONS,
+            DataCategory.ATTACHMENTS,
+          ],
           budgetTerm: 'on-demand',
         }),
       }),
@@ -288,9 +306,16 @@ describe('Subscription > PendingChanges', function () {
           name: 'Team',
           billingInterval: MONTHLY,
           contractInterval: MONTHLY,
-          categories: ['errors', 'transactions', 'attachments'],
-          onDemandCategories: ['errors', 'transactions', 'attachments'],
-          budgetTerm: 'on-demand',
+          categories: [
+            DataCategory.ERRORS,
+            DataCategory.TRANSACTIONS,
+            DataCategory.ATTACHMENTS,
+          ],
+          onDemandCategories: [
+            DataCategory.ERRORS,
+            DataCategory.TRANSACTIONS,
+            DataCategory.ATTACHMENTS,
+          ],
         }),
       }),
     });
@@ -319,7 +344,11 @@ describe('Subscription > PendingChanges', function () {
         effectiveDate: '2021-02-01',
         planDetails: PlanFixture({
           name: 'Team',
-          categories: ['errors', 'transactions', 'attachments'],
+          categories: [
+            DataCategory.ERRORS,
+            DataCategory.TRANSACTIONS,
+            DataCategory.ATTACHMENTS,
+          ],
           billingInterval: ANNUAL,
           contractInterval: ANNUAL,
           budgetTerm: 'on-demand',
@@ -348,7 +377,11 @@ describe('Subscription > PendingChanges', function () {
         onDemandEffectiveDate: '2021-03-01',
         planDetails: PlanFixture({
           name: 'Team',
-          categories: ['errors', 'transactions', 'attachments'],
+          categories: [
+            DataCategory.ERRORS,
+            DataCategory.TRANSACTIONS,
+            DataCategory.ATTACHMENTS,
+          ],
           billingInterval: ANNUAL,
           contractInterval: ANNUAL,
           budgetTerm: 'on-demand',
@@ -398,7 +431,13 @@ describe('Subscription > PendingChanges', function () {
         },
         planDetails: PlanFixture({
           name: 'Business',
-          categories: ['errors', 'replays', 'spans', 'monitorSeats', 'attachments'],
+          categories: [
+            DataCategory.ERRORS,
+            DataCategory.REPLAYS,
+            DataCategory.SPANS,
+            DataCategory.MONITOR_SEATS,
+            DataCategory.ATTACHMENTS,
+          ],
           billingInterval: ANNUAL,
           contractInterval: ANNUAL,
         }),
@@ -428,7 +467,11 @@ describe('Subscription > PendingChanges', function () {
         planDetails: PlanFixture({
           name: 'Team',
           contractInterval: ANNUAL,
-          categories: ['errors', 'transactions', 'attachments'],
+          categories: [
+            DataCategory.ERRORS,
+            DataCategory.TRANSACTIONS,
+            DataCategory.ATTACHMENTS,
+          ],
           budgetTerm: 'on-demand',
         }),
       }),

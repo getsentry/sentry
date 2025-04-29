@@ -345,10 +345,10 @@ export function mapReservedBudgetStatsToChart({
   subscription,
   reservedBudgetCategoryInfo,
 }: {
-  statsByDateAndCategory: Record<string, Record<DataCategory, BillingStats>>;
+  statsByDateAndCategory: Record<string, Record<string, BillingStats>>;
   subscription: Subscription;
   transform: ChartDataTransform;
-  reservedBudgetCategoryInfo?: Record<DataCategory, ReservedBudgetForCategory>;
+  reservedBudgetCategoryInfo?: Record<string, ReservedBudgetForCategory>;
 }) {
   const isCumulative = transform === ChartDataTransform.CUMULATIVE;
 

@@ -27,7 +27,7 @@ type PlanTier = Record<string, PlanDetails>;
 
 interface PlanDetails {
   data_categories_disabled: DataCategory[];
-  price_tiers: Record<DataCategory, PriceTier[]>;
+  price_tiers: Partial<Record<DataCategory, PriceTier[]>>;
   pricing: Record<string, Price>;
 }
 
