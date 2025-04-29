@@ -120,9 +120,10 @@ function getFilteredProjectsBasedOnTeams({
     'id'
   );
   const currentProjectIds = new Set(currentProjects.map(p => p.id));
-  const unassignedProjects = isAllTeams
-    ? projects.filter(project => !currentProjectIds.has(project.id))
-    : [];
+  const unassignedProjects =
+    isAllTeams && showNonMemberProjects
+      ? projects.filter(project => !currentProjectIds.has(project.id))
+      : [];
   return [...currentProjects, ...unassignedProjects].filter(project =>
     project.slug.includes(projectQuery)
   );
