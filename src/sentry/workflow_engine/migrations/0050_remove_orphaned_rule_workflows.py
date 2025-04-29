@@ -41,9 +41,8 @@ def remove_orphaned_rule_workflows(apps: Apps, schema_editor: BaseDatabaseSchema
 
         return True
 
-    rule_ids = set(Rule.objects.all().values_list("id", flat=True))
     orphaned_rule_workflow = AlertRuleWorkflow.objects.filter(rule_id__isnull=False).exclude(
-        rule_id__in=rule_ids
+        rule_id__in=Rule.objects.all().values_list("id")
     )
 
     for rule_workflow in orphaned_rule_workflow:
