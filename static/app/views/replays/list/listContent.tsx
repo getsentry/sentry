@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import ReplayRageClickSdkVersionBanner from 'sentry/components/replays/replayRageClickSdkVersionBanner';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
@@ -43,6 +42,7 @@ export default function ListContent() {
     hasRageClickMinSDK: !rageClicksSdkVersion.needsUpdate,
   });
 
+  // show loading
   if (hasSentReplays.fetching || rageClicksSdkVersion.isFetching) {
     return (
       <Fragment>
@@ -55,6 +55,7 @@ export default function ListContent() {
     );
   }
 
+  // show onboarding
   if (!hasSessionReplay || !hasSentReplays.hasSentOneReplay) {
     return (
       <Fragment>
@@ -67,14 +68,14 @@ export default function ListContent() {
     );
   }
 
-  if (rageClicksSdkVersion.needsUpdate && !allMobileProj) {
+  // not eligible for dead/rage clicks
+  if (rageClicksSdkVersion.needsUpdate || allMobileProj) {
     return (
       <Fragment>
         <FiltersContainer>
           <ReplaysFilters />
           <ReplaysSearch />
         </FiltersContainer>
-        <ReplayRageClickSdkVersionBanner />
         <ReplaysList />
       </Fragment>
     );
