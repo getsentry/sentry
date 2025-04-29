@@ -9,6 +9,7 @@ import {
   SummaryEntryValueLink,
 } from 'sentry/components/codecov/summary';
 import {Tag} from 'sentry/components/core/badge/tag';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -54,49 +55,63 @@ const ToolTipTitle = styled('strong')`
   display: block;
 `;
 
-interface CIEfficiencyProps {
+interface CIEfficiencyBodyProps {
   slowestTests: number;
   slowestTestsDuration: number;
   totalTestsRunTime: number;
   totalTestsRunTimeChange: number;
 }
 
-export function CIEfficiency({
-  slowestTests,
-  slowestTestsDuration,
+function CIEfficiencyBody({
   totalTestsRunTime,
   totalTestsRunTimeChange,
-}: CIEfficiencyProps) {
+  slowestTestsDuration,
+  slowestTests,
+}: CIEfficiencyBodyProps) {
+  return (
+    <SummaryEntries largeColumnSpan={2} smallColumnSpan={1}>
+      <SummaryEntry>
+        <SummaryEntryLabel showUnderline body={<TotalTestsRunTimeTooltip />}>
+          {t('Total Tests Run Time')}
+        </SummaryEntryLabel>
+        <div>
+          <SummaryEntryValue>
+            {formatTimeDuration(totalTestsRunTime)}
+            <Tag type={totalTestsRunTimeChange > 0 ? 'error' : 'success'}>
+              {formatPercentRate(totalTestsRunTimeChange)}
+            </Tag>
+          </SummaryEntryValue>
+        </div>
+      </SummaryEntry>
+      <SummaryEntry>
+        <SummaryEntryLabel
+          showUnderline
+          body={<SlowestTestsTooltip slowestTestsDuration={slowestTestsDuration} />}
+        >
+          {t('Slowest Tests')}
+        </SummaryEntryLabel>
+        <SummaryEntryValueLink filterBy="slowest_tests">
+          {slowestTests}
+        </SummaryEntryValueLink>
+      </SummaryEntry>
+    </SummaryEntries>
+  );
+}
+
+interface CIEfficiencyProps {
+  isLoading: boolean;
+  slowestTests: number;
+  slowestTestsDuration: number;
+  totalTestsRunTime: number;
+  totalTestsRunTimeChange: number;
+}
+
+export function CIEfficiency({isLoading, ...bodyProps}: CIEfficiencyProps) {
   return (
     <CIEfficiencyPanel>
       <PanelHeader>{t('CI Efficiency')}</PanelHeader>
       <PanelBody>
-        <SummaryEntries largeColumnSpan={2} smallColumnSpan={1}>
-          <SummaryEntry>
-            <SummaryEntryLabel showUnderline body={<TotalTestsRunTimeTooltip />}>
-              {t('Total Tests Run Time')}
-            </SummaryEntryLabel>
-            <div>
-              <SummaryEntryValue>
-                {formatTimeDuration(totalTestsRunTime)}
-                <Tag type={totalTestsRunTimeChange > 0 ? 'error' : 'success'}>
-                  {formatPercentRate(totalTestsRunTimeChange)}
-                </Tag>
-              </SummaryEntryValue>
-            </div>
-          </SummaryEntry>
-          <SummaryEntry>
-            <SummaryEntryLabel
-              showUnderline
-              body={<SlowestTestsTooltip slowestTestsDuration={slowestTestsDuration} />}
-            >
-              {t('Slowest Tests')}
-            </SummaryEntryLabel>
-            <SummaryEntryValueLink filterBy="slowest_tests">
-              {slowestTests}
-            </SummaryEntryValueLink>
-          </SummaryEntry>
-        </SummaryEntries>
+        {isLoading ? <LoadingIndicator /> : <CIEfficiencyBody {...bodyProps} />}
       </PanelBody>
     </CIEfficiencyPanel>
   );
