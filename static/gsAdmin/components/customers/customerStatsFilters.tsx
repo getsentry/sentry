@@ -15,6 +15,8 @@ import useRouter from 'sentry/utils/useRouter';
 
 const ON_DEMAND_PERIOD_KEY = 'onDemand';
 
+// TODO(data categories): for future, use DataCategory and DATA_CATEGORY_INFO to derive this information
+// Will need to update those constants to include any categories available here that aren't already defined
 export enum DataType {
   ERRORS = 'errors',
   TRANSACTIONS = 'transactions',

@@ -1,4 +1,5 @@
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
+import {t} from 'sentry/locale';
 import {DataCategoryExact} from 'sentry/types/core';
 
 import type {BilledDataCategoryInfo} from 'getsentry/types';
@@ -57,6 +58,7 @@ Object.entries(DEFAULT_BILLED_DATA_CATEGORY_INFO).forEach(
         maxAdminGift: 0,
         freeEventsMultiple: 0,
         feature: null,
+        reservedVolumeTooltip: null,
       };
     }
   }
@@ -70,47 +72,61 @@ Object.entries(DEFAULT_BILLED_DATA_CATEGORY_INFO).forEach(
 export const BILLED_DATA_CATEGORY_INFO = {
   ...DEFAULT_BILLED_DATA_CATEGORY_INFO,
   [DataCategoryExact.ERROR]: {
-    ...DATA_CATEGORY_INFO[DataCategoryExact.ERROR],
+    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.ERROR],
     canAllocate: true,
     canProductTrial: false,
     maxAdminGift: 10_000_000,
     freeEventsMultiple: 1_000,
-    feature: null,
+    reservedVolumeTooltip: t(
+      'Errors are sent every time an SDK catches a bug. You can send them manually too, if you want.'
+    ),
   },
   [DataCategoryExact.TRANSACTION]: {
-    ...DATA_CATEGORY_INFO[DataCategoryExact.TRANSACTION],
+    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.TRANSACTION],
     canAllocate: true,
     canProductTrial: true,
     maxAdminGift: 50_000_000,
     freeEventsMultiple: 1_000,
     feature: 'performance-view',
+    reservedVolumeTooltip: t(
+      'Transactions are sent when your service receives a request and sends a response.'
+    ),
   },
   [DataCategoryExact.ATTACHMENT]: {
-    ...DATA_CATEGORY_INFO[DataCategoryExact.ATTACHMENT],
+    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.ATTACHMENT],
     canAllocate: true,
     canProductTrial: false,
     maxAdminGift: 10_000,
     freeEventsMultiple: 1,
     feature: 'event-attachments',
+    reservedVolumeTooltip: t(
+      'Attachments are files attached to errors, such as minidumps.'
+    ),
   },
   [DataCategoryExact.REPLAY]: {
-    ...DATA_CATEGORY_INFO[DataCategoryExact.REPLAY],
+    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.REPLAY],
     canAllocate: false,
     canProductTrial: true,
     maxAdminGift: 1_000_000,
     freeEventsMultiple: 1,
     feature: 'session-replay',
+    reservedVolumeTooltip: t(
+      'Session Replays are video-like reproductions of your users’ sessions navigating your app or website.'
+    ),
   },
   [DataCategoryExact.SPAN]: {
-    ...DATA_CATEGORY_INFO[DataCategoryExact.SPAN],
+    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SPAN],
     canAllocate: false,
     canProductTrial: true,
     maxAdminGift: 1_000_000_000,
     freeEventsMultiple: 100_000,
     feature: 'spans-usage-tracking',
+    reservedVolumeTooltip: t(
+      'Tracing is enabled by spans. A span represents a single operation of work within a trace.'
+    ),
   },
   [DataCategoryExact.SPAN_INDEXED]: {
-    ...DATA_CATEGORY_INFO[DataCategoryExact.SPAN_INDEXED],
+    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SPAN_INDEXED],
     canAllocate: false,
     canProductTrial: true,
     maxAdminGift: 1_000_000_000,
@@ -118,7 +134,7 @@ export const BILLED_DATA_CATEGORY_INFO = {
     feature: 'spans-usage-tracking',
   },
   [DataCategoryExact.MONITOR_SEAT]: {
-    ...DATA_CATEGORY_INFO[DataCategoryExact.MONITOR_SEAT],
+    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.MONITOR_SEAT],
     canAllocate: false,
     canProductTrial: false,
     maxAdminGift: 10_000,
@@ -126,7 +142,7 @@ export const BILLED_DATA_CATEGORY_INFO = {
     feature: 'monitor-seat-billing',
   },
   [DataCategoryExact.UPTIME]: {
-    ...DATA_CATEGORY_INFO[DataCategoryExact.UPTIME],
+    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.UPTIME],
     canAllocate: false,
     canProductTrial: false,
     maxAdminGift: 10_000,
@@ -134,7 +150,7 @@ export const BILLED_DATA_CATEGORY_INFO = {
     feature: 'uptime',
   },
   [DataCategoryExact.PROFILE_DURATION]: {
-    ...DATA_CATEGORY_INFO[DataCategoryExact.PROFILE_DURATION],
+    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.PROFILE_DURATION],
     canAllocate: false,
     canProductTrial: true,
     maxAdminGift: 10_000,
@@ -142,7 +158,7 @@ export const BILLED_DATA_CATEGORY_INFO = {
     feature: null,
   },
   [DataCategoryExact.PROFILE_DURATION_UI]: {
-    ...DATA_CATEGORY_INFO[DataCategoryExact.PROFILE_DURATION_UI],
+    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.PROFILE_DURATION_UI],
     canAllocate: false,
     canProductTrial: true,
     maxAdminGift: 10_000,

@@ -266,6 +266,7 @@ export const DATA_CATEGORY_INFO = {
     productName: t('Error Monitoring'),
     uid: 1,
     isBilledCategory: true,
+    docsUrl: 'https://docs.sentry.io/product/sentry-basics/',
   },
   [DataCategoryExact.TRANSACTION]: {
     name: DataCategoryExact.TRANSACTION,
@@ -276,6 +277,7 @@ export const DATA_CATEGORY_INFO = {
     productName: t('Performance Monitoring'),
     uid: 2,
     isBilledCategory: true,
+    docsUrl: 'https://docs.sentry.io/product/performance/',
   },
   [DataCategoryExact.ATTACHMENT]: {
     name: DataCategoryExact.ATTACHMENT,
@@ -286,6 +288,7 @@ export const DATA_CATEGORY_INFO = {
     productName: t('Attachments'),
     uid: 4,
     isBilledCategory: true,
+    docsUrl: 'https://docs.sentry.io/product/accounts/quotas/manage-attachments-quota/',
   },
   [DataCategoryExact.PROFILE]: {
     name: DataCategoryExact.PROFILE,
@@ -296,6 +299,7 @@ export const DATA_CATEGORY_INFO = {
     productName: t('Continuous Profiling'),
     uid: 6,
     isBilledCategory: false,
+    docsUrl: 'https://docs.sentry.io/product/profiling/',
   },
   [DataCategoryExact.REPLAY]: {
     name: DataCategoryExact.REPLAY,
@@ -306,6 +310,7 @@ export const DATA_CATEGORY_INFO = {
     productName: t('Session Replay'),
     uid: 7,
     isBilledCategory: true,
+    docsUrl: 'https://docs.sentry.io/product/session-replay/',
   },
   [DataCategoryExact.TRANSACTION_PROCESSED]: {
     name: DataCategoryExact.TRANSACTION_PROCESSED,
@@ -346,6 +351,7 @@ export const DATA_CATEGORY_INFO = {
     productName: t('Tracing'),
     uid: 12,
     isBilledCategory: true,
+    docsUrl: 'https://docs.sentry.io/product/performance/',
   },
   [DataCategoryExact.MONITOR_SEAT]: {
     name: DataCategoryExact.MONITOR_SEAT,
@@ -357,6 +363,7 @@ export const DATA_CATEGORY_INFO = {
     productName: t('Cron Monitoring'),
     uid: 13,
     isBilledCategory: true,
+    docsUrl: 'https://docs.sentry.io/product/crons/',
   },
   [DataCategoryExact.SPAN_INDEXED]: {
     name: DataCategoryExact.SPAN_INDEXED,
@@ -368,6 +375,7 @@ export const DATA_CATEGORY_INFO = {
     productName: t('Tracing'),
     uid: 16,
     isBilledCategory: false,
+    docsUrl: 'https://docs.sentry.io/product/performance/',
   },
   [DataCategoryExact.PROFILE_DURATION]: {
     name: DataCategoryExact.PROFILE_DURATION,
@@ -379,6 +387,8 @@ export const DATA_CATEGORY_INFO = {
     productName: t('Continuous Profiling'),
     uid: 17,
     isBilledCategory: true,
+    docsUrl:
+      'https://docs.sentry.io/product/explore/profiling/getting-started/#continuous-profiling',
   },
   [DataCategoryExact.PROFILE_DURATION_UI]: {
     name: DataCategoryExact.PROFILE_DURATION_UI,
@@ -390,6 +400,8 @@ export const DATA_CATEGORY_INFO = {
     productName: t('UI Profiling'),
     uid: 25,
     isBilledCategory: true,
+    docsUrl:
+      'https://docs.sentry.io/product/explore/profiling/getting-started/#continuous-profiling',
   },
   [DataCategoryExact.UPTIME]: {
     name: DataCategoryExact.UPTIME,
@@ -400,6 +412,7 @@ export const DATA_CATEGORY_INFO = {
     productName: t('Uptime Monitoring'),
     uid: 21,
     isBilledCategory: true,
+    docsUrl: 'https://docs.sentry.io/product/alerts/uptime-monitoring/',
   },
   [DataCategoryExact.LOG_ITEM]: {
     name: DataCategoryExact.LOG_ITEM,

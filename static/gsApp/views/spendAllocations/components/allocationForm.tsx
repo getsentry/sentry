@@ -24,8 +24,10 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 import {AllocationTargetTypes} from 'getsentry/constants';
 import type {Subscription} from 'getsentry/types';
-import {getCategoryInfoFromPlural} from 'getsentry/utils/billing';
-import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
+import {
+  getCategoryInfoFromPlural,
+  getPlanCategoryName,
+} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
 import {bigNumFormatter, BigNumUnits} from 'getsentry/views/spendAllocations/utils';
@@ -269,10 +271,7 @@ function AllocationForm({
             <Select
               name="category"
               options={subscription.planDetails.categories
-                .filter(
-                  category =>
-                    getCategoryInfoFromPlural(category as DataCategory)?.canAllocate
-                )
+                .filter(category => getCategoryInfoFromPlural(category)?.canAllocate)
                 .map(category => ({
                   value: category,
                   label: getPlanCategoryName({

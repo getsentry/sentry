@@ -10,12 +10,13 @@ import {
   openPromotionModal,
   openPromotionReminderModal,
 } from 'getsentry/actionCreators/modal';
-import type {
-  DiscountInfo,
-  Plan,
-  PromotionClaimed,
-  PromotionData,
-  Subscription,
+import {
+  type DiscountInfo,
+  InvoiceItemType,
+  type Plan,
+  type PromotionClaimed,
+  type PromotionData,
+  type Subscription,
 } from 'getsentry/types';
 import {isBizPlanFamily} from 'getsentry/utils/billing';
 import {createPromotionCheckQueryKey} from 'getsentry/utils/usePromotionTriggerCheck';
@@ -96,7 +97,7 @@ export function showSubscriptionDiscount({
     discountInfo?.durationText &&
     discountInfo.discountType === 'percentPoints' &&
     activePlan.billingInterval === discountInfo.billingInterval &&
-    discountInfo.creditCategory === 'subscription'
+    discountInfo.creditCategory === InvoiceItemType.SUBSCRIPTION
   );
 }
 

@@ -118,10 +118,11 @@ export interface DataCategoryInfo {
   displayName: string;
   isBilledCategory: boolean;
   name: DataCategoryExact;
-  plural: string;
+  plural: string; // TODO: change to DataCategory
   productName: string;
   titleName: string;
   uid: number;
+  docsUrl?: string;
   snakeCasePlural?: string;
 }
 
