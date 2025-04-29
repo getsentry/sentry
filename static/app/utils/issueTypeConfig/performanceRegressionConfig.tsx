@@ -121,7 +121,7 @@ const performanceRegressionConfig: IssueCategoryConfigMapping = {
   [IssueType.METRIC_ISSUE_POC]: {
     actions: {
       archiveUntilOccurrence: {enabled: false},
-      delete: {enabled: false},
+      delete: {enabled: true},
       deleteAndDiscard: {enabled: false},
       merge: {enabled: false},
       ignore: {enabled: true},

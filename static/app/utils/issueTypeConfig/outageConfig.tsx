@@ -56,7 +56,7 @@ const outageConfig: IssueCategoryConfigMapping = {
   [IssueType.UPTIME_DOMAIN_FAILURE]: {
     actions: {
       archiveUntilOccurrence: {enabled: true},
-      delete: {enabled: false},
+      delete: {enabled: true},
       deleteAndDiscard: {enabled: false},
       merge: {enabled: false},
       ignore: {enabled: true},
