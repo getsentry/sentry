@@ -9,7 +9,6 @@ const performanceConfig: IssueCategoryConfigMapping = {
       archiveUntilOccurrence: {enabled: true},
       delete: {
         enabled: true,
-        disabledReason: '',
       },
       deleteAndDiscard: {
         enabled: false,
@@ -227,11 +226,9 @@ const performanceConfig: IssueCategoryConfigMapping = {
     actions: {
       archiveUntilOccurrence: {
         enabled: true,
-        disabledReason: '',
       },
       delete: {
         enabled: true,
-        disabledReason: '',
       },
       deleteAndDiscard: {
         enabled: false,
@@ -380,7 +377,6 @@ const performanceConfig: IssueCategoryConfigMapping = {
       },
       delete: {
         enabled: true,
-        disabledReason: '',
       },
       deleteAndDiscard: {
         enabled: false,

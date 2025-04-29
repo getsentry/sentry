@@ -8,7 +8,6 @@ const userExperienceConfig: IssueCategoryConfigMapping = {
       archiveUntilOccurrence: {enabled: true},
       delete: {
         enabled: true,
-        disabledReason: '',
       },
       deleteAndDiscard: {
         enabled: false,
