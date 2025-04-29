@@ -3105,7 +3105,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         meta = response.data["meta"]
         assert len(data) == 1
         assert data[0]["division(mobile.slow_frames,mobile.total_frames)"] == 10 / 100
-        assert data[0]["division(mobile.frozen_frames,mobile.total_frames))"] == 20 / 100
+        assert data[0]["division(mobile.frozen_frames,mobile.total_frames)"] == 20 / 100
         assert meta["dataset"] == self.dataset
 
     def test_opportunity_score_zero_scores(self):
