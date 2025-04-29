@@ -32,7 +32,7 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor
-from sentry.workflow_engine.models import Detector, Workflow
+from sentry.workflow_engine.models import DataCondition, DataConditionGroup, Detector, Workflow
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -372,10 +372,14 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
         org = self.create_organization(name="test")
         project = self.create_project(organization=org)
 
+        dcg = self.create_data_condition_group(organization=org)
+        dc = self.create_data_condition(condition_group=dcg)
+
         detector = self.create_detector(
             project_id=project.id,
             name="Test Detector",
             type=MetricIssue.slug,
+            workflow_condition_group=dcg,
         )
         workflow = self.create_workflow(organization=org, name="Test Workflow")
 
@@ -387,4 +391,6 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
 
         assert not Project.objects.filter(id=project.id).exists()
         assert not Detector.objects.filter(id=detector.id).exists()
+        assert not DataConditionGroup.objects.filter(id=dcg.id).exists()
+        assert not DataCondition.objects.filter(id=dc.id).exists()
         assert not Workflow.objects.filter(id=workflow.id).exists()
