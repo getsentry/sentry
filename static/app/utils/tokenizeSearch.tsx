@@ -270,6 +270,10 @@ export class MutableSearch {
     return Object.keys(this.filters);
   }
 
+  getTokenKeys() {
+    return this.tokens.map(t => t.key);
+  }
+
   hasFilter(key: string): boolean {
     return this.getFilterValues(key).length > 0;
   }
