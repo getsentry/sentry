@@ -52,7 +52,7 @@ const SectionBody = styled('div')<{rightAlign?: boolean}>`
 `;
 
 interface MetaProps {
-  logs: OurLogsResponseItem[];
+  logs: OurLogsResponseItem[] | undefined;
   meta: TraceMeta | undefined;
   organization: Organization;
   representativeEvent: TraceTree.TraceEvent | OurLogsResponseItem | null;
@@ -123,7 +123,7 @@ export function Meta(props: MetaProps) {
     traceNode?.space[0] ?? (timestamp ? timestamp * 1000 : undefined);
 
   const hasSpans = (props.meta?.span_count ?? 0) > 0;
-  const hasLogs = props.logs.length > 0;
+  const hasLogs = (props.logs?.length ?? 0) > 0;
 
   return (
     <MetaWrapper>
@@ -167,7 +167,7 @@ export function Meta(props: MetaProps) {
         <MetaSection
           rightAlignBody
           headingText={t('Logs')}
-          bodyText={props.logs.length}
+          bodyText={props.logs?.length ?? 0}
         />
       ) : null}
     </MetaWrapper>
