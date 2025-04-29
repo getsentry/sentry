@@ -37,13 +37,16 @@ from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcR
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.models.organization import Organization
 from sentry.search.eap.types import SupportedTraceItemType
+from sentry.search.eap.utils import can_expose_attribute
 from sentry.seer.autofix_tools import get_error_event_details, get_profile_details
 from sentry.seer.fetch_issues.fetch_issues import (
     get_issues_related_to_file_patches,
     get_issues_related_to_function_names,
 )
 from sentry.silo.base import SiloMode
+from sentry.tagstore.types import TagValue
 from sentry.utils import snuba_rpc
+from sentry.utils.dates import parse_stats_period
 from sentry.utils.env import in_test_environment
 
 logger = logging.getLogger(__name__)
@@ -182,22 +185,17 @@ def get_organization_autofix_consent(*, org_id: int) -> dict:
 
 
 def get_fields(*, org_id: int, project_ids: list[int], stats_period: str) -> dict:
-    # organization = Organization.objects.get(id=org_id)
-    # projects = Project.objects.filter(id__in=project_ids, organization=organization, status=0)
-
-    # return {"fields": ["op"]}
-
-    # org: Organization = Organization.objects.get(id=org_id)
-    # print("slug", org.slug)
-
     field_types = [
-        (AttributeKey.Type.TYPE_STRING, "string"),
-        (AttributeKey.Type.TYPE_DOUBLE, "number"),
+        AttributeKey.Type.TYPE_STRING,
+        AttributeKey.Type.TYPE_DOUBLE,
     ]
 
-    # TODO: Start based off stats period
-    start = datetime.datetime.now() - datetime.timedelta(days=7)
+    period = parse_stats_period(stats_period)
+    if period is None:
+        period = datetime.timedelta(days=7)
+
     end = datetime.datetime.now()
+    start = end - period
 
     start_time_proto = ProtobufTimestamp()
     start_time_proto.FromDatetime(start)
@@ -206,12 +204,12 @@ def get_fields(*, org_id: int, project_ids: list[int], stats_period: str) -> dic
 
     fields = []
 
-    for attr_type, field_type in field_types:
+    for attr_type in field_types:
         req = TraceItemAttributeNamesRequest(
             meta=RequestMeta(
                 organization_id=org_id,
                 cogs_category="events_analytics_platform",
-                referrer="seer_rpc",
+                referrer="seer-rpc",
                 project_ids=project_ids,
                 start_timestamp=start_time_proto,
                 end_timestamp=end_time_proto,
@@ -223,27 +221,19 @@ def get_fields(*, org_id: int, project_ids: list[int], stats_period: str) -> dic
 
         fields_resp = snuba_rpc.attribute_names_rpc(req)
 
-        # print("attributes", fields_resp.attributes)
-
-        # for attr in fields_resp.attributes:
-        #     print("attr", attr)
-        #     print("name", attr.name)
-        #     print("type", attr.type)
-        #     print("as key", as_attribute_key(attr.name, field_type, SupportedTraceItemType.SPANS))
-
         parsed_fields = [
             {
                 "key": as_attribute_key(
                     attr.name,
-                    "string" if field_type == "string" else "number",
+                    "string" if attr_type == AttributeKey.Type.TYPE_STRING else "number",
                     SupportedTraceItemType.SPANS,
                 )["key"],
                 "name": attr.name,
                 "type": attr_type,
             }
             for attr in fields_resp.attributes
+            if attr.name and can_expose_attribute(attr.name, SupportedTraceItemType.SPANS)
         ]
-
         fields.extend(parsed_fields)
 
     return {"fields": fields}
@@ -255,12 +245,14 @@ def get_field_values(
     org_id: int,
     project_ids: list[int],
     stats_period: str,
-    k: int = 100,
+    limit: int = 100,
 ) -> dict:
+    period = parse_stats_period(stats_period)
+    if period is None:
+        period = datetime.timedelta(days=7)
 
-    # TODO: Start based off stats period
-    start = datetime.datetime.now() - datetime.timedelta(days=7)
     end = datetime.datetime.now()
+    start = end - period
 
     start_time_proto = ProtobufTimestamp()
     start_time_proto.FromDatetime(start)
@@ -270,7 +262,6 @@ def get_field_values(
     values = []
 
     for field in fields:
-        # Construct proper AttributeKey object
         attr_key = AttributeKey(
             name=field["name"],
             type=field["type"],
@@ -287,19 +278,22 @@ def get_field_values(
                 trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
             ),
             key=attr_key,
-            limit=k,
+            limit=limit,
         )
 
-        # print("key requesting a value", attr_key)
-
         values_response = snuba_rpc.attribute_values_rpc(req)
-        # values_response = values_response.data
-
-        # print("values_response", values_response)
-
-        # values_parsed = []
-
-        values.append(values_response)
+        values_parsed: list[TagValue] = [
+            TagValue(
+                key=attr_key,
+                value=value,
+                times_seen=None,
+                first_seen=None,
+                last_seen=None,
+            )
+            for value in values_response.values
+            if value
+        ]
+        values.append(values_parsed)
 
     return {"values": values}
 
