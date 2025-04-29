@@ -70,7 +70,10 @@ class ScheduleDetectionsTest(UptimeTestCase):
         ) as mock_process_detection_bucket:
             schedule_detections()
             mock_process_detection_bucket.delay.assert_has_calls(
-                [call(last_processed_bucket + timedelta(minutes=i)) for i in range(1, 11)]
+                [
+                    call((last_processed_bucket + timedelta(minutes=i)).isoformat())
+                    for i in range(1, 11)
+                ]
             )
         last_processed = cluster.get(LAST_PROCESSED_KEY)
         assert last_processed is not None
@@ -97,7 +100,8 @@ class ProcessDetectionBucketTest(UptimeTestCase):
         with mock.patch(
             "sentry.uptime.detectors.tasks.process_organization_url_ranking"
         ) as mock_process_project_url_ranking:
-            process_detection_bucket(timezone.now().replace(second=0, microsecond=0))
+            now = timezone.now().replace(second=0, microsecond=0)
+            process_detection_bucket(now.isoformat())
             mock_process_project_url_ranking.delay.assert_not_called()
 
     def test_bucket(self):
@@ -115,7 +119,7 @@ class ProcessDetectionBucketTest(UptimeTestCase):
         with mock.patch(
             "sentry.uptime.detectors.tasks.process_organization_url_ranking"
         ) as mock_process_organization_url_ranking:
-            process_detection_bucket(bucket)
+            process_detection_bucket(bucket.isoformat())
             mock_process_organization_url_ranking.delay.assert_has_calls(
                 [call(self.project.organization.id), call(other_project.organization.id)],
                 any_order=True,
