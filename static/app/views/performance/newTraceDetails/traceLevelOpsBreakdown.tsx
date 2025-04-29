@@ -8,7 +8,6 @@ import {space} from 'sentry/styles/space';
 import type {Color} from 'sentry/utils/theme';
 
 import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
-import {useHasTraceNewUi} from './useHasTraceNewUi';
 
 function LoadingPlaceHolder() {
   return (
@@ -26,10 +25,9 @@ type Props = {
 };
 
 export function TraceLevelOpsBreakdown({metaQueryResults, isTraceLoading}: Props) {
-  const hasNewTraceUi = useHasTraceNewUi();
   const theme = useTheme();
 
-  if (!hasNewTraceUi || metaQueryResults.status === 'error') {
+  if (metaQueryResults.status === 'error') {
     return null;
   }
 
