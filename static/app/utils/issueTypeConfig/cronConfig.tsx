@@ -7,8 +7,8 @@ const cronConfig: IssueCategoryConfigMapping = {
     actions: {
       archiveUntilOccurrence: {enabled: true},
       delete: {
-        enabled: false,
-        disabledReason: t('Not yet supported for cron issues'),
+        enabled: true,
+        disabledReason: '',
       },
       deleteAndDiscard: {
         enabled: false,

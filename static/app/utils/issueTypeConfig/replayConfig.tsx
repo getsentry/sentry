@@ -7,8 +7,8 @@ const replayConfig: IssueCategoryConfigMapping = {
     actions: {
       archiveUntilOccurrence: {enabled: true},
       delete: {
-        enabled: false,
-        disabledReason: t('Not yet supported for replay issues'),
+        enabled: true,
+        disabledReason: '',
       },
       deleteAndDiscard: {
         enabled: false,

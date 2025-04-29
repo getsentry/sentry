@@ -8,8 +8,8 @@ const performanceBestPracticeConfig: IssueCategoryConfigMapping = {
     actions: {
       archiveUntilOccurrence: {enabled: true},
       delete: {
-        enabled: false,
-        disabledReason: t('Not yet supported for performance issues'),
+        enabled: true,
+        disabledReason: '',
       },
       deleteAndDiscard: {
         enabled: false,
