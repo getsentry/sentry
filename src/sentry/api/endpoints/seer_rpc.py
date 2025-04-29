@@ -1,3 +1,4 @@
+import datetime
 import hashlib
 import hmac
 import logging
@@ -8,6 +9,7 @@ import orjson
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ObjectDoesNotExist
+from google.protobuf.timestamp_pb2 import Timestamp as ProtobufTimestamp
 from rest_framework.exceptions import (
     AuthenticationFailed,
     NotFound,
@@ -17,6 +19,12 @@ from rest_framework.exceptions import (
 )
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
+    TraceItemAttributeNamesRequest,
+    TraceItemAttributeValuesRequest,
+)
+from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_sdk import Scope, capture_exception
 
 from sentry import options
@@ -24,15 +32,18 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.endpoints.organization_trace_item_attributes import as_attribute_key
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.models.organization import Organization
+from sentry.search.eap.types import SupportedTraceItemType
 from sentry.seer.autofix_tools import get_error_event_details, get_profile_details
 from sentry.seer.fetch_issues.fetch_issues import (
     get_issues_related_to_file_patches,
     get_issues_related_to_function_names,
 )
 from sentry.silo.base import SiloMode
+from sentry.utils import snuba_rpc
 from sentry.utils.env import in_test_environment
 
 logger = logging.getLogger(__name__)
@@ -174,45 +185,123 @@ def get_fields(*, org_id: int, project_ids: list[int], stats_period: str) -> dic
     # organization = Organization.objects.get(id=org_id)
     # projects = Project.objects.filter(id__in=project_ids, organization=organization, status=0)
 
-    return {"fields": ["op"]}
+    # return {"fields": ["op"]}
+
+    # org: Organization = Organization.objects.get(id=org_id)
+    # print("slug", org.slug)
+
+    field_types = [
+        (AttributeKey.Type.TYPE_STRING, "string"),
+        (AttributeKey.Type.TYPE_DOUBLE, "number"),
+    ]
 
     # TODO: Start based off stats period
-    # start = datetime.datetime.now() - datetime.timedelta(days=1)
-    # end = datetime.datetime.now()
+    start = datetime.datetime.now() - datetime.timedelta(days=7)
+    end = datetime.datetime.now()
 
-    # start_time_proto = ProtobufTimestamp()
-    # start_time_proto.FromDatetime(start)
-    # end_time_proto = ProtobufTimestamp()
-    # end_time_proto.FromDatetime(end)
-    # req = AggregateBucketRequest(
-    #     meta=RequestMeta(
-    #         organization_id=org_id,
-    #         cogs_category="events_analytics_platform",
-    #         referrer="seer_rpc",
-    #         project_ids=project_ids,
-    #         start_timestamp=start_time_proto,
-    #         end_timestamp=end_time_proto,
-    #         trace_item_name=TraceItemName.TRACE_ITEM_NAME_EAP_SPANS,
-    #     ),
-    #     aggregate=AggregateBucketRequest.FUNCTION_SUM,
-    #     filter=TraceItemFilter(
-    #         comparison_filter=ComparisonFilter(
-    #             key=AttributeKey(name="op", type=AttributeKey.Type.TYPE_STRING),
-    #             value=AttributeValue(val_str="ai.run"),
-    #         )
-    #     ),
-    #     granularity_secs=60,
-    #     key=AttributeKey(name="duration", type=AttributeKey.TYPE_FLOAT),
-    #     # attribute_key_transform_context=AttributeKeyTransformContext(),
-    # )
-    # aggregate_resp = snuba_rpc.rpc(req, AggregateBucketResponse)
-    # response = AggregateBucketResponse()
-    # # response.ParseFromString(aggregate_resp.result)
-    # print("aggregate_resp", aggregate_resp)
-    # print("response", response)
-    # print()
+    start_time_proto = ProtobufTimestamp()
+    start_time_proto.FromDatetime(start)
+    end_time_proto = ProtobufTimestamp()
+    end_time_proto.FromDatetime(end)
 
-    return {}
+    fields = []
+
+    for attr_type, field_type in field_types:
+        req = TraceItemAttributeNamesRequest(
+            meta=RequestMeta(
+                organization_id=org_id,
+                cogs_category="events_analytics_platform",
+                referrer="seer_rpc",
+                project_ids=project_ids,
+                start_timestamp=start_time_proto,
+                end_timestamp=end_time_proto,
+                trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+            ),
+            type=attr_type,
+            limit=1000,
+        )
+
+        fields_resp = snuba_rpc.attribute_names_rpc(req)
+
+        # print("attributes", fields_resp.attributes)
+
+        # for attr in fields_resp.attributes:
+        #     print("attr", attr)
+        #     print("name", attr.name)
+        #     print("type", attr.type)
+        #     print("as key", as_attribute_key(attr.name, field_type, SupportedTraceItemType.SPANS))
+
+        parsed_fields = [
+            {
+                "key": as_attribute_key(
+                    attr.name,
+                    "string" if field_type == "string" else "number",
+                    SupportedTraceItemType.SPANS,
+                )["key"],
+                "name": attr.name,
+                "type": attr_type,
+            }
+            for attr in fields_resp.attributes
+        ]
+
+        fields.extend(parsed_fields)
+
+    return {"fields": fields}
+
+
+def get_field_values(
+    *,
+    fields: list[dict[str, Any]],
+    org_id: int,
+    project_ids: list[int],
+    stats_period: str,
+    k: int = 100,
+) -> dict:
+
+    # TODO: Start based off stats period
+    start = datetime.datetime.now() - datetime.timedelta(days=7)
+    end = datetime.datetime.now()
+
+    start_time_proto = ProtobufTimestamp()
+    start_time_proto.FromDatetime(start)
+    end_time_proto = ProtobufTimestamp()
+    end_time_proto.FromDatetime(end)
+
+    values = []
+
+    for field in fields:
+        # Construct proper AttributeKey object
+        attr_key = AttributeKey(
+            name=field["name"],
+            type=field["type"],
+        )
+
+        req = TraceItemAttributeValuesRequest(
+            meta=RequestMeta(
+                organization_id=org_id,
+                cogs_category="events_analytics_platform",
+                referrer="seer_rpc",
+                project_ids=project_ids,
+                start_timestamp=start_time_proto,
+                end_timestamp=end_time_proto,
+                trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+            ),
+            key=attr_key,
+            limit=k,
+        )
+
+        # print("key requesting a value", attr_key)
+
+        values_response = snuba_rpc.attribute_values_rpc(req)
+        # values_response = values_response.data
+
+        # print("values_response", values_response)
+
+        # values_parsed = []
+
+        values.append(values_response)
+
+    return {"values": values}
 
 
 seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
@@ -223,6 +312,7 @@ seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_error_event_details": get_error_event_details,
     "get_profile_details": get_profile_details,
     "get_fields": get_fields,
+    "get_field_values": get_field_values,
 }
 
 
