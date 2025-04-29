@@ -174,8 +174,8 @@ export function HybridFilter<Value extends SelectKey>({
     const mapOption = (option: SelectOption<Value>): SelectOption<Value> => ({
       ...option,
       hideCheck: true,
-      trailingItems: ({isFocused, isSelected, disabled}) => {
-        function TrailingCheckbox(props: CheckboxProps) {
+      leadingItems: ({isFocused, isSelected, disabled}) => {
+        function LeadingCheckbox(props: CheckboxProps) {
           return (
             <CheckWrap
               visible={isFocused || isSelected || (!!multiple && modifierKeyPressed)}
@@ -195,20 +195,20 @@ export function HybridFilter<Value extends SelectKey>({
         }
 
         return (
-          <TrailingWrap
+          <LeadingWrap
             onKeyDown={e => e.stopPropagation()}
             onPointerDown={e => e.stopPropagation()}
             onClick={e => e.stopPropagation()}
           >
-            {typeof option.trailingItems === 'function'
-              ? option.trailingItems({isFocused, isSelected, disabled})
-              : option.trailingItems}
+            {typeof option.leadingItems === 'function'
+              ? option.leadingItems({isFocused, isSelected, disabled})
+              : option.leadingItems}
             {checkboxWrapper ? (
-              checkboxWrapper(props => <TrailingCheckbox {...props} />)
+              checkboxWrapper(props => <LeadingCheckbox {...props} />)
             ) : (
-              <TrailingCheckbox />
+              <LeadingCheckbox />
             )}
-          </TrailingWrap>
+          </LeadingWrap>
         );
       },
     });
@@ -399,7 +399,7 @@ const ResetButton = styled(Button)`
   margin: -${space(0.25)} -${space(0.5)};
 `;
 
-const TrailingWrap = styled('div')`
+const LeadingWrap = styled('div')`
   display: grid;
   grid-auto-flow: column;
   align-items: center;

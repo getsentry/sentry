@@ -303,7 +303,7 @@ export function ProjectPageFilter({
             />
           </Fragment>
         ),
-      };
+      } satisfies SelectOptionOrSection<number>;
     };
 
     const lastSelected = mapURLValueToNormalValue(pageFilterValue);
