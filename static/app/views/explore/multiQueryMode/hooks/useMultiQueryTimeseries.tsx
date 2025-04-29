@@ -35,15 +35,15 @@ export function useMultiQueryTimeseries({
   index,
 }: UseMultiQueryTimeseriesOptions) {
   const canTriggerHighAccuracy = useCallback(
-    (data: ReturnType<typeof useMultiQueryTimeseriesImpl>['result']['data']) => {
-      const hasData = Object.values(data).some(result => {
+    (results: ReturnType<typeof useMultiQueryTimeseriesImpl>['result']) => {
+      const hasData = Object.values(results.data).some(result => {
         return Object.values(result).some(series => {
           return series.sampleCount?.some(({value}) => {
             return value > 0;
           });
         });
       });
-      const canGetMoreData = Object.values(data).some(result => {
+      const canGetMoreData = Object.values(results.data).some(result => {
         return Object.values(result).some(series => {
           return series.dataScanned === 'partial';
         });

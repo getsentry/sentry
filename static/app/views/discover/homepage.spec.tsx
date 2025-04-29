@@ -1,5 +1,6 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFiltersStorageFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -476,17 +477,18 @@ describe('Discover > Homepage', () => {
 
   it('overrides homepage filters with pinned filters if they exist', async () => {
     ProjectsStore.loadInitialData([ProjectFixture({id: '1'}), ProjectFixture({id: '2'})]);
-    jest.spyOn(pageFilterUtils, 'getPageFilterStorage').mockReturnValueOnce({
-      pinnedFilters: new Set(['projects']),
-      state: {
-        project: [2],
-        environment: [],
-        start: null,
-        end: null,
-        period: '14d',
-        utc: null,
-      },
-    });
+    const state = {
+      project: [2],
+      environment: [],
+      start: null,
+      end: null,
+      period: '14d',
+      utc: null,
+      repository: null,
+    };
+    jest
+      .spyOn(pageFilterUtils, 'getPageFilterStorage')
+      .mockReturnValueOnce(PageFiltersStorageFixture({state}));
 
     render(
       <Homepage
