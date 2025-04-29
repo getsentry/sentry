@@ -145,6 +145,11 @@ def prepare_organization_report(
             },
         )
         return
+    target_user_id: int | None = None
+    if isinstance(target_user, User):
+        target_user_id = target_user.id
+    elif isinstance(target_user, int):
+        target_user_id = target_user
     organization = Organization.objects.get(id=organization_id)
     set_tag("org.slug", organization.slug)
     set_tag("org.id", organization_id)
@@ -250,7 +255,7 @@ def prepare_organization_report(
         return
 
     # Finally, deliver the reports
-    batch = OrganizationReportBatch(ctx, batch_id, dry_run, target_user, email_override)
+    batch = OrganizationReportBatch(ctx, batch_id, dry_run, target_user_id, email_override)
     with sentry_sdk.start_span(op="weekly_reports.deliver_reports"):
         logger.info(
             "weekly_reports.deliver_reports",
@@ -265,7 +270,7 @@ class OrganizationReportBatch:
     batch_id: uuid.UUID | str
 
     dry_run: bool = False
-    target_user: User | int | None = None
+    target_user: int | None = None
     email_override: str | None = None
 
     def deliver_reports(self) -> None:
@@ -273,14 +278,9 @@ class OrganizationReportBatch:
         For all users in the organization, we generate the template context for the user, and send the email.
         """
         if self.email_override:
-            # if None, generates report for a user with access to all projects
-            target_user_id: int | None = None
-            if isinstance(self.target_user, User):
-                target_user_id = self.target_user.id
-            elif isinstance(self.target_user, int):
-                target_user_id = self.target_user
+            # if target user is None, generates report for a user with access to all projects
             user_template_context_by_user_id_list = prepare_template_context(
-                ctx=self.ctx, user_ids=[target_user_id]
+                ctx=self.ctx, user_ids=[self.target_user]
             )
             if user_template_context_by_user_id_list:
                 self._send_to_user(user_template_context_by_user_id_list[0])
