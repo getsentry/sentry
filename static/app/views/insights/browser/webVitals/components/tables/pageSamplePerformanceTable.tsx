@@ -95,9 +95,10 @@ const INTERACTION_SAMPLES_COLUMN_ORDER: Array<
   {key: 'totalScore', width: COL_WIDTH_UNDEFINED, name: t('Score')},
 ];
 
-const SPANS_SAMPLES_WITHOUT_TRACE_COLUMN_ORDER: Array<
+const SPANS_SAMPLES_WITH_DESCRIPTION_COLUMN_ORDER: Array<
   GridColumnOrder<keyof SpanSampleRowWithScore | 'webVital'>
 > = [
+  {key: 'id', width: COL_WIDTH_UNDEFINED, name: t('Trace')},
   {
     key: SpanIndexedField.SPAN_DESCRIPTION,
     width: COL_WIDTH_UNDEFINED,
@@ -646,7 +647,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
             datatype === Datatype.INTERACTIONS
               ? INTERACTION_SAMPLES_COLUMN_ORDER
               : ['cls', 'lcp', 'inp'].includes(datatype)
-                ? SPANS_SAMPLES_WITHOUT_TRACE_COLUMN_ORDER
+                ? SPANS_SAMPLES_WITH_DESCRIPTION_COLUMN_ORDER
                 : SPANS_SAMPLES_WITHOUT_DESCRIPTION_COLUMN_ORDER
           }
           columnSortBy={[]}
