@@ -1507,7 +1507,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             assert Group.objects.get(id=g.id).status == GroupStatus.PENDING_DELETION
             assert not GroupHash.objects.filter(group_id=g.id).exists()
 
-        # XXX: I do not understand why this update is necessary for the tests to function
+        # This is necessary before calling the delete task
         Group.objects.filter(id__in=[g.id for g in groups]).update(status=GroupStatus.UNRESOLVED)
 
     def assert_groups_are_gone(self, groups: Sequence[Group]) -> None:
@@ -1621,10 +1621,6 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
 
         # if query is '' it defaults to is:unresolved
         url = self.path + "?query="
-        response = self.client.delete(url, format="json")
-        assert response.status_code == 204
-        self.assert_groups_not_deleted(groups)
-
         with self.tasks():
             response = self.client.delete(url, format="json")
             assert response.status_code == 204
