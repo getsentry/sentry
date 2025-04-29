@@ -643,9 +643,11 @@ class AssembleStacktraceComponentTest(TestCase):
         ):
             assert (
                 frame_component.contributes is expected_contributes
-            ), f"frame {i} has incorrect `contributes` value"
+            ), f"frame {i} has incorrect `contributes` value. Expected {expected_contributes} but got {frame_component.contributes}."
 
-            assert frame_component.hint == expected_hint, f"frame {i} has incorrect `hint` value"
+            assert (
+                frame_component.hint == expected_hint
+            ), f"frame {i} has incorrect `hint` value. Expected '{expected_hint}' but got '{frame_component.hint}'."
 
     def test_uses_or_ignores_rust_results_as_appropriate(self):
         """
