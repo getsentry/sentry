@@ -1,7 +1,6 @@
 import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
 import {EventFixture} from 'sentry-fixture/event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -14,7 +13,6 @@ jest.mock('sentry/views/issueDetails/utils', () => ({
 }));
 
 describe('EventPackageData', function () {
-  const router = RouterFixture({});
   const event = EventFixture({
     packages: {
       certifi: '',
@@ -37,22 +35,24 @@ describe('EventPackageData', function () {
   });
 
   it('changes section title depending on the platform', function () {
-    render(<EventPackageData event={event} />, {organization, router});
+    render(<EventPackageData event={event} />, {
+      organization,
+    });
     expect(screen.getByText('Packages')).toBeInTheDocument();
     render(<EventPackageData event={{...event, platform: 'csharp'}} />, {
       organization,
-      router,
     });
     expect(screen.getByText('Assemblies')).toBeInTheDocument();
     render(<EventPackageData event={{...event, platform: 'java'}} />, {
       organization,
-      router,
     });
     expect(screen.getByText('Dependencies')).toBeInTheDocument();
   });
 
   it('displays all the data in column format', async function () {
-    render(<EventPackageData event={event} />, {organization, router});
+    render(<EventPackageData event={event} />, {
+      organization,
+    });
     // Should be collapsed by default
     expect(screen.queryByText(/python/)).not.toBeInTheDocument();
     // Displays when open
@@ -72,7 +72,9 @@ describe('EventPackageData', function () {
   });
 
   it('display redacted data', async function () {
-    render(<EventPackageData event={event} />, {organization, router});
+    render(<EventPackageData event={event} />, {
+      organization,
+    });
     expect(screen.getByText(/redacted/)).toBeInTheDocument();
     await userEvent.hover(screen.getByText(/redacted/));
     expect(

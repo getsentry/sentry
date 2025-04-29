@@ -36,7 +36,11 @@ describe('GroupTagsTab', function () {
   });
 
   it('navigates to issue details events tab with correct query params', async function () {
-    render(<GroupTagsTab />, {router, organization});
+    render(<GroupTagsTab />, {
+      router,
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     const headers = await screen.findAllByTestId('tag-title');
 
@@ -69,7 +73,11 @@ describe('GroupTagsTab', function () {
       statusCode: 500,
     });
 
-    render(<GroupTagsTab />, {router, organization});
+    render(<GroupTagsTab />, {
+      router,
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     expect(
       await screen.findByText('There was an error loading issue tags.')

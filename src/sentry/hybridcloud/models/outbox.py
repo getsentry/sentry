@@ -188,7 +188,7 @@ class OutboxBase(Model):
     def next_schedule(self, now: datetime.datetime) -> datetime.datetime:
         return now + min((self.last_delay() * 2), datetime.timedelta(hours=1))
 
-    def save(self, **kwds: Any) -> None:  # type: ignore[override]
+    def save(self, *args: Any, **kwargs: Any) -> None:
         if not OutboxScope.scope_has_category(self.shard_scope, self.category):
             raise InvalidOutboxError(
                 f"Outbox.category {self.category} ({OutboxCategory(self.category).name}) not configured for scope {self.shard_scope} ({OutboxScope(self.shard_scope).name})"
@@ -199,7 +199,7 @@ class OutboxBase(Model):
 
         tags = {"category": OutboxCategory(self.category).name}
         metrics.incr("outbox.saved", 1, tags=tags)
-        super().save(**kwds)
+        super().save(*args, **kwargs)
 
     @contextlib.contextmanager
     def process_shard(self, latest_shard_row: OutboxBase | None) -> Generator[OutboxBase | None]:
