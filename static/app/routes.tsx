@@ -2098,6 +2098,15 @@ function buildRoutes() {
           component={make(() => import('sentry/views/codecov/tests/onboarding'))}
         />
       </Route>
+      <Route path="tokens/">
+        <Route
+          component={make(() => import('sentry/views/codecov/tokens/tokensWrapper'))}
+        >
+          <IndexRoute
+            component={make(() => import('sentry/views/codecov/tokens/tokens'))}
+          />
+        </Route>
+      </Route>
     </Fragment>
   );
   const codecovRoutes = (
@@ -2197,6 +2206,18 @@ function buildRoutes() {
   const issueRoutes = (
     <Route path="/issues/" withOrgPath>
       <IndexRoute component={errorHandler(OverviewWrapper)} />
+      <Route
+        path="errors-outages/"
+        component={make(() => import('sentry/views/issueList/pages/errorsOutages'))}
+      />
+      <Route
+        path="metrics/"
+        component={make(() => import('sentry/views/issueList/pages/metrics'))}
+      />
+      <Route
+        path="best-practices/"
+        component={make(() => import('sentry/views/issueList/pages/bestPractices'))}
+      />
       <Route
         path="views/"
         component={make(

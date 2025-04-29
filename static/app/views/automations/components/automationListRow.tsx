@@ -11,7 +11,6 @@ import {ConnectionCell} from 'sentry/components/workflowEngine/gridCell/connecti
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
 import {space} from 'sentry/styles/space';
-import type {AvatarProject} from 'sentry/types/project';
 
 export type Automation = {
   actions: Action[];
@@ -19,7 +18,6 @@ export type Automation = {
   link: string;
   monitorIds: string[];
   name: string;
-  project: AvatarProject;
   details?: string[];
   disabled?: boolean;
   lastTriggered?: Date;
@@ -37,7 +35,6 @@ export function AutomationListRow({
   link,
   monitorIds,
   name,
-  project,
   details,
   handleSelect,
   selected,
@@ -56,7 +53,6 @@ export function AutomationListRow({
         <CellWrapper>
           <StyledTitleCell
             name={name}
-            project={project}
             link={link}
             details={details}
             disabled={disabled}

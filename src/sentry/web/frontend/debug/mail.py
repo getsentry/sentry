@@ -46,9 +46,9 @@ from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.notifications.rules import get_group_substatus_text
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.notifications.utils import (
+from sentry.notifications.utils import get_interface_list
+from sentry.notifications.utils.links import (
     get_group_settings_link,
-    get_interface_list,
     get_issue_replay_link,
     get_rules,
 )

@@ -34,7 +34,7 @@ import ModalStore from 'sentry/stores/modalStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 
-import {FREE_EVENTS_KEYS} from 'admin/components/addGiftEventsAction';
+import {getFreeEventsKey} from 'admin/components/addGiftEventsAction';
 import type {StatsGroup} from 'admin/components/customers/customerStats';
 import {populateChartData, useSeries} from 'admin/components/customers/customerStats';
 import CustomerDetails from 'admin/views/customerDetails';
@@ -3272,7 +3272,7 @@ describe('Customer Details', function () {
         })[0]!
       );
 
-      const freeEventsKey = FREE_EVENTS_KEYS[DataCategory.ERRORS];
+      const freeEventsKey = getFreeEventsKey(DataCategory.ERRORS);
       const updateMock = MockApiClient.addMockResponse({
         url: `/customers/${organization.slug}/`,
         method: 'PUT',
@@ -3332,7 +3332,7 @@ describe('Customer Details', function () {
         })[0]!
       );
 
-      const freeEventsKey = FREE_EVENTS_KEYS[DataCategory.TRANSACTIONS];
+      const freeEventsKey = getFreeEventsKey(DataCategory.TRANSACTIONS);
       const updateMock = MockApiClient.addMockResponse({
         url: `/customers/${organization.slug}/`,
         method: 'PUT',
@@ -3394,7 +3394,7 @@ describe('Customer Details', function () {
       })[0]!
     );
 
-    const freeEventsKey = FREE_EVENTS_KEYS[DataCategory.REPLAYS];
+    const freeEventsKey = getFreeEventsKey(DataCategory.REPLAYS);
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,
       method: 'PUT',
@@ -3455,7 +3455,7 @@ describe('Customer Details', function () {
       })[0]!
     );
 
-    const freeEventsKey = FREE_EVENTS_KEYS[DataCategory.SPANS];
+    const freeEventsKey = getFreeEventsKey(DataCategory.SPANS);
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,
       method: 'PUT',
@@ -3544,9 +3544,8 @@ describe('Customer Details', function () {
       })[0]!
     );
 
-    const item = screen.getByTestId(`gift-${DataCategory.SPANS_INDEXED}`);
-    expect(item).toBeInTheDocument();
-    expect(item).toHaveAttribute('aria-disabled', 'true');
+    const item = screen.queryByTestId(`gift-${DataCategory.SPANS_INDEXED}`);
+    expect(item).not.toBeInTheDocument();
   });
 
   it('can gift events - MONITOR SEATS', async function () {
@@ -3575,7 +3574,7 @@ describe('Customer Details', function () {
       })[0]!
     );
 
-    const freeEventsKey = FREE_EVENTS_KEYS[DataCategory.MONITOR_SEATS];
+    const freeEventsKey = getFreeEventsKey(DataCategory.MONITOR_SEATS);
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,
       method: 'PUT',
@@ -4022,7 +4021,11 @@ describe('Gift Categories Availability', function () {
       organization,
       planDetails: {
         ...SubscriptionFixture({organization}).planDetails,
-        checkoutCategories: [DataCategory.ERRORS, DataCategory.REPLAYS],
+        checkoutCategories: [
+          DataCategory.ERRORS,
+          DataCategory.REPLAYS,
+          DataCategory.SPANS,
+        ],
         onDemandCategories: [DataCategory.ERRORS, DataCategory.PROFILE_DURATION],
         categories: [
           DataCategory.ERRORS,
@@ -4106,9 +4109,9 @@ describe('Gift Categories Availability', function () {
     expect(giftCategories[DataCategory.SPANS]?.disabled).toBe(true);
   });
 
-  it('disables categories in neither checkoutCategories nor onDemandCategories', function () {
+  it('filters out categories in neither checkoutCategories nor onDemandCategories', function () {
     const giftCategories = customerDetails.giftCategories;
     // PROFILE_DURATION_UI is not in either checkoutCategories or onDemandCategories
-    expect(giftCategories[DataCategory.PROFILE_DURATION_UI]?.disabled).toBe(true);
+    expect(Object.keys(giftCategories)).not.toContain(DataCategory.PROFILE_DURATION_UI);
   });
 });

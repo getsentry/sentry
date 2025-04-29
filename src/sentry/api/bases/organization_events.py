@@ -456,7 +456,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             )
         # If the user sends an invalid interval, use the default instead
         except InvalidSearchQuery:
-            # on RPC don't use default
+            # on RPC don't use default interval on error
             if use_rpc:
                 raise
             sentry_sdk.set_tag("user.invalid_interval", request.GET.get("interval"))

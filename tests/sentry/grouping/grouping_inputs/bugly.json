@@ -26,8 +26,6 @@
               "package": "[vdso]",
               "in_app": false,
               "data": {
-                "orig_in_app": -1,
-                "min_grouping_level": 2,
                 "symbolicator_status": "unknown_image"
               },
               "symbol_addr": "0x7a715f363c"

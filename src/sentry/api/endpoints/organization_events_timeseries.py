@@ -28,7 +28,6 @@ from sentry.snuba import (
     metrics_enhanced_performance,
     metrics_performance,
     ourlogs,
-    spans_eap,
     spans_metrics,
     spans_rpc,
     transactions,
@@ -45,7 +44,7 @@ TOP_EVENTS_DATASETS = {
     metrics_performance,
     metrics_enhanced_performance,
     spans_metrics,
-    spans_eap,
+    spans_rpc,
     errors,
     transactions,
 }
@@ -160,7 +159,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                     raise ParseError(detail=f"{dataset} doesn't support topEvents yet")
 
             metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
-            use_rpc = dataset in {spans_eap, ourlogs, uptime_checks}
+            use_rpc = dataset in {spans_rpc, ourlogs, uptime_checks}
 
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
             try:
@@ -233,7 +232,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
         )
 
         if top_events > 0:
-            if dataset == spans_eap:
+            if dataset == spans_rpc:
                 return spans_rpc.run_top_events_timeseries_query(
                     params=snuba_params,
                     query_string=query,
@@ -271,9 +270,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                 ),
             )
 
-        if dataset == spans_eap or dataset == ourlogs:
-            if dataset == spans_eap:
-                dataset = spans_rpc
+        if dataset in {spans_rpc, ourlogs}:
             return dataset.run_timeseries_query(
                 params=snuba_params,
                 query_string=query,
