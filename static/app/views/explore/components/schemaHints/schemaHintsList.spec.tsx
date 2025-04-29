@@ -31,6 +31,11 @@ jest.mock('sentry/components/searchQueryBuilder/context', () => ({
   SearchQueryBuilderProvider: ({children}: {children: React.ReactNode}) => children,
 }));
 
+const searchQueryBuilderModule = jest.requireMock(
+  'sentry/components/searchQueryBuilder/context'
+);
+const originalUseSearchQueryBuilder = searchQueryBuilderModule.useSearchQueryBuilder;
+
 function Subject(
   props: Omit<
     Parameters<typeof SchemaHintsList>[0],
@@ -82,6 +87,10 @@ jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(fu
 describe('SchemaHintsList', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    searchQueryBuilderModule.useSearchQueryBuilder = originalUseSearchQueryBuilder;
   });
 
   it('should render', () => {
@@ -265,5 +274,37 @@ describe('SchemaHintsList', () => {
     expect(withinDrawer.getByText('stringTag2')).toBeInTheDocument();
     expect(withinDrawer.queryByText('numberTag1')).not.toBeInTheDocument();
     expect(withinDrawer.queryByText('numberTag2')).not.toBeInTheDocument();
+  });
+
+  it('should set focus override propely on duplicate filters', async () => {
+    searchQueryBuilderModule.useSearchQueryBuilder = () => ({
+      query: 'stringTag1:"something"',
+      getTagValues: () => Promise.resolve(['tagValue1', 'tagValue2']),
+      dispatch: mockDispatch,
+      wrapperRef: {current: null},
+    });
+
+    render(
+      <Subject
+        stringTags={mockStringTags}
+        numberTags={mockNumberTags}
+        supportedAggregates={[]}
+      />,
+      {
+        organization,
+      }
+    );
+
+    const stringTag1Hint = screen.getByText('stringTag1');
+    await userEvent.click(stringTag1Hint);
+
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: 'UPDATE_QUERY',
+      query: 'stringTag1:something stringTag1:""',
+      focusOverride: {
+        itemKey: 'filter:1',
+        part: 'value',
+      },
+    });
   });
 });
