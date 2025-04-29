@@ -13,13 +13,17 @@ import type {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import type {BillingStatTotal, Subscription} from 'getsentry/types';
-import {formatUsageWithUnits, getCategoryInfoFromPlural} from 'getsentry/utils/billing';
-import {getPlanCategoryName, isContinuousProfiling} from 'getsentry/utils/dataCategory';
+import {formatUsageWithUnits} from 'getsentry/utils/billing';
+import {
+  getCategoryInfoFromPlural,
+  getPlanCategoryName,
+  isContinuousProfiling,
+} from 'getsentry/utils/dataCategory';
 import {StripedTable} from 'getsentry/views/subscriptionPage/styles';
 import {displayPercentage} from 'getsentry/views/subscriptionPage/usageTotals';
 
 type RowProps = {
-  category: string;
+  category: DataCategory;
   /**
    * Name of outcome reason (e.g. Over Quota, Spike Protection, etc.)
    */
@@ -88,7 +92,7 @@ function OutcomeRow({
 }
 
 type OutcomeSectionProps = {
-  category: string;
+  category: DataCategory;
   children: React.ReactNode;
   name: string;
   quantity: number;
@@ -133,7 +137,7 @@ function OutcomeSection({
 }
 
 type Props = {
-  category: string;
+  category: DataCategory;
   subscription: Subscription;
   totals: BillingStatTotal;
   isEventBreakdown?: boolean;
@@ -163,8 +167,7 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
                 {isEventBreakdown
                   ? tct('[singularName] Events', {
                       singularName: toTitleCase(
-                        getCategoryInfoFromPlural(category as DataCategory)
-                          ?.displayName ?? category,
+                        getCategoryInfoFromPlural(category)?.displayName ?? category,
                         {allowInnerUpperCase: true}
                       ),
                     })

@@ -1,21 +1,21 @@
 import {ANNUAL, MONTHLY} from 'getsentry/constants';
 import type {Plan} from 'getsentry/types';
 import {CheckoutType} from 'getsentry/types';
+import {type DataCategory} from 'sentry/types/core';
 
 const AM2_CHECKOUT_CATEGORIES = [
-
   'errors',
   'transactions',
   'replays',
   'attachments',
   'monitorSeats',
   'uptime',
-]
+] as DataCategory[];
 
 const AM2_CATEGORIES = [...AM2_CHECKOUT_CATEGORIES,
   'profileDuration',
   'profileDurationUI',
-];
+] as DataCategory[];
 
 const AM2_CATEGORY_DISPLAY_NAMES = {
   errors: {singular: 'error', plural: 'errors'},

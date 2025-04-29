@@ -1,7 +1,6 @@
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 
-import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 
@@ -21,16 +20,16 @@ export function SubscriptionFixture(props: Props): TSubscription {
   const planDetails = (planData.planDetails || PlanDetailsLookupFixture(planData.plan)) as Plan;
 
   const hasPerformance = planDetails?.categories?.includes(
-    DATA_CATEGORY_INFO.transaction.plural
+    DataCategory.TRANSACTIONS
   );
-  const hasReplays = planDetails?.categories?.includes(DATA_CATEGORY_INFO.replay.plural);
+  const hasReplays = planDetails?.categories?.includes(DataCategory.REPLAYS);
   const hasMonitors = planDetails?.categories?.includes(
-    DATA_CATEGORY_INFO.monitorSeat.plural
+    DataCategory.MONITOR_SEATS
   );
-  const hasUptime = planDetails?.categories?.includes(DATA_CATEGORY_INFO.uptime.plural);
-  const hasSpans = planDetails?.categories?.includes(DATA_CATEGORY_INFO.span.plural);
+  const hasUptime = planDetails?.categories?.includes(DataCategory.UPTIME);
+  const hasSpans = planDetails?.categories?.includes(DataCategory.SPANS);
   const hasSpansIndexed = planDetails?.categories?.includes(
-    DATA_CATEGORY_INFO.spanIndexed.plural
+    DataCategory.SPANS_INDEXED
   );
   const hasProfileDuration = planDetails?.categories?.includes(
     DataCategory.PROFILE_DURATION
@@ -39,7 +38,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
     DataCategory.PROFILE_DURATION_UI
   );
   const hasAttachments = planDetails?.categories?.includes(
-    DATA_CATEGORY_INFO.attachment.plural
+    DataCategory.ATTACHMENTS
   );
 
   // Create a safe default for planCategories if it doesn't exist
@@ -145,14 +144,14 @@ export function SubscriptionFixture(props: Props): TSubscription {
     reservedBudgetCategories: [],
     categories: {
       errors: MetricHistoryFixture({
-        category: DATA_CATEGORY_INFO.error.plural,
+        category: DataCategory.ERRORS,
         reserved: safeCategories.errors?.[0]?.events || 5000,
         prepaid: safeCategories.errors?.[0]?.events || 5000,
         order: 1,
       }),
       ...(hasPerformance && {
         transactions: MetricHistoryFixture({
-          category: DATA_CATEGORY_INFO.transaction.plural,
+          category: DataCategory.TRANSACTIONS,
           reserved: safeCategories.transactions?.[0]?.events || 10000,
           prepaid: safeCategories.transactions?.[0]?.events || 10000,
           order: 2,
@@ -160,7 +159,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
       }),
       ...(hasReplays && {
         replays: MetricHistoryFixture({
-          category: DATA_CATEGORY_INFO.replay.plural,
+          category: DataCategory.REPLAYS,
           reserved: safeCategories.replays?.[0]?.events || 500,
           prepaid: safeCategories.replays?.[0]?.events || 500,
           order: 4,
@@ -168,7 +167,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
       }),
       ...(hasSpans && {
         spans: MetricHistoryFixture({
-          category: DATA_CATEGORY_INFO.span.plural,
+          category: DataCategory.SPANS,
           reserved: safeCategories.spans?.[0]?.events || 10000000,
           prepaid: safeCategories.spans?.[0]?.events || 10000000,
           order: 5,
@@ -176,7 +175,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
       }),
       ...(hasSpansIndexed && {
         spansIndexed: MetricHistoryFixture({
-          category: DATA_CATEGORY_INFO.spanIndexed.plural,
+          category: DataCategory.SPANS_INDEXED,
           reserved: safeCategories.spans?.[0]?.events || 10000000,
           prepaid: safeCategories.spans?.[0]?.events || 10000000,
           order: 6,
@@ -184,7 +183,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
       }),
       ...(hasMonitors && {
         monitorSeats: MetricHistoryFixture({
-          category: DATA_CATEGORY_INFO.monitorSeat.plural,
+          category: DataCategory.MONITOR_SEATS,
           reserved: safeCategories.monitorSeats?.[0]?.events || 1,
           prepaid: safeCategories.monitorSeats?.[0]?.events || 1,
           order: 7,
@@ -192,7 +191,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
       }),
       ...(hasUptime && {
         uptime: MetricHistoryFixture({
-          category: DATA_CATEGORY_INFO.uptime.plural,
+          category: DataCategory.UPTIME,
           reserved: safeCategories.uptime?.[0]?.events || 1,
           prepaid: safeCategories.uptime?.[0]?.events || 1,
           order: 8,
@@ -200,7 +199,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
       }),
       ...(hasAttachments && {
         attachments: MetricHistoryFixture({
-          category: DATA_CATEGORY_INFO.attachment.plural,
+          category: DataCategory.ATTACHMENTS,
           reserved: safeCategories.attachments?.[0]?.events || 1,
           prepaid: safeCategories.attachments?.[0]?.events || 1,
           order: 9,
@@ -232,17 +231,17 @@ export function InvoicedSubscriptionFixture(props: Props): TSubscription {
   const planData = {plan: 'am2_business_ent_auf', ...params};
   const planDetails = PlanDetailsLookupFixture(planData.plan);
 
-  const hasErrors = planDetails?.categories?.includes(DATA_CATEGORY_INFO.error.plural);
+  const hasErrors = planDetails?.categories?.includes(DataCategory.ERRORS);
   const hasPerformance = planDetails?.categories?.includes(
-    DATA_CATEGORY_INFO.transaction.plural
+    DataCategory.TRANSACTIONS
   );
-  const hasReplays = planDetails?.categories?.includes(DATA_CATEGORY_INFO.replay.plural);
+  const hasReplays = planDetails?.categories?.includes(DataCategory.REPLAYS);
   const hasMonitors = planDetails?.categories?.includes(
-    DATA_CATEGORY_INFO.monitorSeat.plural
+    DataCategory.MONITOR_SEATS
   );
-  const hasSpans = planDetails?.categories?.includes(DATA_CATEGORY_INFO.span.plural);
+  const hasSpans = planDetails?.categories?.includes(DataCategory.SPANS);
   const hasAttachments = planDetails?.categories?.includes(
-    DATA_CATEGORY_INFO.attachment.plural
+    DataCategory.ATTACHMENTS
   );
 
   return {
@@ -344,7 +343,7 @@ export function InvoicedSubscriptionFixture(props: Props): TSubscription {
     categories: {
       ...(hasErrors && {
         errors: MetricHistoryFixture({
-          category: DATA_CATEGORY_INFO.error.plural,
+          category: DataCategory.ERRORS,
           reserved: planDetails!.planCategories.errors![0]!.events,
           prepaid: planDetails!.planCategories.errors![0]!.events,
           order: 1,
@@ -352,7 +351,7 @@ export function InvoicedSubscriptionFixture(props: Props): TSubscription {
       }),
       ...(hasPerformance && {
         transactions: MetricHistoryFixture({
-          category: DATA_CATEGORY_INFO.transaction.plural,
+          category: DataCategory.TRANSACTIONS,
           reserved: planDetails!.planCategories.transactions![0]!.events,
           prepaid: planDetails!.planCategories.transactions![0]!.events,
           order: 2,
@@ -360,7 +359,7 @@ export function InvoicedSubscriptionFixture(props: Props): TSubscription {
       }),
       ...(hasReplays && {
         replays: MetricHistoryFixture({
-          category: DATA_CATEGORY_INFO.replay.plural,
+          category: DataCategory.REPLAYS,
           reserved: planDetails!.planCategories.replays![0]!.events,
           prepaid: planDetails!.planCategories.replays![0]!.events,
           order: 4,
@@ -368,13 +367,13 @@ export function InvoicedSubscriptionFixture(props: Props): TSubscription {
       }),
       ...(hasSpans && {
         spans: MetricHistoryFixture({
-          category: DATA_CATEGORY_INFO.span.plural,
+          category: DataCategory.SPANS,
           reserved: planDetails!.planCategories.spans![0]!.events,
           prepaid: planDetails!.planCategories.spans![0]!.events,
           order: 5,
         }),
         spansIndexed: MetricHistoryFixture({
-          category: DATA_CATEGORY_INFO.spanIndexed.plural,
+          category: DataCategory.SPANS_INDEXED,
           reserved: planDetails!.planCategories.spans![0]!.events,
           prepaid: planDetails!.planCategories.spans![0]!.events,
           order: 6,
@@ -382,7 +381,7 @@ export function InvoicedSubscriptionFixture(props: Props): TSubscription {
       }),
       ...(hasMonitors && {
         monitorSeats: MetricHistoryFixture({
-          category: DATA_CATEGORY_INFO.monitorSeat.plural,
+          category: DataCategory.MONITOR_SEATS,
           reserved: planDetails!.planCategories.monitorSeats![0]!.events,
           prepaid: planDetails!.planCategories.monitorSeats![0]!.events,
           order: 7,
@@ -390,7 +389,7 @@ export function InvoicedSubscriptionFixture(props: Props): TSubscription {
       }),
       ...(hasAttachments && {
         attachments: MetricHistoryFixture({
-          category: DATA_CATEGORY_INFO.attachment.plural,
+          category: DataCategory.ATTACHMENTS,
           reserved: planDetails!.planCategories.attachments![0]!.events,
           prepaid: planDetails!.planCategories.attachments![0]!.events,
           order: 8,
@@ -411,7 +410,7 @@ export function Am3DsEnterpriseSubscriptionFixture(props: Props): TSubscription 
     planTier: planData.planTier,
   });
   subscription.hasReservedBudgets = true;
-  subscription.reservedBudgetCategories = ['spans', 'spansIndexed'];
+  subscription.reservedBudgetCategories = [DataCategory.SPANS, DataCategory.SPANS_INDEXED];
   subscription.reservedBudgets = [
     ReservedBudgetFixture({
       id: '11',

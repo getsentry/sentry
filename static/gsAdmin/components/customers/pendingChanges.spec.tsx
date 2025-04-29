@@ -8,6 +8,8 @@ import {
 } from 'getsentry-test/fixtures/subscription';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {DataCategory} from 'sentry/types/core';
+
 import PendingChanges from 'admin/components/customers/pendingChanges';
 import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
@@ -168,7 +170,11 @@ describe('PendingChanges', function () {
           name: 'Team (Enterprise)',
           contractInterval: 'annual',
           billingInterval: 'annual',
-          onDemandCategories: ['errors', 'transactions', 'attachments'],
+          onDemandCategories: [
+            DataCategory.ERRORS,
+            DataCategory.TRANSACTIONS,
+            DataCategory.ATTACHMENTS,
+          ],
           budgetTerm: 'on-demand',
         }),
         onDemandBudgets: {
@@ -218,7 +224,11 @@ describe('PendingChanges', function () {
           name: 'Team (Enterprise)',
           contractInterval: 'annual',
           billingInterval: 'annual',
-          onDemandCategories: ['errors', 'transactions', 'attachments'],
+          onDemandCategories: [
+            DataCategory.ERRORS,
+            DataCategory.TRANSACTIONS,
+            DataCategory.ATTACHMENTS,
+          ],
           budgetTerm: 'on-demand',
         }),
         onDemandBudgets: {
@@ -269,11 +279,11 @@ describe('PendingChanges', function () {
           contractInterval: 'annual',
           billingInterval: 'annual',
           onDemandCategories: [
-            'errors',
-            'attachments',
-            'spans',
-            'replays',
-            'monitorSeats',
+            DataCategory.ERRORS,
+            DataCategory.ATTACHMENTS,
+            DataCategory.SPANS,
+            DataCategory.REPLAYS,
+            DataCategory.MONITOR_SEATS,
           ],
         }),
         reservedEvents: 50_000,

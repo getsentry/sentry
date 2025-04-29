@@ -2,7 +2,7 @@ import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLooku
 
 import {DataCategory} from 'sentry/types/core';
 
-import {PlanTier} from 'getsentry/types';
+import {InvoiceItemType, PlanTier} from 'getsentry/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 
@@ -81,7 +81,7 @@ describe('utils', function () {
           basePrice: 1000,
           amount: 10 * 100,
           discountType: 'percentPoints',
-          creditCategory: 'subscription',
+          creditCategory: InvoiceItemType.SUBSCRIPTION,
         })
       ).toBe(900);
       expect(
@@ -89,7 +89,7 @@ describe('utils', function () {
           basePrice: 8900,
           amount: 40 * 100,
           discountType: 'percentPoints',
-          creditCategory: 'subscription',
+          creditCategory: InvoiceItemType.SUBSCRIPTION,
         })
       ).toBe(5340);
       expect(
@@ -97,7 +97,7 @@ describe('utils', function () {
           basePrice: 10000,
           amount: 1000,
           discountType: 'amountCents',
-          creditCategory: 'subscription',
+          creditCategory: InvoiceItemType.SUBSCRIPTION,
         })
       ).toBe(9000);
     });

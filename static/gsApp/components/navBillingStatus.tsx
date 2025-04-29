@@ -26,12 +26,12 @@ import {
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
 import useSubscription from 'getsentry/hooks/useSubscription';
 import {
-  type DataCategories,
+  type BillingMetricHistory,
   OnDemandBudgetMode,
   type Subscription,
 } from 'getsentry/types';
-import {getCategoryInfoFromPlural} from 'getsentry/utils/billing';
 import {
+  getCategoryInfoFromPlural,
   getSingularCategoryName,
   listDisplayNames,
   sortCategoriesWithKeys,
@@ -60,7 +60,7 @@ function QuotaExceededContent({
   onCheck,
   isDismissed,
 }: {
-  exceededCategories: string[];
+  exceededCategories: DataCategory[];
   isDismissed: boolean;
   onCheck: ({
     checked,
@@ -75,7 +75,7 @@ function QuotaExceededContent({
   subscription: Subscription;
 }) {
   const eventTypes: EventType[] = exceededCategories.map(category => {
-    const categoryInfo = getCategoryInfoFromPlural(category as DataCategory);
+    const categoryInfo = getCategoryInfoFromPlural(category);
     return (categoryInfo?.name ?? category) as EventType;
   });
   return (
@@ -89,7 +89,7 @@ function QuotaExceededContent({
             ? tct('[category] Quota Exceeded', {
                 category: getSingularCategoryName({
                   plan: subscription.planDetails,
-                  category: exceededCategories[0] as DataCategory,
+                  category: exceededCategories[0]!,
                   hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
                   title: true,
                 }),
@@ -139,7 +139,11 @@ function QuotaExceededContent({
 
 function PrimaryNavigationQuotaExceeded({organization}: {organization: Organization}) {
   const subscription = useSubscription();
-  const exceededCategories = sortCategoriesWithKeys(subscription?.categories ?? {})
+  const exceededCategories = (
+    sortCategoriesWithKeys(subscription?.categories ?? {}) as Array<
+      [DataCategory, BillingMetricHistory]
+    >
+  )
     .filter(
       ([category]) =>
         category !== DataCategory.SPANS_INDEXED || subscription?.hadCustomDynamicSampling
@@ -148,7 +152,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
       if (currentHistory.usageExceeded) {
         const designatedBudget =
           subscription?.onDemandBudgets?.budgetMode === OnDemandBudgetMode.PER_CATEGORY
-            ? subscription.onDemandBudgets.budgets[category as DataCategories]
+            ? subscription.onDemandBudgets.budgets[category]
             : subscription?.onDemandMaxSpend;
         if (
           !designatedBudget &&
@@ -161,10 +165,10 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
         acc.push(category);
       }
       return acc;
-    }, [] as string[]);
+    }, [] as DataCategory[]);
   const promptsToCheck = exceededCategories
     .map(category => {
-      const categoryInfo = getCategoryInfoFromPlural(category as DataCategory);
+      const categoryInfo = getCategoryInfoFromPlural(category);
       return `${categoryInfo?.snakeCasePlural ?? category}_overage_alert`;
     })
     .filter(Boolean);

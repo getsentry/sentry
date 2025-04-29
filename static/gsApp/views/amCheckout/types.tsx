@@ -26,6 +26,7 @@ export type CheckoutAPIData = BaseCheckoutData & {
   paymentIntent?: string;
   previewToken?: string;
   referrer?: string;
+  // TODO(data categories): check if these can be parsed
   reservedAttachments?: number;
   reservedErrors?: number;
   reservedMonitorSeats?: number;
