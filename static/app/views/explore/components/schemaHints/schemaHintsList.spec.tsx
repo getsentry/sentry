@@ -289,10 +289,7 @@ describe('SchemaHintsList', () => {
         stringTags={mockStringTags}
         numberTags={mockNumberTags}
         supportedAggregates={[]}
-      />,
-      {
-        organization,
-      }
+      />
     );
 
     const stringTag1Hint = screen.getByText('stringTag1');
