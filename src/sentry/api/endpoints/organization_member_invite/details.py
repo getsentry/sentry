@@ -189,34 +189,6 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
     def delete(
         self, request: Request, organization: Organization, invited_member: OrganizationMemberInvite
     ) -> Response:
-        # with superuser read write separation, superuser read cannot hit this endpoint
-        # so we can keep this as is_active_superuser
-        if request.user.is_authenticated and not is_active_superuser(request):
-            try:
-                acting_member = OrganizationMember.objects.get(
-                    organization=organization, user_id=request.user.id
-                )
-            except OrganizationMember.DoesNotExist:
-                return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
-
-            has_member_admin_scope = request.access.has_scope("member:admin")
-            if not has_member_admin_scope:
-                can_invite_members = request.access.has_scope("member:invite")
-                if can_invite_members:
-                    return self._handle_deletion_by_member(
-                        request, organization, invited_member, acting_member
-                    )
-                return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
-            else:
-                can_manage = roles.can_manage(acting_member.role, invited_member.role)
-
-                if not can_manage:
-                    return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
-
-        # prevents superuser read from deleting an invite or invite request
-        elif not request.access.has_scope("member:admin"):
-            return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
-
         if invited_member.idp_provisioned:
             return Response(
                 {"detail": "This invite is managed through your organization's identity provider."},
@@ -229,6 +201,36 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
                 },
                 status=400,
             )
+
+        # with superuser read write separation, superuser read cannot hit this endpoint
+        # so we can keep this as is_active_superuser
+        if request.user.is_authenticated and not is_active_superuser(request):
+            try:
+                acting_member = OrganizationMember.objects.get(
+                    organization=organization, user_id=request.user.id
+                )
+            except OrganizationMember.DoesNotExist:
+                return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
+
+            has_member_admin_scope = request.access.has_scope("member:admin")
+            can_invite_members = request.access.has_scope("member:invite")
+
+            if not has_member_admin_scope:
+                if can_invite_members:
+                    return self._handle_deletion_by_member(
+                        request, organization, invited_member, acting_member
+                    )
+                return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
+            else:
+                can_manage = roles.can_manage(acting_member.role, invited_member.role)
+
+                if not can_manage:
+                    return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
+
+        # prevents superuser read from deleting an invite or invite request
+        # superuser without member:admin scopes
+        elif not request.access.has_scope("member:admin"):
+            return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
 
         if invited_member.invite_approved:
             self._remove_invite_from_db(
