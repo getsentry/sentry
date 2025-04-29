@@ -263,7 +263,7 @@ describe('ProjectsDashboard', function () {
       expect(screen.getAllByTestId('badge-display-name')).toHaveLength(1);
     });
 
-    it('renders only projects for my teams if open membership is disabled + unassigned projects', async function () {
+    it('renders only projects for my teams if open membership is disabled', async function () {
       const {organization: closedOrg, router} = initializeOrg({
         organization: {features: []},
         router: {
@@ -304,9 +304,9 @@ describe('ProjectsDashboard', function () {
         deprecatedRouterMocks: true,
       });
       expect(await screen.findByText('All Teams')).toBeInTheDocument();
-      expect(screen.getAllByTestId('badge-display-name')).toHaveLength(2);
+      expect(screen.getAllByTestId('badge-display-name')).toHaveLength(1);
       expect(screen.getByText('project1')).toBeInTheDocument();
-      expect(screen.getByText('project2')).toBeInTheDocument();
+      expect(screen.queryByText('project2')).not.toBeInTheDocument();
     });
 
     it('renders correct project with selected team', async function () {
