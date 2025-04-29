@@ -1,6 +1,5 @@
 from sentry import eventstore
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
-from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident
 from sentry.models.commit import Commit
@@ -40,7 +39,10 @@ from sentry.workflow_engine.models import (
     DataSourceDetector,
     Detector,
     DetectorWorkflow,
+    Workflow,
 )
+from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 pytestmark = [requires_snuba]
@@ -226,9 +228,6 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
 
     def test_delete_with_workflow_engine_models(self):
         project = self.create_project(name="test")
-
-        data_condition_group = self.create_data_condition_group()
-        data_condition = self.create_data_condition(condition_group=data_condition_group)
         snuba_query = self.create_snuba_query()
         subscription = QuerySubscription.objects.create(
             project=project,
@@ -239,17 +238,26 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         data_source = self.create_data_source(
             organization=self.organization, source_id=subscription.id
         )
-        detector = self.create_detector(
-            project_id=project.id,
-            name="Test Detector",
-            type=MetricIssue.slug,
-            workflow_condition_group=data_condition_group,
+        detector_data_condition_group = self.create_data_condition_group(
+            organization=self.organization
         )
-        workflow = self.create_workflow()
+        (
+            workflow,
+            detector,
+            detector_workflow,
+            _,  # the workflow trigger group for a migrated metric alert rule is None
+        ) = self.create_detector_and_workflow(project=project)
+        detector.update(workflow_condition_group=detector_data_condition_group)
+        detector_trigger = self.create_data_condition(
+            comparison=200,
+            condition_result=DetectorPriorityLevel.HIGH,
+            type=Condition.GREATER_OR_EQUAL,
+            condition_group=detector_data_condition_group,
+        )
+
         data_source_detector = self.create_data_source_detector(
             data_source=data_source, detector=detector
         )
-        detector_workflow = DetectorWorkflow.objects.create(detector=detector, workflow=workflow)
 
         self.ScheduledDeletion.schedule(instance=project, days=0)
 
@@ -259,8 +267,9 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         assert not Detector.objects.filter(id=detector.id).exists()
         assert not DataSourceDetector.objects.filter(id=data_source_detector.id).exists()
         assert not DetectorWorkflow.objects.filter(id=detector_workflow.id).exists()
-        assert not DataConditionGroup.objects.filter(id=data_condition_group.id).exists()
-        assert not DataCondition.objects.filter(id=data_condition.id).exists()
+        assert not DataConditionGroup.objects.filter(id=detector_data_condition_group.id).exists()
+        assert not DataCondition.objects.filter(id=detector_trigger.id).exists()
         assert not DataSource.objects.filter(id=data_source.id).exists()
         assert not QuerySubscription.objects.filter(id=subscription.id).exists()
         assert not SnubaQuery.objects.filter(id=snuba_query.id).exists()
+        assert Workflow.objects.filter(id=workflow.id).exists()
