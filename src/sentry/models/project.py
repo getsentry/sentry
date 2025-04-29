@@ -385,7 +385,7 @@ class Project(Model):
             super().save(*args, **kwargs)
 
     def save(self, *args, **kwargs):
-        if self.id is not None:
+        if getattr(self, "id", None) is not None:
             # no need to acquire lock if we're updating an existing project
             self._save_project(*args, **kwargs)
             return
