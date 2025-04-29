@@ -184,6 +184,7 @@ export function EnvironmentPageFilter({
   return (
     <HybridFilter
       {...selectProps}
+      checkboxPosition="leading"
       searchable
       multiple
       options={options}

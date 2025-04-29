@@ -387,6 +387,7 @@ export function ProjectPageFilter({
     <HybridFilter
       {...selectProps}
       searchable
+      checkboxPosition="trailing"
       multiple={allowMultiple}
       options={options}
       value={value}
