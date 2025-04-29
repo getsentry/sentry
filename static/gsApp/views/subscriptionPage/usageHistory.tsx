@@ -71,7 +71,7 @@ function getCategoryDisplay({
 }: DisplayProps): React.ReactNode {
   const displayName = getPlanCategoryName({
     plan,
-    category: metricHistory.category as DataCategory,
+    category: metricHistory.category,
     hadCustomDynamicSampling,
   });
   const softCapName = getSoftCapType(metricHistory);

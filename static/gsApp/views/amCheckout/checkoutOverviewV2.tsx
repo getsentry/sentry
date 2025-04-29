@@ -120,7 +120,7 @@ function CheckoutOverviewV2({activePlan, formData}: Props) {
       <Section>
         <Subtitle>{t('All Sentry Products')}</Subtitle>
         <ReservedVolumes>
-          {(activePlan.categories as DataCategory[]).map(category => {
+          {activePlan.categories.map(category => {
             const eventBucket =
               activePlan.planCategories[category] &&
               activePlan.planCategories[category].length <= 1

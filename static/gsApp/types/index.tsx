@@ -81,15 +81,15 @@ export type Plan = {
    * All available data categories on the current plan tier.
    * Can be used for category upsells.
    */
-  availableCategories: string[];
+  availableCategories: DataCategory[];
   basePrice: number;
   billingInterval: 'monthly' | 'annual';
   budgetTerm: 'pay-as-you-go' | 'on-demand';
   /**
    * Data categories on the plan (errors, transactions, etc.)
    */
-  categories: string[];
-  checkoutCategories: string[];
+  categories: DataCategory[];
+  checkoutCategories: DataCategory[];
   contractInterval: 'monthly' | 'annual';
   description: string;
   features: string[];
@@ -99,7 +99,7 @@ export type Plan = {
   isTestPlan: boolean;
   maxMembers: number | null;
   name: string;
-  onDemandCategories: string[];
+  onDemandCategories: DataCategory[];
   onDemandEventPrice: number;
   planCategories: Partial<Record<DataCategory, EventBucket[]>>;
   price: number;
@@ -330,7 +330,7 @@ export type Subscription = {
   prepaidEventsAllowed: number | null;
   renewalDate: string;
   reservedAttachments: number | null;
-  reservedBudgetCategories: string[] | null;
+  reservedBudgetCategories: DataCategory[] | null;
   /**
    * For am1 plan tier, null for previous tiers
    */
@@ -412,7 +412,7 @@ export type DiscountInfo = {
   billingInterval: 'monthly' | 'annual';
   billingPeriods: number;
   // TODO: better typing
-  creditCategory: string;
+  creditCategory: InvoiceItemType;
   disclaimerText: string;
   discountType: 'percentPoints' | 'events';
   durationText: string;
@@ -631,7 +631,7 @@ export type BillingMetricHistory = {
   /**
    * Category name (e.g. "errors")
    */
-  category: string;
+  category: DataCategory;
   customPrice: number | null;
   free: number;
   onDemandBudget: number;
@@ -670,7 +670,7 @@ export type BillingHistory = {
   plan: string;
   planName: string;
   reserved: Partial<Record<DataCategory, number | null>>;
-  reservedBudgetCategories: string[];
+  reservedBudgetCategories: DataCategory[];
   usage: Partial<Record<DataCategory, number>>;
   planDetails?: Plan;
   reservedBudgets?: ReservedBudget[];

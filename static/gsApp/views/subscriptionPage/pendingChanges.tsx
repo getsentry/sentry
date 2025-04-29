@@ -89,12 +89,12 @@ class PendingChanges extends Component<Props> {
                 currentOnDemandBudgets: formatOnDemandBudget(
                   subscription.planDetails,
                   currentOnDemandBudgets,
-                  subscription.planDetails.onDemandCategories as DataCategory[]
+                  subscription.planDetails.onDemandCategories
                 ),
                 nextOnDemandBudgets: formatOnDemandBudget(
                   pendingChanges.planDetails,
                   nextOnDemandBudgets,
-                  pendingChanges.planDetails.onDemandCategories as DataCategory[]
+                  pendingChanges.planDetails.onDemandCategories
                 ),
               }
             )
@@ -182,21 +182,21 @@ class PendingChanges extends Component<Props> {
     Object.values(DATA_CATEGORY_INFO)
       .filter(categoryInfo => categoryInfo.isBilledCategory)
       .forEach(categoryInfo => {
-        const plural = categoryInfo.plural;
+        const category = categoryInfo.plural as DataCategory;
         if (
-          this.hasChange(`reserved.${plural}`, `categories.${plural}.reserved`) &&
-          pendingChanges.reserved[plural] !== RESERVED_BUDGET_QUOTA
+          this.hasChange(`reserved.${category}`, `categories.${category}.reserved`) &&
+          pendingChanges.reserved[category] !== RESERVED_BUDGET_QUOTA
         ) {
           results.push(
             tct('Reserved [displayName] change to [quantity]', {
               displayName: getPlanCategoryName({
                 plan: pendingChanges.planDetails,
-                category: plural as DataCategory,
+                category,
                 capitalize: false,
               }),
               quantity: formatReservedWithUnits(
-                pendingChanges.reserved[plural] ?? null,
-                plural
+                pendingChanges.reserved[category] ?? null,
+                category
               ),
             })
           );
@@ -269,7 +269,7 @@ class PendingChanges extends Component<Props> {
 
     if (this.hasReservedBudgetChange()) {
       const reservedBudgetChanges = pendingChanges.reservedBudgets.map(budget => {
-        const budgetCategories = Object.keys(budget.categories);
+        const budgetCategories = Object.keys(budget.categories) as DataCategory[];
         const isSpansBudget =
           budgetCategories.length === 2 &&
           budgetCategories.includes(DataCategory.SPANS) &&
@@ -281,7 +281,7 @@ class PendingChanges extends Component<Props> {
         const newAmount = formatCurrency(budget.reservedBudget);
         const budgetName = getReservedBudgetDisplayName({
           plan: pendingChanges.planDetails,
-          categories: adjustedCategories as DataCategory[],
+          categories: adjustedCategories,
           hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
         });
         return `${newAmount} for ${budgetName}`;

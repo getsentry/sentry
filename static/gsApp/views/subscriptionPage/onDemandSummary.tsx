@@ -13,7 +13,6 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -172,7 +171,7 @@ class OnDemandSummary extends Component<Props, State> {
     const events = Math.trunc((value * 100) / pricePerEvent);
     const oxfordCategories = listDisplayNames({
       plan: subscription.planDetails,
-      categories: subscription.planDetails.categories as DataCategory[],
+      categories: subscription.planDetails.categories,
     });
 
     return (

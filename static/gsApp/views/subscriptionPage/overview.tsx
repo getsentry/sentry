@@ -207,7 +207,7 @@ function Overview({location, subscription, promotionData}: Props) {
     return (
       <TotalsWrapper>
         {sortCategories(subscription.categories).map(categoryHistory => {
-          const category = categoryHistory.category as DataCategory;
+          const category = categoryHistory.category;
           // Stored spans are combined into the accepted spans category's table
           if (category === DataCategory.SPANS_INDEXED) {
             return null;

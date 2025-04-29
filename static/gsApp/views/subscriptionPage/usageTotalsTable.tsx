@@ -23,7 +23,7 @@ import {StripedTable} from 'getsentry/views/subscriptionPage/styles';
 import {displayPercentage} from 'getsentry/views/subscriptionPage/usageTotals';
 
 type RowProps = {
-  category: string;
+  category: DataCategory;
   /**
    * Name of outcome reason (e.g. Over Quota, Spike Protection, etc.)
    */
@@ -92,7 +92,7 @@ function OutcomeRow({
 }
 
 type OutcomeSectionProps = {
-  category: string;
+  category: DataCategory;
   children: React.ReactNode;
   name: string;
   quantity: number;

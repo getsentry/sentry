@@ -73,7 +73,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
       : BigNumUnits.NUMBERS;
   }, [selectedMetric]);
 
-  const supportedCategories = (planDetails.categories as DataCategory[]).filter(
+  const supportedCategories = planDetails.categories.filter(
     category => getCategoryInfoFromPlural(category)?.canAllocate
   );
 

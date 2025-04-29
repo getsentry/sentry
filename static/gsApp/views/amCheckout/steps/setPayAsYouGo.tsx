@@ -12,7 +12,6 @@ import PanelFooter from 'sentry/components/panels/panelFooter';
 import {IconAdd, IconInfo, IconLock, IconSentry, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DataCategory} from 'sentry/types/core';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
@@ -143,7 +142,7 @@ function SetPayAsYouGo({
                 <span>
                   {getPlanCategoryName({
                     plan: activePlan,
-                    category: category as DataCategory,
+                    category,
                   })}
                 </span>
               </li>
@@ -166,7 +165,7 @@ function SetPayAsYouGo({
                     <span>
                       {getPlanCategoryName({
                         plan: activePlan,
-                        category: category as DataCategory,
+                        category,
                       })}
                     </span>
                   </li>

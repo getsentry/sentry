@@ -134,7 +134,7 @@ type FormatOptions = {
  */
 export function formatReservedWithUnits(
   reservedQuantity: ReservedSku,
-  dataCategory: string,
+  dataCategory: DataCategory,
   options: FormatOptions = {
     isAbbreviated: false,
     useUnitScaling: false,
@@ -169,7 +169,7 @@ export function formatReservedWithUnits(
  */
 export function formatUsageWithUnits(
   usageQuantity = 0,
-  dataCategory: string,
+  dataCategory: DataCategory,
   options: FormatOptions = {isAbbreviated: false, useUnitScaling: false}
 ) {
   if (dataCategory === DataCategory.ATTACHMENTS) {

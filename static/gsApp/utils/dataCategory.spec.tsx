@@ -97,7 +97,7 @@ describe('hasCategoryFeature', function () {
 
   it('returns org does not have unknown feature', function () {
     const org = {...organization, features: []};
-    expect(hasCategoryFeature('unknown', subscription, org)).toBe(false);
+    expect(hasCategoryFeature('unknown' as DataCategory, subscription, org)).toBe(false);
   });
 
   it('returns sorted categories', function () {
@@ -328,7 +328,7 @@ describe('listDisplayNames', function () {
     expect(
       listDisplayNames({
         plan: plan!,
-        categories: plan!.checkoutCategories as DataCategory[],
+        categories: plan!.checkoutCategories,
         hadCustomDynamicSampling: false,
       })
     ).toBe('errors, replays, attachments, cron monitors, spans, and uptime monitors');
@@ -338,7 +338,7 @@ describe('listDisplayNames', function () {
     expect(
       listDisplayNames({
         plan: plan!,
-        categories: plan!.checkoutCategories as DataCategory[],
+        categories: plan!.checkoutCategories,
         hadCustomDynamicSampling: true,
       })
     ).toBe(

@@ -168,7 +168,7 @@ type State = {expanded: boolean; trialButtonBusy: boolean};
  *   - prepaidUsage: Number of events used within prepaid limit
  */
 export function calculateCategoryPrepaidUsage(
-  category: string,
+  category: DataCategory,
   subscription: Subscription,
   prepaid: number,
   accepted?: number | null,
@@ -185,7 +185,7 @@ export function calculateCategoryPrepaidUsage(
   prepaidUsage: number;
 } {
   const categoryInfo: BillingMetricHistory | undefined =
-    subscription.categories[category as DataCategory];
+    subscription.categories[category];
   const usage = accepted ?? categoryInfo?.usage ?? 0;
 
   // Calculate the prepaid total
@@ -259,7 +259,7 @@ export function calculateCategoryPrepaidUsage(
 }
 
 export function calculateCategoryOnDemandUsage(
-  category: string,
+  category: DataCategory,
   subscription: Subscription
 ): {
   /**
@@ -280,7 +280,7 @@ export function calculateCategoryOnDemandUsage(
   const isSharedOnDemand = 'sharedMaxBudget' in onDemandBudgets;
   const onDemandTotalAvailable = isSharedOnDemand
     ? onDemandBudgets.sharedMaxBudget
-    : getOnDemandBudget(onDemandBudgets, category as DataCategory);
+    : getOnDemandBudget(onDemandBudgets, category);
   const {onDemandTotalSpent} = calculateTotalSpend(subscription);
   const {onDemandSpent: onDemandCategorySpend} = calculateCategorySpend(
     subscription,
@@ -310,7 +310,7 @@ function ReservedUsage({
   category,
   productTrial,
 }: {
-  category: string;
+  category: DataCategory;
   prepaidUsage: number;
   productTrial: ProductTrial | null;
   reserved: number | null;

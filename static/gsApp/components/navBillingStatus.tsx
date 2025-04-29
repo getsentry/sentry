@@ -25,7 +25,11 @@ import {
 
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
 import useSubscription from 'getsentry/hooks/useSubscription';
-import {OnDemandBudgetMode, type Subscription} from 'getsentry/types';
+import {
+  type BillingMetricHistory,
+  OnDemandBudgetMode,
+  type Subscription,
+} from 'getsentry/types';
 import {
   getCategoryInfoFromPlural,
   getSingularCategoryName,
@@ -85,7 +89,7 @@ function QuotaExceededContent({
             ? tct('[category] Quota Exceeded', {
                 category: getSingularCategoryName({
                   plan: subscription.planDetails,
-                  category: exceededCategories[0] as DataCategory,
+                  category: exceededCategories[0]!,
                   hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
                   title: true,
                 }),
@@ -135,7 +139,11 @@ function QuotaExceededContent({
 
 function PrimaryNavigationQuotaExceeded({organization}: {organization: Organization}) {
   const subscription = useSubscription();
-  const exceededCategories = sortCategoriesWithKeys(subscription?.categories ?? {})
+  const exceededCategories = (
+    sortCategoriesWithKeys(subscription?.categories ?? {}) as Array<
+      [DataCategory, BillingMetricHistory]
+    >
+  )
     .filter(
       ([category]) =>
         category !== DataCategory.SPANS_INDEXED || subscription?.hadCustomDynamicSampling
@@ -144,7 +152,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
       if (currentHistory.usageExceeded) {
         const designatedBudget =
           subscription?.onDemandBudgets?.budgetMode === OnDemandBudgetMode.PER_CATEGORY
-            ? subscription.onDemandBudgets.budgets[category as DataCategory]
+            ? subscription.onDemandBudgets.budgets[category]
             : subscription?.onDemandMaxSpend;
         if (
           !designatedBudget &&
@@ -154,7 +162,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
           // if there is no PAYG
           return acc;
         }
-        acc.push(category as DataCategory);
+        acc.push(category);
       }
       return acc;
     }, [] as DataCategory[]);

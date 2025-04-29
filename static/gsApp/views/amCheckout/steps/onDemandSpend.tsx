@@ -9,7 +9,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DataCategory} from 'sentry/types/core';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {listDisplayNames} from 'getsentry/utils/dataCategory';
@@ -45,7 +44,7 @@ function OnDemandSpend({
   const title = t('On-Demand Max Spend');
   const oxfordCategories = listDisplayNames({
     plan: activePlan,
-    categories: activePlan.checkoutCategories as DataCategory[],
+    categories: activePlan.checkoutCategories,
   });
 
   return (

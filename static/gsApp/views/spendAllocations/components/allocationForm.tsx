@@ -270,7 +270,7 @@ function AllocationForm({
             <Title>{t('Select Category:')}</Title>
             <Select
               name="category"
-              options={(subscription.planDetails.categories as DataCategory[])
+              options={subscription.planDetails.categories
                 .filter(category => getCategoryInfoFromPlural(category)?.canAllocate)
                 .map(category => ({
                   value: category,

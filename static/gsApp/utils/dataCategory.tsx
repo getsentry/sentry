@@ -182,11 +182,11 @@ export function sortCategoriesWithKeys(
 /**
  * Whether the subscription plan includes a data category.
  */
-function hasCategory(subscription: Subscription, category: string) {
+function hasCategory(subscription: Subscription, category: DataCategory) {
   return hasPlanCategory(subscription.planDetails, category);
 }
 
-function hasPlanCategory(plan: Plan, category: string) {
+function hasPlanCategory(plan: Plan, category: DataCategory) {
   return plan.categories.includes(category);
 }
 
@@ -197,7 +197,7 @@ function hasPlanCategory(plan: Plan, category: string) {
  * custom feature handlers and plan trial. Used for usage UI.
  */
 export function hasCategoryFeature(
-  category: string,
+  category: DataCategory,
   subscription: Subscription,
   organization: Organization
 ) {
@@ -205,7 +205,7 @@ export function hasCategoryFeature(
     return true;
   }
 
-  const feature = getCategoryInfoFromPlural(category as DataCategory)?.feature;
+  const feature = getCategoryInfoFromPlural(category)?.feature;
   if (!feature) {
     return false;
   }

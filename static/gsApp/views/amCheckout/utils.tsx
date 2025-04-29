@@ -24,6 +24,7 @@ import type {
   PreviewData,
   Subscription,
 } from 'getsentry/types';
+import {InvoiceItemType} from 'getsentry/types';
 import {getSlot} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
@@ -175,7 +176,7 @@ type ReservedTotalProps = {
   plan: Plan;
   reserved: Partial<Record<DataCategory, number>>;
   amount?: number;
-  creditCategory?: string;
+  creditCategory?: InvoiceItemType;
   discountType?: string;
   maxDiscount?: number;
 };
@@ -245,7 +246,7 @@ export function getReservedTotal({
 type DiscountedPriceProps = {
   amount: number;
   basePrice: number;
-  creditCategory: string;
+  creditCategory: InvoiceItemType;
   discountType: string;
 };
 
@@ -259,7 +260,10 @@ export function getDiscountedPrice({
   creditCategory,
 }: DiscountedPriceProps): number {
   let price = basePrice;
-  if (discountType === 'percentPoints' && creditCategory === 'subscription') {
+  if (
+    discountType === 'percentPoints' &&
+    creditCategory === InvoiceItemType.SUBSCRIPTION
+  ) {
     const discount = (basePrice * amount) / 10000;
     price = basePrice - discount;
   } else if (discountType === 'amountCents') {

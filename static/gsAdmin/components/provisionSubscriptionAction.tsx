@@ -373,7 +373,9 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       });
     }
 
-    const allCategories = Object.values(DATA_CATEGORY_INFO).map(c => c.plural);
+    const allCategories = Object.values(DATA_CATEGORY_INFO).map(
+      c => c.plural as DataCategory
+    );
     const planCategories = this.state.provisionablePlans[postData.plan]?.categories ?? [];
 
     // remove fields for any categories that are not in the selected plan
@@ -759,15 +761,13 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                           this.state.provisionablePlans[this.state.data.plan]
                             ?.categories ?? []
                         ).map(category => {
-                          const categoryInfo = getCategoryInfoFromPlural(
-                            category as DataCategory
-                          );
+                          const categoryInfo = getCategoryInfoFromPlural(category);
                           if (!categoryInfo) {
                             return null;
                           }
                           const titleName = getPlanCategoryName({
                             plan: this.state.provisionablePlans[this.state.data.plan],
-                            category: category as DataCategory,
+                            category,
                             title: true,
                             hadCustomDynamicSampling: isAm3Ds,
                           });
@@ -821,7 +821,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                               />
                               {isAm3Ds &&
                                 [DataCategory.SPANS, DataCategory.SPANS_INDEXED].includes(
-                                  category as DataCategory
+                                  category
                                 ) && (
                                   <StyledDollarsAndCentsField
                                     label={`Reserved Cost-Per-Event ${titleName}`}
@@ -909,15 +909,13 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                 {this.state.data.plan &&
                   this.state.provisionablePlans[this.state.data.plan]?.categories.map(
                     category => {
-                      const categoryInfo = getCategoryInfoFromPlural(
-                        category as DataCategory
-                      );
+                      const categoryInfo = getCategoryInfoFromPlural(category);
                       if (!categoryInfo) {
                         return null;
                       }
                       const titleName = getPlanCategoryName({
                         plan: this.state.provisionablePlans[this.state.data.plan],
-                        category: category as DataCategory,
+                        category,
                         title: true,
                         hadCustomDynamicSampling: isAm3Ds,
                       });

@@ -127,7 +127,7 @@ function PlanList({
             {activePlan.checkoutCategories.map(category => {
               const titleCategory = getPlanCategoryName({
                 plan: activePlan,
-                category: category as DataCategory,
+                category,
               });
               const reservedKey = `reserved${toTitleCase(category, {
                 allowInnerUpperCase: true,
@@ -137,9 +137,7 @@ function PlanList({
                   ? `${titleCategory} (GB)`
                   : titleCategory;
               const fieldValue = formModel.getValue(reservedKey);
-              const currentValueDisplay = getCurrentValueDisplay(
-                category as DataCategory
-              );
+              const currentValueDisplay = getCurrentValueDisplay(category);
               return (
                 <SelectFieldWrapper key={`test-${category}`}>
                   <SelectField
@@ -148,12 +146,12 @@ function PlanList({
                     name={reservedKey}
                     label={label}
                     value={fieldValue}
-                    options={(
-                      activePlan.planCategories[category as DataCategory] || []
-                    ).map((level: {events: {toLocaleString: () => any}}) => ({
-                      label: level.events.toLocaleString(),
-                      value: level.events,
-                    }))}
+                    options={(activePlan.planCategories[category] || []).map(
+                      (level: {events: {toLocaleString: () => any}}) => ({
+                        label: level.events.toLocaleString(),
+                        value: level.events,
+                      })
+                    )}
                     required
                   />
                   {currentValueDisplay}

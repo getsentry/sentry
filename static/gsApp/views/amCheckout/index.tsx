@@ -37,6 +37,7 @@ import {
 import {
   type BillingConfig,
   CheckoutType,
+  type EventBucket,
   OnDemandBudgetMode,
   type OnDemandBudgets,
   type Plan,
@@ -392,11 +393,10 @@ class AMCheckout extends Component<Props, State> {
     // Default to the max event volume per category based on either
     // the current reserved volume or the current reserved price.
     const reserved = Object.fromEntries(
-      Object.entries(planDetails.planCategories)
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      (Object.entries(planDetails.planCategories) as Array<[DataCategory, EventBucket[]]>)
         .filter(([category, _]) => initialPlan.planCategories[category])
         .map(([category, eventBuckets]) => {
-          const currentHistory = subscription.categories[category as DataCategory];
+          const currentHistory = subscription.categories[category];
           // When introducing a new category before backfilling, the reserved value from the billing metric
           // history is not available, so we default to 0.
           let events = currentHistory?.reserved || 0;
@@ -405,7 +405,6 @@ class AMCheckout extends Component<Props, State> {
             const price = getBucket({events, buckets: eventBuckets}).price;
             const eventsByPrice = getBucket({
               price,
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               buckets: initialPlan.planCategories[category],
             }).events;
             events = Math.max(events, eventsByPrice);

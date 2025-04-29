@@ -69,7 +69,7 @@ function SoftCapTypeDetail({
             <small>
               {`${getPlanCategoryName({
                 plan,
-                category: categoryHistory.category as DataCategory,
+                category: categoryHistory.category,
                 capitalize: true,
                 hadCustomDynamicSampling: shouldUseDsNames,
               })}: `}
@@ -176,7 +176,7 @@ function ReservedData({customer}: ReservedDataProps) {
         const category = categoryHistory.category;
         const categoryName = getPlanCategoryName({
           plan: customer.planDetails,
-          category: categoryHistory.category as DataCategory,
+          category: categoryHistory.category,
           hadCustomDynamicSampling:
             category === DataCategory.SPANS &&
             DataCategory.SPANS_INDEXED in customer.categories,
@@ -327,13 +327,11 @@ function OnDemandSummary({customer}: OnDemandSummaryProps) {
                 <small>
                   {`${getPlanCategoryName({
                     plan: customer.planDetails,
-                    category: category as DataCategory,
+                    category,
                   })}: `}
                   {`${displayPriceWithCents({
-                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     cents: onDemandBudgets.usedSpends[category] ?? 0,
                   })} / ${displayPriceWithCents({
-                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     cents: onDemandBudgets.budgets[category] ?? 0,
                   })}`}
                 </small>
@@ -452,7 +450,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
     ? Object.values(BILLED_DATA_CATEGORY_INFO).filter(
         categoryInfo =>
           categoryInfo.canProductTrial &&
-          customer.planDetails.categories.includes(categoryInfo.plural)
+          customer.planDetails.categories.includes(categoryInfo.plural as DataCategory)
       )
     : [];
 

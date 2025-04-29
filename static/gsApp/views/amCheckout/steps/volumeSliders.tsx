@@ -45,7 +45,7 @@ function VolumeSliders({
 > & {
   isLegacy: boolean;
 }) {
-  const handleReservedChange = (value: number, category: string) => {
+  const handleReservedChange = (value: number, category: DataCategory) => {
     onUpdate({reserved: {...formData.reserved, [category]: value}});
 
     if (organization) {
@@ -115,7 +115,7 @@ function VolumeSliders({
 
   return (
     <Fragment>
-      {(activePlan.checkoutCategories as DataCategory[])
+      {activePlan.checkoutCategories
         .filter(
           // only show sliders for checkout categories with more than 1 bucket
           category => (activePlan.planCategories[category]?.length ?? 0) > 1
@@ -186,10 +186,10 @@ function VolumeSliders({
                         )}
                   </Title>
                   <Events isLegacy={isLegacy}>
-                    {
-                      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                      formatReservedWithUnits(formData.reserved[category], category)
-                    }
+                    {formatReservedWithUnits(
+                      formData.reserved[category] ?? null,
+                      category
+                    )}
                   </Events>
                 </SectionHeader>
                 <Description>
@@ -220,8 +220,7 @@ function VolumeSliders({
                   showLabel={false}
                   name={category}
                   id={sliderId}
-                  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                  value={formData.reserved[category]}
+                  value={formData.reserved[category] ?? ''}
                   allowedValues={allowedValues}
                   formatLabel={() => null}
                   onChange={value => value && handleReservedChange(value, category)}

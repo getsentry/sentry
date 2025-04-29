@@ -11,7 +11,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DataCategory} from 'sentry/types/core';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -118,7 +117,7 @@ class OnDemandBudgetEdit extends Component<Props> {
     ) {
       return (
         <InputFields>
-          {(activePlan.onDemandCategories as DataCategory[]).map(category => {
+          {activePlan.onDemandCategories.map(category => {
             const categoryBudgetKey = `${category}Budget`;
             const displayName = getPlanCategoryName({plan: activePlan, category});
             return (
@@ -189,7 +188,7 @@ class OnDemandBudgetEdit extends Component<Props> {
     const selectedBudgetMode = onDemandBudget.budgetMode;
     const oxfordCategories = listDisplayNames({
       plan: activePlan,
-      categories: activePlan.onDemandCategories as DataCategory[],
+      categories: activePlan.onDemandCategories,
     });
 
     if (subscription.planDetails.budgetTerm === 'pay-as-you-go') {

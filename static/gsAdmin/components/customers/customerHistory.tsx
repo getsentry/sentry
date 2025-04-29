@@ -105,7 +105,7 @@ function CustomerHistory({orgId, ...props}: Props) {
                     <DisplayName>
                       {getPlanCategoryName({
                         plan: row.planDetails,
-                        category: category as DataCategory,
+                        category,
                         hadCustomDynamicSampling: shouldUseDynamicSamplingNames,
                       })}
                     </DisplayName>
@@ -134,7 +134,7 @@ function CustomerHistory({orgId, ...props}: Props) {
                     <DisplayName>
                       {getPlanCategoryName({
                         plan: row.planDetails,
-                        category: category as DataCategory,
+                        category,
                         hadCustomDynamicSampling: shouldUseDynamicSamplingNames,
                       })}
                     </DisplayName>
@@ -161,7 +161,7 @@ function CustomerHistory({orgId, ...props}: Props) {
                   <DisplayName>
                     {getPlanCategoryName({
                       plan: row.planDetails,
-                      category: category as DataCategory,
+                      category,
                       hadCustomDynamicSampling: shouldUseDynamicSamplingNames,
                     })}
                   </DisplayName>

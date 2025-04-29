@@ -6,7 +6,6 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 
 import {ANNUAL, MONTHLY} from 'getsentry/constants';
@@ -70,9 +69,7 @@ class CheckoutOverview extends Component<Props> {
 
     return activePlan.checkoutCategories.map(category => {
       const eventBucket = utils.getBucket({
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         events: formData.reserved[category],
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         buckets: activePlan.planCategories[category],
       });
       const price = utils.displayPrice({cents: eventBucket.price});
@@ -83,7 +80,7 @@ class CheckoutOverview extends Component<Props> {
             <DetailTitle>
               {getPlanCategoryName({
                 plan: activePlan,
-                category: category as DataCategory,
+                category,
               })}
             </DetailTitle>
             {
@@ -146,18 +143,16 @@ class CheckoutOverview extends Component<Props> {
       );
     } else if (onDemandBudget) {
       activePlan.onDemandCategories.forEach(category => {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         if (onDemandBudget.budgets[category]) {
           details.push(
             <Fragment key={`${category}-per-category-ondemand`}>
               {getPlanCategoryName({
                 plan: activePlan,
-                category: category as DataCategory,
+                category,
               })}
               <OnDemandPrice>
                 {tct('up to [onDemandPrice]/mo', {
                   onDemandPrice: utils.displayPrice({
-                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     cents: onDemandBudget.budgets[category],
                   }),
                 })}

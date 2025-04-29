@@ -143,13 +143,13 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
             data.planDetails.onDemandCategories.includes(category)
         )
         .map(category => {
-          const reserved = data.categories?.[category as DataCategory]?.reserved;
+          const reserved = data.categories?.[category]?.reserved;
           const isUnlimited = isUnlimitedReserved(reserved);
           const isReservedBudgetQuota = reserved === RESERVED_BUDGET_QUOTA;
 
           // Check why categories are disabled
-          const categoryNotExists = !data.categories?.[category as DataCategory];
-          const categoryInfo = getCategoryInfoFromPlural(category as DataCategory);
+          const categoryNotExists = !data.categories?.[category];
+          const categoryInfo = getCategoryInfoFromPlural(category);
 
           const isGiftable =
             categoryInfo?.maxAdminGift && categoryInfo.freeEventsMultiple;
@@ -161,7 +161,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
                 categoryNotExists || isUnlimited || isReservedBudgetQuota || !isGiftable,
               displayName: getPlanCategoryName({
                 plan: data.planDetails,
-                category: category as DataCategory,
+                category,
                 capitalize: false,
                 hadCustomDynamicSampling: isReservedBudgetQuota,
               }),

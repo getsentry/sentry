@@ -155,7 +155,7 @@ function getRegularChanges(subscription: Subscription) {
         (pendingChanges.reserved?.[category] ?? 0) !==
         (subscription.categories?.[category]?.reserved ?? 0)
       ) {
-        const categoryEnum = category as DataCategory;
+        const categoryEnum = category;
         const oldReserved = subscription.categories?.[category]?.reserved ?? null;
         const pendingReserved = pendingChanges.reserved?.[category] ?? null;
         const old =
@@ -301,12 +301,12 @@ function getOnDemandChanges(subscription: Subscription) {
       const current = formatOnDemandBudget(
         subscription.planDetails,
         currentOnDemandBudgets,
-        subscription.planDetails.onDemandCategories as DataCategory[]
+        subscription.planDetails.onDemandCategories
       );
       const change = formatOnDemandBudget(
         pendingChanges.planDetails,
         pendingOnDemandBudgets,
-        pendingChanges.planDetails.onDemandCategories as DataCategory[]
+        pendingChanges.planDetails.onDemandCategories
       );
       changes.push(
         <span>

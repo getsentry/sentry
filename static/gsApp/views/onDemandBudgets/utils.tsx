@@ -122,7 +122,7 @@ export function formatOnDemandBudget(
   categories: DataCategory[] = []
 ): React.ReactNode {
   if (categories.length === 0) {
-    categories = plan.onDemandCategories.map(category => category as DataCategory);
+    categories = plan.onDemandCategories.map(category => category);
   }
   if (budget.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
     return `per-category ${displayBudgetName(plan, {
