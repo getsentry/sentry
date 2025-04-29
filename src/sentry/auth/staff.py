@@ -10,7 +10,6 @@ from django.core.signing import BadSignature
 from django.http import HttpRequest
 from django.utils import timezone as django_timezone
 from django.utils.crypto import constant_time_compare, get_random_string
-from rest_framework.request import Request
 
 from sentry import options
 from sentry.auth.elevated_mode import ElevatedMode, InactiveReason
@@ -44,7 +43,7 @@ STAFF_ORG_ID = getattr(settings, "STAFF_ORG_ID", None)
 UNSET = object()
 
 
-def is_active_staff(request: HttpRequest | Request) -> bool:
+def is_active_staff(request: HttpRequest) -> bool:
     if is_system_auth(getattr(request, "auth", None)):
         return True
     staff = getattr(request, "staff", None) or Staff(request)

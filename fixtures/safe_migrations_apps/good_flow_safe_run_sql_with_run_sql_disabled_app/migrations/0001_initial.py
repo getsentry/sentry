@@ -10,6 +10,4 @@ class Migration(CheckedMigration):
 
     dependencies = []
 
-    allow_run_sql = False
-
     operations = [SafeRunSQL("select 1;")]
