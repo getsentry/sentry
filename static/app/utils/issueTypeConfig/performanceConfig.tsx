@@ -8,7 +8,8 @@ const performanceConfig: IssueCategoryConfigMapping = {
     actions: {
       archiveUntilOccurrence: {enabled: true},
       delete: {
-        enabled: true,
+        enabled: false,
+        disabledReason: t('Not yet supported for performance issues'),
       },
       deleteAndDiscard: {
         enabled: false,
@@ -225,10 +226,12 @@ const performanceConfig: IssueCategoryConfigMapping = {
   [IssueType.PERFORMANCE_ENDPOINT_REGRESSION]: {
     actions: {
       archiveUntilOccurrence: {
-        enabled: true,
+        enabled: false,
+        disabledReason: t('Not yet supported for regression issues'),
       },
       delete: {
-        enabled: true,
+        enabled: false,
+        disabledReason: t('Not yet supported for performance issues'),
       },
       deleteAndDiscard: {
         enabled: false,
@@ -376,7 +379,8 @@ const performanceConfig: IssueCategoryConfigMapping = {
         disabledReason: t('Not yet supported for regression issues'),
       },
       delete: {
-        enabled: true,
+        enabled: false,
+        disabledReason: t('Not yet supported for performance issues'),
       },
       deleteAndDiscard: {
         enabled: false,
