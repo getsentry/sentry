@@ -59,11 +59,11 @@ class GroupCategory(IntEnum):
     TEST_NOTIFICATION = 9
 
     # New issue categories (under the organizations:issue-taxonomy flag)
-    OUTAGE = 9
-    PERFORMANCE_REGRESSION = 10
-    USER_EXPERIENCE = 11
-    RESPONSIVENESS = 12
-    PERFORMANCE_BEST_PRACTICE = 13
+    OUTAGE = 10
+    PERFORMANCE_REGRESSION = 11
+    USER_EXPERIENCE = 12
+    RESPONSIVENESS = 13
+    PERFORMANCE_BEST_PRACTICE = 14
 
 
 GROUP_CATEGORIES_CUSTOM_EMAIL = (
@@ -330,6 +330,17 @@ class PerformanceNPlusOneGroupType(PerformanceGroupTypeDefaults, GroupType):
     category_v2 = GroupCategory.PERFORMANCE_BEST_PRACTICE.value
     default_priority = PriorityLevel.LOW
     released = True
+
+
+@dataclass(frozen=True)
+class PerformanceNPlusOneExperimentalGroupType(PerformanceGroupTypeDefaults, GroupType):
+    type_id = 1906
+    slug = "performance_n_plus_one_db_queries_experimental"
+    description = "N+1 Query (Experimental)"
+    category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.PERFORMANCE_BEST_PRACTICE.value
+    default_priority = PriorityLevel.LOW
+    released = False
 
 
 @dataclass(frozen=True)

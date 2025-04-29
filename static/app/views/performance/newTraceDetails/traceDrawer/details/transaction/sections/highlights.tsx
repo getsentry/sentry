@@ -47,7 +47,7 @@ export function TransactionHighlights(props: HighlightProps) {
 
   const headerContent = (
     <HeaderContentWrapper>
-      <TextWrapper>{props.node.value.transaction}</TextWrapper>
+      <span>{props.node.value.transaction}</span>
       <CopyToClipboardButton
         borderless
         size="zero"
@@ -99,13 +99,12 @@ const HeaderContentWrapper = styled('div')`
   align-items: center;
   width: 100%;
   justify-content: space-between;
+  gap: ${space(1)};
+  font-size: ${p => p.theme.fontSizeMedium};
+  word-break: break-word;
+  line-height: 1.4;
 `;
 
 const BodyContentWrapper = styled('div')`
   padding: ${space(1)};
-`;
-
-const TextWrapper = styled('span')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  ${p => p.theme.overflowEllipsis};
 `;

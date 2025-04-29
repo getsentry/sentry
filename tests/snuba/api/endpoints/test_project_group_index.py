@@ -1523,7 +1523,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
 
     @patch("sentry.eventstream.backend")
     def test_delete_by_id(self, mock_eventstream):
-        eventstream_state = {"event_stream_state": uuid4()}
+        eventstream_state = {"event_stream_state": uuid4().hex}
         mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
 
         groups = self.create_groups(
@@ -1570,7 +1570,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
 
     @patch("sentry.eventstream.backend")
     def test_delete_performance_issue_by_id(self, mock_eventstream):
-        eventstream_state = {"event_stream_state": uuid4()}
+        eventstream_state = {"event_stream_state": uuid4().hex}
         mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
 
         group1, group2 = self.create_groups(

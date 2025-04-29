@@ -50,6 +50,8 @@ export const convertGSVtoIssueView = (gsv: StarredGroupSearchView): NavIssueView
     lastVisited: gsv.lastVisited,
     stars: gsv.stars,
     createdBy: gsv.createdBy,
+    dateCreated: gsv.dateCreated,
+    dateUpdated: gsv.dateUpdated,
   };
 };
 
@@ -65,5 +67,7 @@ const convertIssueViewToGSV = (view: NavIssueView): StarredGroupSearchView => {
     lastVisited: view.lastVisited,
     createdBy: view.createdBy,
     stars: view.stars,
+    dateCreated: view.dateCreated,
+    dateUpdated: view.dateUpdated,
   };
 };

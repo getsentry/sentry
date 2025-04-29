@@ -12,7 +12,7 @@ import {
 import IntegrationExternalMappings from './integrationExternalMappings';
 
 describe('IntegrationExternalMappings', function () {
-  const {organization, router} = initializeOrg();
+  const {organization} = initializeOrg();
 
   const onCreateMock = jest.fn();
   const onDeleteMock = jest.fn();
@@ -84,10 +84,7 @@ describe('IntegrationExternalMappings', function () {
         dataEndpoint="/organizations/org-slug/codeowners-associations/"
         getBaseFormEndpoint={() => '/organizations/org-slug/codeowners-associations/'}
         sentryNamesMapper={data => data}
-      />,
-      {
-        router,
-      }
+      />
     );
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
@@ -107,10 +104,7 @@ describe('IntegrationExternalMappings', function () {
         dataEndpoint="/organizations/org-slug/codeowners-associations/"
         getBaseFormEndpoint={() => '/organizations/org-slug/codeowners-associations/'}
         sentryNamesMapper={data => data}
-      />,
-      {
-        router,
-      }
+      />
     );
 
     expect(await screen.findByTestId('mapping-table')).toBeInTheDocument();
@@ -133,10 +127,7 @@ describe('IntegrationExternalMappings', function () {
         dataEndpoint="/organizations/org-slug/codeowners-associations/"
         getBaseFormEndpoint={() => '/organizations/org-slug/codeowners-associations/'}
         sentryNamesMapper={data => data}
-      />,
-      {
-        router,
-      }
+      />
     );
 
     expect(await screen.findByTestId('mapping-table')).toBeInTheDocument();
@@ -165,10 +156,7 @@ describe('IntegrationExternalMappings', function () {
         dataEndpoint="/organizations/org-slug/codeowners-associations/"
         getBaseFormEndpoint={() => '/organizations/org-slug/codeowners-associations/'}
         sentryNamesMapper={data => data}
-      />,
-      {
-        router,
-      }
+      />
     );
     renderGlobalModal();
 

@@ -65,6 +65,11 @@ class EventAttributeConditionTest(RuleTestCase):
                     "crash_type": "crash",
                 },
                 "os": {"distribution_name": "ubuntu", "distribution_version": "22.04"},
+                "expo_updates": {
+                    "channel": "production",
+                    "runtime_version": "1.0.0",
+                    "update_id": "12345678-1234-1234-1234-1234567890ab",
+                },
             },
             "threads": {
                 "values": [
@@ -853,6 +858,62 @@ class EventAttributeConditionTest(RuleTestCase):
                 "match": MatchType.EQUAL,
                 "attribute": "os.distribution_version",
                 "value": "20.04",
+            }
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_expo_updates_channel_and_runtime_version_and_update_id(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "expo_updates.channel",
+                "value": "production",
+            }
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "expo_updates.runtime_version",
+                "value": "1.0.0",
+            }
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "expo_updates.update_id",
+                "value": "12345678-1234-1234-1234-1234567890ab",
+            }
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "expo_updates.channel",
+                "value": "does-not-exist",
+            }
+        )
+        self.assertDoesNotPass(rule, event)
+
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "expo_updates.runtime_version",
+                "value": "1.0.0-does-not-exist",
+            }
+        )
+        self.assertDoesNotPass(rule, event)
+
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "expo_updates.update_id",
+                "value": "123-does-not-exist",
             }
         )
         self.assertDoesNotPass(rule, event)
