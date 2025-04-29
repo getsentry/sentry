@@ -108,6 +108,40 @@ def make_rust_exception_data(
     )
 
 
+def get_hint_for_frame(
+    variant_name: str,
+    frame: dict[str, Any],
+    frame_component: FrameGroupingComponent,
+    rust_frame: RustFrame,
+) -> str | None:
+    """
+    Determine a hint to use for the frame, handling special-casing and precedence.
+    """
+    frame_type = "in-app" if frame_component.in_app else "system"
+    rust_hint = rust_frame.hint
+    rust_hint_type = (
+        None if rust_hint is None else "in-app" if rust_hint.startswith("marked") else "contributes"
+    )
+    incoming_hint = frame_component.hint
+    use_rust_hint = True
+
+    # Prevent clobbering an existing hint with no hint
+    if rust_hint is None:
+        use_rust_hint = False
+
+    # System frames can't contribute to the app variant, no matter what +/-group rules say, so we
+    # ignore the rust hint if it's about contributing since it's irrelevant
+    elif variant_name == "app" and frame_type == "system" and rust_hint_type == "contributes":
+        use_rust_hint = False
+
+    # Similarly, we don't need hints about marking frames in or out of app in the system stacktrace
+    # because such changes don't actually have an effect there
+    elif variant_name == "system" and rust_hint_type == "in-app":
+        use_rust_hint = False
+
+    return rust_hint if use_rust_hint else incoming_hint
+
+
 def is_valid_profiling_matcher(matchers: list[str]) -> bool:
     for matcher in matchers:
         if not matcher.startswith(VALID_PROFILING_MATCHER_PREFIXES):
