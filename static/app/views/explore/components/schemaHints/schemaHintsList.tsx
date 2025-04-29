@@ -334,7 +334,7 @@ function SchemaHintsList({
         type: 'UPDATE_QUERY',
         query: newQuery,
         focusOverride: {
-          itemKey: `filter:${newSearchQuery.getFilterKeys().indexOf(hint.key)}`,
+          itemKey: `filter:${newSearchQuery.getTokenKeys().lastIndexOf(hint.key)}`,
           part: 'value',
         },
       });

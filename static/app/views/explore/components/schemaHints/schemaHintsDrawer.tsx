@@ -111,7 +111,7 @@ function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDraw
         type: 'UPDATE_QUERY',
         query: filterQuery.formatString(),
         focusOverride: {
-          itemKey: `filter:${filterQuery.getFilterKeys().indexOf(hint.key)}`,
+          itemKey: `filter:${filterQuery.getTokenKeys().lastIndexOf(hint.key)}`,
           part: 'value',
         },
       });
