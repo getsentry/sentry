@@ -7,6 +7,7 @@ import PanelProvider from 'sentry/utils/panelProvider';
 interface PanelProps extends React.HTMLAttributes<HTMLDivElement> {
   dashedBorder?: boolean;
   'data-test-id'?: string;
+  hideBorder?: boolean;
   ref?: React.Ref<HTMLDivElement>;
 }
 
@@ -21,7 +22,12 @@ const Panel = styled(
   background: ${p => (p.dashedBorder ? p.theme.backgroundSecondary : p.theme.background)};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px
-    ${p => (p.dashedBorder ? 'dashed' + p.theme.gray300 : 'solid ' + p.theme.border)};
+    ${p =>
+      p.hideBorder
+        ? 'transparent'
+        : p.dashedBorder
+          ? 'dashed' + p.theme.gray300
+          : 'solid ' + p.theme.border};
   margin-bottom: ${space(2)};
   position: relative;
 `;
