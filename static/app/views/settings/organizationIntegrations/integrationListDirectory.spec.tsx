@@ -9,7 +9,7 @@ import {
 } from 'sentry-fixture/integrationListDirectory';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import IntegrationListDirectory from 'sentry/views/settings/organizationIntegrations/integrationListDirectory';
 
@@ -85,6 +85,20 @@ describe('IntegrationListDirectory', function () {
       expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
       expect(await screen.findByText('PagerDuty (Legacy)')).toBeInTheDocument();
+    });
+
+    it('shows integrations that match the search query', async function () {
+      render(<IntegrationListDirectory />, {organization});
+      expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
+
+      expect(screen.getByText('PagerDuty (Legacy)')).toBeInTheDocument();
+
+      await userEvent.type(screen.getByRole('textbox', {name: 'Filter'}), 'it');
+      await userEvent.keyboard('{enter}');
+
+      expect(screen.queryByText('PagerDuty (Legacy)')).not.toBeInTheDocument();
+      expect(screen.getByText('Bitbucket')).toBeInTheDocument();
+      expect(screen.getByText('La Croix Monitor')).toBeInTheDocument();
     });
   });
 });
