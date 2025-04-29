@@ -20,7 +20,7 @@ from sentry.search.events.types import SnubaParams
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
 from sentry.snuba.metrics import parse_mri_field
 from sentry.snuba.metrics.extraction import MetricSpecType
-from sentry.snuba.metrics_performance import timeseries_query
+from sentry.snuba.metrics_enhanced_performance import timeseries_query
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import run_timeseries_query
@@ -112,7 +112,7 @@ def make_rpc_request(
 def make_snql_request(
     query: str,
     aggregate: str,
-    time_window: int,
+    granumarity_secs: int,
     on_demand_metrics_enabled: bool,
     snuba_params: SnubaParams,
     organization: Organization,
@@ -123,7 +123,7 @@ def make_snql_request(
         [aggregate],
         query,
         snuba_params=snuba_params,
-        rollup=time_window,
+        rollup=granumarity_secs,
         referrer=Referrer.JOB_COMPARE_TIMESERIES.value,
         on_demand_metrics_enabled=on_demand_metrics_enabled,
         on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
@@ -164,7 +164,7 @@ def get_mismatch_type(mismatches: dict[int, dict[str, float]]):
         rpc_value = values["rpc_value"]
         diff = values["mismatch_percentage"]
         confidence = values["confidence"]
-        sampling_rate = values["sampling_rate"]
+        sampling_rate = values.get("sampling_rate")
 
         if snql_value > 0:
             all_snql_values_zero = False
@@ -260,7 +260,7 @@ def assert_timeseries_close(aligned_timeseries, alert_rule):
                 "rpc_value": rpc_value,
                 "snql_value": snql_value,
                 "mismatch_percentage": diff,
-                "sampling_rate": values["sampling_rate"],
+                "sampling_rate": values.get("sampling_rate"),
                 "confidence": values["confidence"],
             }
 
@@ -355,7 +355,7 @@ def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
         snql_result = make_snql_request(
             snuba_query.query,
             snuba_query.aggregate,
-            time_window=snuba_query.time_window,
+            granularity_secs=snuba_query.time_window,
             on_demand_metrics_enabled=on_demand_metrics_enabled,
             snuba_params=snuba_params,
             organization=organization,
