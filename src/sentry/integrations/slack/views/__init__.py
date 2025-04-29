@@ -2,7 +2,6 @@ from typing import Any
 
 from django.http import HttpRequest, HttpResponse
 from django.urls import reverse
-from rest_framework.request import Request
 
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
@@ -17,7 +16,7 @@ def build_linking_url(endpoint: str, **kwargs: Any) -> str:
     return url
 
 
-def render_error_page(request: Request | HttpRequest, status: int, body_text: str) -> HttpResponse:
+def render_error_page(request: HttpRequest, status: int, body_text: str) -> HttpResponse:
     return render_to_response(
         "sentry/integrations/generic-error.html",
         request=request,
