@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 
 import sentry_sdk
 from django.db.models import F
+from django.forms import model_to_dict
 from django.utils import timezone as django_timezone
 
 from sentry import analytics
@@ -580,12 +581,12 @@ def record_integration_added(
 @project_transferred.connect(weak=False, dispatch_uid="onboarding.record_project_transferred")
 def record_project_transferred(old_org_id: int, updated_project: Project, **kwargs):
 
-    new_organization_id = updated_project.organization_id
+    new_organization = Organization.objects.get(id=updated_project.organization_id)
 
     analytics.record(
         "project.transferred",
         old_organization_id=old_org_id,
-        new_organization_id=new_organization_id,
+        new_organization_id=new_organization.id,
         project_id=updated_project.id,
         platform=updated_project.platform,
     )
@@ -596,22 +597,18 @@ def record_project_transferred(old_org_id: int, updated_project: Project, **kwar
     )
 
     existing_tasks_in_new_org = set(
-        OrganizationOnboardingTask.objects.filter(organization_id=new_organization_id).values_list(
+        OrganizationOnboardingTask.objects.filter(organization_id=new_organization.id).values_list(
             "task", flat=True
         )
     )
 
-    tasks_to_be_transferred = []
+    new_tasks = [
+        task for task in existing_tasks_in_old_org if task.task not in existing_tasks_in_new_org
+    ]
 
-    new_tasks = [task for task in existing_tasks_old_org if task.task not in existing_tasks_in_new_org]
     for task in new_tasks:
-        copied_task = copy.deepcopy(task)
-        copied_task.pk = None
-        copied_task.org = new_organization_id
+        task_dict = model_to_dict(task, exclude=["id", "organization", "project"])
+        copied_task = OrganizationOnboardingTask(
+            **task_dict, organization=new_organization, project=updated_project
+        )
         copied_task.save()
-            new_task = OrganizationOnboardingTask(**task_dict)
-            new_task.organization_id = new_organization_id
-            tasks_to_be_transferred.append(new_task)
-
-    if tasks_to_be_transferred:
-        OrganizationOnboardingTask.objects.bulk_create(tasks_to_be_transferred)
