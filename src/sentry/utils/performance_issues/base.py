@@ -30,6 +30,7 @@ class DetectorType(Enum):
     DB_MAIN_THREAD = "db_main_thread"
     HTTP_OVERHEAD = "http_overhead"
     EXPERIMENTAL_N_PLUS_ONE_API_CALLS = "experimental_n_plus_one_api_calls"
+    EXPERIMENTAL_N_PLUS_ONE_DB_QUERIES = "experimental_n_plus_one_db_queries"
 
 
 # Detector and the corresponding system option must be added to this list to have issues created.
@@ -95,8 +96,14 @@ class PerformanceDetector(ABC):
     def on_complete(self) -> None:
         pass
 
-    def is_creation_allowed_for_system(self) -> bool:
-        system_option = DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION.get(self.__class__.type, None)
+    @classmethod
+    def is_detection_allowed_for_system(cls) -> bool:
+        """
+        This method determines whether the detector should be run at all for this Sentry instance.
+
+        See `_detect_performance_problems` in `performance_detection.py` for more context.
+        """
+        system_option = DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION.get(cls.type, None)
 
         if not system_option:
             return False
@@ -115,14 +122,22 @@ class PerformanceDetector(ABC):
             return False
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return False  # Creation is off by default. Ideally, it should auto-generate the feature flag name, and check its value
+        """
+        After running the detector, this method determines whether the found problems should be
+        passed to the issue platform for a given organization.
+
+        See `_detect_performance_problems` in `performance_detection.py` for more context.
+        """
+        return False
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return False  # Creation is off by default. Ideally, it should auto-generate the project option name, and check its value
+        """
+        After running the detector, this method determines whether the found problems should be
+        passed to the issue platform for a given project.
 
-    @classmethod
-    def is_detector_enabled(cls) -> bool:
-        return True
+        See `_detect_performance_problems` in `performance_detection.py` for more context.
+        """
+        return False
 
     @classmethod
     def is_event_eligible(cls, event, project: Project | None = None) -> bool:

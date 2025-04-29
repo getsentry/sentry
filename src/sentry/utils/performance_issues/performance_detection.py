@@ -243,6 +243,11 @@ def get_detection_settings(project_id: int | None = None) -> dict[DetectorType, 
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
             "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
         },
+        DetectorType.EXPERIMENTAL_N_PLUS_ONE_DB_QUERIES: {
+            "count": settings["n_plus_one_db_count"],
+            "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
+            "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
+        },
         DetectorType.CONSECUTIVE_DB_OP: {
             # time saved by running all queries in parallel
             "min_time_saved": settings["consecutive_db_min_time_saved_threshold"],  # ms
@@ -353,7 +358,7 @@ def _detect_performance_problems(
         detectors: list[PerformanceDetector] = [
             detector_class(detection_settings, data)
             for detector_class in DETECTOR_CLASSES
-            if detector_class.is_detector_enabled()
+            if detector_class.is_detection_allowed_for_system()
         ]
 
     for detector in detectors:
@@ -380,7 +385,6 @@ def _detect_performance_problems(
         for detector in detectors:
             if all(
                 [
-                    detector.is_creation_allowed_for_system(),
                     detector.is_creation_allowed_for_organization(organization),
                     detector.is_creation_allowed_for_project(project),
                 ]

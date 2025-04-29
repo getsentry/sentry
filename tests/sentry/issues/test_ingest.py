@@ -31,7 +31,7 @@ from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
-from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
@@ -491,7 +491,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert group_info is not None
         group = group_info.group
         assert group.priority == PriorityLevel.MEDIUM
-        open_period = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()
+        open_period = get_latest_open_period(group)
         assert open_period is not None
         assert open_period.data["highest_seen_priority"] == PriorityLevel.MEDIUM
 
