@@ -164,16 +164,17 @@ function getInvalidReasonGroupName(reason: string): string {
     }
   }
   // 2. If there is no direct match check if there is a match for any of the baseReasons
-  // starting with the longest.
-  let lastColonIndex = reason.lastIndexOf(':');
-  while (lastColonIndex !== -1) {
-    const baseReason = reason.substring(0, lastColonIndex);
+  const parts = reason.split(':');
+  const baseReasons = parts
+    .slice(0, -1)
+    .map((_, i) => parts.slice(0, parts.length - 1 - i).join(':'));
+
+  for (const baseReason of baseReasons) {
     for (const [group, reasons] of Object.entries(invalidReasonsGroup)) {
       if (reasons.includes(baseReason as DiscardReason)) {
         return group;
       }
     }
-    lastColonIndex = baseReason.lastIndexOf(':');
   }
   // 3. Else just return internal
   return 'internal';
