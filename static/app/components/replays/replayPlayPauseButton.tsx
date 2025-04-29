@@ -4,7 +4,7 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconPause, IconPlay, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-function ReplayPlayPauseButton(props: ButtonProps & {isLoading?: boolean}) {
+function ReplayPlayPauseButton(props: Partial<ButtonProps> & {isLoading?: boolean}) {
   const {isFinished, isPlaying, restart, togglePlayPause} = useReplayContext();
 
   return isFinished ? (

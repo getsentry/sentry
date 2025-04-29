@@ -4,7 +4,7 @@ import {t} from 'sentry/locale';
 
 import type {DateNavigation} from './hooks/useDateNavigation';
 
-type Props = ButtonProps & {
+type Props = Partial<ButtonProps> & {
   dateNavigation: DateNavigation;
   /**
    * Direction to navigate

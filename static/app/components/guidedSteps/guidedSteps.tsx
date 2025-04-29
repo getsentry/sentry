@@ -10,6 +10,7 @@ import {
 import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 
+import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -171,7 +172,7 @@ function Step(props: StepProps) {
   );
 }
 
-function BackButton() {
+function BackButton(props: Partial<ButtonProps>) {
   const {currentStep, setCurrentStep} = useGuidedStepsContext();
 
   if (currentStep === 1) {
@@ -179,13 +180,13 @@ function BackButton() {
   }
 
   return (
-    <Button size="sm" onClick={() => setCurrentStep(currentStep - 1)}>
+    <Button size="sm" onClick={() => setCurrentStep(currentStep - 1)} {...props}>
       {t('Back')}
     </Button>
   );
 }
 
-function NextButton() {
+function NextButton(props: Partial<ButtonProps>) {
   const {currentStep, setCurrentStep, totalSteps} = useGuidedStepsContext();
 
   if (currentStep >= totalSteps) {
@@ -193,7 +194,7 @@ function NextButton() {
   }
 
   return (
-    <Button size="sm" onClick={() => setCurrentStep(currentStep + 1)}>
+    <Button size="sm" onClick={() => setCurrentStep(currentStep + 1)} {...props}>
       {t('Next')}
     </Button>
   );
