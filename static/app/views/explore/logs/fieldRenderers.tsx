@@ -1,10 +1,12 @@
-import {Fragment} from 'react';
+import React, {Fragment} from 'react';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStacktraceLink';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Version from 'sentry/components/version';
+import {tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import {
@@ -12,6 +14,7 @@ import {
   type RenderFunctionBaggage,
 } from 'sentry/utils/discover/fieldRenderers';
 import {VersionContainer} from 'sentry/utils/discover/styles';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useRelease} from 'sentry/utils/useRelease';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
@@ -162,6 +165,46 @@ function CodePathRenderer(props: LogFieldRendererProps) {
   return props.basicRendered;
 }
 
+function FilteredTooltip({
+  value,
+  children,
+  extra,
+}: {
+  children: React.ReactNode;
+  extra: RendererExtra;
+  value: string | number | null;
+}) {
+  if (!value || typeof value !== 'string' || !value.includes('[Filtered]')) {
+    return <React.Fragment>{children}</React.Fragment>;
+  }
+  return (
+    <Tooltip
+      title={tct(
+        "This field contains content scrubbed by our [filters] to protect your users' privacy. If necessary, you can turn this off in your [settings].",
+        {
+          filters: (
+            <ExternalLink href="https://docs.sentry.io/product/data-management-settings/scrubbing/server-side-scrubbing/">
+              {'Data Scrubber'}
+            </ExternalLink>
+          ),
+          settings: (
+            <Link
+              to={normalizeUrl(
+                `/settings/${extra.organization.slug}/projects/${extra.projectSlug}/security-and-privacy/`
+              )}
+            >
+              {'Settings, under Security & Privacy'}
+            </Link>
+          ),
+        }
+      )}
+      isHoverable
+    >
+      {children}
+    </Tooltip>
+  );
+}
+
 export function TraceIDRenderer(props: LogFieldRendererProps) {
   const traceId = adjustLogTraceID(props.item.value as string);
   const location = stripLogParamsFromLocation(props.extra.location);
@@ -203,9 +246,23 @@ export function LogBodyRenderer(props: LogFieldRendererProps) {
   const highlightTerm = props.extra?.highlightTerms[0] ?? '';
   // TODO: Allow more than one highlight term to be highlighted at once.
   return (
-    <WrappingText wrap={props.extra.wrapBody}>
-      <LogsHighlight text={highlightTerm}>{stripAnsi(attribute_value)}</LogsHighlight>
-    </WrappingText>
+    <FilteredTooltip value={props.item.value} extra={props.extra}>
+      <WrappingText wrap={props.extra.wrapBody}>
+        <LogsHighlight text={highlightTerm}>{stripAnsi(attribute_value)}</LogsHighlight>
+      </WrappingText>
+    </FilteredTooltip>
+  );
+}
+
+function LogTemplateRenderer(props: LogFieldRendererProps) {
+  return (
+    <FilteredTooltip value={props.item.value} extra={props.extra}>
+      <span>
+        {typeof props.item.value === 'string'
+          ? stripAnsi(props.item.value)
+          : props.basicRendered}
+      </span>
+    </FilteredTooltip>
   );
 }
 
@@ -260,6 +317,7 @@ export const LogAttributesRendererMap: Record<
   [OurLogKnownFieldKey.TRACE_ID]: TraceIDRenderer,
   [OurLogKnownFieldKey.CODE_FILE_PATH]: CodePathRenderer,
   [OurLogKnownFieldKey.RELEASE]: ReleaseRenderer,
+  [OurLogKnownFieldKey.TEMPLATE]: LogTemplateRenderer,
 };
 
 const fullFieldToExistingField: Record<OurLogFieldKey, string> = {
