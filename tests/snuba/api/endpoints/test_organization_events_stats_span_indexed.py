@@ -14,7 +14,6 @@ pytestmark = pytest.mark.sentry_metrics
 class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpointTestBase):
     endpoint = "sentry-api-0-organization-events-stats"
     is_eap = False
-    is_rpc = False
 
     @property
     def dataset(self):
@@ -37,8 +36,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
     def _do_request(self, data, url=None, features=None):
         if features is None:
             features = {"organizations:discover-basic": True}
-        if self.is_rpc:
-            data["useRpc"] = "1"
         features.update(self.features)
         with self.feature(features):
             return self.client.get(self.url if url is None else url, data=data, format="json")
@@ -671,7 +668,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
 class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetricsEndpointTest):
     is_eap = True
-    is_rpc = True
 
     def test_count_extrapolation(self):
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -1965,6 +1961,9 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         for expected, result in zip([0, 1, 0], rows):
             assert result[1][0]["count"] == expected
 
+    @pytest.mark.xfail(
+        reason="https://github.com/getsentry/snuba/actions/runs/14717943981/job/41305773190"
+    )
     def test_downsampling_can_go_to_higher_accuracy_tier(self):
         span = self.create_span(
             {"description": "foo", "sentry_tags": {"status": "success"}},
