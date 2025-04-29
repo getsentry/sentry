@@ -316,6 +316,7 @@ describe('Subscription > PendingChanges', function () {
             DataCategory.TRANSACTIONS,
             DataCategory.ATTACHMENTS,
           ],
+          budgetTerm: 'on-demand',
         }),
       }),
     });
