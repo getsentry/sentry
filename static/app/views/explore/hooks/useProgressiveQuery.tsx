@@ -39,7 +39,7 @@ interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
     result: ReturnType<TQueryFn>['result'] & {
       data: any;
       isFetched: boolean;
-      isPending: boolean;
+      isFetching: boolean;
     };
   };
   queryOptions?: QueryOptions<TQueryFn>;
@@ -139,7 +139,7 @@ export function useProgressiveQuery<
 
   if (canUseNormalSamplingMode) {
     if (
-      highAccuracyRequest?.result?.isPending ||
+      highAccuracyRequest?.result?.isFetching ||
       highAccuracyRequest?.result?.isFetched
     ) {
       return {
