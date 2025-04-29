@@ -5,7 +5,11 @@ from functools import partial
 
 import rapidjson
 from arroyo.backends.kafka.consumer import KafkaPayload
-from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
+from arroyo.processing.strategies.abstract import (
+    MessageRejected,
+    ProcessingStrategy,
+    ProcessingStrategyFactory,
+)
 from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
@@ -37,6 +41,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         input_block_size: int | None,
         output_block_size: int | None,
         produce_to_pipe: Callable[[KafkaPayload], None] | None = None,
+        max_inflight_segments: int = 20000000,
     ):
         super().__init__()
 
@@ -44,6 +49,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.max_batch_size = max_batch_size
         self.max_batch_time = max_batch_time
         self.max_flush_segments = max_flush_segments
+        self.max_inflight_segments = max_inflight_segments
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
         self.num_processes = num_processes
@@ -93,19 +99,48 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             next_step=run_task,
         )
 
-        # We use the produce timestamp to drive the clock for flushing, so that
-        # consumer backlogs do not cause segments to be flushed prematurely.
-        # The received timestamp in the span is too old for this purpose if
-        # Relay starts buffering, and we don't want that effect to propagate
-        # into this system.
-        def add_produce_timestamp_cb(message: Message[KafkaPayload]) -> tuple[int, KafkaPayload]:
+        message_i = 0
+
+        def prepare_message(message: Message[KafkaPayload]) -> tuple[int, KafkaPayload]:
+            # Enforce some kind of backpressure to protect Redis. For example,
+            # if we have a limit of 10k segments to be stored in Redis, we poll
+            # Redis every 10k *span* messages to see if maybe we have too many
+            # queue items. This means that in theory we may store 2 *
+            # max_inflight_segments - 1 segments in Redis, the upside is that
+            # we query Redis for the queue size extremely rarely.
+            #
+            # We try to enforce backpressure at the very front of the pipeline,
+            # because applying it later can cause very unfortunate behavior
+            # during rebalancing. For example, if we were to constantly apply
+            # backpressure from within the flusher, arroyo would get "stuck"
+            # (or rather: time out) during rebalancing as it cannot flush out
+            # any remaining messages anymore. This is also an issue if we were
+            # to apply backpressure after BatchStep, although there's
+            # workarounds for that (specifically, setting join_timeout to 0 for
+            # just that step so that it immediately drops its own state, as we
+            # do in Snuba's rust consumer for the message parsing step)
+            nonlocal message_i
+
+            if message_i >= self.max_inflight_segments:
+                if buffer.get_current_queue_size() > self.max_inflight_segments:
+                    raise MessageRejected()
+
+                message_i = 0
+
+            message_i += 1
+
+            # We use the produce timestamp to drive the clock for flushing, so that
+            # consumer backlogs do not cause segments to be flushed prematurely.
+            # The received timestamp in the span is too old for this purpose if
+            # Relay starts buffering, and we don't want that effect to propagate
+            # into this system.
             return (
                 int(message.timestamp.timestamp() if message.timestamp else time.time()),
                 message.payload,
             )
 
         add_timestamp = RunTask(
-            function=add_produce_timestamp_cb,
+            function=prepare_message,
             next_step=batch,
         )
 
@@ -133,7 +168,7 @@ def process_batch(
             parent_span_id=val.get("parent_span_id"),
             project_id=val["project_id"],
             payload=payload.value,
-            is_segment_span=(val.get("parent_span_id") is None or val.get("is_remote")),
+            is_segment_span=bool(val.get("parent_span_id") is None or val.get("is_remote")),
         )
         spans.append(span)
 
