@@ -148,7 +148,7 @@ def prepare_organization_report(
         )
         return
     target_user_id: int | None = None
-    if isinstance(target_user, User, RpcUser):
+    if isinstance(target_user, (User, RpcUser)):
         target_user_id = target_user.id
     elif isinstance(target_user, int):
         target_user_id = target_user
