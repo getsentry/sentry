@@ -159,7 +159,7 @@ export default function ProjectDetail({router, location, organization}: Props) {
                 <Breadcrumbs
                   crumbs={[
                     {
-                      to: makeProjectsPathname({path: '/', orgSlug: organization.slug}),
+                      to: makeProjectsPathname({path: '/', organization}),
                       label: t('Projects'),
                     },
                     {label: t('Project Details')},

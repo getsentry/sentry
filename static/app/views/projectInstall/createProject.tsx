@@ -192,8 +192,8 @@ function CreateProject() {
         browserHistory.push(
           normalizeUrl(
             makeProjectsPathname({
-              orgSlug: organization.slug,
               path: `/${project.slug}/getting-started/`,
+              organization,
             })
           )
         );
