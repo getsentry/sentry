@@ -1,4 +1,4 @@
-import type {Scope} from 'sentry/types/core';
+import type {DataCategory, Scope} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 
@@ -28,7 +28,7 @@ export const trackSubscriptionView = (
 
 export function calculateCategorySpend(
   subscription: Subscription,
-  category: string
+  category: DataCategory
 ): {
   onDemandSpent: number;
   onDemandUnitPrice: number;
@@ -36,11 +36,11 @@ export function calculateCategorySpend(
   prepaidSpent: number;
   unitPrice: number;
 } {
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const categoryInfo: BillingMetricHistory = subscription.categories[category];
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const slots: EventBucket[] = subscription.planDetails.planCategories[category];
-  if (!defined(categoryInfo?.reserved)) {
+  const categoryInfo: BillingMetricHistory | undefined =
+    subscription.categories[category];
+  const slots: EventBucket[] | undefined =
+    subscription.planDetails.planCategories[category];
+  if (!defined(categoryInfo?.reserved) || !slots) {
     return {
       prepaidSpent: 0,
       onDemandSpent: 0,
