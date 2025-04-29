@@ -105,18 +105,16 @@ def schedule_detections():
         namespace=uptime_tasks,
     ),
 )
-def process_detection_bucket(bucket: datetime.datetime | str):
+def process_detection_bucket(bucket: str):
     """
     Schedules url detection for all projects in this time bucket that saw promising urls.
     """
-    # TODO(taskworker) Remove datetime type and always parse str
-    if isinstance(bucket, str):
-        bucket = parse_datetime(bucket)
+    date_bucket = parse_datetime(bucket)
 
-    for organization_id in get_organization_bucket(bucket):
+    for organization_id in get_organization_bucket(date_bucket):
         metrics.incr("uptime.detectors.scheduler.scheduled_organization")
         process_organization_url_ranking.delay(organization_id)
-    delete_organization_bucket(bucket)
+    delete_organization_bucket(date_bucket)
 
 
 @instrumented_task(
