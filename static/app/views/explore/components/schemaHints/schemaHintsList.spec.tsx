@@ -1,4 +1,3 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import type {TagCollection} from 'sentry/types/group';
@@ -31,6 +30,11 @@ jest.mock('sentry/components/searchQueryBuilder/context', () => ({
   }),
   SearchQueryBuilderProvider: ({children}: {children: React.ReactNode}) => children,
 }));
+
+const searchQueryBuilderModule = jest.requireMock(
+  'sentry/components/searchQueryBuilder/context'
+);
+const originalUseSearchQueryBuilder = searchQueryBuilderModule.useSearchQueryBuilder;
 
 function Subject(
   props: Omit<
@@ -81,17 +85,12 @@ jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(fu
 });
 
 describe('SchemaHintsList', () => {
-  const {organization, router} = initializeOrg({
-    router: {
-      location: {
-        query: {
-          query: '',
-        },
-      },
-    },
-  });
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    searchQueryBuilderModule.useSearchQueryBuilder = originalUseSearchQueryBuilder;
   });
 
   it('should render', () => {
@@ -100,10 +99,7 @@ describe('SchemaHintsList', () => {
         stringTags={mockStringTags}
         numberTags={mockNumberTags}
         supportedAggregates={[]}
-      />,
-      {
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     const container = screen.getByLabelText('Schema Hints List');
@@ -126,10 +122,7 @@ describe('SchemaHintsList', () => {
         stringTags={mockStringTags}
         numberTags={mockNumberTags}
         supportedAggregates={[]}
-      />,
-      {
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     const stringTag1Hint = screen.getByText('stringTag1');
@@ -147,10 +140,7 @@ describe('SchemaHintsList', () => {
 
   it('should render loading indicator when isLoading is true', () => {
     render(
-      <Subject stringTags={{}} numberTags={{}} supportedAggregates={[]} isLoading />,
-      {
-        deprecatedRouterMocks: true,
-      }
+      <Subject stringTags={{}} numberTags={{}} supportedAggregates={[]} isLoading />
     );
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -162,12 +152,7 @@ describe('SchemaHintsList', () => {
         stringTags={mockStringTags}
         numberTags={mockNumberTags}
         supportedAggregates={[]}
-      />,
-      {
-        organization,
-        router,
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     const seeFullList = screen.getByText('See full list');
@@ -190,12 +175,7 @@ describe('SchemaHintsList', () => {
         stringTags={mockStringTags}
         numberTags={mockNumberTags}
         supportedAggregates={[]}
-      />,
-      {
-        organization,
-        router,
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     const seeFullList = screen.getByText('See full list');
@@ -223,23 +203,7 @@ describe('SchemaHintsList', () => {
         stringTags={mockStringTags}
         numberTags={mockNumberTags}
         supportedAggregates={[]}
-      />,
-      {
-        organization,
-
-        router: {
-          ...router,
-          location: {
-            ...router.location,
-            query: {
-              query: '!stringTag1:"" numberTag1:>0',
-              field: ['stringTag1', 'numberTag1'],
-            },
-          },
-        },
-
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     const seeFullList = screen.getByText('See full list');
@@ -260,19 +224,21 @@ describe('SchemaHintsList', () => {
   });
 
   it('should keep drawer open when query is updated', async () => {
-    render(
+    const {router: newRouter} = render(
       <Subject
         stringTags={mockStringTags}
         numberTags={mockNumberTags}
         supportedAggregates={[]}
       />,
       {
-        organization,
-        router,
-        deprecatedRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: '/test/path',
+            query: {query: ''},
+          },
+        },
       }
     );
-
     const seeFullList = screen.getByText('See full list');
     await userEvent.click(seeFullList);
 
@@ -280,9 +246,9 @@ describe('SchemaHintsList', () => {
     const stringTag1Checkbox = withinDrawer.getByText('stringTag1');
     await userEvent.click(stringTag1Checkbox);
 
-    router.push({
-      ...router.location,
-      query: {query: '!stringTag1:""'},
+    newRouter.navigate({
+      pathname: '/test/path',
+      search: '?query=stringTag1:""',
     });
 
     expect(screen.getByLabelText('Schema Hints Drawer')).toBeInTheDocument();
@@ -294,12 +260,7 @@ describe('SchemaHintsList', () => {
         stringTags={mockStringTags}
         numberTags={mockNumberTags}
         supportedAggregates={[]}
-      />,
-      {
-        organization,
-        router,
-        deprecatedRouterMocks: true,
-      }
+      />
     );
 
     const seeFullList = screen.getByText('See full list');
@@ -313,5 +274,37 @@ describe('SchemaHintsList', () => {
     expect(withinDrawer.getByText('stringTag2')).toBeInTheDocument();
     expect(withinDrawer.queryByText('numberTag1')).not.toBeInTheDocument();
     expect(withinDrawer.queryByText('numberTag2')).not.toBeInTheDocument();
+  });
+
+  it('should set focus override propely on duplicate filters', async () => {
+    searchQueryBuilderModule.useSearchQueryBuilder = () => ({
+      query: 'stringTag1:"something"',
+      getTagValues: () => Promise.resolve(['tagValue1', 'tagValue2']),
+      dispatch: mockDispatch,
+      wrapperRef: {current: null},
+    });
+
+    render(
+      <Subject
+        stringTags={mockStringTags}
+        numberTags={mockNumberTags}
+        supportedAggregates={[]}
+      />,
+      {
+        organization,
+      }
+    );
+
+    const stringTag1Hint = screen.getByText('stringTag1');
+    await userEvent.click(stringTag1Hint);
+
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: 'UPDATE_QUERY',
+      query: 'stringTag1:something stringTag1:""',
+      focusOverride: {
+        itemKey: 'filter:1',
+        part: 'value',
+      },
+    });
   });
 });

@@ -4,13 +4,17 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStacktraceLink';
 import Link from 'sentry/components/links/link';
+import Version from 'sentry/components/version';
 import {defined} from 'sentry/utils';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import {
   getFieldRenderer,
   type RenderFunctionBaggage,
 } from 'sentry/utils/discover/fieldRenderers';
+import {VersionContainer} from 'sentry/utils/discover/styles';
 import {useRelease} from 'sentry/utils/useRelease';
+import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
+import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {stripLogParamsFromLocation} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
@@ -176,6 +180,24 @@ export function TraceIDRenderer(props: LogFieldRendererProps) {
   return <Link to={target}>{props.basicRendered}</Link>;
 }
 
+function ReleaseRenderer(props: LogFieldRendererProps) {
+  const release = props.item.value as string;
+  if (!release) {
+    return props.basicRendered;
+  }
+  return (
+    <VersionContainer>
+      <QuickContextHoverWrapper
+        dataRow={{...props.extra.attributes, release}}
+        contextType={ContextType.RELEASE}
+        organization={props.extra.organization}
+      >
+        <Version version={release} truncate />
+      </QuickContextHoverWrapper>
+    </VersionContainer>
+  );
+}
+
 export function LogBodyRenderer(props: LogFieldRendererProps) {
   const attribute_value = props.item.value as string;
   const highlightTerm = props.extra?.highlightTerms[0] ?? '';
@@ -237,6 +259,7 @@ export const LogAttributesRendererMap: Record<
   [OurLogKnownFieldKey.MESSAGE]: LogBodyRenderer,
   [OurLogKnownFieldKey.TRACE_ID]: TraceIDRenderer,
   [OurLogKnownFieldKey.CODE_FILE_PATH]: CodePathRenderer,
+  [OurLogKnownFieldKey.RELEASE]: ReleaseRenderer,
 };
 
 const fullFieldToExistingField: Record<OurLogFieldKey, string> = {
