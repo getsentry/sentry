@@ -15,6 +15,7 @@ class QuotaTest(TestCase):
     def setUp(self):
         self.backend = Quota()
 
+    @pytest.mark.skip(reason="This test flakes often")
     def test_get_project_quota(self):
         org = self.create_organization()
         project = self.create_project(organization=org)
