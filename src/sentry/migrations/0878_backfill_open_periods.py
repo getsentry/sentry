@@ -196,7 +196,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "0872_fix_drift_deleted_columns"),
+        ("sentry", "0877_integer_drift_release"),
     ]
 
     operations = [
