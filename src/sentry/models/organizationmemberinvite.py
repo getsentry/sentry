@@ -189,9 +189,7 @@ class OrganizationMemberInvite(DefaultFieldsModel):
             self.save()
 
         self.send_invite_email(referrer)
-        member_invited.send_robust(
-            invited_member=self, user=approving_user, sender=self, referrer=referrer
-        )
+        member_invited.send_robust(member=self, user=approving_user, sender=self, referrer=referrer)
         create_audit_entry_from_user(
             approving_user,
             api_key,

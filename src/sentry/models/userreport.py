@@ -37,7 +37,9 @@ class UserReport(Model):
         from sentry.api.serializers import UserReportWithGroupSerializer, serialize
         from sentry.tasks.user_report import user_report
 
+        report = serialize(self, AnonymousUser(), UserReportWithGroupSerializer())
+
         user_report.delay(
             project_id=self.project_id,
-            report=serialize(self, AnonymousUser(), UserReportWithGroupSerializer()),
+            report=report,
         )
