@@ -164,8 +164,13 @@ class Buffer(Service):
             update_kwargs: dict[str, Expression] = {c: F(c) + v for c, v in columns.items()}
 
             if extra:
+                # Because of the group.update() below, we need to parse
+                # datetime strings back into datetime objects. This ensures that
+                # the cache data contains the correct type.
+                for key in ("last_seen", "first_seen"):
+                    if key in extra:
+                        extra[key] = datetime.fromisoformat(extra[key])
                 update_kwargs.update(extra)
-
             # HACK(dcramer): this is gross, but we don't have a good hook to compute this property today
             # XXX(dcramer): remove once we can replace 'priority' with something reasonable via Snuba
             if model is Group:
