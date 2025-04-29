@@ -1622,11 +1622,9 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         # if query is '' it defaults to is:unresolved
         url = self.path + "?query="
         response = self.client.delete(url, format="json")
-        # We do not support issue platform deletions
-        assert response.status_code == 400
+        assert response.status_code == 204
         self.assert_groups_not_deleted(groups)
 
-        # We are allowed to delete the groups with the feature flag enabled
         with self.tasks():
             response = self.client.delete(url, format="json")
             assert response.status_code == 204
