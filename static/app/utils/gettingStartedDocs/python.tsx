@@ -12,12 +12,10 @@ import {t, tct} from 'sentry/locale';
 
 export function getPythonInstallSnippet({
   packageName,
-  packageManager = 'pip',
   minimumVersion,
 }: {
   packageName: string;
   minimumVersion?: string;
-  packageManager?: 'pip' | 'uv' | 'poetry';
 }) {
   // We are using consistent double quotes here for all package managers after aligning with the Python SDK team.
   // Not using quotes may lead to some shells interpreting the square brackets, and using double quotes over single quotes is a convention.
@@ -33,7 +31,7 @@ export function getPythonInstallSnippet({
     poetry: `poetry add ${versionedPackage}`,
   };
 
-  return packageManagerCommands[packageManager].trim();
+  return packageManagerCommands;
 }
 
 export function getPythonInstallConfig({
@@ -45,6 +43,7 @@ export function getPythonInstallConfig({
   minimumVersion?: string;
   packageName?: string;
 } = {}): Configuration[] {
+  const packageManagerCommands = getPythonInstallSnippet({packageName, minimumVersion});
   return [
     {
       description,
@@ -54,31 +53,19 @@ export function getPythonInstallConfig({
           label: 'pip',
           value: 'pip',
           language: 'bash',
-          code: getPythonInstallSnippet({
-            packageName,
-            packageManager: 'pip',
-            minimumVersion,
-          }),
+          code: packageManagerCommands.pip,
         },
         {
           label: 'uv',
           value: 'uv',
           language: 'bash',
-          code: getPythonInstallSnippet({
-            packageName,
-            packageManager: 'uv',
-            minimumVersion,
-          }),
+          code: packageManagerCommands.uv,
         },
         {
           label: 'poetry',
           value: 'poetry',
           language: 'bash',
-          code: getPythonInstallSnippet({
-            packageName,
-            packageManager: 'poetry',
-            minimumVersion,
-          }),
+          code: packageManagerCommands.poetry,
         },
       ],
     },
