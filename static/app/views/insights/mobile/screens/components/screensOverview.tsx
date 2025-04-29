@@ -23,6 +23,7 @@ import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries
 import {getFreeTextFromQuery} from 'sentry/views/insights/mobile/screenload/components/screensView';
 import ScreensOverviewTable from 'sentry/views/insights/mobile/screens/components/screensOverviewTable';
 import {Referrer} from 'sentry/views/insights/mobile/screens/referrers';
+import {DEFAULT_SORT} from 'sentry/views/insights/mobile/screens/settings';
 import {
   type MetricsProperty,
   SpanMetricsField,
@@ -80,8 +81,9 @@ export function ScreensOverview() {
   const {selection} = usePageFilters();
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
   const [visibleScreens, setVisibleScreens] = useState<string[]>([]);
-  const sortedBy = decodeScalar(location.query.sort, '-count');
-  const sortField = decodeSorts([sortedBy])[0]!.field;
+  const sortedBy = decodeScalar(location.query.sort);
+  const sort = (sortedBy && decodeSorts([sortedBy])[0]) || DEFAULT_SORT;
+  const sortField = sort?.field;
 
   const isSpanPrimary = spanMetricsFields.some(
     field => getAggregateAlias(field) === sortField
@@ -114,12 +116,16 @@ export function ScreensOverview() {
   const spanMetricsQuery = isSpanPrimary ? primaryQuery : visibleScreenQuery;
   const metricsQuery = isSpanPrimary ? visibleScreenQuery : primaryQuery;
 
+  const spanMetricsSorts = isSpanPrimary ? [sort] : [];
+  const metricsSorts = isSpanPrimary ? [] : [sort];
+
   const hasVisibleScreens = visibleScreens.length > 0;
 
   const spanMetricsResult = useSpanMetrics(
     {
       search: spanMetricsQuery,
       fields: spanMetricsFields,
+      sorts: spanMetricsSorts,
       enabled: isSpanPrimary || hasVisibleScreens,
     },
     Referrer.SCREENS_SCREEN_TABLE
@@ -129,6 +135,7 @@ export function ScreensOverview() {
     {
       search: metricsQuery,
       fields: transactionMetricsFields,
+      sorts: metricsSorts,
       enabled: !isSpanPrimary || hasVisibleScreens,
     },
     Referrer.SCREENS_SCREEN_TABLE
