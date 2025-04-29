@@ -3,6 +3,7 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any, DefaultDict
 
 from django.contrib.auth.models import AnonymousUser
+from rest_framework import serializers
 
 from sentry.api.serializers import Serializer, serialize
 from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
@@ -74,7 +75,14 @@ class WorkflowEngineDetectorSerializer(Serializer):
             errors = []
             alert_rule_id = serialized.get("alertRuleId")
             assert alert_rule_id
-            detector = detectors[int(alert_rule_id)]
+            detector = None
+            try:
+                # detector = detectors[int(alert_rule_id)]  # keyerror here? this is my best guess
+                detector = detectors[8456784536]
+            except KeyError:
+                raise serializers.ValidationError(
+                    "Just a desperate temp thing to see if this is where it's failing in CI"
+                )
             alert_rule_triggers = result[detector].setdefault("triggers", [])
 
             for action in serialized.get("actions", []):
@@ -122,7 +130,9 @@ class WorkflowEngineDetectorSerializer(Serializer):
             detector_projects.add((detector.id, detector.project.slug))
 
         for detector_id, project_slug in detector_projects:
-            rule_result = result[detectors[detector_id]].setdefault("projects", [])
+            rule_result = result[detectors[detector_id]].setdefault(
+                "projects", []
+            )  # keyerror I guess could be here
             rule_result.append(project_slug)
 
     def add_created_by(
