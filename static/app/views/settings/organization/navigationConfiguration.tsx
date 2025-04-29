@@ -16,7 +16,7 @@ type ConfigParams = {
 export function getOrganizationNavigationConfiguration({
   organization: incomingOrganization,
 }: ConfigParams): NavigationSection[] {
-  if (incomingOrganization && prefersStackedNav()) {
+  if (incomingOrganization && prefersStackedNav(incomingOrganization)) {
     return getUserOrgNavigationConfiguration({organization: incomingOrganization});
   }
 
@@ -150,7 +150,7 @@ export function getOrganizationNavigationConfiguration({
           title: t('Stats & Usage'),
           description: t('View organization stats and usage'),
           id: 'stats',
-          show: () => prefersStackedNav(),
+          show: () => !!incomingOrganization && prefersStackedNav(incomingOrganization),
         },
       ],
     },

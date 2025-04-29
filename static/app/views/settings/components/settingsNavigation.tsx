@@ -72,10 +72,17 @@ class SettingsNavigation extends Component<Props> {
   }
 
   render() {
-    const {navigationObjects, hooks, hookConfigs, stickyTop, ...otherProps} = this.props;
+    const {
+      navigationObjects,
+      hooks,
+      hookConfigs,
+      stickyTop,
+      organization,
+      ...otherProps
+    } = this.props;
     const navWithHooks = navigationObjects.concat(hookConfigs);
 
-    if (prefersStackedNav()) {
+    if (organization && prefersStackedNav(organization)) {
       return (
         <SettingsSecondaryNavigation
           navigationObjects={navigationObjects}
