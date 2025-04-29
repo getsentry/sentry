@@ -104,7 +104,7 @@ function RecoveryOptionsModal({
             priority="primary"
             onClick={closeModal}
             to={`/settings/account/security/mfa/${sms.id}/enroll/`}
-            name="addPhone"
+            aria-label="Add a backup phone number"
             css={css`
               margin-left: ${space(1)};
             `}
@@ -124,7 +124,7 @@ function RecoveryOptionsModal({
                 ? `/settings/account/security/mfa/${recovery.authId}/`
                 : '/settings/account/security/'
             }
-            name="getCodes"
+            aria-label="Get Recovery Codes"
             autoFocus
           >
             {t('Get Recovery Codes')}

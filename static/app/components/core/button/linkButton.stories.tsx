@@ -1,15 +1,15 @@
 import {useTheme} from '@emotion/react';
 
-import {Button, type ButtonProps} from 'sentry/components/core/button';
+import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button';
+import JSXNode from 'sentry/components/stories/jsxNode';
 import Matrix, {type PropMatrix} from 'sentry/components/stories/matrix';
-import {IconDelete} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/components/core/button';
 
-export default storyBook('Button', (story, APIReference) => {
-  APIReference(types.Button);
+export default storyBook('LinkButton', (story, APIReference) => {
+  APIReference(types.LinkButton);
 
   story('Default', () => {
     const theme = useTheme();
@@ -17,31 +17,27 @@ export default storyBook('Button', (story, APIReference) => {
       ? ['default', 'transparent', 'primary', 'warning', 'danger', 'link']
       : ['default', 'primary', 'link', 'danger'];
 
-    const propMatrix: PropMatrix<ButtonProps> = {
+    const propMatrix: PropMatrix<LinkButtonProps> = {
       children: ['Delete', undefined],
-      icon: [undefined, <IconDelete key="delete" />],
-      priority: variants as Array<ButtonProps['priority']>,
+      priority: variants as Array<LinkButtonProps['priority']>,
       size: ['md', 'sm', 'xs', 'zero'],
       disabled: [false, true],
+      external: [false, true],
       title: [undefined, 'Delete this'],
     };
 
     return (
       <div>
-        <Matrix<ButtonProps>
-          render={Button}
+        <p>
+          <JSXNode name="LinkButton" /> is a component that renders a link with button
+          styling. It accepts either a <code>to</code> prop with a location descriptor
+          object for internal routing, or an <code>href</code> prop with a string URL for
+          external links.
+        </p>
+        <Matrix<LinkButtonProps>
+          render={LinkButton}
           propMatrix={propMatrix}
           selectedProps={['size', 'priority']}
-        />
-        <Matrix<ButtonProps>
-          render={Button}
-          propMatrix={propMatrix}
-          selectedProps={['children', 'icon']}
-        />
-        <Matrix<ButtonProps>
-          render={Button}
-          propMatrix={propMatrix}
-          selectedProps={['priority', 'disabled']}
         />
       </div>
     );
