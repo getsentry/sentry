@@ -71,14 +71,16 @@ const getOrderBy = (field: string, order: 'asc' | 'desc') => {
 
 const PER_PAGE = 10;
 
+// Revert to static default column order
 const defaultColumnOrder: Array<GridColumnOrder<SortableField>> = [
   {key: 'transaction', name: t('Page'), width: COL_WIDTH_UNDEFINED},
-  {key: 'count(span.duration)', name: t('Page Views'), width: 120},
-  {key: 'failure_rate()', name: t('Error Rate'), width: 110},
+  {key: 'count(span.duration)', name: t('Page Views'), width: 122},
+  {key: 'failure_rate()', name: t('Error Rate'), width: 122},
   {key: 'sum(span.duration)', name: t('Total'), width: 90},
 ];
 
 function isSortField(value: string): value is SortableField {
+  // Check against the defaultColumnOrder keys
   return defaultColumnOrder.some(column => column.key === value);
 }
 
@@ -223,32 +225,33 @@ const HeadCell = memo(function PagesTableHeadCell({
   const location = useLocation();
   const {sortField, sortOrder} = useTableSortParams();
 
-  const align = ['count(span.duration)', 'failure_rate()', 'sum(span.duration)'].includes(
-    column.key
-  )
-    ? 'right'
-    : 'left';
-
   return (
-    <SortLink
-      align={align}
-      title={column.name}
-      direction={sortField === column.key ? sortOrder : undefined}
-      canSort
-      generateSortLink={() => {
-        const newQuery = {
-          ...location.query,
-          pagesCursor: undefined,
-          field: column.key,
-          order:
-            sortField === column.key ? (sortOrder === 'asc' ? 'desc' : 'asc') : 'desc',
-        };
-        return {
-          pathname: location.pathname,
-          query: newQuery,
-        };
-      }}
-    />
+    <div style={{display: 'flex', alignItems: 'center'}}>
+      <SortLink
+        align="left"
+        title={
+          <Fragment>
+            {column.key === 'transaction' && <CellExpander />}
+            {column.name}
+          </Fragment>
+        }
+        direction={sortField === column.key ? sortOrder : undefined}
+        canSort
+        generateSortLink={() => {
+          const newQuery = {
+            ...location.query,
+            pagesCursor: undefined,
+            field: column.key,
+            order:
+              sortField === column.key ? (sortOrder === 'asc' ? 'desc' : 'asc') : 'desc',
+          };
+          return {
+            pathname: location.pathname,
+            query: newQuery,
+          };
+        }}
+      />
+    </div>
   );
 });
 
@@ -262,41 +265,38 @@ const BodyCell = memo(function PagesBodyCell({
   const organization = useOrganization();
   const location = useLocation();
 
-  if (column.key === 'transaction') {
-    const target = transactionSummaryRouteWithQuery({
-      organization,
-      transaction: dataRow.page,
-      query: {
-        ...location.query,
-      },
-    });
+  switch (column.key) {
+    case 'transaction': {
+      const target = transactionSummaryRouteWithQuery({
+        organization,
+        transaction: dataRow.page,
+        query: {
+          ...location.query,
+        },
+      });
 
-    return (
-      <CellLink to={target}>
-        <Tooltip title={dataRow.page} showUnderline skipWrapper>
-          {dataRow.page}
-        </Tooltip>
-      </CellLink>
-    );
+      return (
+        <CellLink to={target}>
+          <Tooltip title={dataRow.page} showUnderline skipWrapper>
+            {dataRow.page}
+          </Tooltip>
+        </CellLink>
+      );
+    }
+    case 'count(span.duration)':
+      return <Count>{formatAbbreviatedNumber(dataRow.pageViews)}</Count>;
+    case 'failure_rate()': {
+      const thresholds = errorRateColorThreshold;
+      const color = getCellColor(dataRow.errorRate, thresholds);
+      return (
+        <ColoredValue color={color}>{formatPercentage(dataRow.errorRate)}</ColoredValue>
+      );
+    }
+    case 'sum(span.duration)':
+      return <Duration>{getDuration(dataRow.totalTime / 1000, 2, true)}</Duration>;
+    default:
+      return <div />;
   }
-
-  if (column.key === 'count(span.duration)') {
-    return <Count>{formatAbbreviatedNumber(dataRow.pageViews)}</Count>;
-  }
-
-  if (column.key === 'failure_rate()') {
-    const thresholds = errorRateColorThreshold;
-    const color = getCellColor(dataRow.errorRate, thresholds);
-    return (
-      <ColoredValue color={color}>{formatPercentage(dataRow.errorRate)}</ColoredValue>
-    );
-  }
-
-  if (column.key === 'sum(span.duration)') {
-    return <Duration>{getDuration(dataRow.totalTime / 1000, 2, true)}</Duration>;
-  }
-
-  return <div />;
 });
 
 const GridEditableContainer = styled('div')`
@@ -322,5 +322,6 @@ const ColoredValue = styled('span')<{
   text-align: right;
   display: block;
 `;
-
-export default memo(PagesTable);
+const CellExpander = styled('div')`
+  width: 100vw;
+`;
