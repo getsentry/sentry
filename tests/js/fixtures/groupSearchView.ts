@@ -21,6 +21,8 @@ export function GroupSearchViewFixture(params: Partial<GroupSearchView> = {}): G
     starred: false,
     createdBy: UserFixture(),
     stars: 0,
+    dateCreated: '2025-04-25',
+    dateUpdated: '2025-04-25',
     ...params,
   };
 }

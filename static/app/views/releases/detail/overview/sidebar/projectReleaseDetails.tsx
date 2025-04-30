@@ -1,8 +1,10 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
@@ -11,7 +13,6 @@ import Link from 'sentry/components/links/link';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t, tct, tn} from 'sentry/locale';
@@ -29,6 +30,7 @@ type Props = {
 };
 
 function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
+  const theme = useTheme();
   const organization = useOrganization();
   const orgSlug = organization.slug;
 
@@ -56,6 +58,7 @@ function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
                 {t('Finalized')}
                 <Tooltip
                   skipWrapper
+                  isHoverable
                   title={tct(
                     'By default a release is created "unreleased".[br]Finalizing a release means that we populate a second timestamp on the release record, which is prioritized over [code:date_created] when sorting releases. [docs:Read more].',
                     {
@@ -92,7 +95,7 @@ function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
                     )}
                   >
                     <Button
-                      size="xs"
+                      size={theme.isChonk ? 'zero' : 'xs'}
                       onClick={() => {
                         finalizeRelease.mutate([release], {
                           onSettled() {

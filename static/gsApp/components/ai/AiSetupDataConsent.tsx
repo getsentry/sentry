@@ -1,40 +1,36 @@
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/core/button';
+import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
+
+import {promptsUpdate} from 'sentry/actionCreators/prompts';
+import {SeerWaitingIcon} from 'sentry/components/ai/SeerIcon';
+import {Flex} from 'sentry/components/container/flex';
+import {Button} from 'sentry/components/core/button';
+import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
+import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import withSubscription from 'getsentry/components/withSubscription';
-import {useGenAiConsentButtonAccess} from 'getsentry/hooks/genAiAccess';
-import type {Subscription} from 'getsentry/types';
-
 type AiSetupDataConsentProps = {
   groupId: string;
 };
 
-function AiSetupDataConsent({
-  groupId,
-  subscription,
-}: AiSetupDataConsentProps & {
-  subscription: Subscription;
-}) {
-  const api = useApi();
+function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
+  const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const queryClient = useQueryClient();
+  const {data: autofixSetupData} = useAutofixSetup({groupId});
 
-  const endpoint = `/organizations/${organization.slug}/data-consent/`;
-
-  const genAiConsentMutation = useMutation({
+  const autofixAcknowledgeMutation = useMutation({
     mutationFn: () => {
-      return api.requestPromise(endpoint, {
-        method: 'PUT',
-        data: {
-          genAIConsent: true,
-        },
+      return promptsUpdate(api, {
+        organization,
+        feature: 'seer_autofix_setup_acknowledged',
+        status: 'dismissed',
       });
     },
     onSuccess: () => {
@@ -43,78 +39,80 @@ function AiSetupDataConsent({
     },
   });
 
-  const {isDisabled, message} = useGenAiConsentButtonAccess({
-    subscription,
-  });
-
   return (
     <ConsentItemsContainer>
+      <Flex align="center" gap={space(1)}>
+        <SeerWaitingIcon size="xl" />
+        <SayHelloHeader>{t('Say Hello to a Smarter Sentry')}</SayHelloHeader>
+      </Flex>
+      <Flex align="center" justify="center" gap={space(1)}>
+        <img src={autofixSetupImg} alt="Seer looking at a root cause for a solution" />
+      </Flex>
       <HeaderItem>
-        <Title>Consent to Data Usage</Title>
-        <Paragraph>
-          {t(
-            "As part of Sentry's privacy-first approach to data usage, we require explicit permissions to access your data for generative AI-based features."
-          )}
-        </Paragraph>
+        <Title>{t('With Seer you get:')}</Title>
       </HeaderItem>
       <ConsentItem>
-        <ConsentTitle>{t('What data do we access?')}</ConsentTitle>
+        <ConsentTitle>{t('Issue Summaries')}</ConsentTitle>
         <Paragraph>
           {t(
-            "Sentry's generative AI features use relevant data, including error messages, stack traces, spans, DOM interactions, and code from your linked repositories."
+            "The fastest way to see what's going on, incorporating all data in the issue."
           )}
         </Paragraph>
       </ConsentItem>
       <ConsentItem>
-        <ConsentTitle>{t('How do we use it?')}</ConsentTitle>
+        <ConsentTitle>{t('Root Cause Analysis')}</ConsentTitle>
         <Paragraph>
-          {t(
-            'We use the data to provide you with insights, analyses, summaries, suggested fixes and other product capabilities. Your data will not be used to train any models or to generate output shown to others.'
-          )}
+          {t('A streamlined, collaborative workflow to find the root cause.')}
         </Paragraph>
       </ConsentItem>
       <ConsentItem>
-        <ConsentTitle>{t('Where does it go?')}</ConsentTitle>
+        <ConsentTitle>{t('Solutions & Code Changes')}</ConsentTitle>
         <Paragraph>
-          {t(
-            'This feature is powered by generative AI models hosted by the feature-specific subprocessors identified on our subprocessor list. Our subprocessors will only use the data as directed by us.'
-          )}
+          {t('Proposed fixes with test cases, ready to merge as draft pull requests.')}
         </Paragraph>
       </ConsentItem>
       <ButtonWrapper>
         <Button
           priority="primary"
-          onClick={() => genAiConsentMutation.mutate()}
-          disabled={isDisabled || genAiConsentMutation.isPending}
+          onClick={() => autofixAcknowledgeMutation.mutate()}
+          disabled={autofixAcknowledgeMutation.isPending}
           analyticsEventKey="gen_ai_consent.in_drawer_clicked"
           analyticsEventName="Gen AI Consent: Clicked In Drawer"
+          analyticsParams={{
+            is_first_user_in_org:
+              !autofixSetupData?.setupAcknowledgement.orgHasAcknowledged,
+          }}
           size="sm"
-          title={message}
         >
-          {genAiConsentMutation.isPending ? (
-            <StyledLoadingIndicator size={14} mini />
+          {autofixAcknowledgeMutation.isPending ? (
+            <StyledLoadingIndicator size={14} />
+          ) : autofixSetupData?.setupAcknowledgement.orgHasAcknowledged ? (
+            t('Try Seer')
           ) : (
-            t('I Agree')
+            t('Enable Seer')
           )}
         </Button>
-        <LinkButton
-          external
-          href="/settings/legal/#genAIConsent"
-          size="sm"
-          analyticsEventKey="gen_ai_consent.view_in_settings_clicked"
-          analyticsEventName="Gen AI Consent: View in Settings Clicked"
-        >
-          View in Settings
-        </LinkButton>
-        {genAiConsentMutation.isError && (
+        {autofixAcknowledgeMutation.isError && (
           <ErrorText>{t('Something went wrong.')}</ErrorText>
         )}
       </ButtonWrapper>
+      {!autofixSetupData?.setupAcknowledgement.orgHasAcknowledged && (
+        <Paragraph>
+          {tct(
+            'Seer models are powered by generative Al. Per our [dataLink:data usage policies], Sentry does not share AI-generated output from your data with other customers or use your data to train generative AI models without your express consent.',
+            {
+              dataLink: (
+                <ExternalLink href="https://docs.sentry.io/product/security/ai-ml-policy/#use-of-identifying-data-for-generative-ai-features" />
+              ),
+            }
+          )}
+        </Paragraph>
+      )}
     </ConsentItemsContainer>
   );
 }
 
-export default withSubscription(AiSetupDataConsent);
+export default AiSetupDataConsent;
 
 const ConsentItemsContainer = styled('div')`
   display: flex;
@@ -126,6 +124,7 @@ const HeaderItem = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
+  margin-top: ${space(2)};
 `;
 
 const ConsentItem = styled('div')`
@@ -138,7 +137,11 @@ const ConsentItem = styled('div')`
   border: 1px solid ${p => p.theme.border};
 `;
 
-const Title = styled('h3')`
+const SayHelloHeader = styled('h3')`
+  margin: 0;
+`;
+
+const Title = styled('h5')`
   margin: 0;
   font-size: ${p => p.theme.fontSizeMedium};
 `;

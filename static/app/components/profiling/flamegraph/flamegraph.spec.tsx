@@ -4,6 +4,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {FlamegraphRendererDOM as mockFlameGraphRenderer} from 'sentry/utils/profiling/renderers/testUtils';
 import {useParams} from 'sentry/utils/useParams';
 import ProfileFlamegraph from 'sentry/views/profiling/profileFlamechart';
 import ProfilesAndTransactionProvider from 'sentry/views/profiling/transactionProfileProvider';
@@ -24,12 +25,8 @@ Element.prototype.scrollTo = () => {};
 
 // Replace the webgl renderer with a dom renderer for tests
 jest.mock('sentry/utils/profiling/renderers/flamegraphRendererWebGL', () => {
-  const {
-    FlamegraphRendererDOM,
-  } = require('sentry/utils/profiling/renderers/flamegraphRendererDOM');
-
   return {
-    FlamegraphRendererWebGL: FlamegraphRendererDOM,
+    FlamegraphRendererWebGL: mockFlameGraphRenderer,
   };
 });
 

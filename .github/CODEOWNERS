@@ -123,7 +123,6 @@ pyproject.toml                                           @getsentry/owners-pytho
 /.githib/worksflows/frontend.yml                         @getsentry/owners-js-build
 /.github/file-filters.yml                                @getsentry/owners-js-build
 babel.config.*                                           @getsentry/owners-js-build
-biome.json                                               @getsentry/owners-js-build
 build-utils/                                             @getsentry/owners-js-build
 eslint.config.mjs                                        @getsentry/owners-js-build
 jest.config.ts                                           @getsentry/owners-js-build
@@ -341,13 +340,15 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 
 
 ## Replays
-/static/app/components/replays/                                 @getsentry/replay-frontend
-/static/app/utils/replays/                                      @getsentry/replay-frontend
-/static/app/views/replays/                                      @getsentry/replay-frontend
-/src/sentry/replays/                                            @getsentry/replay-backend
-/tests/sentry/replays/                                          @getsentry/replay-backend
-/src/sentry/issues/endpoints/organization_issue_metrics.py         @getsentry/replay-backend
-/tests/sentry/issues/endpoints/test_organization_issue_metrics.py  @getsentry/replay-backend
+/static/app/components/replays/                                          @getsentry/replay-frontend
+/static/app/utils/replays/                                               @getsentry/replay-frontend
+/static/app/views/replays/                                               @getsentry/replay-frontend
+/src/sentry/replays/                                                     @getsentry/replay-backend
+/tests/sentry/replays/                                                   @getsentry/replay-backend
+/src/sentry/issues/endpoints/organization_issue_metrics.py               @getsentry/replay-backend
+/tests/sentry/issues/endpoints/test_organization_issue_metrics.py        @getsentry/replay-backend
+/src/sentry/issues/endpoints/organization_group_suspect_flags.py         @getsentry/replay-backend
+/tests/sentry/issues/endpoints/test_organization_group_suspect_flags.py  @getsentry/replay-backend
 ## End of Replays
 
 
@@ -522,23 +523,36 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 
 
 ## Issues
-**/issues/**                                                @getsentry/issues
-/src/sentry/api/helpers/actionable_items_helper.py          @getsentry/issues
-/src/sentry/api/helpers/events.py                           @getsentry/issues
-/src/sentry/api/helpers/group_index/                        @getsentry/issues
-/src/sentry/api/helpers/source_map_helper.py                @getsentry/issues
-/src/sentry/api/issue_search.py                             @getsentry/issues
-/src/sentry/api/endpoints/organization_pinned_searches.py   @getsentry/issues
+# Catch-all
+/src/sentry/issues/**                                       @getsentry/issue-detection-backend @getsentry/issue-workflow
+/static/**/issues/**                                        @getsentry/issue-detection-frontend @getsentry/issue-workflow
+/tests/sentry/issues/**                                     @getsentry/issue-detection-backend @getsentry/issue-workflow
+# Overrides
+/src/sentry/api/helpers/actionable_items_helper.py          @getsentry/issue-workflow
+/src/sentry/api/helpers/events.py                           @getsentry/issue-workflow
+/src/sentry/api/helpers/group_index/                        @getsentry/issue-workflow
+/src/sentry/api/helpers/source_map_helper.py                @getsentry/issue-workflow
+/src/sentry/api/issue_search.py                             @getsentry/issue-workflow
+/src/sentry/api/endpoints/                                  @getsentry/issue-workflow
 /src/sentry/deletions/defaults/group.py                     @getsentry/issue-detection-backend
 /src/sentry/deletions/tasks/groups.py                       @getsentry/issue-detection-backend
 /src/sentry/event_manager.py                                @getsentry/issue-detection-backend
 /src/sentry/eventstore/models.py                            @getsentry/issue-detection-backend
 /src/sentry/grouping/                                       @getsentry/issue-detection-backend
-/src/sentry/mediators/                                      @getsentry/issues
-/src/sentry/ratelimits/                                     @getsentry/issues
-/src/sentry/search/events/builder/issue_platform.py         @getsentry/issues
-/src/sentry/search/events/builder/errors.py                 @getsentry/issues
-/src/sentry/search/snuba/                                   @getsentry/issues
+/src/sentry/issues/auto_source_code_config/                 @getsentry/issue-detection-backend
+/src/sentry/issues/endpoints/related_issues.py              @getsentry/issue-detection-backend
+/src/sentry/issues/ingest.py                                @getsentry/issue-detection-backend
+/src/sentry/issues/issue_occurrence.py                      @getsentry/issue-detection-backend
+/src/sentry/issues/merge.py                                 @getsentry/issue-detection-backend
+/src/sentry/issues/occurrence_consumer.py                   @getsentry/issue-detection-backend
+/src/sentry/issues/related/                                 @getsentry/issue-detection-backend
+/src/sentry/issues/search.py                                @getsentry/issue-workflow
+/src/sentry/issues/status_change_consumer.py                @getsentry/issue-detection-backend
+/src/sentry/issues/status_change_message.py                 @getsentry/issue-detection-backend
+/src/sentry/issues/status_change.py                         @getsentry/issue-detection-backend
+/src/sentry/search/events/builder/issue_platform.py         @getsentry/issue-workflow
+/src/sentry/search/events/builder/errors.py                 @getsentry/issue-workflow
+/src/sentry/search/snuba/                                   @getsentry/issue-workflow
 /src/sentry/seer/similarity/                                @getsentry/issue-detection-backend
 /src/sentry/tasks/auto_ongoing_issues.py                    @getsentry/issue-detection-backend
 /src/sentry/tasks/auto_remove_inbox.py                      @getsentry/issue-detection-backend
@@ -550,7 +564,6 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/tasks/clear_expired_snoozes.py                  @getsentry/issue-detection-backend
 /src/sentry/tasks/codeowners/                               @getsentry/issue-detection-backend
 /src/sentry/tasks/commit_context.py                         @getsentry/issue-detection-backend
-/src/sentry/tasks/commits.py                                @getsentry/issues
 /src/sentry/tasks/delete_seer_grouping_records.py           @getsentry/issue-detection-backend
 /src/sentry/tasks/embeddings_grouping/                      @getsentry/issue-detection-backend
 /src/sentry/tasks/groupowner.py                             @getsentry/issue-detection-backend
@@ -558,23 +571,28 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/tasks/post_process.py                           @getsentry/issue-detection-backend
 /src/sentry/tasks/unmerge.py                                @getsentry/issue-detection-backend
 /src/sentry/tasks/weekly_escalating_forecast.py             @getsentry/issue-detection-backend
-/static/app/components/events/contexts/                     @getsentry/issues
-/static/app/components/events/eventTags/                    @getsentry/issues
-/static/app/components/events/highlights/                   @getsentry/issues
-/static/app/views/issueList                                 @getsentry/issues
-/static/app/views/issueDetails/                             @getsentry/issues
-/static/app/views/organizationStats/teamInsights/           @getsentry/issues
-/static/app/views/projects/                                 @getsentry/issues
-/static/app/views/projectDetail/                            @getsentry/issues
-/static/app/views/settings/project/projectOwnership/        @getsentry/issues
-/static/app/components/events/interfaces/crashContent/exception/actionableItems.tsx   @getsentry/issues
-/static/app/utils/analytics.tsx                             @getsentry/issues
-/static/app/utils/routeAnalytics/                           @getsentry/issues
-/tests/sentry/api/test_issue_search.py                      @getsentry/issues
+/static/app/components/events/contexts/                     @getsentry/issue-workflow
+/static/app/components/events/eventTags/                    @getsentry/issue-workflow
+/static/app/components/events/highlights/                   @getsentry/issue-workflow
+/static/app/components/issues/                              @getsentry/issue-workflow
+/static/app/views/issueList                                 @getsentry/issue-workflow
+/static/app/views/issueDetails/                             @getsentry/issue-workflow
+/static/app/views/nav/secondary/sections/issues/            @getsentry/issue-workflow
+/static/app/components/events/interfaces/crashContent/exception/actionableItems.tsx   @getsentry/issue-workflow
+/tests/sentry/api/test_issue_search.py                      @getsentry/issue-workflow
 /tests/sentry/deletions/test_group.py                       @getsentry/issue-detection-backend
 /tests/sentry/event_manager/                                @getsentry/issue-detection-backend
 /tests/sentry/grouping/                                     @getsentry/issue-detection-backend
-/tests/sentry/search/                                       @getsentry/issues
+/tests/sentry/issues/auto_source_code_config/               @getsentry/issue-detection-backend
+/tests/sentry/issues/endpoints/                             @getsentry/issue-workflow
+/tests/sentry/issues/endpoints/test_related_issues.py       @getsentry/issue-detection-backend
+/tests/sentry/issues/test_ingest.py                         @getsentry/issue-detection-backend
+/tests/sentry/issues/test_issue_occurrence.py               @getsentry/issue-detection-backend
+/tests/sentry/issues/test_occurrence_consumer.py            @getsentry/issue-detection-backend
+/tests/sentry/issues/test_search_issues_dataset.py          @getsentry/issue-workflow
+/tests/sentry/issues/test_status_change_consumer.py         @getsentry/issue-detection-backend
+/tests/sentry/issues/test_status_change.py                  @getsentry/issue-detection-backend
+/tests/sentry/search/                                       @getsentry/issue-workflow
 /tests/sentry/tasks/test_auto_ongoing_issues.py             @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_auto_remove_inbox.py               @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_auto_resolve_issues.py             @getsentry/issue-detection-backend
@@ -586,13 +604,12 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /tests/sentry/tasks/test_clear_expired_snoozes.py           @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_code_owners.py                     @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_commit_context.py                  @getsentry/issue-detection-backend
-/tests/sentry/tasks/test_commits.py                         @getsentry/issues
 /tests/sentry/tasks/test_delete_seer_grouping_records.py    @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_groupowner.py                      @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_merge.py                           @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_post_process.py                    @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_weekly_escalating_forecast.py      @getsentry/issue-detection-backend
-/tests/snuba/search/                                        @getsentry/issues
+/tests/snuba/search/                                        @getsentry/issue-workflow
 ## End of Issues
 
 ## Billing
@@ -610,7 +627,6 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /static/gsApp/views/spikeProtection/          @getsentry/revenue
 /static/gsApp/hooks/superuser*                @getsentry/enterprise
 /static/gsApp/hooks/integration*              @getsentry/ecosystem
-/static/gsApp/hooks/issue*                    @getsentry/issues
 /static/gsApp/components/crons/               @getsentry/crons
 /static/gsApp/components/replay*              @getsentry/replay-frontend
 

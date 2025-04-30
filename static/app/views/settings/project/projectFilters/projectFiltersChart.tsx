@@ -38,7 +38,7 @@ const known_categories = [
 
 function makeStatOPColors(fallbackColor: string, theme: Theme): Record<string, string> {
   const result: Record<string, string> = {};
-  const colors = theme.chart.colors[known_categories.length - 1];
+  const colors = theme.chart.getColorPalette(known_categories.length - 1);
 
   known_categories.forEach((category, index) => {
     const color = colors?.[index % colors.length] ?? fallbackColor;
@@ -51,7 +51,7 @@ function makeStatOPColors(fallbackColor: string, theme: Theme): Record<string, s
 }
 
 function formatData(rawData: UsageSeries | undefined, theme: Theme) {
-  if (!rawData || !rawData.groups?.length) {
+  if (!rawData?.groups?.length) {
     return [];
   }
 

@@ -16,7 +16,7 @@ from sentry.attachments import attachment_cache
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.datascrubbing import scrub_data
 from sentry.eventstore import processing
-from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
+from sentry.feedback.usecases.save_feedback_event import save_feedback_event
 from sentry.ingest.types import ConsumerType
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.symbolicator import SymbolicatorTaskKind
@@ -25,6 +25,8 @@ from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import issues_tasks
 from sentry.utils import metrics
 from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
 from sentry.utils.safe import safe_execute
@@ -253,6 +255,10 @@ def preprocess_event(
     time_limit=65,
     soft_time_limit=60,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        processing_deadline_duration=65,
+    ),
 )
 def preprocess_event_from_reprocessing(
     cache_key: str,
@@ -469,6 +475,10 @@ def process_event(
     time_limit=65,
     soft_time_limit=60,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        processing_deadline_duration=65,
+    ),
 )
 def process_event_from_reprocessing(
     cache_key: str,
@@ -680,6 +690,10 @@ def save_event_transaction(
     time_limit=65,
     soft_time_limit=60,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        processing_deadline_duration=65,
+    ),
 )
 def save_event_feedback(
     cache_key: str | None = None,
@@ -690,7 +704,7 @@ def save_event_feedback(
     project_id: int,
     **kwargs: Any,
 ) -> None:
-    create_feedback_issue(data, project_id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+    save_feedback_event(data, project_id)
 
 
 @instrumented_task(

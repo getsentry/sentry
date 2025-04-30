@@ -92,8 +92,8 @@ TYPE_MAP: dict[SearchType, AttributeKey.Type.ValueType] = {
 }
 
 # https://github.com/getsentry/snuba/blob/master/snuba/web/rpc/v1/endpoint_time_series.py
-# The RPC limits us to 2016 points per timeseries
-MAX_ROLLUP_POINTS = 2016
+# The RPC limits us to 2688 points per timeseries
+MAX_ROLLUP_POINTS = 2688
 # Copied from snuba, a number of total seconds
 VALID_GRANULARITIES = frozenset(
     {
@@ -161,4 +161,5 @@ RESPONSE_CODE_MAP = {
 SAMPLING_MODE_MAP: dict[SAMPLING_MODES, DownsampledStorageConfig.Mode.ValueType] = {
     "BEST_EFFORT": DownsampledStorageConfig.MODE_BEST_EFFORT,
     "PREFLIGHT": DownsampledStorageConfig.MODE_PREFLIGHT,
+    "NORMAL": DownsampledStorageConfig.MODE_NORMAL,
 }

@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -11,6 +11,7 @@ import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -23,9 +24,15 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {WidgetExtrapolationFooter} from 'sentry/views/explore/charts/widgetExtrapolationFooter';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
-import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {
+  BaseVisualize,
+  Visualize,
+} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
-import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {
+  SAMPLING_MODE,
+  type SamplingMode,
+} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {CHART_HEIGHT, INGESTION_DELAY} from 'sentry/views/explore/settings';
 import {
@@ -37,8 +44,9 @@ import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/use
 interface ExploreChartsProps {
   canUsePreviousResults: boolean;
   confidences: Confidence[];
+  dataset: DiscoverDatasets;
   query: string;
-  setVisualizes: (visualizes: Visualize[]) => void;
+  setVisualizes: (visualizes: BaseVisualize[]) => void;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   visualizes: Visualize[];
   hideContextMenu?: boolean;
@@ -60,7 +68,7 @@ export const EXPLORE_CHART_TYPE_OPTIONS = [
   },
 ];
 
-export const EXPLORE_CHART_GROUP = 'explore-charts_group';
+const EXPLORE_CHART_GROUP = 'explore-charts_group';
 
 export function ExploreCharts({
   canUsePreviousResults,
@@ -71,6 +79,7 @@ export function ExploreCharts({
   setVisualizes,
   hideContextMenu,
   samplingMode,
+  dataset,
 }: ExploreChartsProps) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -161,8 +170,12 @@ export function ExploreCharts({
 
   const handleChartTypeChange = useCallback(
     (chartType: ChartType, index: number) => {
-      const newVisualizes = visualizes.slice();
-      newVisualizes[index] = {...newVisualizes[index]!, chartType};
+      const newVisualizes = visualizes.map((visualize, i) => {
+        if (i === index) {
+          visualize = visualize.replace({chartType});
+        }
+        return visualize.toJSON();
+      });
       setVisualizes(newVisualizes);
     },
     [visualizes, setVisualizes]
@@ -190,16 +203,34 @@ export function ExploreCharts({
           );
 
           if (chartInfo.loading) {
+            const loadingMessage =
+              organization.features.includes(
+                'visibility-explore-progressive-loading-normal-sampling-mode'
+              ) &&
+              timeseriesResult.isFetching &&
+              samplingMode === SAMPLING_MODE.HIGH_ACCURACY
+                ? t(
+                    "Hey, we're gonna try scanning all data we can to get your query answered so just wait a bit more"
+                  )
+                : undefined;
             return (
               <Widget
                 key={index}
                 height={CHART_HEIGHT}
                 Title={Title}
-                Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
+                Visualization={
+                  <TimeSeriesWidgetVisualization.LoadingPlaceholder
+                    loadingMessage={loadingMessage}
+                    expectMessage
+                  />
+                }
                 revealActions="always"
                 Footer={
                   organization.features.includes(
                     'visibility-explore-progressive-loading'
+                  ) &&
+                  !organization.features.includes(
+                    'visibility-explore-progressive-loading-normal-sampling-mode'
                   ) && (
                     <WidgetExtrapolationFooter
                       samplingMode={undefined}
@@ -208,6 +239,7 @@ export function ExploreCharts({
                       confidence={undefined}
                       topEvents={undefined}
                       dataScanned={undefined}
+                      dataset={dataset}
                     />
                   )
                 }
@@ -329,6 +361,7 @@ export function ExploreCharts({
                   }
                   dataScanned={chartInfo.dataScanned}
                   samplingMode={samplingMode}
+                  dataset={dataset}
                 />
               }
             />

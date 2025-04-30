@@ -272,7 +272,6 @@ const TeamLink = styled(Link)`
   }
 `;
 
-export {AllTeamsRow};
 export default withApi(AllTeamsRow);
 
 export const GRID_TEMPLATE = `

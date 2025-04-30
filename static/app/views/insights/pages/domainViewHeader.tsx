@@ -24,6 +24,7 @@ import {
   useModuleURLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
+import {useIsNextJsInsightsEnabled} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {
   isModuleConsideredNew,
@@ -64,6 +65,7 @@ export function DomainViewHeader({
   const navigate = useNavigate();
   const moduleURLBuilder = useModuleURLBuilder();
   const isLaravelInsightsAvailable = useIsLaravelInsightsAvailable();
+  const [isNextJsInsightsEnabled] = useIsNextJsInsightsEnabled();
   const useEap = useInsightsEap();
   const hasEapFlag = organization.features.includes('insights-modules-use-eap');
 
@@ -139,10 +141,12 @@ export function DomainViewHeader({
             ) : (
               <FeedbackWidgetButton
                 optionOverrides={
-                  isLaravelInsightsAvailable
+                  isLaravelInsightsAvailable || isNextJsInsightsEnabled
                     ? {
                         tags: {
-                          ['feedback.source']: 'laravel-insights',
+                          ['feedback.source']: isLaravelInsightsAvailable
+                            ? 'laravel-insights'
+                            : 'nextjs-insights',
                           ['feedback.owner']: 'telemetry-experience',
                         },
                       }
@@ -183,7 +187,7 @@ export function DomainViewHeader({
               ))}
             </TabList>
           )}
-          {hideDefaultTabs && tabs && tabs.tabList}
+          {hideDefaultTabs && tabs?.tabList}
         </Layout.HeaderTabs>
       </Layout.Header>
     </Fragment>

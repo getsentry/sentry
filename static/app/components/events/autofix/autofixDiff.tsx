@@ -18,7 +18,6 @@ import {DIFF_COLORS} from 'sentry/components/splitDiff';
 import {IconChevron, IconClose, IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {singleLineRenderer} from 'sentry/utils/marked';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
@@ -522,11 +521,9 @@ function DiffHunkContent({
             data-overlay="true"
           >
             <OverlayHeader>
-              <OverlayTitle
-                dangerouslySetInnerHTML={{
-                  __html: singleLineRenderer(t('Editing `%s`', fileName)),
-                }}
-              />
+              <OverlayTitle>
+                {t('Editing')} <code>{fileName}</code>
+              </OverlayTitle>
             </OverlayHeader>
             <OverlayContent>
               <SectionTitle>{getDeletedLineTitle(editingGroup)}</SectionTitle>
@@ -662,7 +659,7 @@ export function AutofixDiff({
   previousInsightCount,
   isExpandable = true,
 }: AutofixDiffProps) {
-  if (!diff || !diff.length) {
+  if (!diff?.length) {
     return null;
   }
 
@@ -825,7 +822,6 @@ const ButtonGroup = styled('div')`
   top: 0;
   right: ${space(0.5)};
   display: flex;
-  z-index: 1;
 `;
 
 const ActionButton = styled(Button)<{isHovered: boolean}>`
@@ -896,6 +892,8 @@ const RemovedLine = styled('div')`
   background-color: ${DIFF_COLORS.removedRow};
   color: ${p => p.theme.textColor};
   padding: ${space(0.25)} ${space(0.5)};
+  white-space: pre-wrap;
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const StyledTextArea = styled(TextArea)`

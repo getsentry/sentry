@@ -1,4 +1,5 @@
 import unittest
+from datetime import UTC, datetime
 from unittest import mock
 from unittest.mock import call
 
@@ -45,18 +46,28 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         detector = self.create_detector_and_conditions(type=self.handler_state_type.slug)
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
         results = process_detectors(data_packet, [detector])
-        occurrence, event_data = build_mock_occurrence_and_event(
-            detector.detector_handler, None, 6, PriorityLevel.HIGH
+
+        detector_occurrence, event_data = build_mock_occurrence_and_event(
+            detector.detector_handler, None, PriorityLevel.HIGH
+        )
+
+        issue_occurrence, expected_event_data = self.detector_to_issue_occurrence(
+            detector_occurrence=detector_occurrence,
+            detector=detector,
+            group_key=None,
+            value=6,
+            priority=DetectorPriorityLevel.HIGH,
+            detection_time=datetime.now(UTC),
+            occurrence_id=str(self.mock_uuid4.return_value),
         )
 
         result = DetectorEvaluationResult(
             None,
             True,
             DetectorPriorityLevel.HIGH,
-            occurrence,
-            event_data,
+            issue_occurrence,
+            expected_event_data,
         )
-
         assert results == [
             (
                 detector,
@@ -65,9 +76,9 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         ]
         mock_produce_occurrence_to_kafka.assert_called_once_with(
             payload_type=PayloadType.OCCURRENCE,
-            occurrence=occurrence,
+            occurrence=issue_occurrence,
             status_change=None,
-            event_data=event_data,
+            event_data=expected_event_data,
         )
 
     @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
@@ -75,25 +86,49 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         detector = self.create_detector_and_conditions(type=self.handler_state_type.slug)
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {"group_1": 6, "group_2": 10}})
         results = process_detectors(data_packet, [detector])
-        occurrence, event_data = build_mock_occurrence_and_event(
-            detector.detector_handler, "group_1", 6, PriorityLevel.HIGH
+
+        detector_occurrence_1, _ = build_mock_occurrence_and_event(
+            detector.detector_handler, "group_1", PriorityLevel.HIGH
+        )
+
+        detection_time = datetime.now(UTC)
+        issue_occurrence_1, event_data_1 = self.detector_to_issue_occurrence(
+            detector_occurrence=detector_occurrence_1,
+            detector=detector,
+            group_key="group_1",
+            value=6,
+            priority=DetectorPriorityLevel.HIGH,
+            detection_time=detection_time,
+            occurrence_id=str(self.mock_uuid4.return_value),
         )
 
         result_1 = DetectorEvaluationResult(
             "group_1",
             True,
             DetectorPriorityLevel.HIGH,
-            occurrence,
-            event_data,
+            issue_occurrence_1,
+            event_data_1,
         )
-        occurrence_2, event_data_2 = build_mock_occurrence_and_event(
-            detector.detector_handler, "group_2", 6, PriorityLevel.HIGH
+
+        detector_occurrence_2, _ = build_mock_occurrence_and_event(
+            detector.detector_handler, "group_2", PriorityLevel.HIGH
         )
+
+        issue_occurrence_2, event_data_2 = self.detector_to_issue_occurrence(
+            detector_occurrence=detector_occurrence_2,
+            detector=detector,
+            group_key="group_2",
+            value=10,
+            priority=DetectorPriorityLevel.HIGH,
+            detection_time=detection_time,
+            occurrence_id=str(self.mock_uuid4.return_value),
+        )
+
         result_2 = DetectorEvaluationResult(
             "group_2",
             True,
             DetectorPriorityLevel.HIGH,
-            occurrence_2,
+            issue_occurrence_2,
             event_data_2,
         )
         assert results == [
@@ -106,13 +141,13 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             [
                 call(
                     payload_type=PayloadType.OCCURRENCE,
-                    occurrence=occurrence,
+                    occurrence=issue_occurrence_1,
                     status_change=None,
-                    event_data=event_data,
+                    event_data=event_data_1,
                 ),
                 call(
                     payload_type=PayloadType.OCCURRENCE,
-                    occurrence=occurrence_2,
+                    occurrence=issue_occurrence_2,
                     status_change=None,
                     event_data=event_data_2,
                 ),
@@ -317,15 +352,28 @@ class TestEvaluate(BaseDetectorHandlerTest):
     def test(self):
         handler = self.build_handler()
         assert handler.evaluate(DataPacket("1", {"dedupe": 1})) == {}
-        occurrence, event_data = build_mock_occurrence_and_event(
-            handler, "val1", 6, PriorityLevel.HIGH
+
+        detector_occurrence, _ = build_mock_occurrence_and_event(
+            handler, "val1", PriorityLevel.HIGH
         )
+
+        detection_time = datetime.now(UTC)
+        issue_occurrence, event_data = self.detector_to_issue_occurrence(
+            detector_occurrence=detector_occurrence,
+            detector=handler.detector,
+            group_key="val1",
+            value=6,
+            priority=DetectorPriorityLevel.HIGH,
+            detection_time=detection_time,
+            occurrence_id=str(self.mock_uuid4.return_value),
+        )
+
         assert handler.evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 6}})) == {
             "val1": DetectorEvaluationResult(
                 group_key="val1",
                 is_active=True,
                 priority=DetectorPriorityLevel.HIGH,
-                result=occurrence,
+                result=issue_occurrence,
                 event_data=event_data,
             )
         }
@@ -335,15 +383,28 @@ class TestEvaluate(BaseDetectorHandlerTest):
         handler = self.build_handler()
         assert handler.evaluate(DataPacket("1", {"dedupe": 1, "group_vals": {"val1": 0}})) == {}
         handler.commit_state_updates()
-        occurrence, event_data = build_mock_occurrence_and_event(
-            handler, "val1", 6, PriorityLevel.HIGH
+
+        detector_occurrence, _ = build_mock_occurrence_and_event(
+            handler, "val1", PriorityLevel.HIGH
         )
+
+        detection_time = datetime.now(UTC)
+        issue_occurrence, event_data = self.detector_to_issue_occurrence(
+            detector_occurrence=detector_occurrence,
+            detector=handler.detector,
+            group_key="val1",
+            value=6,
+            priority=DetectorPriorityLevel.HIGH,
+            detection_time=detection_time,
+            occurrence_id=str(self.mock_uuid4.return_value),
+        )
+
         assert handler.evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 6}})) == {
             "val1": DetectorEvaluationResult(
                 group_key="val1",
                 is_active=True,
                 priority=DetectorPriorityLevel.HIGH,
-                result=occurrence,
+                result=issue_occurrence,
                 event_data=event_data,
             )
         }
@@ -380,16 +441,30 @@ class TestEvaluate(BaseDetectorHandlerTest):
 
     def test_results_on_change(self):
         handler = self.build_handler()
-        result = handler.evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 100}}))
-        occurrence, event_data = build_mock_occurrence_and_event(
-            handler, "val1", 6, PriorityLevel.HIGH
+
+        detector_occurrence, _ = build_mock_occurrence_and_event(
+            handler, "val1", PriorityLevel.HIGH
         )
+
+        detection_time = datetime.now(UTC)
+        issue_occurrence, event_data = self.detector_to_issue_occurrence(
+            detector_occurrence=detector_occurrence,
+            detector=handler.detector,
+            group_key="val1",
+            value=100,
+            priority=DetectorPriorityLevel.HIGH,
+            detection_time=detection_time,
+            occurrence_id=str(self.mock_uuid4.return_value),
+        )
+
+        result = handler.evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 100}}))
+
         assert result == {
             "val1": DetectorEvaluationResult(
                 group_key="val1",
                 is_active=True,
                 priority=DetectorPriorityLevel.HIGH,
-                result=occurrence,
+                result=issue_occurrence,
                 event_data=event_data,
             )
         }
@@ -400,16 +475,30 @@ class TestEvaluate(BaseDetectorHandlerTest):
 
     def test_dedupe(self):
         handler = self.build_handler()
-        result = handler.evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 8}}))
-        occurrence, event_data = build_mock_occurrence_and_event(
-            handler, "val1", 6, PriorityLevel.HIGH
+
+        detector_occurrence, _ = build_mock_occurrence_and_event(
+            handler, "val1", PriorityLevel.HIGH
         )
+
+        detection_time = datetime.now(UTC)
+        issue_occurrence, event_data = self.detector_to_issue_occurrence(
+            detector_occurrence=detector_occurrence,
+            detector=handler.detector,
+            group_key="val1",
+            value=8,
+            priority=DetectorPriorityLevel.HIGH,
+            detection_time=detection_time,
+            occurrence_id=str(self.mock_uuid4.return_value),
+        )
+
+        result = handler.evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 8}}))
+
         assert result == {
             "val1": DetectorEvaluationResult(
                 group_key="val1",
                 is_active=True,
                 priority=DetectorPriorityLevel.HIGH,
-                result=occurrence,
+                result=issue_occurrence,
                 event_data=event_data,
             )
         }
@@ -432,14 +521,26 @@ class TestEvaluateGroupKeyValue(BaseDetectorHandlerTest):
         with mock.patch(
             "sentry.workflow_engine.handlers.detector.stateful.metrics"
         ) as mock_metrics:
-            occurrence, event_data = build_mock_occurrence_and_event(
-                handler, "val1", 6, PriorityLevel.HIGH
+            detector_occurrence, _ = build_mock_occurrence_and_event(
+                handler, "val1", PriorityLevel.HIGH
             )
+
+            detection_time = datetime.now(UTC)
+            issue_occurrence, event_data = self.detector_to_issue_occurrence(
+                detector_occurrence=detector_occurrence,
+                detector=handler.detector,
+                group_key="group_key",
+                value=10,
+                priority=DetectorPriorityLevel.HIGH,
+                detection_time=detection_time,
+                occurrence_id=str(self.mock_uuid4.return_value),
+            )
+
             expected_result = DetectorEvaluationResult(
                 "group_key",
                 True,
                 DetectorPriorityLevel.HIGH,
-                result=occurrence,
+                result=issue_occurrence,
                 event_data=event_data,
             )
             assert (

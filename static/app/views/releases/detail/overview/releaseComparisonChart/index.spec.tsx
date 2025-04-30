@@ -41,7 +41,10 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
         api={api}
         hasHealthData
       />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.getByLabelText('Chart Title')).toHaveTextContent(
@@ -75,7 +78,10 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
         api={api}
         hasHealthData
       />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(screen.getByLabelText(/crash free user rate/i));
@@ -123,7 +129,10 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
         api={api}
         hasHealthData
       />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     for (const toggle of screen.getAllByLabelText(/toggle chart/i)) {
@@ -181,7 +190,10 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
         api={api}
         hasHealthData={false}
       />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.getAllByRole('radio')).toHaveLength(1);

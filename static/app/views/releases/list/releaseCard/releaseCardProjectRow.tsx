@@ -7,6 +7,7 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {LinkButton} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -15,7 +16,6 @@ import NotAvailable from 'sentry/components/notAvailable';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -101,9 +101,7 @@ function ReleaseCardProjectRow({
   const adoption = getHealthData.getAdoption(releaseVersion, id, activeDisplay);
 
   const adoptionStage =
-    showReleaseAdoptionStages &&
-    adoptionStages?.[project.slug] &&
-    adoptionStages?.[project.slug]!.stage;
+    showReleaseAdoptionStages && adoptionStages?.[project.slug]?.stage;
 
   const adoptionStageLabel =
     get24hCountByProject && adoptionStage && isMobileRelease(project.platform)

@@ -18,8 +18,6 @@ contexts.sessionstack = SessionStackContextType;
 // Jira
 registry.add('jira', Jira);
 
-export {BasePlugin, DefaultIssuePlugin, registry};
-
 const add: typeof registry.add = registry.add.bind(registry);
 const get: typeof registry.get = registry.get.bind(registry);
 const isLoaded: typeof registry.isLoaded = registry.isLoaded.bind(registry);

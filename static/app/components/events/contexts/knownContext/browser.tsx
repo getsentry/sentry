@@ -2,7 +2,7 @@ import {getContextKeys} from 'sentry/components/events/contexts/utils';
 import {t} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
 
-export enum BrowserContextKeys {
+enum BrowserContextKeys {
   NAME = 'name',
   VERSION = 'version',
 }

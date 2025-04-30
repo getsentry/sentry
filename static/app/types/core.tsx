@@ -118,14 +118,13 @@ export interface DataCategoryInfo {
   displayName: string;
   isBilledCategory: boolean;
   name: DataCategoryExact;
-  plural: string;
+  plural: string; // TODO: change to DataCategory
   productName: string;
   titleName: string;
   uid: number;
+  docsUrl?: string;
   snakeCasePlural?: string;
 }
-
-export type EventType = 'error' | 'transaction' | 'attachment';
 
 export enum Outcome {
   ACCEPTED = 'accepted',

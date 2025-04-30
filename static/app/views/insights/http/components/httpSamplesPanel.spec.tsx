@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {
   render,
@@ -19,22 +20,20 @@ describe('HTTPSamplesPanel', () => {
 
   let eventsRequestMock: jest.Mock;
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects: [],
       },
-      environments: [],
-      projects: [],
-    },
-  });
+    })
+  );
 
   jest.mocked(useLocation).mockReturnValue({
     pathname: '',
@@ -67,7 +66,7 @@ describe('HTTPSamplesPanel', () => {
         data: [
           {
             'project.id': 1,
-            'transaction.id': '',
+            'transaction.span_id': '',
             'epm()': 22.18,
             'http_response_rate(3)': 0.01,
             'http_response_rate(4)': 0.025,
@@ -140,12 +139,28 @@ describe('HTTPSamplesPanel', () => {
               [1699907700, [{count: 7810.2}]],
               [1699908000, [{count: 1216.8}]],
             ],
+            meta: {
+              fields: {
+                count: 'integer',
+              },
+              units: {
+                count: null,
+              },
+            },
           },
           '304': {
             data: [
               [1699907700, [{count: 2701.5}]],
               [1699908000, [{count: 78.12}]],
             ],
+            meta: {
+              fields: {
+                count: 'integer',
+              },
+              units: {
+                count: null,
+              },
+            },
           },
         },
       });
@@ -168,7 +183,7 @@ describe('HTTPSamplesPanel', () => {
               project: 'javascript',
               timestamp: '2024-03-25T20:31:36+00:00',
               'span.status_code': '200',
-              'transaction.id': '11c910c9c10b3ec4ecf8f209b8c6ce48',
+              'transaction.span_id': '11c910c9c10b3ec4ecf8f209b8c6ce48',
               'span.self_time': 320.300102,
             },
           ],
@@ -262,7 +277,7 @@ describe('HTTPSamplesPanel', () => {
             field: [
               'project',
               'trace',
-              'transaction.id',
+              'transaction.span_id',
               'span_id',
               'timestamp',
               'span.description',
@@ -364,10 +379,14 @@ describe('HTTPSamplesPanel', () => {
               project: 'javascript',
               timestamp: '2024-03-25T20:31:36+00:00',
               'span.status_code': '200',
-              'transaction.id': '11c910c9c10b3ec4ecf8f209b8c6ce48',
+              'transaction.span_id': '11c910c9c10b3ec4ecf8f209b8c6ce48',
               'span.self_time': 320.300102,
             },
           ],
+          meta: {
+            fields: {},
+            units: {},
+          },
         },
       });
 
@@ -421,7 +440,13 @@ describe('HTTPSamplesPanel', () => {
             query:
               'span.module:http span.op:http.client span.domain:"\\*.sentry.dev" transaction:/api/0/users',
             project: [],
-            additionalFields: ['trace', 'span.description', 'span.status_code'],
+            additionalFields: [
+              'id',
+              'trace',
+              'span.description',
+              'span.status_code',
+              'transaction.span_id',
+            ],
             lowerBound: 0,
             firstBound: expect.closeTo(333.3333),
             secondBound: expect.closeTo(666.6666),
