@@ -223,6 +223,7 @@ function DropdownMenu({
       removeHiddenItems(items).map(item => {
         return {
           ...item,
+          // react-aria uses the href prop on item state to determine if the item is a link
           href: item.to ?? item.externalHref,
         };
       }),

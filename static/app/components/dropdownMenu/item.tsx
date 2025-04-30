@@ -8,9 +8,9 @@ import type {LocationDescriptor} from 'history';
 
 import type {MenuListItemProps} from 'sentry/components/core/menuListItem';
 import {MenuListItem} from 'sentry/components/core/menuListItem';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {IconChevron} from 'sentry/icons';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import usePrevious from 'sentry/utils/usePrevious';
 
 import {DropdownMenuContext} from './list';
@@ -187,44 +187,41 @@ function DropdownMenuItem({
     innerWrapRef
   );
 
-  // Merged menu item props, class names are combined, event handlers chained,
-  // etc. See: https://react-spectrum.adobe.com/react-aria/mergeProps.html
-  const mergedProps = mergeProps(props, hoverProps, keyboardProps);
-  const itemLabel = node.rendered ?? label;
   const makeInnerWrapProps = () => {
     if (to) {
       return {
-        ...menuItemProps,
-        ref: innerWrapRef,
         as: Link,
-        to: normalizeUrl(to),
-        href: normalizeUrl(to),
+        to,
       };
     }
 
     if (externalHref) {
       return {
-        ...menuItemProps,
-        ref: innerWrapRef,
-        as: 'a' as const,
+        as: ExternalLink,
         href: externalHref,
-        target: '_blank',
-        rel: 'noreferrer noopener',
       };
     }
 
-    return {...menuItemProps, ref: innerWrapRef, as: 'div' as const};
+    return {as: 'div' as const};
   };
+  const mergedMenuItemContentProps = mergeProps(
+    props,
+    menuItemProps,
+    hoverProps,
+    keyboardProps,
+    makeInnerWrapProps(),
+    {ref: innerWrapRef, 'data-test-id': key}
+  );
+  const itemLabel = node.rendered ?? label;
 
   return (
     <MenuListItem
       ref={ref}
       as={renderAs}
-      data-test-id={key}
       label={itemLabel}
       disabled={isDisabled}
       isFocused={isFocused}
-      innerWrapProps={makeInnerWrapProps()}
+      innerWrapProps={mergedMenuItemContentProps}
       labelProps={labelProps}
       detailsProps={descriptionProps}
       trailingItems={
@@ -238,7 +235,6 @@ function DropdownMenuItem({
         )
       }
       size={size}
-      {...mergedProps}
       {...itemProps}
     />
   );
