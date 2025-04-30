@@ -47,7 +47,7 @@ import {
   DetailsContent,
   DetailsWrapper,
   getLogColors,
-  LogDetailPanelItem,
+  LogAttributeTreeWrapper,
   LogDetailTableBodyCell,
   LogFirstCellContent,
   LogsTableBodyFirstCell,
@@ -315,7 +315,7 @@ function LogRowDetails({
                   },
                 })}
               </DetailsBody>
-              <LogDetailPanelItem>
+              <LogAttributeTreeWrapper>
                 <AttributesTree<RendererExtra>
                   attributes={data.attributes}
                   hiddenAttributes={HiddenLogDetailFields}
@@ -332,7 +332,7 @@ function LogRowDetails({
                     theme,
                   }}
                 />
-              </LogDetailPanelItem>
+              </LogAttributeTreeWrapper>
             </DetailsContent>
           </Fragment>
         )}
