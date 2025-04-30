@@ -6,7 +6,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DataCategory} from 'sentry/types/core';
 
-import {getCategoryInfoFromPlural} from 'getsentry/utils/billing';
+import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 
 import AllocationRow from './components/allocationRow';
 import {Centered, Divider, HalvedWithDivider} from './components/styles';

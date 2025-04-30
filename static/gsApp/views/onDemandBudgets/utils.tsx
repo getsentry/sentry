@@ -40,6 +40,7 @@ export function parseOnDemandBudgets(
 ): OnDemandBudgets {
   if (onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
     return {
+      // TODO(data categories): check if this can be parsed
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
       errorsBudget: onDemandBudgets.budgets.errors ?? 0,
       transactionsBudget: onDemandBudgets.budgets.transactions ?? 0,
@@ -69,6 +70,7 @@ export function parseOnDemandBudgets(
 
 export function getTotalBudget(onDemandBudgets: OnDemandBudgets): number {
   if (onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
+    // TODO(data categories): check if this can be parsed
     const errorsBudget = onDemandBudgets.budgets.errors ?? 0;
     const transactionsBudget = onDemandBudgets.budgets.transactions ?? 0;
     const attachmentsBudget = onDemandBudgets.budgets.attachments ?? 0;
@@ -101,14 +103,13 @@ export function isOnDemandBudgetsEqual(
 
 type DisplayNameProps = {
   budget: PerCategoryOnDemandBudget;
-  categories: string[];
+  categories: DataCategory[];
   plan: Plan;
 };
 
 function listBudgets({plan, categories, budget}: DisplayNameProps) {
   const categoryNames = categories.map(category => {
     const displayName = getPlanCategoryName({plan, category, capitalize: false});
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const formattedBudget = formatCurrency(budget.budgets[category] ?? 0);
     return `${displayName} at ${formattedBudget}`;
   });
@@ -118,17 +119,11 @@ function listBudgets({plan, categories, budget}: DisplayNameProps) {
 export function formatOnDemandBudget(
   plan: Plan,
   budget: OnDemandBudgets,
-  categories: string[] = [
-    'errors',
-    'transactions',
-    'attachments',
-    'replays',
-    'monitorSeats',
-    'uptime',
-    'profileDuration',
-    'profileDurationUI',
-  ]
+  categories: DataCategory[] = []
 ): React.ReactNode {
+  if (categories.length === 0) {
+    categories = plan.onDemandCategories.map(category => category);
+  }
   if (budget.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
     return `per-category ${displayBudgetName(plan, {
       withBudget: true,
@@ -161,6 +156,7 @@ function getBudgetMode(budget: OnDemandBudgets) {
 
 export function getOnDemandBudget(budget: OnDemandBudgets, dataCategory: DataCategory) {
   if (budget.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
+    // TODO(data categories): check if this can be parsed
     switch (dataCategory) {
       case DataCategory.ERRORS: {
         return budget.budgets.errors ?? 0;
@@ -280,6 +276,7 @@ export function convertOnDemandBudget(
   nextMode: OnDemandBudgetMode
 ): OnDemandBudgets {
   if (nextMode === OnDemandBudgetMode.PER_CATEGORY) {
+    // TODO(data categories): check if this can be parsed
     let errorsBudget = 0;
     let transactionsBudget = 0;
     let attachmentsBudget = 0;

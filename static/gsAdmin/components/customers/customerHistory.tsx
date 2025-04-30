@@ -65,7 +65,7 @@ function CustomerHistory({orgId, ...props}: Props) {
               categoryNames.push(
                 getPlanCategoryName({
                   plan: row.planDetails,
-                  category,
+                  category: category as DataCategory,
                   hadCustomDynamicSampling: shouldUseDynamicSamplingNames,
                 })
               );

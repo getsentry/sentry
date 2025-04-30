@@ -200,7 +200,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
         ...nextLocation,
         pathname: makeProjectsPathname({
           path: `/${project.slug}/`,
-          orgSlug: organization.slug,
+          organization,
         }),
       },
       issueList: {
@@ -254,6 +254,11 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
 
     const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
+    const hasProfiling = organization.features.includes('continuous-profiling');
+    const hasProfilingStats = organization.features.includes(
+      'continuous-profiling-stats'
+    );
+
     const options = CHART_OPTIONS_DATACATEGORY.filter(opt => {
       if (isSelfHostedErrorsOnly) {
         return opt.value === DATA_CATEGORY_INFO.error.plural;
@@ -277,15 +282,20 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
         DATA_CATEGORY_INFO.profileDuration.plural === opt.value ||
         DATA_CATEGORY_INFO.profileDurationUI.plural === opt.value
       ) {
-        return (
-          organization.features.includes('continuous-profiling-stats') ||
-          organization.features.includes('continuous-profiling')
-        );
+        return hasProfiling || hasProfilingStats;
       }
       if (DATA_CATEGORY_INFO.profile.plural === opt.value) {
-        return !organization.features.includes('continuous-profiling-stats');
+        return !hasProfilingStats;
       }
       return true;
+    }).map(opt => {
+      if (
+        (hasProfiling || hasProfilingStats) &&
+        DATA_CATEGORY_INFO.profile.plural === opt.value
+      ) {
+        return {...opt, label: `${opt.label} (legacy)`};
+      }
+      return opt;
     });
 
     return (
