@@ -468,28 +468,29 @@ export function useReleaseBubbles({
         // rectangular area of the "release bucket" that was hovered over (in
         // the release bubbles). This is drawn on the main chart so that users
         // can visualize the time block of the set of relases.
-        echartsInstance.setOption({
-          series: [
-            {
-              id: BUBBLE_AREA_SERIES_ID,
-              type: 'custom',
-              renderItem: () => {},
-              markArea: {
-                itemStyle: {color: theme.blue400, opacity: 0.1},
-                data: [
-                  [
-                    {
-                      xAxis: data.start - xAxisShift,
-                    },
-                    {
-                      xAxis: data.end - xAxisShift,
-                    },
-                  ],
+        const series: CustomSeriesOption[] = [
+          {
+            silent: true,
+            id: BUBBLE_AREA_SERIES_ID,
+            type: 'custom',
+            renderItem: () => null,
+            markArea: {
+              silent: true,
+              itemStyle: {color: theme.blue400, opacity: 0.1},
+              data: [
+                [
+                  {
+                    xAxis: data.start - xAxisShift,
+                  },
+                  {
+                    xAxis: data.end - xAxisShift,
+                  },
                 ],
-              },
+              ],
             },
-          ],
-        });
+          },
+        ];
+        echartsInstance.setOption({series});
       };
 
       const handleMouseOut = (params: Parameters<EChartMouseOutHandler>[0]) => {
