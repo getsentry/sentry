@@ -150,7 +150,7 @@ export function getOrganizationNavigationConfiguration({
           title: t('Stats & Usage'),
           description: t('View organization stats and usage'),
           id: 'stats',
-          show: () => !!incomingOrganization && prefersStackedNav(incomingOrganization),
+          show: ({organization}) => !!organization && prefersStackedNav(organization),
         },
       ],
     },
