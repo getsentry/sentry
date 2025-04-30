@@ -34,7 +34,6 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             stack_root="sentry/",
             source_root="sentry/",
         )
-        self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
 
     def test_successful_setup(self):
         """
@@ -47,10 +46,6 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200
         assert response.data == {
-            "genAIConsent": {
-                "ok": True,
-                "reason": None,
-            },
             "integration": {
                 "ok": True,
                 "reason": None,
@@ -139,10 +134,6 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200
         assert response.data == {
-            "genAIConsent": {
-                "ok": True,
-                "reason": None,
-            },
             "integration": {
                 "ok": True,
                 "reason": None,
@@ -167,20 +158,6 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
 
 
 class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
-    def test_no_gen_ai_consent(self):
-        self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", False)
-
-        group = self.create_group()
-        self.login_as(user=self.user)
-        url = f"/api/0/issues/{group.id}/autofix/setup/"
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200
-        assert response.data["genAIConsent"] == {
-            "ok": False,
-            "reason": None,
-        }
-
     def test_missing_integration(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.organization_integration.delete()
