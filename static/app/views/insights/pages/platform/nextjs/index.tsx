@@ -118,7 +118,13 @@ export function NextJsOverviewPage({
         />
       )}
 
-      {activeView === 'pages' && <PagesTable spanOperationFilter={spanOperationFilter} />}
+      {activeView === 'pages' && (
+        <PagesTable
+          spanOperationFilter={spanOperationFilter}
+          handleAddTransactionFilter={setTransactionFilter}
+          query={query}
+        />
+      )}
     </PlatformLandingPageLayout>
   );
 }

@@ -1,5 +1,4 @@
 import {Fragment, memo, useCallback, useEffect, useMemo, useRef} from 'react';
-import {useNavigate} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -10,9 +9,11 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
+import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
@@ -21,6 +22,8 @@ import type {QueryValue} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import useRouter from 'sentry/utils/useRouter';
+import CellAction, {Actions} from 'sentry/views/discover/table/cellAction';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
@@ -111,7 +114,9 @@ function useTableSortParams() {
 }
 
 interface PagesTableProps {
+  handleAddTransactionFilter: (value: string) => void;
   spanOperationFilter: 'pageload' | 'navigation';
+  query?: string;
 }
 
 const CURSOR_PARAM_NAMES: Record<PagesTableProps['spanOperationFilter'], string> = {
@@ -119,10 +124,14 @@ const CURSOR_PARAM_NAMES: Record<PagesTableProps['spanOperationFilter'], string>
   navigation: 'navigationCursor',
 };
 
-export function PagesTable({spanOperationFilter}: PagesTableProps) {
+export function PagesTable({
+  spanOperationFilter,
+  query,
+  handleAddTransactionFilter,
+}: PagesTableProps) {
   const organization = useOrganization();
   const location = useLocation();
-  const navigate = useNavigate();
+  const router = useRouter();
   const pageFilterChartParams = usePageFilterChartParams();
   const {sortField, sortOrder} = useTableSortParams();
   const currentCursorParamName = CURSOR_PARAM_NAMES[spanOperationFilter];
@@ -134,18 +143,21 @@ export function PagesTable({spanOperationFilter}: PagesTableProps) {
       const prevCursorParamName = CURSOR_PARAM_NAMES[prevFilter];
       if (location.query[prevCursorParamName]) {
         const {[prevCursorParamName]: _removedCursor, ...restQuery} = location.query;
-        navigate({
+        browserHistory.push({
           pathname: location.pathname,
-          search: new URLSearchParams(
-            Object.entries(restQuery).filter(([, value]) => value !== undefined) as Array<
-              [string, string]
-            >
-          ).toString(),
+          query: restQuery,
         });
       }
     }
     prevSpanOperationFilterRef.current = spanOperationFilter;
-  }, [spanOperationFilter, location.query, location.pathname, navigate]);
+  }, [spanOperationFilter, location.query, location.pathname, router]);
+
+  const handleCursor: CursorHandler = (cursor, pathname, transactionQuery) => {
+    browserHistory.push({
+      pathname,
+      query: {...transactionQuery, [currentCursorParamName]: cursor},
+    });
+  };
 
   const spansRequest = useApiQuery<SpansQueryResponse>(
     [
@@ -162,7 +174,7 @@ export function PagesTable({spanOperationFilter}: PagesTableProps) {
             'sum(span.duration)',
             'avg(span.duration)',
           ],
-          query: `span.op:[${spanOperationFilter}]`,
+          query: `span.op:[${spanOperationFilter}] ${query ? `${query}` : ''}`.trim(),
           referrer: Referrer.PAGES_TABLE,
           orderby: getOrderBy(sortField, sortOrder),
           useRpc: 1,
@@ -196,9 +208,15 @@ export function PagesTable({spanOperationFilter}: PagesTableProps) {
 
   const renderBodyCell = useCallback(
     (column: GridColumnHeader<SortableField>, dataRow: TableData) => {
-      return <BodyCell column={column} dataRow={dataRow} />;
+      return (
+        <BodyCell
+          column={column}
+          dataRow={dataRow}
+          handleAddTransactionFilter={handleAddTransactionFilter}
+        />
+      );
     },
-    []
+    [handleAddTransactionFilter]
   );
 
   const pagesTablePageLinks = spansRequest.getResponseHeader?.('Link');
@@ -219,20 +237,7 @@ export function PagesTable({spanOperationFilter}: PagesTableProps) {
           }}
         />
       </GridEditableContainer>
-      <Pagination
-        pageLinks={pagesTablePageLinks}
-        onCursor={(cursor, path, currentQuery) => {
-          const nextQuery = {...currentQuery, [currentCursorParamName]: cursor};
-          navigate({
-            pathname: path,
-            search: new URLSearchParams(
-              Object.entries(nextQuery).filter(
-                ([, value]) => value !== undefined
-              ) as Array<[string, string]>
-            ).toString(),
-          });
-        }}
-      />
+      <Pagination pageLinks={pagesTablePageLinks} onCursor={handleCursor} />
     </Fragment>
   );
 }
@@ -278,9 +283,11 @@ const HeadCell = memo(function PagesTableHeadCell({
 const BodyCell = memo(function PagesBodyCell({
   column,
   dataRow,
+  handleAddTransactionFilter,
 }: {
   column: GridColumnHeader<SortableField>;
   dataRow: TableData;
+  handleAddTransactionFilter: (value: string) => void;
 }) {
   const organization = useOrganization();
   const location = useLocation();
@@ -296,11 +303,25 @@ const BodyCell = memo(function PagesBodyCell({
       });
 
       return (
-        <CellLink to={target}>
-          <Tooltip title={dataRow.page} showUnderline skipWrapper>
-            {dataRow.page}
-          </Tooltip>
-        </CellLink>
+        <CellAction
+          column={{
+            ...column,
+            isSortable: false,
+            type: 'string',
+            column: {kind: 'field', field: 'transaction'},
+          }}
+          dataRow={dataRow as any}
+          allowActions={[Actions.ADD]}
+          handleCellAction={(_action, value) => {
+            handleAddTransactionFilter(value as string);
+          }}
+        >
+          <CellLink to={target}>
+            <Tooltip title={dataRow.page} showUnderline skipWrapper>
+              {dataRow.page}
+            </Tooltip>
+          </CellLink>
+        </CellAction>
       );
     }
     case 'count(span.duration)':
