@@ -24,6 +24,7 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {
+  type DataCategory,
   DataCategoryExact,
   type DataCategoryInfo,
   type PageFilters,
@@ -259,6 +260,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
       'continuous-profiling-stats'
     );
 
+    // TODO(data categories): move features to DATA_CATEGORY_INFO so we don't need to manually check each one
     const options = CHART_OPTIONS_DATACATEGORY.filter(opt => {
       if (isSelfHostedErrorsOnly) {
         return opt.value === DATA_CATEGORY_INFO.error.plural;
@@ -306,7 +308,9 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
             triggerProps={{prefix: t('Category')}}
             value={this.dataCategory}
             options={options}
-            onChange={opt => this.setStateOnUrl({dataCategory: String(opt.value)})}
+            onChange={opt =>
+              this.setStateOnUrl({dataCategory: opt.value as DataCategory})
+            }
           />
           <DatePageFilter />
         </PageFilterBar>
