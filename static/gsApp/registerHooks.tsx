@@ -31,7 +31,6 @@ import HelpSearchFooter from 'getsentry/components/helpSearchFooter';
 import InviteMembersButtonCustomization from 'getsentry/components/inviteMembersButtonCustomization';
 import LabelWithPowerIcon from 'getsentry/components/labelWithPowerIcon';
 import MemberInviteModalCustomization from 'getsentry/components/memberInviteModalCustomization';
-import OnboardingWizardHelp from 'getsentry/components/onboardingWizardHelp';
 import {OrganizationHeader} from 'getsentry/components/organizationHeader';
 import PowerFeatureHovercard from 'getsentry/components/powerFeatureHovercard';
 import {ProductSelectionAvailability} from 'getsentry/components/productSelectionAvailability';
@@ -57,6 +56,7 @@ import MemberListHeader from 'getsentry/hooks/memberListHeader';
 import OrganizationMembershipSettingsForm from 'getsentry/hooks/organizationMembershipSettingsForm';
 import {getOrgRoles} from 'getsentry/hooks/organizationRoles';
 import OrgStatsBanner from 'getsentry/hooks/orgStatsBanner';
+import OrgStatsProfilingBanner from 'getsentry/hooks/orgStatsProfilingBanner';
 import hookRootRoutes from 'getsentry/hooks/rootRoutes';
 import hookSettingsRoutes from 'getsentry/hooks/settingsRoutes';
 import hookSidebarDropdownMenu from 'getsentry/hooks/sidebarDropdownMenu';
@@ -175,11 +175,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   ),
 
   /**
-   * Augment the onboarding wizard skip confirm help button
-   */
-  'onboarding-wizard:skip-help': () => OnboardingWizardHelp,
-
-  /**
    * Get list of organization roles
    */
   'member-invite-modal:organization-roles': getOrgRoles,
@@ -223,6 +218,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:disabled-custom-symbol-sources': () => DisabledCustomSymbolSources,
   'component:dashboards-header': () => DashboardBanner,
   'component:org-stats-banner': () => OrgStatsBanner,
+  'component:org-stats-profiling-banner': () => OrgStatsProfilingBanner,
   'component:enhanced-org-stats': () => EnhancedOrganizationStats,
   'component:first-party-integration-alert': () => FirstPartyIntegrationAlertHook,
   'component:first-party-integration-additional-cta': () =>

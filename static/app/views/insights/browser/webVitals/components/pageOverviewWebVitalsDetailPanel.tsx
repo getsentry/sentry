@@ -55,7 +55,8 @@ const PAGELOADS_COLUMN_ORDER: GridColumnOrder[] = [
   {key: 'score', width: COL_WIDTH_UNDEFINED, name: t('Score')},
 ];
 
-const SPANS_SAMPLES_WITHOUT_TRACE_COLUMN_ORDER: GridColumnOrder[] = [
+const SPANS_SAMPLES_COLUMN_ORDER: GridColumnOrder[] = [
+  {key: 'id', width: COL_WIDTH_UNDEFINED, name: t('Trace')},
   {
     key: SpanIndexedField.SPAN_DESCRIPTION,
     width: COL_WIDTH_UNDEFINED,
@@ -457,7 +458,7 @@ export function PageOverviewWebVitalsDetailPanel({
             <GridEditable
               data={spansTableData}
               isLoading={isSpansLoading}
-              columnOrder={SPANS_SAMPLES_WITHOUT_TRACE_COLUMN_ORDER}
+              columnOrder={SPANS_SAMPLES_COLUMN_ORDER}
               columnSortBy={[sort]}
               grid={{
                 renderHeadCell,
@@ -468,7 +469,7 @@ export function PageOverviewWebVitalsDetailPanel({
             <GridEditable
               data={spansTableData}
               isLoading={isSpansLoading}
-              columnOrder={SPANS_SAMPLES_WITHOUT_TRACE_COLUMN_ORDER}
+              columnOrder={SPANS_SAMPLES_COLUMN_ORDER}
               columnSortBy={[sort]}
               grid={{
                 renderHeadCell,
