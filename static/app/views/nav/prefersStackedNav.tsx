@@ -21,12 +21,12 @@ export function prefersStackedNav(organization: Organization) {
 
 export function usePrefersStackedNav() {
   const user = useUser();
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
   const userStackedNavOption = user?.options?.prefersStackedNavigation;
 
   if (
     userStackedNavOption !== false &&
-    organization.features.includes('enforce-stacked-navigation')
+    organization?.features.includes('enforce-stacked-navigation')
   ) {
     return true;
   }

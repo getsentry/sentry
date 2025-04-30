@@ -100,6 +100,7 @@ class SettingsNavigation extends Component<Props> {
         {navWithHooks.map(config => (
           <SettingsNavigationGroupDeprecated
             key={config.name}
+            organization={organization}
             {...otherProps}
             {...config}
           />
