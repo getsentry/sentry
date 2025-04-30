@@ -105,10 +105,10 @@ class TestGroupAutofixUpdate(APITestCase):
             },
             format="json",
         )
-        # Verify the field is updated in the database
-        self.group.refresh_from_db()
-        assert self.group.seer_autofix_last_triggered is not None
-        assert isinstance(self.group.seer_autofix_last_triggered, datetime)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["error"] == "AI Autofix has not been acknowledged by the organization."
+        assert response.status_code == status.HTTP_202_ACCEPTED
 
     @patch("sentry.api.endpoints.group_autofix_update.requests.post")
     def test_autofix_update_updates_last_triggered_field(self, mock_post):
@@ -131,6 +131,7 @@ class TestGroupAutofixUpdate(APITestCase):
             format="json",
         )
 
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.data["error"] == "AI Autofix has not been acknowledged by the organization."
         assert response.status_code == status.HTTP_202_ACCEPTED
+
+        self.group.refresh_from_db()
+        assert isinstance(self.group.seer_autofix_last_triggered, datetime)

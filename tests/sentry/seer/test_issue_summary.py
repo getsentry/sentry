@@ -554,15 +554,15 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
 
         mock_generate_fixability_score.assert_called_once_with(self.group.id)
 
-        self.group.refresh_from_db()
-        assert self.group.seer_is_fixable is True
-
         mock_trigger_autofix_task.assert_called_once_with(
             group_id=self.group.id,
             event_id="test_event_id",
             user_id=mock_user.id,
             auto_run_source="issue_summary_fixability",
         )
+
+        self.group.refresh_from_db()
+        assert self.group.seer_is_fixable is True
 
     @patch("sentry.seer.issue_summary._trigger_autofix_task.delay")
     @patch("sentry.seer.issue_summary.get_autofix_state")
