@@ -35,7 +35,10 @@ export function WidgetExtrapolationFooter({
   const organization = useOrganization();
   if (
     !organization.features.includes('visibility-explore-progressive-loading') ||
-    ![DiscoverDatasets.SPANS_EAP, DiscoverDatasets.SPANS_EAP_RPC].includes(dataset)
+    ![DiscoverDatasets.SPANS_EAP, DiscoverDatasets.SPANS_EAP_RPC].includes(dataset) ||
+    organization.features.includes(
+      'visibility-explore-progressive-loading-normal-sampling-mode'
+    )
   ) {
     return (
       <ConfidenceFooter

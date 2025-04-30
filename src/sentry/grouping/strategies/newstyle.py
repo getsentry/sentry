@@ -444,9 +444,7 @@ def _single_stacktrace_variant(
             if frame.in_app:
                 found_in_app_frame = True
             else:
-                # We have to do this here (rather than it being done in the rust enhancer) because
-                # the rust enhancer doesn't know about system vs app variants
-                frame_component.update(contributes=False, hint="non app frame")
+                frame_component.update(contributes=False)
 
         frame_components.append(frame_component)
         frames_for_filtering.append(frame.get_raw_data())
