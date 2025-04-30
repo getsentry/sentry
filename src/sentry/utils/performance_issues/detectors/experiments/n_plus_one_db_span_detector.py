@@ -195,10 +195,11 @@ class NPlusOneDBSpanExperimentalDetector(PerformanceDetector):
 
             offender_span_ids = [span.get("span_id", None) for span in self.n_spans]
 
+            first_span_description = get_db_span_description(self.n_spans[0])
             self.stored_problems[fingerprint] = PerformanceProblem(
                 fingerprint=fingerprint,
                 op="db",
-                desc=get_db_span_description(self.n_spans[0]),
+                desc=first_span_description,
                 type=PerformanceNPlusOneExperimentalGroupType,
                 parent_span_ids=[parent_span_id],
                 cause_span_ids=[self.source_span.get("span_id", None)],
@@ -206,10 +207,7 @@ class NPlusOneDBSpanExperimentalDetector(PerformanceDetector):
                 evidence_display=[
                     IssueEvidence(
                         name="Offending Spans",
-                        value=get_notification_attachment_body(
-                            "db",
-                            get_db_span_description(self.n_spans[0]),
-                        ),
+                        value=get_notification_attachment_body("db", first_span_description),
                         # Has to be marked important to be displayed in the notifications
                         important=True,
                     )
@@ -221,10 +219,8 @@ class NPlusOneDBSpanExperimentalDetector(PerformanceDetector):
                     "parent_span": get_span_evidence_value(parent_span),
                     "cause_span_ids": [self.source_span.get("span_id", None)],
                     "offender_span_ids": offender_span_ids,
-                    "repeating_spans": get_span_evidence_value(self.n_spans[0]),
-                    "repeating_spans_compact": get_span_evidence_value(
-                        self.n_spans[0], include_op=False
-                    ),
+                    "repeating_spans": f"{self.n_spans[0].get('op', 'db')} - {first_span_description}",
+                    "repeating_spans_compact": first_span_description,
                     "num_repeating_spans": str(len(offender_span_ids)),
                 },
             )
