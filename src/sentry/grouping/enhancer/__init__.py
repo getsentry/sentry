@@ -108,6 +108,40 @@ def make_rust_exception_data(
     )
 
 
+def get_hint_for_frame(
+    variant_name: str,
+    frame: dict[str, Any],
+    frame_component: FrameGroupingComponent,
+    rust_frame: RustFrame,
+) -> str | None:
+    """
+    Determine a hint to use for the frame, handling special-casing and precedence.
+    """
+    frame_type = "in-app" if frame_component.in_app else "system"
+    rust_hint = rust_frame.hint
+    rust_hint_type = (
+        None if rust_hint is None else "in-app" if rust_hint.startswith("marked") else "contributes"
+    )
+    incoming_hint = frame_component.hint
+    use_rust_hint = True
+
+    # Prevent clobbering an existing hint with no hint
+    if rust_hint is None:
+        use_rust_hint = False
+
+    # System frames can't contribute to the app variant, no matter what +/-group rules say, so we
+    # ignore the rust hint if it's about contributing since it's irrelevant
+    elif variant_name == "app" and frame_type == "system" and rust_hint_type == "contributes":
+        use_rust_hint = False
+
+    # Similarly, we don't need hints about marking frames in or out of app in the system stacktrace
+    # because such changes don't actually have an effect there
+    elif variant_name == "system" and rust_hint_type == "in-app":
+        use_rust_hint = False
+
+    return rust_hint if use_rust_hint else incoming_hint
+
+
 def is_valid_profiling_matcher(matchers: list[str]) -> bool:
     for matcher in matchers:
         if not matcher.startswith(VALID_PROFILING_MATCHER_PREFIXES):
@@ -218,42 +252,35 @@ class Enhancements:
         frame_counts: Counter[str] = Counter()
 
         # Update frame components with results from rust
-        for frame_component, rust_frame in zip(frame_components, rust_frames):
-            # TODO: Remove the first condition once we get rid of the legacy config
-            if (
-                not (self.bases and self.bases[0].startswith("legacy"))
-                and variant_name == "app"
-                and not frame_component.in_app
-            ):
-                # System frames should never contribute in the app variant, so force
-                # `contribtues=False`, regardless of the rust results. Use the rust hint if it
-                # explains the `in_app` value (but not if it explains the `contributing` value,
-                # because we're ignoring that)
-                #
-                # TODO: Right now, if stacktrace rules have modified both the `in_app` and
-                # `contributes` values, then the hint you get back from the rust enhancers depends
-                # on the order in which those changes happened, which in turn depends on both the
-                # order of stacktrace rules and the order of the actions within a stacktrace rule.
-                # Ideally we'd get both hints back.
-                hint = (
-                    rust_frame.hint
-                    if rust_frame.hint and rust_frame.hint.startswith("marked out of app")
-                    else frame_component.hint
-                )
-                frame_component.update(contributes=False, hint=hint)
-            elif variant_name == "system":
-                # We don't need hints about marking frames in or out of app in the system stacktrace
-                # because such changes don't actually have an effect there
-                hint = (
-                    rust_frame.hint
-                    if rust_frame.hint
-                    and not rust_frame.hint.startswith("marked in-app")
-                    and not rust_frame.hint.startswith("marked out of app")
-                    else frame_component.hint
-                )
-                frame_component.update(contributes=rust_frame.contributes, hint=hint)
+        for frame, frame_component, rust_frame in zip(frames, frame_components, rust_frames):
+            frame_type = "in-app" if frame_component.in_app else "system"
+            rust_contributes = bool(rust_frame.contributes)  # bool-ing this for mypy's sake
+            rust_hint = rust_frame.hint
+            rust_hint_type = (
+                None
+                if rust_hint is None
+                else "in-app" if rust_hint.startswith("marked") else "contributes"
+            )
+
+            # System frames should never contribute in the app variant, so if that's what we have,
+            # force `contribtues=False`, regardless of the rust results
+            if variant_name == "app" and frame_type == "system":
+                contributes = False
             else:
-                frame_component.update(contributes=rust_frame.contributes, hint=rust_frame.hint)
+                contributes = rust_contributes
+
+            hint = get_hint_for_frame(variant_name, frame, frame_component, rust_frame)
+
+            # TODO: Remove this workaround once we remove the legacy config. It's done this way (as
+            # a second pass at setting the values that undoes what the first pass did, rather than
+            # being incorporated into the first pass) so that we won't have to change any of the
+            # main logic when we remove it.
+            if self.bases and self.bases[0].startswith("legacy"):
+                contributes = rust_contributes
+                if not (variant_name == "system" and rust_hint_type == "in-app"):
+                    hint = rust_hint
+
+            frame_component.update(contributes=contributes, hint=hint)
 
             # Add this frame to our tally
             key = f"{"in_app" if frame_component.in_app else "system"}_{"contributing" if frame_component.contributes else "non_contributing"}_frames"
