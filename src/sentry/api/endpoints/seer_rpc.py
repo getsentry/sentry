@@ -32,6 +32,7 @@ from sentry.seer.fetch_issues.fetch_issues import (
     get_issues_related_to_file_patches,
     get_issues_related_to_function_names,
 )
+from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.silo.base import SiloMode
 from sentry.utils.env import in_test_environment
 
@@ -163,10 +164,10 @@ def get_organization_slug(*, org_id: int) -> dict:
 
 def get_organization_autofix_consent(*, org_id: int) -> dict:
     org: Organization = Organization.objects.get(id=org_id)
-    consent = org.get_option("sentry:gen_ai_consent_v2024_11_14", False)
+    seer_org_acknowledgement = get_seer_org_acknowledgement(org_id=org.id)
     github_extension_enabled = org_id in options.get("github-extension.enabled-orgs")
     return {
-        "consent": consent or github_extension_enabled,
+        "consent": seer_org_acknowledgement or github_extension_enabled,
     }
 
 
