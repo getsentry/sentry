@@ -45,7 +45,7 @@ class ExploreLogsTest(AcceptanceTestCase, SnubaTestCase, OurLogTestCase):
 
         assert (
             self.browser.driver.get_window_size().get("width") == 1680
-        )  # This test makes assertion based on the current default window size.
+        )  # This test makes assertions based on the current default window size.
 
         with self.feature(FEATURE_FLAGS):
             logs = [
