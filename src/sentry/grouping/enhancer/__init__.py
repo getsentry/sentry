@@ -31,7 +31,11 @@ logger = logging.getLogger(__name__)
 # So this leaves quite a bit of headroom for custom enhancement rules as well.
 RUST_CACHE = RustCache(1_000)
 
-VERSIONS = [2]
+# TODO: Move 3 to the end when we're ready for it to be the default
+VERSIONS = [
+    3,  # Enhancements with this version run the split enhancements experiment
+    2,  # The current default version
+]
 LATEST_VERSION = VERSIONS[-1]
 
 VALID_PROFILING_MATCHER_PREFIXES = (
@@ -48,7 +52,9 @@ VALID_PROFILING_ACTIONS_SET = frozenset(["+app", "-app"])
 
 
 def merge_rust_enhancements(
-    bases: list[str], rust_enhancements: RustEnhancements
+    bases: list[str],
+    rust_enhancements: RustEnhancements,
+    type: Literal["classifier", "contributes"] | None = None,
 ) -> RustEnhancements:
     """
     This will merge the parsed enhancements together with the `bases`.
@@ -59,7 +65,16 @@ def merge_rust_enhancements(
     for base_id in bases:
         base = ENHANCEMENT_BASES.get(base_id)
         if base:
-            merged_rust_enhancements.extend_from(base.rust_enhancements)
+            base_rust_enhancements = (
+                base.rust_enhancements
+                if type is None
+                else (
+                    base.classifier_rust_enhancements
+                    if type == "classifier"
+                    else base.contributes_rust_enhancements
+                )
+            )
+            merged_rust_enhancements.extend_from(base_rust_enhancements)
     merged_rust_enhancements.extend_from(rust_enhancements)
     return merged_rust_enhancements
 
@@ -80,6 +95,9 @@ def get_rust_enhancements(
             return RustEnhancements.parse(input, RUST_CACHE)
     except RuntimeError as e:  # Rust bindings raise parse errors as `RuntimeError`
         raise InvalidEnhancerConfig(str(e))
+
+
+EMPTY_RUST_ENHANCEMENTS = get_rust_enhancements("config_string", "")
 
 
 # TODO: Convert this into a typeddict in ophio
@@ -159,6 +177,50 @@ def get_hint_for_frame(
     return rust_hint if use_rust_hint else incoming_hint
 
 
+def _split_rules(
+    rules: list[EnhancementRule],
+) -> tuple[list[EnhancementRule], list[EnhancementRule], RustEnhancements, RustEnhancements]:
+    """
+    Given a list of EnhancementRules, each of which may have both classifier and contributes
+    actions, split the rules into separate classifier and contributes rule lists, and return them
+    along with each ruleset's corresponding RustEnhancements object.
+    """
+    # Rules which set `in_app` or `category` on frames
+    classifier_rules = [
+        rule
+        for rule in (
+            rule.as_classifier_rule()  # Only include classifier actions
+            for rule in rules
+            if rule.has_classifier_actions
+        )
+        if rule is not None  # mypy appeasment
+    ]
+
+    # Rules which set `contributes` on frames and/or the stacktrace
+    contributes_rules = [
+        rule
+        for rule in (
+            rule.as_contributes_rule()  # Only include contributes actions
+            for rule in rules
+            if rule.has_contributes_actions
+        )
+        if rule is not None  # mypy appeasment
+    ]
+
+    classifier_rules_text = "\n".join(rule.text for rule in classifier_rules)
+    contributes_rules_text = "\n".join(rule.text for rule in contributes_rules)
+
+    classifier_rust_enhancements = get_rust_enhancements("config_string", classifier_rules_text)
+    contributes_rust_enhancements = get_rust_enhancements("config_string", contributes_rules_text)
+
+    return (
+        classifier_rules,
+        contributes_rules,
+        classifier_rust_enhancements,
+        contributes_rust_enhancements,
+    )
+
+
 def is_valid_profiling_matcher(matchers: list[str]) -> bool:
     for matcher in matchers:
         if not matcher.startswith(VALID_PROFILING_MATCHER_PREFIXES):
@@ -190,6 +252,12 @@ class Enhancements:
     # from cache.
     # See ``GroupingConfigLoader._get_enhancements`` in src/sentry/grouping/api.py.
 
+    # TODO: Once we switch to always using split enhancements, these can go away
+    classifier_rules: list[EnhancementRule] = []
+    contributes_rules: list[EnhancementRule] = []
+    classifier_rust_enhancements: RustEnhancements = EMPTY_RUST_ENHANCEMENTS
+    contributes_rust_enhancements: RustEnhancements = EMPTY_RUST_ENHANCEMENTS
+
     def __init__(
         self,
         rules: list[EnhancementRule],
@@ -204,6 +272,25 @@ class Enhancements:
         self.bases = bases or []
 
         self.rust_enhancements = merge_rust_enhancements(self.bases, rust_enhancements)
+
+        self.run_split_enhancements = version == 3
+        if self.run_split_enhancements:
+            (
+                classifier_rules,
+                contributes_rules,
+                classifier_rust_enhancements,
+                contributes_rust_enhancements,
+            ) = _split_rules(rules)
+
+            self.classifier_rules = classifier_rules
+            self.contributes_rules = contributes_rules
+            self.classifier_rust_enhancements = merge_rust_enhancements(
+                self.bases, classifier_rust_enhancements, type="classifier"
+            )
+
+            self.contributes_rust_enhancements = merge_rust_enhancements(
+                self.bases, contributes_rust_enhancements, type="contributes"
+            )
 
     def apply_category_and_updated_in_app_to_frames(
         self,
@@ -390,7 +477,11 @@ class Enhancements:
     @classmethod
     @sentry_sdk.tracing.trace
     def from_rules_text(
-        cls, rules_text: str, bases: list[str] | None = None, id: str | None = None
+        cls,
+        rules_text: str,
+        bases: list[str] | None = None,
+        id: str | None = None,
+        version: int | None = None,
     ) -> Enhancements:
         """Create an `Enhancements` object from a text blob containing stacktrace rules"""
         rust_enhancements = get_rust_enhancements("config_string", rules_text)
@@ -400,6 +491,7 @@ class Enhancements:
         return Enhancements(
             rules,
             rust_enhancements=rust_enhancements,
+            version=version,
             bases=bases,
             id=id,
         )
