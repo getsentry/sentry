@@ -128,6 +128,9 @@ class DigestNotification(ProjectNotification):
 
             context["snooze_alert"] = snooze_alert
             context["snooze_alert_urls"] = snooze_alert_urls
+        else:
+            context["snooze_alert"] = False
+            context["snooze_alert_urls"] = None
 
         return context
 
