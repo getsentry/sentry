@@ -45,8 +45,8 @@ def handle_statsig_webhook(request: Request, organization: Organization) -> tupl
     # Statsig sends unauthorized endpoint verification requests. If we receive the request we
     # should echo back the verification code. All subsequent requests must be authorized.
     event_data = event["data"]
-    if event_data.get("event") == "url_verification":
-        return Response(event_data["verification_code"], status=200)
+    if isinstance(event_data, dict) and event_data.get("event") == "url_verification":
+        return Response({"verification_code": event_data["verification_code"]}, status=200)
 
     provider = StatsigProvider(
         organization.id,
