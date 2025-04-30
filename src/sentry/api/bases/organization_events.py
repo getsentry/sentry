@@ -92,8 +92,10 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             strip_equation(field) for field in request.GET.getlist("field")[:] if is_equation(field)
         ]
 
-    def get_field_list(self, organization: Organization, request: Request) -> list[str]:
-        return [field for field in request.GET.getlist("field")[:] if not is_equation(field)]
+    def get_field_list(
+        self, organization: Organization, request: Request, param_name: str = "field"
+    ) -> list[str]:
+        return [field for field in request.GET.getlist(param_name)[:] if not is_equation(field)]
 
     def get_teams(self, request: Request, organization: Organization) -> list[Team]:
         if not request.user:
