@@ -2329,10 +2329,6 @@ SENTRY_DEFAULT_OPTIONS: dict[str, Any] = {}
 # Raise an error in dev on failed lookups
 SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
 
-# You should not change this setting after your database has been created
-# unless you have altered all schemas first
-SENTRY_USE_BIG_INTS = False
-
 # Delay (in ms) to induce on API responses
 #
 # Simulates a small amount of lag which helps uncover more obvious race
