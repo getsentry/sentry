@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import dataclasses
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
@@ -14,7 +13,7 @@ from sentry.models.organization import Organization
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.handlers.detector import DetectorOccurrence, StatefulDetectorHandler
-from sentry.workflow_engine.handlers.detector.types import EvidenceData
+from sentry.workflow_engine.handlers.detector.base import EvidenceData
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorSettings
 
@@ -34,17 +33,9 @@ class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
         self, group_key: DetectorGroupKey, new_status: PriorityLevel
     ) -> tuple[DetectorOccurrence, dict[str, Any]]:
         # Returning a placeholder for now, this may require us passing more info
-        evidence_data = MetricIssueEvidenceData(
-            value=1.0,
-            detector_id=-1,
-            alert_id=-1,
-            data_condition_ids=[-1],
-        )
-
         occurrence = DetectorOccurrence(
             issue_title="Some Issue Title",
             subtitle="An Issue Subtitle",
-            evidence_data=dataclasses.asdict(evidence_data),
             type=MetricIssue,
             level="error",
             culprit="Some culprit",
