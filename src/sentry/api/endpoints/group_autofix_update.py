@@ -6,6 +6,7 @@ import orjson
 import requests
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.utils import timezone
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
@@ -72,5 +73,8 @@ class GroupAutofixUpdateEndpoint(GroupAiEndpoint):
         )
 
         response.raise_for_status()
+
+        group.seer_autofix_last_triggered = timezone.now()
+        group.save()
 
         return Response(status=202, data=response.json())

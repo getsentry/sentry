@@ -8,6 +8,7 @@ import orjson
 import requests
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.utils import timezone
 from rest_framework.response import Response
 
 from sentry import eventstore, features
@@ -801,6 +802,9 @@ def trigger_autofix(
         )
 
     check_autofix_status.apply_async(args=[run_id], countdown=timedelta(minutes=15).seconds)
+
+    group.seer_autofix_last_triggered = timezone.now()
+    group.save()
 
     return Response(
         {
