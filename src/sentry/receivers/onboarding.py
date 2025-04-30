@@ -579,16 +579,14 @@ def record_integration_added(
 
 
 @project_transferred.connect(weak=False, dispatch_uid="onboarding.record_project_transferred")
-def record_project_transferred(old_org_id: int, updated_project: Project, **kwargs):
-
-    new_organization = Organization.objects.get(id=updated_project.organization_id)
+def record_project_transferred(old_org_id: int, project: Project, **kwargs):
 
     analytics.record(
         "project.transferred",
         old_organization_id=old_org_id,
-        new_organization_id=new_organization.id,
-        project_id=updated_project.id,
-        platform=updated_project.platform,
+        new_organization_id=project.organization.id,
+        project_id=project.id,
+        platform=project.platform,
     )
 
     existing_tasks_in_old_org = OrganizationOnboardingTask.objects.filter(
@@ -597,9 +595,9 @@ def record_project_transferred(old_org_id: int, updated_project: Project, **kwar
     )
 
     existing_tasks_in_new_org = set(
-        OrganizationOnboardingTask.objects.filter(organization_id=new_organization.id).values_list(
-            "task", flat=True
-        )
+        OrganizationOnboardingTask.objects.filter(
+            organization_id=project.organization.id
+        ).values_list("task", flat=True)
     )
 
     new_tasks = [
@@ -609,6 +607,6 @@ def record_project_transferred(old_org_id: int, updated_project: Project, **kwar
     for task in new_tasks:
         task_dict = model_to_dict(task, exclude=["id", "organization", "project"])
         copied_task = OrganizationOnboardingTask(
-            **task_dict, organization=new_organization, project=updated_project
+            **task_dict, organization=project.organization, project=project
         )
         copied_task.save()

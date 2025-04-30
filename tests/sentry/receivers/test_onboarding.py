@@ -786,7 +786,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         second_project = self.create_project(first_event=now)
 
         project_created.send(project=project, user=self.user, sender=None)
-        project_created.send(project=second_project, user=self.user, sender=type(second_project))
+        project_created.send(project=second_project, user=self.user, sender=None)
 
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
@@ -817,7 +817,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         first_organization = self.create_organization(owner=self.user, slug="first-org")
         first_project = self.create_project(first_event=now, organization=first_organization)
         # By default, the project creation will create a default rule
-        project_created.send(project=first_project, user=self.user, sender=type(first_project))
+        project_created.send(project=first_project, user=self.user, sender=None)
         assert OrganizationOnboardingTask.objects.filter(
             organization=first_project.organization,
             task=OnboardingTask.ALERT_RULE,
@@ -830,7 +830,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         project_created.send(
             project=second_project,
             user=self.user,
-            sender=type(second_project),
+            sender=None,
             default_rules=False,
         )
         assert not OrganizationOnboardingTask.objects.filter(
@@ -920,7 +920,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             project=project,
             user=self.user,
             rule_type="issue",
-            sender=type(Rule),
+            sender=None,
             is_api_token=False,
         )
         assert (
@@ -1000,7 +1000,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         member = self.create_member(
             organization=self.organization, teams=[self.team], email=user.email
         )
-        member_invited.send(member=member, user=user, sender=type(member))
+        member_invited.send(member=member, user=user, sender=None)
         assert (
             OrganizationOnboardingTask.objects.get(
                 organization=self.organization,
@@ -1081,7 +1081,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         project_created.send(
             project=second_project,
             user=self.user,
-            sender=type(second_project),
+            sender=None,
             default_rules=False,
         )
         assert (
@@ -1154,7 +1154,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         member = self.create_member(
             organization=self.organization, teams=[self.team], email=user.email
         )
-        member_invited.send(member=member, user=user, sender=type(member))
+        member_invited.send(member=member, user=user, sender=None)
 
         # Member accepted the invite
         member_joined.send(
@@ -1192,7 +1192,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         project_created.send(
             project=second_project,
             user=self.user,
-            sender=type(second_project),
+            sender=None,
             default_rules=False,
         )
 
@@ -1334,7 +1334,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         project.organization = new_organization
         project_transferred.send(
             old_org_id=self.organization.id,
-            updated_project=project,
+            project=project,
             sender=None,
         )
 
@@ -1347,14 +1347,12 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
 
         project2 = self.create_project(platform="javascript-react")
-        project_created.send(
-            project=project2, user=self.user, default_rules=False, sender=type(project2)
-        )
+        project_created.send(project=project2, user=self.user, default_rules=False, sender=None)
         project2.organization = new_organization
         project_transferred.send(
             old_org_id=self.organization.id,
-            updated_project=project2,
-            sender=type(project2),
+            project=project2,
+            sender=None,
         )
 
         record_analytics.assert_called_with(

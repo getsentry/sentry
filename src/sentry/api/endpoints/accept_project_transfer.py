@@ -129,10 +129,11 @@ class AcceptProjectTransferEndpoint(Endpoint):
         project.transfer_to(organization=organization)
         ProjectOption.objects.unset_value(project, "sentry:project-transfer-transaction-id")
 
-        updated_project = Project.objects.get(id=project.id)
+        project.refresh_from_db()
+
         project_transferred.send_robust(
             old_org_id=old_organization.id,
-            updated_project=updated_project,
+            project=project,
             sender=self,
         )
 
