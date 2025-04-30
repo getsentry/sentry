@@ -31,7 +31,11 @@ logger = logging.getLogger(__name__)
 # So this leaves quite a bit of headroom for custom enhancement rules as well.
 RUST_CACHE = RustCache(1_000)
 
-VERSIONS = [2]
+# TODO: Move 3 to the end when we're ready for it to be the default
+VERSIONS = [
+    3,  # Enhancements with this version run the split enhancements experiment
+    2,  # The current default version
+]
 LATEST_VERSION = VERSIONS[-1]
 
 VALID_PROFILING_MATCHER_PREFIXES = (
@@ -268,6 +272,25 @@ class Enhancements:
         self.bases = bases or []
 
         self.rust_enhancements = merge_rust_enhancements(self.bases, rust_enhancements)
+
+        self.run_split_enhancements = version == 3
+        if self.run_split_enhancements:
+            (
+                classifier_rules,
+                contributes_rules,
+                classifier_rust_enhancements,
+                contributes_rust_enhancements,
+            ) = _split_rules(rules)
+
+            self.classifier_rules = classifier_rules
+            self.contributes_rules = contributes_rules
+            self.classifier_rust_enhancements = merge_rust_enhancements(
+                self.bases, classifier_rust_enhancements, type="classifier"
+            )
+
+            self.contributes_rust_enhancements = merge_rust_enhancements(
+                self.bases, contributes_rust_enhancements, type="contributes"
+            )
 
     def apply_category_and_updated_in_app_to_frames(
         self,
