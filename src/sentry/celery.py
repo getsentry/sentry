@@ -1,5 +1,4 @@
 import gc
-import os
 from datetime import datetime
 from itertools import chain
 from typing import Any
@@ -44,19 +43,14 @@ def holds_bad_pickle_object(value, memo=None):
         )
     app_module = type(value).__module__
     if app_module.startswith(("sentry.", "getsentry.")):
-        return value, "do not pickle custom classes"
+        return value, "do not pickle application classes"
     elif isinstance(value, SafeString):
         # Django string wrappers json encode fine
         return None
-    elif app_module != "builtins":
-        return value, "do not pickle custom classes"
-
-    if os.getenv("TASK_TYPE_CHECKING") and os.getenv("TASK_TYPE_CHECKING") != "0":
-        if isinstance(value, SafeString):
-            # Django string wrappers json encode fine
-            return None
-        elif app_module != "builtins":
-            return value, "do not pickle custom classes"
+    elif value is None:
+        return None
+    elif not isinstance(value, (dict, list, str, float, int, bool, tuple, frozenset)):
+        return value, "do not pickle stdlib classes"
     return None
 
 
