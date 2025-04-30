@@ -13,13 +13,14 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {prettifyTagKey} from 'sentry/utils/discover/fields';
+import {parseFunction, prettifyTagKey} from 'sentry/utils/discover/fields';
 import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {SchemaHintsPageParams} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {
   addFilterToQuery,
+  formatHintName,
   parseTagKey,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 
@@ -103,8 +104,9 @@ function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDraw
       ) {
         const keyToRemove =
           hint.kind === FieldKind.FUNCTION
-            ? (filterQuery.getFilterKeys().find(key => key.startsWith(`${hint.key}(`)) ??
-              '')
+            ? (filterQuery
+                .getFilterKeys()
+                .find(key => parseFunction(key)?.name === hint.key) ?? '')
             : hint.key;
         // remove hint and/or negated hint if it exists
         filterQuery.removeFilter(keyToRemove);
@@ -162,20 +164,8 @@ function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDraw
           onChange={() => handleCheckboxChange(hint)}
         >
           <CheckboxLabelContainer>
-            <Tooltip
-              title={
-                hint.kind === FieldKind.FUNCTION
-                  ? `${prettifyTagKey(hint.key)}(...)`
-                  : prettifyTagKey(hint.key)
-              }
-              showOnlyOnOverflow
-              skipWrapper
-            >
-              <CheckboxLabel>
-                {hint.kind === FieldKind.FUNCTION
-                  ? `${prettifyTagKey(hint.key)}(...)`
-                  : prettifyTagKey(hint.key)}
-              </CheckboxLabel>
+            <Tooltip title={formatHintName(hint)} showOnlyOnOverflow skipWrapper>
+              <CheckboxLabel>{formatHintName(hint)}</CheckboxLabel>
             </Tooltip>
             {hintType}
           </CheckboxLabelContainer>

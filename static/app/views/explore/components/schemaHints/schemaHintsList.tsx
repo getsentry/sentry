@@ -15,7 +15,11 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isAggregateField, prettifyTagKey} from 'sentry/utils/discover/fields';
+import {
+  isAggregateField,
+  parseFunction,
+  prettifyTagKey,
+} from 'sentry/utils/discover/fields';
 import {
   type AggregationKey,
   type FieldDefinition,
@@ -33,6 +37,10 @@ import {
   SchemaHintsSources,
   USER_IDENTIFIER_KEY,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
+import {
+  LOGS_FIELDS_KEY,
+  LOGS_QUERY_KEY,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 import {SpanIndexedField} from 'sentry/views/insights/types';
@@ -86,11 +94,8 @@ export function addFilterToQuery(
   fieldDefinition: FieldDefinition | null
 ) {
   if (tag.kind === FieldKind.FUNCTION) {
-    const defaultFunctionParam = fieldDefinition?.parameters?.[0]?.defaultValue;
-    filterQuery.addFilterValue(
-      defaultFunctionParam ? `${tag.key}(${defaultFunctionParam})` : `${tag.key}()`,
-      '>0'
-    );
+    const defaultFunctionParam = fieldDefinition?.parameters?.[0]?.defaultValue ?? '';
+    filterQuery.addFilterValue(`${tag.key}(${defaultFunctionParam})`, '>0');
   } else {
     const isBoolean = fieldDefinition?.valueType === FieldValueType.BOOLEAN;
     filterQuery.addFilterValue(
@@ -105,7 +110,7 @@ export function parseTagKey(tagKey: string) {
     return tagKey;
   }
 
-  const aggregateKey = tagKey.split('(')[0];
+  const aggregateKey = parseFunction(tagKey)?.name;
   return aggregateKey;
 }
 
@@ -116,6 +121,20 @@ const FILTER_KEY_SECTIONS: Record<SchemaHintsSources, FilterKeySection[]> = {
 
 function getFilterKeySections(source: SchemaHintsSources) {
   return FILTER_KEY_SECTIONS[source];
+}
+
+export function formatHintName(hint: Tag) {
+  if (hint.kind === FieldKind.FUNCTION) {
+    return `${prettifyTagKey(hint.name)}(...)`;
+  }
+  return prettifyTagKey(hint.name);
+}
+
+function formatHintOperator(hint: Tag) {
+  if (hint.kind === FieldKind.MEASUREMENT || hint.kind === FieldKind.FUNCTION) {
+    return '>';
+  }
+  return 'is';
 }
 
 function SchemaHintsList({
@@ -308,8 +327,18 @@ function SchemaHintsList({
                   location.pathname !== newLocation.pathname ||
                   // will close if anything but the filter query has changed
                   !isEqual(
-                    omit(location.query, ['query', 'field', 'logsFields', 'logsQuery']),
-                    omit(newLocation.query, ['query', 'field', 'logsFields', 'logsQuery'])
+                    omit(location.query, [
+                      'query',
+                      'field',
+                      LOGS_FIELDS_KEY,
+                      LOGS_QUERY_KEY,
+                    ]),
+                    omit(newLocation.query, [
+                      'query',
+                      'field',
+                      LOGS_FIELDS_KEY,
+                      LOGS_QUERY_KEY,
+                    ])
                   )
                 );
               },
@@ -382,7 +411,7 @@ function SchemaHintsList({
       return hint.name;
     }
 
-    return `${prettifyTagKey(hint.name)}${hint.kind === FieldKind.FUNCTION ? '(...)' : ''} ${hint.kind === FieldKind.MEASUREMENT || hint.kind === FieldKind.FUNCTION ? '>' : 'is'} ...`;
+    return `${formatHintName(hint)} ${formatHintOperator(hint)} ...`;
   };
 
   const getHintElement = (hint: Tag) => {
@@ -392,12 +421,8 @@ function SchemaHintsList({
 
     return (
       <HintTextContainer>
-        <HintName>{`${prettifyTagKey(hint.name)}${hint.kind === FieldKind.FUNCTION ? '(...)' : ''}`}</HintName>
-        <HintOperator>
-          {hint.kind === FieldKind.MEASUREMENT || hint.kind === FieldKind.FUNCTION
-            ? '>'
-            : 'is'}
-        </HintOperator>
+        <HintName>{formatHintName(hint)}</HintName>
+        <HintOperator>{formatHintOperator(hint)}</HintOperator>
         <HintValue>...</HintValue>
       </HintTextContainer>
     );
