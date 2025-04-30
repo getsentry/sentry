@@ -138,6 +138,10 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             serializer = OrganizationTraceItemAttributesEndpointSerializer(data=request.GET)
             if not serializer.is_valid():
                 return Response(serializer.errors, status=400)
+            else:
+                sentry_sdk.set_tag("param.casing", "camel")
+        else:
+            sentry_sdk.set_tag("param.casing", "snake")
 
         try:
             snuba_params = self.get_snuba_params(request, organization)
@@ -225,6 +229,10 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
             serializer = OrganizationTraceItemAttributesEndpointSerializer(data=request.GET)
             if not serializer.is_valid():
                 return Response(serializer.errors, status=400)
+            else:
+                sentry_sdk.set_tag("param.casing", "camel")
+        else:
+            sentry_sdk.set_tag("param.casing", "snake")
 
         try:
             snuba_params = self.get_snuba_params(request, organization)
