@@ -109,7 +109,7 @@ class OrganizationMemberInvite(DefaultFieldsModel):
     sso_linked = models.BooleanField(default=False)
     sso_invalid = models.BooleanField(default=False)
     member_limit_restricted = models.BooleanField(default=False)
-    idp_provisioned = models.BooleanField(default=False)
+    idp_provisioned = models.BooleanField(default=False, db_default=False)
     idp_role_restricted = models.BooleanField(default=False)
     partnership_restricted = models.BooleanField(default=False)
 
@@ -189,9 +189,7 @@ class OrganizationMemberInvite(DefaultFieldsModel):
             self.save()
 
         self.send_invite_email(referrer)
-        member_invited.send_robust(
-            invited_member=self, user=approving_user, sender=self, referrer=referrer
-        )
+        member_invited.send_robust(member=self, user=approving_user, sender=self, referrer=referrer)
         create_audit_entry_from_user(
             approving_user,
             api_key,

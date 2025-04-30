@@ -148,6 +148,7 @@ describe('VisualizationStep', function () {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -197,10 +198,13 @@ describe('VisualizationStep', function () {
       />,
       {
         router,
+
         organization: {
           ...organization,
           features: [...organization.features, 'dynamic-sampling', 'mep-rollout-flag'],
         },
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -241,6 +245,7 @@ describe('VisualizationStep', function () {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -288,6 +293,7 @@ describe('VisualizationStep', function () {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -331,7 +337,10 @@ describe('VisualizationStep', function () {
           />
         </DashboardsMEPProvider>
       </MEPSettingProvider>,
-      {organization}
+      {
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await waitFor(() =>

@@ -335,6 +335,32 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
+    def test_anomaly_detection_alert_eap(self, mock_seer_request):
+        data = deepcopy(self.dynamic_alert_rule_dict)
+        data["dataset"] = "events_analytics_platform"
+        data["alertType"] = "eap_metrics"
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        with outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **data,
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+        assert alert_rule.seasonality == resp.data.get("seasonality")
+        assert alert_rule.sensitivity == resp.data.get("sensitivity")
+        assert mock_seer_request.call_count == 1
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
+    @with_feature("organizations:incidents")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
     def test_anomaly_detection_alert_not_dual_written(self, mock_seer_request):
         """
         For now, we want to skip dual writing the ACI objects for anomaly detection alerts. We

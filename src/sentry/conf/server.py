@@ -726,9 +726,6 @@ from kombu import Exchange, Queue
 BROKER_URL = "redis://127.0.0.1:6379"
 BROKER_TRANSPORT_OPTIONS: dict[str, int] = {}
 
-# Ensure workers run async by default
-# in Development you might want them to run in-process
-TASK_WORKER_ALWAYS_EAGER = False
 
 # Ensure workers run async by default
 # in Development you might want them to run in-process
@@ -1386,6 +1383,10 @@ BGTASKS: dict[str, BgTaskConfig] = {
 # Taskworker settings #
 #######################
 
+# If true, tasks will be run immediately.
+# Used primarily in tests.
+TASKWORKER_ALWAYS_EAGER = False
+
 # Shared secrets used to sign RPC requests to taskbrokers
 # The first secret is used for signing.
 # Environment variable is expected to be a JSON encoded list
@@ -1400,15 +1401,15 @@ TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 # Like celery, taskworkers need to import task modules to make tasks
 # accessible to the worker.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
-    "sentry.tasks.assemble",
+    "sentry.data_export.tasks",
     "sentry.debug_files.tasks",
     "sentry.deletions.tasks.hybrid_cloud",
     "sentry.deletions.tasks.scheduled",
     "sentry.demo_mode.tasks",
-    "sentry.data_export.tasks",
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.incidents.tasks",
+    "sentry.ingest.transaction_clusterer.tasks",
     "sentry.integrations.github.tasks.link_all_repos",
     "sentry.integrations.github.tasks.open_pr_comment",
     "sentry.integrations.github.tasks.pr_comment",
@@ -1433,16 +1434,18 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.monitors.tasks.clock_pulse",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
     "sentry.notifications.utils.tasks",
+    "sentry.profiles.task",
     "sentry.release_health.tasks",
     "sentry.relocation.tasks.process",
     "sentry.relocation.tasks.transfer",
     "sentry.replays.tasks",
     "sentry.rules.processing.delayed_processing",
     "sentry.sentry_apps.tasks.sentry_apps",
+    "sentry.sentry_apps.tasks.service_hooks",
     "sentry.snuba.tasks",
+    "sentry.tasks.assemble",
     "sentry.tasks.auth.auth",
     "sentry.tasks.auth.check_auth",
-    "sentry.tasks.autofix",
     "sentry.tasks.auto_enable_codecov",
     "sentry.tasks.auto_ongoing_issues",
     "sentry.tasks.auto_remove_inbox",
@@ -1461,23 +1464,22 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.commits",
     "sentry.tasks.delete_seer_grouping_records",
     "sentry.tasks.digests",
-    "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
     "sentry.tasks.email",
+    "sentry.tasks.relay",
+    "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
     "sentry.tasks.groupowner",
     "sentry.tasks.merge",
-    "sentry.tasks.process_buffer",
-    "sentry.tasks.release_registry",
-    "sentry.tempest.tasks",
-    "sentry.tasks.beacon",
+    "sentry.tasks.on_demand_metrics",
     "sentry.tasks.options",
     "sentry.tasks.ping",
+    "sentry.tasks.process_buffer",
     "sentry.tasks.release_registry",
     "sentry.tasks.repository",
     "sentry.tasks.reprocessing2",
     "sentry.tasks.statistical_detectors",
-    "sentry.tasks.summaries.weekly_reports",
-    "sentry.tasks.summaries.daily_summary",
     "sentry.tasks.store",
+    "sentry.tasks.summaries.daily_summary",
+    "sentry.tasks.summaries.weekly_reports",
     "sentry.tasks.symbolication",
     "sentry.tasks.unmerge",
     "sentry.tasks.update_user_reports",
@@ -1488,6 +1490,12 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.uptime.rdap.tasks",
     "sentry.uptime.subscriptions.tasks",
     "sentry.workflow_engine.processors.delayed_workflow",
+    "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
+    "sentry.dynamic_sampling.tasks.recalibrate_orgs",
+    "sentry.dynamic_sampling.tasks.custom_rule_notifications",
+    "sentry.dynamic_sampling.tasks.sliding_window_org",
+    "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
+    "sentry.tasks.check_am2_compatibility",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
@@ -1863,6 +1871,10 @@ SENTRY_DIGESTS_OPTIONS: dict[str, Any] = {}
 # Quota backend
 SENTRY_QUOTAS = "sentry.quotas.Quota"
 SENTRY_QUOTA_OPTIONS: dict[str, str] = {}
+
+# Partnership backend
+SENTRY_PARTNERSHIPS = "sentry.partnerships.Partnership"
+SENTRY_PARTNERSHIP_OPTIONS: dict[str, str] = {}
 
 # Cache for Relay project configs
 SENTRY_RELAY_PROJECTCONFIG_CACHE = "sentry.relay.projectconfig_cache.redis.RedisProjectConfigCache"
@@ -2317,10 +2329,6 @@ SENTRY_DEFAULT_OPTIONS: dict[str, Any] = {}
 # Raise an error in dev on failed lookups
 SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
 
-# You should not change this setting after your database has been created
-# unless you have altered all schemas first
-SENTRY_USE_BIG_INTS = False
-
 # Delay (in ms) to induce on API responses
 #
 # Simulates a small amount of lag which helps uncover more obvious race
@@ -2754,6 +2762,14 @@ SENTRY_PROFILING_ENABLED = os.environ.get("SENTRY_PROFILING_ENABLED", SPOTLIGHT)
 # This setting takes precedence over `SENTRY_PROFILING_ENABLED` forcing the SDK
 # to operate under the continuous profiling model.
 SENTRY_CONTINUOUS_PROFILING_ENABLED = os.environ.get("SENTRY_CONTINUOUS_PROFILING_ENABLED", False)
+
+# The sample rate to use for continuous profile sessions. This sample rate is
+# evaluated once per process and the decision is used for the remainer of the session.
+SENTRY_PROFILE_SESSION_SAMPLE_RATE = 1 if DEBUG else 0
+
+# Tells the sentry sdk to run under the trace lifecycle mode which
+# ensures the profiler is running whenever there is an active trace.
+SENTRY_PROFILE_LIFECYCLE: Literal["manual", "trace"] = "trace"
 
 # Callable to bind additional context for the Sentry SDK
 #
@@ -3279,7 +3295,6 @@ PG_VERSION: str = os.getenv("PG_VERSION") or "14"
 ZERO_DOWNTIME_MIGRATIONS_RAISE_FOR_UNSAFE = True
 ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT: str | None = None
 ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT: str | None = None
-ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT_FORCE = False
 ZERO_DOWNTIME_MIGRATIONS_IDEMPOTENT_SQL = False
 
 if int(PG_VERSION.split(".", maxsplit=1)[0]) < 12:

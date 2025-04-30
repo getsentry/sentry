@@ -23,7 +23,7 @@ import DetailLabel from 'admin/components/detailLabel';
 import DetailList from 'admin/components/detailList';
 import DetailsContainer from 'admin/components/detailsContainer';
 import {getLogQuery} from 'admin/utils';
-import {PRODUCT_TRIAL_CATEGORIES, UNLIMITED} from 'getsentry/constants';
+import {BILLED_DATA_CATEGORY_INFO, UNLIMITED} from 'getsentry/constants';
 import type {
   Plan,
   ReservedBudget,
@@ -267,7 +267,7 @@ function ReservedBudgetData({customer, reservedBudget}: ReservedBudgetProps) {
 
   const budgetName = getReservedBudgetDisplayName({
     plan: customer.planDetails,
-    categories,
+    categories: categories as DataCategory[],
     hadCustomDynamicSampling: shouldUseDsNames,
     shouldTitleCase: true,
   });
@@ -325,12 +325,13 @@ function OnDemandSummary({customer}: OnDemandSummaryProps) {
             return (
               <Fragment key={`test-ondemand-${category}`}>
                 <small>
-                  {`${getPlanCategoryName({plan: customer.planDetails, category})}: `}
+                  {`${getPlanCategoryName({
+                    plan: customer.planDetails,
+                    category,
+                  })}: `}
                   {`${displayPriceWithCents({
-                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     cents: onDemandBudgets.usedSpends[category] ?? 0,
                   })} / ${displayPriceWithCents({
-                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     cents: onDemandBudgets.budgets[category] ?? 0,
                   })}`}
                 </small>
@@ -446,8 +447,10 @@ function CustomerOverview({customer, onAction, organization}: Props) {
   const region = regionMap[organization.links.regionUrl] ?? '??';
 
   const productTrialCategories = customer.canSelfServe
-    ? PRODUCT_TRIAL_CATEGORIES.filter(category =>
-        customer.planDetails.categories.includes(category)
+    ? Object.values(BILLED_DATA_CATEGORY_INFO).filter(
+        categoryInfo =>
+          categoryInfo.canProductTrial &&
+          customer.planDetails.categories.includes(categoryInfo.plural)
       )
     : [];
 
@@ -652,16 +655,16 @@ function CustomerOverview({customer, onAction, organization}: Props) {
           <Fragment>
             <h6>Product Trials</h6>
             <ProductTrialsDetailListContainer>
-              {productTrialCategories.map(category => {
+              {productTrialCategories.map(categoryInfo => {
                 const categoryName = getPlanCategoryName({
                   plan: customer.planDetails,
-                  category,
+                  category: categoryInfo.plural,
                   title: true,
                 });
-                const upperCategory = upperFirst(category);
+                const upperCategory = upperFirst(categoryInfo.plural);
 
                 return (
-                  <DetailLabel key={category} title={categoryName}>
+                  <DetailLabel key={categoryInfo.plural} title={categoryName}>
                     <TrialActions>
                       <Button
                         size="xs"

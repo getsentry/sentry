@@ -1,78 +1,125 @@
 from sentry.taskworker.registry import taskregistry
 
 # Namespaces for taskworker tasks
-alerts_tasks = taskregistry.create_namespace("alerts")
+alerts_tasks = taskregistry.create_namespace("alerts", app_feature="shared")
 
-attachments_tasks = taskregistry.create_namespace("attachments")
+attachments_tasks = taskregistry.create_namespace(
+    "attachments",
+    app_feature="attachments",
+)
 
-auth_tasks = taskregistry.create_namespace("auth")
+auth_tasks = taskregistry.create_namespace("auth", app_feature="shared")
 
-auth_control_tasks = taskregistry.create_namespace("auth.control")
+auth_control_tasks = taskregistry.create_namespace(
+    "auth.control",
+    app_feature="shared",
+)
 
-buffer_tasks = taskregistry.create_namespace("buffer")
+buffer_tasks = taskregistry.create_namespace("buffer", app_feature="errors")
 
-crons_tasks = taskregistry.create_namespace("crons")
+crons_tasks = taskregistry.create_namespace("crons", app_feature="crons")
 
 deletion_tasks = taskregistry.create_namespace(
     "deletions",
     processing_deadline_duration=60 * 4,
+    app_feature="shared",
 )
 
 deletion_control_tasks = taskregistry.create_namespace(
     "deletions.control",
     # Deletions can take several minutes, so we have a long processing deadline.
     processing_deadline_duration=60 * 4,
+    app_feature="shared",
 )
 
-demomode_tasks = taskregistry.create_namespace("demomode")
+demomode_tasks = taskregistry.create_namespace("demomode", app_feature="shared")
 
-digests_tasks = taskregistry.create_namespace("digests")
+digests_tasks = taskregistry.create_namespace("digests", app_feature="shared")
 
-export_tasks = taskregistry.create_namespace(name="export", processing_deadline_duration=15)
+export_tasks = taskregistry.create_namespace(
+    name="export",
+    processing_deadline_duration=15,
+    app_feature="shared",
+)
 
-hybridcloud_tasks = taskregistry.create_namespace("hybridcloud")
+hybridcloud_tasks = taskregistry.create_namespace(
+    "hybridcloud",
+    app_feature="hybrid_cloud",
+)
 
-hybridcloud_control_tasks = taskregistry.create_namespace("hybridcloud.control")
+hybridcloud_control_tasks = taskregistry.create_namespace(
+    "hybridcloud.control",
+    app_feature="hybrid_cloud",
+)
 
-issues_tasks = taskregistry.create_namespace("issues")
+ingest_profiling_tasks = taskregistry.create_namespace(
+    "ingest.profiling",
+    app_feature="profiles",
+)
 
-notifications_tasks = taskregistry.create_namespace("notifications")
+issues_tasks = taskregistry.create_namespace("issues", app_feature="issueplatform")
 
-notifications_control_tasks = taskregistry.create_namespace("notifications.control")
+integrations_tasks = taskregistry.create_namespace("integrations", app_feature="integrations")
 
-integrations_tasks = taskregistry.create_namespace("integrations")
+integrations_control_tasks = taskregistry.create_namespace(
+    "integrations.control",
+    app_feature="integrations",
+)
 
-integrations_control_tasks = taskregistry.create_namespace("integrations.control")
+notifications_tasks = taskregistry.create_namespace("notifications", app_feature="shared")
 
-options_tasks = taskregistry.create_namespace("options")
+notifications_control_tasks = taskregistry.create_namespace(
+    "notifications.control",
+    app_feature="shared",
+)
 
-options_control_tasks = taskregistry.create_namespace("options.control")
+options_tasks = taskregistry.create_namespace("options", app_feature="shared")
 
-profiling_tasks = taskregistry.create_namespace("profiling")
+options_control_tasks = taskregistry.create_namespace(
+    "options.control",
+    app_feature="shared",
+)
 
-release_health_tasks = taskregistry.create_namespace("releasehealth")
+performance_tasks = taskregistry.create_namespace("performance", app_feature="transactions")
 
-replays_tasks = taskregistry.create_namespace("replays")
+profiling_tasks = taskregistry.create_namespace("profiling", app_feature="profiles")
 
-sdk_tasks = taskregistry.create_namespace("sdk")
+relay_tasks = taskregistry.create_namespace("relay", app_feature="shared")
 
-sdk_control_tasks = taskregistry.create_namespace("sdk.control")
+relocation_tasks = taskregistry.create_namespace("relocation", app_feature="infra")
 
-seer_tasks = taskregistry.create_namespace("seer")
+relocation_control_tasks = taskregistry.create_namespace("relocation.control", app_feature="infra")
 
-selfhosted_tasks = taskregistry.create_namespace("selfhosted")
+release_health_tasks = taskregistry.create_namespace("releasehealth", app_feature="sessions")
 
-symbolication_tasks = taskregistry.create_namespace("symbolication")
+replays_tasks = taskregistry.create_namespace("replays", app_feature="replays")
 
-tempest_tasks = taskregistry.create_namespace("tempest")
+reports_tasks = taskregistry.create_namespace("reports", app_feature="shared")
 
-uptime_tasks = taskregistry.create_namespace("uptime")
+sdk_tasks = taskregistry.create_namespace("sdk", app_feature="shared")
 
-relocation_tasks = taskregistry.create_namespace("relocation")
+sdk_control_tasks = taskregistry.create_namespace("sdk.control", app_feature="shared")
 
-relocation_control_tasks = taskregistry.create_namespace("relocation.control")
+seer_tasks = taskregistry.create_namespace("seer", app_feature="errors")
 
-reports_tasks = taskregistry.create_namespace("reports")
+selfhosted_tasks = taskregistry.create_namespace("selfhosted", app_feature="shared")
+
+sentryapp_tasks = taskregistry.create_namespace("sentryapp", app_feature="integrations")
+
+sentryapp_control_tasks = taskregistry.create_namespace(
+    "sentryapp.control", app_feature="integrations"
+)
+
+symbolication_tasks = taskregistry.create_namespace("symbolication", app_feature="errors")
+
+telemetry_experience_tasks = taskregistry.create_namespace(
+    "telemetry-experience", app_feature="transactions"
+)
+
+tempest_tasks = taskregistry.create_namespace("tempest", app_feature="errors")
+
+uptime_tasks = taskregistry.create_namespace("uptime", app_feature="crons")
+
 
 # Namespaces for testing taskworker tasks
 exampletasks = taskregistry.create_namespace(name="examples")

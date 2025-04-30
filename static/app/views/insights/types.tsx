@@ -71,6 +71,7 @@ export enum SpanFields {
   IS_TRANSACTION = 'is_transaction',
   CACHE_HIT = 'cache.hit',
   IS_STARRED_TRANSACTION = 'is_starred_transaction',
+  SPAN_DURATION = 'span.duration',
 }
 
 type SpanBooleanFields =
@@ -94,6 +95,7 @@ type SpanNumberFields =
   | SpanMetricsField.MOBILE_FROZEN_FRAMES
   | SpanMetricsField.MOBILE_TOTAL_FRAMES
   | SpanMetricsField.MOBILE_SLOW_FRAMES
+  | SpanMetricsField.SPAN_DURATION
   | DiscoverNumberFields;
 
 type SpanStringFields =
@@ -146,9 +148,9 @@ type SpanStringArrayFields = 'span.domain';
 export const COUNTER_AGGREGATES = ['sum', 'avg', 'min', 'max', 'p100'] as const;
 export const DISTRIBUTION_AGGREGATES = ['p50', 'p75', 'p90', 'p95', 'p99'] as const;
 
-export const AGGREGATES = [...COUNTER_AGGREGATES, ...DISTRIBUTION_AGGREGATES] as const;
-
-export type Aggregate = (typeof AGGREGATES)[number];
+export type Aggregate =
+  | (typeof COUNTER_AGGREGATES)[number]
+  | (typeof DISTRIBUTION_AGGREGATES)[number];
 
 type ConditionalAggregate =
   | `avg_if`
@@ -435,14 +437,13 @@ export enum SpanFunction {
 
 // TODO - add more functions and fields, combine shared ones, etc
 
-export const METRICS_FUNCTIONS = [
-  'count',
-  'performance_score',
-  'count_scores',
-  'opportunity_score',
-  'total_opportunity_score',
-  'p75',
-] as const;
+type MetricsFunctions =
+  | 'count'
+  | 'performance_score'
+  | 'count_scores'
+  | 'opportunity_score'
+  | 'total_opportunity_score'
+  | 'p75';
 
 export enum MetricsFields {
   TRANSACTION_DURATION = 'transaction.duration',
@@ -514,8 +515,6 @@ type MetricsStringFields =
   | MetricsFields.PROFILE_ID
   | MetricsFields.RELEASE
   | MetricsFields.TIMESTAMP;
-
-type MetricsFunctions = (typeof METRICS_FUNCTIONS)[number];
 
 export type MetricsResponse = {
   [Property in MetricsNumberFields as `${Aggregate}(${Property})`]: number;
@@ -609,6 +608,11 @@ export type DiscoverResponse = {
 export type DiscoverProperty = keyof DiscoverResponse;
 
 export type MetricsQueryFilters = Partial<Record<MetricsStringFields, string>> & {
+  [SpanIndexedField.PROJECT_ID]?: string;
+};
+
+export type SpanQueryFilters = Partial<Record<SpanStringFields, string>> & {
+  is_transaction?: 'true' | 'false';
   [SpanIndexedField.PROJECT_ID]?: string;
 };
 

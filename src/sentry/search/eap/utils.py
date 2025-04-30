@@ -138,10 +138,4 @@ def can_expose_attribute(attribute: str, item_type: SupportedTraceItemType) -> b
 
 
 def handle_downsample_meta(meta: DownsampledStorageMeta) -> bool:
-    if meta.tier in {
-        DownsampledStorageMeta.SELECTED_TIER_1,
-        DownsampledStorageMeta.SELECTED_TIER_UNSPECIFIED,
-    }:
-        return True
-    else:
-        return False
+    return not meta.can_go_to_higher_accuracy_tier

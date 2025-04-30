@@ -46,6 +46,7 @@ describe('EnvironmentPageFilter', function () {
     render(<EnvironmentPageFilter />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     // Open menu
@@ -70,6 +71,7 @@ describe('EnvironmentPageFilter', function () {
     render(<EnvironmentPageFilter />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     // Open menu
@@ -94,6 +96,7 @@ describe('EnvironmentPageFilter', function () {
     render(<EnvironmentPageFilter onReset={onReset} />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     // Open the menu, select project-1
@@ -118,6 +121,7 @@ describe('EnvironmentPageFilter', function () {
     render(<EnvironmentPageFilter />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     // Confirm initial selection
@@ -160,6 +164,7 @@ describe('EnvironmentPageFilter', function () {
     render(<EnvironmentPageFilter />, {
       router: desyncRouter,
       organization: desyncOrganization,
+      deprecatedRouterMocks: true,
     });
 
     // Open menu

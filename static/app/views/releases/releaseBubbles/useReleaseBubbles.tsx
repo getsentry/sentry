@@ -1,4 +1,4 @@
-import {type ReactElement, useCallback, useMemo, useRef} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import type {
   CustomSeriesOption,
@@ -14,7 +14,6 @@ import moment from 'moment-timezone';
 
 import {closeModal} from 'sentry/actionCreators/modal';
 import {isChartHovered} from 'sentry/components/charts/utils';
-import useDrawer from 'sentry/components/globalDrawer';
 import type {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t, tn} from 'sentry/locale';
 import type {
@@ -28,18 +27,20 @@ import type {ReleaseMetaBasic} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFormat} from 'sentry/utils/dates';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
-import {ReleasesDrawer} from 'sentry/views/releases/drawer/releasesDrawer';
+import {
+  cleanReleaseCursors,
+  ReleasesDrawerFields,
+} from 'sentry/views/releases/drawer/utils';
 import {
   BUBBLE_AREA_SERIES_ID,
   BUBBLE_SERIES_ID,
 } from 'sentry/views/releases/releaseBubbles/constants';
-import type {
-  Bucket,
-  ChartRendererProps,
-} from 'sentry/views/releases/releaseBubbles/types';
+import type {Bucket} from 'sentry/views/releases/releaseBubbles/types';
 import {createReleaseBuckets} from 'sentry/views/releases/releaseBubbles/utils/createReleaseBuckets';
 
 interface LegendSelectChangedParams {
@@ -251,6 +252,7 @@ interface UseReleaseBubblesParams {
    * starting timestamp
    */
   alignInMiddle?: boolean;
+
   /**
    * The whitespace around the bubbles.
    */
@@ -260,10 +262,9 @@ interface UseReleaseBubblesParams {
    */
   bubbleSize?: number;
   /**
-   * This is a callback function that is used in ReleasesDrawer when rendering
-   * the chart inside of the drawer.
+   * Unique ID for chart, used to load and render chart
    */
-  chartRenderer?: (rendererProps: ChartRendererProps) => ReactElement;
+  chartId?: string;
   datetime?: Parameters<typeof normalizeDateTimeParams>[0];
   /**
    * Number of desired bubbles/buckets to create
@@ -288,7 +289,7 @@ interface UseReleaseBubblesParams {
 }
 
 export function useReleaseBubbles({
-  chartRenderer,
+  chartId,
   releases,
   minTime,
   maxTime,
@@ -302,7 +303,8 @@ export function useReleaseBubbles({
   desiredBuckets = 10,
 }: UseReleaseBubblesParams) {
   const organization = useOrganization();
-  const {openDrawer} = useDrawer();
+  const navigate = useNavigate();
+  const location = useLocation();
   const theme = useTheme();
   const {options} = useUser();
   const {selection} = usePageFilters();
@@ -439,24 +441,17 @@ export function useReleaseBubbles({
         // drawer.
         closeModal();
 
-        openDrawer(
-          () => (
-            <ReleasesDrawer
-              startTs={data.start}
-              endTs={data.final ?? data.end}
-              releases={data.releases}
-              buckets={buckets}
-              projects={projects ?? selection.projects}
-              environments={environments ?? selection.environments}
-              chartRenderer={chartRenderer}
-            />
-          ),
-          {
-            shouldCloseOnLocationChange: () => false,
-            ariaLabel: t('Releases drawer'),
-            transitionProps: {stiffness: 1000},
-          }
-        );
+        navigate({
+          query: {
+            ...cleanReleaseCursors(location.query),
+            [ReleasesDrawerFields.DRAWER]: 'show',
+            [ReleasesDrawerFields.CHART]: chartId,
+            [ReleasesDrawerFields.START]: new Date(data.start).toISOString(),
+            [ReleasesDrawerFields.END]: new Date(data.end).toISOString(),
+            [ReleasesDrawerFields.PROJECT]: projects ?? selection.projects,
+            [ReleasesDrawerFields.ENVIRONMENT]: environments ?? selection.environments,
+          },
+        });
       };
 
       const handleMouseOver = (params: Parameters<EChartMouseOverHandler>[0]) => {
@@ -473,28 +468,25 @@ export function useReleaseBubbles({
         // rectangular area of the "release bucket" that was hovered over (in
         // the release bubbles). This is drawn on the main chart so that users
         // can visualize the time block of the set of relases.
-        echartsInstance.setOption({
-          series: [
-            {
-              id: BUBBLE_AREA_SERIES_ID,
-              type: 'custom',
-              renderItem: () => {},
-              markArea: {
-                itemStyle: {color: theme.blue400, opacity: 0.1},
-                data: [
-                  [
-                    {
-                      xAxis: data.start - xAxisShift,
-                    },
-                    {
-                      xAxis: data.end - xAxisShift,
-                    },
-                  ],
-                ],
-              },
-            },
-          ],
-        });
+        const customSeries: CustomSeriesOption = {
+          id: BUBBLE_AREA_SERIES_ID,
+          type: 'custom',
+          renderItem: () => null,
+          markArea: {
+            itemStyle: {color: theme.blue400, opacity: 0.1},
+            data: [
+              [
+                {
+                  xAxis: data.start - xAxisShift,
+                },
+                {
+                  xAxis: data.end - xAxisShift,
+                },
+              ],
+            ],
+          },
+        };
+        echartsInstance.setOption({series: [customSeries]}, {lazyUpdate: true});
       };
 
       const handleMouseOut = (params: Parameters<EChartMouseOutHandler>[0]) => {
@@ -503,9 +495,14 @@ export function useReleaseBubbles({
         }
 
         // Clear the `markArea` that was drawn during mouse over
-        echartsInstance.setOption({
-          series: [{id: BUBBLE_AREA_SERIES_ID, markArea: {data: []}}],
-        });
+        echartsInstance.setOption(
+          {
+            series: [{id: BUBBLE_AREA_SERIES_ID, markArea: {data: []}}],
+          },
+          {
+            lazyUpdate: true,
+          }
+        );
       };
 
       // This fixes a bug where if you hover over a bubble and mouseout via xaxis
@@ -579,11 +576,12 @@ export function useReleaseBubbles({
       };
     },
     [
+      location.query,
+      chartId,
+      navigate,
       alignInMiddle,
       buckets,
-      chartRenderer,
       environments,
-      openDrawer,
       projects,
       selection.environments,
       selection.projects,

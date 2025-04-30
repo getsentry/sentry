@@ -4,6 +4,7 @@ from django.db import migrations
 
 import sentry.db.models.fields.bounded
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -21,8 +22,6 @@ class Migration(CheckedMigration):
 
     is_post_deployment = False
 
-    allow_run_sql = True
-
     dependencies = [
         ("sentry", "0736_rm_reprocessing_step2"),
     ]
@@ -30,7 +29,7 @@ class Migration(CheckedMigration):
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     """
                     ALTER TABLE "sentry_discoversavedquery" ADD COLUMN "dataset_source" integer NOT NULL DEFAULT 0;
                     """,

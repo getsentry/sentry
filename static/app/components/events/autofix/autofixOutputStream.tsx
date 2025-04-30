@@ -13,7 +13,7 @@ import {useTypingAnimation} from 'sentry/components/events/autofix/useTypingAnim
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {singleLineRenderer} from 'sentry/utils/marked';
+import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
