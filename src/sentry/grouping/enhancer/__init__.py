@@ -82,6 +82,9 @@ def get_rust_enhancements(
         raise InvalidEnhancerConfig(str(e))
 
 
+EMPTY_RUST_ENHANCEMENTS = get_rust_enhancements("config_string", "")
+
+
 # TODO: Convert this into a typeddict in ophio
 RustExceptionData = dict[str, bytes | None]
 
