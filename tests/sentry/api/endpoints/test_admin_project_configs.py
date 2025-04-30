@@ -220,3 +220,25 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         assert response.status_code == 201
         assert projectconfig_cache.backend.get(first_key.public_key) != {"test_proj": "config1"}
         assert projectconfig_cache.backend.get(second_key.public_key) != {"test_proj": "config2"}
+
+    def test_get_caches_uncached_project_config(self):
+        """
+        Tests that making a GET request for an uncached project results
+        in its configuration being cached.
+        """
+        # Verify initial state: proj2 config should not be in the cache
+        initial_cached_config = projectconfig_cache.backend.get(self.p2_pk.public_key)
+        assert initial_cached_config is None
+
+        self.login_as(self.superuser, superuser=True)
+
+        # Make the GET request for proj2
+        url = self.get_url(proj_id=self.proj2.id)
+        response = self.client.get(url)
+
+        # Check response status
+        assert response.status_code == status.HTTP_200_OK
+
+        # Verify that the config for proj2 is now cached
+        final_cached_config = projectconfig_cache.backend.get(self.p2_pk.public_key)
+        assert final_cached_config is not None
