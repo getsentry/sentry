@@ -24,7 +24,7 @@ import type {
 } from 'sentry/types/integrations';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
-import {singleLineRenderer} from 'sentry/utils/marked';
+import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';

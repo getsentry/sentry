@@ -28,7 +28,8 @@ import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {IconCode, IconCopy, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import marked, {singleLineRenderer} from 'sentry/utils/marked';
+import {singleLineRenderer} from 'sentry/utils/marked/marked';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
@@ -226,12 +227,10 @@ export function AutofixChanges({
           <NoChangesPadding>
             <Alert.Container>
               <MarkdownAlert
-                dangerouslySetInnerHTML={{
-                  __html: marked(
-                    step.termination_reason ||
-                      t('Autofix had trouble applying its code changes.')
-                  ),
-                }}
+                text={
+                  step.termination_reason ||
+                  t('Autofix had trouble applying its code changes.')
+                }
               />
             </Alert.Container>
           </NoChangesPadding>
@@ -409,7 +408,7 @@ const RepoChangesHeader = styled('div')`
   grid-template-columns: 1fr auto;
 `;
 
-const MarkdownAlert = styled('div')`
+const MarkdownAlert = styled(MarkedText)`
   border: 1px solid ${p => p.theme.alert.warning.border};
   background-color: ${p => p.theme.alert.warning.backgroundLight};
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
