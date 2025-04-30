@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:46:52.447381+00:00'
+created: '2025-04-25T21:22:37.302955+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,62 +10,62 @@ app:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace (ignored because it contains no in-app frames)
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "react-dom.development.js"
             function*
               "dispatchInteractiveEvent"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "react-dom.development.js"
             function*
               "interactiveUpdates"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "react-dom.development.js"
             function*
               "interactiveUpdates$1"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "react-dom.development.js"
             function*
               "performSyncWork"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "react-dom.development.js"
             function*
               "performWork"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "react-dom.development.js"
             function*
               "performWorkOnRoot"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "react-dom.development.js"
             function*
               "renderRoot"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "react-dom.development.js"
             function*
               "replayUnitOfWork"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "react-dom.development.js"
             function*
               "invokeGuardedCallback"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "react-dom.development.js"
             function* (trimmed javascript function)
               "invokeGuardedCallbackDev"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "index.js"
             function* (trimmed javascript function)
               "sentryWrapped"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "react-dom.development.js"
             function* (trimmed javascript function)
