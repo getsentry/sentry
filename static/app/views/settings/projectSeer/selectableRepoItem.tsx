@@ -1,15 +1,16 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Checkbox} from 'sentry/components/core/checkbox';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Repository} from 'sentry/types/integrations';
 
 interface Props {
   isSelected: boolean;
-  onToggle: () => void;
+  onToggle: (repoId: string) => void;
   repo: Repository;
 }
 
@@ -23,19 +24,21 @@ export function SelectableRepoItem({repo, isSelected, onToggle}: Props) {
   const repoContent = (
     <RepoListItemContainer
       selected={isSelected}
-      onClick={() => isSupportedProvider && onToggle()}
       disabled={!isSupportedProvider}
       role="button"
       tabIndex={0}
       data-repo-id={repo.externalId}
+      onClick={() => onToggle(repo.externalId)}
     >
       <RepoHeader>
         <RepoInfoWrapper>
           <RepoName>{repo.name}</RepoName>
-          <RightAlign>
+          <SelectionWrapper>
             <RepoProvider>{repo.provider?.name || t('Unknown Provider')}</RepoProvider>
-            {isSupportedProvider && <AddIcon size="xs" />}
-          </RightAlign>
+            {isSupportedProvider && (
+              <StyledCheckbox checked={isSelected} size="sm" readOnly />
+            )}
+          </SelectionWrapper>
         </RepoInfoWrapper>
       </RepoHeader>
     </RepoListItemContainer>
@@ -50,22 +53,17 @@ export function SelectableRepoItem({repo, isSelected, onToggle}: Props) {
   );
 }
 
-const BaseRepoContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-`;
-
-const RepoListItemContainer = styled(BaseRepoContainer)<{
+const RepoListItemContainer = styled('div')<{
   selected: boolean;
   disabled?: boolean;
 }>`
+  display: flex;
+  flex-direction: column;
+  width: 100%;
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
   transition: background-color 0.1s ease;
-  border: 1px solid ${p => (p.selected ? p.theme.purple300 : p.theme.border)};
   opacity: ${p => (p.disabled ? 0.65 : 1)};
+  padding-left: ${space(1.5)};
 
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};
@@ -73,9 +71,13 @@ const RepoListItemContainer = styled(BaseRepoContainer)<{
 
   ${p =>
     p.selected &&
-    `
-    background-color: ${p.theme.surface100};
-  `}
+    css`
+      background-color: ${p.theme.surface100};
+
+      &:hover {
+        background-color: ${p.theme.surface100};
+      }
+    `}
 `;
 
 const RepoHeader = styled('div')`
@@ -103,15 +105,11 @@ const RepoProvider = styled('div')`
   margin-top: ${space(0.25)};
 `;
 
-const AddIcon = styled(IconAdd)`
-  color: ${p => p.theme.gray300};
-
-  ${RepoListItemContainer}:hover & {
-    color: ${p => p.theme.purple300};
-  }
+const StyledCheckbox = styled(Checkbox)`
+  margin: 0;
 `;
 
-const RightAlign = styled('div')`
+const SelectionWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};

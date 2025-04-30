@@ -5,8 +5,14 @@ import {Button} from 'sentry/components/core/button';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {TextArea} from 'sentry/components/core/textarea';
 import type {RepoSettings} from 'sentry/components/events/autofix/types';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {IconChevron as IconExpandToggle, IconClose, IconCommit} from 'sentry/icons';
+import {
+  IconChevron as IconExpandToggle,
+  IconClose,
+  IconCommit,
+  IconDelete,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Repository} from 'sentry/types/integrations';
@@ -18,7 +24,7 @@ interface Props {
   settings: RepoSettings;
 }
 
-export function SelectedRepoItem({repo, onRemove, settings, onSettingsChange}: Props) {
+export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Props) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditingBranch, setIsEditingBranch] = useState(false);
   const [branchInputValue, setBranchInputValue] = useState(settings.branch);
@@ -77,30 +83,20 @@ export function SelectedRepoItem({repo, onRemove, settings, onSettingsChange}: P
 
   return (
     <SelectedRepoContainer>
-      <SelectedRepoHeader onClick={toggleExpanded}>
+      <SelectedRepoHeader role="button" onClick={toggleExpanded}>
+        <InteractionStateLayer />
         <RepoNameAndExpandToggle>
           <StyledIconExpandToggle direction={isExpanded ? 'down' : 'right'} size="xs" />
           <RepoInfoWrapper>
             <RepoName>{repo.name}</RepoName>
-            <RepoProvider>{repo.provider?.name || t('Unknown Provider')}</RepoProvider>
           </RepoInfoWrapper>
         </RepoNameAndExpandToggle>
-        <RemoveButton
-          size="xs"
-          borderless
-          icon={<IconClose size="xs" />}
-          onClick={e => {
-            e.stopPropagation();
-            onRemove();
-          }}
-          aria-label={t('Remove repository')}
-          title={t('Remove repository')}
-        />
+        <RepoProvider>{repo.provider?.name || t('Unknown Provider')}</RepoProvider>
       </SelectedRepoHeader>
       {isExpanded && (
         <ExpandedContent>
           <RepoForm>
-            <RepositorySettingsSection>
+            <div>
               <SettingsGroup>
                 <BranchInputLabel>
                   {t('Branch that Autofix works on')}
@@ -158,18 +154,22 @@ export function SelectedRepoItem({repo, onRemove, settings, onSettingsChange}: P
                   rows={3}
                 />
               </SettingsGroup>
-            </RepositorySettingsSection>
-
-            {isDirty && (
-              <FormActions>
-                <Button size="xs" onClick={cancelChanges}>
-                  {t('Cancel')}
-                </Button>
-                <Button size="xs" priority="primary" onClick={saveChanges}>
-                  {t('Save')}
-                </Button>
-              </FormActions>
-            )}
+            </div>
+            <FormActions>
+              <Button size="xs" icon={<IconDelete />} onClick={onRemove}>
+                {t('Remove Repository')}
+              </Button>
+              {isDirty && (
+                <div>
+                  <Button size="xs" onClick={cancelChanges}>
+                    {t('Cancel')}
+                  </Button>
+                  <Button size="xs" priority="primary" onClick={saveChanges}>
+                    {t('Save')}
+                  </Button>
+                </div>
+              )}
+            </FormActions>
           </RepoForm>
         </ExpandedContent>
       )}
@@ -181,45 +181,16 @@ const SelectedRepoContainer = styled('div')`
   display: flex;
   flex-direction: column;
   width: 100%;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  box-shadow: ${p => p.theme.dropShadowLight};
   overflow: hidden;
 `;
 
 const SelectedRepoHeader = styled('div')`
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${space(1.5)};
+  padding: ${space(1.5)} ${space(3)};
   cursor: pointer;
-
-  &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
-  }
-`;
-
-const RepoNameAndExpandToggle = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const StyledIconExpandToggle = styled(IconExpandToggle)`
-  margin-right: ${space(0.5)};
-`;
-
-const RemoveButton = styled(Button)`
-  color: ${p => p.theme.gray300};
-
-  &:hover {
-    color: ${p => p.theme.red300};
-  }
-`;
-
-const RepoInfoWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  margin-left: ${space(1)};
 `;
 
 const RepoName = styled('div')`
@@ -233,15 +204,12 @@ const RepoProvider = styled('div')`
 `;
 
 const ExpandedContent = styled('div')`
-  padding: ${space(1.5)};
+  padding: ${space(1)} ${space(2)} ${space(1)} 40px;
   background-color: ${p => p.theme.background};
-  border-top: 1px solid ${p => p.theme.border};
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
 `;
-
-const RepositorySettingsSection = styled('div')``;
 
 const SettingsGroup = styled('div')`
   margin-bottom: ${space(2)};
@@ -269,16 +237,14 @@ const BranchInputContainer = styled('div')`
 const RepoForm = styled('div')`
   display: flex;
   flex-direction: column;
+  gap: ${space(1)};
   width: 100%;
 `;
 
 const FormActions = styled('div')`
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: ${space(1)};
-  margin-top: ${space(2)};
-  border-top: 1px solid ${p => p.theme.border};
-  padding-top: ${space(2)};
 `;
 
 const StyledTextArea = styled(TextArea)`
@@ -308,4 +274,19 @@ const ClearButton = styled(Button)`
   &:hover {
     color: ${p => p.theme.gray500};
   }
+`;
+
+const RepoNameAndExpandToggle = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const StyledIconExpandToggle = styled(IconExpandToggle)`
+  margin-right: ${space(0.5)};
+`;
+
+const RepoInfoWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  margin-left: ${space(1)};
 `;

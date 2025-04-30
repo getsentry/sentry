@@ -1,0 +1,245 @@
+import {type ChangeEvent, Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import styled from '@emotion/styled';
+import {useVirtualizer} from '@tanstack/react-virtual';
+
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IconSearch} from 'sentry/icons';
+import {t, tn} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import type {Repository} from 'sentry/types/integrations';
+
+import {SelectableRepoItem} from './selectableRepoItem';
+
+type Props = ModalRenderProps & {
+  /**
+   * The maximum number of repositories allowed.
+   */
+  maxReposLimit: number;
+  /**
+   * Callback function triggered when the modal is saved.
+   */
+  onSave: (repoIds: string[]) => void;
+  /**
+   * All available repositories from the organization.
+   */
+  repositories: Repository[];
+  /**
+   * Repositories currently selected for Autofix in the parent component.
+   */
+  selectedRepoIds: string[];
+  /**
+   * Loading state for fetching repositories.
+   */
+  isFetchingRepositories?: boolean;
+};
+
+export function AddAutofixRepoModalContent({
+  repositories,
+  selectedRepoIds,
+  onSave,
+  Header,
+  Body,
+  Footer,
+  closeModal,
+  isFetchingRepositories,
+  maxReposLimit,
+}: Props) {
+  const [modalSearchQuery, setModalSearchQuery] = useState('');
+  const [showMaxLimitAlert, setShowMaxLimitAlert] = useState(false);
+  const [modalSelectedRepoIds, setModalSelectedRepoIds] =
+    useState<string[]>(selectedRepoIds);
+
+  const newModalSelectedRepoIds = modalSelectedRepoIds.filter(
+    id => !selectedRepoIds.includes(id)
+  );
+
+  const unselectedRepositories = useMemo(() => {
+    if (!repositories) {
+      return [];
+    }
+    return repositories.filter(repo => !selectedRepoIds.includes(repo.externalId));
+  }, [repositories, selectedRepoIds]);
+
+  const filteredModalRepositories = useMemo(() => {
+    let filtered = unselectedRepositories;
+    if (modalSearchQuery.trim()) {
+      const query = modalSearchQuery.toLowerCase();
+      filtered = unselectedRepositories.filter(repo =>
+        repo.name.toLowerCase().includes(query)
+      );
+    }
+
+    return filtered.filter(repo => repo.provider?.id && repo.provider.id !== 'unknown');
+  }, [unselectedRepositories, modalSearchQuery]);
+
+  const handleToggleRepository = useCallback(
+    (repoId: string) => {
+      setModalSelectedRepoIds(prev => {
+        if (prev.includes(repoId)) {
+          setShowMaxLimitAlert(false);
+          return prev.filter(id => id !== repoId);
+        }
+        if (prev.length >= maxReposLimit) {
+          setShowMaxLimitAlert(true);
+          return prev;
+        }
+        setShowMaxLimitAlert(false);
+        return [...prev, repoId];
+      });
+    },
+    [maxReposLimit]
+  );
+
+  // Virtualizer setup (simplified based on docs)
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  const rowVirtualizer = useVirtualizer({
+    count: filteredModalRepositories.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 36,
+    overscan: 20,
+    paddingStart: 0,
+    paddingEnd: 0,
+  });
+
+  return (
+    <Fragment>
+      <Header closeButton>
+        <h4>{t('Add Repositories')}</h4>
+      </Header>
+      <Body>
+        {showMaxLimitAlert && (
+          <Alert type="info" showIcon>
+            {t('Autofix is currently limited to %s repositories.', maxReposLimit)}
+          </Alert>
+        )}
+        <SearchContainer hasAlert={showMaxLimitAlert}>
+          <InputGroup>
+            <InputGroup.LeadingItems disablePointerEvents>
+              <IconSearch size="sm" />
+            </InputGroup.LeadingItems>
+            <InputGroup.Input
+              type="text"
+              placeholder={t('Search available repositories...')}
+              value={modalSearchQuery}
+              onChange={(ev: ChangeEvent<HTMLInputElement>) =>
+                setModalSearchQuery(ev.target.value)
+              }
+              autoFocus
+            />
+          </InputGroup>
+        </SearchContainer>
+        {isFetchingRepositories ? (
+          <LoadingContainer>
+            <StyledLoadingIndicator size={36} />
+            <LoadingMessage>{t('Loading repositories...')}</LoadingMessage>
+          </LoadingContainer>
+        ) : filteredModalRepositories.length === 0 ? (
+          <EmptyMessage>
+            {modalSearchQuery.trim() && unselectedRepositories.length > 0
+              ? t('No matching repositories found.')
+              : t('All available repositories have been added.')}
+          </EmptyMessage>
+        ) : (
+          <ModalReposContainer ref={parentRef}>
+            <div
+              style={{
+                height: `${rowVirtualizer.getTotalSize()}px`,
+                width: '100%',
+                position: 'relative',
+              }}
+            >
+              {rowVirtualizer.getVirtualItems().map(virtualItem => {
+                const repo = filteredModalRepositories[virtualItem.index]!;
+                return (
+                  <div
+                    key={virtualItem.key}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: `${virtualItem.size}px`,
+                      transform: `translateY(${virtualItem.start}px)`,
+                    }}
+                  >
+                    <SelectableRepoItem
+                      repo={repo}
+                      isSelected={modalSelectedRepoIds.includes(repo.externalId)}
+                      onToggle={handleToggleRepository}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </ModalReposContainer>
+        )}
+      </Body>
+      <Footer>
+        <Button
+          priority="primary"
+          onClick={() => {
+            onSave(modalSelectedRepoIds);
+            closeModal();
+          }}
+        >
+          {newModalSelectedRepoIds.length > 0
+            ? tn(
+                'Add %s Repository',
+                'Add %s Repositories',
+                newModalSelectedRepoIds.length
+              )
+            : t('Done')}
+        </Button>
+      </Footer>
+    </Fragment>
+  );
+}
+
+const ModalReposContainer = styled('div')`
+  height: 35vh;
+  overflow-y: auto;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+
+  & > div > div {
+    &:not(:last-child) {
+      border-bottom: 1px solid ${p => p.theme.border};
+    }
+  }
+`;
+
+const SearchContainer = styled('div')<{hasAlert: boolean}>`
+  margin-top: ${p => (p.hasAlert ? space(1.5) : 0)};
+  margin-bottom: ${space(1.5)};
+`;
+
+const EmptyMessage = styled('div')`
+  padding: ${space(2)};
+  color: ${p => p.theme.subText};
+  text-align: center;
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const LoadingContainer = styled('div')`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: ${space(4)};
+  width: 100%;
+  flex-direction: column;
+  gap: ${space(2)};
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  margin: 0;
+`;
+
+const LoadingMessage = styled('div')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
