@@ -234,17 +234,17 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="second",
         ),
         ResolvedAttribute(
-            public_alias="mobile.frames_slow",
+            public_alias="mobile.slow_frames",
             internal_name="frames.slow",
             search_type="number",
         ),
         ResolvedAttribute(
-            public_alias="mobile.frames_frozen",
+            public_alias="mobile.frozen_frames",
             internal_name="frames.frozen",
             search_type="number",
         ),
         ResolvedAttribute(
-            public_alias="mobile.frames_total",
+            public_alias="mobile.total_frames",
             internal_name="frames.total",
             search_type="number",
         ),
@@ -317,6 +317,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         ResolvedAttribute(
             public_alias="sentry.sampling_factor",
             internal_name="sentry.sampling_factor",
+            search_type="number",
+        ),
+        ResolvedAttribute(
+            public_alias="code.lineno",
+            internal_name="code.lineno",
             search_type="number",
         ),
         simple_sentry_field("browser.name"),
