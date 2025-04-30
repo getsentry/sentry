@@ -71,6 +71,7 @@ export enum SpanFields {
   IS_TRANSACTION = 'is_transaction',
   CACHE_HIT = 'cache.hit',
   IS_STARRED_TRANSACTION = 'is_starred_transaction',
+  SPAN_DURATION = 'span.duration',
 }
 
 type SpanBooleanFields =
@@ -94,6 +95,7 @@ type SpanNumberFields =
   | SpanMetricsField.MOBILE_FROZEN_FRAMES
   | SpanMetricsField.MOBILE_TOTAL_FRAMES
   | SpanMetricsField.MOBILE_SLOW_FRAMES
+  | SpanMetricsField.SPAN_DURATION
   | DiscoverNumberFields;
 
 type SpanStringFields =
@@ -606,6 +608,11 @@ export type DiscoverResponse = {
 export type DiscoverProperty = keyof DiscoverResponse;
 
 export type MetricsQueryFilters = Partial<Record<MetricsStringFields, string>> & {
+  [SpanIndexedField.PROJECT_ID]?: string;
+};
+
+export type SpanQueryFilters = Partial<Record<SpanStringFields, string>> & {
+  is_transaction?: 'true' | 'false';
   [SpanIndexedField.PROJECT_ID]?: string;
 };
 
