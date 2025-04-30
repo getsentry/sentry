@@ -197,6 +197,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
     def test_simple_using_spans_item_type(self):
         span_1 = self.create_span(
             {"description": "foo", "sentry_tags": {"status": "success"}},
+            measurements={"code.lineno": {"value": 420}},
             start_ts=self.one_min_ago,
         )
         span_1["trace_id"] = self.trace_uuid
@@ -208,6 +209,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
         assert trace_details_response.status_code == 200, trace_details_response.content
         assert trace_details_response.data["attributes"] == [
             {"name": "is_segment", "type": "bool", "value": False},
+            {"name": "code.lineno", "type": "float", "value": 420.0},
             {"name": "is_transaction", "type": "float", "value": 0.0},
             {
                 "name": "received",
