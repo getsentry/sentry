@@ -537,9 +537,7 @@ class _Table extends Component<Props, State> {
             </TeamKeyTransactionWrapper>
           );
           return [
-            this.renderHeadCell(tableData?.meta, teamKeyTransactionColumn, {
-              title: star,
-            }) as any,
+            this.renderHeadCell(tableData?.meta, teamKeyTransactionColumn, {title: star}),
           ];
         }
         return [this.renderBodyCell(tableData, teamKeyTransactionColumn, dataRow)];
