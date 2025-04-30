@@ -76,6 +76,11 @@ describe('StreamlinedSidebar', function () {
       url: `/organizations/${organization.slug}/issues/1/external-issues/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/summarize/`,
+      method: 'POST',
+      body: {whatsWrong: 'Test summary'},
+    });
 
     mockExternalIssues = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,

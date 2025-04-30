@@ -101,7 +101,7 @@ describe('SeerSection', () => {
   });
 
   describe('Seer button text', () => {
-    it('shows "Set Up Seer" when AI needs setup', async () => {
+    it('shows "Set Up Seer" with summary when Seer needs setup', async () => {
       const customOrganization = OrganizationFixture({
         hideAiFeatures: false,
         features: ['gen-ai-features'],
@@ -119,18 +119,17 @@ describe('SeerSection', () => {
         }),
       });
 
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
+        method: 'POST',
+        body: {whatsWrong: 'Test summary'},
+      });
+
       render(<SeerSection event={mockEvent} group={mockGroup} project={mockProject} />, {
         organization: customOrganization,
       });
 
-      await waitFor(() => {
-        expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
-      });
-
-      expect(
-        screen.getByText('Explore potential root causes and solutions with Autofix.')
-      ).toBeInTheDocument();
-
+      expect(await screen.findByText('Test summary')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Set Up Seer'})).toBeInTheDocument();
     });
 
