@@ -237,6 +237,12 @@ class Enhancements:
     # from cache.
     # See ``GroupingConfigLoader._get_enhancements`` in src/sentry/grouping/api.py.
 
+    # TODO: Once we switch to always using split enhancements, these can go away
+    classifier_rules: list[EnhancementRule] = []
+    contributes_rules: list[EnhancementRule] = []
+    classifier_rust_enhancements: RustEnhancements = EMPTY_RUST_ENHANCEMENTS
+    contributes_rust_enhancements: RustEnhancements = EMPTY_RUST_ENHANCEMENTS
+
     def __init__(
         self,
         rules: list[EnhancementRule],
