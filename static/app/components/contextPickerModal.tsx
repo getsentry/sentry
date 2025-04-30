@@ -267,9 +267,11 @@ class ContextPickerModal extends Component<Props> {
   }
 
   renderProjectSelectOrMessage() {
-    const {organization, projects, allowAllProjectsSelection} = this.props;
+    const {projects, allowAllProjectsSelection} = this.props;
     const [memberProjects, nonMemberProjects] = this.getMemberProjects();
     const {isSuperuser} = ConfigStore.get('user') || {};
+
+    const {organization} = OrganizationStore.getState();
 
     const projectOptions = [
       {
@@ -290,14 +292,12 @@ class ContextPickerModal extends Component<Props> {
       },
     ];
 
-    if (!projects.length) {
+    if (!projects.length && organization) {
       return (
         <div>
           {tct('You have no projects. Click [link] to make one.', {
             link: (
-              <Link
-                to={makeProjectsPathname({path: '/new/', orgSlug: organization ?? ''})}
-              >
+              <Link to={makeProjectsPathname({path: '/new/', organization})}>
                 {t('here')}
               </Link>
             ),
