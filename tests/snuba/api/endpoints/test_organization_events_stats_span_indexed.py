@@ -1992,6 +1992,9 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         for test in zip(event_counts, count_rows):
             assert test[1][1][0]["count"] == test[0]
 
+    @pytest.mark.xfail(
+        reason="https://github.com/getsentry/snuba/actions/runs/14717943981/job/41305773190"
+    )
     def test_downsampling_can_go_to_higher_accuracy_tier(self):
         span = self.create_span(
             {"description": "foo", "sentry_tags": {"status": "success"}},
