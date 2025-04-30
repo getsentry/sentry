@@ -82,7 +82,10 @@ function CommitRow({
   return hasStreamlinedUI ? (
     <StreamlinedCommitRow data-test-id="commit-row">
       {commit.pullRequest?.externalUrl ? (
-        <StyledExternalLink href={commit.pullRequest?.externalUrl}>
+        <StyledExternalLink
+          href={commit.pullRequest?.externalUrl}
+          onClick={onPullRequestClick}
+        >
           <Message>{formatCommitMessage(commit.message)}</Message>
         </StyledExternalLink>
       ) : (
