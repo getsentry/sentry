@@ -153,35 +153,30 @@ function ProjectSeer({project}: ProjectSeerProps) {
     [updatePreferences]
   );
 
-  const {selectedRepositories, unselectedRepositories, filteredSelectedRepositories} =
-    useMemo(() => {
-      if (!repositories || repositories.length === 0) {
-        return {
-          selectedRepositories: [],
-          unselectedRepositories: [],
-          filteredSelectedRepositories: [],
-        };
-      }
-
-      const selected = repositories.filter(repo =>
-        selectedRepoIds.includes(repo.externalId)
-      );
-      const unselected = repositories.filter(
-        repo => !selectedRepoIds.includes(repo.externalId)
-      );
-
-      let filteredSelected = selected;
-
-      filteredSelected = filteredSelected.filter(
-        repo => repo.provider?.id && repo.provider.id !== 'unknown'
-      );
-
+  const {unselectedRepositories, filteredSelectedRepositories} = useMemo(() => {
+    if (!repositories || repositories.length === 0) {
       return {
-        selectedRepositories: selected,
-        unselectedRepositories: unselected,
-        filteredSelectedRepositories: filteredSelected,
+        unselectedRepositories: [],
+        filteredSelectedRepositories: [],
       };
-    }, [repositories, selectedRepoIds]);
+    }
+
+    const selected = repositories.filter(repo =>
+      selectedRepoIds.includes(repo.externalId)
+    );
+    const unselected = repositories.filter(
+      repo => !selectedRepoIds.includes(repo.externalId)
+    );
+
+    const filteredSelected = selected.filter(
+      repo => repo.provider?.id && repo.provider.id !== 'unknown'
+    );
+
+    return {
+      unselectedRepositories: unselected,
+      filteredSelectedRepositories: filteredSelected,
+    };
+  }, [repositories, selectedRepoIds]);
 
   const isRepoLimitReached = selectedRepoIds.length >= MAX_REPOS_LIMIT;
 
@@ -232,7 +227,7 @@ function ProjectSeer({project}: ProjectSeerProps) {
       {showSaveNotice && (
         <Alert type="info" showIcon system>
           {t(
-            'Changes will apply on the next Autofix run or hit "Start Over" to start a new run for Autofix and use your changes.'
+            'Changes will apply on the next Autofix run or hit "Start Over" in the Autofix panel to start a new run and use your changes.'
           )}
         </Alert>
       )}
@@ -243,9 +238,7 @@ function ProjectSeer({project}: ProjectSeerProps) {
         </LoadingContainer>
       ) : filteredSelectedRepositories.length === 0 ? (
         <EmptyMessage>
-          {selectedRepositories.length > 0
-            ? t('No matching repositories found.')
-            : t('No repositories selected. Click "Add Repos" to get started.')}
+          {t('No repositories selected. Click "Add Repos" to get started.')}
         </EmptyMessage>
       ) : (
         <ReposContainer>
