@@ -44,7 +44,6 @@ from sentry.seer.fetch_issues.fetch_issues import (
     get_issues_related_to_function_names,
 )
 from sentry.silo.base import SiloMode
-from sentry.tagstore.types import TagValue
 from sentry.utils import snuba_rpc
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.env import in_test_environment
@@ -259,7 +258,7 @@ def get_attribute_values(
     end_time_proto = ProtobufTimestamp()
     end_time_proto.FromDatetime(end)
 
-    values = []
+    values = {}
 
     for field in fields:
         attr_key = AttributeKey(
@@ -282,18 +281,7 @@ def get_attribute_values(
         )
 
         values_response = snuba_rpc.attribute_values_rpc(req)
-        values_parsed: list[TagValue] = [
-            TagValue(
-                key=attr_key,
-                value=value,
-                times_seen=None,
-                first_seen=None,
-                last_seen=None,
-            )
-            for value in values_response.values
-            if value
-        ]
-        values.append(values_parsed)
+        values[field["key"]] = [value for value in values_response.values]
 
     return {"values": values}
 
