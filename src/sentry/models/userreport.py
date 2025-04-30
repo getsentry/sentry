@@ -36,5 +36,5 @@ class UserReport(Model):
 
         user_report.delay(
             project_id=self.project_id,
-            report=self.id,
+            report_id=self.id,
         )
