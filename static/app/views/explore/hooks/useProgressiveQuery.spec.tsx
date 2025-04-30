@@ -1,5 +1,6 @@
 import {QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -63,22 +64,7 @@ describe('useProgressiveQuery', function () {
         body: 'test',
       });
 
-      jest.mocked(usePageFilters).mockReturnValue({
-        isReady: true,
-        desyncedFilters: new Set(),
-        pinnedFilters: new Set(),
-        shouldPersist: true,
-        selection: {
-          datetime: {
-            period: '14d',
-            start: null,
-            end: null,
-            utc: false,
-          },
-          environments: [],
-          projects: [2],
-        },
-      });
+      jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
     });
 
     it('makes a single request when the feature flag is disabled', function () {
@@ -279,22 +265,20 @@ describe('useProgressiveQuery', function () {
         body: 'test',
       });
 
-      jest.mocked(usePageFilters).mockReturnValue({
-        isReady: true,
-        desyncedFilters: new Set(),
-        pinnedFilters: new Set(),
-        shouldPersist: true,
-        selection: {
-          datetime: {
-            period: '14d',
-            start: null,
-            end: null,
-            utc: false,
+      jest.mocked(usePageFilters).mockReturnValue(
+        PageFilterStateFixture({
+          selection: {
+            datetime: {
+              period: '14d',
+              start: null,
+              end: null,
+              utc: false,
+            },
+            environments: [],
+            projects: [2],
           },
-          environments: [],
-          projects: [2],
-        },
-      });
+        })
+      );
     });
 
     it('takes in a callback that determines if we can trigger the high accuracy request', async function () {
