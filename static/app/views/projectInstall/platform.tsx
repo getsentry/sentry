@@ -13,6 +13,7 @@ import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/s
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {platformProductAvailability} from 'sentry/components/onboarding/productSelection';
 import {setPageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
+import Redirect from 'sentry/components/redirect';
 import {performance as performancePlatforms} from 'sentry/data/platformCategories';
 import type {Platform} from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
@@ -30,6 +31,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {GettingStartedWithProjectContext} from 'sentry/views/projects/gettingStartedWithProjectContext';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {OtherPlatformsInfo} from './otherPlatformsInfo';
 import {PlatformDocHeader} from './platformDocHeader';
@@ -40,13 +42,11 @@ const ProductUnavailableCTAHook = HookOrDefault({
 
 type Props = {
   currentPlatformKey: PlatformKey;
-  loading: boolean;
   platform: PlatformIntegration | undefined;
   project: Project | undefined;
 };
 
 export function ProjectInstallPlatform({
-  loading,
   project,
   currentPlatformKey,
   platform: currentPlatform,
@@ -144,7 +144,14 @@ export function ProjectInstallPlatform({
   );
 
   if (!project) {
-    return null;
+    return (
+      <Redirect
+        to={makeProjectsPathname({
+          orgSlug: organization.slug,
+          path: '/new/',
+        })}
+      />
+    );
   }
 
   if (!platform.id && platform.key !== 'other') {
@@ -207,7 +214,6 @@ export function ProjectInstallPlatform({
         <StyledButtonBar gap={1}>
           <Button
             priority="primary"
-            busy={loading}
             onClick={() => {
               trackAnalytics('onboarding.take_me_to_issues_clicked', {
                 organization,

@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import allPlatforms from 'sentry/data/platforms';
 import {space} from 'sentry/styles/space';
@@ -21,6 +22,7 @@ function GettingStarted({params}: Props) {
   });
 
   const loadingProjects = !initiallyLoaded;
+
   const project = loadingProjects
     ? undefined
     : projects.find(proj => proj.slug === params.projectId);
@@ -31,12 +33,15 @@ function GettingStarted({params}: Props) {
   return (
     <OnboardingContextProvider>
       <GettingStartedLayout withPadding>
-        <ProjectInstallPlatform
-          project={project}
-          loading={loadingProjects}
-          platform={currentPlatform}
-          currentPlatformKey={currentPlatformKey}
-        />
+        {loadingProjects ? (
+          <LoadingIndicator />
+        ) : (
+          <ProjectInstallPlatform
+            project={project}
+            platform={currentPlatform}
+            currentPlatformKey={currentPlatformKey}
+          />
+        )}
       </GettingStartedLayout>
     </OnboardingContextProvider>
   );
