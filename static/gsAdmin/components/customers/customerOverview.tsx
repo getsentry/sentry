@@ -267,7 +267,7 @@ function ReservedBudgetData({customer, reservedBudget}: ReservedBudgetProps) {
 
   const budgetName = getReservedBudgetDisplayName({
     plan: customer.planDetails,
-    categories,
+    categories: categories as DataCategory[],
     hadCustomDynamicSampling: shouldUseDsNames,
     shouldTitleCase: true,
   });
@@ -325,12 +325,13 @@ function OnDemandSummary({customer}: OnDemandSummaryProps) {
             return (
               <Fragment key={`test-ondemand-${category}`}>
                 <small>
-                  {`${getPlanCategoryName({plan: customer.planDetails, category})}: `}
+                  {`${getPlanCategoryName({
+                    plan: customer.planDetails,
+                    category,
+                  })}: `}
                   {`${displayPriceWithCents({
-                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     cents: onDemandBudgets.usedSpends[category] ?? 0,
                   })} / ${displayPriceWithCents({
-                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     cents: onDemandBudgets.budgets[category] ?? 0,
                   })}`}
                 </small>
@@ -449,7 +450,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
     ? Object.values(BILLED_DATA_CATEGORY_INFO).filter(
         categoryInfo =>
           categoryInfo.canProductTrial &&
-          customer.planDetails.categories.includes(categoryInfo.plural)
+          customer.planDetails.categories.includes(categoryInfo.plural as DataCategory)
       )
     : [];
 
@@ -657,7 +658,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
               {productTrialCategories.map(categoryInfo => {
                 const categoryName = getPlanCategoryName({
                   plan: customer.planDetails,
-                  category: categoryInfo.plural,
+                  category: categoryInfo.plural as DataCategory,
                   title: true,
                 });
                 const upperCategory = upperFirst(categoryInfo.plural);
