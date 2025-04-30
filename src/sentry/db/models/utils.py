@@ -4,7 +4,6 @@ from collections.abc import Container
 from typing import TYPE_CHECKING, Any, Generic, Self, overload
 from uuid import uuid4
 
-import sentry_sdk
 from django.db.models import Field, Model
 from django.utils.crypto import get_random_string
 from django.utils.text import slugify
@@ -64,11 +63,6 @@ def unique_db_instance(
             setattr(inst, field_name, value)
             if not base_qs.filter(**{f"{field_name}__iexact": value}).exists():
                 return
-
-    # xxx (vgrozdanic): temporary logging to debug the issue
-    sentry_sdk.capture_message(
-        f"Failed to generate a unique {field_name} for the model", level="error"
-    )
 
     # If at this point, we've exhausted all possibilities, we'll just end up hitting
     # an IntegrityError from database, which is ok, and unlikely to happen
