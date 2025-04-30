@@ -15,6 +15,7 @@ from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.notifications.utils.rules import get_key_from_rule_data
 from sentry.tsdb.base import TSDBModel
 from sentry.workflow_engine.models import Workflow
+from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 
 logger = logging.getLogger("sentry.digests")
 
@@ -164,6 +165,42 @@ def _build_digest_impl(
     return _sort_digest(grouped, event_counts=event_counts, user_counts=user_counts)
 
 
+def get_rules_from_workflows(project: Project, workflow_ids: set[int]) -> dict[int, Rule]:
+    rules = {}
+    # We are only proccessing the workflows in the digest if under the new flag
+    # This should be ok since we should only add workflow_ids to redis when under this flag
+    if features.has("organizations:workflow-engine-ui-links", project.organization):
+        for workflow_id in workflow_ids:
+            workflow = Workflow.objects.get(id=workflow_id)
+            assert (
+                workflow.organization_id == project.organization_id
+            ), "Workflow must belong to Organization"
+            rules[workflow_id] = Rule(
+                label=workflow.name,
+                id=workflow_id,
+                project_id=project.id,
+                # We need to do this so that the links are built correctly downstream
+                data={"actions": [{"workflow_id": workflow_id}]},
+            )
+    # This is if we had workflows in the digest but the flag is not enabled
+    # This can happen if we rollback the flag, but the records in the digest aren't flushed
+    else:
+        for workflow_id in workflow_ids:
+            workflow = Workflow.objects.get(id=workflow_id)
+            # fetch the corresponding rule
+            try:
+                rule_id = AlertRuleWorkflow.objects.get(workflow=workflow).rule_id
+            except AlertRuleWorkflow.DoesNotExist:
+                logger.exception("Workflow %s does not have a corresponding rule", workflow_id)
+                continue
+            rule = Rule.objects.get(id=rule_id)
+            assert rule.project_id == project.id, "Rule must belong to Project"
+            if features.has("organizations:workflow-engine-trigger-actions", project.organization):
+                rule.data["actions"][0]["legacy_rule_id"] = rule_id
+            rules[workflow_id] = rule
+    return rules
+
+
 def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
     if not records:
         return DigestInfo({}, {}, {})
@@ -194,21 +231,8 @@ def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
     if features.has("organizations:workflow-engine-trigger-actions", project.organization):
         for rule in rules.values():
             rule.data["actions"][0]["legacy_rule_id"] = rule.id
-    # We are only proccessing the workflows in the digest if under the new flag
-    # This should be ok since we should only add workflow_ids to redis when under this flag
-    if features.has("organizations:workflow-engine-ui-links", project.organization):
-        for workflow_id in workflow_ids:
-            workflow = Workflow.objects.get(id=workflow_id)
-            assert (
-                workflow.organization_id == project.organization_id
-            ), "Workflow must belong to Organization"
-            rules[workflow_id] = Rule(
-                label=workflow.name,
-                id=workflow_id,
-                project_id=project.id,
-                # We need to do this so that the links are built correctly downstream
-                data={"actions": [{"workflow_id": workflow_id}]},
-            )
+
+    rules.update(get_rules_from_workflows(project, workflow_ids))
 
     for group_id, g in groups.items():
         assert g.project_id == project.id, "Group must belong to Project"
