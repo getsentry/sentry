@@ -40,7 +40,7 @@ export function useTraceRootEvent({
 
   // TODO: This is a bit of a mess, we won't need all of this once we switch to EAP only
   const treeIsLoading = tree.type === 'loading';
-  const hasOnlyLogs = tree.type === 'empty' && logs && logs.length > 0;
+  const hasOnlyLogs = !!(tree.type === 'empty' && logs && logs.length > 0);
   const enabledBase =
     !treeIsLoading &&
     (tree.type === 'trace' || hasOnlyLogs) &&
