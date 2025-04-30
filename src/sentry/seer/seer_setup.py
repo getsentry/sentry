@@ -1,13 +1,6 @@
-from typing import TypedDict
-
 from sentry.models.promptsactivity import PromptsActivity
 
 feature_name = "seer_autofix_setup_acknowledged"
-
-
-class SeerAcknowledgementDict(TypedDict):
-    orgHasAcknowledged: bool
-    userHasAcknowledged: bool
 
 
 def get_seer_user_acknowledgement(user_id: int, org_id: int) -> bool:
