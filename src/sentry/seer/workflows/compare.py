@@ -1,7 +1,10 @@
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Generator, Mapping, Sequence
+from typing import TypeVar
 
-from sentry.seer.math import kl_divergence, laplace_smooth
+from sentry.seer.math import entropy, kl_divergence, laplace_smooth, rrf_score
+
+T = TypeVar("T")
 
 Attributes = Mapping[str, dict[str, float]]
 Distribution = dict[str, float]
@@ -11,10 +14,10 @@ Score = tuple[str, float]
 
 
 def keyed_kl_score(
-    a: Sequence[KeyedValueCount],
-    b: Sequence[KeyedValueCount],
-    total_a: int,
-    total_b: int,
+    baseline: Sequence[KeyedValueCount],
+    outliers: Sequence[KeyedValueCount],
+    total_baseline: int,
+    total_outliers: int,
 ) -> list[tuple[str, float]]:
     """
     KL score a multi-dimensional distribution of values. Returns a list of key, score pairs.
@@ -23,53 +26,141 @@ def keyed_kl_score(
     Sample distribution:
         [("key", "true", 93), ("key", "false", 219), ("other", "true", 1)]
     """
-    parsed_a = _as_attribute_dict(a)
-    parsed_b = _as_attribute_dict(b)
-
-    # Add unseen value for each field in the distribution. The unseen value is the total number of
-    # events in the cohort less the sum of the distribution for that cohort. In other words, if the
-    # distribution does not sum to the total number of events in the cohort it means that a
-    # particular key was not always specified on the event. Omitted keys are valuable statistical
-    # data and must be included in our calculations.
-    #
-    # The unseen value is stored on the key `""`.  If `""` is a valid value for your distribution
-    # you will need to refactor this code path to choose a custom sentienel value.
-    for dist in parsed_a.values():
-        _add_unseen_value(dist, total_a)
-    for dist in parsed_b.values():
-        _add_unseen_value(dist, total_b)
-
-    return _multi_dimensional_kl_compare_sets(parsed_a, parsed_b)
+    return sorted(
+        _score_each_key(
+            baseline,
+            outliers,
+            total_baseline,
+            total_outliers,
+            scoring_fn=kl_divergence,
+        ),
+        key=lambda k: k[1],
+        reverse=True,
+    )
 
 
-def kl_score(
-    a: Sequence[ValueCount],
-    b: Sequence[ValueCount],
-    total_a: int,
-    total_b: int,
-) -> float:
+def keyed_rrf_score(
+    baseline: Sequence[KeyedValueCount],
+    outliers: Sequence[KeyedValueCount],
+    total_baseline: int,
+    total_outliers: int,
+    entropy_alpha: float = 0.2,
+    kl_alpha: float = 0.8,
+    offset: int = 60,
+) -> list[tuple[str, float]]:
     """
-    KL score a mono-dimensional distribution of values. Duplicates are not tolerated.
+    RRF score a multi-dimensional distribution of values. Returns a list of key, score pairs.
+    Duplicates are not tolerated.
 
     Sample distribution:
-        [("true", 22), ("false", 94)]
+        [("key", "true", 93), ("key", "false", 219), ("other", "true", 1)]
     """
-    dist_a = dict(a)
-    dist_b = dict(b)
 
-    # Add the unseen value for a.
-    count_a = sum(map(lambda v: v[1], a))
-    delta_a = total_a - count_a
-    if delta_a > 0:
-        dist_a[""] = delta_a
+    def _scoring_fn(baseline: list[float], outliers: list[float]):
+        return (entropy(outliers), kl_divergence(baseline, outliers))
 
-    # And for b.
-    count_b = sum(map(lambda v: v[1], b))
-    delta_b = total_b - count_b
-    if delta_b > 0:
-        dist_b[""] = delta_b
+    scored_keys = _score_each_key(
+        baseline,
+        outliers,
+        total_baseline,
+        total_outliers,
+        scoring_fn=_scoring_fn,
+    )
 
-    return _kl_compare_sets(dist_a, dist_b)
+    keys = []
+    entropy_scores = []
+    kl_scores = []
+
+    for key, (entropy_score, kl_score) in scored_keys:
+        keys.append(key)
+        entropy_scores.append(entropy_score)
+        kl_scores.append(kl_score)
+
+    return sorted(
+        zip(keys, rrf_score(entropy_scores, kl_scores, entropy_alpha, kl_alpha, offset)),
+        key=lambda k: k[1],
+        reverse=True,
+    )
+
+
+def _score_each_key(
+    baseline: Sequence[KeyedValueCount],
+    outliers: Sequence[KeyedValueCount],
+    total_baseline: int,
+    total_outliers: int,
+    scoring_fn: Callable[[list[float], list[float]], T],
+) -> Generator[tuple[str, T]]:
+    """
+    Return a list of key, score pairs where each key is assigned a score according to the
+    scoring_fn.
+
+    Sample input:
+        [("key", "true", 93), ("key", "false", 219), ("other", "true", 1)]
+    """
+    for key, (a, b) in _gen_normalized_distributions(
+        baseline,
+        outliers,
+        total_baseline,
+        total_outliers,
+    ):
+        yield (
+            key,
+            scoring_fn(
+                list(a.values()),
+                list(b.values()),
+            ),
+        )
+
+
+def _gen_normalized_distributions(
+    baseline: Sequence[KeyedValueCount],
+    outliers: Sequence[KeyedValueCount],
+    total_baseline: int,
+    total_outliers: int,
+) -> Generator[tuple[str, tuple[Distribution, Distribution]]]:
+    """
+    Generate normalized, keyed distributions where baseline and selection sets for the same key
+    are paired.
+
+    Sample input:
+        [("key", "true", 93), ("key", "false", 219), ("other", "true", 1)]
+    """
+    keyed_baseline = _as_attribute_dict(baseline)
+    keyed_outliers = _as_attribute_dict(outliers)
+
+    for key in keyed_outliers:
+        if key in keyed_baseline:
+            baseline_dist = keyed_baseline[key]
+            outliers_dist = keyed_outliers[key]
+
+            # Add unseen value for each field in the distribution. The unseen value is the total
+            # number of events in the cohort less the sum of the distribution for that cohort. In
+            # other words, if the distribution does not sum to the total number of events in the
+            # cohort it means that a particular key was not always specified on the event. Omitted
+            # keys are valuable statistical data and must be included in our calculations.
+            #
+            # The unseen value is stored on the key `""`.  If `""` is a valid value for your
+            # distribution you will need to refactor this code path to choose a custom sentienel
+            # value.
+            _add_unseen_value(baseline_dist, total_baseline)
+            _add_unseen_value(outliers_dist, total_outliers)
+
+            # The two sets should be symmetric so we are comparing like for like values.
+            baseline_dist, outliers_dist = _ensure_symmetry(baseline_dist, outliers_dist)
+
+            # Laplace smooth the distributions.
+            baseline_dist = _smooth_distribution(baseline_dist)
+            outliers_dist = _smooth_distribution(outliers_dist)
+
+            # Ensure the two distributions are symmetric (i.e. have the same keys).
+            yield (key, (baseline_dist, outliers_dist))
+
+
+def _add_unseen_value(dist: Distribution, total: int) -> None:
+    count = sum(dist.values())
+    delta = total - count
+    if delta > 0:
+        dist[""] = delta
 
 
 def _as_attribute_dict(rows: Sequence[KeyedValueCount]) -> Attributes:
@@ -80,48 +171,6 @@ def _as_attribute_dict(rows: Sequence[KeyedValueCount]) -> Attributes:
     for key, value, count in rows:
         attributes[key][value] = count
     return attributes
-
-
-def _add_unseen_value(dist: Distribution, total: int) -> None:
-    count = sum(dist.values())
-    delta = total - count
-    if delta > 0:
-        dist[""] = delta
-
-
-def _multi_dimensional_kl_compare_sets(
-    baseline: Attributes, outliers: Attributes
-) -> list[tuple[str, float]]:
-    """
-    Computes the KL scores of each key in the outlier set and returns a sorted list, in descending
-    order, of key, score values.
-    """
-    return sorted(
-        (
-            (key, _kl_compare_sets(baseline[key], outliers[key]))
-            for key in outliers
-            if key in baseline
-        ),
-        key=lambda k: k[1],
-        reverse=True,
-    )
-
-
-def _kl_compare_sets(a: Distribution, b: Distribution):
-    a, b = _normalize_sets(a, b)
-    return kl_divergence(list(a.values()), list(b.values()))
-
-
-def _normalize_sets(a: Distribution, b: Distribution) -> tuple[Distribution, Distribution]:
-    # Ensure the two datasets are symmetric.
-    a, b = _ensure_symmetry(a, b)
-
-    # Laplace smooth each set.  This will give us a dictionary full of floating points which
-    # sum to 1.
-    a = _smooth_distribution(a)
-    b = _smooth_distribution(b)
-
-    return (a, b)
 
 
 def _ensure_symmetry(a: Distribution, b: Distribution) -> tuple[Distribution, Distribution]:
