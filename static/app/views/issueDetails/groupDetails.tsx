@@ -677,7 +677,16 @@ function GroupDetailsContent({
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   useEffect(() => {
-    if (!hasStreamlinedUI || isDrawerOpen) {
+    if (isDrawerOpen) {
+      return;
+    }
+
+    if (seerDrawer) {
+      openSeerDrawer();
+      return;
+    }
+
+    if (!hasStreamlinedUI) {
       return;
     }
 
@@ -690,8 +699,6 @@ function GroupDetailsContent({
       openMergedIssuesDrawer();
     } else if (currentTab === Tab.ACTIVITY) {
       openIssueActivityDrawer();
-    } else if (seerDrawer) {
-      openSeerDrawer();
     }
   }, [
     currentTab,

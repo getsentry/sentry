@@ -27,7 +27,6 @@ import testableTransition from 'sentry/utils/testableTransition';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 const pulseAnimation = {
   initial: {opacity: 1},
@@ -145,10 +144,9 @@ function AutofixSummary({
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
-  const {baseUrl} = useGroupDetailsRoute();
 
   const seerLink = {
-    pathname: baseUrl,
+    pathname: location.pathname,
     query: {
       ...location.query,
       seerDrawer: true,

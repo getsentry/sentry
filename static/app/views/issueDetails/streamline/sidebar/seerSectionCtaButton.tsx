@@ -20,7 +20,6 @@ import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 interface Props {
   aiConfig: ReturnType<typeof useAiConfig>;
@@ -38,9 +37,8 @@ export function SeerSectionCtaButton({
   hasStreamlinedUI,
 }: Props) {
   const location = useLocation();
-  const {baseUrl} = useGroupDetailsRoute();
   const seerLink = {
-    pathname: baseUrl,
+    pathname: location.pathname,
     query: {
       ...location.query,
       seerDrawer: true,
