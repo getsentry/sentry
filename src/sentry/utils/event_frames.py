@@ -63,17 +63,23 @@ def java_frame_munger(frame: EventFrame) -> str | None:
 
 
 def java_new_logic_frame_munger(frame: EventFrame) -> str | None:
+    stacktrace_path = None
     if not frame.module or not frame.abs_path:
         return None
 
-    from sentry.issues.auto_source_code_config.code_mapping import get_path_from_module
+    from sentry.issues.auto_source_code_config.code_mapping import (
+        DoesNotFollowJavaPackageNamingConvention,
+        get_path_from_module,
+    )
 
     try:
         _, stacktrace_path = get_path_from_module(frame.module, frame.abs_path)
+    except DoesNotFollowJavaPackageNamingConvention:
+        pass
     except Exception:
         # Report but continue
         logger.exception("Investigate. Error munging java frame")
-        return None
+
     return stacktrace_path
 
 
@@ -84,6 +90,11 @@ def cocoa_frame_munger(frame: EventFrame) -> str | None:
     rel_path = package_relative_path(frame.abs_path, frame.package)
     if rel_path:
         return rel_path
+
+    logger.warning(
+        "sentry.issues.frame_munging.failure",
+        extra={"platform": "cocoa", "frame": frame},
+    )
     return None
 
 

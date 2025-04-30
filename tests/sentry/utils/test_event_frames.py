@@ -81,9 +81,10 @@ class FilenameMungingTestCase(unittest.TestCase):
             {
                 "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
                 "filename": "NativeMethodAccessorImpl.java",
+                "abs_path": "NativeMethodAccessorImpl.java",
             }
         ]
-        assert munged_filename_and_frames("java", frames, "munged")
+        assert munged_filename_and_frames("java-new-logic", frames, "munged")
 
 
 class JavaFilenameMungingTestCase(unittest.TestCase):
@@ -92,17 +93,20 @@ class JavaFilenameMungingTestCase(unittest.TestCase):
             {
                 "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
                 "filename": "NativeMethodAccessorImpl.java",
+                "abs_path": "NativeMethodAccessorImpl.java",
             },
             {
                 "module": "io.sentry.example.Application",
                 "filename": "Application.java",
+                "abs_path": "Application.java",
             },
             {
                 "module": "io.sentry.example.Application",
                 "filename": "Application.java",
+                "abs_path": "Application.java",
             },
         ]
-        ret = munged_filename_and_frames("java", frames, "munged_filename")
+        ret = munged_filename_and_frames("java-new-logic", frames, "munged_filename")
         assert ret is not None
         key, munged_frames = ret
         assert len(munged_frames) == 3
@@ -116,15 +120,25 @@ class JavaFilenameMungingTestCase(unittest.TestCase):
         no_filename = {
             "module": "io.sentry.example.Application",
         }
-        no_munged = munged_filename_and_frames("java", [no_filename])
+        no_munged = munged_filename_and_frames("java-new-logic", [no_filename])
         assert not no_munged
 
     def test_platform_java_no_module(self):
         no_module = {
             "filename": "Application.java",
         }
-        no_munged = munged_filename_and_frames("java", [no_module])
+        no_munged = munged_filename_and_frames("java-new-logic", [no_module])
         assert not no_munged
+
+    def test_platform_java_do_not_follow_java_package_naming_convention_does_not_raise_exception(
+        self,
+    ):
+        frame = {
+            "abs_path": "gsp_arcus_drops_proofReadingmodecInspectionProofRead_gsp.groovy",
+            "module": "gsp_arcus_drops_proofReadingmodecInspectionProofRead_gsp$_run_closure2",
+        }
+        munged = munged_filename_and_frames("java-new-logic", [frame])
+        assert munged is None
 
     def test_platform_android_kotlin(self):
         exception_frames = [
@@ -252,7 +266,7 @@ class JavaFilenameMungingTestCase(unittest.TestCase):
                 "in_app": True,
             },
         ]
-        ret = munged_filename_and_frames("java", exception_frames, "munged_filename")
+        ret = munged_filename_and_frames("java-new-logic", exception_frames, "munged_filename")
         assert ret is not None
         key, munged_frames = ret
         assert len(munged_frames) == 16
