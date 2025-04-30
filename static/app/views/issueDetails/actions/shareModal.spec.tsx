@@ -12,7 +12,7 @@ import ShareIssueModal from 'sentry/views/issueDetails/actions/shareModal';
 
 describe('ShareIssueModal', () => {
   const project = ProjectFixture();
-  const organization = OrganizationFixture({features: ['shared-issues']});
+  const organization = OrganizationFixture();
   const onToggle = jest.fn();
 
   beforeEach(() => {
@@ -45,7 +45,7 @@ describe('ShareIssueModal', () => {
           projectSlug={project.slug}
           onToggle={onToggle}
           event={null}
-          hasIssueShare
+          hasIssueShare={true}
         />
       ))
     );
@@ -74,7 +74,7 @@ describe('ShareIssueModal', () => {
           projectSlug={project.slug}
           onToggle={onToggle}
           event={event}
-          hasIssueShare
+          hasIssueShare={true}
         />
       ))
     );
@@ -102,7 +102,7 @@ describe('ShareIssueModal', () => {
           projectSlug={project.slug}
           onToggle={onToggle}
           event={null}
-          hasIssueShare
+          hasIssueShare={true}
         />
       ))
     );
@@ -135,7 +135,7 @@ describe('ShareIssueModal', () => {
           projectSlug={project.slug}
           onToggle={onToggle}
           event={null}
-          hasIssueShare
+          hasIssueShare={true}
         />
       ))
     );
@@ -168,7 +168,7 @@ describe('ShareIssueModal', () => {
           projectSlug={project.slug}
           onToggle={onToggle}
           event={null}
-          hasIssueShare
+          hasIssueShare={true}
         />
       ))
     );
