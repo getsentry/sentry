@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
@@ -19,22 +20,7 @@ describe('DatabaseSpanDescription', function () {
 
   const project = ProjectFixture();
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
-      },
-      environments: [],
-      projects: [],
-    },
-  });
+  jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
   const groupId = '2ed2abf6ce7e3577';
   const spanId = 'abfed2aabf';

@@ -365,6 +365,13 @@ describe('ProjectsDashboard', function () {
           firstEvent: new Date().toISOString(),
           stats: [],
         }),
+        ProjectFixture({
+          id: '4',
+          slug: 'project4',
+          teams: [],
+          firstEvent: new Date().toISOString(),
+          stats: [],
+        }),
       ];
 
       ProjectsStore.loadInitialData(projects);
@@ -392,6 +399,7 @@ describe('ProjectsDashboard', function () {
 
       expect(await screen.findByText('project3')).toBeInTheDocument();
       expect(screen.queryByText('project2')).not.toBeInTheDocument();
+      expect(screen.queryByText('project4')).not.toBeInTheDocument();
     });
 
     it('renders projects by search', async function () {

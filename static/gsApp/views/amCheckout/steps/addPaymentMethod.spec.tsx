@@ -6,6 +6,8 @@ import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLooku
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {DataCategory} from 'sentry/types/core';
+
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription as SubscriptionType} from 'getsentry/types';
@@ -286,7 +288,11 @@ describe('AddPaymentMethod', function () {
         name: 'Team',
         contractInterval: 'annual',
         billingInterval: 'annual',
-        onDemandCategories: ['errors', 'transactions', 'attachments'],
+        onDemandCategories: [
+          DataCategory.ERRORS,
+          DataCategory.TRANSACTIONS,
+          DataCategory.ATTACHMENTS,
+        ],
         budgetTerm: 'pay-as-you-go',
       }),
     };

@@ -180,6 +180,7 @@ type ComponentHooks = {
   'component:insights-upsell-page': () => React.ComponentType<InsightsUpsellHook>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
+  'component:org-stats-profiling-banner': () => React.ComponentType;
   'component:organization-header': () => React.ComponentType<OrganizationHeaderProps>;
   'component:organization-membership-settings': () => React.ComponentType<MembershipSettingsProps>;
   'component:partnership-agreement': React.ComponentType<PartnershipAgreementProps>;
@@ -271,7 +272,6 @@ type InterfaceChromeHooks = {
  * Onboarding experience hooks
  */
 type OnboardingHooks = {
-  'onboarding-wizard:skip-help': () => React.ComponentType;
   'onboarding:block-hide-sidebar': () => boolean;
   'onboarding:targeted-onboarding-header': (opts: {source: string}) => React.ReactNode;
 };
