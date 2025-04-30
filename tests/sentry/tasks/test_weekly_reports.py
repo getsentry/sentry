@@ -58,7 +58,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         self.two_days_ago = self.now - timedelta(days=2)
         self.three_days_ago = self.now - timedelta(days=3)
 
-    _dummy_batch_id = UUID("20bd6c5b-7fac-4f31-9548-d6f8bb63226d")
+    _dummy_batch_id = str(UUID("20bd6c5b-7fac-4f31-9548-d6f8bb63226d"))
 
     def store_event_outcomes(
         self,
@@ -180,7 +180,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         user_project_ownership(ctx)
         template_context = prepare_template_context(ctx, [self.user.id])
         mock_prepare_template_context.return_value = template_context
-        batch_id = UUID("77a1d368-33d5-47cd-88cf-d66c97b38333")
+        batch_id = str(UUID("77a1d368-33d5-47cd-88cf-d66c97b38333"))
 
         # disabled
         self._set_option_value("never")
@@ -1063,8 +1063,8 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         user_project_ownership(ctx)
         template_context = prepare_template_context(ctx, [self.user.id])
         mock_prepare_template_context.return_value = template_context
-        batch1_id = UUID("abe8ba3e-90af-4a98-b925-5f30250ae6a0")
-        batch2_id = UUID("abe8ba3e-90af-4a98-b925-5f30250ae6a1")
+        batch1_id = str(UUID("abe8ba3e-90af-4a98-b925-5f30250ae6a0"))
+        batch2_id = str(UUID("abe8ba3e-90af-4a98-b925-5f30250ae6a1"))
         self._set_option_value("always")
 
         # First send

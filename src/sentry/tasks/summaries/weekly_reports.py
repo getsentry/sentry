@@ -45,6 +45,7 @@ from sentry.taskworker.namespaces import reports_tasks
 from sentry.taskworker.retry import Retry
 from sentry.types.group import GroupSubStatus
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from sentry.utils import json, redis
 from sentry.utils.dates import floor_to_utc_day, to_datetime
 from sentry.utils.email import MessageBuilder
@@ -129,12 +130,13 @@ def prepare_organization_report(
     timestamp: float,
     duration: int,
     organization_id: int,
-    batch_id: uuid.UUID,
+    batch_id: uuid.UUID | str,
     dry_run: bool = False,
-    target_user: User | None = None,
+    target_user: User | int | None = None,
     email_override: str | None = None,
 ):
-    if target_user and not hasattr(target_user, "id"):
+    batch_id = str(batch_id)
+    if target_user and not isinstance(target_user, int) and not hasattr(target_user, "id"):
         logger.error(
             "Target user must have an ID",
             extra={
@@ -145,6 +147,11 @@ def prepare_organization_report(
             },
         )
         return
+    target_user_id: int | None = None
+    if isinstance(target_user, (User, RpcUser)):
+        target_user_id = target_user.id
+    elif isinstance(target_user, int):
+        target_user_id = target_user
     organization = Organization.objects.get(id=organization_id)
     set_tag("org.slug", organization.slug)
     set_tag("org.id", organization_id)
@@ -250,7 +257,7 @@ def prepare_organization_report(
         return
 
     # Finally, deliver the reports
-    batch = OrganizationReportBatch(ctx, batch_id, dry_run, target_user, email_override)
+    batch = OrganizationReportBatch(ctx, batch_id, dry_run, target_user_id, email_override)
     with sentry_sdk.start_span(op="weekly_reports.deliver_reports"):
         logger.info(
             "weekly_reports.deliver_reports",
@@ -262,10 +269,10 @@ def prepare_organization_report(
 @dataclass(frozen=True)
 class OrganizationReportBatch:
     ctx: OrganizationReportContext
-    batch_id: uuid.UUID
+    batch_id: str
 
     dry_run: bool = False
-    target_user: User | None = None
+    target_user: int | None = None
     email_override: str | None = None
 
     def deliver_reports(self) -> None:
@@ -273,11 +280,9 @@ class OrganizationReportBatch:
         For all users in the organization, we generate the template context for the user, and send the email.
         """
         if self.email_override:
-            target_user_id = (
-                self.target_user.id if self.target_user else None
-            )  # if None, generates report for a user with access to all projects
+            # if target user is None, generates report for a user with access to all projects
             user_template_context_by_user_id_list = prepare_template_context(
-                ctx=self.ctx, user_ids=[target_user_id]
+                ctx=self.ctx, user_ids=[self.target_user]
             )
             if user_template_context_by_user_id_list:
                 self._send_to_user(user_template_context_by_user_id_list[0])
@@ -341,7 +346,7 @@ class OrganizationReportBatch:
             logger.info(
                 "weekly_report.send_email",
                 extra={
-                    "batch_id": str(self.batch_id),
+                    "batch_id": self.batch_id,
                     "organization": self.ctx.organization.id,
                     "uuid": template_ctx["notification_uuid"],
                     "user_id": user_id,
