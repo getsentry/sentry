@@ -8,7 +8,6 @@ import Link from 'sentry/components/links/link';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
 import {
   makeReleaseDrawerPathname,
   makeReleasesPathname,
@@ -66,8 +65,6 @@ function Version({
   const organization = useOrganization();
   const versionToDisplay = formatVersion(version, withPackage);
   const theme = useTheme();
-
-  useReleasesDrawer();
 
   let releaseDetailProjectId: null | undefined | string | string[];
   if (projectId) {
