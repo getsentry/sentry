@@ -48,7 +48,9 @@ VALID_PROFILING_ACTIONS_SET = frozenset(["+app", "-app"])
 
 
 def merge_rust_enhancements(
-    bases: list[str], rust_enhancements: RustEnhancements
+    bases: list[str],
+    rust_enhancements: RustEnhancements,
+    type: Literal["classifier", "contributes"] | None = None,
 ) -> RustEnhancements:
     """
     This will merge the parsed enhancements together with the `bases`.
@@ -59,7 +61,16 @@ def merge_rust_enhancements(
     for base_id in bases:
         base = ENHANCEMENT_BASES.get(base_id)
         if base:
-            merged_rust_enhancements.extend_from(base.rust_enhancements)
+            base_rust_enhancements = (
+                base.rust_enhancements
+                if type is None
+                else (
+                    base.classifier_rust_enhancements
+                    if type == "classifier"
+                    else base.contributes_rust_enhancements
+                )
+            )
+            merged_rust_enhancements.extend_from(base_rust_enhancements)
     merged_rust_enhancements.extend_from(rust_enhancements)
     return merged_rust_enhancements
 
