@@ -165,8 +165,8 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
     let customErrorMessage = '';
     if (
       errorMessage.toLowerCase().includes('overloaded') ||
-      errorMessage.toLowerCase().includes('max tries') ||
-      errorMessage.toLowerCase().includes('no completion tokens returned')
+      errorMessage.toLowerCase().includes('no completion tokens') ||
+      errorMessage.toLowerCase().includes('exhausted')
     ) {
       customErrorMessage = t(
         'The robots are having a moment. Our LLM provider is overloaded - please try again soon.'
