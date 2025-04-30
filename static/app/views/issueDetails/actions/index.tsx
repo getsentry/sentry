@@ -48,7 +48,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
-import PublishIssueModal from 'sentry/views/issueDetails/actions/publishModal';
 import ShareIssueModal from 'sentry/views/issueDetails/actions/shareModal';
 import SubscribeAction from 'sentry/views/issueDetails/actions/subscribeAction';
 import {Divider} from 'sentry/views/issueDetails/divider';
@@ -95,7 +94,6 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
       archiveUntilOccurrence: archiveUntilOccurrenceCap,
       delete: deleteCap,
       deleteAndDiscard: deleteDiscardCap,
-      share: shareCap,
       resolve: resolveCap,
       resolveInRelease: resolveInReleaseCap,
     },
@@ -225,7 +223,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     openReprocessEventModal({organization, groupId: group.id});
   };
 
-  const onToggleShare = () => {
+  const onTogglePublicShare = () => {
     const newIsPublic = !group.isPublic;
     if (newIsPublic) {
       trackAnalytics('issue.shared_publicly', {
@@ -345,23 +343,8 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
         organization={organization}
         groupId={group.id}
         event={event}
-      />
-    ));
-  };
-
-  const openPublishModal = () => {
-    trackAnalytics('issue_details.publish_issue_modal_opened', {
-      organization,
-      streamline: hasStreamlinedUI,
-      ...getAnalyticsDataForGroup(group),
-    });
-    openModal(modalProps => (
-      <PublishIssueModal
-        {...modalProps}
-        organization={organization}
-        projectSlug={group.project.slug}
-        groupId={group.id}
-        onToggle={onToggleShare}
+        onToggle={onTogglePublicShare}
+        projectSlug={project.slug}
       />
     ));
   };
@@ -524,13 +507,6 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             disabled: !group.inbox || disabled,
             details: !group.inbox || disabled ? t('Issue has been reviewed') : undefined,
             onAction: () => onUpdate({inbox: false}),
-          },
-          {
-            key: 'publish',
-            label: t('Publish'),
-            disabled: disabled || !shareCap.enabled,
-            hidden: !organization.features.includes('shared-issues'),
-            onAction: openPublishModal,
           },
           {
             key: bookmarkKey,
