@@ -92,8 +92,10 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             strip_equation(field) for field in request.GET.getlist("field")[:] if is_equation(field)
         ]
 
-    def get_field_list(self, organization: Organization, request: Request) -> list[str]:
-        return [field for field in request.GET.getlist("field")[:] if not is_equation(field)]
+    def get_field_list(
+        self, organization: Organization, request: Request, param_name: str = "field"
+    ) -> list[str]:
+        return [field for field in request.GET.getlist(param_name)[:] if not is_equation(field)]
 
     def get_teams(self, request: Request, organization: Organization) -> list[Team]:
         if not request.user:
@@ -666,8 +668,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             )
             if is_equation(query_column):
                 equations += 1
-            self.update_meta_with_accuracy(meta, event_result, query_column)
-            result[columns[index]]["meta"] = meta
+            column_meta = meta.copy()
+            self.update_meta_with_accuracy(column_meta, event_result, query_column)
+            result[columns[index]]["meta"] = column_meta
         # Set order if multi-axis + top events
         if "order" in event_result.data:
             result["order"] = event_result.data["order"]

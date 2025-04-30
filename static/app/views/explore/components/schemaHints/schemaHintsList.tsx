@@ -6,7 +6,6 @@ import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
 import {Button} from 'sentry/components/core/button';
-import {getHasTag} from 'sentry/components/events/searchBar';
 import useDrawer from 'sentry/components/globalDrawer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';
@@ -16,9 +15,14 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {prettifyTagKey} from 'sentry/utils/discover/fields';
+import {
+  isAggregateField,
+  parseFunction,
+  prettifyTagKey,
+} from 'sentry/utils/discover/fields';
 import {
   type AggregationKey,
+  type FieldDefinition,
   FieldKind,
   FieldValueType,
   getFieldDefinition,
@@ -33,6 +37,10 @@ import {
   SchemaHintsSources,
   USER_IDENTIFIER_KEY,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
+import {
+  LOGS_FIELDS_KEY,
+  LOGS_QUERY_KEY,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 import {SpanIndexedField} from 'sentry/views/insights/types';
@@ -83,12 +91,27 @@ function getTagsFromKeys(keys: string[], tags: TagCollection): Tag[] {
 export function addFilterToQuery(
   filterQuery: MutableSearch,
   tag: Tag,
-  isBoolean: boolean
+  fieldDefinition: FieldDefinition | null
 ) {
-  filterQuery.addFilterValue(
-    tag.key,
-    isBoolean ? 'True' : tag.kind === FieldKind.MEASUREMENT ? '>0' : ''
-  );
+  if (tag.kind === FieldKind.FUNCTION) {
+    const defaultFunctionParam = fieldDefinition?.parameters?.[0]?.defaultValue ?? '';
+    filterQuery.addFilterValue(`${tag.key}(${defaultFunctionParam})`, '>0');
+  } else {
+    const isBoolean = fieldDefinition?.valueType === FieldValueType.BOOLEAN;
+    filterQuery.addFilterValue(
+      tag.key,
+      isBoolean ? 'True' : tag.kind === FieldKind.MEASUREMENT ? '>0' : ''
+    );
+  }
+}
+
+export function parseTagKey(tagKey: string) {
+  if (!isAggregateField(tagKey)) {
+    return tagKey;
+  }
+
+  const aggregateKey = parseFunction(tagKey)?.name;
+  return aggregateKey;
 }
 
 const FILTER_KEY_SECTIONS: Record<SchemaHintsSources, FilterKeySection[]> = {
@@ -98,6 +121,20 @@ const FILTER_KEY_SECTIONS: Record<SchemaHintsSources, FilterKeySection[]> = {
 
 function getFilterKeySections(source: SchemaHintsSources) {
   return FILTER_KEY_SECTIONS[source];
+}
+
+export function formatHintName(hint: Tag) {
+  if (hint.kind === FieldKind.FUNCTION) {
+    return `${prettifyTagKey(hint.name)}(...)`;
+  }
+  return prettifyTagKey(hint.name);
+}
+
+function formatHintOperator(hint: Tag) {
+  if (hint.kind === FieldKind.MEASUREMENT || hint.kind === FieldKind.FUNCTION) {
+    return '>';
+  }
+  return 'is';
 }
 
 function SchemaHintsList({
@@ -132,7 +169,6 @@ function SchemaHintsList({
       ...numberTags,
       ...stringTags,
     });
-    filterTags.has = getHasTag({...stringTags});
 
     const schemaHintsListOrder = getSchemaHintsListOrder(source);
     const filterKeySections = getFilterKeySections(source);
@@ -291,8 +327,18 @@ function SchemaHintsList({
                   location.pathname !== newLocation.pathname ||
                   // will close if anything but the filter query has changed
                   !isEqual(
-                    omit(location.query, ['query', 'field', 'logsFields', 'logsQuery']),
-                    omit(newLocation.query, ['query', 'field', 'logsFields', 'logsQuery'])
+                    omit(location.query, [
+                      'query',
+                      'field',
+                      LOGS_FIELDS_KEY,
+                      LOGS_QUERY_KEY,
+                    ]),
+                    omit(newLocation.query, [
+                      'query',
+                      'field',
+                      LOGS_FIELDS_KEY,
+                      LOGS_QUERY_KEY,
+                    ])
                   )
                 );
               },
@@ -323,10 +369,8 @@ function SchemaHintsList({
       }
 
       const newSearchQuery = new MutableSearch(query);
-      const isBoolean =
-        getFieldDefinition(hint.key, 'span', hint.kind)?.valueType ===
-        FieldValueType.BOOLEAN;
-      addFilterToQuery(newSearchQuery, hint, isBoolean);
+      const fieldDefinition = getFieldDefinition(hint.key, 'span', hint.kind);
+      addFilterToQuery(newSearchQuery, hint, fieldDefinition);
 
       const newQuery = newSearchQuery.formatString();
 
@@ -334,7 +378,11 @@ function SchemaHintsList({
         type: 'UPDATE_QUERY',
         query: newQuery,
         focusOverride: {
-          itemKey: `filter:${newSearchQuery.getFilterKeys().indexOf(hint.key)}`,
+          itemKey: `filter:${newSearchQuery
+            .getTokenKeys()
+            .filter(key => key !== undefined)
+            .map(parseTagKey)
+            .lastIndexOf(hint.key)}`,
           part: 'value',
         },
       });
@@ -363,7 +411,7 @@ function SchemaHintsList({
       return hint.name;
     }
 
-    return `${prettifyTagKey(hint.name)} ${hint.kind === FieldKind.MEASUREMENT ? '>' : 'is'} ...`;
+    return `${formatHintName(hint)} ${formatHintOperator(hint)} ...`;
   };
 
   const getHintElement = (hint: Tag) => {
@@ -373,8 +421,8 @@ function SchemaHintsList({
 
     return (
       <HintTextContainer>
-        <HintName>{prettifyTagKey(hint.name)}</HintName>
-        <HintOperator>{hint.kind === FieldKind.MEASUREMENT ? '>' : 'is'}</HintOperator>
+        <HintName>{formatHintName(hint)}</HintName>
+        <HintOperator>{formatHintOperator(hint)}</HintOperator>
         <HintValue>...</HintValue>
       </HintTextContainer>
     );

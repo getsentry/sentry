@@ -51,7 +51,7 @@ import {
   SavedQueryDatasets,
 } from 'sentry/utils/discover/types';
 import localStorage from 'sentry/utils/localStorage';
-import marked from 'sentry/utils/marked';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -696,7 +696,7 @@ export class Results extends Component<Props, State> {
       return tips.map((tip, index) => (
         <Alert.Container key={`tip-${index}`}>
           <Alert type="info" showIcon key={`tip-${index}`}>
-            <TipContainer dangerouslySetInnerHTML={{__html: marked(tip)}} />
+            <TipContainer as="span" text={tip} />
           </Alert>
         </Alert.Container>
       ));
@@ -910,7 +910,7 @@ const Top = styled(Layout.Main)`
   flex-grow: 0;
 `;
 
-const TipContainer = styled('span')`
+const TipContainer = styled(MarkedText)`
   > p {
     margin: 0;
   }
