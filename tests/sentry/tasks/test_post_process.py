@@ -2469,6 +2469,58 @@ class ProcessSimilarityTestMixin(BasePostProgressGroupMixin):
         self.assert_not_called_with(mock_safe_execute)
 
 
+class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
+    @patch("sentry.tasks.autofix.start_seer_automation.delay")
+    @with_feature("organizations:gen-ai-features")
+    @with_feature("projects:trigger-issue-summary-on-alerts")
+    def test_kick_off_seer_automation_with_features(self, mock_start_seer_automation):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_start_seer_automation.assert_called_once_with(event.group)
+
+    @patch("sentry.tasks.autofix.start_seer_automation.delay")
+    def test_kick_off_seer_automation_without_org_feature(self, mock_start_seer_automation):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+        with self.feature("projects:trigger-issue-summary-on-alerts"):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+
+        mock_start_seer_automation.assert_not_called()
+
+    @patch("sentry.tasks.autofix.start_seer_automation.delay")
+    def test_kick_off_seer_automation_without_proj_feature(self, mock_start_seer_automation):
+        event = self.create_event(
+            data={"message": "testing"},
+            project_id=self.project.id,
+        )
+        with self.feature("organizations:gen-ai-features"):
+            self.call_post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                event=event,
+            )
+
+        mock_start_seer_automation.assert_not_called()
+
+
 class PostProcessGroupErrorTest(
     TestCase,
     AssignmentTestMixin,
@@ -2477,6 +2529,7 @@ class PostProcessGroupErrorTest(
     DeriveCodeMappingsProcessGroupTestMixin,
     InboxTestMixin,
     ResourceChangeBoundsTestMixin,
+    KickOffSeerAutomationTestMixin,
     RuleProcessorTestMixin,
     ServiceHooksTestMixin,
     SnoozeTestMixin,

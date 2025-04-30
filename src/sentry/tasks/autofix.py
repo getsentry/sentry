@@ -2,6 +2,7 @@ import logging
 from datetime import datetime, timedelta
 
 from sentry.autofix.utils import AutofixStatus, get_autofix_state
+from sentry.models.group import Group
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
@@ -32,3 +33,19 @@ def check_autofix_status(run_id: int):
         logger.error(
             "Autofix run has been processing for more than 5 minutes", extra={"run_id": run_id}
         )
+
+
+@instrumented_task(
+    name="sentry.tasks.autofix.start_seer_automation",
+    max_retries=1,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        retry=Retry(
+            times=1,
+        ),
+    ),
+)
+def start_seer_automation(group: Group):
+    from sentry.seer.issue_summary import get_issue_summary
+
+    get_issue_summary(group=group, source="post_process")
