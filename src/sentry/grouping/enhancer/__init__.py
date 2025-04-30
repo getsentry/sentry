@@ -477,7 +477,11 @@ class Enhancements:
     @classmethod
     @sentry_sdk.tracing.trace
     def from_rules_text(
-        cls, rules_text: str, bases: list[str] | None = None, id: str | None = None
+        cls,
+        rules_text: str,
+        bases: list[str] | None = None,
+        id: str | None = None,
+        version: int | None = None,
     ) -> Enhancements:
         """Create an `Enhancements` object from a text blob containing stacktrace rules"""
         rust_enhancements = get_rust_enhancements("config_string", rules_text)
@@ -487,6 +491,7 @@ class Enhancements:
         return Enhancements(
             rules,
             rust_enhancements=rust_enhancements,
+            version=version,
             bases=bases,
             id=id,
         )
