@@ -87,9 +87,9 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
           {autofixAcknowledgeMutation.isPending ? (
             <StyledLoadingIndicator size={14} />
           ) : autofixSetupData?.setupAcknowledgement.orgHasAcknowledged ? (
-            t('Try Autofix')
+            t('Try Seer')
           ) : (
-            t('Enable Autofix')
+            t('Enable Seer')
           )}
         </Button>
         {autofixAcknowledgeMutation.isError && (
