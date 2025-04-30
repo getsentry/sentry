@@ -35,6 +35,7 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     dual_update_migrated_alert_rule,
     dual_update_migrated_alert_rule_trigger,
     dual_update_migrated_alert_rule_trigger_action,
+    dual_update_resolve_condition,
     dual_write_alert_rule,
     get_action_filter,
     get_detector_trigger,
@@ -794,7 +795,7 @@ class DualUpdateAlertRuleTriggerTest(BaseMetricAlertMigrationTest):
         updated_fields: dict[str, Any] = {}
         updated_fields = {"resolve_threshold": 10}
         self.metric_alert.update(**updated_fields)
-        dual_update_migrated_alert_rule(self.metric_alert)
+        dual_update_resolve_condition(self.metric_alert)
         self.resolve_detector_trigger.refresh_from_db()
 
         assert self.resolve_detector_trigger.comparison == 10

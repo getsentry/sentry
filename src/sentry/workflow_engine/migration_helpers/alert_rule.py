@@ -663,18 +663,6 @@ def dual_update_migrated_alert_rule(alert_rule: AlertRule) -> (
         else:
             dc.update(type=threshold_type)
 
-    # update the resolution data condition threshold in case the resolve threshold was updated
-    resolve_condition = data_conditions.get(condition_result=DetectorPriorityLevel.OK)
-    if alert_rule.resolve_threshold is None:
-        # we need to figure out the resolve threshold ourselves
-        resolve_threshold = get_resolve_threshold(data_condition_group)
-        if resolve_threshold != -1:
-            resolve_condition.update(comparison=resolve_threshold)
-        else:
-            raise UnresolvableResolveThreshold
-    else:
-        resolve_condition.update(comparison=alert_rule.resolve_threshold)
-
     # reset detector status, as the rule was updated
     detector_state.update(active=False, state=DetectorPriorityLevel.OK)
 
@@ -683,12 +671,9 @@ def dual_update_migrated_alert_rule(alert_rule: AlertRule) -> (
 
 def dual_update_resolve_condition(alert_rule: AlertRule) -> DataCondition | None:
     """
-    Helper method to update the detector trigger for a legacy resolution "trigger" if
-    no explicit resolution threshold is set on the alert rule.
+    Helper method to update the detector trigger for a legacy resolution "trigger."
     """
-    # if the alert rule has a resolve threshold or if it hasn't been dual written, return early
-    if alert_rule.resolve_threshold is not None:
-        return None
+    # if the alert rule hasn't been dual written, return early
     try:
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=alert_rule.id)
     except AlertRuleDetector.DoesNotExist:
@@ -704,7 +689,10 @@ def dual_update_resolve_condition(alert_rule: AlertRule) -> DataCondition | None
         )
         raise MissingDataConditionGroup
 
-    resolve_threshold = get_resolve_threshold(detector_data_condition_group)
+    if alert_rule.resolve_threshold is not None:
+        resolve_threshold = alert_rule.resolve_threshold
+    else:
+        resolve_threshold = get_resolve_threshold(detector_data_condition_group)
     if resolve_threshold == -1:
         raise UnresolvableResolveThreshold
 
