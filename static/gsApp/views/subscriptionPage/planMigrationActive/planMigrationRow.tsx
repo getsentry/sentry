@@ -4,6 +4,7 @@ import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {DataCategory} from 'sentry/types/core';
 import {DataCategoryExact} from 'sentry/types/core';
 
 import {formatReservedWithUnits} from 'getsentry/utils/billing';
@@ -54,7 +55,7 @@ function formatCategoryRowString(
 ): string {
   const reservedWithUnits = formatReservedWithUnits(
     quantity,
-    DATA_CATEGORY_INFO[category].plural,
+    DATA_CATEGORY_INFO[category].plural as DataCategory,
     options
   );
   if (category === DataCategoryExact.ATTACHMENT) {
@@ -88,6 +89,7 @@ function PlanMigrationRow(props: Props) {
 
   const options = {isAbbreviated: true};
 
+  // TODO(data categories): check if this can be parsed
   switch (props.type) {
     case 'plan':
       currentValue = tct('Legacy [currentValue]', {currentValue: props.currentValue});
