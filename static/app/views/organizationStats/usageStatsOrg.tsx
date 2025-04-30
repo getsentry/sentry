@@ -24,7 +24,7 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DataCategoryInfo, IntervalPeriod} from 'sentry/types/core';
+import type {DataCategory, DataCategoryInfo, IntervalPeriod} from 'sentry/types/core';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -50,13 +50,13 @@ import UsageStatsPerMin from './usageStatsPerMin';
 import {isContinuousProfiling, isDisplayUtc} from './utils';
 
 export interface UsageStatsOrganizationProps extends WithRouterProps {
-  dataCategory: DataCategoryInfo['plural'];
+  dataCategory: DataCategory;
   dataCategoryApiName: DataCategoryInfo['apiName'];
   dataCategoryName: string;
   dataDatetime: DateTimeObject;
   handleChangeState: (state: {
     clientDiscard?: boolean;
-    dataCategory?: DataCategoryInfo['plural'];
+    dataCategory?: DataCategory;
     pagePeriod?: string | null;
     transform?: ChartDataTransform;
   }) => void;
