@@ -184,7 +184,7 @@ def get_organization_autofix_consent(*, org_id: int) -> dict:
     }
 
 
-def get_fields(*, org_id: int, project_ids: list[int], stats_period: str) -> dict:
+def get_attribute_names(*, org_id: int, project_ids: list[int], stats_period: str) -> dict:
     field_types = [
         AttributeKey.Type.TYPE_STRING,
         AttributeKey.Type.TYPE_DOUBLE,
@@ -239,7 +239,7 @@ def get_fields(*, org_id: int, project_ids: list[int], stats_period: str) -> dic
     return {"fields": fields}
 
 
-def get_field_values(
+def get_attribute_values(
     *,
     fields: list[dict[str, Any]],
     org_id: int,
@@ -305,8 +305,8 @@ seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_issues_related_to_function_names": get_issues_related_to_function_names,
     "get_error_event_details": get_error_event_details,
     "get_profile_details": get_profile_details,
-    "get_fields": get_fields,
-    "get_field_values": get_field_values,
+    "get_attribute_names": get_attribute_names,
+    "get_attribute_values": get_attribute_values,
 }
 
 
