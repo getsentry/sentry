@@ -68,6 +68,8 @@ export type Choices = Choice[];
 
 /**
  * These are used in billing, stats, and other places to consistently refer to categories.
+ *
+ * These should always be in plural camelCase form.
  */
 export enum DataCategory {
   ERRORS = 'errors',
@@ -77,7 +79,7 @@ export enum DataCategory {
   ATTACHMENTS = 'attachments',
   PROFILES = 'profiles',
   REPLAYS = 'replays',
-  MONITOR = 'monitor',
+  MONITOR = 'monitors',
   MONITOR_SEATS = 'monitorSeats',
   PROFILE_DURATION = 'profileDuration',
   PROFILE_DURATION_UI = 'profileDurationUI',
