@@ -3,6 +3,7 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any, DefaultDict
 
 from django.contrib.auth.models import AnonymousUser
+from django.db.models import Q
 
 from sentry.api.serializers import Serializer, serialize
 from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
@@ -172,27 +173,32 @@ class WorkflowEngineDetectorSerializer(Serializer):
         detectors: dict[int, Detector],
         detector_to_action_ids: defaultdict[Detector, list[int]],
     ) -> None:
+        all_action_ids = []
+        for action_ids in detector_to_action_ids.values():
+            all_action_ids.extend(action_ids)
+
+        action_group_statuses = ActionGroupStatus.objects.filter(action_id__in=all_action_ids)
+
+        detector_to_group_ids = defaultdict(list)
+        for action_group_status in action_group_statuses:
+            for detector, action_ids in detector_to_action_ids.items():
+                if action_group_status.action_id in action_ids:
+                    detector_to_group_ids[detector].append(action_group_status.group_id)
+
+        open_periods = None
+        group_ids = [action_group_status.group_id for action_group_status in action_group_statuses]
+        if group_ids:
+            open_periods = GroupOpenPeriod.objects.filter(
+                group__in=[group_id for group_id in group_ids]
+            )
+
         for detector in detectors.values():
-            group_ids = None
-            open_periods = None
-
-            try:
-                group_ids = ActionGroupStatus.objects.values_list("group_id", flat=True).filter(
-                    action_id__in=detector_to_action_ids[detector]
-                )
-            except ActionGroupStatus.DoesNotExist:
-                continue
-
-            if group_ids:
-                try:
-                    open_periods = GroupOpenPeriod.objects.filter(
-                        group__in=[group_id for group_id in group_ids]
-                    ).order_by("-date_started")
-                except GroupOpenPeriod.DoesNotExist:
-                    continue
-
             # TODO: this serializer is half baked
             if open_periods:
+                open_periods.filter(Q(group__in=detector_to_group_ids[detector])).order_by(
+                    "-date_started"
+                )
+
                 serialized_group_open_period = serialize(
                     open_periods[0], user, WorkflowEngineIncidentSerializer()
                 )
@@ -287,10 +293,15 @@ class WorkflowEngineDetectorSerializer(Serializer):
             self.add_latest_incident(result, user, detectors, detector_to_action_ids)
 
         # add information from snubaquery
+        data_source_detectors = DataSourceDetector.objects.filter(detector_id__in=detectors.keys())
+        query_subscriptions = QuerySubscription.objects.filter(
+            id__in=[dsd.data_source.source_id for dsd in data_source_detectors]
+        )
+
         for detector in detectors.values():
-            data_source_detector = DataSourceDetector.objects.get(detector_id=detector.id)
-            query_subscription = QuerySubscription.objects.get(
-                id=data_source_detector.data_source.source_id
+            data_source_detector = data_source_detectors.get(Q(detector=detector))
+            query_subscription = query_subscriptions.get(
+                Q(id=data_source_detector.data_source.source_id)
             )
             result[detector]["query"] = query_subscription.snuba_query.query
             result[detector]["aggregate"] = query_subscription.snuba_query.aggregate
