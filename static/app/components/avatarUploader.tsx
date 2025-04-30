@@ -361,7 +361,7 @@ class AvatarUploader extends Component<Props, State> {
     return savedDataUrl || this.state.objectURL || photoUrl;
   }
 
-  uploadClick = (ev: React.MouseEvent<HTMLAnchorElement>) => {
+  uploadClick = (ev: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
     ev.preventDefault();
     this.file.current?.click();
   };
