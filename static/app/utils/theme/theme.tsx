@@ -244,6 +244,14 @@ const generateTokens = (colors: Colors) => ({
     warning: colors.yellow400, // theme.warningText
     success: colors.green400, // theme.successText
   },
+  graphics: {
+    muted: colors.gray300,
+    accent: colors.blue300,
+    promotion: colors.pink300,
+    danger: colors.red300,
+    warning: colors.yellow300,
+    success: colors.green300,
+  },
   background: {
     primary: colors.surface300, // theme.background
     secondary: colors.surface200, // theme.backgroundSecondary
