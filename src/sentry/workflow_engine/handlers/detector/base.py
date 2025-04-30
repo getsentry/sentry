@@ -2,6 +2,7 @@ import abc
 import dataclasses
 import logging
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Generic, TypeVar
 
@@ -14,6 +15,13 @@ from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
 T = TypeVar("T")
+
+
+@dataclass
+class EvidenceData(Generic[T]):
+    value: T
+    detector_id: int
+    data_condition_ids: list[int]
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)

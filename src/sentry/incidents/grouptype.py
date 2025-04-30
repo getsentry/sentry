@@ -13,11 +13,17 @@ from sentry.models.organization import Organization
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.handlers.detector import DetectorOccurrence, StatefulDetectorHandler
+from sentry.workflow_engine.handlers.detector.base import EvidenceData
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorSettings
 
 COMPARISON_DELTA_CHOICES: list[None | int] = [choice.value for choice in ComparisonDeltaChoices]
 COMPARISON_DELTA_CHOICES.append(None)
+
+
+@dataclass
+class MetricIssueEvidenceData(EvidenceData):
+    alert_id: int
 
 
 class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate]):
