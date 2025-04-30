@@ -26,7 +26,7 @@ import type {
   StatusPageIncidentUpdate,
   StatusPageServiceStatus,
 } from 'sentry/types/system';
-import marked from 'sentry/utils/marked';
+import {sanitizedMarked} from 'sentry/utils/marked/marked';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 
 interface Props {
@@ -111,7 +111,7 @@ export function ServiceIncidentDetails({incident}: Props) {
                 })}
               </StatusDate>
             </UpdateHeading>
-            <Text dangerouslySetInnerHTML={{__html: marked(body)}} />
+            <Text dangerouslySetInnerHTML={{__html: sanitizedMarked(body)}} />
           </ListItem>
         ))}
       </UpdatesList>
