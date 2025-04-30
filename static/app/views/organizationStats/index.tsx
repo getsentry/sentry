@@ -221,7 +221,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
     nextState: {
       clientDiscard?: boolean;
       cursor?: string;
-      dataCategory?: DataCategoryInfo['plural'];
+      dataCategory?: DataCategory;
       query?: string;
       sort?: string;
       transform?: ChartDataTransform;
