@@ -159,6 +159,50 @@ def get_hint_for_frame(
     return rust_hint if use_rust_hint else incoming_hint
 
 
+def _split_rules(
+    rules: list[EnhancementRule],
+) -> tuple[list[EnhancementRule], list[EnhancementRule], RustEnhancements, RustEnhancements]:
+    """
+    Given a list of EnhancementRules, each of which may have both classifier and contributes
+    actions, split the rules into separate classifier and contributes rule lists, and return them
+    along with each ruleset's corresponding RustEnhancements object.
+    """
+    # Rules which set `in_app` or `category` on frames
+    classifier_rules = [
+        rule
+        for rule in (
+            rule.as_classifier_rule()  # Only include classifier actions
+            for rule in rules
+            if rule.has_classifier_actions
+        )
+        if rule is not None  # mypy appeasment
+    ]
+
+    # Rules which set `contributes` on frames and/or the stacktrace
+    contributes_rules = [
+        rule
+        for rule in (
+            rule.as_contributes_rule()  # Only include contributes actions
+            for rule in rules
+            if rule.has_contributes_actions
+        )
+        if rule is not None  # mypy appeasment
+    ]
+
+    classifier_rules_text = "\n".join(rule.text for rule in classifier_rules)
+    contributes_rules_text = "\n".join(rule.text for rule in contributes_rules)
+
+    classifier_rust_enhancements = get_rust_enhancements("config_string", classifier_rules_text)
+    contributes_rust_enhancements = get_rust_enhancements("config_string", contributes_rules_text)
+
+    return (
+        classifier_rules,
+        contributes_rules,
+        classifier_rust_enhancements,
+        contributes_rust_enhancements,
+    )
+
+
 def is_valid_profiling_matcher(matchers: list[str]) -> bool:
     for matcher in matchers:
         if not matcher.startswith(VALID_PROFILING_MATCHER_PREFIXES):
