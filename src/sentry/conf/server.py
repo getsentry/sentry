@@ -726,9 +726,6 @@ from kombu import Exchange, Queue
 BROKER_URL = "redis://127.0.0.1:6379"
 BROKER_TRANSPORT_OPTIONS: dict[str, int] = {}
 
-# Ensure workers run async by default
-# in Development you might want them to run in-process
-TASK_WORKER_ALWAYS_EAGER = False
 
 # Ensure workers run async by default
 # in Development you might want them to run in-process
@@ -1385,6 +1382,10 @@ BGTASKS: dict[str, BgTaskConfig] = {
 #######################
 # Taskworker settings #
 #######################
+
+# If true, tasks will be run immediately.
+# Used primarily in tests.
+TASKWORKER_ALWAYS_EAGER = False
 
 # Shared secrets used to sign RPC requests to taskbrokers
 # The first secret is used for signing.
