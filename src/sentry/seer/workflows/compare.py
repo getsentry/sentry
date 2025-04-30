@@ -44,8 +44,8 @@ def keyed_rrf_score(
     outliers: Sequence[KeyedValueCount],
     total_baseline: int,
     total_outliers: int,
-    entropy_alpha: int = 0.2,
-    kl_alpha: int = 0.8,
+    entropy_alpha: float = 0.2,
+    kl_alpha: float = 0.8,
     offset: int = 60,
 ) -> list[tuple[str, float]]:
     """
