@@ -44,6 +44,9 @@ def keyed_rrf_score(
     outliers: Sequence[KeyedValueCount],
     total_baseline: int,
     total_outliers: int,
+    entropy_alpha: int = 0.2,
+    kl_alpha: int = 0.8,
+    offset: int = 60,
 ) -> list[tuple[str, float]]:
     """
     RRF score a multi-dimensional distribution of values. Returns a list of key, score pairs.
@@ -74,7 +77,7 @@ def keyed_rrf_score(
         kl_scores.append(kl_score)
 
     return sorted(
-        zip(keys, rrf_score(entropy_scores, kl_scores)),
+        zip(keys, rrf_score(entropy_scores, kl_scores, entropy_alpha, kl_alpha, offset)),
         key=lambda k: k[1],
         reverse=True,
     )
