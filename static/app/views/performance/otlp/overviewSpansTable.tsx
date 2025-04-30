@@ -67,10 +67,12 @@ export function OverviewSpansTable({eventView, totalValues, transactionName}: Pr
     'api.performance.service-entry-spans-table-count'
   );
 
+  const pageEventsCount = Math.min(numEvents[0]?.['count()'] ?? 0, LIMIT);
+
   const paginationCaption = tct(
     'Showing [pageEventsCount] of [totalEventsCount] events',
     {
-      pageEventsCount: LIMIT.toLocaleString(),
+      pageEventsCount: pageEventsCount.toLocaleString(),
       totalEventsCount: numEvents[0]?.['count()']?.toLocaleString() ?? '...',
     }
   );
