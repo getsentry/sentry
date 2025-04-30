@@ -2,11 +2,10 @@ import isPropValid from '@emotion/is-prop-valid';
 import type {SerializedStyles, Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {LocationDescriptor} from 'history';
 
+import {type LinkButtonProps} from 'sentry/components/core/button/linkButton';
 import {Tooltip, type TooltipProps} from 'sentry/components/core/tooltip';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import Link from 'sentry/components/links/link';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import HookStore from 'sentry/stores/hookStore';
@@ -14,21 +13,10 @@ import {space} from 'sentry/styles/space';
 
 import {getChonkButtonStyles} from './index.chonk';
 
-/**
- * Default sizes to use for SVGIcon
- */
-const ICON_SIZES: Partial<
-  Record<NonNullable<BaseButtonProps['size']>, SVGIconProps['size']>
-> = {
-  xs: 'xs',
-  sm: 'sm',
-  md: 'sm',
-};
-
-/**
- * Props shared across different types of button components
- */
-interface CommonButtonProps {
+// We do not want people using this type as it should only be used
+// internally by the different button implementations
+// eslint-disable-next-line @typescript-eslint/naming-convention
+export interface DO_NOT_USE_CommonButtonProps {
   /**
    * Used when you want to overwrite the default Reload event key for analytics
    */
@@ -88,11 +76,12 @@ interface CommonButtonProps {
  * future ButtonElement should go away and be replaced with HTMLButtonElement
  * and HTMLAnchorElement respectively
  */
-type ElementProps<E> = Omit<React.ButtonHTMLAttributes<E>, 'label' | 'size' | 'title'>;
+type ButtonElementProps = Omit<
+  React.ButtonHTMLAttributes<HTMLButtonElement>,
+  'label' | 'size' | 'title'
+>;
 
-export interface BaseButtonProps
-  extends CommonButtonProps,
-    ElementProps<HTMLButtonElement> {
+interface BaseButtonProps extends DO_NOT_USE_CommonButtonProps, ButtonElementProps {
   href?: never;
   ref?: React.Ref<HTMLButtonElement>;
   to?: never;
@@ -109,7 +98,62 @@ interface ButtonPropsWithAriaLabel extends BaseButtonProps {
 
 export type ButtonProps = ButtonPropsWithoutAriaLabel | ButtonPropsWithAriaLabel;
 
-const useButtonFunctionality = (props: ButtonProps | LinkButtonProps) => {
+export function Button({
+  size = 'md',
+  disabled,
+  type = 'button',
+  title,
+  tooltipProps,
+  ...props
+}: ButtonProps) {
+  const {handleClick, hasChildren, accessibleLabel} = useButtonFunctionality({
+    ...props,
+    type,
+    disabled,
+  });
+
+  return (
+    <Tooltip skipWrapper {...tooltipProps} title={title} disabled={!title}>
+      <StyledButton
+        aria-label={accessibleLabel}
+        aria-disabled={disabled}
+        disabled={disabled}
+        size={size}
+        type={type}
+        {...props}
+        onClick={handleClick}
+        role="button"
+      >
+        {props.priority !== 'link' && (
+          <InteractionStateLayer
+            higherOpacity={
+              props.priority && ['primary', 'danger'].includes(props.priority)
+            }
+          />
+        )}
+        <ButtonLabel size={size} borderless={props.borderless}>
+          {props.icon && (
+            <Icon size={size} hasChildren={hasChildren}>
+              <IconDefaultsProvider size={DO_NOT_USE_BUTTON_ICON_SIZES[size]}>
+                {props.icon}
+              </IconDefaultsProvider>
+            </Icon>
+          )}
+          {props.children}
+        </ButtonLabel>
+      </StyledButton>
+    </Tooltip>
+  );
+}
+
+export const StyledButton = styled('button')<ButtonProps>`
+  ${p =>
+    p.theme.isChonk
+      ? getChonkButtonStyles(p as any)
+      : DO_NOT_USE_getButtonStyles(p as any)}
+`;
+
+export const useButtonFunctionality = (props: ButtonProps | LinkButtonProps) => {
   // Fallbacking aria-label to string children is not necessary as screen
   // readers natively understand that scenario. Leaving it here for a bunch of
   // our tests that query by aria-label.
@@ -179,79 +223,6 @@ const useButtonFunctionality = (props: ButtonProps | LinkButtonProps) => {
   };
 };
 
-export function Button({
-  size = 'md',
-  disabled,
-  type = 'button',
-  tooltipProps,
-  ...props
-}: ButtonProps) {
-  const {handleClick, hasChildren, accessibleLabel} = useButtonFunctionality({
-    ...props,
-    type,
-    disabled,
-  });
-
-  return (
-    <Tooltip skipWrapper {...tooltipProps} title={props.title} disabled={!props.title}>
-      <StyledButton
-        aria-label={accessibleLabel}
-        aria-disabled={disabled}
-        disabled={disabled}
-        size={size}
-        type={type}
-        {...props}
-        onClick={handleClick}
-        role="button"
-      >
-        {props.priority !== 'link' && (
-          <InteractionStateLayer
-            higherOpacity={
-              props.priority && ['primary', 'danger'].includes(props.priority)
-            }
-          />
-        )}
-        <ButtonLabel size={size} borderless={props.borderless}>
-          {props.icon && (
-            <Icon size={size} hasChildren={hasChildren}>
-              <IconDefaultsProvider size={ICON_SIZES[size]}>
-                {props.icon}
-              </IconDefaultsProvider>
-            </Icon>
-          )}
-          {props.children}
-        </ButtonLabel>
-      </StyledButton>
-    </Tooltip>
-  );
-}
-
-interface StyledButtonPropsWithAriaLabel extends ButtonPropsWithoutAriaLabel {
-  theme: Theme;
-}
-interface StyledButtonPropsWithoutAriaLabel extends ButtonPropsWithAriaLabel {
-  theme: Theme;
-}
-
-type StyledButtonProps =
-  | StyledButtonPropsWithAriaLabel
-  | StyledButtonPropsWithoutAriaLabel;
-
-export const StyledButton = styled(
-  ({size: _size, title: _title, type, disabled, ...props}: ButtonProps) => {
-    return <button {...props} type={type} disabled={disabled} />;
-  },
-  {
-    shouldForwardProp: prop =>
-      prop === 'external' ||
-      prop === 'replace' ||
-      prop === 'preventScrollReset' ||
-      (typeof prop === 'string' && isPropValid(prop)),
-  }
-)<ButtonProps>`
-  ${p => (p.theme.isChonk ? getChonkButtonStyles(p as any) : getButtonStyles(p))}
-`;
-
 const getBoxShadow = ({
   priority,
   borderless,
@@ -259,7 +230,7 @@ const getBoxShadow = ({
   disabled,
   size,
   theme,
-}: StyledButtonProps | StyledLinkButtonProps): SerializedStyles => {
+}: (ButtonProps | LinkButtonProps) & {theme: Theme}): SerializedStyles => {
   if (disabled || borderless || priority === 'link') {
     return css`
       box-shadow: none;
@@ -288,7 +259,7 @@ const getColors = ({
   borderless,
   translucentBorder,
   theme,
-}: StyledButtonProps | StyledLinkButtonProps): SerializedStyles => {
+}: (ButtonProps | LinkButtonProps) & {theme: Theme}): SerializedStyles => {
   const themeName = disabled ? 'disabled' : priority || 'default';
   const {color, colorActive, background, border, borderActive, focusBorder, focusShadow} =
     theme.button[themeName];
@@ -362,7 +333,7 @@ const getSizeStyles = ({
   size = 'md',
   translucentBorder,
   theme,
-}: StyledButtonProps | StyledLinkButtonProps): SerializedStyles => {
+}: (ButtonProps | LinkButtonProps) & {theme: Theme}): SerializedStyles => {
   const buttonSize = size === 'zero' ? 'md' : size;
   const formStyles = theme.form[buttonSize];
   const buttonPadding = theme.buttonPadding[buttonSize];
@@ -386,7 +357,11 @@ const getSizeStyles = ({
   `;
 };
 
-function getButtonStyles(p: StyledButtonProps | StyledLinkButtonProps): SerializedStyles {
+// This should only be used by the different underlying button implementations
+// and not directly by consumers of the button component.
+export function DO_NOT_USE_getButtonStyles(
+  p: (ButtonProps | LinkButtonProps) & {theme: Theme}
+): SerializedStyles {
   return css`
     position: relative;
     display: inline-block;
@@ -451,97 +426,12 @@ const Icon = styled('span')<{hasChildren?: boolean; size?: ButtonProps['size']}>
   flex-shrink: 0;
 `;
 
-export interface LinkButtonProps
-  extends CommonButtonProps,
-    Omit<ElementProps<HTMLAnchorElement>, 'role'> {
-  download?: HTMLAnchorElement['download'];
-  external?: boolean;
-  href?: string;
-  preventScrollReset?: boolean;
-  replace?: boolean;
-  to?: string | LocationDescriptor;
-}
-
-export function LinkButton({
-  size = 'md',
-  to,
-  href,
-  disabled,
-  tooltipProps,
-  ...props
-}: LinkButtonProps) {
-  const {handleClick, hasChildren, accessibleLabel} = useButtonFunctionality({
-    ...props,
-    to,
-    href,
-    disabled,
-  });
-
-  return (
-    <Tooltip skipWrapper {...tooltipProps} title={props.title} disabled={!props.title}>
-      <StyledLinkButton
-        aria-label={accessibleLabel}
-        aria-disabled={disabled}
-        size={size}
-        href={disabled ? undefined : href}
-        to={disabled ? undefined : to}
-        disabled={disabled}
-        {...props}
-        onClick={handleClick}
-      >
-        {props.priority !== 'link' && (
-          <InteractionStateLayer
-            higherOpacity={
-              props.priority && ['primary', 'danger'].includes(props.priority)
-            }
-          />
-        )}
-        <ButtonLabel size={size} borderless={props.borderless}>
-          {props.icon && (
-            <Icon size={size} hasChildren={hasChildren}>
-              <IconDefaultsProvider size={ICON_SIZES[size]}>
-                {props.icon}
-              </IconDefaultsProvider>
-            </Icon>
-          )}
-          {props.children}
-        </ButtonLabel>
-      </StyledLinkButton>
-    </Tooltip>
-  );
-}
-
-interface StyledLinkButtonProps extends LinkButtonProps {
-  theme: Theme;
-}
-
-const StyledLinkButton = styled(
-  ({size: _size, title: _title, external, ...props}: LinkButtonProps) => {
-    if (props.to) {
-      return <Link {...props} to={props.to} role="button" />;
-    }
-
-    if (props.href) {
-      return (
-        <a
-          {...props}
-          {...(external ? {target: '_blank', rel: 'noreferrer noopener'} : {})}
-          role="button"
-        />
-      );
-    }
-
-    const {replace: _replace, preventScrollReset: _preventScrollReset, ...rest} = props;
-    // @ts-expect-error we are spreading anchor link props on a button
-    return <button {...rest} role="button" />;
-  },
-  {
-    shouldForwardProp: prop =>
-      prop === 'external' ||
-      prop === 'replace' ||
-      prop === 'preventScrollReset' ||
-      (typeof prop === 'string' && isPropValid(prop)),
-  }
-)<LinkButtonProps>`
-  ${p => (p.theme.isChonk ? getChonkButtonStyles(p as any) : getButtonStyles(p))}
-`;
+export const DO_NOT_USE_BUTTON_ICON_SIZES: Record<
+  NonNullable<BaseButtonProps['size']>,
+  SVGIconProps['size']
+> = {
+  zero: undefined,
+  xs: 'xs',
+  sm: 'sm',
+  md: 'sm',
+};

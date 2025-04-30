@@ -1,16 +1,16 @@
-import {type BaseButtonProps, Button} from 'sentry/components/core/button';
+import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 import type {DateNavigation} from './hooks/useDateNavigation';
 
-interface Props extends BaseButtonProps {
+type Props = Partial<ButtonProps> & {
   dateNavigation: DateNavigation;
   /**
    * Direction to navigate
    */
   direction: 'back' | 'forward';
-}
+};
 
 export function DateNavigator({direction, dateNavigation, ...props}: Props) {
   const isForward = direction === 'forward';

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import onboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 
 import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {useProjectPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectPreferences';
 import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
 import ExternalLink from 'sentry/components/links/externalLink';
