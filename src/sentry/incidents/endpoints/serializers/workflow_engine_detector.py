@@ -3,7 +3,6 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any, DefaultDict
 
 from django.contrib.auth.models import AnonymousUser
-from rest_framework import serializers
 
 from sentry.api.serializers import Serializer, serialize
 from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
@@ -75,13 +74,10 @@ class WorkflowEngineDetectorSerializer(Serializer):
             errors = []
             alert_rule_id = serialized.get("alertRuleId")
             assert alert_rule_id
-            detector = None
-            try:
-                detector = detectors[int(alert_rule_id)]  # keyerror here? this is my best guess
-            except KeyError:
-                raise serializers.ValidationError(
-                    "Just a desperate temp thing to see if this is where it's failing in CI"
-                )
+            detector_id = AlertRuleDetector.objects.values_list("detector_id", flat=True).get(
+                alert_rule_id=alert_rule_id
+            )
+            detector = detectors[int(detector_id)]
             alert_rule_triggers = result[detector].setdefault("triggers", [])
 
             for action in serialized.get("actions", []):
@@ -304,9 +300,16 @@ class WorkflowEngineDetectorSerializer(Serializer):
         return result
 
     def serialize(self, obj: Detector, attrs, user, **kwargs) -> AlertRuleSerializerResponse:
-        alert_rule_detector_id = AlertRuleDetector.objects.values_list(
-            "alert_rule_id", flat=True
-        ).get(detector=obj)
+        triggers = attrs.get("triggers", [])
+        alert_rule_detector_id = None
+
+        if triggers:
+            alert_rule_detector_id = triggers[0].get("alertRuleId")
+        else:
+            alert_rule_detector_id = AlertRuleDetector.objects.values_list(
+                "alert_rule_id", flat=True
+            ).get(detector=obj)
+
         data: AlertRuleSerializerResponse = {
             "id": str(alert_rule_detector_id),
             "name": obj.name,
@@ -321,7 +324,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             "timeWindow": attrs.get("timeWindow"),
             "resolution": attrs.get("resolution"),
             "thresholdPeriod": obj.config.get("thresholdPeriod"),
-            "triggers": attrs.get("triggers", []),
+            "triggers": triggers,
             "projects": sorted(attrs.get("projects", [])),
             "owner": attrs.get("owner", None),
             "dateModified": obj.date_updated,
