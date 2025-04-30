@@ -1,7 +1,6 @@
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import Redirect from 'sentry/components/redirect';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -22,14 +21,12 @@ export default function ErrorsOutagesPage(props: Props) {
   }
 
   return (
-    <SentryDocumentTitle title={TITLE} orgSlug={organization.slug}>
-      <IssueListContainer>
-        <PageFiltersContainer>
-          <NoProjectMessage organization={organization}>
-            <IssueListOverview {...props} initialQuery={QUERY} title={TITLE} />
-          </NoProjectMessage>
-        </PageFiltersContainer>
-      </IssueListContainer>
-    </SentryDocumentTitle>
+    <IssueListContainer title={TITLE}>
+      <PageFiltersContainer>
+        <NoProjectMessage organization={organization}>
+          <IssueListOverview {...props} initialQuery={QUERY} title={TITLE} />
+        </NoProjectMessage>
+      </PageFiltersContainer>
+    </IssueListContainer>
   );
 }
