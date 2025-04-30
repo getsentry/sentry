@@ -57,7 +57,7 @@ ingest_profiling_tasks = taskregistry.create_namespace(
     app_feature="profiles",
 )
 
-ingest_errors_tasks = taskregistry.create_namespace("ingest.errors")
+ingest_errors_tasks = taskregistry.create_namespace("ingest.errors", app_feature="errors")
 
 issues_tasks = taskregistry.create_namespace("issues", app_feature="issueplatform")
 
