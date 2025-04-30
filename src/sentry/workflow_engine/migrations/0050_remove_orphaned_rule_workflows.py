@@ -6,6 +6,7 @@ from django.db import migrations, router, transaction
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ def remove_orphaned_rule_workflows(apps: Apps, schema_editor: BaseDatabaseSchema
         rule_id__in=Rule.objects.all().values_list("id")
     )
 
-    for rule_workflow in orphaned_rule_workflow:
+    for rule_workflow in RangeQuerySetWrapper(orphaned_rule_workflow):
         with transaction.atomic(router.db_for_write(Workflow)):
             workflow = Workflow.objects.select_for_update().get(id=rule_workflow.workflow_id)
             _delete_workflow(workflow)
