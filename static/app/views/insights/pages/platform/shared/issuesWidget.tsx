@@ -302,13 +302,20 @@ const PanelContainer = styled(Panel)`
 `;
 
 const SuperHeaderLabel = styled(IssueStreamHeaderLabel)`
+  color: ${p => p.theme.headingColor};
+  font-size: 1rem;
+  line-height: 1.2;
   padding-left: ${space(1)};
   text-transform: capitalize;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const SuperHeader = styled(PanelHeader)`
-  background: ${p => p.theme.background};
+  background-color: ${p => p.theme.headerBackground};
   padding: ${space(1)};
+  position: sticky;
+  top: 0;
+  z-index: 1001;
 `;
 
 export function IssuesWidget({query = ''}: {query?: string}) {
