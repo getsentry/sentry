@@ -251,7 +251,10 @@ describe('Modals -> WidgetViewerModal', function () {
         await renderModal({initialData: initData, widget: mockWidget});
         expect(await screen.findByText('Edit Widget')).toBeInTheDocument();
         expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-        expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeDisabled();
+        expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
+          'aria-disabled',
+          'true'
+        );
       });
 
       it('renders updated table columns and orderby', async function () {
@@ -1026,7 +1029,10 @@ describe('Modals -> WidgetViewerModal', function () {
             widgetType: 'discover',
           },
         });
-        expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeDisabled();
+        expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
+          'aria-disabled',
+          'true'
+        );
 
         await userEvent.hover(screen.getByRole('button', {name: 'Open in Discover'}));
         expect(await screen.findByText(performanceScoreTooltip)).toBeInTheDocument();

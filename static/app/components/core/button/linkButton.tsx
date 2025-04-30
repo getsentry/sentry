@@ -57,10 +57,9 @@ export function LinkButton({
         aria-label={accessibleLabel}
         aria-disabled={disabled}
         size={size}
+        {...props}
         href={disabled ? undefined : 'href' in props ? props.href : undefined}
         to={disabled ? undefined : 'to' in props ? props.to : undefined}
-        disabled={disabled}
-        {...props}
         onClick={handleClick}
       >
         {props.priority !== 'link' && (
@@ -91,7 +90,7 @@ const StyledLinkButton = styled(
       return <Link {...props} to={props.to} role="button" />;
     }
 
-    if ('href' in props) {
+    if ('href' in props && props.href) {
       const {external, ...rest} = props;
       return (
         <a
@@ -102,8 +101,7 @@ const StyledLinkButton = styled(
       );
     }
 
-    // @ts-expect-error we are spreading anchor link props on a button
-    return <button {...props} role="button" />;
+    return <a {...props} role="button" />;
   },
   {
     shouldForwardProp: prop =>
