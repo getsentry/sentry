@@ -4,12 +4,13 @@ from dataclasses import asdict
 from datetime import datetime, timezone
 from typing import Any
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 from urllib.parse import urlencode, urlparse
 
 import orjson
 import pytest
 import responses
+from django.http import HttpResponse
 from django.urls import reverse
 
 import sentry
@@ -34,6 +35,7 @@ from sentry.integrations.source_code_management.repo_trees import RepoAndBranch,
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
+from sentry.pipeline import PipelineView
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.shared_integrations.exceptions import ApiError
@@ -234,7 +236,41 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 status=values["status_code"],
             )
 
+    def _setup_with_existing_installations(self):
+        self.installation_info = {
+            "installations": [
+                {
+                    "id": 1,
+                    "account": {
+                        "login": "santry",
+                        "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pitchforks.png",
+                    },
+                },
+                {
+                    "id": 2,
+                    "account": {
+                        "login": "bufo-bot",
+                        "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pog.png",
+                    },
+                },
+            ]
+        }
+        responses.add(
+            responses.GET,
+            f"{self.base_url}/user/installations",
+            json=self.installation_info,
+        )
+
+    def _setup_without_existing_installations(self):
+        responses.add(
+            responses.GET,
+            f"{self.base_url}/user/installations",
+            json={"installations": []},
+        )
+
     def assert_setup_flow(self):
+        self._setup_without_existing_installations()
+
         resp = self.client.get(self.init_path)
         assert resp.status_code == 302
         redirect = urlparse(resp["Location"])
@@ -243,15 +279,12 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert redirect.path == "/login/oauth/authorize"
         assert (
             redirect.query
-            == "client_id=github-client-id&state=9cae5e88803f35ed7970fc131e6e65d3&redirect_uri=http://testserver/extensions/github/setup/"
+            == f"client_id=github-client-id&state={self.pipeline.signature}&redirect_uri=http://testserver/extensions/github/setup/"
         )
-
         resp = self.client.get(
             "{}?{}".format(
                 self.setup_path,
-                urlencode(
-                    {"code": "12345678901234567890", "state": "9cae5e88803f35ed7970fc131e6e65d3"}
-                ),
+                urlencode({"code": "12345678901234567890", "state": self.pipeline.signature}),
             )
         )
         assert resp.status_code == 302
@@ -264,8 +297,8 @@ class GitHubIntegrationTest(IntegrationTestCase):
         resp = self.client.get(
             "{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
         )
-
-        auth_header = responses.calls[2].request.headers["Authorization"]
+        # Call to the Github installations/installation_id endpoint
+        auth_header = responses.calls[3].request.headers["Authorization"]
         assert auth_header == "Bearer jwt_token_1"
 
         self.assertDialogSuccess(resp)
@@ -327,71 +360,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_github_installed_on_another_org(self, mock_record):
-        self._stub_github()
-        # First installation should be successful
-        self.assert_setup_flow()
-
-        # Second installation attempt for same Github account should fail
-        self.organization_2 = self.create_organization(name="petal", owner=self.user)
-        # Use the same Github installation_id
-        self.init_path_2 = "{}?{}".format(
-            reverse(
-                "sentry-organization-integrations-setup",
-                kwargs={
-                    "organization_slug": self.organization_2.slug,
-                    "provider_id": self.provider.key,
-                },
-            ),
-            urlencode({"installation_id": self.installation_id}),
-        )
-        self.setup_path_2 = "{}?{}".format(
-            self.setup_path,
-            urlencode(
-                {"code": "12345678901234567890", "state": "9cae5e88803f35ed7970fc131e6e65d3"}
-            ),
-        )
-        mock_record.reset_mock()
-        with self.feature({"system:multi-region": True}):
-            resp = self.client.get(self.init_path_2)
-            resp = self.client.get(self.setup_path_2)
-            self.assertTemplateUsed(resp, "sentry/integrations/github-integration-failed.html")
-            assert (
-                b'{"success":false,"data":{"error":"Github installed on another Sentry organization."}}'
-                in resp.content
-            )
-            assert (
-                b"It seems that your GitHub account has been installed on another Sentry organization. Please uninstall and try again."
-                in resp.content
-            )
-            assert b'window.opener.postMessage({"success":false' in resp.content
-            assert (
-                f', "{generate_organization_url(self.organization_2.slug)}");'.encode()
-                in resp.content
-            )
-            assert_failure_metric(mock_record, GitHubInstallationError.INSTALLATION_EXISTS)
-
-        # Delete the Integration
-        integration = Integration.objects.get(external_id=self.installation_id)
-        for oi in OrganizationIntegration.objects.filter(
-            organization_id=self.organization.id, integration=integration
-        ):
-            oi.delete()
-        integration.delete()
-
-        # Try again and should be successful
-        resp = self.client.get(self.init_path_2)
-        resp = self.client.get(self.setup_path_2)
-
-        self.assertDialogSuccess(resp)
-        integration = Integration.objects.get(external_id=self.installation_id)
-        assert integration.provider == "github"
-        assert OrganizationIntegration.objects.filter(
-            organization_id=self.organization_2.id, integration=integration
-        ).exists()
-
-    @responses.activate
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_installation_not_found(self, mock_record):
         # Add a 404 for an org to responses
         responses.replace(
@@ -417,6 +385,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
     @override_options({"github-app.webhook-secret": ""})
     def test_github_user_mismatch(self, mock_record):
         self._stub_github()
+        self._setup_without_existing_installations()
 
         # Emulate GitHub installation
         init_path_1 = "{}?{}".format(
@@ -460,9 +429,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
         setup_path_2 = "{}?{}".format(
             self.setup_path,
-            urlencode(
-                {"code": "12345678901234567890", "state": "9cae5e88803f35ed7970fc131e6e65d3"}
-            ),
+            urlencode({"code": "12345678901234567890", "state": self.pipeline.signature}),
         )
         with self.feature({"system:multi-region": True}):
             resp = self.client.get(init_path_2)
@@ -714,7 +681,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                     urlencode(
                         {
                             "code": "12345678901234567890",
-                            "state": "9cae5e88803f35ed7970fc131e6e65d3",
+                            "state": self.pipeline.signature,
                         }
                     ),
                 )
@@ -745,9 +712,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         resp = self.client.get(
             "{}?{}".format(
                 self.setup_path,
-                urlencode(
-                    {"code": "12345678901234567890", "state": "9cae5e88803f35ed7970fc131e6e65d3"}
-                ),
+                urlencode({"code": "12345678901234567890", "state": self.pipeline.signature}),
             )
         )
         self.assertDialogSuccess(resp)
@@ -1194,3 +1159,182 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         integration = Integration.objects.get(id=integration_id)
         assert integration.metadata["account_id"] == 60591805
+
+    @responses.activate
+    @patch.object(PipelineView, "render_react_view", return_value=HttpResponse())
+    def test_github_installation_calls_ui(self, mock_render):
+        self._setup_with_existing_installations()
+        installations = [
+            {
+                "installation_id": 1,
+                "github_organization": "santry",
+                "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pitchforks.png",
+            },
+            {
+                "installation_id": 2,
+                "github_organization": "bufo-bot",
+                "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pog.png",
+            },
+            {
+                "installation_id": -1,
+                "github_organization": "Install integration on a new GitHub organization",
+                "avatar_url": "https://raw.githubusercontent.com/getsentry/sentry/526f08eeaafa3a830f70671ad473afd7b9b05a0f/src/sentry/static/sentry/images/logos/sentry-avatar.png",
+            },
+        ]
+
+        resp = self.client.get(self.init_path)
+        assert resp.status_code == 302
+        redirect = urlparse(resp["Location"])
+        assert redirect.scheme == "https"
+        assert redirect.netloc == "github.com"
+        assert redirect.path == "/login/oauth/authorize"
+        assert (
+            redirect.query
+            == f"client_id=github-client-id&state={self.pipeline.signature}&redirect_uri=http://testserver/extensions/github/setup/"
+        )
+        resp = self.client.get(
+            "{}?{}".format(
+                self.setup_path,
+                urlencode({"code": "12345678901234567890", "state": self.pipeline.signature}),
+            )
+        )
+        mock_render.assert_called_with(
+            request=ANY,
+            pipeline_name="githubInstallationSelect",
+            props={"installation_info": installations},
+        )
+
+    @responses.activate
+    def test_github_installation_stores_chosen_installation(self):
+        self._setup_with_existing_installations()
+        chosen_installation_id = 1
+
+        responses.add(
+            responses.GET,
+            f"{self.base_url}/app/installations/{chosen_installation_id}",
+            json={
+                "id": chosen_installation_id,
+                "app_id": self.app_id,
+                "account": {
+                    "id": chosen_installation_id,
+                    "login": "poggers-org",
+                    "avatar_url": "http://example.com/bufo-pog.png",
+                    "html_url": "https://github.com/pog-organization",
+                    "type": "Organization",
+                },
+            },
+        )
+
+        # Initiate the OAuthView
+        resp = self.client.get(self.init_path)
+        assert resp.status_code == 302
+        redirect = urlparse(resp["Location"])
+        assert redirect.scheme == "https"
+        assert redirect.netloc == "github.com"
+        assert redirect.path == "/login/oauth/authorize"
+        assert (
+            redirect.query
+            == f"client_id=github-client-id&state={self.pipeline.signature}&redirect_uri=http://testserver/extensions/github/setup/"
+        )
+
+        # We just got resp. from GH, continue with OAuthView -> GithubOrganizationSelection
+        resp = self.client.get(
+            "{}?{}".format(
+                self.setup_path,
+                urlencode({"code": "12345678901234567890", "state": self.pipeline.signature}),
+            )
+        )
+        assert resp.status_code == 200
+
+        # We rendered the GithubOrganizationSelection UI and the user chose an installation
+        resp = self.client.get(
+            "{}?{}".format(
+                self.setup_path,
+                urlencode(
+                    {
+                        "code": "12345678901234567890",
+                        "state": self.pipeline.signature,
+                        "chosen_installation_id": chosen_installation_id,
+                    }
+                ),
+            )
+        )
+
+        assert resp.status_code == 200
+        auth_header = responses.calls[3].request.headers["Authorization"]
+        assert auth_header == "Bearer jwt_token_1"
+        assert (
+            responses.calls[3].request.url
+            == f"https://api.github.com/app/installations/{chosen_installation_id}"
+        )
+
+        self.assertDialogSuccess(resp)
+
+        # Affirm OrganizationIntegration is created
+        integration = Integration.objects.get(external_id=chosen_installation_id)
+        assert integration.provider == "github"
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id, integration=integration
+        ).exists()
+
+    @responses.activate
+    def test_github_installation_skips_chosen_installation(self):
+        self._setup_with_existing_installations()
+
+        # Initiate the OAuthView
+        resp = self.client.get(self.init_path)
+        assert resp.status_code == 302
+        redirect = urlparse(resp["Location"])
+        assert redirect.scheme == "https"
+        assert redirect.netloc == "github.com"
+        assert redirect.path == "/login/oauth/authorize"
+        assert (
+            redirect.query
+            == f"client_id=github-client-id&state={self.pipeline.signature}&redirect_uri=http://testserver/extensions/github/setup/"
+        )
+
+        # We just got resp. from GH, continue with OAuthView -> GithubOrganizationSelection
+        resp = self.client.get(
+            "{}?{}".format(
+                self.setup_path,
+                urlencode({"code": "12345678901234567890", "state": self.pipeline.signature}),
+            )
+        )
+        assert resp.status_code == 200
+
+        # We rendered the GithubOrganizationSelection UI and the user chose to skip
+        resp = self.client.get(
+            "{}?{}".format(
+                self.setup_path,
+                urlencode(
+                    {
+                        "code": "12345678901234567890",
+                        "state": self.pipeline.signature,
+                        "chosen_installation_id": -1,
+                    }
+                ),
+            )
+        )
+        # GitHubInstallation redirects user to GH to choose a new organization
+        assert resp.status_code == 302
+
+        # Send to GitHubInstallation the chosen organization
+        resp = self.client.get(
+            "{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
+        )
+
+        auth_header = responses.calls[3].request.headers["Authorization"]
+        assert auth_header == "Bearer jwt_token_1"
+        assert (
+            responses.calls[3].request.url
+            == f"https://api.github.com/app/installations/{self.installation_id}"
+        )
+
+        self.assertDialogSuccess(resp)
+
+        # Affirm OrganizationIntegration is created
+        integration = Integration.objects.get(external_id=self.installation_id)
+        assert integration.provider == "github"
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id, integration=integration
+        ).exists()

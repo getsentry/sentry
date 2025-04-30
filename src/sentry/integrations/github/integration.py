@@ -571,7 +571,6 @@ class OAuthLoginView(PipelineView):
 
             # similar to OAuth2CallbackView.exchange_token
             req = safe_urlopen(url=ghip.get_oauth_access_token_url(), data=data)
-
             try:
                 body = safe_urlread(req).decode("utf-8")
                 payload = dict(parse_qsl(body))
@@ -587,16 +586,17 @@ class OAuthLoginView(PipelineView):
                 )
 
             authenticated_user_info = get_user_info(payload["access_token"])
-
-            resp = get_user_info_installations(payload["access_token"])
+            installed_orgs = get_user_info_installations(payload["access_token"])
             installation_info = [
                 {
                     "installation_id": installation.get("id"),
                     "github_organization": installation.get("account").get("login"),
                     "avatar_url": installation.get("account").get("avatar_url"),
                 }
-                for installation in resp["installations"]
+                for installation in installed_orgs["installations"]
             ]
+            pipeline.bind_state("existing_installation_info", installation_info)
+
             if "login" not in authenticated_user_info:
                 lifecycle.record_failure(GitHubInstallationError.MISSING_LOGIN)
                 return error(
@@ -604,9 +604,6 @@ class OAuthLoginView(PipelineView):
                     self.active_organization,
                     error_short=GitHubInstallationError.MISSING_LOGIN,
                 )
-
-            pipeline.bind_state("existing_installation_info", installation_info)
-
             pipeline.bind_state("github_authenticated_user", authenticated_user_info["login"])
             return pipeline.next_step()
 
@@ -622,7 +619,6 @@ class GitHubInstallation(PipelineView):
             if chosen_installation is not None:
                 pipeline.bind_state("installation_id", chosen_installation)
                 return pipeline.next_step()
-
             installation_id = request.GET.get(
                 "installation_id", pipeline.fetch_state("installation_id")
             )
@@ -678,6 +674,11 @@ class GitHubInstallation(PipelineView):
 
 class GithubOrganizationSelection(PipelineView):
     def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+        installation_info = pipeline.fetch_state("existing_installation_info")
+
+        if len(installation_info) == 0:
+            return pipeline.next_step()
+
         if "chosen_installation_id" in request.GET:
             chosen_installation_id = request.GET["chosen_installation_id"]
             if chosen_installation_id == "-1":
@@ -685,8 +686,6 @@ class GithubOrganizationSelection(PipelineView):
 
             pipeline.bind_state("chosen_installation", chosen_installation_id)
             return pipeline.next_step()
-
-        installation_info = pipeline.fetch_state("existing_installation_info")
 
         # add an option for users to install on a new GH organization
         installation_info.append(
@@ -696,7 +695,8 @@ class GithubOrganizationSelection(PipelineView):
                 "avatar_url": "https://raw.githubusercontent.com/getsentry/sentry/526f08eeaafa3a830f70671ad473afd7b9b05a0f/src/sentry/static/sentry/images/logos/sentry-avatar.png",
             }
         )
-
         return self.render_react_view(
-            request, "githubInstallationSelect", {"installation_info": installation_info}
+            request=request,
+            pipeline_name="githubInstallationSelect",
+            props={"installation_info": installation_info},
         )
