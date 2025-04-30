@@ -148,7 +148,7 @@ export function SeerSectionCtaButton({
 
   const getButtonText = () => {
     if (aiConfig.needsGenAiAcknowledgement) {
-      return t('Set Up Autofix');
+      return t('Set Up Seer');
     }
 
     if (!aiConfig.hasAutofix) {
