@@ -1,10 +1,12 @@
-import {Fragment, useCallback, useEffect} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Client} from 'sentry/api';
 import {Button} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import {IconPlay, IconUser} from 'sentry/icons';
@@ -14,9 +16,11 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
+import type {RecordingFrame} from 'sentry/utils/replays/types';
 import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -181,6 +185,151 @@ function GroupReplaysTableInner({
 
 const locationForFetching = {query: {}} as Location<ReplayListLocationQuery>;
 
+const RRWEB_TYPES = {
+  0: 'DOM Content Loaded',
+  1: 'DOM Load',
+  2: 'DOM Full Snapshot',
+  3: 'DOM Incremental Snapshot',
+  4: 'Replay Meta',
+  5: 'Replay Custom',
+  6: 'Replay Plugin',
+} as const;
+
+function HackweekAIButton({
+  replays,
+  group,
+}: {
+  group: Group;
+  replays: ReplayListRecord[] | undefined;
+}) {
+  const [isBusy, setIsBusy] = useState(false);
+  const orgSlug = useOrganization().slug;
+  const api = new Client();
+
+  const handleDownload = useCallback(async () => {
+    async function* processReplays(replays: ReplayListRecord[]) {
+      let index = 0;
+
+      while (index < (replays?.length ?? 0)) {
+        // while (true) {
+        // const replay = generator.next().value;
+        const replay = replays?.[index++];
+        if (!replay) break;
+        // for (const replay of replays) {
+        try {
+          const response = await api.requestPromise(
+            `/projects/${orgSlug}/${group.project.slug}/replays/${replay.id}/recording-segments/`,
+            {includeAllArgs: true}
+          );
+
+          const [responseData, , jqXHR] = response;
+          const pageLinks = jqXHR?.getResponseHeader('Link');
+          const paginationObject = (pageLinks && parseLinkHeader(pageLinks)) || {};
+          const hasMorePages = paginationObject?.next?.results ?? false;
+
+          // Skip replays with pagination
+          if (hasMorePages) return;
+
+          const frames = (responseData as RecordingFrame[][]).flat().filter(
+            ({type, data}) => type === 5 && data.tag !== 'options'
+            // (data.tag === 'breadcrumb' || data.payload.op?.startsWith('navigation'))
+            // !['ui.blur', 'ui.focus'].includes(data.payload.category))
+          );
+
+          const cleaned = JSON.parse(
+            JSON.stringify(
+              frames.map(({type, data}) =>
+                type === 5
+                  ? data.tag === 'breadcrumb'
+                    ? {
+                        ...data.payload,
+                        timestamp: data.payload.timestamp * 1000,
+                      }
+                    : {
+                        startTimestamp: data.payload.startTimestamp * 1000,
+                        endTimestamp: data.payload.endTimestamp * 1000,
+                        url: data.payload.description.replace(orgSlug, ':organization'),
+                        op: data.payload.op,
+                      }
+                  : {
+                      op: RRWEB_TYPES[type],
+                      ...data,
+                    }
+              )
+            ).replaceAll(orgSlug, ':organization')
+          );
+          console.log(responseData, replay.id);
+
+          yield cleaned;
+        } catch (error) {
+          return;
+        }
+      }
+    }
+
+    setIsBusy(true);
+    const results = [];
+    if (!replays) {
+      console.log('no replays');
+      return;
+    }
+
+    for await (const result of processReplays(replays)) {
+      if (result) {
+        results.push(result);
+      }
+      if (results.length >= 5) break; // Stop once we have 3 valid results
+    }
+
+    const resultString = `I have several users that are all hitting the same Javascript exception.
+These users actions are being recorded with our Session Replay product which records the DOM mutations
+that occur as they navigate our application, as well as additional breadcrumbs of what they do:
+like clicking and navigations.
+
+Can you analyze this data to try to find the user behavior or actions that lead to this exception? I am looking for commonalities in all users. If the exception is not in the breadcrumbs, assume that it happens after the events that are included below.
+
+Below are the events in JSON for some of our users.
+
+
+${results
+  .map(
+    (result, index) => `User ${index + 1}:
+
+\`\`\`json
+${JSON.stringify(result)}
+\`\`\`
+
+`
+  )
+  .join('\n\n')}`;
+
+    // Process and download results
+    // const resultString = JSON.stringify(results);
+    const blob = new Blob([resultString], {type: 'text/plain'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ai-prompt-${group.id}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setIsBusy(false);
+  }, [api, group, orgSlug, replays]);
+
+  return (
+    <Button
+      busy={isBusy}
+      disabled={!replays}
+      aria-label="Download AI Prompt"
+      onClick={handleDownload}
+    >
+      <div style={{display: 'flex', alignItems: 'center', gap: space(1)}}>
+        {isBusy ? <LoadingIndicator style={{margin: 0}} size={12} /> : ''} Download AI
+        Prompt
+      </div>
+    </Button>
+  );
+}
+
 function GroupReplaysTable({
   eventView,
   organization,
@@ -296,18 +445,21 @@ function GroupReplaysTable({
       <ReplayHeader>
         <ReplayFilterMessage />
         <ReplayCountHeader>
-          <IconUser size="sm" />
-          {(replayCount ?? 0) > 50
-            ? tn(
-                'There are 50+ replays for this issue across %s event',
-                'There are 50+ replays for this issue across %s events',
-                group.count
-              )
-            : t(
-                'There %s for this issue across %s.',
-                tn('is %s replay', 'are %s replays', replayCount ?? 0),
-                tn('%s event', '%s events', group.count)
-              )}
+          <div style={{flex: 1}}>
+            <IconUser size="sm" />
+            {(replayCount ?? 0) > 50
+              ? tn(
+                  'There are 50+ replays for this issue across %s event',
+                  'There are 50+ replays for this issue across %s events',
+                  group.count
+                )
+              : t(
+                  'There %s for this issue across %s.',
+                  tn('is %s replay', 'are %s replays', replayCount ?? 0),
+                  tn('%s event', '%s events', group.count)
+                )}
+          </div>
+          <HackweekAIButton replays={replays} group={group} />
         </ReplayCountHeader>
       </ReplayHeader>
       {inner}
