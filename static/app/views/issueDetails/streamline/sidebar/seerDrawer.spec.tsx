@@ -105,7 +105,7 @@ describe('SeerDrawer', () => {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/setup/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
         setupAcknowledgement: {
           orgHasAcknowledged: true,
@@ -136,7 +136,7 @@ describe('SeerDrawer', () => {
 
   it('renders consent state if not consented', async () => {
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/setup/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
         setupAcknowledgement: {
           orgHasAcknowledged: false,
@@ -193,7 +193,7 @@ describe('SeerDrawer', () => {
 
   it('renders GitHub integration setup notice when missing GitHub integration', async () => {
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/setup/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
         setupAcknowledgement: {
           orgHasAcknowledged: true,
@@ -253,7 +253,7 @@ describe('SeerDrawer', () => {
 
   it('hides ButtonBarWrapper when AI consent is needed', async () => {
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/setup/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
         setupAcknowledgement: {
           orgHasAcknowledged: false,
@@ -284,7 +284,7 @@ describe('SeerDrawer', () => {
   it('shows ButtonBarWrapper but hides Start Over button when hasAutofix is false', async () => {
     // Mock AI consent as okay but no autofix capability
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/setup/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
         setupAcknowledgement: {
           orgHasAcknowledged: true,
@@ -328,7 +328,7 @@ describe('SeerDrawer', () => {
   it('shows ButtonBarWrapper with disabled Start Over button when hasAutofix is true but no autofixData', async () => {
     // Mock everything as ready for autofix but no data
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/setup/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
         setupAcknowledgement: {
           orgHasAcknowledged: true,
@@ -361,7 +361,7 @@ describe('SeerDrawer', () => {
   it('shows ButtonBarWrapper with enabled Start Over button when hasAutofix and autofixData are both true', async () => {
     // Mock everything as ready with existing autofix data
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/setup/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
         setupAcknowledgement: {
           orgHasAcknowledged: true,
@@ -442,7 +442,7 @@ describe('SeerDrawer', () => {
 
   it('shows setup instructions when GitHub integration setup is needed', async () => {
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/setup/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
         setupAcknowledgement: {
           orgHasAcknowledged: true,
@@ -481,7 +481,7 @@ describe('SeerDrawer', () => {
 
   it('does not render SeerNotices when all repositories are readable', async () => {
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/setup/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
         setupAcknowledgement: {
           orgHasAcknowledged: true,
@@ -510,7 +510,7 @@ describe('SeerDrawer', () => {
 
   it('renders warning for unreadable GitHub repository', async () => {
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/setup/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
         setupAcknowledgement: {
           orgHasAcknowledged: true,
@@ -540,7 +540,7 @@ describe('SeerDrawer', () => {
 
   it('renders warning for unreadable non-GitHub repository', async () => {
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/setup/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
         setupAcknowledgement: {
           orgHasAcknowledged: true,
