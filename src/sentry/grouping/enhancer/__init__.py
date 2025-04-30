@@ -125,6 +125,10 @@ def get_hint_for_frame(
     incoming_hint = frame_component.hint
     use_rust_hint = True
 
+    if variant_name == "app":
+        default_hint = "non app frame" if not frame_component.in_app else frame_component.hint
+        incoming_hint = default_hint
+
     # Prevent clobbering an existing hint with no hint
     if rust_hint is None:
         use_rust_hint = False
