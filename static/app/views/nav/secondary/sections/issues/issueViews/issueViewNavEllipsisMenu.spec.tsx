@@ -29,6 +29,8 @@ describe('IssueViewNavEllipsisMenu', () => {
     lastVisited: null,
     createdBy: UserFixture(),
     stars: 1,
+    dateCreated: '2025-04-25',
+    dateUpdated: '2025-04-25',
   };
 
   const defaultProps: IssueViewNavEllipsisMenuProps = {
@@ -77,7 +79,6 @@ describe('IssueViewNavEllipsisMenu', () => {
     const user = userEvent.setup();
 
     render(<IssueViewNavEllipsisMenu {...defaultProps} view={mockView} />, {
-      enableRouterMocks: false,
       initialRouterConfig: {
         route: '/organizations/:orgId/issues/views/:viewId/',
         location: {

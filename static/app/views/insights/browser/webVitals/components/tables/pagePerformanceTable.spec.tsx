@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
@@ -26,22 +27,7 @@ describe('PagePerformanceTable', function () {
   beforeEach(function () {
     jest.mocked(useLocation).mockReturnValue(router.location);
 
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [],
-      },
-    });
+    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
     ProjectsStore.loadInitialData([
       ProjectFixture({
@@ -102,7 +88,9 @@ describe('PagePerformanceTable', function () {
       ...router.location,
       query: {query: '/issues/*'},
     });
-    render(<PagePerformanceTable />, {router, organization});
+    render(<PagePerformanceTable />, {
+      organization,
+    });
     await waitFor(() => {
       expect(eventsMock).toHaveBeenCalledTimes(1);
     });
@@ -117,7 +105,9 @@ describe('PagePerformanceTable', function () {
   });
 
   it('renders a list of pages', async function () {
-    render(<PagePerformanceTable />, {router, organization});
+    render(<PagePerformanceTable />, {
+      organization,
+    });
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 

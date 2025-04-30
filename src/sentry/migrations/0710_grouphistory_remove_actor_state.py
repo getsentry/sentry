@@ -3,6 +3,7 @@
 from django.db import migrations
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -20,8 +21,6 @@ class Migration(CheckedMigration):
 
     is_post_deployment = False
 
-    allow_run_sql = True
-
     dependencies = [
         ("sentry", "0709_alertrule_remove_owner_state"),
     ]
@@ -30,12 +29,13 @@ class Migration(CheckedMigration):
         # Remove the foreign key constraint from schema and remove the field from django metadata
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql="""
                     ALTER TABLE "sentry_grouphistory" DROP CONSTRAINT IF EXISTS "sentry_grouphistory_actor_id_085453d6_fk_sentry_actor_id"
                     """,
                     reverse_sql="",
                     hints={"tables": ["sentry_grouphistory"]},
+                    use_statement_timeout=False,
                 )
             ],
             state_operations=[

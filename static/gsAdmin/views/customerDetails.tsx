@@ -49,21 +49,24 @@ import DetailsPage from 'admin/components/detailsPage';
 import ForkCustomerAction from 'admin/components/forkCustomer';
 import triggerEndPeriodEarlyModal from 'admin/components/nextBillingPeriodAction';
 import triggerProvisionSubscription from 'admin/components/provisionSubscriptionAction';
+import refundVercelRequest from 'admin/components/refundVercelRequestModal';
 import SelectableContainer from 'admin/components/selectableContainer';
 import SendWeeklyEmailAction from 'admin/components/sendWeeklyEmailAction';
 import SponsorshipAction from 'admin/components/sponsorshipAction';
 import SuspendAccountAction from 'admin/components/suspendAccountAction';
-import testVercelApiEndpoint from 'admin/components/testVCApiEndpoints';
 import toggleSpendAllocationModal from 'admin/components/toggleSpendAllocationModal';
 import TrialSubscriptionAction from 'admin/components/trialSubscriptionAction';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
-import type {BillingConfig, DataCategories, Subscription} from 'getsentry/types';
+import type {BillingConfig, Subscription} from 'getsentry/types';
 import {
   hasActiveVCFeature,
   isBizPlanFamily,
   isUnlimitedReserved,
 } from 'getsentry/utils/billing';
-import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
+import {
+  getCategoryInfoFromPlural,
+  getPlanCategoryName,
+} from 'getsentry/utils/dataCategory';
 
 const DEFAULT_ERROR_MESSAGE = 'Unable to update the customer account';
 
@@ -140,17 +143,22 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
             data.planDetails.onDemandCategories.includes(category)
         )
         .map(category => {
-          const reserved = data.categories?.[category as DataCategories]?.reserved;
+          const reserved = data.categories?.[category]?.reserved;
           const isUnlimited = isUnlimitedReserved(reserved);
           const isReservedBudgetQuota = reserved === RESERVED_BUDGET_QUOTA;
 
           // Check why categories are disabled
-          const categoryNotExists = !data.categories?.[category as DataCategories];
+          const categoryNotExists = !data.categories?.[category];
+          const categoryInfo = getCategoryInfoFromPlural(category);
+
+          const isGiftable =
+            categoryInfo?.maxAdminGift && categoryInfo.freeEventsMultiple;
 
           return [
             category,
             {
-              disabled: categoryNotExists || isUnlimited || isReservedBudgetQuota,
+              disabled:
+                categoryNotExists || isUnlimited || isReservedBudgetQuota || !isGiftable,
               displayName: getPlanCategoryName({
                 plan: data.planDetails,
                 category,
@@ -159,6 +167,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
               }),
               isUnlimited,
               isReservedBudgetQuota,
+              categoryInfo,
             },
           ];
         })
@@ -702,7 +711,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
             ...Object.entries(this.giftCategories).map<ActionItem>(
               ([
                 dataCategory,
-                {displayName, disabled, isUnlimited, isReservedBudgetQuota},
+                {displayName, disabled, isUnlimited, isReservedBudgetQuota, categoryInfo},
               ]) => ({
                 key: `gift-${dataCategory}`,
                 name: `Gift ${displayName}`,
@@ -716,6 +725,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
                 confirmModalOpts: {
                   renderModalSpecificContent: deps => (
                     <AddGiftEventsAction
+                      billedCategoryInfo={categoryInfo}
                       dataCategory={dataCategory as DataCategory}
                       subscription={data}
                       {...deps}
@@ -764,13 +774,13 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
                 }),
             },
             {
-              key: 'testVercelApi',
-              name: 'Test Vercel API',
-              help: 'Send API requests to Vercel',
+              key: 'refundVercel',
+              name: 'Vercel Refund',
+              help: 'Send request to Vercel to initiate a refund for a given invoice.',
               skipConfirmModal: true,
               visible: data.isSelfServePartner && hasActiveVCFeature(organization),
               onAction: () =>
-                testVercelApiEndpoint({
+                refundVercelRequest({
                   onSuccess: () => this.reloadData(),
                   subscription: data,
                 }),

@@ -24,7 +24,7 @@ export default function CacheMissRateChartWidget(props: LoadableChartWidgetProps
     <InsightsLineChartWidget
       {...props}
       id="cacheMissRateChartWidget"
-      title={DataTitles[`cache_miss_rate()`]}
+      title={DataTitles[`${CACHE_MISS_RATE}()`]}
       series={[data[`${CACHE_MISS_RATE}()`]]}
       isLoading={isPending}
       error={error}

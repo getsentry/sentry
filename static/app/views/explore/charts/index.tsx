@@ -29,7 +29,10 @@ import type {
   Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
-import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {
+  SAMPLING_MODE,
+  type SamplingMode,
+} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {CHART_HEIGHT, INGESTION_DELAY} from 'sentry/views/explore/settings';
 import {
@@ -200,16 +203,34 @@ export function ExploreCharts({
           );
 
           if (chartInfo.loading) {
+            const loadingMessage =
+              organization.features.includes(
+                'visibility-explore-progressive-loading-normal-sampling-mode'
+              ) &&
+              timeseriesResult.isFetching &&
+              samplingMode === SAMPLING_MODE.HIGH_ACCURACY
+                ? t(
+                    "Hey, we're gonna try scanning all data we can to get your query answered so just wait a bit more"
+                  )
+                : undefined;
             return (
               <Widget
                 key={index}
                 height={CHART_HEIGHT}
                 Title={Title}
-                Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
+                Visualization={
+                  <TimeSeriesWidgetVisualization.LoadingPlaceholder
+                    loadingMessage={loadingMessage}
+                    expectMessage
+                  />
+                }
                 revealActions="always"
                 Footer={
                   organization.features.includes(
                     'visibility-explore-progressive-loading'
+                  ) &&
+                  !organization.features.includes(
+                    'visibility-explore-progressive-loading-normal-sampling-mode'
                   ) && (
                     <WidgetExtrapolationFooter
                       samplingMode={undefined}

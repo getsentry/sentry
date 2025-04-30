@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
+from datetime import datetime
 from typing import Any
 
 from django.urls import reverse
@@ -116,7 +117,9 @@ def _webhook_event_data(
     # The URL has a regex OR in it ("|") which means `reverse` cannot generate
     # a valid URL (it can't know which option to pick). We have to manually
     # create this URL for, that reason.
-    event_context["issue_url"] = absolute_uri(f"/api/0/issues/{group_id}/")
+    event_context["issue_url"] = absolute_uri(
+        f"/api/0/organizations/{organization.slug}/issues/{group_id}/"
+    )
     event_context["issue_id"] = str(group_id)
     return event_context
 
@@ -317,8 +320,12 @@ def _process_resource_change(
             else:
                 data[name] = serialize(instance)
 
-            for installation in installations:
+            # Datetimes need to be string cast for task payloads.
+            for date_key in ("datetime", "firstSeen", "lastSeen"):
+                if date_key in data[name] and isinstance(data[name][date_key], datetime):
+                    data[name][date_key] = data[name][date_key].isoformat()
 
+            for installation in installations:
                 if _is_project_allowed(installation, instance.project_id):
                     # Trigger a new task for each webhook
                     send_resource_change_webhook.delay(
