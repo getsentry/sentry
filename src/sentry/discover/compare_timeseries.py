@@ -320,7 +320,7 @@ def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
     organization = Organization.objects.get_from_cache(id=project.organization_id)
 
     sentry_sdk.set_tag("organization", organization.slug)
-    sentry_sdk.set_extra("alert_id", alert_rule.id)
+    sentry_sdk.set_tag("alert_id", alert_rule.id)
 
     on_demand_metrics_enabled = features.has(
         "organizations:on-demand-metrics-extraction",
