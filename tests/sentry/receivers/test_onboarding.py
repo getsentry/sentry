@@ -99,7 +99,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             project_id=project.id,
         )
 
-        event_processed.send(project=project, event=event, sender=self)
+        event_processed.send(project=project, event=event, sender=None)
 
         task = OrganizationOnboardingTask.objects.get(
             organization=project.organization,
