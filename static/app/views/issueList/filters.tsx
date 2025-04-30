@@ -123,7 +123,7 @@ const StyledPageFilterBar = styled(PageFilterBar)`
 
 const SortSaveContainer = styled('div')`
   display: flex;
-  align-items: center;
+  align-items: start;
   gap: ${space(1)};
   grid-area: sort-save;
 
