@@ -145,19 +145,25 @@ class OAuthTokenView(View):
             return {"error": "invalid_grant", "reason": "invalid redirect URI"}
 
         try:
-            token_data = {"token": ApiToken.from_grant(grant=grant)}
+            id_token = None
+            if grant.has_scope("openid") and options.get("codecov.signing_secret"):
+                open_id_token = OpenIDToken(
+                    request.POST.get("client_id"),
+                    grant.user_id,
+                    options.get("codecov.signing_secret"),
+                    nonce=request.POST.get("nonce"),
+                )
+                id_token = open_id_token.get_signed_id_token(grant=grant)
+
+            token = ApiToken.from_grant(grant=grant)
+            token_data = {"token": token}
+
+            if id_token:
+                token_data["id_token"] = id_token
+
         except UnableToAcquireLock:
             # TODO(mdtro): we should return a 409 status code here
             return {"error": "invalid_grant", "reason": "invalid grant"}
-
-        if grant.has_scope("openid") and options.get("codecov.signing_secret"):
-            open_id_token = OpenIDToken(
-                request.POST.get("client_id"),
-                grant.user_id,
-                options.get("codecov.signing_secret"),
-                nonce=request.POST.get("nonce"),
-            )
-            token_data["id_token"] = open_id_token.get_signed_id_token(grant=grant)
 
         return token_data
 
