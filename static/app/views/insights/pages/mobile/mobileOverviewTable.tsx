@@ -51,11 +51,6 @@ type Column = GridColumnHeader<
 
 const COLUMN_ORDER: Column[] = [
   {
-    key: 'is_starred_transaction',
-    name: t('Starred'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
     key: 'transaction',
     name: t('Transaction'),
     width: COL_WIDTH_UNDEFINED,
