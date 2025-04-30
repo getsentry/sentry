@@ -23,9 +23,7 @@ COMPARISON_DELTA_CHOICES.append(None)
 
 @dataclass
 class MetricIssueEvidenceData(EvidenceData):
-    detector_id: int
     alert_id: int
-    data_condition_ids: list[int]
 
 
 class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate]):

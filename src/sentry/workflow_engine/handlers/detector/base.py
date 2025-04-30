@@ -20,6 +20,8 @@ T = TypeVar("T")
 @dataclass
 class EvidenceData(Generic[T]):
     value: T
+    detector_id: int
+    data_condition_ids: list[int]
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
