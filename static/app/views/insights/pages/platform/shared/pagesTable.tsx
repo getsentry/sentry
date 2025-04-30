@@ -1,4 +1,5 @@
-import {Fragment, memo, useCallback, useMemo} from 'react';
+import {Fragment, memo, useCallback, useEffect, useMemo, useRef} from 'react';
+import {useNavigate} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -20,7 +21,6 @@ import type {QueryValue} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
@@ -71,7 +71,6 @@ const getOrderBy = (field: string, order: 'asc' | 'desc') => {
 
 const PER_PAGE = 10;
 
-// Revert to static default column order
 const defaultColumnOrder: Array<GridColumnOrder<SortableField>> = [
   {key: 'transaction', name: t('Page'), width: COL_WIDTH_UNDEFINED},
   {key: 'count(span.duration)', name: t('Page Views'), width: 122},
@@ -80,7 +79,6 @@ const defaultColumnOrder: Array<GridColumnOrder<SortableField>> = [
 ];
 
 function isSortField(value: string): value is SortableField {
-  // Check against the defaultColumnOrder keys
   return defaultColumnOrder.some(column => column.key === value);
 }
 
@@ -116,12 +114,38 @@ interface PagesTableProps {
   spanOperationFilter: 'pageload' | 'navigation';
 }
 
+const CURSOR_PARAM_NAMES: Record<PagesTableProps['spanOperationFilter'], string> = {
+  pageload: 'pageloadCursor',
+  navigation: 'navigationCursor',
+};
+
 export function PagesTable({spanOperationFilter}: PagesTableProps) {
   const organization = useOrganization();
   const location = useLocation();
-  const router = useRouter();
+  const navigate = useNavigate();
   const pageFilterChartParams = usePageFilterChartParams();
   const {sortField, sortOrder} = useTableSortParams();
+  const currentCursorParamName = CURSOR_PARAM_NAMES[spanOperationFilter];
+  const prevSpanOperationFilterRef = useRef(spanOperationFilter);
+
+  useEffect(() => {
+    const prevFilter = prevSpanOperationFilterRef.current;
+    if (prevFilter !== spanOperationFilter) {
+      const prevCursorParamName = CURSOR_PARAM_NAMES[prevFilter];
+      if (location.query[prevCursorParamName]) {
+        const {[prevCursorParamName]: _removedCursor, ...restQuery} = location.query;
+        navigate({
+          pathname: location.pathname,
+          search: new URLSearchParams(
+            Object.entries(restQuery).filter(([, value]) => value !== undefined) as Array<
+              [string, string]
+            >
+          ).toString(),
+        });
+      }
+    }
+    prevSpanOperationFilterRef.current = spanOperationFilter;
+  }, [spanOperationFilter, location.query, location.pathname, navigate]);
 
   const spansRequest = useApiQuery<SpansQueryResponse>(
     [
@@ -143,7 +167,7 @@ export function PagesTable({spanOperationFilter}: PagesTableProps) {
           orderby: getOrderBy(sortField, sortOrder),
           useRpc: 1,
           per_page: PER_PAGE,
-          cursor: location.query.pagesCursor,
+          cursor: location.query[currentCursorParamName],
           sampling: 'BEST_EFFORT',
         },
       },
@@ -198,9 +222,14 @@ export function PagesTable({spanOperationFilter}: PagesTableProps) {
       <Pagination
         pageLinks={pagesTablePageLinks}
         onCursor={(cursor, path, currentQuery) => {
-          router.push({
+          const nextQuery = {...currentQuery, [currentCursorParamName]: cursor};
+          navigate({
             pathname: path,
-            query: {...currentQuery, pagesCursor: cursor},
+            search: new URLSearchParams(
+              Object.entries(nextQuery).filter(
+                ([, value]) => value !== undefined
+              ) as Array<[string, string]>
+            ).toString(),
           });
         }}
       />
