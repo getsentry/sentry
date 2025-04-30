@@ -1,4 +1,5 @@
 import {type Theme, useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
@@ -7,6 +8,7 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -182,7 +184,7 @@ export function BackendOverviewTable({response, sort}: Props) {
 
 function renderPrependColumns(isHeader: boolean, row?: Row | undefined) {
   if (isHeader) {
-    return [<IconStar key="star" color="yellow300" isSolid />];
+    return [<StyledIconStar key="star" color="yellow300" isSolid />];
   }
 
   if (!row) {
@@ -229,3 +231,7 @@ function renderBodyCell(
     theme,
   });
 }
+
+export const StyledIconStar = styled(IconStar)`
+  margin-left: ${space(0.25)};
+`;
