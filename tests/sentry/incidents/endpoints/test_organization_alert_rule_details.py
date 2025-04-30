@@ -950,6 +950,29 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         # resolve threshold changes to the warning threshold
         assert_dual_written_resolution_threshold_equals(alert_rule, new_threshold)
 
+    @with_feature("organizations:workflow-engine-metric-alert-dual-write")
+    def test_dual_update_resolve_all_triggers_removed_and_recreated(self):
+        """
+        If a PUT request is made via the API and the trigger IDs are not specified in the
+        request (as is usually the case), then the triggers + their actions are deleted and
+        recreated. Make sure that we can update the resolution threshold accordingly
+        in this case.
+        """
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        test_params = self.valid_params.copy()
+        test_params["resolve_threshold"] = None
+        test_params["triggers"][0]["alertThreshold"] = 300
+        test_params["triggers"][1]["alertThreshold"] = 50
+
+        with self.feature("organizations:incidents"), outbox_runner():
+            self.get_success_response(self.organization.slug, self.alert_rule.id, **test_params)
+
+        # resolve threshold changes to the warning threshold
+        assert_dual_written_resolution_threshold_equals(self.alert_rule, 50)
+
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
