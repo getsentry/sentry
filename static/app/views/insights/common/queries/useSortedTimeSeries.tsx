@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import omit from 'lodash/omit';
 
 import type {
   EventsStats,
@@ -103,7 +104,7 @@ export const useSortedTimeSeries = <
     location,
     orgSlug: organization.slug,
     getRequestPayload: () => ({
-      ...eventView.getEventsAPIPayload(location),
+      ...omit(eventView.getEventsAPIPayload(location), 'cursor'),
       yAxis: eventView.yAxis,
       topEvents: eventView.topEvents,
       excludeOther: 0,
