@@ -537,7 +537,9 @@ class _Table extends Component<Props, State> {
             </TeamKeyTransactionWrapper>
           );
           return [
-            this.renderHeadCell(tableData?.meta, teamKeyTransactionColumn, {title: star}),
+            this.renderHeadCell(tableData?.meta, teamKeyTransactionColumn, {
+              title: star,
+            }) as any,
           ];
         }
         return [this.renderBodyCell(tableData, teamKeyTransactionColumn, dataRow)];
@@ -643,8 +645,9 @@ class _Table extends Component<Props, State> {
                               tableData?.meta
                             ) as any,
                             renderBodyCell: this.renderBodyCellWithData(tableData) as any,
-                            renderPrependColumns:
-                              this.renderPrependCellWithData(tableData),
+                            renderPrependColumns: this.renderPrependCellWithData(
+                              tableData
+                            ) as any,
                             prependColumnWidths,
                           }}
                         />
