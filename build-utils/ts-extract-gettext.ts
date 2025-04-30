@@ -1,15 +1,12 @@
-import fs from 'node:fs';
+import fs from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {resolve} from 'node:path'; // Added for module check
 
-import {globSync} from 'tinyglobby';
+import {glob} from 'tinyglobby';
 import ts from 'typescript';
 import {po} from 'gettext-parser';
-import type {
-  GetTextComment,
-  GetTextTranslation,
-  GetTextTranslations,
-} from 'gettext-parser';
+import type {GetTextTranslation, GetTextTranslations} from 'gettext-parser';
 
 /**
  * Strips indentation from multi-line strings, particularly template literals.
@@ -32,16 +29,7 @@ function stripIndent(str: string | null | undefined): string {
   return (indent > 0 ? str.replace(regexp, '') : str).trim();
 }
 
-// --- Configuration ---
-const OUTPUT_FILE = 'build/javascript.po';
-const BASE_DIRECTORY = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const SOURCE_FILES_PATTERN = 'static/**/*.{js,jsx,ts,tsx}';
-const EXCLUDE_PATTERN = '**/node_modules/**';
-
-// Define a type for the function argument names
-type ArgName = 'msgid' | 'domain' | 'msgid_plural' | 'count' | 'msgctxt';
-
-const FUNCTION_NAMES: Record<string, ArgName[]> = {
+const FUNCTION_NAMES: Record<string, string[]> = {
   gettext: ['msgid'],
   dgettext: ['domain', 'msgid'],
   ngettext: ['msgid', 'msgid_plural', 'count'],
@@ -57,21 +45,22 @@ const FUNCTION_NAMES: Record<string, ArgName[]> = {
   tct: ['msgid'],
 };
 
-const DEFAULT_HEADERS: Record<string, string> = {
-  'content-type': 'text/plain; charset=UTF-8',
-  'plural-forms': 'nplurals=2; plural=(n!=1)',
-};
-
-const STRIP_TEMPLATE_LITERAL_INDENT = true;
-
 function getTsScriptKind(filePath: string): ts.ScriptKind {
   const ext = path.extname(filePath).toLowerCase();
-  if (ext === '.tsx') return ts.ScriptKind.TSX;
-  if (ext === '.ts') return ts.ScriptKind.TS;
-  if (ext === '.jsx') return ts.ScriptKind.JSX;
-  if (ext === '.js') return ts.ScriptKind.JS;
-  if (ext === '.json') return ts.ScriptKind.JSON;
-  return ts.ScriptKind.Unknown;
+  switch (ext) {
+    case '.tsx':
+      return ts.ScriptKind.TSX;
+    case '.ts':
+      return ts.ScriptKind.TS;
+    case '.jsx':
+      return ts.ScriptKind.JSX;
+    case '.js':
+      return ts.ScriptKind.JS;
+    case '.json':
+      return ts.ScriptKind.JSON;
+    default:
+      return ts.ScriptKind.Unknown;
+  }
 }
 
 function getTranslatorCommentFromTsNode(
@@ -102,187 +91,209 @@ function getTranslatorCommentFromTsNode(
   return comments.length > 0 ? comments.join(`\n`) : null;
 }
 
-function ensureDirectoryExistence(filePath: string): void {
-  const dirname = path.dirname(filePath);
-  if (fs.existsSync(dirname)) {
-    return;
-  }
-  ensureDirectoryExistence(dirname);
-  try {
-    fs.mkdirSync(dirname);
-  } catch (err) {
-    if (err.code !== 'EEXIST') {
-      throw err;
-    }
-  }
-}
+function extractTranslationsFromFileContent(
+  filePath: string,
+  code: string,
+  gettextData: GetTextTranslations, // Modified in place
+  nplurals: number,
+  baseDirectory: string
+): void {
+  const relativePath = path.relative(baseDirectory, filePath);
+  const sourceFile = ts.createSourceFile(
+    path.basename(filePath),
+    code,
+    ts.ScriptTarget.Latest,
+    true, // setParentNodes
+    getTsScriptKind(filePath)
+  );
 
-const gettextData: GetTextTranslations = {
-  charset: 'UTF-8',
-  headers: DEFAULT_HEADERS,
-  translations: {'': {}},
-};
+  const visit = (node: ts.Node) => {
+    if (ts.isCallExpression(node)) {
+      let funcName: string | null = null;
 
-const pluralFormsHeader = gettextData.headers['plural-forms'] || '';
-const npluralsMatch = pluralFormsHeader.match(/nplurals\\s*=\\s*(\\d+)/);
-const nplurals = npluralsMatch ? parseInt(npluralsMatch[1], 10) : 2;
-
-console.log(`Starting gettext extraction...`);
-console.log(`Base directory: ${BASE_DIRECTORY}`);
-console.log(`Output file: ${OUTPUT_FILE}`);
-
-const files = globSync(SOURCE_FILES_PATTERN, {
-  cwd: BASE_DIRECTORY,
-  absolute: true,
-  ignore: [EXCLUDE_PATTERN],
-  onlyFiles: true,
-});
-
-console.log(`Found ${files.length} files to process.`);
-let filesProcessed = 0;
-
-files.forEach(filePath => {
-  const relativePath = path.relative(BASE_DIRECTORY, filePath);
-  try {
-    const code = fs.readFileSync(filePath, 'utf8');
-    const sourceFile = ts.createSourceFile(
-      path.basename(filePath),
-      code,
-      ts.ScriptTarget.Latest,
-      true, // setParentNodes
-      getTsScriptKind(filePath)
-    );
-
-    const visit = (node: ts.Node) => {
-      if (ts.isCallExpression(node)) {
-        let funcName: string | null = null;
-        const expression = node.expression;
-
-        if (ts.isIdentifier(expression)) {
-          funcName = expression.text;
-        } else if (
-          ts.isPropertyAccessExpression(expression) &&
-          ts.isIdentifier(expression.name)
-        ) {
-          funcName = expression.name.text;
-        }
-
-        if (funcName && FUNCTION_NAMES.hasOwnProperty(funcName)) {
-          const functionArgsInfo = FUNCTION_NAMES[funcName];
-          const translate: Partial<GetTextTranslation> = {
-            msgid: '',
-            msgstr: [''], // Initialize msgstr
-          };
-
-          for (let i = 0; i < functionArgsInfo.length; i++) {
-            const name = functionArgsInfo[i];
-            const argNode = node.arguments[i];
-
-            if (!argNode) continue;
-
-            if (name === 'msgid' || name === 'msgid_plural' || name === 'msgctxt') {
-              let value: string | null = null;
-              if (
-                ts.isStringLiteral(argNode) ||
-                ts.isNoSubstitutionTemplateLiteral(argNode)
-              ) {
-                value = argNode.text;
-              }
-
-              if (value !== null) {
-                if (STRIP_TEMPLATE_LITERAL_INDENT && name !== 'msgctxt') {
-                  value = stripIndent(value);
-                }
-                translate[name] = value;
-              }
-            }
-          }
-
-          if (typeof translate.msgid !== 'string' || !translate.msgid) {
-            return;
-          }
-
-          if (translate.msgid_plural) {
-            translate.msgstr = Array(nplurals).fill('');
-          }
-
-          const {line} = sourceFile.getLineAndCharacterOfPosition(
-            node.getStart(sourceFile)
-          );
-          translate.comments = translate.comments || {};
-          (translate.comments as GetTextComment).reference = `${relativePath}:${
-            line + 1
-          }`;
-
-          let translatorComment = getTranslatorCommentFromTsNode(node, sourceFile);
-          if (!translatorComment && node.parent) {
-            translatorComment = getTranslatorCommentFromTsNode(node.parent, sourceFile);
-          }
-
-          if (translatorComment) {
-            (translate.comments as GetTextComment).translator = translatorComment;
-          }
-
-          const msgctxt = translate.msgctxt || '';
-          const currentContext = (gettextData.translations[msgctxt] =
-            gettextData.translations[msgctxt] || {});
-
-          const finalTranslateEntry = translate as GetTextTranslation;
-
-          if (currentContext[finalTranslateEntry.msgid]) {
-            const existingEntry = currentContext[finalTranslateEntry.msgid];
-            const newRef = finalTranslateEntry.comments?.reference;
-            if (newRef) {
-              let currentRefs = (existingEntry.comments?.reference || '')
-                .split(`\n`)
-                .filter(Boolean);
-              if (!currentRefs.includes(newRef)) {
-                currentRefs.push(newRef);
-                if (!existingEntry.comments) existingEntry.comments = {};
-                existingEntry.comments.reference = currentRefs.sort().join(`\n`);
-              }
-            }
-            if (
-              translate.comments?.translator &&
-              !existingEntry.comments?.translator?.includes(translate.comments.translator)
-            ) {
-              if (!existingEntry.comments) existingEntry.comments = {};
-              existingEntry.comments.translator =
-                (existingEntry.comments.translator
-                  ? existingEntry.comments.translator + `\n`
-                  : '') + translate.comments.translator;
-            }
-          } else {
-            currentContext[finalTranslateEntry.msgid] = finalTranslateEntry;
-          }
-        }
+      if (ts.isIdentifier(node.expression)) {
+        funcName = node.expression.text;
+      } else if (
+        ts.isPropertyAccessExpression(node.expression) &&
+        ts.isIdentifier(node.expression.name)
+      ) {
+        funcName = node.expression.name.text;
       }
 
-      ts.forEachChild(node, visit);
-    };
+      if (funcName && FUNCTION_NAMES.hasOwnProperty(funcName)) {
+        const functionArgsInfo = FUNCTION_NAMES[funcName];
+        const translate: Partial<GetTextTranslation> & {comments?: any} = {
+          // Adjusted type for comments
+          msgid: '',
+          msgstr: [''],
+        };
 
-    visit(sourceFile);
-    filesProcessed++;
-  } catch (error: unknown) {
-    console.error(
-      `Error processing file ${relativePath} with TypeScript API:`,
-      error instanceof Error ? error.message : String(error)
-    );
-  }
-});
+        for (let i = 0; i < functionArgsInfo.length; i++) {
+          const name = functionArgsInfo[i];
+          const argNode = node.arguments[i];
 
-try {
+          if (!argNode) {
+            continue;
+          }
+
+          if (name === 'msgid' || name === 'msgid_plural' || name === 'msgctxt') {
+            let value: string | null = null;
+            if (
+              ts.isStringLiteral(argNode) ||
+              ts.isNoSubstitutionTemplateLiteral(argNode)
+            ) {
+              value = argNode.text;
+            }
+
+            if (value !== null) {
+              if (name !== 'msgctxt') {
+                value = stripIndent(value);
+              }
+              translate[name] = value;
+            }
+          }
+        }
+
+        if (typeof translate.msgid !== 'string' || !translate.msgid) {
+          return;
+        }
+
+        if (translate.msgid_plural) {
+          translate.msgstr = Array(nplurals).fill('');
+        }
+
+        const {line} = sourceFile.getLineAndCharacterOfPosition(
+          node.getStart(sourceFile)
+        );
+        translate.comments = translate.comments || {};
+        translate.comments.reference = `${relativePath}:${line + 1}`;
+
+        let translatorComment = getTranslatorCommentFromTsNode(node, sourceFile);
+        if (!translatorComment && node.parent) {
+          translatorComment = getTranslatorCommentFromTsNode(node.parent, sourceFile);
+        }
+
+        if (translatorComment) {
+          translate.comments.translator = translatorComment;
+        }
+
+        const msgctxt = translate.msgctxt ?? '';
+        const currentContext = (gettextData.translations[msgctxt] =
+          gettextData.translations[msgctxt] ?? {});
+
+        const finalTranslateEntry = translate as GetTextTranslation;
+
+        if (currentContext[finalTranslateEntry.msgid]) {
+          const existingEntry = currentContext[finalTranslateEntry.msgid];
+          const newRef = finalTranslateEntry.comments?.reference;
+          if (newRef) {
+            let currentRefs = (existingEntry.comments?.reference || '')
+              .split(`\n`)
+              .filter(Boolean);
+            if (!currentRefs.includes(newRef)) {
+              currentRefs.push(newRef);
+              if (!existingEntry.comments) {
+                existingEntry.comments = {};
+              }
+              existingEntry.comments.reference = currentRefs.sort().join(`\n`);
+            }
+          }
+          if (
+            translate.comments?.translator &&
+            !existingEntry.comments?.translator?.includes(translate.comments.translator)
+          ) {
+            if (!existingEntry.comments) {
+              existingEntry.comments = {};
+            }
+            existingEntry.comments.translator =
+              (existingEntry.comments.translator
+                ? existingEntry.comments.translator + `\n`
+                : '') + translate.comments.translator;
+          }
+        } else {
+          currentContext[finalTranslateEntry.msgid] = finalTranslateEntry;
+        }
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+}
+
+const OUTPUT_FILE = 'build/javascript.po';
+const BASE_DIRECTORY = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+
+async function getFilesToProcess() {
+  const files = await glob('static/**/*.{js,jsx,ts,tsx}', {
+    cwd: BASE_DIRECTORY,
+    absolute: true,
+    ignore: ['**/node_modules/**'],
+    onlyFiles: true,
+  });
+  console.log(`Found ${files.length.toLocaleString()} files to process`);
+  return files;
+}
+
+async function main() {
+  const gettextData: GetTextTranslations = {
+    charset: 'UTF-8',
+    headers: {
+      'content-type': 'text/plain; charset=UTF-8',
+      'plural-forms': 'nplurals=2; plural=(n!=1)',
+    },
+    translations: {'': {}},
+  };
+
+  const pluralFormsHeader = gettextData.headers['plural-forms'] || '';
+  const npluralsMatch = pluralFormsHeader.match(/nplurals\s*=\s*(\d+)/);
+  const nplurals = npluralsMatch ? parseInt(npluralsMatch[1], 10) : 2;
+
+  const files = await getFilesToProcess();
+
+  const processFile = async (filePath: string) => {
+    try {
+      const code = await fs.readFile(filePath, 'utf8');
+      extractTranslationsFromFileContent(
+        filePath,
+        code,
+        gettextData,
+        nplurals,
+        BASE_DIRECTORY
+      );
+    } catch (error: unknown) {
+      const relativePath = path.relative(BASE_DIRECTORY, filePath);
+      console.error(
+        `Error processing file ${relativePath} with TypeScript API:`,
+        error instanceof Error ? error.message : String(error)
+      );
+    }
+  };
+
+  await Promise.all(files.map(processFile));
+
   const outputFilePath = path.resolve(BASE_DIRECTORY, OUTPUT_FILE);
-  ensureDirectoryExistence(outputFilePath);
   const compiledPoBuffer = po.compile(gettextData, {sort: true});
-  fs.writeFileSync(outputFilePath, compiledPoBuffer, 'utf8');
+  await fs.writeFile(outputFilePath, compiledPoBuffer, 'utf8');
 
-  console.log(`Successfully wrote translations to ${OUTPUT_FILE}`);
-  console.log(`Processed ${filesProcessed} out of ${files.length} files.`);
-} catch (error: unknown) {
-  console.error(
-    `Error writing output file ${OUTPUT_FILE}:`,
-    error instanceof Error ? error.message : String(error)
-  );
-  process.exit(1);
+  const numberOfTranslations = Object.keys(gettextData.translations['']).length;
+  return numberOfTranslations;
+}
+
+// Only run main() if the script is executed directly
+const currentFilePath = fileURLToPath(import.meta.url);
+const scriptPath = resolve(process.argv[1]);
+
+if (currentFilePath === scriptPath) {
+  main()
+    .then(numberOfTranslations => {
+      console.log(
+        `Successfully wrote ${numberOfTranslations.toLocaleString()} translations to ${OUTPUT_FILE}`
+      );
+    })
+    .catch(err => {
+      console.error('An unexpected error occurred:', err);
+      process.exit(1);
+    });
 }
