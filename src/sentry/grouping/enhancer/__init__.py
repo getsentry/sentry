@@ -118,12 +118,23 @@ def get_hint_for_frame(
     Determine a hint to use for the frame, handling special-casing and precedence.
     """
     frame_type = "in-app" if frame_component.in_app else "system"
+    client_in_app = get_path(frame, "data", "client_in_app")
+    rust_in_app = frame["in_app"]
     rust_hint = rust_frame.hint
     rust_hint_type = (
         None if rust_hint is None else "in-app" if rust_hint.startswith("marked") else "contributes"
     )
     incoming_hint = frame_component.hint
     use_rust_hint = True
+
+    if variant_name == "app":
+        default_hint = "non app frame" if not frame_component.in_app else frame_component.hint
+        client_in_app_hint = (
+            f"marked {"in-app" if client_in_app else "out of app"} by the client"
+            if client_in_app is not None
+            else None
+        )
+        incoming_hint = client_in_app_hint or default_hint
 
     # Prevent clobbering an existing hint with no hint
     if rust_hint is None:
@@ -137,6 +148,12 @@ def get_hint_for_frame(
     # Similarly, we don't need hints about marking frames in or out of app in the system stacktrace
     # because such changes don't actually have an effect there
     elif variant_name == "system" and rust_hint_type == "in-app":
+        use_rust_hint = False
+
+    # We don't want the rust enhancer taking credit for changing things if we know the value didn't
+    # actually change. (This only happens with in-app hints, not contributes hints, because of the
+    # weird (a.k.a. wrong) second condition in the rust enhancer's version of `in_app_changed`.)
+    elif variant_name == "app" and rust_hint_type == "in-app" and rust_in_app == client_in_app:
         use_rust_hint = False
 
     return rust_hint if use_rust_hint else incoming_hint
