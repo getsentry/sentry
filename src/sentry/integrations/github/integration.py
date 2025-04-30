@@ -18,6 +18,7 @@ from sentry.constants import ObjectStatus
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.identity.github.provider import (
     GitHubIdentityProvider,
+    get_organization_memberships_for_user,
     get_user_info,
     get_user_info_installations,
 )
@@ -586,15 +587,11 @@ class OAuthLoginView(PipelineView):
                 )
 
             authenticated_user_info = get_user_info(payload["access_token"])
-            installed_orgs = get_user_info_installations(payload["access_token"])
-            installation_info = [
-                {
-                    "installation_id": installation.get("id"),
-                    "github_organization": installation.get("account").get("login"),
-                    "avatar_url": installation.get("account").get("avatar_url"),
-                }
-                for installation in installed_orgs["installations"]
-            ]
+            owner_orgs = get_owner_github_organizations(access_token=payload["access_token"])
+
+            installation_info = get_eligible_multi_org_installations(
+                access_token=payload["access_token"], owner_orgs=owner_orgs
+            )
             pipeline.bind_state("existing_installation_info", installation_info)
 
             if "login" not in authenticated_user_info:
@@ -606,6 +603,33 @@ class OAuthLoginView(PipelineView):
                 )
             pipeline.bind_state("github_authenticated_user", authenticated_user_info["login"])
             return pipeline.next_step()
+
+
+def get_owner_github_organizations(access_token: str) -> list[str]:
+    user_org_membership_details = get_organization_memberships_for_user(access_token)
+
+    return [
+        gh_org.get("organization", {}).get("login")
+        for gh_org in user_org_membership_details
+        if (
+            gh_org.get("role", "").lower() == "owner"
+            and gh_org.get("state", "").lower() == "active"
+        )
+    ]
+
+
+def get_eligible_multi_org_installations(access_token: str, owner_orgs: list[str]) -> list[str]:
+    installed_orgs = get_user_info_installations(access_token)
+
+    return [
+        {
+            "installation_id": installation.get("id"),
+            "github_organization": installation.get("account").get("login"),
+            "avatar_url": installation.get("account").get("avatar_url"),
+        }
+        for installation in installed_orgs["installations"]
+        if installation.get("account").get("login") in owner_orgs
+    ]
 
 
 class GitHubInstallation(PipelineView):
