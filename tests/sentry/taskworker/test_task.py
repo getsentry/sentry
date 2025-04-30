@@ -1,4 +1,5 @@
 import datetime
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -109,6 +110,31 @@ def test_delay_taskrunner_immediate_mode(task_namespace: TaskNamespace) -> None:
     assert calls[0] == {"args": ("arg",), "kwargs": {"org_id": 1}}
     assert calls[1] == {"args": ("arg2",), "kwargs": {"org_id": 2}}
     assert calls[2] == {"args": tuple(), "kwargs": {}}
+
+
+def test_delay_taskrunner_immediate_validate_activation(task_namespace: TaskNamespace) -> None:
+    calls = []
+
+    def test_func(mixed: Any) -> None:
+        calls.append({"mixed": mixed})
+
+    task = Task(
+        name="test.test_func",
+        func=test_func,
+        namespace=task_namespace,
+    )
+
+    with TaskRunner():
+        task.delay(mixed=None)
+        task.delay(mixed="str")
+
+        with pytest.raises(TypeError) as err:
+            task.delay(mixed=datetime.timedelta(days=1))
+            assert "not JSON serializable" in str(err)
+
+    assert len(calls) == 2
+    assert calls[0] == {"mixed": None}
+    assert calls[1] == {"mixed": "str"}
 
 
 def test_should_retry(task_namespace: TaskNamespace) -> None:
