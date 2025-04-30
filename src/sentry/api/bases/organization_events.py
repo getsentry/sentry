@@ -666,8 +666,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             )
             if is_equation(query_column):
                 equations += 1
-            self.update_meta_with_accuracy(meta, event_result, query_column)
-            result[columns[index]]["meta"] = meta
+            column_meta = meta.copy()
+            self.update_meta_with_accuracy(column_meta, event_result, query_column)
+            result[columns[index]]["meta"] = column_meta
         # Set order if multi-axis + top events
         if "order" in event_result.data:
             result["order"] = event_result.data["order"]
