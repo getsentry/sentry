@@ -147,8 +147,8 @@ export function ProjectInstallPlatform({
     return (
       <Redirect
         to={makeProjectsPathname({
+          path: `/new/`,
           orgSlug: organization.slug,
-          path: '/new/',
         })}
       />
     );
