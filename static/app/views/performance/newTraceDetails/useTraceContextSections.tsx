@@ -15,11 +15,13 @@ export function useTraceContextSections({
 }) {
   const hasProfiles = tree.type === 'trace' && tree.profiled_events.size > 0;
   const hasLogs = logs && logs?.length > 0;
-  const hasTags = isTraceItemDetailsResponse(rootEventResults.data)
-    ? rootEventResults.data.attributes.length > 0
-    : rootEventResults.data &&
-      rootEventResults.data.tags.length > 0 &&
-      !(tree.type === 'empty' && hasLogs); // We don't show tags for only logs trace views
+  const hasOnlyLogs = tree.type === 'empty' && hasLogs;
+
+  const hasTags = hasOnlyLogs
+    ? false // We don't show tags for only logs trace views
+    : isTraceItemDetailsResponse(rootEventResults.data)
+      ? rootEventResults.data.attributes.length > 0
+      : rootEventResults.data && rootEventResults.data.tags.length > 0;
 
   const allowedVitals = Object.keys(VITAL_DETAILS);
   const hasVitals = Array.from(tree.vitals.values()).some(vitalGroup =>

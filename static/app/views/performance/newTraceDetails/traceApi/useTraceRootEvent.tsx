@@ -7,7 +7,10 @@ import {
   type TraceItemDetailsResponse,
   useTraceItemDetails,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
-import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import {
+  OurLogKnownFieldKey,
+  type OurLogsResponseItem,
+} from 'sentry/views/explore/logs/types';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getRepresentativeTraceEvent} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {TRACE_FORMAT_PREFERENCE_KEY} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
@@ -34,7 +37,20 @@ export function useTraceRootEvent({
     TRACE_FORMAT_PREFERENCE_KEY,
     'non-eap'
   );
-  const enabledBase = tree.type === 'trace' && !!rep && !!rep.event && !!traceId;
+
+  // TODO: This is a bit of a mess, we won't need all of this once we switch to EAP only
+  const treeIsLoading = tree.type === 'loading';
+  const hasOnlyLogs = tree.type === 'empty' && logs && logs.length > 0;
+  const enabledBase =
+    !treeIsLoading &&
+    (tree.type === 'trace' || hasOnlyLogs) &&
+    !!rep &&
+    !!rep.event &&
+    !!traceId;
+  const isEAPEnabled =
+    (organization.features.includes('trace-spans-format') &&
+      storedTraceFormat === 'eap') ||
+    (!treeIsLoading && hasOnlyLogs);
 
   const legacyRootEvent = useApiQuery<EventTransaction>(
     [
@@ -47,18 +63,29 @@ export function useTraceRootEvent({
     ],
     {
       staleTime: 0,
-      enabled: enabledBase && storedTraceFormat === 'non-eap',
+      enabled: enabledBase && !isEAPEnabled,
     }
   );
 
+  const projectId = rep.event
+    ? OurLogKnownFieldKey.PROJECT_ID in rep.event
+      ? rep.event[OurLogKnownFieldKey.PROJECT_ID]
+      : rep.event.project_id
+    : '';
+  const eventId = rep.event
+    ? OurLogKnownFieldKey.ID in rep.event
+      ? rep.event[OurLogKnownFieldKey.ID]
+      : rep.event.event_id
+    : '';
+
   const rootEvent = useTraceItemDetails({
-    traceItemId: String(rep?.event?.event_id),
-    projectId: String(rep?.event?.project_id),
+    traceItemId: String(eventId),
+    projectId: String(projectId),
     traceId,
     traceItemType: rep?.type === 'log' ? TraceItemDataset.LOGS : TraceItemDataset.SPANS,
     referrer: 'api.explore.log-item-details',
-    enabled: enabledBase && storedTraceFormat === 'eap',
+    enabled: enabledBase && isEAPEnabled,
   });
 
-  return storedTraceFormat === 'eap' ? rootEvent : legacyRootEvent;
+  return isEAPEnabled ? rootEvent : legacyRootEvent;
 }

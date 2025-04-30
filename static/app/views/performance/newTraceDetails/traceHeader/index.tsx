@@ -59,14 +59,14 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
     return <PlaceHolder organization={props.organization} traceSlug={props.traceSlug} />;
   }
 
-  const representativeEvent = getRepresentativeTraceEvent(props.tree, props.logs);
-  const project = representativeEvent
-    ? OurLogKnownFieldKey.PROJECT_ID in representativeEvent
-      ? projects.find(p => {
-          return p.id === representativeEvent[OurLogKnownFieldKey.PROJECT_ID];
-        })
-      : projects.find(p => p.slug === representativeEvent?.event?.project_slug)
-    : undefined;
+  const rep = getRepresentativeTraceEvent(props.tree, props.logs);
+  const project = projects.find(p => {
+    const id =
+      rep.event && OurLogKnownFieldKey.PROJECT_ID in rep.event
+        ? rep.event[OurLogKnownFieldKey.PROJECT_ID]
+        : rep.event?.project_id;
+    return p.id === String(id);
+  });
 
   return (
     <TraceHeaderComponents.HeaderLayout>
@@ -91,15 +91,12 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
           </ButtonBar>
         </TraceHeaderComponents.HeaderRow>
         <TraceHeaderComponents.HeaderRow>
-          <Title
-            representativeEvent={representativeEvent}
-            rootEventResults={props.rootEventResults}
-          />
+          <Title representativeEvent={rep} rootEventResults={props.rootEventResults} />
           <Meta
             organization={props.organization}
             tree={props.tree}
             meta={props.metaResults.data}
-            representativeEvent={representativeEvent}
+            representativeEvent={rep}
             logs={props.logs}
           />
         </TraceHeaderComponents.HeaderRow>

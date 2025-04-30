@@ -2,7 +2,6 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
@@ -32,13 +31,19 @@ function Projects({projects, logs, tree}: Props) {
 
   const projectSlugs = useMemo(() => {
     if (logs && logs.length > 0 && tree.shape === TraceShape.EMPTY_TRACE) {
-      // Create a map of project IDs to slugs once
+      // Get unique project slugs in a single pass
       const projectIdToSlug = new Map(projects.map(p => [p.id, p.slug]));
+      const uniqueSlugs = new Set<string>();
 
-      // Get unique project IDs and map to slugs in one pass
-      return Array.from(
-        new Set(logs.map(log => projectIdToSlug.get(log[OurLogKnownFieldKey.PROJECT_ID])))
-      ).filter(defined);
+      for (const log of logs) {
+        const projectId = String(log[OurLogKnownFieldKey.PROJECT_ID]);
+        const slug = projectIdToSlug.get(projectId);
+        if (slug) {
+          uniqueSlugs.add(slug);
+        }
+      }
+
+      return Array.from(uniqueSlugs);
     }
 
     // If there are no logs, or the trace is not empty, use the projects from the tree
