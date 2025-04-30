@@ -89,6 +89,7 @@ class SettingsNavigation extends Component<Props> {
           hooks={hooks}
           hookConfigs={hookConfigs}
           stickyTop={stickyTop}
+          organization={organization}
           {...otherProps}
         />
       );
