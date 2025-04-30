@@ -118,6 +118,7 @@ def get_hint_for_frame(
     Determine a hint to use for the frame, handling special-casing and precedence.
     """
     frame_type = "in-app" if frame_component.in_app else "system"
+    client_in_app = get_path(frame, "data", "client_in_app")
     rust_hint = rust_frame.hint
     rust_hint_type = (
         None if rust_hint is None else "in-app" if rust_hint.startswith("marked") else "contributes"
@@ -127,7 +128,12 @@ def get_hint_for_frame(
 
     if variant_name == "app":
         default_hint = "non app frame" if not frame_component.in_app else frame_component.hint
-        incoming_hint = default_hint
+        client_in_app_hint = (
+            f"marked {"in-app" if client_in_app else "out of app"} by the client"
+            if client_in_app is not None
+            else None
+        )
+        incoming_hint = client_in_app_hint or default_hint
 
     # Prevent clobbering an existing hint with no hint
     if rust_hint is None:
