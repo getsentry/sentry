@@ -402,6 +402,12 @@ class PerformanceNPlusOneAPICallsExperimentalGroupType(GroupType):
 
 @dataclass(frozen=True)
 class PerformanceMNPlusOneDBQueriesGroupType(PerformanceGroupTypeDefaults, GroupType):
+    """
+    This group type is only used for fingerprinting MN+1 DB Performance Issues.
+    No field other than `type_id` are referenced, so changes will not have an affect.
+    The MN+1 detector uses the PerformanceNPlusOneGroupType, so reference that GroupType instead.
+    """
+
     type_id = 1011
     slug = "performance_m_n_plus_one_db_queries"
     description = "MN+1 Query"

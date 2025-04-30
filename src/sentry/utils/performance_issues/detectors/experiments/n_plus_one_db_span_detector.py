@@ -63,7 +63,7 @@ class NPlusOneDBSpanExperimentalDetector(PerformanceDetector):
 
         self.stored_problems = {}
         self.potential_parents = {}
-        self.n_hash: str | None = None
+        self.previous_span: Span | None = None
         self.n_spans: list[Span] = []
         self.source_span: Span | None = None
         root_span = get_path(self._event, "contexts", "trace")
@@ -149,11 +149,11 @@ class NPlusOneDBSpanExperimentalDetector(PerformanceDetector):
             # The source span and n repeating spans must have different queries.
             return False
 
-        if not self.n_hash:
-            self.n_hash = span_hash
+        if not self.previous_span:
+            self.previous_span = span
             return True
 
-        return span_hash == self.n_hash
+        return are_spans_equivalent(a=span, b=self.previous_span)
 
     def _maybe_store_problem(self) -> None:
         if not self.source_span or not self.n_spans:
@@ -184,15 +184,11 @@ class NPlusOneDBSpanExperimentalDetector(PerformanceDetector):
             metrics.incr("performance.performance_issue.truncated_np1_db")
             return
 
-        if not self._contains_valid_repeating_query(self.n_spans[0]):
-            metrics.incr("performance.performance_issue.unparametrized_first_span")
-            return
-
         fingerprint = self._fingerprint(
-            parent_span.get("op", None),
-            parent_span.get("hash", None),
-            self.source_span.get("hash", None),
-            self.n_spans[0].get("hash", None),
+            parent_op=parent_span.get("op", None),
+            parent_hash=parent_span.get("hash", None),
+            source_hash=self.source_span.get("hash", None),
+            n_hash=self.n_spans[0].get("hash", None),
         )
         if fingerprint not in self.stored_problems:
             self._metrics_for_extra_matching_spans()
@@ -202,7 +198,7 @@ class NPlusOneDBSpanExperimentalDetector(PerformanceDetector):
             self.stored_problems[fingerprint] = PerformanceProblem(
                 fingerprint=fingerprint,
                 op="db",
-                desc=self.n_spans[0].get("description", ""),
+                desc=get_db_span_description(self.n_spans[0]),
                 type=PerformanceNPlusOneExperimentalGroupType,
                 parent_span_ids=[parent_span_id],
                 cause_span_ids=[self.source_span.get("span_id", None)],
@@ -212,7 +208,7 @@ class NPlusOneDBSpanExperimentalDetector(PerformanceDetector):
                         name="Offending Spans",
                         value=get_notification_attachment_body(
                             "db",
-                            self.n_spans[0].get("description", ""),
+                            get_db_span_description(self.n_spans[0]),
                         ),
                         # Has to be marked important to be displayed in the notifications
                         important=True,
@@ -237,12 +233,6 @@ class NPlusOneDBSpanExperimentalDetector(PerformanceDetector):
         duration_threshold = self.settings.get("duration_threshold")
         return total_span_time(self.n_spans) >= duration_threshold
 
-    def _contains_valid_repeating_query(self, span: Span) -> bool:
-        # Make sure we at least have a space, to exclude e.g. MongoDB and
-        # Prisma's `rawQuery`.
-        query = span.get("description", None)
-        return bool(query) and " " in query
-
     def _metrics_for_extra_matching_spans(self) -> None:
         # Checks for any extra spans that match the detected problem but are not part of affected spans.
         # Temporary check since we eventually want to capture extra perf problems on the initial pass while walking spans.
@@ -250,7 +240,8 @@ class NPlusOneDBSpanExperimentalDetector(PerformanceDetector):
         all_matching_spans = [
             span
             for span in self._event.get("spans", [])
-            if span.get("span_id", None) == self.n_hash
+            if self.previous_span
+            and span.get("span_id", None) == self.previous_span.get("span_id", None)
         ]
         all_count = len(all_matching_spans)
         if n_count > 0 and n_count != all_count:
@@ -258,7 +249,7 @@ class NPlusOneDBSpanExperimentalDetector(PerformanceDetector):
 
     def _reset_detection(self) -> None:
         self.source_span = None
-        self.n_hash = None
+        self.previous_span = None
         self.n_spans = []
 
     def _fingerprint(self, parent_op: str, parent_hash: str, source_hash: str, n_hash: str) -> str:
@@ -277,3 +268,34 @@ def contains_complete_query(span: Span, is_source: bool | None = False) -> bool:
         return True
     else:
         return query and not query.endswith("...")
+
+
+def get_db_span_description(span: Span) -> str:
+    default_description = span.get("description", "")
+    db_system = span.get("sentry_tags", {}).get("system")
+    return (
+        span.get("sentry_tags", {}).get("description", default_description)
+        if db_system == "mongodb"
+        else default_description
+    )
+
+
+def are_spans_equivalent(a: Span, b: Span) -> bool:
+    """
+    Returns True if two DB spans are sufficiently similar for grouping N+1 DB Spans
+    """
+    hash_match = a.get("hash") == b.get("hash")
+    has_description = bool(a.get("description"))
+    description_match = a.get("description") == b.get("description")
+    base_checks = all([hash_match, has_description, description_match])
+
+    a_db_system = a.get("sentry_tags", {}).get("system")
+    # We perform more checks for MongoDB spans
+    if a_db_system == "mongodb":
+        # Relay augments MongoDB span descriptions with more collection data.
+        # We can use this for more accurate grouping.
+        a_relay_description = a.get("sentry_tags", {}).get("description")
+        b_relay_description = b.get("sentry_tags", {}).get("description")
+        return a_relay_description == b_relay_description and base_checks
+
+    return base_checks
