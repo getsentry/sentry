@@ -9,7 +9,8 @@ import type {TimelineItemProps} from 'sentry/components/timeline';
 import {Timeline} from 'sentry/components/timeline';
 import {IconBroadcast, IconChevron, IconCode, IconUser} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import {singleLineRenderer} from 'sentry/utils/marked';
+import {singleLineRenderer} from 'sentry/utils/marked/marked';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 import type {AutofixTimelineEvent} from './types';
@@ -83,12 +84,6 @@ export function AutofixTimelineItem({
     return {__html: singleLineRenderer(event.title)};
   }, [event.title]);
 
-  const analysisHtml = useMemo(() => {
-    return {
-      __html: singleLineRenderer(replaceHeadersWithBold(event.code_snippet_and_analysis)),
-    };
-  }, [event.code_snippet_and_analysis]);
-
   return (
     <Timeline.Item
       title={
@@ -127,7 +122,11 @@ export function AutofixTimelineItem({
                 stepIndex={stepIndex}
                 retainInsightCardIndex={retainInsightCardIndex}
               >
-                <StyledSpan dangerouslySetInnerHTML={analysisHtml} />
+                <StyledSpan
+                  as="span"
+                  text={replaceHeadersWithBold(event.code_snippet_and_analysis)}
+                  inline
+                />
               </AutofixHighlightWrapper>
             </Timeline.Text>
           </AnimatedContent>
@@ -141,7 +140,7 @@ const AnimatedContent = styled(motion.div)`
   overflow: hidden;
 `;
 
-const StyledSpan = styled('span')`
+const StyledSpan = styled(MarkedText)`
   & code {
     font-size: ${p => p.theme.fontSizeExtraSmall};
     display: inline-block;

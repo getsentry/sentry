@@ -106,7 +106,7 @@ export function getChonkButtonStyles(
       display: 'inherit',
       alignItems: 'inherit',
       justifyContent: 'inherit',
-      flex: 'inherit',
+      flex: '1',
       gap: 'inherit',
 
       whiteSpace: 'nowrap',
