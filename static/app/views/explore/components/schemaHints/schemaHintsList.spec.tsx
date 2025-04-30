@@ -31,11 +31,6 @@ jest.mock('sentry/components/searchQueryBuilder/context', () => ({
   SearchQueryBuilderProvider: ({children}: {children: React.ReactNode}) => children,
 }));
 
-const searchQueryBuilderModule = jest.requireMock(
-  'sentry/components/searchQueryBuilder/context'
-);
-const originalUseSearchQueryBuilder = searchQueryBuilderModule.useSearchQueryBuilder;
-
 function Subject(
   props: Omit<
     Parameters<typeof SchemaHintsList>[0],
@@ -89,10 +84,6 @@ describe('SchemaHintsList', () => {
     jest.clearAllMocks();
   });
 
-  afterEach(() => {
-    searchQueryBuilderModule.useSearchQueryBuilder = originalUseSearchQueryBuilder;
-  });
-
   it('should render', () => {
     render(
       <Subject
@@ -121,7 +112,10 @@ describe('SchemaHintsList', () => {
         stringTags={mockStringTags}
         numberTags={mockNumberTags}
         supportedAggregates={[]}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     const stringTag1Hint = screen.getByText('stringTag1');
@@ -139,7 +133,10 @@ describe('SchemaHintsList', () => {
 
   it('should render loading indicator when isLoading is true', () => {
     render(
-      <Subject stringTags={{}} numberTags={{}} supportedAggregates={[]} isLoading />
+      <Subject stringTags={{}} numberTags={{}} supportedAggregates={[]} isLoading />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -234,12 +231,17 @@ describe('SchemaHintsList', () => {
   });
 
   it('should remove hint from query when checkbox is unchecked on drawer', async () => {
-    searchQueryBuilderModule.useSearchQueryBuilder = () => ({
-      query: '!stringTag1:"" numberTag1:>0',
-      getTagValues: () => Promise.resolve(['tagValue1', 'tagValue2']),
-      dispatch: mockDispatch,
-      wrapperRef: {current: null},
-    });
+    const mockUseSearchQueryBuilder = jest
+      .spyOn(
+        require('sentry/components/searchQueryBuilder/context'),
+        'useSearchQueryBuilder'
+      )
+      .mockImplementation(() => ({
+        query: '!stringTag1:"" numberTag1:>0',
+        getTagValues: () => Promise.resolve(['tagValue1', 'tagValue2']),
+        dispatch: mockDispatch,
+        wrapperRef: {current: null},
+      }));
 
     render(
       <Subject
@@ -264,15 +266,22 @@ describe('SchemaHintsList', () => {
         part: 'value',
       },
     });
+
+    mockUseSearchQueryBuilder.mockRestore();
   });
 
   it('should remove aggregate hint from query when checkbox is unchecked on drawer', async () => {
-    searchQueryBuilderModule.useSearchQueryBuilder = () => ({
-      query: 'stringTag1:"" numberTag1:>0 count_unique(user):>0',
-      getTagValues: () => Promise.resolve(['tagValue1', 'tagValue2']),
-      dispatch: mockDispatch,
-      wrapperRef: {current: null},
-    });
+    const mockUseSearchQueryBuilder = jest
+      .spyOn(
+        require('sentry/components/searchQueryBuilder/context'),
+        'useSearchQueryBuilder'
+      )
+      .mockImplementation(() => ({
+        query: 'stringTag1:"" numberTag1:>0 count_unique(user):>0',
+        getTagValues: () => Promise.resolve(['tagValue1', 'tagValue2']),
+        dispatch: mockDispatch,
+        wrapperRef: {current: null},
+      }));
 
     render(
       <Subject
@@ -297,10 +306,12 @@ describe('SchemaHintsList', () => {
         part: 'value',
       },
     });
+
+    mockUseSearchQueryBuilder.mockRestore();
   });
 
   it('should keep drawer open when query is updated', async () => {
-    const {router: newRouter} = render(
+    const {router} = render(
       <Subject
         stringTags={mockStringTags}
         numberTags={mockNumberTags}
@@ -315,6 +326,7 @@ describe('SchemaHintsList', () => {
         },
       }
     );
+
     const seeFullList = screen.getByText('See full list');
     await userEvent.click(seeFullList);
 
@@ -322,7 +334,7 @@ describe('SchemaHintsList', () => {
     const stringTag1Checkbox = withinDrawer.getByText('stringTag1');
     await userEvent.click(stringTag1Checkbox);
 
-    newRouter.navigate({
+    router.navigate({
       pathname: '/test/path',
       search: '?query=stringTag1:""',
     });
@@ -353,12 +365,17 @@ describe('SchemaHintsList', () => {
   });
 
   it('should set focus override propely on duplicate filters', async () => {
-    searchQueryBuilderModule.useSearchQueryBuilder = () => ({
-      query: 'stringTag1:"something"',
-      getTagValues: () => Promise.resolve(['tagValue1', 'tagValue2']),
-      dispatch: mockDispatch,
-      wrapperRef: {current: null},
-    });
+    const mockUseSearchQueryBuilder = jest
+      .spyOn(
+        require('sentry/components/searchQueryBuilder/context'),
+        'useSearchQueryBuilder'
+      )
+      .mockImplementation(() => ({
+        query: 'stringTag1:"something"',
+        getTagValues: () => Promise.resolve(['tagValue1', 'tagValue2']),
+        dispatch: mockDispatch,
+        wrapperRef: {current: null},
+      }));
 
     render(
       <Subject
@@ -379,5 +396,7 @@ describe('SchemaHintsList', () => {
         part: 'value',
       },
     });
+
+    mockUseSearchQueryBuilder.mockRestore();
   });
 });
