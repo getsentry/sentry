@@ -14,7 +14,7 @@ from sentry.stacktraces.functions import set_in_app, trim_function_name
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
-from sentry.utils.safe import get_path, safe_execute
+from sentry.utils.safe import get_path, safe_execute, set_path
 
 logger = logging.getLogger(__name__)
 op = "stacktrace_processing"
@@ -329,6 +329,14 @@ def normalize_stacktraces_for_grouping(
         for frames in stacktrace_frames:
             for frame in frames:
                 _update_frame(frame, platform)
+
+                # Track the incoming `in_app` value, before we make any changes. This is different
+                # from the `orig_in_app` value which may be set by
+                # `apply_category_and_updated_in_app_to_frames`, because it's not tied to the value
+                # changing as a result of stacktrace rules.
+                client_in_app = frame.get("in_app")
+                if client_in_app is not None:
+                    set_path(frame, "data", "client_in_app", value=client_in_app)
 
                 if platform == "javascript":
                     try:

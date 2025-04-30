@@ -239,3 +239,47 @@ function getShortSpanOperationDescription(operation?: string) {
 
   return t('span');
 }
+
+/**
+ * Formats a change rate with a sign (+/-) and 2 decimal places.
+ *
+ * e.g. `0.46 -> '+0.46%'`, `-0.46 -> '-0.46%'`, `0 -> '0%'`
+ *
+ * @param change the change rate to format
+ */
+export function formatPercentRate(change: number) {
+  if (change > 0) {
+    return `+${change.toFixed(2)}%`;
+  }
+
+  if (change < 0) {
+    return `${change.toFixed(2)}%`;
+  }
+
+  return '0.00%';
+}
+
+/**
+ * Formats a duration in milliseconds into a human readable string. This function will
+ * filter out "units" that are larger than the duration i.e. if the duration is 1000ms,
+ * it will return `'1s'` instead of `'0d 0h 0m 1s'`.
+ *
+ * e.g. 12345678 -> `'12d 12h 34m 56s'`
+ *
+ * @param duration the duration in milliseconds to format
+ */
+export function formatTimeDuration(duration: number) {
+  const d = Math.floor(duration / DAY);
+  const h = Math.floor((duration % DAY) / HOUR);
+  const m = Math.floor((duration % HOUR) / MINUTE);
+  const s = Math.floor((duration % MINUTE) / SECOND);
+
+  return [
+    duration >= DAY ? t('%sd', d) : undefined,
+    duration >= HOUR ? t('%sh', h) : undefined,
+    duration >= MINUTE ? t('%sm', m) : undefined,
+    t('%ss', s),
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
