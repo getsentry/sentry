@@ -360,7 +360,7 @@ const FinalizeWrapper = styled('div')`
   }
 `;
 
-export const PackageName = styled('div')`
+const PackageName = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.textColor};
   display: flex;

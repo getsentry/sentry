@@ -55,6 +55,7 @@ def process_resource_change(instance, **kwargs):
     from sentry.integrations.bitbucket_server.integration import BitbucketServerIntegration
     from sentry.integrations.github.integration import GitHubIntegration
     from sentry.integrations.gitlab.integration import GitlabIntegration
+    from sentry.integrations.vsts.integration import VstsIntegration
     from sentry.tasks.codeowners import code_owners_auto_sync
 
     def _spawn_task():
@@ -63,6 +64,7 @@ def process_resource_change(instance, **kwargs):
             | set(GitlabIntegration.codeowners_locations)
             | set(BitbucketIntegration.codeowners_locations)
             | set(BitbucketServerIntegration.codeowners_locations)
+            | set(VstsIntegration.codeowners_locations)
         )
 
         # CODEOWNERS file added or modified, trigger auto-sync

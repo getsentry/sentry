@@ -18,7 +18,7 @@ import {
 import {initDemoMode} from 'sentry/utils/demoMode/utils';
 import useApi from 'sentry/utils/useApi';
 
-export const DEMO_HEADER_HEIGHT_PX = 70;
+const DEMO_HEADER_HEIGHT_PX = 70;
 
 export default function DemoHeader() {
   const api = useApi();

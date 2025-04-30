@@ -12,7 +12,6 @@ import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {TraceContextPanel} from 'sentry/views/performance/newTraceDetails/traceContextPanel';
 import {TraceViewLogsDataProvider} from 'sentry/views/performance/newTraceDetails/traceOurlogs';
 import {TraceWaterfall} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
-import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 import {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
 import {useTraceWaterfallScroll} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallScroll';
 
@@ -69,7 +68,6 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   const organization = useOrganization();
   const queryParams = useTraceQueryParams();
   const traceEventView = useTraceEventView(traceSlug, queryParams);
-  const hasTraceNewUi = useHasTraceNewUi();
   const logsTableData = useLogsPageData();
   const hideTraceWaterfallIfEmpty = logsTableData?.logsData?.data?.length > 0;
 
@@ -117,13 +115,13 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
                 traceWaterfallScrollHandlers={traceWaterfallScroll}
                 traceWaterfallModels={traceWaterfallModels}
               />
-              {hasTraceNewUi && (
-                <TraceContextPanel
-                  tree={tree}
-                  rootEvent={rootEvent}
-                  onScrollToNode={traceWaterfallScroll.onScrollToNode}
-                />
-              )}
+              <TraceContextPanel
+                traceSlug={traceSlug}
+                tree={tree}
+                rootEvent={rootEvent}
+                onScrollToNode={traceWaterfallScroll.onScrollToNode}
+                logs={logsTableData.logsData?.data}
+              />
             </TraceInnerLayout>
           </TraceExternalLayout>
         </NoProjectMessage>
@@ -149,6 +147,4 @@ const TraceInnerLayout = styled('div')`
   padding: ${space(2)} ${space(3)};
   overflow-y: scroll;
   margin-bottom: ${space(1)};
-
-  background-color: ${p => p.theme.background};
 `;

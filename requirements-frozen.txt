@@ -36,7 +36,7 @@ distro==1.8.0
 django==5.1.7
 django-crispy-forms==1.14.0
 django-csp==3.8
-django-pg-zero-downtime-migrations==0.16
+django-pg-zero-downtime-migrations==0.18
 djangorestframework==3.16.0
 drf-spectacular==0.27.2
 fastjsonschema==2.16.2
@@ -114,7 +114,7 @@ redis==3.4.1
 redis-py-cluster==2.1.0
 referencing==0.30.2
 regex==2022.9.13
-reportlab==4.2.5
+reportlab==4.4.0
 requests==2.32.3
 requests-file==2.1.0
 requests-oauthlib==1.2.0
@@ -127,10 +127,10 @@ sentry-arroyo==2.21.0
 sentry-forked-email-reply-parser==0.5.12.post1
 sentry-kafka-schemas==1.2.0
 sentry-ophio==1.0.0
-sentry-protos==0.1.70
+sentry-protos==0.1.72
 sentry-redis-tools==0.5.0
 sentry-relay==0.9.8
-sentry-sdk==2.25.1
+sentry-sdk==2.27.0
 sentry-usage-accountant==0.0.10
 simplejson==3.17.6
 six==1.16.0

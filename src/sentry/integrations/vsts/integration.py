@@ -103,6 +103,13 @@ FEATURES = [
     ),
     FeatureDescription(
         """
+        Import your Azure DevOps codeowners file into Sentry and use it alongside your
+        ownership rules to assign Sentry issues.
+        """,
+        IntegrationFeatures.CODEOWNERS,
+    ),
+    FeatureDescription(
+        """
         Automatically create Azure DevOps work items based on Issue Alert conditions.
         """,
         IntegrationFeatures.TICKET_RULES,
@@ -129,6 +136,8 @@ class VstsIntegration(RepositoryIntegration, VstsIssuesSpec):
     inbound_status_key = "sync_status_reverse"
     outbound_assignee_key = "sync_forward_assignment"
     inbound_assignee_key = "sync_reverse_assignment"
+
+    codeowners_locations = ["CODEOWNERS", ".sentry/CODEOWNERS"]
 
     @property
     def integration_name(self) -> str:
@@ -405,6 +414,7 @@ class VstsIntegrationProvider(IntegrationProvider):
             IntegrationFeatures.ISSUE_BASIC,
             IntegrationFeatures.ISSUE_SYNC,
             IntegrationFeatures.STACKTRACE_LINK,
+            IntegrationFeatures.CODEOWNERS,
             IntegrationFeatures.TICKET_RULES,
         ]
     )

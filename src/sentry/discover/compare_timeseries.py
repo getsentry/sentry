@@ -30,12 +30,18 @@ logger = logging.getLogger(__name__)
 
 
 def format_api_call(organization_slug, **kwargs):
-    url = reverse(
+    path = reverse(
         "sentry-api-0-organization-events-stats",
         kwargs={"organization_id_or_slug": organization_slug},
     )
 
-    return url, urlencode({**kwargs})
+    from sentry.api.utils import generate_region_url
+
+    query = urlencode({**kwargs})
+    region_url = generate_region_url()
+    api_call = f"{region_url}{path}?{query}"
+
+    return api_call
 
 
 class MismatchType(Enum):
@@ -87,19 +93,17 @@ def make_rpc_request(
     assert snuba_params.start is not None
     assert snuba_params.end is not None
 
-    path, query = format_api_call(
+    api_call = format_api_call(
         organization.slug,
         query=query_parts["query"],
-        useRpc=1,
         project=snuba_params.project_ids[0],
         yAxis=query_parts["selected_columns"][0],
         dataset="spans",
         interval=snuba_params.granularity_secs,
         start=snuba_params.start.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
         end=snuba_params.end.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-        sampling="BEST_EFFORT",
+        sampling="NORMAL",
     )
-    api_call = organization.absolute_url(path, query)
     sentry_sdk.set_extra("eap_call", api_call)
 
     return TSResultForComparison(result=results, agg_alias=query_parts["selected_columns"][0])
@@ -129,7 +133,7 @@ def make_snql_request(
     assert snuba_params.start is not None
     assert snuba_params.end is not None
 
-    path, query = format_api_call(
+    api_call = format_api_call(
         organization.slug,
         query=query,
         project=snuba_params.project_ids[0],
@@ -139,7 +143,6 @@ def make_snql_request(
         start=snuba_params.start.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
         end=snuba_params.end.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
     )
-    api_call = organization.absolute_url(path, query)
     sentry_sdk.set_extra("metrics_call", api_call)
 
     return TSResultForComparison(result=results, agg_alias=get_function_alias(aggregate))

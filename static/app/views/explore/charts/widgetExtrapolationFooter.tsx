@@ -50,7 +50,12 @@ export function WidgetExtrapolationFooter({
 
   let loader;
   // Show the loader if we haven't received best effort results yet
-  if (samplingMode !== SAMPLING_MODE.BEST_EFFORT) {
+  if (
+    samplingMode !== SAMPLING_MODE.BEST_EFFORT &&
+    !organization.features.includes(
+      'visibility-explore-progressive-loading-normal-sampling-mode'
+    )
+  ) {
     const currentPhase = samplingMode === SAMPLING_MODE.PREFLIGHT ? 1 : 0;
     loader = (
       <div

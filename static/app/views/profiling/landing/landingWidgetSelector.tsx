@@ -12,7 +12,7 @@ import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageStat
 import {FunctionTrendsWidget} from './functionTrendsWidget';
 import {SlowestFunctionsWidget} from './slowestFunctionsWidget';
 
-export type WidgetOption =
+type WidgetOption =
   | 'slowest functions avg'
   | 'slowest functions p50'
   | 'slowest functions' // kept for backwards compatibility as the p75
