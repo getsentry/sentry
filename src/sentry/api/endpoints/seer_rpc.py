@@ -36,8 +36,11 @@ from sentry.api.endpoints.organization_trace_item_attributes import as_attribute
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.models.organization import Organization
-from sentry.search.eap.types import SupportedTraceItemType
+from sentry.search.eap.resolver import SearchResolver
+from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
+from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import can_expose_attribute
+from sentry.search.events.types import SnubaParams
 from sentry.seer.autofix_tools import get_error_event_details, get_profile_details
 from sentry.seer.fetch_issues.fetch_issues import (
     get_issues_related_to_file_patches,
@@ -227,7 +230,7 @@ def get_attribute_names(*, org_id: int, project_ids: list[int], stats_period: st
                     "string" if attr_type == AttributeKey.Type.TYPE_STRING else "number",
                     SupportedTraceItemType.SPANS,
                 )["key"],
-                "name": attr.name,
+                # "name": attr.name,
                 "type": attr_type,
             }
             for attr in fields_resp.attributes
@@ -259,12 +262,17 @@ def get_attribute_values(
     end_time_proto.FromDatetime(end)
 
     values = {}
+    resolver = SearchResolver(
+        params=SnubaParams(
+            start=start,
+            end=end,
+        ),
+        config=SearchResolverConfig(),
+        definitions=SPAN_DEFINITIONS,
+    )
 
     for field in fields:
-        attr_key = AttributeKey(
-            name=field["name"],
-            type=field["type"],
-        )
+        resolved_column, _ = resolver.resolve_attribute(field["key"])
 
         req = TraceItemAttributeValuesRequest(
             meta=RequestMeta(
@@ -276,7 +284,7 @@ def get_attribute_values(
                 end_timestamp=end_time_proto,
                 trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
             ),
-            key=attr_key,
+            key=resolved_column.proto_definition,
             limit=limit,
         )
 

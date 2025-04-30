@@ -38,22 +38,18 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             "fields": [
                 {
                     "key": "span.description",
-                    "name": "sentry.name",
                     "type": AttributeKey.Type.TYPE_STRING,
                 },
                 {
                     "key": "transaction",
-                    "name": "sentry.segment_name",
                     "type": AttributeKey.Type.TYPE_STRING,
                 },
                 {
                     "key": "project",
-                    "name": "sentry.service",
                     "type": AttributeKey.Type.TYPE_STRING,
                 },
                 {
                     "key": "span.duration",
-                    "name": "sentry.duration_ms",
                     "type": AttributeKey.Type.TYPE_DOUBLE,
                 },
             ]
