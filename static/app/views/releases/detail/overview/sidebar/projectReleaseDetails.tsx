@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
@@ -29,6 +30,7 @@ type Props = {
 };
 
 function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
+  const theme = useTheme();
   const organization = useOrganization();
   const orgSlug = organization.slug;
 
@@ -93,7 +95,7 @@ function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
                     )}
                   >
                     <Button
-                      size="xs"
+                      size={theme.isChonk ? 'zero' : 'xs'}
                       onClick={() => {
                         finalizeRelease.mutate([release], {
                           onSettled() {
