@@ -44,10 +44,11 @@ function FeedbackButton() {
 
 export default function LogsPage() {
   const organization = useOrganization();
-  const {defaultPeriod, maxPickableDays, relativeOptions} =
-    limitMaxPickableDays(organization);
+  const {relativeOptions} = limitMaxPickableDays(organization);
 
   const prefersStackedNav = usePrefersStackedNav();
+  const maxPickableDays = 14;
+  const defaultPeriod = '24h';
 
   return (
     <SentryDocumentTitle title={t('Logs')} orgSlug={organization?.slug}>
