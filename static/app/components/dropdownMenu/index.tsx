@@ -218,7 +218,16 @@ function DropdownMenu({
     );
   }
 
-  const activeItems = useMemo(() => removeHiddenItems(items), [items]);
+  const activeItems = useMemo(
+    () =>
+      removeHiddenItems(items).map(item => {
+        return {
+          ...item,
+          href: item.to ?? item.externalHref,
+        };
+      }),
+    [items]
+  );
   const defaultDisabledKeys = useMemo(() => getDisabledKeys(activeItems), [activeItems]);
 
   function renderMenu() {
