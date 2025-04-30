@@ -17,6 +17,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
+import {TransactionCell} from 'sentry/views/insights/pages/transactionCell';
 import type {EAPSpanResponse} from 'sentry/views/insights/types';
 
 type Row = Pick<
@@ -182,6 +183,16 @@ function renderBodyCell(
 ) {
   if (!meta?.fields) {
     return row[column.key];
+  }
+
+  if (column.key === 'transaction') {
+    return (
+      <TransactionCell
+        project={row.project}
+        transaction={row.transaction}
+        transactionMethod={row['span.op']}
+      />
+    );
   }
 
   const renderer = getFieldRenderer(column.key, meta.fields, false);
