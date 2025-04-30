@@ -21,7 +21,7 @@ function TotalTestsRunTimeTooltip() {
     <Fragment>
       <p>
         <ToolTipTitle>Impact:</ToolTipTitle>
-        The cumulative CI time spent running tests over the last 30 days.
+        The cumulative CI time spent running tests over the last <strong>30 days</strong>.
       </p>
       <p>
         <ToolTipTitle>What is it:</ToolTipTitle>
@@ -40,7 +40,8 @@ function SlowestTestsTooltip({slowestTestsDuration}: SlowestTestsTooltipProps) {
     <Fragment>
       <p>
         <ToolTipTitle>Impact:</ToolTipTitle>
-        The slowest 100 tests take {formatTimeDuration(slowestTestsDuration)} to run.
+        The slowest 100 tests take{' '}
+        <strong>{formatTimeDuration(slowestTestsDuration)}</strong> to run.
       </p>
       <p>
         <ToolTipTitle>What is it:</ToolTipTitle>
