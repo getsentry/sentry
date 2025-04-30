@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import functools
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from time import sleep
 from unittest.mock import MagicMock, Mock, call, patch
@@ -5583,6 +5586,31 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             org = args[0]
         return super().get_response(org, **kwargs)
 
+    def create_n_groups(self, n: int, type: int | None = None) -> list[Group]:
+        groups = []
+        for _ in range(n):
+            if type:
+                group = self.create_group(
+                    project=self.project, status=GroupStatus.RESOLVED, type=type
+                )
+            else:
+                group = self.create_group(project=self.project, status=GroupStatus.RESOLVED)
+            hash = uuid4().hex
+            GroupHash.objects.create(project=group.project, hash=hash, group=group)
+            groups.append(group)
+
+        return groups
+
+    def assert_pending_deletion_groups(self, groups: Sequence[Group]) -> None:
+        for group in groups:
+            assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
+            assert not GroupHash.objects.filter(group_id=group.id).exists()
+
+    def assert_deleted_groups(self, groups: Sequence[Group]) -> None:
+        for group in groups:
+            assert not Group.objects.filter(id=group.id).exists()
+            assert not GroupHash.objects.filter(group_id=group.id).exists()
+
     @patch("sentry.eventstream.backend")
     def test_delete_by_id(self, mock_eventstream: MagicMock) -> None:
         eventstream_state = {"event_stream_state": uuid4()}
@@ -5675,78 +5703,47 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             GroupHash.objects.create(project=g.project, hash=hash, group=g)
 
         self.login_as(user=self.user)
-        with self.feature("organizations:global-views"):
+        with self.feature("organizations:global-views"), self.tasks():
             response = self.get_response(qs_params={"id": [group1.id, group2.id]})
 
-        assert response.status_code == 400
-
-        assert Group.objects.filter(id=group1.id).exists()
-        assert GroupHash.objects.filter(group_id=group1.id).exists()
-
-        assert Group.objects.filter(id=group2.id).exists()
-        assert GroupHash.objects.filter(group_id=group2.id).exists()
-
-    def test_bulk_delete(self) -> None:
-        groups = []
-        for i in range(10, 41):
-            groups.append(
-                self.create_group(
-                    project=self.project,
-                    status=GroupStatus.RESOLVED,
-                )
-            )
-
-        hashes = []
-        for group in groups:
-            hash = uuid4().hex
-            hashes.append(hash)
-            GroupHash.objects.create(project=group.project, hash=hash, group=group)
-
-        self.login_as(user=self.user)
-
-        response = self.get_success_response(qs_params={"query": ""})
         assert response.status_code == 204
 
-        for group in groups:
-            assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
-            assert not GroupHash.objects.filter(group_id=group.id).exists()
+        self.assert_deleted_groups([group1, group2])
 
+    def test_bulk_delete(self) -> None:
+        groups = self.create_n_groups(20)
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(qs_params={"query": ""})
+        assert response.status_code == 204
+        self.assert_pending_deletion_groups(groups)
+
+        # This is needed to put the groups in the unresolved state before also triggering the task
         Group.objects.filter(id__in=[group.id for group in groups]).update(
             status=GroupStatus.UNRESOLVED
         )
 
         with self.tasks():
             response = self.get_success_response(qs_params={"query": ""})
+            assert response.status_code == 204
 
-        assert response.status_code == 204
-
-        for group in groups:
-            assert not Group.objects.filter(id=group.id).exists()
-            assert not GroupHash.objects.filter(group_id=group.id).exists()
+        self.assert_deleted_groups(groups)
 
     def test_bulk_delete_performance_issues(self) -> None:
-        groups = []
-        for i in range(10, 41):
-            groups.append(
-                self.create_group(
-                    project=self.project,
-                    status=GroupStatus.RESOLVED,
-                    type=PerformanceSlowDBQueryGroupType.type_id,
-                )
-            )
-
-        hashes = []
-        for group in groups:
-            hash = uuid4().hex
-            hashes.append(hash)
-            GroupHash.objects.create(project=group.project, hash=hash, group=group)
+        groups = self.create_n_groups(20, PerformanceSlowDBQueryGroupType.type_id)
 
         self.login_as(user=self.user)
+        response = self.get_success_response(qs_params={"query": ""})
+        assert response.status_code == 204
+        self.assert_pending_deletion_groups(groups)
 
-        # if query is '' it defaults to is:unresolved
-        response = self.get_response(qs_params={"query": ""})
-        assert response.status_code == 400
+        # This is needed to put the groups in the unresolved state before also triggering the task
+        Group.objects.filter(id__in=[group.id for group in groups]).update(
+            status=GroupStatus.UNRESOLVED
+        )
+        with self.tasks():
+            # if query is '' it defaults to is:unresolved
+            response = self.get_response(qs_params={"query": ""})
+            assert response.status_code == 204
 
-        for group in groups:
-            assert Group.objects.filter(id=group.id).exists()
-            assert GroupHash.objects.filter(group_id=group.id).exists()
+        self.assert_deleted_groups(groups)

@@ -28,6 +28,7 @@ export enum OurLogKnownFieldKey {
   // From the EAP dataset directly not using a column alias.
   ID = 'sentry.item_id',
   RELEASE = 'sentry.release',
+  TEMPLATE = 'sentry.message.template',
   PARENT_SPAN_ID = 'sentry.trace.parent_span_id',
   SDK_NAME = 'sentry.sdk.name',
   SDK_VERSION = 'sentry.sdk.version',

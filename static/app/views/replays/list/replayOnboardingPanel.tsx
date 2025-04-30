@@ -100,7 +100,6 @@ export default function ReplayOnboardingPanel() {
       <ReplayPanel image={<HeroImage src={emptyStateImg} breakpoints={breakpoints} />}>
         <OnboardingCTAHook organization={organization}>
           <SetupReplaysCTA
-            orgSlug={organization.slug}
             primaryAction={primaryAction}
             disabled={primaryActionDisabled}
           />
@@ -111,7 +110,6 @@ export default function ReplayOnboardingPanel() {
 }
 
 interface SetupReplaysCTAProps {
-  orgSlug: string;
   primaryAction: 'setup' | 'create';
   disabled?: boolean;
 }
@@ -119,11 +117,11 @@ interface SetupReplaysCTAProps {
 export function SetupReplaysCTA({
   disabled,
   primaryAction = 'setup',
-  orgSlug,
 }: SetupReplaysCTAProps) {
   const {activateSidebar} = useReplayOnboardingSidebarPanel();
   const [expanded, setExpanded] = useState(-1);
   const {allMobileProj} = useAllMobileProj({});
+  const organization = useOrganization();
 
   const FAQ = [
     {
@@ -259,7 +257,7 @@ export function SetupReplaysCTA({
           data-test-id="create-project-btn"
           to={makeProjectsPathname({
             path: '/new/',
-            orgSlug,
+            organization,
           })}
           priority="primary"
           disabled={disabled}
