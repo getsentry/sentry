@@ -61,10 +61,21 @@ class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsV2EndpointBa
         return any(org_features.get(feature) for feature in self.feature_flags)
 
 
-class OrganizationTraceItemAttributesEndpointSerializer(serializers.Serializer):
+class OrganizationTraceItemAttributesEndpointSnakeCaseSerializer(serializers.Serializer):
     item_type = serializers.ChoiceField([e.value for e in SupportedTraceItemType], required=True)
     attribute_type = serializers.ChoiceField(["string", "number"], required=True)
     substring_match = serializers.CharField(required=False)
+    query = serializers.CharField(required=False)
+
+
+class OrganizationTraceItemAttributesEndpointSerializer(serializers.Serializer):
+    itemType = serializers.ChoiceField(
+        [e.value for e in SupportedTraceItemType], required=True, source="item_type"
+    )
+    attributeType = serializers.ChoiceField(
+        ["string", "number"], required=True, source="attribute_type"
+    )
+    substringMatch = serializers.CharField(required=False, source="substring_match")
     query = serializers.CharField(required=False)
 
 
@@ -118,9 +129,15 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         if not self.has_feature(organization, request):
             return Response(status=404)
 
-        serializer = OrganizationTraceItemAttributesEndpointSerializer(data=request.GET)
+        serializer: (
+            OrganizationTraceItemAttributesEndpointSerializer
+            | OrganizationTraceItemAttributesEndpointSnakeCaseSerializer
+        )
+        serializer = OrganizationTraceItemAttributesEndpointSnakeCaseSerializer(data=request.GET)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            serializer = OrganizationTraceItemAttributesEndpointSerializer(data=request.GET)
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=400)
 
         try:
             snuba_params = self.get_snuba_params(request, organization)
@@ -199,9 +216,15 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
         if not self.has_feature(organization, request):
             return Response(status=404)
 
-        serializer = OrganizationTraceItemAttributesEndpointSerializer(data=request.GET)
+        serializer: (
+            OrganizationTraceItemAttributesEndpointSerializer
+            | OrganizationTraceItemAttributesEndpointSnakeCaseSerializer
+        )
+        serializer = OrganizationTraceItemAttributesEndpointSnakeCaseSerializer(data=request.GET)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            serializer = OrganizationTraceItemAttributesEndpointSerializer(data=request.GET)
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=400)
 
         try:
             snuba_params = self.get_snuba_params(request, organization)
