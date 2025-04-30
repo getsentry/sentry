@@ -9,7 +9,7 @@ import type {Organization} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
 import type {TraceMeta} from 'sentry/utils/performance/quickTrace/types';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
-import {RepresentativeTraceEvent} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
+import type {RepresentativeTraceEvent} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
   isEAPError,

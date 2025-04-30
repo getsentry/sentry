@@ -22,7 +22,7 @@ import {TraceViewLogsSection} from 'sentry/views/performance/newTraceDetails/tra
 import {TraceSummarySection} from 'sentry/views/performance/newTraceDetails/traceSummary';
 import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
 
-import {TraceRootEventQueryResults} from './traceApi/useTraceRootEvent';
+import type {TraceRootEventQueryResults} from './traceApi/useTraceRootEvent';
 
 type Props = {
   logs: OurLogsResponseItem[] | undefined;

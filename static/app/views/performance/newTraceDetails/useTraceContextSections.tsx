@@ -1,6 +1,6 @@
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
-import {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
+import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 

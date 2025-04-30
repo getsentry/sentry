@@ -1,13 +1,13 @@
 import type {EventTransaction} from 'sentry/types/event';
-import {useApiQuery, UseApiQueryResult} from 'sentry/utils/queryClient';
-import RequestError from 'sentry/utils/requestError/requestError';
+import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
-  TraceItemDetailsResponse,
+  type TraceItemDetailsResponse,
   useTraceItemDetails,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getRepresentativeTraceEvent} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {TRACE_FORMAT_PREFERENCE_KEY} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';

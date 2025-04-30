@@ -14,7 +14,7 @@ import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 
-import {TraceRootEventQueryResults} from './traceApi/useTraceRootEvent';
+import type {TraceRootEventQueryResults} from './traceApi/useTraceRootEvent';
 import {
   findSpanAttributeValue,
   getSearchInExploreTarget,

@@ -1,7 +1,7 @@
 import {isTraceSplitResult} from 'sentry/utils/performance/quickTrace/utils';
-import {TraceItemDetailsResponse} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
-import {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
+import type {TraceItemDetailsResponse} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {
   isEAPTraceNode,
   isTraceNode,
