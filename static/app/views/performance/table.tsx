@@ -643,9 +643,8 @@ class _Table extends Component<Props, State> {
                               tableData?.meta
                             ) as any,
                             renderBodyCell: this.renderBodyCellWithData(tableData) as any,
-                            renderPrependColumns: this.renderPrependCellWithData(
-                              tableData
-                            ) as any,
+                            renderPrependColumns:
+                              this.renderPrependCellWithData(tableData),
                             prependColumnWidths,
                           }}
                         />

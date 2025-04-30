@@ -5,6 +5,7 @@ import type {GridColumnHeader} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
+import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -15,6 +16,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
+import {StarredSegmentCell} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {TransactionCell} from 'sentry/views/insights/pages/transactionCell';
@@ -50,11 +52,6 @@ type Column = GridColumnHeader<
 >;
 
 const COLUMN_ORDER: Column[] = [
-  {
-    key: 'is_starred_transaction',
-    name: t('Starred'),
-    width: COL_WIDTH_UNDEFINED,
-  },
   {
     key: 'request.method',
     name: t('HTTP Method'),
@@ -166,6 +163,8 @@ export function BackendOverviewTable({response, sort}: Props) {
           },
         ]}
         grid={{
+          renderPrependColumns,
+          prependColumnWidths: ['max-content'],
           renderHeadCell: column =>
             renderHeadCell({
               column,
@@ -179,6 +178,24 @@ export function BackendOverviewTable({response, sort}: Props) {
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
     </VisuallyCompleteWithData>
   );
+}
+
+function renderPrependColumns(isHeader: boolean, row?: Row | undefined) {
+  if (isHeader) {
+    return [<IconStar key="star" color="yellow300" isSolid />];
+  }
+
+  if (!row) {
+    return [];
+  }
+  return [
+    <StarredSegmentCell
+      key={row.transaction}
+      initialIsStarred={row.is_starred_transaction}
+      projectSlug={row.project}
+      segmentName={row.transaction}
+    />,
+  ];
 }
 
 function renderBodyCell(
