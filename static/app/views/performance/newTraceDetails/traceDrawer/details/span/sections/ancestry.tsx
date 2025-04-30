@@ -4,7 +4,7 @@ import type {Location} from 'history';
 import omit from 'lodash/omit';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import DiscoverButton from 'sentry/components/discoverButton';
 import {SpanEntryContext} from 'sentry/components/events/interfaces/spans/context';
 import {

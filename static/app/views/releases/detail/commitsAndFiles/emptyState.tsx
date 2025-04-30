@@ -1,4 +1,4 @@
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {Body, Main} from 'sentry/components/layouts/thirds';

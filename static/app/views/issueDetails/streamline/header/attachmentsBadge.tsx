@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconAttachment} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';

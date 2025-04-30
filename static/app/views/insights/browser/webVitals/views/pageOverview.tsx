@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {AggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {Tabs} from 'sentry/components/tabs';

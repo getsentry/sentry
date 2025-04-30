@@ -1,6 +1,6 @@
 import {useTheme} from '@emotion/react';
 
-import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button';
+import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button/linkButton';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import Matrix, {type PropMatrix} from 'sentry/components/stories/matrix';
 import storyBook from 'sentry/stories/storyBook';

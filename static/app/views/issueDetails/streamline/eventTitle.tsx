@@ -3,7 +3,8 @@ import {css, type SerializedStyles, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {useActionableItemsWithProguardErrors} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';

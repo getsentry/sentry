@@ -4,7 +4,8 @@ import merge from 'lodash/merge';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Input} from 'sentry/components/core/input';
 import {NumberInput} from 'sentry/components/core/input/numberInput';
 import {Select} from 'sentry/components/core/select';

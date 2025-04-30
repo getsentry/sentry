@@ -1,7 +1,8 @@
 import {useRole} from 'sentry/components/acl/useRole';
 import Confirm from 'sentry/components/confirm';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {hasInlineAttachmentRenderer} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
 import {IconDelete, IconDownload, IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
