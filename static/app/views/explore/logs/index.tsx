@@ -12,8 +12,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
+import {logsPickableDays} from 'sentry/views/explore/logs/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 
 function FeedbackButton() {
@@ -44,11 +44,9 @@ function FeedbackButton() {
 
 export default function LogsPage() {
   const organization = useOrganization();
-  const {relativeOptions} = limitMaxPickableDays(organization);
+  const {defaultPeriod, maxPickableDays, relativeOptions} = logsPickableDays();
 
   const prefersStackedNav = usePrefersStackedNav();
-  const maxPickableDays = 14;
-  const defaultPeriod = '24h';
 
   return (
     <SentryDocumentTitle title={t('Logs')} orgSlug={organization?.slug}>
