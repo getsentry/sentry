@@ -651,7 +651,7 @@ def post_process_group(
 
             if start_save_event_time:
                 metrics.timing(
-                    "events.start-save-to-process",
+                    "events.start-save-to-post-process",
                     post_processed_at - start_save_event_time,
                     instance=event.data["platform"],
                     tags=metric_tags,

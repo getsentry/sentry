@@ -634,7 +634,7 @@ def _do_save_event(
                 )
 
             metrics.timing(
-                "events.start-save-to-process",
+                "events.start-save-event-to-process",
                 time() - start_save_event_time,
                 instance=data["platform"],
                 tags={
