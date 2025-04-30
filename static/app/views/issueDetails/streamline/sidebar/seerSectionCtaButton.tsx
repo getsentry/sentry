@@ -2,7 +2,7 @@ import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button';
 import {
   AutofixStatus,
   type AutofixStep,
@@ -17,6 +17,7 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {useLocation} from 'sentry/utils/useLocation';
 import type {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
 
@@ -35,12 +36,26 @@ export function SeerSectionCtaButton({
   project,
   hasStreamlinedUI,
 }: Props) {
+  const location = useLocation();
+  const seerLink = {
+    pathname: location.pathname,
+    query: {
+      ...location.query,
+      seerDrawer: true,
+    },
+  };
+
   const openButtonRef = useRef<HTMLButtonElement>(null);
 
   const {isPending: isAutofixPending} = useAutofixData({groupId: group.id});
   const {autofixData} = useAiAutofix(group, event, {isSidebar: true, pollInterval: 1500});
 
-  const openSeerDrawer = useOpenSeerDrawer(group, project, event, openButtonRef);
+  const {openSeerDrawer} = useOpenSeerDrawer({
+    group,
+    project,
+    event,
+    buttonRef: openButtonRef,
+  });
   const isDrawerOpenRef = useRef(false);
 
   // Keep track of previous steps to detect state transitions and notify the user
@@ -185,7 +200,7 @@ export function SeerSectionCtaButton({
 
   return (
     <StyledButton
-      ref={openButtonRef}
+      to={seerLink}
       onClick={handleOpenDrawer}
       analyticsEventKey="issue_details.seer_opened"
       analyticsEventName="Issue Details: Seer Opened"
@@ -207,7 +222,7 @@ export function SeerSectionCtaButton({
   );
 }
 
-const StyledButton = styled(Button)`
+const StyledButton = styled(LinkButton)`
   margin-top: ${space(1)};
   width: 100%;
   background: ${p => p.theme.background}
