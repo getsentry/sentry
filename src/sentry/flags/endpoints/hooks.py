@@ -38,7 +38,7 @@ class OrganizationFlagsHooksEndpoint(OrganizationEndpoint):
             return Response(exc.errors, status=200)
 
 
-def handle_statsig_webhook(request: Request, organization: Organization) -> tuple[str, int]:
+def handle_statsig_webhook(request: Request, organization: Organization) -> Response:
     """Statsig webhook handler."""
     event = request.data
 
