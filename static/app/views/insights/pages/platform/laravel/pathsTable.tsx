@@ -188,7 +188,6 @@ export function PathsTable({
           query: `(transaction.op:http.server) event.type:transaction ${query}`,
           referrer: Referrer.PATHS_TABLE,
           orderby: getOrderBy(sortField, sortOrder),
-          useRpc: 1,
           per_page: PER_PAGE,
           cursor: location.query.pathsCursor,
         },
@@ -222,7 +221,6 @@ export function PathsTable({
             transactionPaths.map(transactions => `"${transactions}"`).join(',') || '""'
           }]`,
           sort: '-transaction',
-          useRpc: 1,
           per_page: PER_PAGE,
           referrer: Referrer.PATHS_TABLE,
         },

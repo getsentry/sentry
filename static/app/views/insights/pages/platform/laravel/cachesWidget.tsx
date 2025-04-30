@@ -60,7 +60,6 @@ export function CachesWidget({query}: {query?: string}) {
               .map(item => `"${item.transaction}"`)
               .join(', ')}]`,
           sort: '-cache_miss_rate()',
-          useRpc: 1,
           topEvents: 4,
         },
       },

@@ -117,11 +117,11 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   const metricsDataset = useEap ? DiscoverDatasets.SPANS_EAP : DiscoverDatasets.METRICS;
 
   const spanQueryParams: Record<string, string> = useEap
-    ? {useRpc: '1', dataset: DiscoverDatasets.SPANS_EAP}
+    ? {dataset: DiscoverDatasets.SPANS_EAP}
     : {dataset: DiscoverDatasets.SPANS_METRICS};
 
   const metricsQueryParams: Record<string, string> = useEap
-    ? {useRpc: '1', dataset: DiscoverDatasets.SPANS_EAP}
+    ? {dataset: DiscoverDatasets.SPANS_EAP}
     : {dataset: DiscoverDatasets.METRICS};
 
   let emptyComponent: any;

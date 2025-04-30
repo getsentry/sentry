@@ -47,7 +47,6 @@ export function JobsWidget({query}: {query?: string}) {
           yAxis: ['trace_status_rate(internal_error)', 'count(span.duration)'],
           transformAliasToInputFormat: 1,
           query: fullQuery,
-          useRpc: 1,
           referrer: Referrer.JOBS_CHART,
         },
       },

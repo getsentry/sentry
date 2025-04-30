@@ -45,7 +45,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
   const useEap = useInsightsEap();
 
   const queryExtras = useEap
-    ? {...getMEPQueryParams(mepSetting), useRpc: '1', dataset: DiscoverDatasets.SPANS_EAP}
+    ? {...getMEPQueryParams(mepSetting), dataset: DiscoverDatasets.SPANS_EAP}
     : getMEPQueryParams(mepSetting);
 
   if (props.fields.length !== 1) {

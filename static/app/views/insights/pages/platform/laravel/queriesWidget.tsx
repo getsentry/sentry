@@ -72,7 +72,6 @@ export function QueriesWidget({query}: {query?: string}) {
           query: `span.group:[${queriesRequest.data?.map(item => `"${item['span.group']}"`).join(',')}]`,
           sort: '-avg(span.duration)',
           topEvents: 3,
-          useRpc: 1,
         },
       },
     ],

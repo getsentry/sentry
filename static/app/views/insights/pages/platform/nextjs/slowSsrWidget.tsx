@@ -73,7 +73,6 @@ export function SlowSSRWidget({query}: {query?: string}) {
           query: `span.group:[${spansRequest.data?.map(item => `"${item['span.group']}"`).join(',')}]`,
           sort: '-avg(span.duration)',
           topEvents: 4,
-          useRpc: 1,
           referrer: Referrer.SLOW_SSR_CHART,
         },
       },
