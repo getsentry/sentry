@@ -5,7 +5,7 @@ import type {SandboxData} from 'sentry/types/sandbox';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface DemoSandboxButtonProps extends LinkButtonProps {
+interface DemoSandboxButtonProps extends Omit<LinkButtonProps, 'to' | 'href'> {
   /**
    * The deep link scenario
    */

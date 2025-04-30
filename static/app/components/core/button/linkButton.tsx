@@ -18,44 +18,36 @@ import {getChonkButtonStyles} from './index.chonk';
 
 type LinkElementProps = Omit<
   React.AnchorHTMLAttributes<HTMLAnchorElement>,
-  'label' | 'size' | 'title'
+  'label' | 'size' | 'title' | 'href'
 >;
 
-export interface LinkButtonProps
+interface BaseLinkButtonProps
   extends DO_NOT_USE_CommonButtonProps,
     Omit<LinkElementProps, 'role'> {
-  /**
-   * Determines if the link is disabled.
-   */
   disabled?: boolean;
-  /**
-   * Determines if the link is external and should open in a new tab.
-   */
+}
+
+interface LinkButtonPropsWithHref extends BaseLinkButtonProps {
   external?: boolean;
   href?: string;
-  /**
-   * If true, the link will not reset the scroll position of the page when clicked.
-   */
+}
+
+interface LinkButtonPropsWithTo extends BaseLinkButtonProps {
   preventScrollReset?: boolean;
-  /**
-   * Determines if the link should replace the current history entry.
-   */
   replace?: boolean;
   to?: string | LocationDescriptor;
 }
 
+export type LinkButtonProps = LinkButtonPropsWithHref | LinkButtonPropsWithTo;
+
 export function LinkButton({
   size = 'md',
-  to,
-  href,
   disabled,
   tooltipProps,
   ...props
 }: LinkButtonProps) {
   const {handleClick, hasChildren, accessibleLabel} = useButtonFunctionality({
     ...props,
-    to,
-    href,
     disabled,
   });
 
@@ -65,8 +57,8 @@ export function LinkButton({
         aria-label={accessibleLabel}
         aria-disabled={disabled}
         size={size}
-        href={disabled ? undefined : href}
-        to={disabled ? undefined : to}
+        href={disabled ? undefined : 'href' in props ? props.href : undefined}
+        to={disabled ? undefined : 'to' in props ? props.to : undefined}
         disabled={disabled}
         {...props}
         onClick={handleClick}
@@ -94,24 +86,24 @@ export function LinkButton({
 }
 
 const StyledLinkButton = styled(
-  ({size: _size, title: _title, external, ...props}: LinkButtonProps) => {
-    if (props.to) {
+  ({size: _size, title: _title, ...props}: LinkButtonProps) => {
+    if ('to' in props && props.to) {
       return <Link {...props} to={props.to} role="button" />;
     }
 
-    if (props.href) {
+    if ('href' in props) {
+      const {external, ...rest} = props;
       return (
         <a
-          {...props}
+          {...rest}
           {...(external ? {target: '_blank', rel: 'noreferrer noopener'} : {})}
           role="button"
         />
       );
     }
 
-    const {replace: _replace, preventScrollReset: _preventScrollReset, ...rest} = props;
     // @ts-expect-error we are spreading anchor link props on a button
-    return <button {...rest} role="button" />;
+    return <button {...props} role="button" />;
   },
   {
     shouldForwardProp: prop =>
