@@ -10,7 +10,6 @@ from sentry.testutils.cases import APITestCase
 
 @override_settings(SEER_RPC_SHARED_SECRET=["a-long-value-that-is-hard-to-guess"])
 class TestSeerRpc(APITestCase):
-
     @staticmethod
     def _get_path(method_name: str) -> str:
         return reverse(
