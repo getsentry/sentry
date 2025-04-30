@@ -643,9 +643,11 @@ class AssembleStacktraceComponentTest(TestCase):
         ):
             assert (
                 frame_component.contributes is expected_contributes
-            ), f"frame {i} has incorrect `contributes` value"
+            ), f"frame {i} has incorrect `contributes` value. Expected {expected_contributes} but got {frame_component.contributes}."
 
-            assert frame_component.hint == expected_hint, f"frame {i} has incorrect `hint` value"
+            assert (
+                frame_component.hint == expected_hint
+            ), f"frame {i} has incorrect `hint` value. Expected '{expected_hint}' but got '{frame_component.hint}'."
 
     def test_uses_or_ignores_rust_results_as_appropriate(self):
         """
@@ -653,11 +655,76 @@ class AssembleStacktraceComponentTest(TestCase):
             - App variant frames never contribute if they're out of app
             - App variant frame hints for system frames are only used if they relate to in-app-ness
             - System variant frame hints are only used if they relate to ignoring/un-ignoring
+            - In-app hints in either variant aren't used if the rust result matches the incoming
+              value set by the client
             - In all other cases, the frame results from rust are used
             - For both variants, the rust stacktrace results are used. (There's one exception to
               this rule, but it needs its own test - see
               `test_marks_app_stacktrace_non_contributing_if_no_in_app_frames` below.)
         """
+        incoming_frames: list[dict[str, Any]] = [
+            {"in_app": True},
+            {"in_app": True},
+            {"in_app": True},
+            {"in_app": True},
+            {"in_app": True},
+            {"in_app": True},
+            {
+                "in_app": True,
+                "data": {"client_in_app": True, "in_app_hint": "marked in-app by the client"},
+            },
+            {
+                "in_app": True,
+                "data": {"client_in_app": True, "in_app_hint": "marked in-app by the client"},
+            },
+            {
+                "in_app": True,
+                "data": {"client_in_app": True, "in_app_hint": "marked in-app by the client"},
+            },
+            {
+                "in_app": True,
+                "data": {"client_in_app": True, "in_app_hint": "marked in-app by the client"},
+            },
+            {
+                "in_app": True,
+                "data": {"client_in_app": True, "in_app_hint": "marked in-app by the client"},
+            },
+            {
+                "in_app": True,
+                "data": {"client_in_app": True, "in_app_hint": "marked in-app by the client"},
+            },
+            {"in_app": False},
+            {"in_app": False},
+            {"in_app": False},
+            {"in_app": False},
+            {"in_app": False},
+            {"in_app": False},
+            {
+                "in_app": False,
+                "data": {"client_in_app": False, "in_app_hint": "marked out of app by the client"},
+            },
+            {
+                "in_app": False,
+                "data": {"client_in_app": False, "in_app_hint": "marked out of app by the client"},
+            },
+            {
+                "in_app": False,
+                "data": {"client_in_app": False, "in_app_hint": "marked out of app by the client"},
+            },
+            {
+                "in_app": False,
+                "data": {"client_in_app": False, "in_app_hint": "marked out of app by the client"},
+            },
+            {
+                "in_app": False,
+                "data": {"client_in_app": False, "in_app_hint": "marked out of app by the client"},
+            },
+            {
+                "in_app": False,
+                "data": {"client_in_app": False, "in_app_hint": "marked out of app by the client"},
+            },
+        ]
+
         app_variant_frame_components = [
             self.in_app_frame(contributes=True, hint=None),
             self.in_app_frame(contributes=True, hint=None),
@@ -665,12 +732,24 @@ class AssembleStacktraceComponentTest(TestCase):
             self.in_app_frame(contributes=True, hint=None),
             self.in_app_frame(contributes=True, hint=None),
             self.in_app_frame(contributes=True, hint=None),
+            self.in_app_frame(contributes=True, hint="marked in-app by the client"),
+            self.in_app_frame(contributes=True, hint="marked in-app by the client"),
+            self.in_app_frame(contributes=True, hint="marked in-app by the client"),
+            self.in_app_frame(contributes=True, hint="marked in-app by the client"),
+            self.in_app_frame(contributes=True, hint="marked in-app by the client"),
+            self.in_app_frame(contributes=True, hint="marked in-app by the client"),
             self.system_frame(contributes=False, hint="non app frame"),
             self.system_frame(contributes=False, hint="non app frame"),
             self.system_frame(contributes=False, hint="non app frame"),
             self.system_frame(contributes=False, hint="non app frame"),
             self.system_frame(contributes=False, hint="non app frame"),
             self.system_frame(contributes=False, hint="non app frame"),
+            self.system_frame(contributes=False, hint="marked out of app by the client"),
+            self.system_frame(contributes=False, hint="marked out of app by the client"),
+            self.system_frame(contributes=False, hint="marked out of app by the client"),
+            self.system_frame(contributes=False, hint="marked out of app by the client"),
+            self.system_frame(contributes=False, hint="marked out of app by the client"),
+            self.system_frame(contributes=False, hint="marked out of app by the client"),
         ]
         system_variant_frame_components = [
             self.in_app_frame(contributes=True, hint=None),
@@ -679,6 +758,18 @@ class AssembleStacktraceComponentTest(TestCase):
             self.in_app_frame(contributes=True, hint=None),
             self.in_app_frame(contributes=True, hint=None),
             self.in_app_frame(contributes=True, hint=None),
+            self.in_app_frame(contributes=True, hint=None),
+            self.in_app_frame(contributes=True, hint=None),
+            self.in_app_frame(contributes=True, hint=None),
+            self.in_app_frame(contributes=True, hint=None),
+            self.in_app_frame(contributes=True, hint=None),
+            self.in_app_frame(contributes=True, hint=None),
+            self.system_frame(contributes=True, hint=None),
+            self.system_frame(contributes=True, hint=None),
+            self.system_frame(contributes=True, hint=None),
+            self.system_frame(contributes=True, hint=None),
+            self.system_frame(contributes=True, hint=None),
+            self.system_frame(contributes=True, hint=None),
             self.system_frame(contributes=True, hint=None),
             self.system_frame(contributes=True, hint=None),
             self.system_frame(contributes=True, hint=None),
@@ -705,8 +796,20 @@ class AssembleStacktraceComponentTest(TestCase):
             (True, "un-ignored by stacktrace rule (...)"),
             (True, "marked in-app by stacktrace rule (...)"),
             (True, None),
+            (False, "ignored by stacktrace rule (...)"),
+            (False, "marked in-app by stacktrace rule (...)"),
+            (False, None),
+            (True, "un-ignored by stacktrace rule (...)"),
+            (True, "marked in-app by stacktrace rule (...)"),
+            (True, None),
             # All the possible results which could be sent back for system frames (IOW, everything
             # but "marked in-app").
+            (False, "ignored by stacktrace rule (...)"),
+            (False, "marked out of app by stacktrace rule (...)"),
+            (False, None),
+            (True, "un-ignored by stacktrace rule (...)"),
+            (True, "marked out of app by stacktrace rule (...)"),
+            (True, None),
             (False, "ignored by stacktrace rule (...)"),
             (False, "marked out of app by stacktrace rule (...)"),
             (False, None),
@@ -716,26 +819,56 @@ class AssembleStacktraceComponentTest(TestCase):
         ]
 
         app_expected_frame_results = [
-            # With the in-app frames, all of the rust results are used
+            # With the in-app frames with no `client_in_app` value, all of the rust results are used
             (False, "ignored by stacktrace rule (...)"),
             (False, "marked in-app by stacktrace rule (...)"),
             (False, None),
             (True, "un-ignored by stacktrace rule (...)"),
             (True, "marked in-app by stacktrace rule (...)"),
             (True, None),
+            # With the in-app frames which do have a `client_in_app` value, the rust results are
+            # used only if they aren't taking credit for marking the frame in-app, since the frame
+            # already was in-app.
+            (False, "ignored by stacktrace rule (...)"),
+            (False, "marked in-app by the client"),
+            (False, "marked in-app by the client"),
+            (True, "un-ignored by stacktrace rule (...)"),
+            (True, "marked in-app by the client"),
+            (True, "marked in-app by the client"),
             # With the system frames, none of them contributes (regardless of what rust says),
-            # because they're all out of app, and the rust hint is only used when it relates to a
-            # `-app` rule.
+            # because they're all out of app. For the ones with no `client_in_app` value, the rust
+            # hint is only used when it relates to a `-app` rule.
             (False, "non app frame"),
             (False, "marked out of app by stacktrace rule (...)"),
             (False, "non app frame"),
             (False, "non app frame"),
             (False, "marked out of app by stacktrace rule (...)"),
             (False, "non app frame"),
+            # For the ones which do have a `client_in_app` value, the rust hint is never used,
+            # because either it's for a +/-group rule or it's taking credit for marking the frame
+            # out of app, even though it already was out of app.
+            (False, "marked out of app by the client"),
+            (False, "marked out of app by the client"),
+            (False, "marked out of app by the client"),
+            (False, "marked out of app by the client"),
+            (False, "marked out of app by the client"),
+            (False, "marked out of app by the client"),
         ]
         system_expected_frame_results = [
             # For all frames in this variant, the rust hint is used when it relates to a `+/-group`
             # rule, but not when it relates to a `+/-app` rule
+            (False, "ignored by stacktrace rule (...)"),
+            (False, None),
+            (False, None),
+            (True, "un-ignored by stacktrace rule (...)"),
+            (True, None),
+            (True, None),
+            (False, "ignored by stacktrace rule (...)"),
+            (False, None),
+            (False, None),
+            (True, "un-ignored by stacktrace rule (...)"),
+            (True, None),
+            (True, None),
             (False, "ignored by stacktrace rule (...)"),
             (False, None),
             (False, None),
@@ -760,14 +893,14 @@ class AssembleStacktraceComponentTest(TestCase):
             app_stacktrace_component = enhancements.assemble_stacktrace_component(
                 variant_name="app",
                 frame_components=app_variant_frame_components,
-                frames=[{}] * 6,
+                frames=incoming_frames,
                 platform="javascript",
                 exception_data={},
             )
             system_stacktrace_component = enhancements.assemble_stacktrace_component(
                 variant_name="system",
                 frame_components=system_variant_frame_components,
-                frames=[{}] * 6,
+                frames=incoming_frames,
                 platform="javascript",
                 exception_data={},
             )
@@ -789,6 +922,11 @@ class AssembleStacktraceComponentTest(TestCase):
         Test that if frame special-casing for the app variant results in no contributing frames, the
         stacktrace is marked non-contributing.
         """
+        incoming_frames = [
+            {"in_app": False},
+            {"in_app": True},
+            {"in_app": True},
+        ]
         frame_components = [
             # All possibilities (all combos of app vs system, contributing vs not) except a
             # contributing system frame, since that will never be passed to
@@ -840,7 +978,7 @@ class AssembleStacktraceComponentTest(TestCase):
             stacktrace_component1 = enhancements1.assemble_stacktrace_component(
                 variant_name="app",
                 frame_components=frame_components,
-                frames=[{}] * 3,
+                frames=incoming_frames,
                 platform="javascript",
                 exception_data={},
             )
@@ -858,7 +996,7 @@ class AssembleStacktraceComponentTest(TestCase):
             stacktrace_component2 = enhancements2.assemble_stacktrace_component(
                 variant_name="app",
                 frame_components=frame_components,
-                frames=[{}] * 3,
+                frames=incoming_frames,
                 platform="javascript",
                 exception_data={},
             )

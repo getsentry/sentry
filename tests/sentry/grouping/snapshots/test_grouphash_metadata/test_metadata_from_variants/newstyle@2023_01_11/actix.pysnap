@@ -1,5 +1,5 @@
 ---
-created: '2025-02-26T00:32:02.715373+00:00'
+created: '2025-04-25T21:24:24.179882+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -30,240 +30,240 @@ contributing variants:
       app*
         exception*
           stacktrace*
-            frame*
+            frame* (marked in-app by the client)
               function*
                 "__pthread_body"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "lib.rs"
               function*
                 "___rust_maybe_catch_panic"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "arbiter.rs"
               function*
                 "actix::arbiter::Arbiter::new_with_builder::{{closure}}"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "runtime.rs"
               function*
                 "tokio::runtime::current_thread::runtime::Runtime::block_on"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "runtime.rs"
               function*
                 "tokio::runtime::current_thread::runtime::Runtime::enter"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "lib.rs"
               function*
                 "tokio_reactor::with_default"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "lib.rs"
               function*
                 "tokio_reactor::with_default::{{closure}}"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "runtime.rs"
               function*
                 "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "clock.rs"
               function*
                 "tokio_timer::clock::clock::with_default"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "clock.rs"
               function*
                 "tokio_timer::clock::clock::with_default::{{closure}}"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "runtime.rs"
               function*
                 "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "handle.rs"
               function*
                 "tokio_timer::timer::handle::with_default"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "handle.rs"
               function*
                 "tokio_timer::timer::handle::with_default::{{closure}}"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "runtime.rs"
               function*
                 "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "global.rs"
               function*
                 "tokio_executor::global::with_default"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "global.rs"
               function*
                 "tokio_executor::global::with_default::{{closure}}"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "runtime.rs"
               function*
                 "tokio::runtime::current_thread::runtime::Runtime::enter::{{closure}}::{{closure}}::{{closure}}::{{closure}}"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "runtime.rs"
               function*
                 "tokio::runtime::current_thread::runtime::Runtime::block_on::{{closure}}"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "lib.rs"
               function*
                 "tokio_current_thread::Entered<T>::block_on"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "lib.rs"
               function*
                 "tokio_current_thread::Entered<T>::tick"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "scheduler.rs"
               function*
                 "tokio_current_thread::scheduler::Scheduler<T>::tick"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "lib.rs"
               function*
                 "tokio_current_thread::Borrow<T>::enter"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "lib.rs"
               function*
                 "tokio_current_thread::Borrow<T>::enter::{{closure}}"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "lib.rs"
               function*
                 "tokio_current_thread::CurrentRunner::set_spawn"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "lib.rs"
               function*
                 "tokio_current_thread::Borrow<T>::enter::{{closure}}::{{closure}}"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "scheduler.rs"
               function*
                 "tokio_current_thread::scheduler::Scheduler<T>::tick::{{closure}}"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "scheduler.rs"
               function*
                 "tokio_current_thread::scheduler::Scheduled<T>::tick"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "mod.rs"
               function*
                 "futures::task_impl::Spawn<T>::poll_future_notify"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "mod.rs"
               function*
                 "futures::task_impl::Spawn<T>::poll_fn_notify"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "mod.rs"
               function*
                 "futures::task_impl::Spawn<T>::enter"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "mod.rs"
               function*
                 "futures::task_impl::std::set"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "mod.rs"
               function*
                 "futures::task_impl::Spawn<T>::enter::{{closure}}"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "mod.rs"
               function*
                 "futures::task_impl::Spawn<T>::poll_future_notify::{{closure}}"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "then.rs"
               function*
                 "futures::future::then::Then<T>::poll"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "chain.rs"
               function*
                 "futures::future::chain::Chain<T>::poll"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "either.rs"
               function*
                 "futures::future::either::Either<T>::poll"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "acceptor.rs"
               function*
                 "actix_web::server::acceptor::ServerMessageAcceptorServiceFut<T>::poll"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "and_then.rs"
               function*
                 "actix_net::service::and_then::AndThenFuture<T>::poll"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "map_err.rs"
               function*
                 "actix_net::service::map_err::MapErrFuture<T>::poll"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "channel.rs"
               function*
                 "actix_web::server::channel::HttpChannel<T>::poll"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "channel.rs"
               function*
                 "actix_web::server::channel::HttpChannel<T>::poll"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "h1.rs"
               function*
                 "actix_web::server::h1::Http1Dispatcher<T>::poll"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "h1.rs"
               function*
                 "actix_web::server::h1::Http1Dispatcher<T>::poll_handler"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "h1.rs"
               function*
                 "actix_web::server::h1::Http1Dispatcher<T>::poll_io"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "h1.rs"
               function*
                 "actix_web::server::h1::Http1Dispatcher<T>::parse"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "pipeline.rs"
               function*
                 "actix_web::pipeline::Pipeline<T>::poll_io"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "<::log::macros::log macros>"
               function*
                 "actix_web::pipeline::ProcessResponse<T>::poll_io"
-            frame*
+            frame* (marked in-app by the client)
               filename*
                 "lib.rs"
               function*
