@@ -397,6 +397,15 @@ def convert_stacktrace_frame_path_to_source_path(
 
     stack_root = code_mapping.stack_root
 
+    has_new_logic = (
+        features.has("organizations:java-frame-munging-new-logic", organization, actor=None)
+        if organization
+        else False
+    )
+    if has_new_logic and platform == "java":
+        # This will cause the new munging logic to be applied
+        platform = "java-new-logic"
+
     # In most cases, code mappings get applied to frame.filename, but some platforms such as Java
     # contain folder info in other parts of the frame (e.g. frame.module="com.example.app.MainActivity"
     # gets transformed to "com/example/app/MainActivity.java"), so in those cases we use the
@@ -404,17 +413,6 @@ def convert_stacktrace_frame_path_to_source_path(
     stacktrace_path = (
         try_munge_frame_path(frame=frame, platform=platform, sdk_name=sdk_name) or frame.filename
     )
-
-    has_new_logic = (
-        features.has("organizations:java-frame-munging-new-logic", organization, actor=None)
-        if organization
-        else False
-    )
-    if has_new_logic and platform == "java" and frame.module and frame.abs_path:
-        try:
-            _, stacktrace_path = get_path_from_module(frame.module, frame.abs_path)
-        except Exception:
-            logger.warning("Investigate. Falling back to old logic.", exc_info=True)
 
     if stacktrace_path and stacktrace_path.startswith(code_mapping.stack_root):
         return (
