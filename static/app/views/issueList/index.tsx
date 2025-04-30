@@ -112,7 +112,9 @@ function IssueViewWrapper({children}: Props) {
 
 function IssueListContainer({children}: Props) {
   const organization = useOrganization();
-  const hasIssueViewSharing = organization.features.includes('issue-view-sharing');
+  const hasIssueViewSharing = organization.features.includes(
+    'enforce-stacked-navigation'
+  );
 
   return (
     <SentryDocumentTitle title={t('Issues')} orgSlug={organization.slug}>
