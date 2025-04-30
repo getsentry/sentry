@@ -110,8 +110,13 @@ class TestGroupAutofixUpdate(APITestCase):
         assert response.data["error"] == "AI Autofix has not been acknowledged by the organization."
         assert response.status_code == status.HTTP_202_ACCEPTED
 
+    @patch(
+        "sentry.api.endpoints.group_autofix_update.get_seer_org_acknowledgement", return_value=True
+    )
     @patch("sentry.api.endpoints.group_autofix_update.requests.post")
-    def test_autofix_update_updates_last_triggered_field(self, mock_post):
+    def test_autofix_update_updates_last_triggered_field(
+        self, mock_post, mock_get_seer_org_acknowledgement
+    ):
         """Test that a successful call updates the seer_autofix_last_triggered field."""
         mock_post.return_value.status_code = 202
         mock_post.return_value.json.return_value = {}
