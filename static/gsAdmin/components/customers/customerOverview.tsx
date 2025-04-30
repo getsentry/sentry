@@ -450,7 +450,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
     ? Object.values(BILLED_DATA_CATEGORY_INFO).filter(
         categoryInfo =>
           categoryInfo.canProductTrial &&
-          customer.planDetails.categories.includes(categoryInfo.plural as DataCategory)
+          customer.planDetails.categories.includes(categoryInfo.plural)
       )
     : [];
 
@@ -658,7 +658,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
               {productTrialCategories.map(categoryInfo => {
                 const categoryName = getPlanCategoryName({
                   plan: customer.planDetails,
-                  category: categoryInfo.plural as DataCategory,
+                  category: categoryInfo.plural,
                   title: true,
                 });
                 const upperCategory = upperFirst(categoryInfo.plural);

@@ -79,7 +79,7 @@ def schedule_organizations(
         # The total timespan that the task covers
         duration = ONE_DAY * 7
 
-    batch_id = uuid.uuid4()
+    batch_id = str(uuid.uuid4())
 
     def min_org_id_redis_key(timestamp: float) -> str:
         return f"weekly_reports_org_id_min:{timestamp}"
