@@ -182,21 +182,21 @@ class PendingChanges extends Component<Props> {
     Object.values(DATA_CATEGORY_INFO)
       .filter(categoryInfo => categoryInfo.isBilledCategory)
       .forEach(categoryInfo => {
-        const plural = categoryInfo.plural;
+        const category = categoryInfo.plural as DataCategory;
         if (
-          this.hasChange(`reserved.${plural}`, `categories.${plural}.reserved`) &&
-          pendingChanges.reserved[plural] !== RESERVED_BUDGET_QUOTA
+          this.hasChange(`reserved.${category}`, `categories.${category}.reserved`) &&
+          pendingChanges.reserved[category] !== RESERVED_BUDGET_QUOTA
         ) {
           results.push(
             tct('Reserved [displayName] change to [quantity]', {
               displayName: getPlanCategoryName({
                 plan: pendingChanges.planDetails,
-                category: plural,
+                category,
                 capitalize: false,
               }),
               quantity: formatReservedWithUnits(
-                pendingChanges.reserved[plural] ?? null,
-                plural
+                pendingChanges.reserved[category] ?? null,
+                category
               ),
             })
           );
@@ -269,7 +269,7 @@ class PendingChanges extends Component<Props> {
 
     if (this.hasReservedBudgetChange()) {
       const reservedBudgetChanges = pendingChanges.reservedBudgets.map(budget => {
-        const budgetCategories = Object.keys(budget.categories);
+        const budgetCategories = Object.keys(budget.categories) as DataCategory[];
         const isSpansBudget =
           budgetCategories.length === 2 &&
           budgetCategories.includes(DataCategory.SPANS) &&
