@@ -29,6 +29,7 @@ import {ModuleName} from 'sentry/views/insights/types';
 import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {OverviewWrapper} from 'sentry/views/issueList/overviewWrapper';
+import {IssueTaxonomy} from 'sentry/views/issueList/taxonomies';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import OrganizationLayout from 'sentry/views/organizationLayout';
 import {OrganizationStatsWrapper} from 'sentry/views/organizationStats/organizationStatsWrapper';
@@ -2212,15 +2213,15 @@ function buildRoutes() {
     <Route path="/issues/" withOrgPath>
       <IndexRoute component={errorHandler(OverviewWrapper)} />
       <Route
-        path="errors-outages/"
+        path={`${IssueTaxonomy.ERRORS_AND_OUTAGES}/`}
         component={make(() => import('sentry/views/issueList/pages/errorsOutages'))}
       />
       <Route
-        path="regressions/"
+        path={`${IssueTaxonomy.REGRESSIONS}/`}
         component={make(() => import('sentry/views/issueList/pages/regressions'))}
       />
       <Route
-        path="warnings/"
+        path={`${IssueTaxonomy.WARNINGS}/`}
         component={make(() => import('sentry/views/issueList/pages/warnings'))}
       />
       <Route
