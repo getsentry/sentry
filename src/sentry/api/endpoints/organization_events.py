@@ -29,6 +29,7 @@ from sentry.snuba import (
     errors,
     metrics_enhanced_performance,
     metrics_performance,
+    ourlogs,
     spans_rpc,
     transactions,
 )
@@ -754,6 +755,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
         data_fn = data_fn_factory(dataset)
 
+        max_per_page = 1000 if dataset == ourlogs else None
+
         with handle_query_errors():
             # Don't include cursor headers if the client won't be using them
             if request.GET.get("noPagination"):
@@ -779,4 +782,5 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         standard_meta=True,
                         dataset=dataset,
                     ),
+                    max_per_page=max_per_page,
                 )
