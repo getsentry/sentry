@@ -253,7 +253,7 @@ class UsageStatsOrganization<
 
     // If interval is a day or more, use UTC to format date. Otherwise, the date
     // may shift ahead/behind when converting to the user's local time.
-    let FORMAT_DATETIME;
+    let FORMAT_DATETIME: string;
     if (intervalHours >= 24) {
       // Daily format doesn't have time, so no change needed
       FORMAT_DATETIME = FORMAT_DATETIME_DAILY;
