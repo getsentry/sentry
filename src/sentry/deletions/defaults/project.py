@@ -27,6 +27,7 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
         from sentry.models.groupassignee import GroupAssignee
         from sentry.models.groupbookmark import GroupBookmark
         from sentry.models.groupemailthread import GroupEmailThread
+        from sentry.models.groupopenperiod import GroupOpenPeriod
         from sentry.models.grouprelease import GroupRelease
         from sentry.models.grouprulestatus import GroupRuleStatus
         from sentry.models.groupseen import GroupSeen
@@ -56,6 +57,8 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
 
         # in bulk
         for m1 in (
+            # GroupOpenPeriod should be deleted before Activity
+            GroupOpenPeriod,
             Activity,
             AlertRuleProjects,
             EnvironmentProject,
