@@ -24,7 +24,9 @@ function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
   const organization = useOrganization();
 
   const hasIssueViews = organization.features.includes('issue-stream-custom-views');
-  const hasIssueViewSharing = organization.features.includes('issue-view-sharing');
+  const hasIssueViewSharing = organization.features.includes(
+    'enforce-stacked-navigation'
+  );
 
   return (
     <FiltersContainer hasIssueViewSharing={hasIssueViewSharing}>

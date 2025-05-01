@@ -71,7 +71,9 @@ export function IssueViewNavItemContent({
   const organization = useOrganization();
   const {projects} = useProjects();
 
-  const hasIssueViewSharing = organization.features.includes('issue-view-sharing');
+  const hasIssueViewSharing = organization.features.includes(
+    'enforce-stacked-navigation'
+  );
 
   const controls = useDragControls();
 

@@ -36,7 +36,9 @@ function PageTitle({title}: {title: ReactNode}) {
   const organization = useOrganization();
   const {data: groupSearchView} = useSelectedGroupSearchView();
   const user = useUser();
-  const hasIssueViewSharing = organization.features.includes('issue-view-sharing');
+  const hasIssueViewSharing = organization.features.includes(
+    'enforce-stacked-navigation'
+  );
 
   if (
     hasIssueViewSharing &&
@@ -87,7 +89,7 @@ function IssueViewStarButton() {
     },
   });
 
-  if (!organization.features.includes('issue-view-sharing') || !groupSearchView) {
+  if (!organization.features.includes('enforce-stacked-navigation') || !groupSearchView) {
     return null;
   }
 
@@ -134,7 +136,7 @@ function IssueViewEditMenu() {
   const {mutate: deleteIssueView} = useDeleteGroupSearchView();
   const navigate = useNavigate();
 
-  if (!organization.features.includes('issue-view-sharing') || !groupSearchView) {
+  if (!organization.features.includes('enforce-stacked-navigation') || !groupSearchView) {
     return null;
   }
 

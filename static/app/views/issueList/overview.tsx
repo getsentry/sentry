@@ -1096,7 +1096,7 @@ function IssueListOverview({
         )}
         {!prefersStackedNav &&
           (organization.features.includes('issue-stream-custom-views') &&
-          !organization.features.includes('issue-view-sharing') ? (
+          !organization.features.includes('enforce-stacked-navigation') ? (
             <ErrorBoundary message={'Failed to load custom tabs'} mini>
               <IssueViewsIssueListHeader
                 router={router}
