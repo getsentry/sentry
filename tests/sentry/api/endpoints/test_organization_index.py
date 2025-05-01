@@ -316,6 +316,15 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         assert org.name == data["name"]
         assert OrganizationOption.objects.get_value(org, "sentry:aggregated_data_consent") is True
 
+    def test_streamline_only_is_true(self):
+        """
+        All new organizations should never see the legacy UI.
+        """
+        self.login_as(user=self.user)
+        response = self.get_success_response(name="acme")
+        organization = Organization.objects.get(id=response.data["id"])
+        assert OrganizationOption.objects.get_value(organization, "sentry:streamline_ui_only")
+
 
 @region_silo_test(regions=create_test_regions("de", "us"))
 class OrganizationsCreateInRegionTest(OrganizationIndexTest, HybridCloudTestMixin):

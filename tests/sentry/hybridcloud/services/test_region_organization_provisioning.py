@@ -7,6 +7,7 @@ from sentry.hybridcloud.services.control_organization_provisioning import (
 from sentry.hybridcloud.services.region_organization_provisioning import (
     region_organization_provisioning_rpc_service,
 )
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -209,7 +210,10 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             assert not Organization.objects.filter(id=organization_id).exists()
 
-    def setup_experiment_options(self) -> int:
+    def test_streamline_only_is_true(self) -> None:
+        """
+        All new organizations should never see the legacy UI.
+        """
         user = self.create_user()
         provision_options = self.get_provisioning_args(user)
         organization_id = 42
@@ -218,7 +222,9 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
             provision_payload=provision_options,
             region_name="us",
         )
-        return organization_id
+        with assume_test_silo_mode(SiloMode.REGION):
+            org: Organization = Organization.objects.get(id=organization_id)
+            assert OrganizationOption.objects.get_value(org, "sentry:streamline_ui_only")
 
 
 @control_silo_test(regions=create_test_regions("us"))
