@@ -196,3 +196,6 @@ register(key="sentry:tempest_fetch_screenshots", default=False)
 
 # Should tempest fetch dumps for this project
 register(key="sentry:tempest_fetch_dumps", default=False)
+
+# Autofix autorun confidence level
+register(key="sentry:autofix_autorun_threshold", default="off")

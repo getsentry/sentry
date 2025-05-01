@@ -1941,3 +1941,40 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             self.organization.slug, self.project.slug, method="get"
         )
         assert "tempestFetchDumps" not in response.data
+
+    def test_autofix_autorun_threshold(self):
+        # Test without feature flag - should fail
+        resp = self.get_error_response(
+            self.org_slug, self.proj_slug, autofixAutorunThreshold="low", status_code=400
+        )
+        assert (
+            "trigger-autofix-on-issue-summary feature enabled"
+            in resp.data["autofixAutorunThreshold"][0]
+        )
+        assert self.project.get_option("sentry:autofix_autorun_threshold") == "off"  # default
+
+        # Test with feature flag but invalid value - should fail
+        with self.feature("organizations:trigger-autofix-on-issue-summary"):
+            resp = self.get_error_response(
+                self.org_slug, self.proj_slug, autofixAutorunThreshold="invalid", status_code=400
+            )
+            assert '"invalid" is not a valid choice.' in resp.data["autofixAutorunThreshold"][0]
+            assert self.project.get_option("sentry:autofix_autorun_threshold") == "off"  # default
+
+            # Test with feature flag and valid value - should succeed
+            resp = self.get_success_response(
+                self.org_slug, self.proj_slug, autofixAutorunThreshold="medium"
+            )
+            assert self.project.get_option("sentry:autofix_autorun_threshold") == "medium"
+            assert resp.data["autofixAutorunThreshold"] == "medium"
+
+            # Test setting back to off
+            resp = self.get_success_response(
+                self.org_slug, self.proj_slug, autofixAutorunThreshold="off"
+            )
+            assert self.project.get_option("sentry:autofix_autorun_threshold") == "off"
+            assert resp.data["autofixAutorunThreshold"] == "off"
+
+    def test_digests_delay(self):
+        self.get_success_response(self.org_slug, self.proj_slug, digestsMinDelay=1000)
+        assert self.project.get_option("digests:mail:minimum_delay") == 1000

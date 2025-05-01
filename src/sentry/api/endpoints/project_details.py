@@ -228,6 +228,11 @@ E.g. `['release', 'environment']`""",
     performanceIssueSendToPlatform = serializers.BooleanField(required=False)
     tempestFetchScreenshots = serializers.BooleanField(required=False)
     tempestFetchDumps = serializers.BooleanField(required=False)
+    autofixAutorunThreshold = serializers.ChoiceField(
+        choices=["off", "low", "medium", "high"],
+        required=False,
+        help_text="The confidence level required for Autofix to automatically run on new issues.",
+    )
 
     # DO NOT ADD MORE TO OPTIONS
     # Each param should be a field in the serializer like above.
@@ -455,6 +460,17 @@ E.g. `['release', 'environment']`""",
             )
         return value
 
+    def validate_autofixAutorunThreshold(self, value):
+        organization = self.context["project"].organization
+        actor = self.context["request"].user
+        if not features.has(
+            "organizations:trigger-autofix-on-issue-summary", organization, actor=actor
+        ):
+            raise serializers.ValidationError(
+                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
+            )
+        return value
+
 
 class RelaxedProjectPermission(ProjectPermission):
     scope_map = {
@@ -571,17 +587,20 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         serializer = serializer_cls(
             data=request.data, partial=True, context={"project": project, "request": request}
         )
-        serializer.is_valid()
+        # Use raise_exception=True for standard DRF error handling
+        try:
+            serializer.is_valid(raise_exception=True)
+        except serializers.ValidationError as e:
+            # logger.warning("Validation failed: %s", e.detail)
+            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
 
-        result = serializer.validated_data
+        result = serializer.validated_data  # Now safe to access
 
         if result.get("dynamicSamplingBiases") and not (has_dynamic_sampling(project.organization)):
             return Response(
                 {"detail": "dynamicSamplingBiases is not a valid field"},
                 status=403,
             )
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
 
         if not has_elevated_scopes:
             for key in ProjectAdminSerializer().fields.keys():
@@ -760,6 +779,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if project.update_option("sentry:dynamic_sampling_biases", updated_biases):
                 changed_proj_settings["sentry:dynamic_sampling_biases"] = result[
                     "dynamicSamplingBiases"
+                ]
+
+        if result.get("autofixAutorunThreshold") is not None:
+            if project.update_option(
+                "sentry:autofix_autorun_threshold", result["autofixAutorunThreshold"]
+            ):
+                changed_proj_settings["sentry:autofix_autorun_threshold"] = result[
+                    "autofixAutorunThreshold"
                 ]
 
         if has_elevated_scopes:
