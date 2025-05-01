@@ -88,6 +88,9 @@ describe('marked', function () {
     expect(sanitizedMarked('```tsx\n<div>Hello</div>\n```')).toBe(
       `<pre><code class="language-tsx">&lt;div&gt;Hello&lt;/div&gt;\n</code></pre>\n`
     );
+    expect(sanitizedMarked('```jsx\n<Component>Hello</Component>\n```')).toBe(
+      `<pre><code class="language-jsx">&lt;Component&gt;Hello&lt;/Component&gt;\n</code></pre>\n`
+    );
   });
 
   it('single line renderer should not render paragraphs', function () {
