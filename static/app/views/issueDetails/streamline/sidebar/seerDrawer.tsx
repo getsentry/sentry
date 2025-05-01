@@ -55,6 +55,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
   const {autofixData, triggerAutofix, reset} = useAiAutofix(group, event);
   const aiConfig = useAiConfig(group, project);
   const location = useLocation();
+  const navigate = useNavigate();
 
   useRouteAnalyticsParams({autofix_status: autofixData?.status ?? 'none'});
 
@@ -118,11 +119,26 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
           if (element) {
             element.scrollIntoView({behavior: 'smooth'});
             userScrolledRef.current = true; // User has explicitly requested a scroll
+
+            // Clear the scrollTo parameter from the URL after scrolling
+            // This allows automatic scrolling to continue working for future updates
+            setTimeout(() => {
+              navigate(
+                {
+                  pathname: location.pathname,
+                  query: {
+                    ...location.query,
+                    scrollTo: undefined,
+                  },
+                },
+                {replace: true}
+              );
+            }, 200);
           }
         }
       }
     },
-    [autofixData]
+    [autofixData, location, navigate]
   );
 
   useEffect(() => {
