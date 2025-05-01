@@ -53,6 +53,7 @@ export const SENTRY_SPAN_STRING_TAGS: string[] = [
   SpanIndexedField.TRANSACTION,
   SpanIndexedField.TRACE,
   SpanIndexedField.IS_TRANSACTION, // boolean field but we can expose it as a string
+  SpanIndexedField.NORMALIZED_DESCRIPTION,
 ];
 
 export const SENTRY_SPAN_NUMBER_TAGS: string[] = SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS;
