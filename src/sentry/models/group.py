@@ -602,8 +602,8 @@ class Group(Model):
     )
     priority = models.PositiveSmallIntegerField(null=True)
     priority_locked_at = models.DateTimeField(null=True)
-    seer_fixability_score = models.FloatField(null=True, db_index=True)
-    seer_autofix_last_triggered = models.DateTimeField(null=True, db_index=True)
+    seer_fixability_score = models.FloatField(null=True)
+    seer_autofix_last_triggered = models.DateTimeField(null=True)
 
     objects: ClassVar[GroupManager] = GroupManager(cache_fields=("id",))
 
@@ -624,10 +624,6 @@ class Group(Model):
             models.Index(fields=("status", "substatus", "id")),  # TODO: Remove this
             models.Index(fields=("status", "substatus", "first_seen")),
             models.Index(fields=("project", "status", "priority", "last_seen", "id")),
-            models.Index(
-                fields=("project", "seer_fixability_score", "seer_autofix_last_triggered")
-            ),
-            models.Index(fields=("project", "seer_autofix_last_triggered")),
         ]
         unique_together = (
             ("project", "short_id"),
