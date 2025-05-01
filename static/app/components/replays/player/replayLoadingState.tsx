@@ -3,6 +3,7 @@ import type {ReactNode} from 'react';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ArchivedReplayAlert from 'sentry/components/replays/alerts/archivedReplayAlert';
 import MissingReplayAlert from 'sentry/components/replays/alerts/missingReplayAlert';
+import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -16,6 +17,7 @@ export default function ReplayLoadingState({
   renderError,
   renderLoading,
   renderMissing,
+  renderProcessingError,
 }: {
   children: (props: {replay: ReplayReader}) => ReactNode;
   readerResult: ReplayReaderResult;
@@ -23,6 +25,7 @@ export default function ReplayLoadingState({
   renderError?: (results: ReplayReaderResult) => ReactNode;
   renderLoading?: (results: ReplayReaderResult) => ReactNode;
   renderMissing?: (results: ReplayReaderResult) => ReactNode;
+  renderProcessingError?: (results: ReplayReaderResult) => ReactNode;
 }) {
   const organization = useOrganization();
 
@@ -46,6 +49,12 @@ export default function ReplayLoadingState({
   if (readerResult.replayRecord?.is_archived) {
     return renderArchived ? renderArchived(readerResult) : <ArchivedReplayAlert />;
   }
-  // what about replay.hasProcessingErrors()?
+  if (readerResult.replay.hasProcessingErrors()) {
+    return renderProcessingError ? (
+      renderProcessingError(readerResult)
+    ) : (
+      <ReplayProcessingError processingErrors={readerResult.replay.processingErrors()} />
+    );
+  }
   return children({replay: readerResult.replay});
 }
