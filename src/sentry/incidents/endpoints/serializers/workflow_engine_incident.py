@@ -1,8 +1,10 @@
-from collections.abc import Mapping
+from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any, ClassVar
 
 from django.contrib.auth.models import AnonymousUser
+from django.db.models import Subquery
 
 from sentry.api.serializers import Serializer
 from sentry.api.serializers.models.incidentactivity import IncidentActivitySerializerResponse
@@ -14,10 +16,18 @@ from sentry.incidents.endpoints.serializers.incident import (
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod, IncidentType
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
-from sentry.snuba.models import SnubaQuery
+from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.types.group import PriorityLevel
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.workflow_engine.models import (
+    ActionGroupStatus,
+    DataCondition,
+    DataConditionGroupAction,
+    DataSourceDetector,
+    DetectorWorkflow,
+    WorkflowDataConditionGroup,
+)
 
 
 class WorkflowEngineIncidentSerializer(Serializer):
@@ -30,8 +40,12 @@ class WorkflowEngineIncidentSerializer(Serializer):
     def __init__(self, expand=None):
         self.expand = expand or []
 
-    def get_attrs(self, item_list, user, **kwargs):
-
+    def get_attrs(
+        self,
+        item_list: Sequence[GroupOpenPeriod],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> defaultdict[GroupOpenPeriod, dict[str, list[str]]]:
         # TODO: improve typing here
         results: dict[GroupOpenPeriod, dict[str, Any]] = {}
         for open_period in item_list:
@@ -144,10 +158,49 @@ class WorkflowEngineDetailedIncidentSerializer(WorkflowEngineIncidentSerializer)
         return context
 
     def _build_discover_query(self, open_period: GroupOpenPeriod) -> str:
-        # TODO: Implement this
+        try:
+            action_group_status = ActionGroupStatus.objects.get(group=open_period.group)
+        except ActionGroupStatus.DoesNotExist:
+            return ""
+
+        condition_groups = Subquery(
+            DataConditionGroupAction.filter(action=action_group_status.action).values(
+                "condition_group"
+            )
+        )
+        action_filters = DataCondition.objects.filter(condition_group__in=condition_groups)
+
+        try:
+            detector = DetectorWorkflow.objects.get(
+                workflow__in=Subquery(
+                    WorkflowDataConditionGroup.objects.filter(
+                        condition_group__in=Subquery(action_filters.values("condition_group"))
+                    ).values("workflow")
+                )
+            ).values("detector")
+        except DetectorWorkflow.DoesNotExist:
+            return ""
+
+        try:
+            data_source_detector = DataSourceDetector.objects.get(detector=detector)
+        except DataSourceDetector.DoesNotExist:
+            return ""
+
+        try:
+            query_subscription = QuerySubscription.objects.get(
+                id=data_source_detector.detector.data_source.source_id
+            )
+        except QuerySubscription.DoesNotExist:
+            return ""
+
+        try:
+            snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query_id)
+        except SnubaQuery.DoesNotExist:
+            return ""
+
         return apply_dataset_query_conditions(
-            SnubaQuery.Type.ERROR,
-            "test",
-            event_types=None,
+            SnubaQuery.Type(snuba_query.type),
+            snuba_query.query,
+            snuba_query.event_types,
             discover=True,
         )
