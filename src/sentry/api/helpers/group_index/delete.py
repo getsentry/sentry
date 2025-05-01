@@ -63,6 +63,7 @@ def delete_group_list(
     ).update(status=GroupStatus.PENDING_DELETION, substatus=None)
 
     eventstream_state = eventstream.backend.start_delete_groups(project.id, group_ids)
+    transaction_id = uuid4().hex
 
     # Tell seer to delete grouping records for these groups
     call_delete_seer_grouping_records_by_hash(group_ids)
@@ -75,12 +76,6 @@ def delete_group_list(
     # `Group` instances that are pending deletion
     GroupInbox.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
 
-    transaction_id = uuid4().hex
-    # Creating the audit entries allows us to see who requested a deletion
-    # regardless of the outcome of the deletion. Otherwise, if the deletion
-    # fails we will never know who requested it.
-    create_audit_entries(request, project, group_list, delete_type, transaction_id)
-
     delete_groups_task.apply_async(
         kwargs={
             "object_ids": group_ids,
@@ -89,6 +84,8 @@ def delete_group_list(
         },
         countdown=countdown,
     )
+
+    create_audit_entries(request, project, group_list, delete_type, transaction_id)
 
 
 def create_audit_entries(
