@@ -76,8 +76,8 @@ def taskworker_override(
         rollout_rate = 0
         option_flag = f"taskworker.{namespace}.rollout"
         check_option = True
-        if namespace in settings.TASKWORKER_INGEST_NAMESPACES:
-            check_option = settings.TASKWORKER_ENABLE_INGEST_NAMESPACES
+        if namespace in settings.TASKWORKER_HIGH_THROUGHPUT_NAMESPACES:
+            check_option = settings.TASKWORKER_ENABLE_HIGH_THROUGHPUT_NAMESPACES
 
         if check_option:
             rollout_map = options.get(option_flag)
