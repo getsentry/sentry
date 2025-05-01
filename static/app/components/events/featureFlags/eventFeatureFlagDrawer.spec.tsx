@@ -2,7 +2,7 @@ import {TagsFixture} from 'sentry-fixture/tags';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {EventFeatureFlagList} from 'sentry/components/events/featureFlags/eventFeatureFlagList';
+import {EventFeatureFlagSection} from 'sentry/components/events/featureFlags/eventFeatureFlagSection';
 import {
   MOCK_DATA_SECTION_PROPS,
   MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG,
@@ -24,7 +24,7 @@ async function renderFlagDrawer() {
       bottom: 0,
       toJSON: jest.fn(),
     }));
-  render(<EventFeatureFlagList {...MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG} />);
+  render(<EventFeatureFlagSection {...MOCK_DATA_SECTION_PROPS_ONE_EXTRA_FLAG} />);
   await userEvent.click(screen.getByRole('button', {name: 'View 1 More Flag'}));
   return screen.getByRole('complementary', {name: 'Feature flags drawer'});
 }

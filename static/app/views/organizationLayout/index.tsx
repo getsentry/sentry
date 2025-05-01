@@ -2,7 +2,7 @@ import {ScrollRestoration} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import DemoHeader from 'sentry/components/demo/demoHeader';
-import {useFeatureFlagOnboardingDrawer} from 'sentry/components/events/featureFlags/featureFlagOnboardingSidebar';
+import {useFeatureFlagOnboardingDrawer} from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingSidebar';
 import {useFeedbackOnboardingDrawer} from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Footer from 'sentry/components/footer';
 import HookOrDefault from 'sentry/components/hookOrDefault';

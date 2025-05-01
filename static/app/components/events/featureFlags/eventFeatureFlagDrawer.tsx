@@ -49,7 +49,7 @@ interface FlagDrawerProps {
   focusControl?: FlagControlOptions;
 }
 
-export function FeatureFlagDrawer({
+export function EventFeatureFlagDrawer({
   group,
   event,
   project,
