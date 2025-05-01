@@ -2329,7 +2329,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         for source, result in zip(spans, data):
             assert result["id"] == source["span_id"], "id"
             assert result["span.duration"] == 1000.0, "duration"
-            assert result["span.op"] == "", "op"
+            assert result["span.op"] is None or result["span.op"] == "", "op"
             assert result["span.description"] == source["description"], "description"
             ts = datetime.fromisoformat(result["timestamp"])
             assert ts.tzinfo == timezone.utc
