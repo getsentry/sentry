@@ -19,7 +19,7 @@ import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useS
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 import {useUpdateGroupSearchViewLastVisited} from 'sentry/views/nav/secondary/sections/issues/issueViews/useUpdateGroupSearchViewLastVisited';
 import {
-  usePrefersOldNavWithEnforcedStackedNav,
+  useHasIssueViewSharing,
   usePrefersStackedNav,
 } from 'sentry/views/nav/usePrefersStackedNav';
 
@@ -120,9 +120,7 @@ function IssueViewWrapper({children}: Props) {
 
 function IssueListContainer({children, title = t('Issues')}: Props) {
   const organization = useOrganization();
-  const prefersStackedNav = usePrefersStackedNav();
-  const prefersOldNavWithEnforcement = usePrefersOldNavWithEnforcedStackedNav();
-  const hasIssueViewSharing = prefersStackedNav && !prefersOldNavWithEnforcement;
+  const hasIssueViewSharing = useHasIssueViewSharing();
 
   return (
     <SentryDocumentTitle title={title} orgSlug={organization.slug}>
