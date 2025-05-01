@@ -42,9 +42,9 @@ import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageH
 import {OldFrontendOverviewPage} from 'sentry/views/insights/pages/frontend/oldFrontendOverviewPage';
 import {
   DEFAULT_SORT,
+  EAP_OVERVIEW_PAGE_ALLOWED_OPS,
   FRONTEND_LANDING_TITLE,
   FRONTEND_PLATFORMS,
-  OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/frontend/settings';
 import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
 import {useIsNextJsInsightsEnabled} from 'sentry/views/insights/pages/platform/nextjs/features';
@@ -111,7 +111,7 @@ function EAPOverviewPage() {
   const existingQuery = new MutableSearch(eventView.query);
   // TODO - this query is getting complicated, once were on EAP, we should consider moving this to the backend
   existingQuery.addOp('(');
-  existingQuery.addFilterValues('span.op', OVERVIEW_PAGE_ALLOWED_OPS);
+  existingQuery.addFilterValues('span.op', EAP_OVERVIEW_PAGE_ALLOWED_OPS);
   // add disjunction filter creates a very long query as it seperates conditions with OR, project ids are numeric with no spaces, so we can use a comma seperated list
   if (selectedFrontendProjects.length > 0) {
     existingQuery.addOp('OR');

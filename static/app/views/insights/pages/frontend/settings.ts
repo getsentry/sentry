@@ -8,7 +8,7 @@ export const FRONTEND_LANDING_SUB_PATH = 'frontend';
 export const FRONTEND_LANDING_TITLE = t('Frontend');
 export const FRONTEND_SIDEBAR_LABEL = t('Frontend');
 
-export const OVERVIEW_PAGE_ALLOWED_OPS = [
+export const EAP_OVERVIEW_PAGE_ALLOWED_OPS = [
   'pageload',
   'navigation',
   'ui.render',
@@ -20,6 +20,13 @@ export const OVERVIEW_PAGE_ALLOWED_OPS = [
   'ui.interaction.press',
   'ui.webvital.cls',
   'ui.webvital.fcp',
+];
+
+export const OVERVIEW_PAGE_ALLOWED_OPS = [
+  'pageload',
+  'navigation',
+  'ui.render',
+  'interaction',
 ];
 
 export const MODULES = [
