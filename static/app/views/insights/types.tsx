@@ -71,6 +71,8 @@ export enum SpanFields {
   IS_TRANSACTION = 'is_transaction',
   CACHE_HIT = 'cache.hit',
   IS_STARRED_TRANSACTION = 'is_starred_transaction',
+  SPAN_DURATION = 'span.duration',
+  USER = 'user',
 }
 
 type SpanBooleanFields =
@@ -94,6 +96,7 @@ type SpanNumberFields =
   | SpanMetricsField.MOBILE_FROZEN_FRAMES
   | SpanMetricsField.MOBILE_TOTAL_FRAMES
   | SpanMetricsField.MOBILE_SLOW_FRAMES
+  | SpanMetricsField.SPAN_DURATION
   | DiscoverNumberFields;
 
 type SpanStringFields =
@@ -242,6 +245,8 @@ export type EAPSpanResponse = {
       | `${Property}(${string},${string},${string})`]: number;
   } & {
     [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
+  } & {
+    [Property in SpanFields as `count_unique(${Property})`]: number;
   };
 
 export type EAPSpanProperty = keyof EAPSpanResponse;
@@ -606,6 +611,11 @@ export type DiscoverResponse = {
 export type DiscoverProperty = keyof DiscoverResponse;
 
 export type MetricsQueryFilters = Partial<Record<MetricsStringFields, string>> & {
+  [SpanIndexedField.PROJECT_ID]?: string;
+};
+
+export type SpanQueryFilters = Partial<Record<SpanStringFields, string>> & {
+  is_transaction?: 'true' | 'false';
   [SpanIndexedField.PROJECT_ID]?: string;
 };
 

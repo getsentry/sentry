@@ -726,9 +726,6 @@ from kombu import Exchange, Queue
 BROKER_URL = "redis://127.0.0.1:6379"
 BROKER_TRANSPORT_OPTIONS: dict[str, int] = {}
 
-# Ensure workers run async by default
-# in Development you might want them to run in-process
-TASK_WORKER_ALWAYS_EAGER = False
 
 # Ensure workers run async by default
 # in Development you might want them to run in-process
@@ -1385,6 +1382,10 @@ BGTASKS: dict[str, BgTaskConfig] = {
 #######################
 # Taskworker settings #
 #######################
+
+# If true, tasks will be run immediately.
+# Used primarily in tests.
+TASKWORKER_ALWAYS_EAGER = False
 
 # Shared secrets used to sign RPC requests to taskbrokers
 # The first secret is used for signing.
@@ -2327,10 +2328,6 @@ SENTRY_OPTIONS: dict[str, Any] = {}
 SENTRY_DEFAULT_OPTIONS: dict[str, Any] = {}
 # Raise an error in dev on failed lookups
 SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
-
-# You should not change this setting after your database has been created
-# unless you have altered all schemas first
-SENTRY_USE_BIG_INTS = False
 
 # Delay (in ms) to induce on API responses
 #
