@@ -103,6 +103,7 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
                       })
                     }
                     event={null}
+                    hasIssueShare
                   />
                 ))
               }

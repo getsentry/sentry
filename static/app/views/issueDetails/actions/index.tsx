@@ -96,6 +96,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
       deleteAndDiscard: deleteDiscardCap,
       resolve: resolveCap,
       resolveInRelease: resolveInReleaseCap,
+      share: shareCap,
     },
     customCopy: {resolution: resolvedCopyCap},
     discover: discoverCap,
@@ -345,6 +346,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
         event={event}
         onToggle={onTogglePublicShare}
         projectSlug={project.slug}
+        hasIssueShare={shareCap.enabled}
       />
     ));
   };
@@ -455,6 +457,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
           icon={<IconUpload />}
           aria-label={t('Share')}
           title={t('Share Issue')}
+          disabled={disabled}
           analyticsEventKey="issue_details.share_action_clicked"
           analyticsEventName="Issue Details: Share Action Clicked"
         />

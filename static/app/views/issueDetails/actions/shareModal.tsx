@@ -29,6 +29,7 @@ import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 interface ShareIssueModalProps extends ModalRenderProps {
   event: Event | null;
   groupId: string;
+  hasIssueShare: boolean;
   onToggle: () => void;
   organization: Organization;
   projectSlug: string;
@@ -51,6 +52,7 @@ export default function ShareIssueModal({
   event,
   onToggle,
   projectSlug,
+  hasIssueShare,
 }: ShareIssueModalProps) {
   const [includeEventId, setIncludeEventId] = useLocalStorageState(
     'issue-details-share-event-id',
@@ -64,6 +66,8 @@ export default function ShareIssueModal({
   const [loading, setLoading] = useState(false);
   const isPublished = group?.isPublic;
   const hasStreamlinedUI = useHasStreamlinedUI();
+
+  const hasPublicShare = organization.features.includes('shared-issues') && hasIssueShare;
 
   const issueUrl =
     includeEventId && event
@@ -129,7 +133,7 @@ export default function ShareIssueModal({
         <h4>{t('Share Issue')}</h4>
       </Header>
       <Body>
-        <ModalContent>
+        <ModalContent hasPublicShare={hasPublicShare}>
           <UrlContainer>
             <TextContainer>
               <StyledAutoSelectText ref={urlRef}>{issueUrl}</StyledAutoSelectText>
@@ -187,55 +191,61 @@ export default function ShareIssueModal({
               {t('Copy Link')}
             </Button>
           </StyledButtonBar>
-          <SectionDivider />
-          <SwitchWrapper>
-            <div>
-              <Title>{t('Create a public link')}</Title>
-              <SubText>{t('Share a link with anyone outside your organization')}</SubText>
-            </div>
-            <Switch
-              aria-label={isPublished ? t('Unpublish') : t('Publish')}
-              checked={isPublished}
-              size="lg"
-              onChange={handlePublicShare}
-            />
-          </SwitchWrapper>
-          {(!group || loading) && (
-            <LoadingContainer>
-              <LoadingIndicator mini />
-            </LoadingContainer>
-          )}
-          {group && !loading && isPublished && shareUrl && (
-            <PublishActions>
-              <UrlContainer>
-                <TextContainer>
-                  <StyledAutoSelectText ref={urlRef}>{shareUrl}</StyledAutoSelectText>
-                </TextContainer>
-                <ReshareButton
-                  title={t('Generate new URL. Invalidates previous URL')}
-                  aria-label={t('Generate new URL')}
-                  borderless
-                  size="sm"
-                  icon={<IconRefresh />}
-                  onClick={() => handlePublicShare(null, true)}
-                  analyticsEventKey="issue_details.publish_issue_modal.generate_new_url"
-                  analyticsEventName="Issue Details: Publish Issue Modal Generate New URL"
+          {hasPublicShare && (
+            <Fragment>
+              <SectionDivider />
+              <SwitchWrapper>
+                <div>
+                  <Title>{t('Create a public link')}</Title>
+                  <SubText>
+                    {t('Share a link with anyone outside your organization')}
+                  </SubText>
+                </div>
+                <Switch
+                  aria-label={isPublished ? t('Unpublish') : t('Publish')}
+                  checked={isPublished}
+                  size="lg"
+                  onChange={handlePublicShare}
                 />
-              </UrlContainer>
-              <ButtonContainer>
-                <Button
-                  priority="primary"
-                  onClick={handleCopy}
-                  analyticsEventKey="issue_details.publish_issue_modal.copy_link"
-                  analyticsEventName="Issue Details: Publish Issue Modal Copy Link"
-                  analyticsParams={{
-                    streamline: hasStreamlinedUI,
-                  }}
-                >
-                  {t('Copy Public Link')}
-                </Button>
-              </ButtonContainer>
-            </PublishActions>
+              </SwitchWrapper>
+              {(!group || loading) && (
+                <LoadingContainer>
+                  <LoadingIndicator mini />
+                </LoadingContainer>
+              )}
+              {group && !loading && isPublished && shareUrl && (
+                <PublishActions>
+                  <UrlContainer>
+                    <TextContainer>
+                      <StyledAutoSelectText ref={urlRef}>{shareUrl}</StyledAutoSelectText>
+                    </TextContainer>
+                    <ReshareButton
+                      title={t('Generate new URL. Invalidates previous URL')}
+                      aria-label={t('Generate new URL')}
+                      borderless
+                      size="sm"
+                      icon={<IconRefresh />}
+                      onClick={() => handlePublicShare(null, true)}
+                      analyticsEventKey="issue_details.publish_issue_modal.generate_new_url"
+                      analyticsEventName="Issue Details: Publish Issue Modal Generate New URL"
+                    />
+                  </UrlContainer>
+                  <ButtonContainer>
+                    <Button
+                      priority="primary"
+                      onClick={handleCopy}
+                      analyticsEventKey="issue_details.publish_issue_modal.copy_link"
+                      analyticsEventName="Issue Details: Publish Issue Modal Copy Link"
+                      analyticsParams={{
+                        streamline: hasStreamlinedUI,
+                      }}
+                    >
+                      {t('Copy Public Link')}
+                    </Button>
+                  </ButtonContainer>
+                </PublishActions>
+              )}
+            </Fragment>
           )}
         </ModalContent>
       </Body>
@@ -243,11 +253,11 @@ export default function ShareIssueModal({
   );
 }
 
-const ModalContent = styled('div')`
+const ModalContent = styled('div')<{hasPublicShare: boolean}>`
   display: flex;
   gap: ${space(1)};
   flex-direction: column;
-  min-height: 240px;
+  min-height: ${p => (p.hasPublicShare ? '240px' : '')};
 `;
 
 const UrlContainer = styled('div')`
