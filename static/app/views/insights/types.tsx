@@ -72,6 +72,7 @@ export enum SpanFields {
   CACHE_HIT = 'cache.hit',
   IS_STARRED_TRANSACTION = 'is_starred_transaction',
   SPAN_DURATION = 'span.duration',
+  USER = 'user',
 }
 
 type SpanBooleanFields =
@@ -244,6 +245,8 @@ export type EAPSpanResponse = {
       | `${Property}(${string},${string},${string})`]: number;
   } & {
     [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
+  } & {
+    [Property in SpanFields as `count_unique(${Property})`]: number;
   };
 
 export type EAPSpanProperty = keyof EAPSpanResponse;
