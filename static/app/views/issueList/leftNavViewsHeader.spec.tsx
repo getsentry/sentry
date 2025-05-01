@@ -32,7 +32,7 @@ describe('LeftNavViewsHeader', function () {
 
   const organization = OrganizationFixture({
     access: ['org:read'],
-    features: ['issue-view-sharing'],
+    features: ['enforce-stacked-navigation'],
   });
 
   const onIssueViewRouterConfig = {
