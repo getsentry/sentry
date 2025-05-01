@@ -641,7 +641,7 @@ def post_process_group(
 
             if received_at:
                 metrics.timing(
-                    "events.time-to-post-process",
+                    "events.time_to_post_processed",
                     post_processed_at - received_at,
                     instance=event.data["platform"],
                     tags=metric_tags,
@@ -651,7 +651,7 @@ def post_process_group(
 
             if start_save_event_time:
                 metrics.timing(
-                    "events.start-save-to-post-process",
+                    "events.start_save_event_time_to_post_processed",
                     post_processed_at - start_save_event_time,
                     instance=event.data["platform"],
                     tags=metric_tags,
