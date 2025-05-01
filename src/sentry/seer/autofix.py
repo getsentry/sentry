@@ -803,8 +803,7 @@ def trigger_autofix(
 
     check_autofix_status.apply_async(args=[run_id], countdown=timedelta(minutes=15).seconds)
 
-    group.seer_autofix_last_triggered = timezone.now()
-    group.save()
+    group.update(seer_autofix_last_triggered=timezone.now())
 
     return Response(
         {

@@ -74,7 +74,6 @@ class GroupAutofixUpdateEndpoint(GroupAiEndpoint):
 
         response.raise_for_status()
 
-        group.seer_autofix_last_triggered = timezone.now()
-        group.save()
+        group.update(seer_autofix_last_triggered=timezone.now())
 
         return Response(status=202, data=response.json())
