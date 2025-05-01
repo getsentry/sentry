@@ -282,7 +282,9 @@ function LogRowDetails({
   const theme = useTheme();
   const logColors = getLogColors(level, theme);
   const attributes =
-    data?.attributes?.reduce((it, {name, value}) => ({...it, [name]: value}), {}) ?? {};
+    data?.attributes?.reduce((it, {name, value}) => ({...it, [name]: value}), {
+      [OurLogKnownFieldKey.TIMESTAMP]: dataRow[OurLogKnownFieldKey.TIMESTAMP],
+    }) ?? {};
 
   if (missingLogId) {
     return (
