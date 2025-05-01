@@ -30,8 +30,7 @@ import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
-
-import ChartFooter from './chartFooter';
+import ChartFooter from 'sentry/views/discover/results/chartFooter';
 
 type ResultsChartProps = {
   api: Client;

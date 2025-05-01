@@ -9,7 +9,7 @@ import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization
 import EventView from 'sentry/utils/discover/eventView';
 import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
-import {getAllViews} from 'sentry/views/discover/data';
+import {getAllViews} from 'sentry/views/discover/results/data';
 import SavedQueryButtonGroup from 'sentry/views/discover/savedQuery';
 import * as utils from 'sentry/views/discover/savedQuery/utils';
 

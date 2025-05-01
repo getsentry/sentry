@@ -11,8 +11,10 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {SavedSearchType} from 'sentry/types/group';
 import EventView from 'sentry/utils/discover/eventView';
 import Results from 'sentry/views/discover/results';
-
-import {DEFAULT_EVENT_VIEW, getTransactionViews} from './data';
+import {
+  DEFAULT_EVENT_VIEW,
+  getTransactionViews,
+} from 'sentry/views/discover/results/data';
 
 const FIELDS = [
   {
