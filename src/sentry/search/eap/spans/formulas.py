@@ -484,6 +484,32 @@ def time_spent_percentage(
     )
 
 
+def tpm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+    extrapolation_mode = settings["extrapolation_mode"]
+    is_timeseries_request = settings["snuba_params"].is_timeseries_request
+
+    divisor = (
+        settings["snuba_params"].timeseries_granularity_secs
+        if is_timeseries_request
+        else settings["snuba_params"].interval
+    )
+
+    return Column.BinaryFormula(
+        default_value_double=0.0,
+        left=Column(
+            aggregation=AttributeAggregation(
+                aggregate=Function.FUNCTION_COUNT,
+                key=AttributeKey(type=AttributeKey.TYPE_BOOLEAN, name="sentry.is_segment"),
+                extrapolation_mode=extrapolation_mode,
+            ),
+        ),
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=Column(
+            literal=LiteralValue(val_double=divisor / 60),
+        ),
+    )
+
+
 def epm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
     is_timeseries_request = settings["snuba_params"].is_timeseries_request
@@ -635,5 +661,8 @@ SPAN_FORMULA_DEFINITIONS = {
     ),
     "epm": FormulaDefinition(
         default_search_type="rate", arguments=[], formula_resolver=epm, is_aggregate=True
+    ),
+    "tpm": FormulaDefinition(
+        default_search_type="rate", arguments=[], formula_resolver=tpm, is_aggregate=True
     ),
 }
