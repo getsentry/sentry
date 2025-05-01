@@ -55,10 +55,10 @@ def spawn_clusterers(**kwargs: Any) -> None:
     """Look for existing transaction name sets in redis and spawn clusterers for each"""
     with sentry_sdk.start_span(op="txcluster_spawn"):
         project_count = 0
-        project_iter = redis.get_active_projects(ClustererNamespace.TRANSACTIONS)
+        project_iter = redis.get_active_project_ids(ClustererNamespace.TRANSACTIONS)
         while batch := list(islice(project_iter, PROJECTS_PER_TASK)):
             project_count += len(batch)
-            cluster_projects.delay(batch)
+            cluster_projects.delay(project_ids=batch)
 
         metrics.incr("txcluster.spawned_projects", amount=project_count, sample_rate=1.0)
 
