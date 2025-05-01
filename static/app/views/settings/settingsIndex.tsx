@@ -53,7 +53,6 @@ function SettingsIndex(props: SettingsIndexProps) {
 
   const supportLinkProps = {
     isSelfHosted,
-    organizationSettingsUrl,
   };
 
   // For the new navigation, we are removing this page. The default base route should
@@ -359,19 +358,14 @@ interface SupportLinkProps extends Omit<LinkProps, 'ref' | 'to'> {
   icon?: boolean;
 }
 
-function SupportLink({
-  isSelfHosted,
-  icon,
-  organizationSettingsUrl,
-  ...props
-}: SupportLinkProps) {
+function SupportLink({isSelfHosted, icon, ...props}: SupportLinkProps) {
   if (isSelfHosted) {
     const SelfHostedLink = icon ? ExternalHomeLinkIcon : ExternalHomeLink;
     return <SelfHostedLink href={LINKS.FORUM} {...props} />;
   }
 
   const SelfHostedLink = icon ? HomeLinkIcon : HomeLink;
-  return <SelfHostedLink to={`${organizationSettingsUrl}support`} {...props} />;
+  return <SelfHostedLink to="https://sentry.zendesk.com/hc/en-us" {...props} />;
 }
 
 const HomeLinkLabel = styled('div')`
