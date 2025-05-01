@@ -81,12 +81,9 @@ const StyledButton = styled(Button)`
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
     border-right: none;
-    ${p => p.theme.overflowEllipsis};
 
-    > span {
+    & > span {
       ${p => p.theme.overflowEllipsis};
-      height: auto;
-      display: block;
     }
   }
 `;
