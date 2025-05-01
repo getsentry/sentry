@@ -41,19 +41,17 @@ export function ChartPlacementSlot({view, index}: Props) {
 
   const chartsByIndex = useMemo(() => {
     return chartsByIndexAnyName.map(name => {
-      // We didn't get a valid name, so use the default (which might be empty too)
-      if (!name) {
-        return PAGE_CHART_OPTIONS[view][index];
-      }
       // This is a proper chart name, we can just use it
-      if (PAGE_CHART_OPTIONS[view].includes(name)) {
+      if (name && PAGE_CHART_OPTIONS[view].includes(name)) {
         return name;
       }
       // The chart was renamed, use the new name
-      if (CHART_RENAMES[name]) {
+      if (name && CHART_RENAMES[name]) {
         return CHART_RENAMES[name];
       }
-      // The name wasn't found, so use the default
+      // The name wasn't found, so use the default if the index is valid.
+      // If `index` is invalid then we'll see the 'None' chart and the dropdown
+      // will still work to pick another
       // This might cause the chart to be rendered twice on the screen
       return PAGE_CHART_OPTIONS[view][index];
     });
