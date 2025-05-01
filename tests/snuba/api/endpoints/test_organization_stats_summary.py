@@ -8,14 +8,9 @@ from django.urls import reverse
 
 from sentry.constants import DataCategory
 from sentry.testutils.cases import APITestCase, OutcomesSnubaTest
-from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.datetime import freeze_time, isoformat_z
 from sentry.utils.dates import floor_to_utc_day
 from sentry.utils.outcomes import Outcome
-
-
-def _iso_z(dt: datetime) -> str:
-    assert dt.tzinfo == UTC
-    return f"{dt.isoformat().removesuffix('+00:00')}Z"
 
 
 class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
@@ -172,8 +167,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         )
         assert response.status_code == 200, response.content
         assert response.data == {
-            "start": _iso_z(self._now.replace(hour=12, minute=0, second=0)),
-            "end": _iso_z(self._now.replace(hour=17, minute=0, second=0)),
+            "start": isoformat_z(self._now.replace(hour=12, minute=0, second=0)),
+            "end": isoformat_z(self._now.replace(hour=17, minute=0, second=0)),
             "projects": [],
         }
 
@@ -267,8 +262,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200
         assert response.data == {
-            "start": _iso_z(floor_to_utc_day(self._now) - timedelta(days=1)),
-            "end": _iso_z(floor_to_utc_day(self._now) + timedelta(days=1)),
+            "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+            "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
             "projects": [],
         }
 
@@ -310,8 +305,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200
         assert response.data == {
-            "start": _iso_z(floor_to_utc_day(self._now) - timedelta(days=1)),
-            "end": _iso_z(floor_to_utc_day(self._now) + timedelta(days=1)),
+            "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+            "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
             "projects": [
                 {
                     "id": self.project.id,
@@ -370,8 +365,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200, response.content
         assert response.data == {
-            "start": _iso_z(floor_to_utc_day(self._now) - timedelta(days=2)),
-            "end": _iso_z(floor_to_utc_day(self._now) + timedelta(days=1)),
+            "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=2)),
+            "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
             "projects": [
                 {
                     "id": self.project.id,
@@ -443,8 +438,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200, response.content
         assert response.data == {
-            "start": _iso_z(floor_to_utc_day(self._now) - timedelta(days=2)),
-            "end": _iso_z(floor_to_utc_day(self._now) + timedelta(days=1)),
+            "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=2)),
+            "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
             "projects": [
                 {
                     "id": self.project.id,
@@ -521,8 +516,10 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
 
         assert response_per_group.status_code == 200, response_per_group.content
         assert response_per_group.data == {
-            "start": _iso_z((self._now - timedelta(days=1)).replace(hour=12, minute=0, second=0)),
-            "end": _iso_z(self._now.replace(hour=13, minute=0, second=0)),
+            "start": isoformat_z(
+                (self._now - timedelta(days=1)).replace(hour=12, minute=0, second=0)
+            ),
+            "end": isoformat_z(self._now.replace(hour=13, minute=0, second=0)),
             "projects": [
                 {
                     "id": self.project.id,
@@ -583,8 +580,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200, response.content
         assert response.data == {
-            "start": _iso_z(floor_to_utc_day(self._now) - timedelta(days=1)),
-            "end": _iso_z(floor_to_utc_day(self._now) + timedelta(days=1)),
+            "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+            "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
             "projects": [
                 {
                     "id": self.project.id,
@@ -626,8 +623,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200, response.content
         assert response.data == {
-            "start": _iso_z(floor_to_utc_day(self._now) - timedelta(days=1)),
-            "end": _iso_z(floor_to_utc_day(self._now) + timedelta(days=1)),
+            "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+            "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
             "projects": [
                 {
                     "id": self.project.id,
@@ -689,8 +686,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         )
         assert response.status_code == 200, response.content
         assert response.data == {
-            "start": _iso_z(floor_to_utc_day(self._now) - timedelta(days=1)),
-            "end": _iso_z(floor_to_utc_day(self._now) + timedelta(days=1)),
+            "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+            "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
             "projects": [
                 {
                     "id": self.project.id,
@@ -724,8 +721,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         )
         assert response.status_code == 200, response.content
         assert response.data == {
-            "start": _iso_z(floor_to_utc_day(self._now) - timedelta(days=1)),
-            "end": _iso_z(floor_to_utc_day(self._now) + timedelta(days=1)),
+            "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+            "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
             "projects": [
                 {
                     "id": self.project.id,

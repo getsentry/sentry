@@ -2005,6 +2005,93 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert meta["units"] == {"description": None, "epm()": "1/minute"}
         assert meta["fields"] == {"description": "string", "epm()": "rate"}
 
+    def test_tpm(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "is_segment": True,
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["description", "tpm()"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        segment_span_count = 1
+        total_time = 90 * 24 * 60
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "description": "foo",
+                "tpm()": segment_span_count / total_time,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+        assert meta["units"] == {"description": None, "tpm()": "1/minute"}
+        assert meta["fields"] == {"description": "string", "tpm()": "rate"}
+
+    def test_p75_if(self):
+        self.store_spans(
+            [
+                self.create_span({"is_segment": True}, start_ts=self.ten_mins_ago, duration=1000),
+                self.create_span({"is_segment": True}, start_ts=self.ten_mins_ago, duration=1000),
+                self.create_span({"is_segment": True}, start_ts=self.ten_mins_ago, duration=2000),
+                self.create_span({"is_segment": True}, start_ts=self.ten_mins_ago, duration=2000),
+                self.create_span({"is_segment": True}, start_ts=self.ten_mins_ago, duration=3000),
+                self.create_span({"is_segment": True}, start_ts=self.ten_mins_ago, duration=3000),
+                self.create_span({"is_segment": True}, start_ts=self.ten_mins_ago, duration=3000),
+                self.create_span({"is_segment": True}, start_ts=self.ten_mins_ago, duration=4000),
+                self.create_span({"is_segment": False}, start_ts=self.ten_mins_ago, duration=5000),
+                self.create_span({"is_segment": False}, start_ts=self.ten_mins_ago, duration=5000),
+                self.create_span({"is_segment": False}, start_ts=self.ten_mins_ago, duration=5000),
+                self.create_span({"is_segment": False}, start_ts=self.ten_mins_ago, duration=5000),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["p75_if(span.duration, is_transaction, true)"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "p75_if(span.duration, is_transaction, true)": 3000,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+        assert meta["units"] == {"p75_if(span.duration, is_transaction, true)": "millisecond"}
+        assert meta["fields"] == {"p75_if(span.duration, is_transaction, true)": "duration"}
+
     def test_is_transaction(self):
         self.store_spans(
             [
@@ -2760,6 +2847,47 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         meta = response.data["meta"]
         assert len(data) == 1
         assert data[0]["failure_rate()"] == 0.25
+        assert meta["dataset"] == self.dataset
+
+    def test_failure_rate_if(self):
+        trace_statuses = ["ok", "cancelled", "unknown", "failure"]
+
+        spans = [
+            self.create_span(
+                {
+                    "sentry_tags": {"trace.status": status},
+                    "is_segment": True,
+                },
+                start_ts=self.ten_mins_ago,
+            )
+            for status in trace_statuses
+        ]
+
+        spans.append(
+            self.create_span(
+                {
+                    "sentry_tags": {"trace.status": "ok"},
+                    "is_segment": False,
+                },
+                start_ts=self.ten_mins_ago,
+            )
+        )
+
+        self.store_spans(spans, is_eap=self.is_eap)
+
+        response = self.do_request(
+            {
+                "field": ["failure_rate_if(is_transaction, true)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["failure_rate_if(is_transaction, true)"] == 0.25
         assert meta["dataset"] == self.dataset
 
     def test_count_op(self):

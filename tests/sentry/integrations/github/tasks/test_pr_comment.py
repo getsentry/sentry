@@ -1,5 +1,6 @@
 import logging
 from datetime import UTC, datetime, timedelta
+from typing import cast
 from unittest.mock import patch
 
 import pytest
@@ -7,7 +8,11 @@ import responses
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
-from sentry.integrations.github.integration import GitHubIntegration, GitHubIntegrationProvider
+from sentry.integrations.github.integration import (
+    GitHubIntegration,
+    GitHubIntegrationProvider,
+    GitHubOpenPRCommentWorkflow,
+)
 from sentry.integrations.github.tasks.pr_comment import (
     github_comment_reactions,
     github_comment_workflow,
@@ -48,6 +53,9 @@ class GithubCommentTestCase(IntegrationTestCase):
             GitHubIntegration, integration=self.integration, org_id=self.organization.id
         )
         self.pr_comment_workflow = self.installation.get_pr_comment_workflow()
+        self.open_pr_comment_workflow = cast(
+            GitHubOpenPRCommentWorkflow, self.installation.get_open_pr_comment_workflow()
+        )
         self.another_integration = self.create_integration(
             organization=self.organization, external_id="1", provider="gitlab"
         )
