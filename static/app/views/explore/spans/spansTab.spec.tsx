@@ -157,11 +157,11 @@ describe('SpansTabContent', function () {
     // Add a group by, and leave one unselected
     await userEvent.click(aggregates);
     await userEvent.click(within(groupBy).getByRole('button', {name: '\u2014'}));
-    await userEvent.click(within(groupBy).getByRole('option', {name: 'release'}));
+    await userEvent.click(within(groupBy).getByRole('option', {name: 'project'}));
 
-    expect(groupBys).toEqual(['release']);
+    expect(groupBys).toEqual(['project']);
     await userEvent.click(within(groupBy).getByRole('button', {name: 'Add Group'}));
-    expect(groupBys).toEqual(['release', '']);
+    expect(groupBys).toEqual(['project', '']);
 
     await userEvent.click(samples);
     expect(fields).toEqual([
@@ -171,7 +171,7 @@ describe('SpansTabContent', function () {
       'span.duration',
       'transaction',
       'timestamp',
-      'release',
+      'project',
     ]);
   });
 
