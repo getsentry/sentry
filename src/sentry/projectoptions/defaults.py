@@ -196,3 +196,6 @@ register(key="sentry:tempest_fetch_screenshots", default=False)
 
 # Should tempest fetch dumps for this project
 register(key="sentry:tempest_fetch_dumps", default=False)
+
+# Auto-enable issue summaries for projects
+register(key="sentry:auto_run_issue_summaries", default=True)

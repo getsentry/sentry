@@ -74,6 +74,7 @@ OPTION_KEYS = frozenset(
         "filters:react-hydration-errors",
         "filters:chunk-load-error",
         "relay.cardinality-limiter.limits",
+        "sentry:auto_run_issue_summaries",
     ]
 )
 

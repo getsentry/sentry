@@ -228,6 +228,7 @@ E.g. `['release', 'environment']`""",
     performanceIssueSendToPlatform = serializers.BooleanField(required=False)
     tempestFetchScreenshots = serializers.BooleanField(required=False)
     tempestFetchDumps = serializers.BooleanField(required=False)
+    autoRunIssueSummaries = serializers.BooleanField(required=False)
 
     # DO NOT ADD MORE TO OPTIONS
     # Each param should be a field in the serializer like above.
@@ -452,6 +453,15 @@ E.g. `['release', 'environment']`""",
         if not has_tempest_access(organization, actor=actor):
             raise serializers.ValidationError(
                 "Organization does not have the tempest feature enabled."
+            )
+        return value
+
+    def validate_autoRunIssueSummaries(self, value):
+        organization = self.context["project"]
+        actor = self.context["request"]
+        if not features.has("projects:trigger-issue-summary-on-alerts", organization, actor=actor):
+            raise serializers.ValidationError(
+                "Your organization does not have access to enable automatic issue summaries."
             )
         return value
 
@@ -760,6 +770,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if project.update_option("sentry:dynamic_sampling_biases", updated_biases):
                 changed_proj_settings["sentry:dynamic_sampling_biases"] = result[
                     "dynamicSamplingBiases"
+                ]
+
+        if result.get("autoRunIssueSummaries") is not None:
+            if project.update_option(
+                "sentry:auto_run_issue_summaries", result["autoRunIssueSummaries"]
+            ):
+                changed_proj_settings["sentry:auto_run_issue_summaries"] = result[
+                    "autoRunIssueSummaries"
                 ]
 
         if has_elevated_scopes:

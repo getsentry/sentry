@@ -797,6 +797,17 @@ class DetailedProjectSerializerTest(TestCase):
         result = serialize(self.project, self.user, DetailedProjectSerializer())
         assert result["options"]["sentry:replay_hydration_error_issues"] is False
 
+    def test_auto_run_issue_summaries_flag(self):
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        # default should be true
+        assert result["options"]["sentry:auto_run_issue_summaries"] is True
+        assert result["autoRunIssueSummaries"] is True
+
+        self.project.update_option("sentry:auto_run_issue_summaries", False)
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        assert result["options"]["sentry:auto_run_issue_summaries"] is False
+        assert result["autoRunIssueSummaries"] is False
+
     def test_toolbar_allowed_origins(self):
         # Does not allow trailing newline or extra whitespace.
         # Default is empty:

@@ -1099,6 +1099,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             },
             "symbolSources": serialized_sources,
             "isDynamicallySampled": sample_rate is not None and sample_rate < 1.0,
+            "autoRunIssueSummaries": bool(
+                self.get_value_with_default(attrs, "sentry:auto_run_issue_summaries")
+            ),
         }
 
         if has_tempest_access(obj.organization, user):
@@ -1149,6 +1152,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 self.get_value_with_default(attrs, "sentry:toolbar_allowed_origins") or []
             ),
             "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
+            "sentry:auto_run_issue_summaries": bool(
+                self.get_value_with_default(attrs, "sentry:auto_run_issue_summaries")
+            ),
         }
 
     def get_value_with_default(self, attrs, key):

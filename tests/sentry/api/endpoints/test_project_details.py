@@ -1307,6 +1307,35 @@ class ProjectUpdateTest(APITestCase):
         self.get_success_response(self.org_slug, self.proj_slug, targetSampleRate=0.1)
         assert self.project.get_option("sentry:target_sample_rate") == 0.1
 
+    def test_auto_run_issue_summaries(self):
+        # Check default is True
+        response = self.get_success_response(self.organization.slug, self.project.slug)
+        assert response.data["options"]["sentry:auto_run_issue_summaries"] is True
+        assert self.project.get_option("sentry:auto_run_issue_summaries") is True
+
+        # Try to set to True without flag
+        self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            autoRunIssueSummaries=True,
+            status_code=400,
+        )
+
+        # Enable flag and set to True
+        with self.feature("projects:trigger-issue-summary-on-alerts"):
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, autoRunIssueSummaries=True
+            )
+            assert response.data["options"]["sentry:auto_run_issue_summaries"] is True
+            assert self.project.get_option("sentry:auto_run_issue_summaries") is True
+
+            # Set to False
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, autoRunIssueSummaries=False
+            )
+            assert response.data["options"]["sentry:auto_run_issue_summaries"] is False
+            assert self.project.get_option("sentry:auto_run_issue_summaries") is False
+
 
 class CopyProjectSettingsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
