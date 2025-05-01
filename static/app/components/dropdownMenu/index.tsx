@@ -218,7 +218,17 @@ function DropdownMenu({
     );
   }
 
-  const activeItems = useMemo(() => removeHiddenItems(items), [items]);
+  const activeItems = useMemo(
+    () =>
+      removeHiddenItems(items).map(item => {
+        return {
+          ...item,
+          // react-aria uses the href prop on item state to determine if the item is a link
+          href: item.to ?? item.externalHref,
+        };
+      }),
+    [items]
+  );
   const defaultDisabledKeys = useMemo(() => getDisabledKeys(activeItems), [activeItems]);
 
   function renderMenu() {
