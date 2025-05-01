@@ -1509,6 +1509,14 @@ TASKWORKER_SCHEDULES: ScheduleConfigMap = {
     },
 }
 
+#
+TASKWORKER_ENABLE_INGEST_NAMESPACES = False
+TASKWORKER_INGEST_NAMESPACES = {
+    "ingest.profiling",
+    "ingest.transactions",
+    "ingest.errors",
+}
+
 # Sentry logs to two major places: stdout, and its internal project.
 # To disable logging to the internal project, add a logger whose only
 # handler is 'console' and disable propagating upwards.
