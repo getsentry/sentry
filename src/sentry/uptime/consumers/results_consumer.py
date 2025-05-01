@@ -186,10 +186,12 @@ def produce_snuba_uptime_result(
         result: The check result to be sent to Snuba
     """
     try:
+        uptime_subscription = project_subscription.uptime_subscription
         project = project_subscription.project
+
         retention_days = quotas.backend.get_event_retention(organization=project.organization) or 90
 
-        if project_subscription.uptime_status == UptimeStatus.FAILED:
+        if uptime_subscription.uptime_status == UptimeStatus.FAILED:
             incident_status = IncidentStatus.IN_INCIDENT
         else:
             incident_status = IncidentStatus.NO_INCIDENT
@@ -300,7 +302,8 @@ def handle_active_result(
     result: CheckResult,
     metric_tags: dict[str, str],
 ):
-    uptime_status = project_subscription.uptime_status
+    uptime_subscription = project_subscription.uptime_subscription
+    uptime_status = uptime_subscription.uptime_status
     result_status = result["status"]
 
     redis = _get_cluster()
@@ -322,7 +325,7 @@ def handle_active_result(
         restricted_host_provider_ids = options.get(
             "uptime.restrict-issue-creation-by-hosting-provider-id"
         )
-        host_provider_id = project_subscription.uptime_subscription.host_provider_id
+        host_provider_id = uptime_subscription.host_provider_id
         issue_creation_restricted_by_provider = host_provider_id in restricted_host_provider_ids
 
         if issue_creation_restricted_by_provider:
@@ -346,7 +349,7 @@ def handle_active_result(
                 "uptime_active_sent_occurrence",
                 extra={
                     "project_id": project_subscription.project_id,
-                    "url": project_subscription.uptime_subscription.url,
+                    "url": uptime_subscription.url,
                     **result,
                 },
             )
@@ -378,7 +381,7 @@ def handle_active_result(
                 "uptime_active_resolved",
                 extra={
                     "project_id": project_subscription.project_id,
-                    "url": project_subscription.uptime_subscription.url,
+                    "url": uptime_subscription.url,
                     **result,
                 },
             )

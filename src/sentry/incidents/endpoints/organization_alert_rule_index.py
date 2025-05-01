@@ -325,7 +325,10 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 incident_status=Case(
                     # If an uptime monitor is failing we want to treat it the same as if an alert is failing, so sort
                     # by the critical status
-                    When(uptime_status=UptimeStatus.FAILED, then=IncidentStatus.CRITICAL.value),
+                    When(
+                        uptime_subscription__uptime_status=UptimeStatus.FAILED,
+                        then=IncidentStatus.CRITICAL.value,
+                    ),
                     default=-2,
                 )
             )

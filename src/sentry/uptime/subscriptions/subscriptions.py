@@ -345,14 +345,14 @@ def disable_uptime_detector(detector: Detector):
     also be disabled.
     """
     uptime_monitor = get_project_subscription(detector)
+    uptime_subscription = uptime_monitor.uptime_subscription
+
     if uptime_monitor.status == ObjectStatus.DISABLED:
         return
 
-    if uptime_monitor.uptime_status == UptimeStatus.FAILED:
+    if uptime_subscription.uptime_status == UptimeStatus.FAILED:
         # Resolve the issue so that we don't see it in the ui anymore
         resolve_uptime_issue(uptime_monitor)
-
-    uptime_subscription = uptime_monitor.uptime_subscription
 
     uptime_monitor.update(
         status=ObjectStatus.DISABLED,
