@@ -19,9 +19,9 @@ const INSTRUCTIONS_TEXT = {
     mainCTALink: 'https://github.com/apps/sentry-io',
   },
   hasOrgs: {
-    header: t('Get Started with Test Analytics'),
+    header: t('Request Updated Permissions on your Integrated Organization'),
     subtext: t(
-      'Test Analytics offers data on test run times, failure rates, and identifies flaky tests to help decrease the risk of deployment failures and make it easier to ship new features quickly. '
+      "Sentry is requesting updated permissions access to your integrated organization(s). Admin required. If you're not an admin, reach out to your organization's owner to update the Sentry app permissions."
     ),
     mainCTA: t('Review permissions'),
     // TODO: can we get the xxx installation id? it is unique to each signed in GH user
