@@ -1,7 +1,6 @@
 from datetime import timedelta
 from typing import cast
 from unittest import mock
-from uuid import UUID
 
 import pytest
 from django.core import mail
@@ -58,7 +57,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         self.two_days_ago = self.now - timedelta(days=2)
         self.three_days_ago = self.now - timedelta(days=3)
 
-    _dummy_batch_id = str(UUID("20bd6c5b-7fac-4f31-9548-d6f8bb63226d"))
+    _dummy_batch_id = "20bd6c5b-7fac-4f31-9548-d6f8bb63226d"
 
     def store_event_outcomes(
         self,
@@ -180,7 +179,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         user_project_ownership(ctx)
         template_context = prepare_template_context(ctx, [self.user.id])
         mock_prepare_template_context.return_value = template_context
-        batch_id = str(UUID("77a1d368-33d5-47cd-88cf-d66c97b38333"))
+        batch_id = "77a1d368-33d5-47cd-88cf-d66c97b38333"
 
         # disabled
         self._set_option_value("never")
@@ -634,7 +633,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
 
         # TODO(RyanSkonnord): Make sure this doesn't cause false negatives after
         #  batch IDs are also used to prevent duplicate sends
-        batch_id = str(UUID("ea18c80c-d44f-48a4-8973-b0daa3169c44"))
+        batch_id = "ea18c80c-d44f-48a4-8973-b0daa3169c44"
 
         with (
             mock.patch(
@@ -1002,7 +1001,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         # fill with data so report not skipped
         self.store_event_outcomes(org.id, proj.id, self.two_days_ago, num_times=2)
 
-        batch_id = str(UUID("ef61f1d1-41a3-4530-8160-615466937076"))
+        batch_id = "ef61f1d1-41a3-4530-8160-615466937076"
         prepare_organization_report(
             self.timestamp,
             ONE_DAY * 7,
@@ -1064,8 +1063,8 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         user_project_ownership(ctx)
         template_context = prepare_template_context(ctx, [self.user.id])
         mock_prepare_template_context.return_value = template_context
-        batch1_id = str(UUID("abe8ba3e-90af-4a98-b925-5f30250ae6a0"))
-        batch2_id = str(UUID("abe8ba3e-90af-4a98-b925-5f30250ae6a1"))
+        batch1_id = "abe8ba3e-90af-4a98-b925-5f30250ae6a0"
+        batch2_id = "abe8ba3e-90af-4a98-b925-5f30250ae6a1"
         self._set_option_value("always")
 
         # First send
