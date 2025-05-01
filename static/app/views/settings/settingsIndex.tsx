@@ -354,7 +354,6 @@ const ExternalHomeLinkIcon = styled(ExternalLink)`
 
 interface SupportLinkProps extends Omit<LinkProps, 'ref' | 'to'> {
   isSelfHosted: boolean;
-  organizationSettingsUrl: string;
   icon?: boolean;
 }
 
