@@ -52,6 +52,12 @@ export function FeatureFlagCTAContent({
             priority="default"
             href="https://docs.sentry.io/product/explore/feature-flags/"
             external
+            onClick={() => {
+              trackAnalytics('flags.cta_read_more_clicked', {
+                organization,
+                surface: analyticsArea,
+              });
+            }}
           >
             {t('Read More')}
           </LinkButton>
