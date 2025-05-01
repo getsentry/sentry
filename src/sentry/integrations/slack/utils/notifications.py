@@ -73,7 +73,7 @@ def _get_thread_config(
 
     reply_broadcast = False
     # If the incident is critical status, even if it's in a thread, send to main channel
-    if incident_status == IncidentStatus.CRITICAL.value:
+    if incident_status == IncidentStatus.CRITICAL:
         reply_broadcast = True
 
     return reply_broadcast, parent_notification_message.message_identifier
