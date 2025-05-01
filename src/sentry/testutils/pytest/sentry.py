@@ -243,7 +243,6 @@ def pytest_configure(config: pytest.Config) -> None:
     _configure_test_env_regions()
 
     # ID controls
-    settings.SENTRY_USE_BIG_INTS = True
     settings.SENTRY_USE_SNOWFLAKE = True
     settings.SENTRY_SNOWFLAKE_EPOCH_START = datetime(1999, 12, 31, 0, 0).timestamp()
 
