@@ -149,7 +149,7 @@ function AutofixInsightCard({
                 </form>
               </EditContainer>
             ) : (
-              <InsightCardRow onClick={toggleExpand}>
+              <InsightCardRow onClick={toggleExpand} expanded={expanded}>
                 <AutofixHighlightWrapper
                   groupId={groupId}
                   runId={runId}
@@ -506,11 +506,13 @@ function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: string}
   });
 }
 
-const InsightCardRow = styled('div')<{isUserMessage?: boolean}>`
+const InsightCardRow = styled('div')<{expanded?: boolean; isUserMessage?: boolean}>`
   display: flex;
   justify-content: space-between;
   align-items: stretch;
   cursor: pointer;
+  background-color: ${p => (p.expanded ? p.theme.backgroundSecondary : 'transparent')};
+
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};
   }
