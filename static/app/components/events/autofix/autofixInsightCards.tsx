@@ -292,7 +292,6 @@ function CollapsibleChainLink({
         className="rethink-button-container"
         parentAlignment={alignment}
       >
-        {/* Render Collapse Controls */}
         {showCollapseControl && onToggleCollapse && (
           <CollapseButtonWrapper
             onClick={onToggleCollapse}
@@ -319,7 +318,6 @@ function CollapsibleChainLink({
             />
           </CollapseButtonWrapper>
         )}
-        {/* Render Add Controls */}
         {showAddControl &&
           !isCollapsed &&
           !isEmpty &&
@@ -417,7 +415,6 @@ function AutofixInsightCards({
       <CardsColumn>
         {insights.length > 0 ? (
           <Fragment>
-            {/* Render collapse link above cards if hasStepAbove */}
             {hasStepAbove && (
               <CollapsibleChainLink
                 isCollapsed={isCollapsed}
@@ -456,7 +453,6 @@ function AutofixInsightCards({
                 </motion.div>
               )}
             </AnimatePresence>
-            {/* Render AddLink below cards if not collapsed and hasStepBelow */}
             {!isCollapsed && hasStepBelow && (
               <CollapsibleChainLink
                 isEmpty={insights.length === 0}
