@@ -68,7 +68,8 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
     @with_feature("organizations:workflow-engine-ui-links")
     def test_event_to_record_with_workflow_id(self):
         project = self.create_project(fire_project_created=True)
-        rule = self.create_project_rule(project, action_data=[{"workflow_id": "123"}])
+        workflow = self.create_workflow(organization=self.organization)
+        rule = self.create_project_rule(project, action_data=[{"workflow_id": workflow.id}])
 
         event = self.store_event(
             data={"fingerprint": ["group1"], "timestamp": before_now(minutes=2).isoformat()},
@@ -77,12 +78,13 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
 
         record = event_to_record(event, (rule,))
         assert record.value.identifier_key == IdentifierKey.WORKFLOW
-        assert record.value.rules == [123]
+        assert record.value.rules == [workflow.id]
 
     @with_feature("organizations:workflow-engine-trigger-actions")
     def test_event_to_record_with_legacy_rule_id(self):
         project = self.create_project(fire_project_created=True)
-        rule = self.create_project_rule(project, action_data=[{"legacy_rule_id": "123"}])
+        shadow_rule = self.create_project_rule(project)
+        rule = self.create_project_rule(project, action_data=[{"legacy_rule_id": shadow_rule.id}])
 
         event = self.store_event(
             data={"fingerprint": ["group1"], "timestamp": before_now(minutes=2).isoformat()},
@@ -91,7 +93,7 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
 
         record = event_to_record(event, (rule,))
         assert record.value.identifier_key == IdentifierKey.RULE
-        assert record.value.rules == [123]
+        assert record.value.rules == [shadow_rule.id]
 
 
 def assert_rule_ids(digest: Digest, expected_rule_ids: list[int]):
