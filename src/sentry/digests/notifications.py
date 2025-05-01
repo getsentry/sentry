@@ -166,7 +166,7 @@ def _build_digest_impl(
 
 
 def get_rules_from_workflows(project: Project, workflow_ids: set[int]) -> dict[int, Rule]:
-    rules = {}
+    rules: dict[int, Rule] = {}
     if not workflow_ids:
         return rules
 
