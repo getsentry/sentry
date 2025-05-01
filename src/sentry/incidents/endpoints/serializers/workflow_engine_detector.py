@@ -195,12 +195,11 @@ class WorkflowEngineDetectorSerializer(Serializer):
         for detector in detectors.values():
             # TODO: this serializer is half baked
             if open_periods:
-                open_periods.filter(Q(group__in=detector_to_group_ids[detector])).order_by(
-                    "-date_started"
-                )
-
+                latest_open_periods = open_periods.filter(
+                    Q(group__in=detector_to_group_ids[detector])
+                ).order_by("-date_started")
                 serialized_group_open_period = serialize(
-                    open_periods[0], user, WorkflowEngineIncidentSerializer()
+                    latest_open_periods.first(), user, WorkflowEngineIncidentSerializer()
                 )
                 result[detector]["latestIncident"] = serialized_group_open_period
 

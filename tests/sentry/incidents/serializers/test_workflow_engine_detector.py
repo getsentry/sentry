@@ -1,5 +1,8 @@
+from datetime import timedelta
 from typing import Any
 from unittest.mock import patch
+
+from django.utils import timezone
 
 from sentry.api.serializers import serialize
 from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
@@ -129,16 +132,32 @@ class TestDetectorSerializer(TestCase):
         assert serialized_detector == self.expected
 
     def test_latest_incident(self) -> None:
-        incident = self.create_incident(alert_rule=self.alert_rule)
+        now = timezone.now()
+        incident = self.create_incident(alert_rule=self.alert_rule, date_started=now)
         IncidentTrigger.objects.create(
             incident=incident,
             alert_rule_trigger=self.critical_trigger,
             status=TriggerStatus.ACTIVE.value,
         )
+
+        past_incident = self.create_incident(
+            alert_rule=self.alert_rule, date_started=now - timedelta(days=1)
+        )
+        IncidentTrigger.objects.create(
+            incident=past_incident,
+            alert_rule_trigger=self.critical_trigger,
+            status=TriggerStatus.ACTIVE.value,
+        )
+
         self.group.priority = PriorityLevel.HIGH
         self.group.save()
         ActionGroupStatus.objects.create(action=self.critical_action, group=self.group)
-        GroupOpenPeriod.objects.create(group=self.group, project=self.detector.project)
+        GroupOpenPeriod.objects.create(
+            group=self.group, project=self.detector.project, date_started=incident.date_started
+        )
+        GroupOpenPeriod.objects.create(
+            group=self.group, project=self.detector.project, date_started=past_incident.date_started
+        )
 
         serialized_detector = serialize(
             self.detector,
@@ -146,6 +165,7 @@ class TestDetectorSerializer(TestCase):
             WorkflowEngineDetectorSerializer(expand=["latestIncident"]),
         )
         assert serialized_detector["latestIncident"] is not None
+        assert serialized_detector["latestIncident"]["dateStarted"] == incident.date_started
 
     @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
     def test_sentry_app(self, mock_sentry_app_components_preparer: Any) -> None:
