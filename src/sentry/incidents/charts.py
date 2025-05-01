@@ -256,7 +256,6 @@ def build_metric_alert_chart(
             query_type == SnubaQuery.Type.PERFORMANCE and dataset == Dataset.EventsAnalyticsPlatform
         ):
             query_params["dataset"] = "spans"
-            query_params["useRpc"] = "1"
         elif query_type == SnubaQuery.Type.ERROR:
             query_params["dataset"] = "errors"
         else:

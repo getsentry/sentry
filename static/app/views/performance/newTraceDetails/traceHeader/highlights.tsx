@@ -86,7 +86,7 @@ const LogsHighlightsWrapper = styled('div')`
 `;
 
 type HighlightsProps = {
-  logs: OurLogsResponseItem[];
+  logs: OurLogsResponseItem[] | undefined;
   organization: Organization;
   project: Project | undefined;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
@@ -100,7 +100,7 @@ function Highlights({
   organization,
   project,
 }: HighlightsProps) {
-  if (tree.shape === TraceShape.EMPTY_TRACE && logs.length > 0) {
+  if (tree.shape === TraceShape.EMPTY_TRACE && logs && logs.length > 0) {
     return (
       <LogsHighlights
         log={logs[0] as OurLogsResponseItem}

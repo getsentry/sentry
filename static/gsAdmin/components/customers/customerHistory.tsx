@@ -7,7 +7,11 @@ import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 
 import ResultGrid from 'admin/components/resultGrid';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
-import type {ReservedBudget, ReservedBudgetMetricHistory} from 'getsentry/types';
+import type {
+  BillingHistory,
+  ReservedBudget,
+  ReservedBudgetMetricHistory,
+} from 'getsentry/types';
 import {formatReservedWithUnits, formatUsageWithUnits} from 'getsentry/utils/billing';
 import {getPlanCategoryName, sortCategories} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
@@ -40,17 +44,18 @@ function CustomerHistory({orgId, ...props}: Props) {
           Usage
         </th>,
       ]}
-      columnsForRow={(row: any) => {
+      columnsForRow={(row: BillingHistory) => {
         const sortedCategories = sortCategories(row.categories);
-        const reservedBudgets: ReservedBudget[] = row.reservedBudgets;
+        const reservedBudgets: ReservedBudget[] = row.reservedBudgets ?? [];
         const reservedBudgetMetricHistories: Record<string, ReservedBudgetMetricHistory> =
           {};
         const reservedBudgetNameMapping: Record<string, string> = {};
 
         // in _admin, always use DS names regardless of whether DS was actually used in the period
         // if DS is available (ie. when stored spans are billed)
-        const shouldUseDynamicSamplingNames =
-          DataCategory.SPANS_INDEXED in row.planDetails.planCategories;
+        const shouldUseDynamicSamplingNames = row.planDetails
+          ? DataCategory.SPANS_INDEXED in row.planDetails.planCategories
+          : false;
 
         if (row.hasReservedBudgets) {
           reservedBudgets.forEach(budget => {
@@ -60,7 +65,7 @@ function CustomerHistory({orgId, ...props}: Props) {
               categoryNames.push(
                 getPlanCategoryName({
                   plan: row.planDetails,
-                  category,
+                  category: category as DataCategory,
                   hadCustomDynamicSampling: shouldUseDynamicSamplingNames,
                 })
               );

@@ -726,9 +726,6 @@ from kombu import Exchange, Queue
 BROKER_URL = "redis://127.0.0.1:6379"
 BROKER_TRANSPORT_OPTIONS: dict[str, int] = {}
 
-# Ensure workers run async by default
-# in Development you might want them to run in-process
-TASK_WORKER_ALWAYS_EAGER = False
 
 # Ensure workers run async by default
 # in Development you might want them to run in-process
@@ -1386,6 +1383,10 @@ BGTASKS: dict[str, BgTaskConfig] = {
 # Taskworker settings #
 #######################
 
+# If true, tasks will be run immediately.
+# Used primarily in tests.
+TASKWORKER_ALWAYS_EAGER = False
+
 # Shared secrets used to sign RPC requests to taskbrokers
 # The first secret is used for signing.
 # Environment variable is expected to be a JSON encoded list
@@ -1871,6 +1872,10 @@ SENTRY_DIGESTS_OPTIONS: dict[str, Any] = {}
 SENTRY_QUOTAS = "sentry.quotas.Quota"
 SENTRY_QUOTA_OPTIONS: dict[str, str] = {}
 
+# Partnership backend
+SENTRY_PARTNERSHIPS = "sentry.partnerships.Partnership"
+SENTRY_PARTNERSHIP_OPTIONS: dict[str, str] = {}
+
 # Cache for Relay project configs
 SENTRY_RELAY_PROJECTCONFIG_CACHE = "sentry.relay.projectconfig_cache.redis.RedisProjectConfigCache"
 SENTRY_RELAY_PROJECTCONFIG_CACHE_OPTIONS: dict[str, str] = {}
@@ -2323,10 +2328,6 @@ SENTRY_OPTIONS: dict[str, Any] = {}
 SENTRY_DEFAULT_OPTIONS: dict[str, Any] = {}
 # Raise an error in dev on failed lookups
 SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
-
-# You should not change this setting after your database has been created
-# unless you have altered all schemas first
-SENTRY_USE_BIG_INTS = False
 
 # Delay (in ms) to induce on API responses
 #
@@ -3294,7 +3295,6 @@ PG_VERSION: str = os.getenv("PG_VERSION") or "14"
 ZERO_DOWNTIME_MIGRATIONS_RAISE_FOR_UNSAFE = True
 ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT: str | None = None
 ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT: str | None = None
-ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT_FORCE = False
 ZERO_DOWNTIME_MIGRATIONS_IDEMPOTENT_SQL = False
 
 if int(PG_VERSION.split(".", maxsplit=1)[0]) < 12:

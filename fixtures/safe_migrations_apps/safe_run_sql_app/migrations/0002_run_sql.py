@@ -9,7 +9,6 @@ class Migration(CheckedMigration):
     dependencies = [
         ("safe_run_sql_app", "0001_initial"),
     ]
-    allow_run_sql = True
 
     operations = [
         SafeRunSQL(

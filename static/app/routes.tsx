@@ -528,6 +528,11 @@ function buildRoutes() {
         component={make(() => import('sentry/views/settings/projectDataForwarding'))}
       />
       <Route
+        path="seer/"
+        name={t('Seer')}
+        component={make(() => import('sentry/views/settings/projectSeer/index'))}
+      />
+      <Route
         path="user-feedback/"
         name={t('User Feedback')}
         component={make(() => import('sentry/views/settings/projectUserFeedback'))}
@@ -2097,6 +2102,15 @@ function buildRoutes() {
           path="new/"
           component={make(() => import('sentry/views/codecov/tests/onboarding'))}
         />
+      </Route>
+      <Route path="tokens/">
+        <Route
+          component={make(() => import('sentry/views/codecov/tokens/tokensWrapper'))}
+        >
+          <IndexRoute
+            component={make(() => import('sentry/views/codecov/tokens/tokens'))}
+          />
+        </Route>
       </Route>
     </Fragment>
   );
