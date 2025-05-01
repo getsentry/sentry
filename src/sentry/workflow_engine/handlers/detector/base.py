@@ -10,7 +10,7 @@ from sentry.issues.grouptype import GroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.types.actor import Actor
-from sentry.workflow_engine.models import DataConditionGroup, DataPacket, Detector
+from sentry.workflow_engine.models import Condition, DataConditionGroup, DataPacket, Detector
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
@@ -23,7 +23,10 @@ EvidenceValueT = TypeVar("EvidenceValueT")
 class EvidenceData(Generic[EvidenceValueT]):
     value: EvidenceValueT
     detector_id: int
+    data_sources: list[int]
     data_condition_ids: list[int]
+    data_condition_type: Condition
+    data_condition_comparison_value: T
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
