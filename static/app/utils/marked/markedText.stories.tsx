@@ -79,7 +79,7 @@ export default storyBook('MarkedText', (story, _APIReference) => {
         <p>Markdown code blocks are supported:</p>
         <SizingWindow display="block">
           <MarkedText
-            text={`\`\`\`javascript\nconst example = "code block";\nconsole.log(example);\n\`\`\``}
+            text={`\`\`\`jsx\nconst example = "code block";\nconsole.log(example);\nconst el = <div>Hello</div>;\n\`\`\``}
           />
         </SizingWindow>
       </Fragment>

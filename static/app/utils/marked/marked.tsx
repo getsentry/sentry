@@ -51,13 +51,12 @@ class NoParagraphRenderer extends SafeRenderer {
 }
 
 function preprocess(markdown: string) {
-  // Allow no html tags at all in the preprocess step.
-  // GitHub and others allow this, we could in the future.
-  return dompurify.sanitize(markdown, {ALLOWED_TAGS: []});
+  // Allow all safe HTML elements but not SVG or MathML
+  return dompurify.sanitize(markdown, {USE_PROFILES: {html: true}});
 }
 
 function postprocess(html: string) {
-  return dompurify.sanitize(html);
+  return dompurify.sanitize(html, {USE_PROFILES: {html: true}});
 }
 
 const noHighlightingMarked = new Marked({

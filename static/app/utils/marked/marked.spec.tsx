@@ -67,7 +67,7 @@ describe('marked', function () {
     [
       [
         '[x<b>Bold</b>](https://evil.example.com)',
-        '<a href="https://evil.example.com">xBold</a>',
+        '<a href="https://evil.example.com">x<b>Bold</b></a>',
       ],
       [
         '[x](https://evil.example.com"class="foo)',
@@ -79,6 +79,15 @@ describe('marked', function () {
       ],
     ].forEach(expectMarkdown);
     expect(sanitizedMarked('<script> <img <script> src=x onerror=alert(1) />')).toBe('');
+  });
+
+  it('allows custom html within code blocks', function () {
+    expect(sanitizedMarked('```html\n<div>Hello</div>\n```')).toBe(
+      `<pre><code class="language-html">&lt;div&gt;Hello&lt;/div&gt;\n</code></pre>\n`
+    );
+    expect(sanitizedMarked('```tsx\n<div>Hello</div>\n```')).toBe(
+      `<pre><code class="language-tsx">&lt;div&gt;Hello&lt;/div&gt;\n</code></pre>\n`
+    );
   });
 
   it('single line renderer should not render paragraphs', function () {
@@ -94,7 +103,7 @@ describe('marked', function () {
     const tests: Array<[string, string]> = [
       [
         '[x<b>Bold</b>](https://evil.example.com)',
-        '<a href="https://evil.example.com">xBold</a>',
+        '<a href="https://evil.example.com">x<b>Bold</b></a>',
       ],
       [
         '[x](https://evil.example.com"class="foo)',
