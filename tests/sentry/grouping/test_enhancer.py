@@ -32,10 +32,13 @@ def convert_to_dict(obj: object) -> object | dict[str, Any]:
             continue
         elif key in [
             "rust_enhancements",
+            "classifier_rust_enhancements",
+            "contributes_rust_enhancements",
             "is_classifier",
             "sets_contributes",
             "has_classifier_actions",
             "has_contributes_actions",
+            "run_split_enhancements",
         ]:
             continue
         elif isinstance(value, list):
@@ -96,7 +99,7 @@ def assert_no_matching_frame_found(
     assert not bool(get_matching_frame_actions(rule, frames, platform, exception_data, cache))
 
 
-@pytest.mark.parametrize("version", [2])
+@pytest.mark.parametrize("version", [2, 3])
 def test_basic_parsing(insta_snapshot, version):
     enhancements = Enhancements.from_rules_text(
         """
@@ -113,8 +116,8 @@ def test_basic_parsing(insta_snapshot, version):
             error.value:"*something*"                       max-frames=12
         """,
         bases=["common:v1"],
+        version=version,
     )
-    enhancements.version = version
 
     insta_snapshot(convert_to_dict(enhancements))
 
@@ -534,8 +537,8 @@ def test_keep_profiling_rules(test_input, expected):
 
 
 class EnhancementsTest(TestCase):
-    def test_differentiates_between_classifier_and_contributes_rules(self):
-        rules_text = """
+    def setUp(self):
+        self.rules_text = """
             function:sit              +app                  # should end up in classifiers
             function:roll_over        category=trick        # should end up in classifiers
             function:shake            +group                # should end up in contributes
@@ -543,7 +546,9 @@ class EnhancementsTest(TestCase):
             function:stay             min-frames=12         # should end up in contributes
             function:kangaroo         -app -group           # should end up in both
             """
-        rules = parse_enhancements(rules_text)
+
+    def test_differentiates_between_classifier_and_contributes_rules(self):
+        rules = parse_enhancements(self.rules_text)
 
         expected_results = [
             # (has_classifier_actions, has_contributes_actions, classifier_actions, contributes_actions)
@@ -577,6 +582,33 @@ class EnhancementsTest(TestCase):
             assert rule.has_contributes_actions == expected_has_contributes_actions_value
             assert classifier_rule_actions == expected_as_classifier_rule_actions
             assert contributes_rule_actions == expected_as_contributes_rule_actions
+
+    def test_splits_rules_correctly(self):
+        enhancements = Enhancements.from_rules_text(self.rules_text, version=3)
+        assert [rule.text for rule in enhancements.classifier_rules] == [
+            "function:sit +app",
+            "function:roll_over category=trick",
+            "function:kangaroo -app",  # Split of `function:kangaroo -app -group`
+        ]
+        assert [rule.text for rule in enhancements.contributes_rules] == [
+            "function:shake +group",
+            "function:lie_down max-frames=11",
+            "function:stay min-frames=12",
+            "function:kangaroo -group",  # Split of `function:kangaroo -app -group`
+        ]
+
+    def test_obeys_version_for_splitting_choice(self):
+        enhancements = Enhancements.from_rules_text(self.rules_text)
+        assert enhancements.classifier_rules == []
+        assert enhancements.contributes_rules == []
+
+        enhancements = Enhancements.from_rules_text(self.rules_text, version=2)
+        assert enhancements.classifier_rules == []
+        assert enhancements.contributes_rules == []
+
+        enhancements = Enhancements.from_rules_text(self.rules_text, version=3)
+        assert len(enhancements.classifier_rules) > 0
+        assert len(enhancements.contributes_rules) > 0
 
 
 class AssembleStacktraceComponentTest(TestCase):

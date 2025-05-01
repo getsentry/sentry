@@ -373,11 +373,14 @@ const SearchListItem = styled('li')<{hasMenu?: boolean}>`
 const TitleDescriptionWrapper = styled('div')`
   overflow: hidden;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: start;
+  width: 100%;
 `;
 
 const SavedSearchItemTitle = styled('div')`
+  text-align: left;
   font-size: ${p => p.theme.fontSizeLarge};
   ${p => p.theme.overflowEllipsis}
 `;
