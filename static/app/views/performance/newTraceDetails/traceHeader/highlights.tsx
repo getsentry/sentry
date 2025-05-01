@@ -92,7 +92,7 @@ function AttributesHighlights({
         const ip_address = findSpanAttributeValue(attributes, 'user.ip');
         const id = findSpanAttributeValue(attributes, 'user.id');
 
-        if (!email || !ip_address) {
+        if (!email && !ip_address) {
           return null;
         }
 
