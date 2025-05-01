@@ -1,3 +1,4 @@
+from datetime import datetime
 from unittest.mock import patch
 
 import orjson
@@ -107,3 +108,34 @@ class TestGroupAutofixUpdate(APITestCase):
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert response.data["error"] == "AI Autofix has not been acknowledged by the organization."
+
+    @patch(
+        "sentry.api.endpoints.group_autofix_update.get_seer_org_acknowledgement", return_value=True
+    )
+    @patch("sentry.api.endpoints.group_autofix_update.requests.post")
+    def test_autofix_update_updates_last_triggered_field(
+        self, mock_post, mock_get_seer_org_acknowledgement
+    ):
+        """Test that a successful call updates the seer_autofix_last_triggered field."""
+        mock_post.return_value.status_code = 202
+        mock_post.return_value.json.return_value = {}
+
+        self.group.refresh_from_db()
+        assert self.group.seer_autofix_last_triggered is None
+
+        response = self.client.post(
+            self.url,
+            data={
+                "run_id": 456,
+                "payload": {
+                    "type": "some_update",
+                    "data": "value",
+                },
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_202_ACCEPTED
+
+        self.group.refresh_from_db()
+        assert isinstance(self.group.seer_autofix_last_triggered, datetime)

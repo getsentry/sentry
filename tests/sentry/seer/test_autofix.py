@@ -1216,6 +1216,11 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
         assert response.status_code == 202
         assert response.data["run_id"] == "test-run-id"
 
+        # Verify the field is updated in the database
+        group.refresh_from_db()
+        assert group.seer_autofix_last_triggered is not None
+        assert isinstance(group.seer_autofix_last_triggered, datetime)
+
         # Verify the function calls
         mock_call.assert_called_once()
         call_kwargs = mock_call.call_args.kwargs

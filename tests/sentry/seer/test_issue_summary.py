@@ -5,7 +5,12 @@ from unittest.mock import ANY, Mock, call, patch
 
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.locks import locks
-from sentry.seer.issue_summary import _get_event, _get_trace_connected_issues, get_issue_summary
+from sentry.seer.issue_summary import (
+    _get_event,
+    _get_trace_connected_issues,
+    _run_automation,
+    get_issue_summary,
+)
 from sentry.seer.models import SummarizeIssueResponse, SummarizeIssueScores
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
@@ -510,3 +515,50 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
             ]
         )
         mock_serialize.assert_called_once()
+
+    @patch("sentry.seer.issue_summary._trigger_autofix_task.delay")
+    @patch("sentry.seer.issue_summary.get_autofix_state")
+    @patch("sentry.seer.issue_summary._generate_fixability_score")
+    @patch("sentry.seer.issue_summary.features.has")
+    def test_run_automation_saves_fixability_score(
+        self,
+        mock_features_has,
+        mock_generate_fixability_score,
+        mock_get_autofix_state,
+        mock_trigger_autofix_task,
+    ):
+        """Test that _run_automation saves the fixability score."""
+        mock_features_has.return_value = True
+        mock_event = Mock(event_id="test_event_id")
+        mock_user = self.user
+
+        mock_fixability_response = SummarizeIssueResponse(
+            group_id=str(self.group.id),
+            headline="some headline",
+            whats_wrong="some whats wrong",
+            trace="some trace",
+            possible_cause="some possible cause",
+            scores=SummarizeIssueScores(
+                fixability_score=0.5,
+                is_fixable=True,
+            ),
+        )
+        mock_generate_fixability_score.return_value = mock_fixability_response
+        mock_get_autofix_state.return_value = None
+
+        self.group.refresh_from_db()
+        assert self.group.seer_fixability_score is None
+
+        _run_automation(self.group, mock_user, mock_event, source="issue_details")
+
+        mock_generate_fixability_score.assert_called_once_with(self.group.id)
+
+        mock_trigger_autofix_task.assert_called_once_with(
+            group_id=self.group.id,
+            event_id="test_event_id",
+            user_id=mock_user.id,
+            auto_run_source="issue_summary_fixability",
+        )
+
+        self.group.refresh_from_db()
+        assert self.group.seer_fixability_score == 0.5
