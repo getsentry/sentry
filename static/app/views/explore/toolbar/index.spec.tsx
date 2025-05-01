@@ -156,7 +156,8 @@ describe('ExploreToolbar', function () {
   });
 
   it('allows changing visualizes', async function () {
-    let fields, visualizes: any;
+    let fields!: string[];
+    let visualizes: any;
     function Component() {
       fields = useExploreFields();
       visualizes = useExploreVisualizes();
@@ -236,7 +237,8 @@ describe('ExploreToolbar', function () {
   });
 
   it('allows changing visualizes equations', async function () {
-    let fields, visualizes: any;
+    let fields!: string[];
+    let visualizes: any;
     function Component() {
       fields = useExploreFields();
       visualizes = useExploreVisualizes();
@@ -348,7 +350,7 @@ describe('ExploreToolbar', function () {
       </PageParamsProvider>
     );
 
-    let options;
+    let options: HTMLElement[];
     const section = screen.getByTestId('section-group-by');
 
     expect(groupBys).toEqual(['']);
