@@ -241,6 +241,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             "installations": [
                 {
                     "id": 1,
+                    "target_type": "Organization",
                     "account": {
                         "login": "santry",
                         "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pitchforks.png",
@@ -248,6 +249,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 },
                 {
                     "id": 2,
+                    "target_type": "User",
                     "account": {
                         "login": "bufo-bot",
                         "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pog.png",

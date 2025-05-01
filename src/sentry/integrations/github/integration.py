@@ -612,7 +612,7 @@ def get_owner_github_organizations(access_token: str) -> list[str]:
         gh_org.get("organization", {}).get("login")
         for gh_org in user_org_membership_details
         if (
-            gh_org.get("role", "").lower() == "owner"
+            gh_org.get("role", "").lower() == "admin"
             and gh_org.get("state", "").lower() == "active"
         )
     ]
@@ -628,7 +628,10 @@ def get_eligible_multi_org_installations(access_token: str, owner_orgs: list[str
             "avatar_url": installation.get("account").get("avatar_url"),
         }
         for installation in installed_orgs["installations"]
-        if installation.get("account").get("login") in owner_orgs
+        if (
+            installation.get("account").get("login") in owner_orgs
+            or installation.get("target_type") == "User"
+        )
     ]
 
 
