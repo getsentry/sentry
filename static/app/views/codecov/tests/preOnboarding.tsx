@@ -13,7 +13,7 @@ const INSTRUCTIONS_TEXT = {
   noOrgs: {
     header: t('Get Started by installing the GitHub Sentry App'),
     subtext: t(
-      "You need to install the Sentry app on your GitHub organization as an admin. If you're not an admin, you will need to make sure your GitHub organization admins approve the installation of the Sentry app on GitHub."
+      "You need to install the Sentry App on your GitHub organization as an admin. If you're not an admin, you will need to make sure your GitHub organization admins approve the installation of the Sentry App on GitHub."
     ),
     mainCTA: t('Add installation'),
     mainCTALink: 'https://github.com/apps/sentry-io',
@@ -97,7 +97,7 @@ export default function TestPreOnboardingPage() {
             <Prereq>
               <PrereqMainText>{t('Install the GitHub Sentry App')}</PrereqMainText>
               <PrereqSubText>
-                <Link to="">{t('Install the app')}</Link>
+                <Link to="https://github.com/apps/sentry-io">{t('Install the app')}</Link>
                 {t(
                   " on your GitHub org in your Sentry org. You will need to be an Owner of your GitHub organization to fully configure the integration. Note: Once linked, a GitHub org/account can't be connected to another Sentry org."
                 )}
@@ -118,7 +118,7 @@ export default function TestPreOnboardingPage() {
                 <Link to="https://sentry.io/settings/account/identities">
                   {t('disconnect')}
                 </Link>
-                {t(' disconnect then ')}
+                {t(' then ')}
                 {/* TODO: figma file links to https://sentry.io/auth/login/?next=/auth/sso/account/settings/social/associate/co[…]D6ee6a67e71b4459e8e4c%26state%3D7nJAqWF3l4bkczXAPzTcfo8EKIvSHyiB
                     but not sure how to get the link to that currently */}
                 <Link to="">{t('reconnect')}</Link>
