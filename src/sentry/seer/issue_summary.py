@@ -249,6 +249,9 @@ def _run_automation(
                 logger.exception("Error generating fixability score", extra={"group_id": group.id})
                 return
 
+        if not issue_summary.scores:
+            return
+
         if issue_summary.scores.fixability_score is not None:
             group.update(seer_fixability_score=issue_summary.scores.fixability_score)
 
