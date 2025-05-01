@@ -21,7 +21,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0877_integer_drift_release
+sentry: 0878_backfill_open_periods
 
 social_auth: 0002_default_auto_field
 
@@ -29,4 +29,4 @@ tempest: 0002_make_message_type_nullable
 
 uptime: 0037_fix_drift_default_to_db_default
 
-workflow_engine: 0050_remove_orphaned_rule_workflows
+workflow_engine: 0052_migrate_errored_metric_alerts

@@ -5,7 +5,7 @@ import onboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button';
-import {useProjectPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectPreferences';
+import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
@@ -110,7 +110,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     preference,
     codeMappingRepos,
     isLoading: isLoadingPreferences,
-  } = useProjectPreferences(project);
+  } = useProjectSeerPreferences(project);
 
   const unreadableRepos = repos.filter(repo => repo.is_readable === false);
   const notices: React.JSX.Element[] = [];
