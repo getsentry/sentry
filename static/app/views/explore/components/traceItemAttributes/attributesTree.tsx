@@ -11,10 +11,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
-import {
-  getFieldRenderer,
-  type RenderFunctionBaggage,
-} from 'sentry/utils/discover/fieldRenderers';
+import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
@@ -445,7 +442,6 @@ function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>({
   content,
   renderers = {},
   rendererExtra: renderExtra,
-  theme,
 }: {
   content: AttributesTreeContent;
   config?: AttributesTreeRowConfig;
@@ -458,12 +454,7 @@ function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>({
   // Check if we have a custom renderer for this attribute
   const attributeKey = originalAttribute.original_attribute_key;
   const renderer = renderers[attributeKey];
-  const basicRenderer = getFieldRenderer(attributeKey, {}, false);
 
-  const basicRendered = basicRenderer(
-    {[attributeKey]: content.value},
-    {...renderExtra, theme}
-  );
   const defaultValue = <span>{String(content.value)}</span>;
 
   if (config?.disableRichValue) {
@@ -473,7 +464,7 @@ function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>({
   if (renderer) {
     return renderer({
       item: getAttributeItem(attributeKey, content.value),
-      basicRendered,
+      basicRendered: defaultValue,
       extra: renderExtra,
     });
   }
@@ -486,7 +477,7 @@ function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>({
           openNavigateToExternalLinkModal({linkText: String(content.value)});
         }}
       >
-        {basicRendered}
+        {defaultValue}
       </ExternalLink>
     </AttributeLinkText>
   ) : (
