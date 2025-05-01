@@ -32,7 +32,7 @@ def get_redis_client() -> RetryingRedisCluster:
     return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
 
 
-class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
+class StatefulGroupingDetectorHandler(DetectorHandler[T], abc.ABC):
     def __init__(self, detector: Detector):
         super().__init__(detector)
         self.dedupe_updates: dict[DetectorGroupKey, int] = {}
