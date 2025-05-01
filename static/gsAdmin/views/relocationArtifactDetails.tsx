@@ -3,22 +3,22 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconFile} from 'sentry/icons/iconFile';
 import ConfigStore from 'sentry/stores/configStore';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useParams} from 'sentry/utils/useParams';
 
 import DetailsPage from 'admin/components/detailsPage';
-
-type Props = RouteComponentProps<
-  {artifactKind: string; fileName: string; regionName: string; relocationUuid: string},
-  unknown
->;
 
 type RelocationData = {
   contents: string;
 };
 
-export default function RelocationArtifactDetails({params}: Props) {
-  const {artifactKind, fileName, regionName, relocationUuid} = params;
+export default function RelocationArtifactDetails() {
+  const {artifactKind, fileName, regionName, relocationUuid} = useParams<{
+    artifactKind: string;
+    fileName: string;
+    regionName: string;
+    relocationUuid: string;
+  }>();
   const region = ConfigStore.get('regions').find((r: any) => r.name === regionName);
 
   const {data, isPending, isError} = useApiQuery<RelocationData>(
