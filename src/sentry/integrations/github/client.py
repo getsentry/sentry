@@ -26,6 +26,7 @@ from sentry.integrations.source_code_management.commit_context import (
 from sentry.integrations.source_code_management.repo_trees import RepoTreesClient
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
@@ -437,6 +438,18 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
     ) -> Any:
         endpoint = f"/repos/{repo}/issues/comments/{comment_id}"
         return self.patch(endpoint, data=data)
+
+    def create_pr_comment(self, repo: Repository, pr: PullRequest, data: dict[str, Any]) -> Any:
+        return self.create_comment(repo.name, pr.key, data)
+
+    def update_pr_comment(
+        self,
+        repo: Repository,
+        pr: PullRequest,
+        pr_comment: PullRequestComment,
+        data: dict[str, Any],
+    ) -> Any:
+        return self.update_comment(repo.name, pr.key, pr_comment.external_id, data)
 
     def get_comment_reactions(self, repo: str, comment_id: str) -> Any:
         endpoint = f"/repos/{repo}/issues/comments/{comment_id}"
