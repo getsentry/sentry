@@ -35,7 +35,11 @@ function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
     },
     onSuccess: () => {
       // Make sure this query key doesn't go out of date with the one on the Sentry side!
-      queryClient.invalidateQueries({queryKey: [`/issues/${groupId}/autofix/setup/`]});
+      queryClient.invalidateQueries({
+        queryKey: [
+          `/organizations/${organization.slug}/issues/${groupId}/autofix/setup/`,
+        ],
+      });
     },
   });
 

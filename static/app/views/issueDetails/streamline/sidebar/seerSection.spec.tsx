@@ -35,7 +35,7 @@ describe('SeerSection', () => {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/setup/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
         setupAcknowledgement: {
           orgHasAcknowledged: true,
@@ -47,7 +47,7 @@ describe('SeerSection', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       body: {steps: []},
     });
   });
@@ -108,7 +108,7 @@ describe('SeerSection', () => {
       });
 
       MockApiClient.addMockResponse({
-        url: `/issues/${mockGroup.id}/autofix/setup/`,
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
         body: AutofixSetupFixture({
           setupAcknowledgement: {
             orgHasAcknowledged: false,
@@ -135,7 +135,7 @@ describe('SeerSection', () => {
 
     it('shows "Find Root Cause" even when autofix needs setup', async () => {
       MockApiClient.addMockResponse({
-        url: `/issues/${mockGroup.id}/autofix/setup/`,
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
         body: AutofixSetupFixture({
           setupAcknowledgement: {
             orgHasAcknowledged: true,
@@ -165,7 +165,7 @@ describe('SeerSection', () => {
     it('shows "Find Root Cause" when autofix is available', async () => {
       // Mock successful autofix setup but disable resources
       MockApiClient.addMockResponse({
-        url: `/issues/${mockGroup.id}/autofix/setup/`,
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
         body: AutofixSetupFixture({
           setupAcknowledgement: {
             orgHasAcknowledged: true,
@@ -203,7 +203,7 @@ describe('SeerSection', () => {
 
       // Mock config with autofix disabled
       MockApiClient.addMockResponse({
-        url: `/issues/${mockGroup.id}/autofix/setup/`,
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
         body: AutofixSetupFixture({
           setupAcknowledgement: {
             orgHasAcknowledged: true,
