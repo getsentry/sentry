@@ -64,7 +64,6 @@ function Step({
   hasStepBelow,
   hasStepAbove,
   hasErroredStepBefore,
-  shouldCollapseByDefault,
   previousDefaultStepIndex,
   previousInsightCount,
   feedback,
@@ -91,7 +90,6 @@ function Step({
                   stepIndex={step.index}
                   groupId={groupId}
                   runId={runId}
-                  shouldCollapseByDefault={shouldCollapseByDefault}
                 />
               )}
               {step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS && (
@@ -165,8 +163,8 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
     let customErrorMessage = '';
     if (
       errorMessage.toLowerCase().includes('overloaded') ||
-      errorMessage.toLowerCase().includes('max tries') ||
-      errorMessage.toLowerCase().includes('no completion tokens returned')
+      errorMessage.toLowerCase().includes('no completion tokens') ||
+      errorMessage.toLowerCase().includes('exhausted')
     ) {
       customErrorMessage = t(
         'The robots are having a moment. Our LLM provider is overloaded - please try again soon.'

@@ -13,6 +13,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
+from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 
 logger = logging.getLogger(__name__)
@@ -39,6 +40,12 @@ class GroupAutofixUpdateEndpoint(GroupAiEndpoint):
             return Response(
                 status=401,
                 data={"error": "You must be authenticated to use this endpoint"},
+            )
+
+        if not get_seer_org_acknowledgement(org_id=group.organization.id):
+            return Response(
+                status=403,
+                data={"error": "AI Autofix has not been acknowledged by the organization."},
             )
 
         path = "/v1/automation/autofix/update"

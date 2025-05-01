@@ -15,8 +15,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
+import {StarredSegmentCell} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
+import {StyledIconStar} from 'sentry/views/insights/pages/backend/backendTable';
 import {TransactionCell} from 'sentry/views/insights/pages/transactionCell';
 import type {EAPSpanResponse} from 'sentry/views/insights/types';
 
@@ -24,43 +26,35 @@ type Row = Pick<
   EAPSpanResponse,
   | 'is_starred_transaction'
   | 'transaction'
-  | 'span.op'
   | 'project'
   | 'epm()'
   | 'p50(span.duration)'
   | 'p95(span.duration)'
   | 'failure_rate()'
   | 'time_spent_percentage(span.duration)'
+  | 'count_unique(user)'
   | 'sum(span.duration)'
+  | 'performance_score(measurements.score.total)'
 >;
 
 type Column = GridColumnHeader<
   | 'is_starred_transaction'
   | 'transaction'
-  | 'span.op'
   | 'project'
   | 'epm()'
   | 'p50(span.duration)'
   | 'p95(span.duration)'
   | 'failure_rate()'
   | 'time_spent_percentage(span.duration)'
+  | 'count_unique(user)'
   | 'sum(span.duration)'
+  | 'performance_score(measurements.score.total)'
 >;
 
 const COLUMN_ORDER: Column[] = [
   {
-    key: 'is_starred_transaction',
-    name: t('Starred'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
     key: 'transaction',
     name: t('Transaction'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'span.op',
-    name: t('Operation'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
@@ -89,8 +83,18 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
+    key: 'count_unique(user)',
+    name: t('Users'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
     key: 'time_spent_percentage(span.duration)',
     name: DataTitles.timeSpent,
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'performance_score(measurements.score.total)',
+    name: t('Perf Score'),
     width: COL_WIDTH_UNDEFINED,
   },
 ];
@@ -98,13 +102,14 @@ const COLUMN_ORDER: Column[] = [
 const SORTABLE_FIELDS = [
   'is_starred_transaction',
   'transaction',
-  'span.op',
   'project',
   'epm()',
   'p50(span.duration)',
   'p95(span.duration)',
   'failure_rate()',
+  'count_unique(user)',
   'time_spent_percentage(span.duration)',
+  'performance_score(measurements.score.total)',
 ] as const;
 
 export type ValidSort = Sort & {
@@ -158,6 +163,8 @@ export function FrontendOverviewTable({response, sort}: Props) {
           },
         ]}
         grid={{
+          prependColumnWidths: ['max-content'],
+          renderPrependColumns,
           renderHeadCell: column =>
             renderHeadCell({
               column,
@@ -173,6 +180,24 @@ export function FrontendOverviewTable({response, sort}: Props) {
   );
 }
 
+function renderPrependColumns(isHeader: boolean, row?: Row | undefined) {
+  if (isHeader) {
+    return [<StyledIconStar key="star" color="yellow300" isSolid />];
+  }
+
+  if (!row) {
+    return [];
+  }
+  return [
+    <StarredSegmentCell
+      key={row.transaction}
+      initialIsStarred={row.is_starred_transaction}
+      projectSlug={row.project}
+      segmentName={row.transaction}
+    />,
+  ];
+}
+
 function renderBodyCell(
   column: Column,
   row: Row,
@@ -186,13 +211,7 @@ function renderBodyCell(
   }
 
   if (column.key === 'transaction') {
-    return (
-      <TransactionCell
-        project={row.project}
-        transaction={row.transaction}
-        transactionMethod={row['span.op']}
-      />
-    );
+    return <TransactionCell project={row.project} transaction={row.transaction} />;
   }
 
   const renderer = getFieldRenderer(column.key, meta.fields, false);
