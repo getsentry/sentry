@@ -145,11 +145,9 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
     }
   }, [autofixData]);
 
-  // Handle scrollTo query parameter
   useEffect(() => {
     const scrollTo = location.query.scrollTo as string | undefined;
     if (scrollTo) {
-      // Add a small delay to let the DOM fully render
       const timeoutId = setTimeout(() => {
         scrollToSection(scrollTo);
       }, 100);
