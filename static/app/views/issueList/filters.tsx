@@ -32,7 +32,9 @@ function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
   const prefersOldNavWithEnforcement = usePrefersOldNavWithEnforcedStackedNav();
 
   return (
-    <FiltersContainer hasIssueViewSharing={prefersStackedNav}>
+    <FiltersContainer
+      hasIssueViewSharing={prefersStackedNav && !prefersOldNavWithEnforcement}
+    >
       <GuideAnchor
         target="issue_views_page_filters_persistence"
         disabled={!hasIssueViews}

@@ -36,10 +36,12 @@ function PageTitle({title}: {title: ReactNode}) {
   const organization = useOrganization();
   const {data: groupSearchView} = useSelectedGroupSearchView();
   const user = useUser();
-  const prefersStackedNav = usePrefersStackedNav();
+  const hasIssueViewSharing = organization.features.includes(
+    'enforce-stacked-navigation'
+  );
 
   if (
-    prefersStackedNav &&
+    hasIssueViewSharing &&
     groupSearchView &&
     canEditIssueView({groupSearchView, user, organization})
   ) {
