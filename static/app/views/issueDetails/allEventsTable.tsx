@@ -47,16 +47,11 @@ function AllEventsTable({organization, excludedTags, group}: Props) {
     groupId: group.id,
   });
 
-  const queryEnabled = group.issueCategory === IssueCategory.PERFORMANCE;
-  const {data, isPending, isLoadingError} = useApiQuery<EventTransaction>([endpointUrl], {
+  const isRegressionIssue = group.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION;
+  const {data, isLoading, isLoadingError} = useApiQuery<EventTransaction>([endpointUrl], {
     staleTime: 60000,
-    enabled: queryEnabled,
+    enabled: isRegressionIssue,
   });
-
-  // TODO: this is a temporary way to check whether
-  // perf issue is backed by occurrences or transactions
-  // Once migration to the issue platform is complete a call to /latest should be removed
-  const groupIsOccurrenceBacked = !!data?.occurrence;
 
   const eventView: EventView = EventView.fromLocation(location);
   if (config.usesIssuePlatform) {
@@ -78,14 +73,8 @@ function AllEventsTable({organization, excludedTags, group}: Props) {
 
   eventView.statsPeriod = '90d';
 
-  const isRegressionIssue =
-    group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION ||
-    group.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION;
-
   let idQuery = `issue.id:${group.id}`;
-  if (group.issueCategory === IssueCategory.PERFORMANCE && !groupIsOccurrenceBacked) {
-    idQuery = `performance.issue_ids:${group.id} event.type:transaction`;
-  } else if (isRegressionIssue && groupIsOccurrenceBacked) {
+  if (isRegressionIssue) {
     const {transaction, aggregateRange2, breakpoint} =
       data?.occurrence?.evidenceData ?? {};
 
@@ -126,7 +115,7 @@ function AllEventsTable({organization, excludedTags, group}: Props) {
       transactionName=""
       columnTitles={columnTitles.slice()}
       referrer="api.issues.issue_events"
-      isEventLoading={queryEnabled ? isPending : false}
+      isEventLoading={isLoading}
     />
   );
 }

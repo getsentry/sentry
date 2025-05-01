@@ -63,6 +63,10 @@ export function IssueViewAddViewButton() {
     }
   };
 
+  if (organization.features.includes('enforce-stacked-navigation')) {
+    return null;
+  }
+
   return (
     <AddViewButton
       borderless

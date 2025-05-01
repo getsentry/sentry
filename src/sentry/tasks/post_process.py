@@ -25,6 +25,8 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import event_processed, issue_unignored
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import ingest_errors_tasks
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
@@ -483,6 +485,10 @@ def should_update_escalating_metrics(event: Event) -> bool:
     time_limit=120,
     soft_time_limit=110,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=ingest_errors_tasks,
+        processing_deadline_duration=120,
+    ),
 )
 def post_process_group(
     is_new,
@@ -1296,6 +1302,13 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
         logger.info("post_process.process_error_ignored", extra={"exception": e})
     except Exception as e:
         logger.exception("post_process.process_error", extra={"exception": e})
+    logger.info(
+        "post_process.plugin_success",
+        extra={
+            "project_id": event.project_id,
+            "plugin_slug": plugin_slug,
+        },
+    )
 
 
 def feedback_filter_decorator(func):
@@ -1410,25 +1423,26 @@ def link_event_to_user_report(job: PostProcessJob) -> None:
         event = job["event"]
         project = event.project
         user_reports_without_group = UserReport.objects.filter(
-            project_id=project.id,
-            event_id=event.event_id,
-            group_id__isnull=True,
-            environment_id__isnull=True,
+            project_id=project.id, event_id=event.event_id, group_id__isnull=True
         )
         for report in user_reports_without_group:
-            shim_to_feedback(
-                {
-                    "name": report.name,
-                    "email": report.email,
-                    "comments": report.comments,
-                    "event_id": report.event_id,
-                    "level": "error",
-                },
-                event,
-                project,
-                FeedbackCreationSource.USER_REPORT_ENVELOPE,
-            )
-            metrics.incr("event_manager.save._update_user_reports_with_event_link.shim_to_feedback")
+            if report.environment_id is None:
+                shim_to_feedback(
+                    {
+                        "name": report.name,
+                        "email": report.email,
+                        "comments": report.comments,
+                        "event_id": report.event_id,
+                        "level": "error",
+                    },
+                    event,
+                    project,
+                    FeedbackCreationSource.USER_REPORT_ENVELOPE,
+                )
+                metrics.incr(
+                    "event_manager.save._update_user_reports_with_event_link.shim_to_feedback"
+                )
+        # If environment is set, this report was already shimmed from new feedback.
 
         user_reports_updated = user_reports_without_group.update(
             group_id=group.id, environment_id=event.get_environment().id

@@ -18,9 +18,9 @@ import {DIFF_COLORS} from 'sentry/components/splitDiff';
 import {IconChevron, IconClose, IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {singleLineRenderer} from 'sentry/utils/marked';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
 type AutofixDiffProps = {
@@ -191,6 +191,8 @@ function HunkHeader({lines, sectionHeader}: {lines: DiffLine[]; sectionHeader: s
 function useUpdateHunk({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
+  const orgSlug = useOrganization().slug;
+
   return useMutation({
     mutationFn: (params: {
       fileName: string;
@@ -198,22 +200,25 @@ function useUpdateHunk({groupId, runId}: {groupId: string; runId: string}) {
       lines: DiffLine[];
       repoId?: string;
     }) => {
-      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
-        method: 'POST',
-        data: {
-          run_id: runId,
-          payload: {
-            type: 'update_code_change',
-            repo_id: params.repoId ?? null,
-            hunk_index: params.hunkIndex,
-            lines: params.lines,
-            file_path: params.fileName,
+      return api.requestPromise(
+        `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
+        {
+          method: 'POST',
+          data: {
+            run_id: runId,
+            payload: {
+              type: 'update_code_change',
+              repo_id: params.repoId ?? null,
+              hunk_index: params.hunkIndex,
+              lines: params.lines,
+              file_path: params.fileName,
+            },
           },
-        },
-      });
+        }
+      );
     },
     onSuccess: _ => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when updating changes.'));
@@ -522,11 +527,9 @@ function DiffHunkContent({
             data-overlay="true"
           >
             <OverlayHeader>
-              <OverlayTitle
-                dangerouslySetInnerHTML={{
-                  __html: singleLineRenderer(t('Editing `%s`', fileName)),
-                }}
-              />
+              <OverlayTitle>
+                {t('Editing')} <code>{fileName}</code>
+              </OverlayTitle>
             </OverlayHeader>
             <OverlayContent>
               <SectionTitle>{getDeletedLineTitle(editingGroup)}</SectionTitle>
@@ -662,7 +665,7 @@ export function AutofixDiff({
   previousInsightCount,
   isExpandable = true,
 }: AutofixDiffProps) {
-  if (!diff || !diff.length) {
+  if (!diff?.length) {
     return null;
   }
 
@@ -825,7 +828,6 @@ const ButtonGroup = styled('div')`
   top: 0;
   right: ${space(0.5)};
   display: flex;
-  z-index: 1;
 `;
 
 const ActionButton = styled(Button)<{isHovered: boolean}>`
@@ -896,6 +898,8 @@ const RemovedLine = styled('div')`
   background-color: ${DIFF_COLORS.removedRow};
   color: ${p => p.theme.textColor};
   padding: ${space(0.25)} ${space(0.5)};
+  white-space: pre-wrap;
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const StyledTextArea = styled(TextArea)`

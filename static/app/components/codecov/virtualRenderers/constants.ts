@@ -1,3 +1,5 @@
 export const LINE_HEIGHT = 16;
 
-export type CoverageMap = Map<number, {coverage: 'H' | 'M' | 'P'; line: number}>;
+export type CoverageValue = 'H' | 'M' | 'P';
+
+export type CoverageMap = Record<number, CoverageValue>;

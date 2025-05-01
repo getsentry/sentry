@@ -4,6 +4,7 @@ import django.utils.timezone
 from django.db import migrations, models
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -19,8 +20,6 @@ class Migration(CheckedMigration):
     #   change, it's completely safe to run the operation after the code has deployed.
     is_post_deployment = False
 
-    allow_run_sql = True
-
     dependencies = [
         ("sentry", "0534_add_notification_uuid_to_rule_fire_history"),
     ]
@@ -28,7 +27,7 @@ class Migration(CheckedMigration):
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql="""
                     ALTER TABLE "sentry_controloutbox" ADD COLUMN "date_added" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
                     """,
@@ -37,7 +36,7 @@ class Migration(CheckedMigration):
                     """,
                     hints={"tables": ["sentry_controloutbox"]},
                 ),
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql="""
                     ALTER TABLE "sentry_regionoutbox" ADD COLUMN "date_added" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
                     """,

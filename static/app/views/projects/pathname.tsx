@@ -1,3 +1,4 @@
+import type {Organization} from 'sentry/types/organization';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 
@@ -6,14 +7,14 @@ const PROJECTS_BASE_PATHNAME = 'insights/projects';
 
 export function makeProjectsPathname({
   path,
-  orgSlug,
+  organization,
 }: {
-  orgSlug: string;
+  organization: Organization;
   path: '/' | `/${string}/`;
 }) {
   return normalizeUrl(
-    prefersStackedNav()
-      ? `/organizations/${orgSlug}/${PROJECTS_BASE_PATHNAME}${path}`
-      : `/organizations/${orgSlug}/${LEGACY_PROJECTS_BASE_PATHNAME}${path}`
+    prefersStackedNav(organization)
+      ? `/organizations/${organization.slug}/${PROJECTS_BASE_PATHNAME}${path}`
+      : `/organizations/${organization.slug}/${LEGACY_PROJECTS_BASE_PATHNAME}${path}`
   );
 }

@@ -31,7 +31,6 @@ import {
   AGGREGATIONS,
   explodeFieldString,
   getAggregateAlias,
-  getAggregateArg,
   getColumnsAndAggregates,
   getEquation,
   isAggregateEquation,
@@ -46,7 +45,6 @@ import {
 import {DisplayModes, SavedQueryDatasets, TOP_N} from 'sentry/utils/discover/types';
 import {getTitle} from 'sentry/utils/events';
 import {DISCOVER_FIELDS, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
-import localStorage from 'sentry/utils/localStorage';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {
@@ -57,19 +55,15 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {
+  getAllViews,
+  getTransactionViews,
+  getWebVitalsViews,
+} from 'sentry/views/discover/results/data';
+import {displayModeToDisplayType} from 'sentry/views/discover/savedQuery/utils';
+import type {FieldValue, TableColumn} from 'sentry/views/discover/table/types';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
-
-import {displayModeToDisplayType} from './savedQuery/utils';
-import type {FieldValue, TableColumn} from './table/types';
-import {FieldValueKind} from './table/types';
-import {getAllViews, getTransactionViews, getWebVitalsViews} from './data';
-
-export type QueryWithColumnState =
-  | Query
-  | {
-      field: string | string[] | null | undefined;
-      sort: string | string[] | null | undefined;
-    };
 
 const TEMPLATE_TABLE_COLUMN: TableColumn<string> = {
   key: '',
@@ -404,33 +398,6 @@ function generateAdditionalConditions(
   return conditions;
 }
 
-/**
- * Discover queries can query either Errors, Transactions or a combination
- * of the two datasets. This is a util to determine if the query will excusively
- * hit the Transactions dataset.
- */
-export function usesTransactionsDataset(eventView: EventView, yAxisValue: string[]) {
-  let usesTransactions = false;
-  const parsedQuery = new MutableSearch(eventView.query);
-  for (const yAxis of yAxisValue) {
-    const aggregateArg = getAggregateArg(yAxis) ?? '';
-    if (isMeasurement(aggregateArg) || aggregateArg === 'transaction.duration') {
-      usesTransactions = true;
-      break;
-    }
-    const eventTypeFilter = parsedQuery.getFilterValues('event.type');
-    if (
-      eventTypeFilter.length > 0 &&
-      eventTypeFilter.every(filter => filter === 'transaction')
-    ) {
-      usesTransactions = true;
-      break;
-    }
-  }
-
-  return usesTransactions;
-}
-
 function generateExpandedConditions(
   eventView: EventView,
   additionalConditions: Record<string, string>,
@@ -627,17 +594,6 @@ export function generateFieldOptions({
   }
 
   return fieldOptions;
-}
-
-const RENDER_PREBUILT_KEY = 'discover-render-prebuilt';
-
-export function shouldRenderPrebuilt(): boolean {
-  const shouldRender = localStorage.getItem(RENDER_PREBUILT_KEY);
-  return shouldRender === 'true' || shouldRender === null;
-}
-
-export function setRenderPrebuilt(value: boolean) {
-  localStorage.setItem(RENDER_PREBUILT_KEY, value ? 'true' : 'false');
 }
 
 export function eventViewToWidgetQuery({

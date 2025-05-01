@@ -72,9 +72,12 @@ describe('ReleaseActions', function () {
         releaseMeta={{...ReleaseMetaFixture(), projects: release.projects}}
         location={location}
       />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
-    renderGlobalModal({router});
+    renderGlobalModal({router, deprecatedRouterMocks: true});
 
     await userEvent.click(screen.getByLabelText('Actions'));
 
@@ -122,7 +125,10 @@ describe('ReleaseActions', function () {
         releaseMeta={{...ReleaseMetaFixture(), projects: release.projects}}
         location={location}
       />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
     renderGlobalModal({router});
 
@@ -166,7 +172,10 @@ describe('ReleaseActions', function () {
         releaseMeta={{...ReleaseMetaFixture(), projects: release.projects}}
         location={location}
       />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.getByLabelText('Oldest')).toHaveAttribute(

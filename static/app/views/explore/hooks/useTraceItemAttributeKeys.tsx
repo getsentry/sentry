@@ -38,8 +38,8 @@ export function useTraceItemAttributeKeys({
       project: selection.projects,
       environment: selection.environments,
       ...normalizeDateTimeParams(selection.datetime),
-      item_type: traceItemType,
-      attribute_type: type,
+      itemType: traceItemType,
+      attributeType: type,
     },
   };
 

@@ -2,16 +2,17 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Sequence
-from typing import NamedTuple, TypeAlias
+from collections.abc import Mapping, Sequence
+from typing import Any, NamedTuple, TypeAlias
 
-from sentry import tsdb
+from sentry import features, tsdb
 from sentry.digests.types import Notification, Record, RecordWithRuleObjects
 from sentry.eventstore.models import Event
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
+from sentry.notifications.utils.rules import get_key_from_rule_data
 from sentry.tsdb.base import TSDBModel
 
 logger = logging.getLogger("sentry.digests")
@@ -22,7 +23,7 @@ Digest: TypeAlias = dict[Rule, dict[Group, list[RecordWithRuleObjects]]]
 class DigestInfo(NamedTuple):
     digest: Digest
     event_counts: dict[int, int]
-    user_counts: dict[int, int]
+    user_counts: Mapping[int, int]
 
 
 def split_key(
@@ -68,9 +69,17 @@ def event_to_record(
     if not rules:
         logger.warning("Creating record for %s that does not contain any rules!", event)
 
+    rule_ids = []
+    # TODO(iamrajjoshi): This will only work during the dual write period of the rollout!
+    if features.has("organizations:workflow-engine-trigger-actions", event.organization):
+        for rule in rules:
+            rule_ids.append(int(get_key_from_rule_data(rule, "legacy_rule_id")))
+    else:
+        for rule in rules:
+            rule_ids.append(rule.id)
     return Record(
         event.event_id,
-        Notification(event, [rule.id for rule in rules], notification_uuid),
+        Notification(event, rule_ids, notification_uuid),
         event.datetime.timestamp(),
     )
 
@@ -113,7 +122,7 @@ def _group_records(
 
 
 def _sort_digest(
-    digest: Digest, event_counts: dict[int, int], user_counts: dict[int, int]
+    digest: Digest, event_counts: dict[int, int], user_counts: Mapping[Any, int]
 ) -> Digest:
     # sort inner groups dict by (event_count, user_count) descending
     for key, rule_groups in digest.items():
@@ -142,7 +151,7 @@ def _build_digest_impl(
     groups: dict[int, Group],
     rules: dict[int, Rule],
     event_counts: dict[int, int],
-    user_counts: dict[int, int],
+    user_counts: Mapping[Any, int],
 ) -> Digest:
     # sans-io implementation details
     bound_records = _bind_records(records, groups, rules)
@@ -165,13 +174,18 @@ def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
     group_ids = list(groups)
     rules = Rule.objects.in_bulk(rule_id for record in records for rule_id in record.value.rules)
 
+    # TODO(iamrajjoshi): This will only work during the dual write period of the rollout!
+    if features.has("organizations:workflow-engine-trigger-actions", project.organization):
+        for rule in rules.values():
+            rule.data["actions"][0]["legacy_rule_id"] = rule.id
+
     for group_id, g in groups.items():
         assert g.project_id == project.id, "Group must belong to Project"
     for rule_id, rule in rules.items():
         assert rule.project_id == project.id, "Rule must belong to Project"
 
     tenant_ids = {"organization_id": project.organization_id}
-    event_counts = tsdb.backend.get_sums(
+    event_counts = tsdb.backend.get_timeseries_sums(
         TSDBModel.group,
         group_ids,
         start,

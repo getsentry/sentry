@@ -28,11 +28,11 @@ import {
 import {isEmptySeries} from 'sentry/components/charts/utils';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconClock, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -453,6 +453,13 @@ export default function MetricChart({
     ]
   );
 
+  const isProgressiveLoadingEnabled = organization.features.includes(
+    'visibility-explore-progressive-loading'
+  );
+  const isUsingNormalSamplingMode = organization.features.includes(
+    'visibility-explore-progressive-loading-normal-sampling-mode'
+  );
+
   const {data: eventStats, isLoading: isLoadingEventStats} = useMetricEventStats(
     {
       project,
@@ -460,10 +467,13 @@ export default function MetricChart({
       timePeriod,
       referrer: 'api.alerts.alert-rule-chart',
       samplingMode:
-        organization.features.includes('visibility-explore-progressive-loading') &&
+        isUsingNormalSamplingMode &&
+        !isProgressiveLoadingEnabled &&
         rule.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
-          ? SAMPLING_MODE.BEST_EFFORT
-          : undefined,
+          ? SAMPLING_MODE.NORMAL
+          : isProgressiveLoadingEnabled
+            ? SAMPLING_MODE.BEST_EFFORT
+            : undefined,
     },
     {enabled: !shouldUseSessionsStats}
   );

@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:16.427311+00:00'
+created: '2025-04-25T21:24:21.326606+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -30,14 +30,14 @@ contributing variants:
       app*
         exception*
           stacktrace*
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "sentry.utils.safe"
               function*
                 "safe_execute"
               context-line*
                 "result = func(*args, **kwargs)"
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "sentry.integrations.slack.notify_action"
               function*

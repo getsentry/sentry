@@ -1275,6 +1275,9 @@ def create_mock_attachment(event_id, project):
 
 
 def create_mock_user_feedback(project, has_attachment=True):
+    # Get an existing release for this project instead of creating a new one
+    release = Release.objects.filter(projects=project).first()
+
     event = {
         "project_id": project.id,
         "request": {
@@ -1287,7 +1290,6 @@ def create_mock_user_feedback(project, has_attachment=True):
         "timestamp": time.time(),
         "received": "2024-4-27T22:23:29.574000+00:00",
         "environment": next(ENVIRONMENTS),
-        "release": "frontend@daf1316f209d961443664cd6eb4231ca154db502",
         "user": {
             "ip_address": "72.164.175.154",
             "email": "josh.ferge@sentry.io",
@@ -1307,6 +1309,11 @@ def create_mock_user_feedback(project, has_attachment=True):
         "breadcrumbs": [],
         "platform": "javascript",
     }
+
+    # Only add the release field if we found an existing release
+    if release:
+        event["release"] = release.version
+
     create_feedback_issue(event, project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     if has_attachment:

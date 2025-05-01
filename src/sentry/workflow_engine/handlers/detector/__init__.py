@@ -1,9 +1,10 @@
 __all__ = [
-    "DetectorHandler",
     "DetectorEvaluationResult",
+    "DetectorHandler",
+    "DetectorOccurrence",
     "DetectorStateData",
-    "StatefulDetectorHandler",
+    "StatefulGroupingDetectorHandler",
 ]
 
-from .base import DetectorEvaluationResult, DetectorHandler, DetectorStateData
-from .stateful import StatefulDetectorHandler
+from .base import DetectorEvaluationResult, DetectorHandler, DetectorOccurrence, DetectorStateData
+from .stateful import StatefulGroupingDetectorHandler

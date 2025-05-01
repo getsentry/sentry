@@ -3,6 +3,7 @@ from django.db import migrations, models
 
 import sentry.db.models.fields.jsonfield
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -20,8 +21,6 @@ class Migration(CheckedMigration):
 
     is_post_deployment = False
 
-    allow_run_sql = True
-
     dependencies = [
         ("uptime", "0011_remove_uptime_whois_columns_db"),
     ]
@@ -29,17 +28,17 @@ class Migration(CheckedMigration):
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     """ALTER TABLE "uptime_uptimesubscription" ADD COLUMN "body" text NULL;""",
                     reverse_sql="""ALTER TABLE "uptime_uptimesubscription" DROP COLUMN "body";""",
                     hints={"tables": ["uptime_uptimesubscription"]},
                 ),
-                migrations.RunSQL(
+                SafeRunSQL(
                     """ALTER TABLE "uptime_uptimesubscription" ADD COLUMN "headers" text DEFAULT '{}' NOT NULL;""",
                     reverse_sql="""ALTER TABLE "uptime_uptimesubscription" DROP COLUMN "headers";""",
                     hints={"tables": ["uptime_uptimesubscription"]},
                 ),
-                migrations.RunSQL(
+                SafeRunSQL(
                     """ALTER TABLE "uptime_uptimesubscription" ADD COLUMN "method" varchar(20) DEFAULT 'GET' NOT NULL;""",
                     reverse_sql="""ALTER TABLE "uptime_uptimesubscription" DROP COLUMN "method";""",
                     hints={"tables": ["uptime_uptimesubscription"]},

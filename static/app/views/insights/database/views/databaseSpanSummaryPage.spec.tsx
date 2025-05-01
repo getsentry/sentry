@@ -6,10 +6,14 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useParams} from 'sentry/utils/useParams';
 import {DatabaseSpanSummaryPage} from 'sentry/views/insights/database/views/databaseSpanSummaryPage';
 
 jest.mock('sentry/utils/useLocation');
+jest.mock('sentry/utils/useParams');
 jest.mock('sentry/utils/usePageFilters');
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 
 jest.mock('sentry/utils/useReleaseStats');
@@ -19,22 +23,25 @@ describe('DatabaseSpanSummaryPage', function () {
     features: ['insights-related-issues-table', 'insights-initial-modules'],
   });
   const group = GroupFixture();
+  const groupId = '1756baf8fd19c116';
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: null,
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects: [],
       },
-      environments: [],
-      projects: [],
-    },
+    })
+  );
+
+  jest.mocked(useParams).mockReturnValue({
+    groupId,
   });
 
   jest.mocked(useLocation).mockReturnValue({
@@ -167,13 +174,8 @@ describe('DatabaseSpanSummaryPage', function () {
     });
 
     render(
-      <DatabaseSpanSummaryPage
-        {...RouteComponentPropsFixture()}
-        params={{
-          groupId: '1756baf8fd19c116',
-        }}
-      />,
-      {organization}
+      <DatabaseSpanSummaryPage {...RouteComponentPropsFixture({params: {groupId}})} />,
+      {organization, deprecatedRouterMocks: true}
     );
 
     // Metrics ribbon

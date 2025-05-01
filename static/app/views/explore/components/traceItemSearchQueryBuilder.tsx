@@ -12,13 +12,13 @@ import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
-export type TraceItemSearchQueryBuilderProps = {
-  itemType: TraceItemDataset.LOGS; // This should include TraceItemDataset.SPANS etc.
+type TraceItemSearchQueryBuilderProps = {
+  itemType: TraceItemDataset;
   numberAttributes: TagCollection;
   stringAttributes: TagCollection;
 } & Omit<EAPSpanSearchQueryBuilderProps, 'numberTags' | 'stringTags'>;
 
-export const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
+const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
   if (!supportedAggregates?.length) {
     return {};
   }
@@ -55,8 +55,10 @@ export function useSearchQueryBuilderProps({
   searchSource,
   getFilterTokenWarning,
   onBlur,
+  onChange,
   onSearch,
   portalTarget,
+  projects,
   supportedAggregates = [],
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
@@ -69,6 +71,7 @@ export function useSearchQueryBuilderProps({
     attributeKey: '',
     enabled: true,
     type: 'string',
+    projectIds: projects,
   });
 
   return {
@@ -77,6 +80,7 @@ export function useSearchQueryBuilderProps({
     initialQuery,
     fieldDefinitionGetter: getTraceItemFieldDefinitionFunction(itemType, filterTags),
     onSearch,
+    onChange,
     onBlur,
     getFilterTokenWarning,
     searchSource,
@@ -102,9 +106,10 @@ export function TraceItemSearchQueryBuilder({
   datetime: _datetime,
   getFilterTokenWarning,
   onBlur,
+  onChange,
   onSearch,
   portalTarget,
-  projects: _projects,
+  projects,
   supportedAggregates = [],
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useSearchQueryBuilderProps({
@@ -115,8 +120,10 @@ export function TraceItemSearchQueryBuilder({
     searchSource,
     getFilterTokenWarning,
     onBlur,
+    onChange,
     onSearch,
     portalTarget,
+    projects,
     supportedAggregates,
   });
 
@@ -127,10 +134,12 @@ function useFunctionTags(
   itemType: TraceItemDataset,
   supportedAggregates?: AggregationKey[]
 ) {
-  if (itemType === TraceItemDataset.SPANS) {
-    return getFunctionTags(supportedAggregates);
-  }
-  return {};
+  return useMemo(() => {
+    if (itemType === TraceItemDataset.SPANS) {
+      return getFunctionTags(supportedAggregates);
+    }
+    return {};
+  }, [itemType, supportedAggregates]);
 }
 
 function useFilterTags(
@@ -169,7 +178,7 @@ function useFilterKeySections(
         label: 'Custom Tags',
         children: Object.keys(stringAttributes).filter(key => !predefined.has(key)),
       },
-    ];
+    ].filter(section => section.children.length);
   }, [stringAttributes, itemType]);
 }
 

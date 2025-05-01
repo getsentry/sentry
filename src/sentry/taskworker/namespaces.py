@@ -1,56 +1,131 @@
 from sentry.taskworker.registry import taskregistry
 
 # Namespaces for taskworker tasks
-alerts_tasks = taskregistry.create_namespace("alerts")
+alerts_tasks = taskregistry.create_namespace("alerts", app_feature="shared")
 
-auth_tasks = taskregistry.create_namespace("auth")
+attachments_tasks = taskregistry.create_namespace(
+    "attachments",
+    app_feature="attachments",
+)
 
-auth_control_tasks = taskregistry.create_namespace("auth.control")
+auth_tasks = taskregistry.create_namespace("auth", app_feature="shared")
 
-crons_tasks = taskregistry.create_namespace("crons")
+auth_control_tasks = taskregistry.create_namespace(
+    "auth.control",
+    app_feature="shared",
+)
+
+buffer_tasks = taskregistry.create_namespace("buffer", app_feature="errors")
+
+crons_tasks = taskregistry.create_namespace("crons", app_feature="crons")
 
 deletion_tasks = taskregistry.create_namespace(
     "deletions",
     processing_deadline_duration=60 * 4,
+    app_feature="shared",
 )
 
 deletion_control_tasks = taskregistry.create_namespace(
     "deletions.control",
     # Deletions can take several minutes, so we have a long processing deadline.
     processing_deadline_duration=60 * 4,
+    app_feature="shared",
 )
 
-demomode_tasks = taskregistry.create_namespace("demomode")
+demomode_tasks = taskregistry.create_namespace("demomode", app_feature="shared")
 
-digests_tasks = taskregistry.create_namespace("digests")
+digests_tasks = taskregistry.create_namespace("digests", app_feature="shared")
 
-hybridcloud_tasks = taskregistry.create_namespace("hybridcloud")
+export_tasks = taskregistry.create_namespace(
+    name="export",
+    processing_deadline_duration=15,
+    app_feature="shared",
+)
 
-hybridcloud_control_tasks = taskregistry.create_namespace("hybridcloud.control")
+hybridcloud_tasks = taskregistry.create_namespace(
+    "hybridcloud",
+    app_feature="hybrid_cloud",
+)
 
-notifications_tasks = taskregistry.create_namespace("notifications")
+hybridcloud_control_tasks = taskregistry.create_namespace(
+    "hybridcloud.control",
+    app_feature="hybrid_cloud",
+)
 
-notifications_control_tasks = taskregistry.create_namespace("notifications.control")
+ingest_profiling_tasks = taskregistry.create_namespace(
+    "ingest.profiling",
+    app_feature="profiles",
+)
 
-integrations_tasks = taskregistry.create_namespace("integrations")
+ingest_transactions_tasks = taskregistry.create_namespace(
+    "ingest.transactions",
+    app_feature="transactions",
+)
 
-integrations_control_tasks = taskregistry.create_namespace("integrations.control")
+ingest_errors_tasks = taskregistry.create_namespace("ingest.errors", app_feature="errors")
 
-options_tasks = taskregistry.create_namespace("options")
+issues_tasks = taskregistry.create_namespace("issues", app_feature="issueplatform")
 
-options_control_tasks = taskregistry.create_namespace("options.control")
+integrations_tasks = taskregistry.create_namespace("integrations", app_feature="integrations")
 
-replays_tasks = taskregistry.create_namespace("replays")
+integrations_control_tasks = taskregistry.create_namespace(
+    "integrations.control",
+    app_feature="integrations",
+)
 
-sdk_tasks = taskregistry.create_namespace("sdk")
+notifications_tasks = taskregistry.create_namespace("notifications", app_feature="shared")
 
-sdk_control_tasks = taskregistry.create_namespace("sdk.control")
+notifications_control_tasks = taskregistry.create_namespace(
+    "notifications.control",
+    app_feature="shared",
+)
 
-selfhosted_tasks = taskregistry.create_namespace("selfhosted")
+options_tasks = taskregistry.create_namespace("options", app_feature="shared")
 
-tempest_tasks = taskregistry.create_namespace("tempest")
+options_control_tasks = taskregistry.create_namespace(
+    "options.control",
+    app_feature="shared",
+)
 
-uptime_tasks = taskregistry.create_namespace("uptime")
+performance_tasks = taskregistry.create_namespace("performance", app_feature="transactions")
+
+profiling_tasks = taskregistry.create_namespace("profiling", app_feature="profiles")
+
+relay_tasks = taskregistry.create_namespace("relay", app_feature="shared")
+
+relocation_tasks = taskregistry.create_namespace("relocation", app_feature="infra")
+
+relocation_control_tasks = taskregistry.create_namespace("relocation.control", app_feature="infra")
+
+release_health_tasks = taskregistry.create_namespace("releasehealth", app_feature="sessions")
+
+replays_tasks = taskregistry.create_namespace("replays", app_feature="replays")
+
+reports_tasks = taskregistry.create_namespace("reports", app_feature="shared")
+
+sdk_tasks = taskregistry.create_namespace("sdk", app_feature="shared")
+
+sdk_control_tasks = taskregistry.create_namespace("sdk.control", app_feature="shared")
+
+seer_tasks = taskregistry.create_namespace("seer", app_feature="errors")
+
+selfhosted_tasks = taskregistry.create_namespace("selfhosted", app_feature="shared")
+
+sentryapp_tasks = taskregistry.create_namespace("sentryapp", app_feature="integrations")
+
+sentryapp_control_tasks = taskregistry.create_namespace(
+    "sentryapp.control", app_feature="integrations"
+)
+
+symbolication_tasks = taskregistry.create_namespace("symbolication", app_feature="errors")
+
+telemetry_experience_tasks = taskregistry.create_namespace(
+    "telemetry-experience", app_feature="transactions"
+)
+
+tempest_tasks = taskregistry.create_namespace("tempest", app_feature="errors")
+
+uptime_tasks = taskregistry.create_namespace("uptime", app_feature="crons")
 
 
 # Namespaces for testing taskworker tasks

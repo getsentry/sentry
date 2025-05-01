@@ -1,8 +1,7 @@
 import moment from 'moment-timezone';
 
 import type {PromptData} from 'sentry/actionCreators/prompts';
-import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import {DataCategory, type DataCategoryInfo} from 'sentry/types/core';
+import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
@@ -135,7 +134,7 @@ type FormatOptions = {
  */
 export function formatReservedWithUnits(
   reservedQuantity: ReservedSku,
-  dataCategory: string,
+  dataCategory: DataCategory,
   options: FormatOptions = {
     isAbbreviated: false,
     useUnitScaling: false,
@@ -170,7 +169,7 @@ export function formatReservedWithUnits(
  */
 export function formatUsageWithUnits(
   usageQuantity = 0,
-  dataCategory: string,
+  dataCategory: DataCategory,
   options: FormatOptions = {isAbbreviated: false, useUnitScaling: false}
 ) {
   if (dataCategory === DataCategory.ATTACHMENTS) {
@@ -642,15 +641,4 @@ export function partnerPlanEndingModalIsDismissed(
     default:
       return true;
   }
-}
-
-export function getCategoryInfoFromPlural(
-  category: DataCategory
-): DataCategoryInfo | null {
-  const categories = Object.values(DATA_CATEGORY_INFO);
-  const info = categories.find(c => c.plural === category);
-  if (!info) {
-    return null;
-  }
-  return info;
 }

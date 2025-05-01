@@ -5,7 +5,7 @@ from uuid import uuid4
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.incidents.grouptype import MetricAlertFire
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
@@ -25,7 +25,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import data_source_type_registry
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.types import ActionHandler, DetectorPriorityLevel
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 try:
@@ -41,6 +41,34 @@ class MockModel(Model):
 
     class Meta:
         app_label = "fixtures"
+
+
+class MockActionHandler(ActionHandler):
+    config_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "description": "The configuration schema for a Action Configuration",
+        "type": "object",
+        "properties": {
+            "foo": {
+                "type": ["string"],
+            },
+        },
+        "required": ["foo"],
+        "additionalProperties": False,
+    }
+
+    data_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "description": "The configuration schema for a Action Data",
+        "type": "object",
+        "properties": {
+            "baz": {
+                "type": ["string"],
+            },
+        },
+        "required": ["baz"],
+        "additionalProperties": False,
+    }
 
 
 class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
@@ -91,7 +119,8 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         self,
         name_prefix: str = "test",
         workflow_triggers: DataConditionGroup | None = None,
-        detector_type: str = MetricAlertFire.slug,
+        detector_type: str = MetricIssue.slug,
+        project: Project | None = None,
         **kwargs,
     ) -> tuple[Workflow, Detector, DetectorWorkflow, DataConditionGroup]:
         """
@@ -118,7 +147,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         detector = self.create_detector(
             name=f"{name_prefix}_detector",
             type=detector_type,
-            project=self.project,
+            project=project if project else self.project,
         )
 
         detector_workflow = self.create_detector_workflow(

@@ -30,7 +30,6 @@ import typescriptSortKeys from 'eslint-plugin-typescript-sort-keys';
 import unicorn from 'eslint-plugin-unicorn';
 import globals from 'globals';
 import invariant from 'invariant';
-// biome-ignore lint/correctness/noNodejsModules: Need to get the list of things!
 import {builtinModules} from 'node:module';
 import typescript from 'typescript-eslint';
 
@@ -45,6 +44,9 @@ export const typeAwareLintRules = {
     '@typescript-eslint/await-thenable': 'error',
     '@typescript-eslint/no-array-delete': 'error',
     '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+    '@typescript-eslint/prefer-optional-chain': 'error',
+    '@typescript-eslint/consistent-type-exports': 'error',
+    '@typescript-eslint/consistent-type-imports': 'error',
   },
 };
 
@@ -313,6 +315,13 @@ export default typescript.config([
             "CallExpression[callee.object.name='jest'][callee.property.name='mock'][arguments.0.value='sentry/utils/useOrganization']",
           message:
             'Please do not mock useOrganization. Pass organization to the render options. `render(<Component />, {organization: OrganizationFixture({isSuperuser: true})})`',
+        },
+        {
+          // Forces us to use type annotations for let variables that are initialized with a type,
+          // except for those declared in for...of or for...in loops.
+          selector:
+            'VariableDeclaration[kind = "let"]:not(ForOfStatement > VariableDeclaration, ForInStatement > VariableDeclaration) > VariableDeclarator[init = null]:not([id.typeAnnotation])',
+          message: 'Provide a type annotation',
         },
       ],
       'no-return-assign': 'error',

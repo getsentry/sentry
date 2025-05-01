@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {space} from 'sentry/styles/space';
 
 interface SegmentedLoadingBarProps {
@@ -13,17 +14,31 @@ interface SegmentedLoadingBarProps {
    * The number of segments to display.
    */
   segments: number;
+
+  /**
+   * A callback to get a tooltip text for a given phase.
+   *
+   * The callback takes a phase index that corresponds to the index of the
+   * segment being rendered.
+   */
+  getTooltipText?: (phase: number) => React.ReactNode | undefined;
 }
 
-export function SegmentedLoadingBar({segments = 3, phase = 0}: SegmentedLoadingBarProps) {
+export function SegmentedLoadingBar({
+  segments = 3,
+  phase = 0,
+  getTooltipText,
+}: SegmentedLoadingBarProps) {
   return (
     <LoadingBarContainer>
       {Array.from({length: segments}).map((_, index) => (
-        <LoadingBarSegment
-          key={index}
-          isActive={index === phase}
-          isCompleted={index < phase}
-        />
+        <Tooltip key={index} title={getTooltipText?.(index)} skipWrapper>
+          <LoadingBarSegment
+            key={index}
+            isActive={index === phase}
+            isCompleted={index < phase}
+          />
+        </Tooltip>
       ))}
     </LoadingBarContainer>
   );

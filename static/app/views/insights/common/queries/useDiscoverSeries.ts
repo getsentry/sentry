@@ -27,11 +27,6 @@ import type {
 
 import {convertDiscoverTimeseriesResponse} from './convertDiscoverTimeseriesResponse';
 
-export interface MetricTimeseriesRow {
-  [key: string]: number;
-  interval: number;
-}
-
 export type DiscoverSeries = Series & {
   meta: EventsMetaType;
 };
@@ -78,13 +73,15 @@ export const useEAPSeries = <
 
 export const useMetricsSeries = <Fields extends MetricsProperty[]>(
   options: UseMetricsSeriesOptions<Fields> = {},
-  referrer: string
+  referrer: string,
+  pageFilters?: PageFilters
 ) => {
   const useEap = useInsightsEap();
   return useDiscoverSeries<Fields>(
     options,
     useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.METRICS,
-    referrer
+    referrer,
+    pageFilters
   );
 };
 
