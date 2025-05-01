@@ -60,7 +60,10 @@ export function TracesTable({tracesTableResult}: TracesTableProps) {
   const showErrorState = !isPending && isError;
   const showEmptyState = !isPending && !showErrorState && (data?.data?.length ?? 0) === 0;
 
-  const paginationAnalyticsEvent = usePaginationAnalytics(data?.data?.length ?? 0);
+  const paginationAnalyticsEvent = usePaginationAnalytics(
+    'traces',
+    data?.data?.length ?? 0
+  );
 
   return (
     <Fragment>
