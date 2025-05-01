@@ -62,6 +62,11 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const userScrolledRef = useRef(false);
   const lastScrollTopRef = useRef(0);
+  const autofixDataRef = useRef(autofixData);
+
+  useEffect(() => {
+    autofixDataRef.current = autofixData;
+  }, [autofixData]);
 
   const handleScroll = () => {
     const container = scrollContainerRef.current;
@@ -90,15 +95,16 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
 
   const scrollToSection = useCallback(
     (sectionType: string | null) => {
-      if (!scrollContainerRef.current || !autofixData) {
+      if (!scrollContainerRef.current || !autofixDataRef.current) {
         return;
       }
 
       const findStepByType = (type: string) => {
-        if (!autofixData?.steps?.length) {
+        const currentData = autofixDataRef.current;
+        if (!currentData?.steps?.length) {
           return null;
         }
-        const step = autofixData.steps.find(s => {
+        const step = currentData.steps.find(s => {
           if (type === 'root_cause')
             return s.type === AutofixStepType.ROOT_CAUSE_ANALYSIS;
           if (type === 'solution') return s.type === AutofixStepType.SOLUTION;
@@ -118,7 +124,6 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
             userScrolledRef.current = true;
 
             // Clear the scrollTo parameter from the URL after scrolling
-            // This allows automatic scrolling to continue working for future updates
             setTimeout(() => {
               navigate(
                 {
@@ -135,7 +140,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
         }
       }
     },
-    [autofixData, location, navigate]
+    [location, navigate]
   );
 
   useEffect(() => {
