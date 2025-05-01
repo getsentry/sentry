@@ -30,7 +30,7 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 def delete_group_list(
     request: Request,
     project: Project,
-    group_list: Sequence[Group],
+    group_list: list[Group],
     delete_type: Literal["delete", "discard"],
 ) -> None:
     """Deletes a list of groups which belong to a single project.
