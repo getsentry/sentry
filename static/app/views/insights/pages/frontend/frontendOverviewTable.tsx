@@ -26,38 +26,35 @@ type Row = Pick<
   EAPSpanResponse,
   | 'is_starred_transaction'
   | 'transaction'
-  | 'span.op'
   | 'project'
   | 'epm()'
   | 'p50(span.duration)'
   | 'p95(span.duration)'
   | 'failure_rate()'
   | 'time_spent_percentage(span.duration)'
+  | 'count_unique(user)'
   | 'sum(span.duration)'
+  | 'performance_score(measurements.score.total)'
 >;
 
 type Column = GridColumnHeader<
   | 'is_starred_transaction'
   | 'transaction'
-  | 'span.op'
   | 'project'
   | 'epm()'
   | 'p50(span.duration)'
   | 'p95(span.duration)'
   | 'failure_rate()'
   | 'time_spent_percentage(span.duration)'
+  | 'count_unique(user)'
   | 'sum(span.duration)'
+  | 'performance_score(measurements.score.total)'
 >;
 
 const COLUMN_ORDER: Column[] = [
   {
     key: 'transaction',
     name: t('Transaction'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'span.op',
-    name: t('Operation'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
@@ -86,8 +83,18 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
+    key: 'count_unique(user)',
+    name: t('Users'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
     key: 'time_spent_percentage(span.duration)',
     name: DataTitles.timeSpent,
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'performance_score(measurements.score.total)',
+    name: t('Perf Score'),
     width: COL_WIDTH_UNDEFINED,
   },
 ];
@@ -95,13 +102,14 @@ const COLUMN_ORDER: Column[] = [
 const SORTABLE_FIELDS = [
   'is_starred_transaction',
   'transaction',
-  'span.op',
   'project',
   'epm()',
   'p50(span.duration)',
   'p95(span.duration)',
   'failure_rate()',
+  'count_unique(user)',
   'time_spent_percentage(span.duration)',
+  'performance_score(measurements.score.total)',
 ] as const;
 
 export type ValidSort = Sort & {
@@ -203,13 +211,7 @@ function renderBodyCell(
   }
 
   if (column.key === 'transaction') {
-    return (
-      <TransactionCell
-        project={row.project}
-        transaction={row.transaction}
-        transactionMethod={row['span.op']}
-      />
-    );
+    return <TransactionCell project={row.project} transaction={row.transaction} />;
   }
 
   const renderer = getFieldRenderer(column.key, meta.fields, false);

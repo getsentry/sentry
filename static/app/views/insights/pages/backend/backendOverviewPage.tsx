@@ -213,6 +213,7 @@ function EAPBackendOverviewPage() {
         'p50(span.duration)',
         'p95(span.duration)',
         'failure_rate()',
+        'count_unique(user)',
         'time_spent_percentage(span.duration)',
         'sum(span.duration)',
       ],
