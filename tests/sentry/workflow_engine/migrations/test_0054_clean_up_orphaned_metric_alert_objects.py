@@ -1,10 +1,13 @@
 from sentry.testutils.cases import TestMigrations
 from sentry.workflow_engine.migration_helpers.alert_rule import dual_write_alert_rule
 from sentry.workflow_engine.models import (
+    Action,
     ActionAlertRuleTriggerAction,
     AlertRuleDetector,
     AlertRuleWorkflow,
+    DataCondition,
     DataConditionGroup,
+    DataConditionGroupAction,
 )
 
 
@@ -32,14 +35,20 @@ class TestCleanUpOrphanedMetricAlertObjects(TestMigrations):
             ).count()
             == 1
         )
+        assert Action.objects.count() == 1
+        assert DataConditionGroupAction.objects.count() == 1
         # For each dual write attempt: one condition group on the detector, one action filter connected to the workflow
         assert DataConditionGroup.objects.count() == 2
+        assert DataCondition.objects.count() == 3  # 2 detector triggers and one action filter DC
 
     def test(self):
         assert DataConditionGroup.objects.count() == 0
+        assert DataCondition.objects.count() == 0
         assert (
             ActionAlertRuleTriggerAction.objects.filter(
                 alert_rule_trigger_action_id=self.action.id
             ).count()
             == 0
         )
+        assert Action.objects.count() == 0
+        assert DataConditionGroupAction.objects.count() == 0
