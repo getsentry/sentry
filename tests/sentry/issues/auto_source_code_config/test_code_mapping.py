@@ -499,6 +499,7 @@ class TestConvertStacktraceFramePathToSourcePath(TestCase):
                 frame=EventFrame(
                     filename="File.java",
                     module="sentry.module.File",
+                    abs_path="File.java",
                 ),
                 code_mapping=self.code_mapping_file,
                 platform="java",
