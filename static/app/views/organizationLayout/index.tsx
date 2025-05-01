@@ -44,7 +44,6 @@ function DevToolInit() {
 
 function OrganizationLayout({children}: Props) {
   useRouteAnalyticsHookSetup();
-  useReleasesDrawer();
 
   // XXX(epurkhiser): The OrganizationContainer is responsible for ensuring the
   // oganization is loaded before rendering children. Organization may not be
@@ -77,6 +76,7 @@ function AppLayout({children, organization}: LayoutProps) {
   usePerformanceOnboardingDrawer();
   useProfilingOnboardingDrawer();
   useFeatureFlagOnboardingDrawer();
+  useReleasesDrawer();
 
   return (
     <NavContextProvider>
@@ -97,6 +97,8 @@ function AppLayout({children, organization}: LayoutProps) {
 }
 
 function LegacyAppLayout({children, organization}: LayoutProps) {
+  useReleasesDrawer();
+
   return (
     <div className="app">
       <DemoHeader />
