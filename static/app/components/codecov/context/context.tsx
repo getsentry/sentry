@@ -6,15 +6,21 @@ import type {
   CodecovContextSetterTypes,
   CodecovContextTypes,
 } from 'sentry/components/codecov/container/container';
+import type {CodecovObjectInLocalStorage} from 'sentry/components/codecov/container/persistence';
 import {
-  getCodecovDataFromLocalStorage,
-  setCodecovDataToLocalStorage,
+  getDataFromLocalStorage,
+  makeCodecovLocalStorageKey,
+  setDataToLocalStorage,
 } from 'sentry/components/codecov/container/persistence';
-import {getCodecovParamsFromQuery} from 'sentry/components/codecov/container/url';
+import {getParamsFromQuery} from 'sentry/components/codecov/container/url';
 
 // Constants
 export const DEFAULT_CODECOV_CONTEXT_VALUES = {
   repository: null,
+};
+
+export const CODECOV_URL_PARAM = {
+  REPOSITORY: 'repository',
 };
 
 // Types
@@ -54,8 +60,7 @@ export function initializeCodecovContext({
   orgSlug,
   setState,
 }: InitializeCodecovContextParams) {
-  // 1)
-  const dataFromQuery = getCodecovParamsFromQuery(queryParams);
+  const dataFromQuery = getParamsFromQuery(queryParams, CODECOV_URL_PARAM);
   const hasAnyNonNull = Object.values(dataFromQuery).some(value => value !== null);
 
   if (hasAnyNonNull) {
@@ -63,14 +68,14 @@ export function initializeCodecovContext({
     return;
   }
 
-  // 2)
-  const dataFromLocalStorage = getCodecovDataFromLocalStorage(orgSlug);
+  const codecovLocalStorageKey = makeCodecovLocalStorageKey(orgSlug);
+  const dataFromLocalStorage =
+    getDataFromLocalStorage<CodecovObjectInLocalStorage>(codecovLocalStorageKey);
   if (dataFromLocalStorage) {
     setState(prev => ({...prev, ...dataFromLocalStorage}));
     return;
   }
 
-  // 3)
   setState(prev => ({...prev, ...DEFAULT_CODECOV_CONTEXT_VALUES}));
   return;
 }
@@ -83,7 +88,9 @@ export const setRepositoryToContext = ({
 }: SetRepositoryContextParams) => {
   return setState(prev => {
     const newState = {...prev, repository};
-    setCodecovDataToLocalStorage(orgSlug, newState);
+
+    const codecovLocalStorageKey = makeCodecovLocalStorageKey(orgSlug);
+    setDataToLocalStorage<CodecovObjectInLocalStorage>(codecovLocalStorageKey, newState);
     // TODO: add method to store params in URL
 
     return newState;

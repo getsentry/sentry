@@ -1,12 +1,10 @@
 import {captureException} from '@sentry/react';
 
-import type {CodecovContextTypes} from 'sentry/components/codecov/container/container';
-
 // Constants
 const CODECOV_PRODUCT = 'codecov';
 
 // Types
-type CodecovObjectInLocalStorage = {
+export type CodecovObjectInLocalStorage = {
   repository: string | null;
 };
 
@@ -14,31 +12,25 @@ type CodecovObjectInLocalStorage = {
 /**
  * Creates Codecov product local storage key signature
  */
-function makeCodecovLocalStorageKey(orgSlug: string) {
+export function makeCodecovLocalStorageKey(orgSlug: string) {
   return `${CODECOV_PRODUCT}-selection:${orgSlug}`;
 }
 
 /**
- * Retrieves Codecov data from local storage. It:
- * 1) Gets data from local storage with the Codecov key.
+ * Retrieves data from local storage, returning a generically typed response. It:
+ * 1) Gets data from local storage with the provided key.
  * 2) Attempts to parse the data.
- * 3) Validates and returns the data.
+ * 3) Returns the data.
  */
-export function getCodecovDataFromLocalStorage(
-  orgSlug: string
-): CodecovObjectInLocalStorage | null {
-  // 1)
-  const localStorageKey = makeCodecovLocalStorageKey(orgSlug);
-
+export function getDataFromLocalStorage<T>(localStorageKey: string): T | null {
   const value = localStorage.getItem(localStorageKey);
 
   if (!value) {
     return null;
   }
 
-  let decoded: CodecovObjectInLocalStorage;
+  let decoded: T;
 
-  // 2)
   try {
     decoded = JSON.parse(value);
   } catch (err) {
@@ -46,38 +38,46 @@ export function getCodecovDataFromLocalStorage(
     return null;
   }
 
-  // 3)
-  const {repository} = decoded;
-
-  return {repository};
+  return {...decoded};
 }
 
 /**
- * Sets Codecov data local local storage. It:
+ * Sets generic data to local storage. It:
  * 1) Gets data currently in local storage.
  * 2) Populates each field to be stored.
  * 3) Attempts to store the data in local storage.
+ * This function assumes the default value is null, but it can be extended to determine
+ * default values based on the stored type.
  */
-export function setCodecovDataToLocalStorage(
-  orgSlug: string,
-  newState: CodecovContextTypes
+export function setDataToLocalStorage<T extends Record<string, string | null>>(
+  localStorageKey: string,
+  newState: T
+): void {
+  const dataFromStorage = getDataFromLocalStorage<T>(localStorageKey);
+  if (dataFromStorage === null) {
+    _attempt_to_store<T>(localStorageKey, newState);
+    return;
+  }
+  const dataToStore = {} as T;
+
+  for (const key in newState) {
+    const keyTyped = key as keyof T;
+
+    dataToStore[keyTyped] = newState[keyTyped]
+      ? newState[keyTyped]
+      : (dataFromStorage[keyTyped] ?? (null as T[keyof T]));
+  }
+
+  _attempt_to_store<T>(localStorageKey, dataToStore);
+}
+
+function _attempt_to_store<T extends Record<string, string | null>>(
+  key: string,
+  data: T
 ) {
-  // 1)
-  const codecovDataFromStorage = getCodecovDataFromLocalStorage(orgSlug);
-
-  // 2)
-  const repository = newState.repository
-    ? newState.repository
-    : codecovDataFromStorage?.repository || null;
-
-  const dataToSave: CodecovObjectInLocalStorage = {
-    repository,
-  };
-
-  // 3)
   try {
-    localStorage.setItem(makeCodecovLocalStorageKey(orgSlug), JSON.stringify(dataToSave));
-  } catch (ex) {
-    // Do nothing
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (err) {
+    // do nothing
   }
 }

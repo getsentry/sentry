@@ -1,32 +1,36 @@
 import type {Location} from 'history';
 
-import type {CodecovContextTypes} from 'sentry/components/codecov/container/container';
-import {defined} from 'sentry/utils';
-
-// Types
-type SingleParamValue = string | undefined | null;
-type ParamValue = string[] | SingleParamValue;
-
 // Constants
 export const CODECOV_URL_PARAM = {
   REPOSITORY: 'repository',
 };
 
 // Functions
-function getRepository(maybe: ParamValue) {
-  if (!defined(maybe) || Array.isArray(maybe)) {
-    return null;
-  }
-
-  return maybe;
+/**
+ * This function sanitizes a url param based on its type. Currently supports strings
+ * but can be expanded to support other types if needed.
+ */
+function _sanitizeKey(value: any): string | null {
+  return typeof value === 'string' ? decodeURIComponent(value).trim() : null;
 }
 
-export function getCodecovParamsFromQuery(query: Location['query']) {
-  const repository = getRepository(query[CODECOV_URL_PARAM.REPOSITORY]);
+/**
+ * Gets params from query based on a provided desiredParams. It will
+ * loop through desiredParams, try to find the key from query, sanitize the
+ * value and ultimately return the found values or nulls.
+ */
+export function getParamsFromQuery<T extends Record<string, string>>(
+  query: Location['query'],
+  desiredParams: T
+): {[K in keyof T]: string | null} {
+  const result = {} as {[K in keyof T]: string | null};
 
-  const state: CodecovContextTypes = {
-    repository,
-  };
+  for (const key in desiredParams) {
+    const queryKey = desiredParams[key];
+    const rawValue = query[queryKey as string];
 
-  return state;
+    result[queryKey as keyof T] = _sanitizeKey(rawValue);
+  }
+
+  return result;
 }
