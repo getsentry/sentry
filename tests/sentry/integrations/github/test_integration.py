@@ -44,6 +44,7 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -309,7 +310,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
     def assert_setup_flow(self):
-        self._setup_without_existing_installations()
 
         resp = self.client.get(self.init_path)
         assert resp.status_code == 302
@@ -338,11 +338,74 @@ class GitHubIntegrationTest(IntegrationTestCase):
             "{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
         )
         # Call to the Github installations/installation_id endpoint
-        auth_header = responses.calls[4].request.headers["Authorization"]
+        auth_header = responses.calls[2].request.headers["Authorization"]
         assert auth_header == "Bearer jwt_token_1"
 
         self.assertDialogSuccess(resp)
         return resp
+
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_github_installed_on_another_org(self, mock_record):
+        self._stub_github()
+        # First installation should be successful
+        self.assert_setup_flow()
+
+        # Second installation attempt for same Github account should fail
+        self.organization_2 = self.create_organization(name="petal", owner=self.user)
+        # Use the same Github installation_id
+        self.init_path_2 = "{}?{}".format(
+            reverse(
+                "sentry-organization-integrations-setup",
+                kwargs={
+                    "organization_slug": self.organization_2.slug,
+                    "provider_id": self.provider.key,
+                },
+            ),
+            urlencode({"installation_id": self.installation_id}),
+        )
+        self.setup_path_2 = "{}?{}".format(
+            self.setup_path,
+            urlencode({"code": "12345678901234567890", "state": self.pipeline.signature}),
+        )
+        mock_record.reset_mock()
+        with self.feature({"system:multi-region": True}):
+            resp = self.client.get(self.init_path_2)
+            resp = self.client.get(self.setup_path_2)
+            self.assertTemplateUsed(resp, "sentry/integrations/github-integration-failed.html")
+            assert (
+                b'{"success":false,"data":{"error":"Github installed on another Sentry organization."}}'
+                in resp.content
+            )
+            assert (
+                b"It seems that your GitHub account has been installed on another Sentry organization. Please uninstall and try again."
+                in resp.content
+            )
+            assert b'window.opener.postMessage({"success":false' in resp.content
+            assert (
+                f', "{generate_organization_url(self.organization_2.slug)}");'.encode()
+                in resp.content
+            )
+            assert_failure_metric(mock_record, GitHubInstallationError.INSTALLATION_EXISTS)
+
+        # Delete the Integration
+        integration = Integration.objects.get(external_id=self.installation_id)
+        for oi in OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id, integration=integration
+        ):
+            oi.delete()
+        integration.delete()
+
+        # Try again and should be successful
+        resp = self.client.get(self.init_path_2)
+        resp = self.client.get(self.setup_path_2)
+
+        self.assertDialogSuccess(resp)
+        integration = Integration.objects.get(external_id=self.installation_id)
+        assert integration.provider == "github"
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization_2.id, integration=integration
+        ).exists()
 
     @responses.activate
     def test_plugin_migration(self):
@@ -1200,6 +1263,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         integration = Integration.objects.get(id=integration_id)
         assert integration.metadata["account_id"] == 60591805
 
+    @with_feature("organizations:github-multi-org")
     @responses.activate
     @patch.object(PipelineView, "render_react_view", return_value=HttpResponse())
     def test_github_installation_calls_ui(self, mock_render):
@@ -1244,6 +1308,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             props={"installation_info": installations},
         )
 
+    @with_feature("organizations:github-multi-org")
     @responses.activate
     def test_github_installation_stores_chosen_installation(self):
         self._setup_with_existing_installations()
@@ -1317,6 +1382,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             organization_id=self.organization.id, integration=integration
         ).exists()
 
+    @with_feature("organizations:github-multi-org")
     @responses.activate
     def test_github_installation_skips_chosen_installation(self):
         self._setup_with_existing_installations()
@@ -1379,6 +1445,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             organization_id=self.organization.id, integration=integration
         ).exists()
 
+    @with_feature("organizations:github-multi-org")
     @responses.activate
     def test_github_installation_gets_owner_orgs(self):
         self._setup_with_existing_installations()
@@ -1387,6 +1454,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         assert owner_orgs == ["santry"]
 
+    @with_feature("organizations:github-multi-org")
     @responses.activate
     def test_github_installation_filters_valid_installations(self):
         self._setup_with_existing_installations()
