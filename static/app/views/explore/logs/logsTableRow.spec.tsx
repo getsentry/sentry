@@ -136,6 +136,21 @@ describe('logsTableRow', () => {
     expect(logTableRow).toBeInTheDocument();
     await userEvent.click(logTableRow);
 
+    // Check that there is nothing overflowing in the table row
+    function hasNoWrapRecursive(element: HTMLElement) {
+      const children = element.children;
+      for (const child of children) {
+        if (getComputedStyle(child).whiteSpace === 'nowrap') {
+          return true;
+        }
+        if (child instanceof HTMLElement && hasNoWrapRecursive(child)) {
+          return true;
+        }
+      }
+      return false;
+    }
+    expect(hasNoWrapRecursive(logTableRow)).toBe(false);
+
     // Check that the attribute values are rendered
     expect(screen.getByText(projects[0]!.id)).toBeInTheDocument();
     expect(screen.getByText('456')).toBeInTheDocument();
