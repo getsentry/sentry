@@ -2005,6 +2005,52 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert meta["units"] == {"description": None, "epm()": "1/minute"}
         assert meta["fields"] == {"description": "string", "epm()": "rate"}
 
+    def test_tpm(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "is_segment": True,
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["description", "tpm()"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        segment_span_count = 1
+        total_time = 90 * 24 * 60
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "description": "foo",
+                "tpm()": segment_span_count / total_time,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+        assert meta["units"] == {"description": None, "tpm()": "1/minute"}
+        assert meta["fields"] == {"description": "string", "tpm()": "rate"}
+
     def test_is_transaction(self):
         self.store_spans(
             [
