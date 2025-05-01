@@ -154,7 +154,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
       return () => clearTimeout(timeoutId);
     }
     return () => {};
-  }, [location.query.scrollTo, scrollToSection, autofixData]);
+  }, [location.query.scrollTo, scrollToSection]);
 
   return (
     <SeerDrawerContainer className="seer-drawer-container">
