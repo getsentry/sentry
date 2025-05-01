@@ -1,6 +1,7 @@
 from datetime import timedelta
-from random import choice
+from random import choice, seed
 from typing import cast
+from unittest.mock import patch
 
 import pytest
 from django.utils import timezone
@@ -64,6 +65,14 @@ class OrganizationOnDemandMetricsEstimationStatsEndpointTest(APITestCase, BaseMe
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
+        # Mock random.seed to use a fixed value
+        self.random_seed_patcher = patch("random.seed")
+        self.mock_random_seed = self.random_seed_patcher.start()
+        seed(12345)
+
+    def tearDown(self):
+        self.random_seed_patcher.stop()
+        super().tearDown()
 
     def test_simple(self):
         """
