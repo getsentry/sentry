@@ -8,6 +8,7 @@ from django.conf import settings
 from rest_framework import status
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -51,16 +52,21 @@ class TraceExplorerAISetup(ProjectEndpoint):
     """
 
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ML_AI
 
-    def get(self, request: Request, project: Project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         """
         Checks if we are able to run Autofix on the given group.
         """
         org: Organization = request.organization
 
+        if not features.has("organizations:gen-ai-explore-traces", organization=org):
+            return Response(
+                {"detail": "Organization does not have access to this feature"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         user_acknowledgement = get_seer_user_acknowledgement(user_id=request.user.id, org_id=org.id)
         org_acknowledgement = user_acknowledgement or get_seer_org_acknowledgement(org_id=org.id)
 
