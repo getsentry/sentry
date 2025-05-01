@@ -4,13 +4,7 @@ import {TagsFixture} from 'sentry-fixture/tags';
 import {TagValuesFixture} from 'sentry-fixture/tagvalues';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {GroupTagValues} from 'sentry/views/issueDetails/groupTags/groupTagValues';
@@ -117,9 +111,7 @@ describe('GroupTagValues', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'More'}));
     await userEvent.click(
-      within(
-        screen.getByRole('menuitemradio', {name: 'Search All Issues with Tag Value'})
-      ).getByRole('link')
+      screen.getByRole('menuitemradio', {name: 'Search All Issues with Tag Value'})
     );
 
     expect(router.push).toHaveBeenCalledWith({

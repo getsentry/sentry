@@ -526,11 +526,15 @@ describe('Discover > QueryList', function () {
       const contextMenu = await screen.findByTestId('menu-trigger');
       expect(contextMenu).toBeInTheDocument();
 
-      expect(screen.queryByTestId('add-to-dashboard')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Add to Dashboard'})
+      ).not.toBeInTheDocument();
 
       await userEvent.click(contextMenu);
 
-      const addToDashboardMenuItem = await screen.findByTestId('add-to-dashboard');
+      const addToDashboardMenuItem = await screen.findByRole('menuitemradio', {
+        name: 'Add to Dashboard',
+      });
 
       await userEvent.click(addToDashboardMenuItem);
 
@@ -595,11 +599,15 @@ describe('Discover > QueryList', function () {
       const contextMenu = await screen.findByTestId('menu-trigger');
       expect(contextMenu).toBeInTheDocument();
 
-      expect(screen.queryByTestId('add-to-dashboard')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Add to Dashboard'})
+      ).not.toBeInTheDocument();
 
       await userEvent.click(contextMenu);
 
-      const addToDashboardMenuItem = await screen.findByTestId('add-to-dashboard');
+      const addToDashboardMenuItem = await screen.findByRole('menuitemradio', {
+        name: 'Add to Dashboard',
+      });
 
       await userEvent.click(addToDashboardMenuItem);
 
@@ -666,11 +674,15 @@ describe('Discover > QueryList', function () {
     const contextMenu = await screen.findByTestId('menu-trigger');
     expect(contextMenu).toBeInTheDocument();
 
-    expect(screen.queryByTestId('add-to-dashboard')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Add to Dashboard'})
+    ).not.toBeInTheDocument();
 
     await userEvent.click(contextMenu);
 
-    const addToDashboardMenuItem = await screen.findByTestId('add-to-dashboard');
+    const addToDashboardMenuItem = await screen.findByRole('menuitemradio', {
+      name: 'Add to Dashboard',
+    });
 
     await userEvent.click(addToDashboardMenuItem);
 
