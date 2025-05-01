@@ -22,28 +22,30 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 
 from sentry.conf.types import kafka_definition
 from sentry.conf.types.uptime import UptimeRegionConfig
-from sentry.constants import DataCategory, ObjectStatus
+from sentry.constants import DataCategory
 from sentry.models.group import Group, GroupStatus
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.uptime.consumers.results_consumer import (
-    AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL,
-    ONBOARDING_MONITOR_PERIOD,
     UptimeResultsStrategyFactory,
     build_last_update_key,
-    build_onboarding_failure_key,
 )
 from sentry.uptime.detectors.ranking import _get_cluster
+from sentry.uptime.detectors.result_handler import (
+    AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL,
+    ONBOARDING_MONITOR_PERIOD,
+    build_onboarding_failure_key,
+)
 from sentry.uptime.detectors.tasks import is_failed_url
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
-    ProjectUptimeSubscriptionMode,
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
 )
+from sentry.uptime.types import ProjectUptimeSubscriptionMode
 from sentry.utils import json
 from tests.sentry.uptime.subscriptions.test_tasks import ConfigPusherTestMixin
 
@@ -156,6 +158,25 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.uptime_status == UptimeStatus.FAILED
         assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.FAILED
+
+    def test_does_nothing_when_missing_project_subscription(self):
+        self.project_subscription.delete()
+
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+        with (
+            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
+            mock.patch("sentry.remote_subscriptions.consumers.result_consumer.logger") as logger,
+            mock.patch(
+                "sentry.uptime.consumers.results_consumer.remove_uptime_subscription_if_unused"
+            ) as mock_remove_uptime_subscription_if_unused,
+        ):
+            # Does not produce an error
+            self.send_result(result)
+            assert not logger.exception.called
+            mock_remove_uptime_subscription_if_unused.assert_called_with(self.subscription)
 
     def test_restricted_host_provider_id(self):
         """
@@ -446,32 +467,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                 "default", UptimeSubscription(subscription_id=subscription_id), "delete", None
             )
 
-    def test_multiple_project_subscriptions_with_disabled(self):
-        """
-        Tests that we do not process results for disabled project subscriptions
-        """
-        # Second disabled project subscription
-        self.create_project_uptime_subscription(
-            uptime_subscription=self.subscription,
-            project=self.create_project(),
-            status=ObjectStatus.DISABLED,
-        )
-        result = self.create_uptime_result(self.subscription.subscription_id)
-
-        with (
-            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
-            self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
-        ):
-            self.send_result(result)
-            # We only process a single project result, the other is dropped,
-            # there should be only one handle_result_for_project metric call
-            handle_result_calls = [
-                c
-                for c in metrics.incr.mock_calls
-                if c[1][0] == "uptime.result_processor.handle_result_for_project"
-            ]
-            assert len(handle_result_calls) == 1
-
     def test_organization_feature_disabled(self):
         """
         Tests that we do not process results for disabled project subscriptions
@@ -642,23 +637,24 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             scheduled_check_time=datetime.now() - timedelta(minutes=4),
         )
         with (
-            mock.patch("sentry.quotas.backend.disable_seat") as mock_disable_seat,
-            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            mock.patch("sentry.quotas.backend.remove_seat") as mock_remove_seat,
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as consumer_metrics,
+            mock.patch("sentry.uptime.detectors.result_handler.metrics") as onboarding_metrics,
             mock.patch(
-                "sentry.uptime.consumers.results_consumer.ONBOARDING_FAILURE_THRESHOLD", new=2
+                "sentry.uptime.detectors.result_handler.ONBOARDING_FAILURE_THRESHOLD", new=2
             ),
             self.tasks(),
             self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
         ):
-            disable_call_vals = []
+            remove_call_vals = []
 
-            def capture_disable_seat(data_category, seat_object):
-                disable_call_vals.append((data_category, seat_object.id))
+            def capture_remove_seat(data_category, seat_object):
+                remove_call_vals.append((data_category, seat_object.id))
 
-            mock_disable_seat.side_effect = capture_disable_seat
+            mock_remove_seat.side_effect = capture_remove_seat
 
             self.send_result(result)
-            metrics.incr.assert_has_calls(
+            consumer_metrics.incr.assert_has_calls(
                 [
                     call(
                         "uptime.result_processor.handle_result_for_project",
@@ -671,6 +667,10 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                         },
                         sample_rate=1.0,
                     ),
+                ]
+            )
+            onboarding_metrics.incr.assert_has_calls(
+                [
                     call(
                         "uptime.result_processor.autodetection.failed_onboarding",
                         tags={
@@ -688,7 +688,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         # XXX: Since project_subscription is mutable, the delete sets the id to null. So we're unable
         # to compare the calls directly. Instead, we add a side effect to the mock so that it keeps track of
         # the values we want to check.
-        assert disable_call_vals == [(DataCategory.UPTIME, self.project_subscription.id)]
+        assert remove_call_vals == [(DataCategory.UPTIME, self.project_subscription.id)]
 
         hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
         with pytest.raises(Group.DoesNotExist):
@@ -753,12 +753,13 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         key = build_onboarding_failure_key(self.project_subscription)
         assert redis.get(key) is None
         with (
-            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as consumer_metrics,
+            mock.patch("sentry.uptime.detectors.result_handler.metrics") as onboarding_metrics,
             self.tasks(),
             self.feature(["organizations:uptime", "organizations:uptime-create-issues"]),
         ):
             self.send_result(result)
-            metrics.incr.assert_has_calls(
+            consumer_metrics.incr.assert_has_calls(
                 [
                     call(
                         "uptime.result_processor.handle_result_for_project",
@@ -771,6 +772,10 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
                         },
                         sample_rate=1.0,
                     ),
+                ]
+            )
+            onboarding_metrics.incr.assert_has_calls(
+                [
                     call(
                         "uptime.result_processor.autodetection.graduated_onboarding",
                         tags={
@@ -1063,6 +1068,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             subscription_id=uuid.UUID(int=5).hex,
             region_slugs=["region1"],
         )
+        self.create_project_uptime_subscription(uptime_subscription=sub)
         self.run_check_and_update_region_test(
             sub,
             ["region1", "region2"],
@@ -1093,6 +1099,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             subscription_id=uuid.UUID(int=5).hex,
             region_slugs=["region1", "region2"],
         )
+        self.create_project_uptime_subscription(uptime_subscription=sub)
         self.run_check_and_update_region_test(
             sub,
             ["region1", "region2"],
@@ -1119,6 +1126,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             region_slugs=["region1"],
             interval_seconds=UptimeSubscription.IntervalSeconds.ONE_HOUR,
         )
+        self.create_project_uptime_subscription(uptime_subscription=hour_sub)
         self.run_check_and_update_region_test(
             hour_sub,
             ["region1", "region2"],
@@ -1140,6 +1148,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             region_slugs=["region1"],
             interval_seconds=UptimeSubscription.IntervalSeconds.FIVE_MINUTES,
         )
+        self.create_project_uptime_subscription(uptime_subscription=five_min_sub)
         self.run_check_and_update_region_test(
             five_min_sub,
             ["region1", "region2"],
@@ -1188,6 +1197,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             region_slugs=["region1"],
             interval_seconds=UptimeSubscription.IntervalSeconds.FIVE_MINUTES,
         )
+        self.create_project_uptime_subscription(uptime_subscription=five_min_sub)
         self.run_check_and_update_region_test(
             five_min_sub,
             ["region1", "region2"],
@@ -1206,8 +1216,10 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
 
     def test_check_and_update_regions_removes_disabled(self):
         sub = self.create_uptime_subscription(
-            subscription_id=uuid.UUID(int=5).hex, region_slugs=["region1", "region2"]
+            subscription_id=uuid.UUID(int=5).hex,
+            region_slugs=["region1", "region2"],
         )
+        self.create_project_uptime_subscription(uptime_subscription=sub)
         self.run_check_and_update_region_test(
             sub,
             ["region1", "region2"],
@@ -1259,6 +1271,7 @@ class ProcessResultSerialTest(ProcessResultTest):
             subscription_2 = self.create_uptime_subscription(
                 subscription_id=uuid.uuid4().hex, interval_seconds=300, url="http://santry.io"
             )
+            self.create_project_uptime_subscription(uptime_subscription=subscription_2)
 
             result_1 = self.create_uptime_result(
                 self.subscription.subscription_id,
@@ -1310,6 +1323,7 @@ class ProcessResultSerialTest(ProcessResultTest):
         subscription_2 = self.create_uptime_subscription(
             subscription_id=uuid.uuid4().hex, interval_seconds=300, url="http://santry.io"
         )
+        self.create_project_uptime_subscription(uptime_subscription=subscription_2)
 
         result_1 = self.create_uptime_result(
             self.subscription.subscription_id,

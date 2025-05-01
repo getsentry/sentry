@@ -14,9 +14,7 @@ from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.utils.performance_issues.detectors.utils import get_total_span_duration
-
-from ..base import (
+from sentry.utils.performance_issues.base import (
     DetectorType,
     PerformanceDetector,
     fingerprint_http_spans,
@@ -25,8 +23,9 @@ from ..base import (
     get_url_from_span,
     parameterize_url,
 )
-from ..performance_problem import PerformanceProblem
-from ..types import PerformanceProblemsMap, Span
+from sentry.utils.performance_issues.detectors.utils import get_total_span_duration
+from sentry.utils.performance_issues.performance_problem import PerformanceProblem
+from sentry.utils.performance_issues.types import PerformanceProblemsMap, Span
 
 
 class NPlusOneAPICallsDetector(PerformanceDetector):

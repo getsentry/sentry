@@ -122,7 +122,6 @@ describe('EventFeatureFlagList', function () {
     expect(control).toBeInTheDocument();
     await userEvent.click(control);
     await userEvent.click(screen.getByRole('option', {name: 'Alphabetical'}));
-    await userEvent.click(control);
     expect(screen.getByRole('option', {name: 'Alphabetical'})).toHaveAttribute(
       'aria-selected',
       'true'
@@ -133,41 +132,27 @@ describe('EventFeatureFlagList', function () {
     );
   });
 
-  it('renders a sort dropdown which disables the appropriate options', async function () {
+  it('renders a sort dropdown which hides the invalid options', async function () {
     render(<EventFeatureFlagList {...MOCK_DATA_SECTION_PROPS} />);
 
     const control = screen.getByRole('button', {name: 'Sort Flags'});
     expect(control).toBeInTheDocument();
     await userEvent.click(control);
     await userEvent.click(screen.getByRole('option', {name: 'Alphabetical'}));
-    await userEvent.click(control);
     expect(screen.getByRole('option', {name: 'Alphabetical'})).toHaveAttribute(
       'aria-selected',
       'true'
     );
-    expect(screen.getByRole('option', {name: 'Newest First'})).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
-    expect(screen.getByRole('option', {name: 'Oldest First'})).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
+    expect(screen.queryByRole('option', {name: 'Newest First'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'Oldest First'})).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('option', {name: 'Evaluation Order'}));
-    await userEvent.click(control);
     expect(screen.getByRole('option', {name: 'Evaluation Order'})).toHaveAttribute(
       'aria-selected',
       'true'
     );
-    expect(screen.getByRole('option', {name: 'Z-A'})).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
-    expect(screen.getByRole('option', {name: 'A-Z'})).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
+    expect(screen.queryByRole('option', {name: 'Z-A'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'A-Z'})).not.toBeInTheDocument();
   });
 
   it('allows sort dropdown to affect displayed flags', async function () {
@@ -188,6 +173,7 @@ describe('EventFeatureFlagList', function () {
     });
     await userEvent.click(sortControl);
     await userEvent.click(screen.getByRole('option', {name: 'Oldest First'}));
+    await userEvent.click(sortControl); // close dropdown
 
     // expect enableReplay to be following webVitalsFlag
     expect(
@@ -198,6 +184,7 @@ describe('EventFeatureFlagList', function () {
 
     await userEvent.click(sortControl);
     await userEvent.click(screen.getByRole('option', {name: 'Alphabetical'}));
+    await userEvent.click(sortControl); // close dropdown
 
     // expect enableReplay to be preceding webVitalsFlag, A-Z sort by default
     expect(
@@ -208,6 +195,7 @@ describe('EventFeatureFlagList', function () {
 
     await userEvent.click(sortControl);
     await userEvent.click(screen.getByRole('option', {name: 'Z-A'}));
+    await userEvent.click(sortControl); // close dropdown
 
     // expect enableReplay to be following webVitalsFlag
     expect(

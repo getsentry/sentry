@@ -16,16 +16,22 @@ from sentry.api.serializers.rest_framework.base import convert_dict_key_case, sn
 from sentry.autofix.utils import get_autofix_state
 from sentry.constants import ObjectStatus
 from sentry.eventstore.models import Event, GroupEvent
+from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.seer.autofix import trigger_autofix
 from sentry.seer.models import SummarizeIssueResponse
+from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import seer_tasks
+from sentry.taskworker.retry import Retry
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.cache import cache
+from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +41,13 @@ logger = logging.getLogger(__name__)
     max_retries=1,
     soft_time_limit=60,  # 1 minute
     time_limit=65,
+    taskworker_config=TaskworkerConfig(
+        namespace=seer_tasks,
+        processing_deadline_duration=65,
+        retry=Retry(
+            times=1,
+        ),
+    ),
 )
 def _trigger_autofix_task(group_id: int, event_id: str, user_id: int | None, auto_run_source: str):
     """
@@ -220,33 +233,14 @@ def _get_trace_connected_issues(event: GroupEvent) -> list[Group]:
     return connected_issues
 
 
-def get_issue_summary(
+def _generate_summary(
     group: Group,
-    user: User | RpcUser | AnonymousUser | None = None,
-    force_event_id: str | None = None,
-    source: str = "issue_details",
+    user: User | RpcUser | AnonymousUser,
+    force_event_id: str | None,
+    source: str,
+    cache_key: str,
 ) -> tuple[dict[str, Any], int]:
-    """
-    Generate an AI summary for an issue.
-
-    Args:
-        group: The issue group
-        user: The user requesting the summary
-        force_event_id: Optional event ID to force summarizing a specific event
-        source: The source triggering the summary generation
-
-    Returns:
-        A tuple containing (summary_data, status_code)
-    """
-    if user is None:
-        user = AnonymousUser()
-    if not features.has("organizations:gen-ai-features", group.organization, actor=user):
-        return {"detail": "Feature flag not enabled"}, 400
-
-    cache_key = "ai-group-summary-v2:" + str(group.id)
-    if not force_event_id and (cached_summary := cache.get(cache_key)):
-        return convert_dict_key_case(cached_summary, snake_to_camel_case), 200
-
+    """Core logic to generate and cache the issue summary."""
     serialized_event, event = _get_event(group, user, provided_event_id=force_event_id)
 
     if not serialized_event or not event:
@@ -304,4 +298,70 @@ def get_issue_summary(
 
     cache.set(cache_key, summary_dict, timeout=int(timedelta(days=7).total_seconds()))
 
-    return convert_dict_key_case(summary_dict, snake_to_camel_case), 200
+    return summary_dict, 200
+
+
+def get_issue_summary(
+    group: Group,
+    user: User | RpcUser | AnonymousUser | None = None,
+    force_event_id: str | None = None,
+    source: str = "issue_details",
+) -> tuple[dict[str, Any], int]:
+    """
+    Generate an AI summary for an issue.
+
+    Args:
+        group: The issue group
+        user: The user requesting the summary
+        force_event_id: Optional event ID to force summarizing a specific event
+        source: The source triggering the summary generation
+
+    Returns:
+        A tuple containing (summary_data, status_code)
+    """
+    if user is None:
+        user = AnonymousUser()
+    if not features.has("organizations:gen-ai-features", group.organization, actor=user):
+        return {"detail": "Feature flag not enabled"}, 400
+
+    if not get_seer_org_acknowledgement(group.organization.id):
+        return {"detail": "AI Autofix has not been acknowledged by the organization."}, 403
+
+    cache_key = f"ai-group-summary-v2:{group.id}"
+    lock_key = f"ai-group-summary-v2-lock:{group.id}"
+    lock_duration = 10  # How long the lock is held if acquired (seconds)
+    wait_timeout = 4.5  # How long to wait for the lock (seconds)
+
+    # if force_event_id is set, we always generate a new summary
+    if force_event_id:
+        summary_dict, status_code = _generate_summary(
+            group, user, force_event_id, source, cache_key
+        )
+        return convert_dict_key_case(summary_dict, snake_to_camel_case), status_code
+
+    # 1. Check cache first
+    if cached_summary := cache.get(cache_key):
+        return convert_dict_key_case(cached_summary, snake_to_camel_case), 200
+
+    # 2. Try to acquire lock
+    try:
+        # Acquire lock context manager. This will poll and wait.
+        with locks.get(
+            key=lock_key, duration=lock_duration, name="get_issue_summary"
+        ).blocking_acquire(initial_delay=0.25, timeout=wait_timeout):
+            # Re-check cache after acquiring lock, in case another process finished
+            # while we were waiting for the lock.
+            if cached_summary := cache.get(cache_key):
+                return convert_dict_key_case(cached_summary, snake_to_camel_case), 200
+
+            # Lock acquired and cache is still empty, proceed with generation
+            summary_dict, status_code = _generate_summary(
+                group, user, force_event_id, source, cache_key
+            )
+            return convert_dict_key_case(summary_dict, snake_to_camel_case), status_code
+
+    except UnableToAcquireLock:
+        # Failed to acquire lock within timeout. Check cache one last time.
+        if cached_summary := cache.get(cache_key):
+            return convert_dict_key_case(cached_summary, snake_to_camel_case), 200
+        return {"detail": "Timeout waiting for summary generation lock"}, 503

@@ -31,14 +31,16 @@ import type {
 } from 'getsentry/types';
 import {
   getAmPlanTier,
-  getCategoryInfoFromPlural,
   isAm3DsPlan,
   isAm3Plan,
   isAmEnterprisePlan,
   isAmPlan,
   isTrialPlan,
 } from 'getsentry/utils/billing';
-import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
+import {
+  getCategoryInfoFromPlural,
+  getPlanCategoryName,
+} from 'getsentry/utils/dataCategory';
 
 const CPE_DECIMAL_PRECISION = 8;
 
@@ -108,7 +110,6 @@ type Props = {
   onSuccess: () => void;
   orgId: string;
   subscription: Subscription;
-  canProvisionDsPlan?: boolean; // TODO(DS Spans): remove once we need to provision DS plans
 };
 
 type ModalProps = ModalRenderProps & Props;
@@ -186,7 +187,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
   }
 
   initializeState() {
-    const {subscription, billingConfig, canProvisionDsPlan = false} = this.props;
+    const {subscription, billingConfig} = this.props;
 
     const provisionablePlans = billingConfig
       ? billingConfig.planList.reduce(
@@ -198,8 +199,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                 plan.id === 'mm2_b') &&
               !plan.id.endsWith('_ac') &&
               !plan.id.endsWith('_auf') &&
-              !isTrialPlan(plan.id) &&
-              (isAm3DsPlan(plan.id) ? canProvisionDsPlan : true)
+              !isTrialPlan(plan.id)
             ) {
               acc[plan.id] = plan;
             }
@@ -373,7 +373,9 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       });
     }
 
-    const allCategories = Object.values(DATA_CATEGORY_INFO).map(c => c.plural);
+    const allCategories = Object.values(DATA_CATEGORY_INFO).map(
+      c => c.plural as DataCategory
+    );
     const planCategories = this.state.provisionablePlans[postData.plan]?.categories ?? [];
 
     // remove fields for any categories that are not in the selected plan
@@ -759,9 +761,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                           this.state.provisionablePlans[this.state.data.plan]
                             ?.categories ?? []
                         ).map(category => {
-                          const categoryInfo = getCategoryInfoFromPlural(
-                            category as DataCategory
-                          );
+                          const categoryInfo = getCategoryInfoFromPlural(category);
                           if (!categoryInfo) {
                             return null;
                           }
@@ -821,7 +821,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                               />
                               {isAm3Ds &&
                                 [DataCategory.SPANS, DataCategory.SPANS_INDEXED].includes(
-                                  category as DataCategory
+                                  category
                                 ) && (
                                   <StyledDollarsAndCentsField
                                     label={`Reserved Cost-Per-Event ${titleName}`}
@@ -909,9 +909,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                 {this.state.data.plan &&
                   this.state.provisionablePlans[this.state.data.plan]?.categories.map(
                     category => {
-                      const categoryInfo = getCategoryInfoFromPlural(
-                        category as DataCategory
-                      );
+                      const categoryInfo = getCategoryInfoFromPlural(category);
                       if (!categoryInfo) {
                         return null;
                       }
@@ -1053,10 +1051,7 @@ const StyledDollarsAndCentsField = styled(DollarsAndCentsField)`
 
 const Modal = withApi(ProvisionSubscriptionModal);
 
-type Options = Pick<
-  Props,
-  'orgId' | 'subscription' | 'onSuccess' | 'canProvisionDsPlan' | 'billingConfig'
->;
+type Options = Pick<Props, 'orgId' | 'subscription' | 'onSuccess' | 'billingConfig'>;
 
 const triggerProvisionSubscription = (opts: Options) =>
   openModal(deps => <Modal {...deps} {...opts} />, {modalCss});

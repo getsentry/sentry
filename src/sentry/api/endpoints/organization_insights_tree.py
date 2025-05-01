@@ -34,7 +34,7 @@ class OrganizationInsightsTreeEndpoint(OrganizationEventsEndpoint):
         if not self.has_feature(organization, request):
             return Response(status=404)
 
-        if not request.GET.get("useRpc", False) or not request.GET.get("noPagination", False):
+        if not request.GET.get("noPagination", False):
             return Response(status=404)
 
         response = super().get(request, organization)

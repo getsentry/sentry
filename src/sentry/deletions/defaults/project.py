@@ -7,6 +7,7 @@ from sentry.deletions.base import (
     ModelRelation,
 )
 from sentry.models.project import Project
+from sentry.models.rule import Rule
 
 
 class ProjectDeletionTask(ModelDeletionTask[Project]):
@@ -45,6 +46,8 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
         from sentry.replays.models import ReplayRecordingSegment
         from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
         from sentry.snuba.models import QuerySubscription
+        from sentry.uptime.models import ProjectUptimeSubscription
+        from sentry.workflow_engine.models import Detector
 
         relations: list[BaseRelation] = [
             # ProjectKey gets revoked immediately, in bulk
@@ -84,26 +87,34 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
             ProguardArtifactRelease,
             DiscoverSavedQueryProject,
             IncidentProject,
+            ProjectUptimeSubscription,
         ):
             relations.append(ModelRelation(m1, {"project_id": instance.id}, BulkModelDeletionTask))
 
-        relations.append(ModelRelation(Monitor, {"project_id": instance.id}))
-        relations.append(ModelRelation(Group, {"project_id": instance.id}))
-        relations.append(ModelRelation(QuerySubscription, {"project_id": instance.id}))
+        for m2 in (
+            Monitor,
+            Group,
+            QuerySubscription,
+            Rule,
+        ):
+            relations.append(ModelRelation(m2, {"project_id": instance.id}))
+
         relations.append(
             ModelRelation(
                 AlertRule,
                 {"snuba_query__subscriptions__project": instance},
             )
         )
+        relations.append(ModelRelation(Detector, {"project_id": instance.id}))
 
         # Release needs to handle deletes after Group is cleaned up as the foreign
         # key is protected
-        for m2 in (
+        for m3 in (
             ReleaseProject,
             ReleaseProjectEnvironment,
             EventAttachment,
             ProjectDebugFile,
         ):
-            relations.append(ModelRelation(m2, {"project_id": instance.id}, ModelDeletionTask))
+            relations.append(ModelRelation(m3, {"project_id": instance.id}, ModelDeletionTask))
+
         return relations

@@ -288,6 +288,38 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert open_period.date_started == group.first_seen
         assert open_period.date_ended == resolved_at
 
+    @mock.patch("sentry.signals.issue_unresolved.send_robust")
+    @with_feature("organizations:issue-open-periods")
+    def test_unresolves_group_without_open_period(self, send_robust: mock.MagicMock) -> None:
+        ts = before_now(minutes=5).isoformat()
+
+        # N.B. EventManager won't unresolve the group unless the event2 has a
+        # later timestamp than event1.
+        manager = EventManager(make_event(event_id="a" * 32, checksum="a" * 32, timestamp=ts))
+        with self.tasks():
+            event = manager.save(self.project.id)
+
+        group = Group.objects.get(id=event.group_id)
+        group.status = GroupStatus.RESOLVED
+        group.substatus = None
+        group.save()
+        assert group.is_resolved()
+
+        GroupOpenPeriod.objects.all().delete()
+        manager = EventManager(
+            make_event(
+                event_id="b" * 32, checksum="a" * 32, timestamp=before_now(minutes=3).isoformat()
+            )
+        )
+        event2 = manager.save(self.project.id)
+        assert event.group_id == event2.group_id
+
+        group = Group.objects.get(id=group.id)
+        assert not group.is_resolved()
+        assert send_robust.called
+
+        assert GroupOpenPeriod.objects.filter(group=group).count() == 0
+
     @mock.patch("sentry.event_manager.plugin_is_regression")
     def test_does_not_unresolve_group(self, plugin_is_regression: mock.MagicMock) -> None:
         # N.B. EventManager won't unresolve the group unless the event2 has a
@@ -1022,7 +1054,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     def test_culprit_after_stacktrace_processing(self) -> None:
         from sentry.grouping.enhancer import Enhancements
 
-        enhancements_str = Enhancements.from_config_string(
+        enhancements_str = Enhancements.from_rules_text(
             """
             function:in_app_function +app
             function:not_in_app_function -app
@@ -1186,7 +1218,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.group is not None
 
         def query(model: TSDBModel, key: int, **kwargs: Any) -> int:
-            return tsdb.backend.get_sums(
+            return tsdb.backend.get_timeseries_sums(
                 model,
                 [key],
                 event.datetime,
@@ -2251,7 +2283,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         assert event.group is None
         assert (
-            tsdb.backend.get_sums(
+            tsdb.backend.get_timeseries_sums(
                 TSDBModel.project,
                 [self.project.id],
                 event.datetime,
@@ -2269,7 +2301,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         """
         from sentry.grouping.enhancer import Enhancements
 
-        enhancements_str = Enhancements.from_config_string(
+        enhancements_str = Enhancements.from_rules_text(
             """
             function:foo category=bar
             function:foo2 category=bar
@@ -2345,7 +2377,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         """
         from sentry.grouping.enhancer import Enhancements
 
-        enhancements_str = Enhancements.from_config_string(
+        enhancements_str = Enhancements.from_rules_text(
             """
             function:foo category=foo_like
             category:foo_like -group

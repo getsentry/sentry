@@ -10,7 +10,7 @@ from sentry.workflow_engine.endpoints.validators.utils import (
     validate_json_primitive,
     validate_json_schema,
 )
-from sentry.workflow_engine.models.data_condition import CONDITION_OPS, Condition
+from sentry.workflow_engine.models.data_condition import CONDITION_OPS, Condition, DataCondition
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler
 
@@ -26,7 +26,7 @@ class AbstractDataConditionValidator(
     type = serializers.ChoiceField(choices=[(t.value, t.value) for t in Condition])
     comparison = serializers.JSONField(required=True)
     condition_result = serializers.JSONField(required=True)
-    condition_group_id = serializers.IntegerField(required=True)
+    condition_group_id = serializers.IntegerField(required=False)
 
     @abstractmethod
     def validate_comparison(self, value: Any) -> ComparisonType:
@@ -99,3 +99,13 @@ class BaseDataConditionValidator(
             raise serializers.ValidationError(
                 f"Value, {value}, does not match JSON Schema for condition result"
             )
+
+    def update(self, instance: DataCondition, validated_data: dict[str, Any]) -> DataCondition:
+        instance.update(**validated_data)
+        return instance
+
+    def create(self, validated_data: dict[str, Any]) -> DataCondition:
+        """
+        Create a DataCondition object from the validated data.
+        """
+        return DataCondition.objects.create(**validated_data)

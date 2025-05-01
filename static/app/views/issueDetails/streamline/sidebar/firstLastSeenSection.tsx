@@ -64,7 +64,9 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
             environment={shortEnvironmentLabel}
           />
         </Flex>
-        <ReleaseText project={group.project} release={groupReleaseData?.lastRelease} />
+        {lastSeen && (
+          <ReleaseText project={group.project} release={groupReleaseData?.lastRelease} />
+        )}
       </div>
       <div>
         <Flex gap={space(0.5)}>
@@ -78,7 +80,9 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
             environment={shortEnvironmentLabel}
           />
         </Flex>
-        <ReleaseText project={group.project} release={groupReleaseData?.firstRelease} />
+        {group.firstSeen && (
+          <ReleaseText project={group.project} release={groupReleaseData?.firstRelease} />
+        )}
       </div>
     </Flex>
   );

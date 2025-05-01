@@ -15,8 +15,11 @@ class TestGroupAutofixUpdate(APITestCase):
         self.group = self.create_group()
         self.url = f"/api/0/issues/{self.group.id}/autofix/update/"
 
+    @patch(
+        "sentry.api.endpoints.group_autofix_update.get_seer_org_acknowledgement", return_value=True
+    )
     @patch("sentry.api.endpoints.group_autofix_update.requests.post")
-    def test_autofix_update_successful(self, mock_post):
+    def test_autofix_update_successful(self, mock_post, mock_get_seer_org_acknowledgement):
         mock_post.return_value.status_code = 202
         mock_post.return_value.json.return_value = {}
 
@@ -57,8 +60,11 @@ class TestGroupAutofixUpdate(APITestCase):
             headers=expected_headers,
         )
 
+    @patch(
+        "sentry.api.endpoints.group_autofix_update.get_seer_org_acknowledgement", return_value=True
+    )
     @patch("sentry.api.endpoints.group_autofix_update.requests.post")
-    def test_autofix_update_failure(self, mock_post):
+    def test_autofix_update_failure(self, mock_post, mock_get_seer_org_acknowledgement):
         mock_post.return_value.raise_for_status.side_effect = Exception("Failed to update")
 
         response = self.client.post(
@@ -75,6 +81,29 @@ class TestGroupAutofixUpdate(APITestCase):
 
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
-    def test_autofix_update_missing_parameters(self):
+    @patch(
+        "sentry.api.endpoints.group_autofix_update.get_seer_org_acknowledgement", return_value=True
+    )
+    def test_autofix_update_missing_parameters(self, mock_get_seer_org_acknowledgement):
         response = self.client.post(self.url, data={}, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @patch(
+        "sentry.api.endpoints.group_autofix_update.get_seer_org_acknowledgement", return_value=False
+    )
+    def test_autofix_update_org_not_acknowledged(self, mock_get_seer_org_acknowledgement):
+        """Test that a 403 is returned when the organization hasn't acknowledged Seer."""
+        response = self.client.post(
+            self.url,
+            data={
+                "run_id": 123,
+                "payload": {
+                    "type": "select_root_cause",
+                    "cause_id": 456,
+                },
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["error"] == "AI Autofix has not been acknowledged by the organization."

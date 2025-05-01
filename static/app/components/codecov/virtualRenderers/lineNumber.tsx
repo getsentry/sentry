@@ -3,15 +3,16 @@ import styled from '@emotion/styled';
 import type {VirtualItem, Virtualizer} from '@tanstack/react-virtual';
 
 import {
-  type CoverageMap,
+  type CoverageValue,
   LINE_HEIGHT,
 } from 'sentry/components/codecov/virtualRenderers/constants';
 import {space} from 'sentry/styles/space';
-import {useLocation} from 'sentry/utils/useLocation';
 
 interface LineNumberProps {
-  coverage: CoverageMap;
-  lineNumber: number;
+  ariaLabel: string | undefined;
+  coverage: CoverageValue | undefined;
+  isHighlighted: boolean;
+  lineNumber: number | string | null | undefined;
   onClick: () => void;
   virtualItem: VirtualItem;
   virtualizer: Virtualizer<Window, Element>;
@@ -32,10 +33,9 @@ export function LineNumber({
   onClick,
   virtualItem,
   virtualizer,
+  isHighlighted,
+  ariaLabel,
 }: LineNumberProps) {
-  const location = useLocation();
-  const isHighlighted = location.hash === `#L${lineNumber}`;
-
   return (
     <LineNumberWrapper
       ref={virtualizer.measureElement}
@@ -43,10 +43,11 @@ export function LineNumber({
       data-index={virtualItem.index}
       height={virtualItem.size}
       translateY={virtualItem.start - virtualizer.options.scrollMargin}
-      coverage={coverage.get(lineNumber)?.coverage}
+      coverage={coverage}
       isHighlighted={isHighlighted}
+      hasLineNumber={!!lineNumber}
     >
-      <StyledLineNumber onClick={onClick}>
+      <StyledLineNumber onClick={onClick} aria-label={ariaLabel}>
         {isHighlighted ? '#' : null}
         {lineNumber}
       </StyledLineNumber>
@@ -54,8 +55,28 @@ export function LineNumber({
   );
 }
 
+// This function generates a pseudo-element that is used to highlight the line number.
+// We need to do this because the background color for the highlights has an alpha
+// channel, so when a user clicks on it, it mixes with the ColorBar background. Because
+// of this, we manually set the main elements background color to that of the code block.
+function generatePseudoElement({background}: {background: string}) {
+  return css`
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      background-color: ${background};
+    }
+  `;
+}
+
 const LineNumberWrapper = styled('div')<{
-  coverage: 'H' | 'M' | 'P' | undefined;
+  coverage: CoverageValue | undefined;
+  hasLineNumber: boolean;
   height: number;
   isHighlighted: boolean;
   translateY: number;
@@ -70,39 +91,51 @@ const LineNumberWrapper = styled('div')<{
   text-align: right;
   height: ${p => p.height}px;
   transform: translateY(${p => p.translateY}px);
+  z-index: 2;
 
-  &:hover {
-    cursor: pointer;
-  }
+  background-color: var(--prism-block-background);
+
+  ${p =>
+    p.hasLineNumber &&
+    css`
+      cursor: pointer;
+    `}
 
   ${p => {
+    if (!p.hasLineNumber) {
+      return css`
+        background-color: var(--prism-block-background);
+        border-right: ${space(0.25)} solid ${p.theme.gray200};
+      `;
+    }
+
     if (p.isHighlighted) {
       return css`
-        background-color: ${p.theme.blue100};
+        ${generatePseudoElement({background: p.theme.blue100})}
         border-right: ${space(0.25)} solid ${p.theme.blue300};
       `;
     }
     if (p.coverage === 'H') {
       return css`
-        background-color: ${p.theme.green100};
+        ${generatePseudoElement({background: p.theme.green100})}
         border-right: ${space(0.25)} solid ${p.theme.green300};
       `;
     }
     if (p.coverage === 'M') {
       return css`
-        background-color: ${p.theme.red100};
+        ${generatePseudoElement({background: p.theme.red100})}
         border-right: ${space(0.25)} solid ${p.theme.red300};
       `;
     }
     if (p.coverage === 'P') {
       return css`
-        background-color: ${p.theme.yellow100};
+        ${generatePseudoElement({background: p.theme.yellow100})}
         border-right: ${space(0.25)} solid ${p.theme.yellow300};
       `;
     }
 
     return css`
-      background-color: inherit;
+      background-color: var(--prism-block-background);
       border-right: ${space(0.25)} solid ${p.theme.gray200};
     `;
   }}

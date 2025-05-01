@@ -107,6 +107,7 @@ export enum FieldKey {
   STACK_RESOURCE = 'stack.resource',
   STACK_STACK_LEVEL = 'stack.stack_level',
   STATUS = 'status',
+  SYMBOLICATED_IN_APP = 'symbolicated_in_app',
   TIMESTAMP = 'timestamp',
   TIMESTAMP_TO_DAY = 'timestamp.to_day',
   TIMESTAMP_TO_HOUR = 'timestamp.to_hour',
@@ -132,6 +133,9 @@ export enum FieldKey {
   USER_SEGMENT = 'user.segment',
   APP_IN_FOREGROUND = 'app.in_foreground',
   FUNCTION_DURATION = 'function.duration',
+  OTA_UPDATES_CHANNEL = 'ota_updates.channel',
+  OTA_UPDATES_RUNTIME_VERSION = 'ota_updates.runtime_version',
+  OTA_UPDATES_UPDATE_ID = 'ota_updates.update_id',
 }
 
 export enum FieldValueType {
@@ -207,7 +211,7 @@ export enum SpanOpBreakdown {
   SPANS_UI = 'spans.ui',
 }
 
-export enum SpanHttpField {
+enum SpanHttpField {
   HTTP_DECODED_RESPONSE_CONTENT_LENGTH = 'http.decoded_response_content_length',
   HTTP_RESPONSE_CONTENT_LENGTH = 'http.response_content_length',
   HTTP_RESPONSE_TRANSFER_SIZE = 'http.response_transfer_size',
@@ -256,7 +260,7 @@ export enum IsFieldValues {
   UNLINKED = 'unlinked',
 }
 
-export type AggregateColumnParameter = {
+type AggregateColumnParameter = {
   /**
    * The types of columns that are valid for this parameter.
    * Can pass a list of FieldValueTypes or a predicate function.
@@ -270,7 +274,7 @@ export type AggregateColumnParameter = {
   defaultValue?: string;
 };
 
-export type AggregateValueParameter = {
+type AggregateValueParameter = {
   dataType: FieldValueType;
   kind: 'value';
   name: string;
@@ -282,9 +286,7 @@ export type AggregateValueParameter = {
 
 export type AggregateParameter = AggregateColumnParameter | AggregateValueParameter;
 
-export type ParameterDependentValueType = (
-  parameters: Array<string | null>
-) => FieldValueType;
+type ParameterDependentValueType = (parameters: Array<string | null>) => FieldValueType;
 
 export interface FieldDefinition {
   kind: FieldKind;
@@ -842,7 +844,7 @@ export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
   AggregationKey.MAX,
 ];
 
-export const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
+const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   ...AGGREGATION_FIELDS,
   [AggregationKey.COUNT]: {
     ...AGGREGATION_FIELDS[AggregationKey.COUNT],
@@ -1137,7 +1139,7 @@ export const MEASUREMENT_FIELDS: Record<WebVital | MobileVital, FieldDefinition>
   },
 };
 
-export const SPAN_OP_FIELDS: Record<SpanOpBreakdown, FieldDefinition> = {
+const SPAN_OP_FIELDS: Record<SpanOpBreakdown, FieldDefinition> = {
   [SpanOpBreakdown.SPANS_BROWSER]: {
     desc: t('Cumulative time based on the browser operation'),
     kind: FieldKind.METRICS,
@@ -1181,7 +1183,7 @@ type TraceFields =
   | SpanIndexedField.RESPONSE_CODE
   | SpanIndexedField.CACHE_HIT;
 
-export const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
+const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
   /** Indexed Fields */
   [SpanIndexedField.SPAN_ACTION]: {
     desc: t(
@@ -1586,10 +1588,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [FieldKey.PROJECT]: {
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
+  [FieldKey.PROJECT]: {kind: FieldKind.FIELD, valueType: FieldValueType.STRING},
   [FieldKey.FIRST_RELEASE]: {
     desc: t('Issues first seen in a given release'),
     kind: FieldKind.FIELD,
@@ -1704,6 +1703,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     desc: t('Number of frames per stacktrace'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.NUMBER,
+  },
+  [FieldKey.SYMBOLICATED_IN_APP]: {
+    desc: t('Indicates if all in-app frames are symbolicated'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
   },
   [FieldKey.STATUS]: {
     desc: t('Status of the issue'),
@@ -1836,6 +1840,21 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.DURATION,
   },
+  [FieldKey.OTA_UPDATES_CHANNEL]: {
+    desc: t('The channel name of the build from EAS Update'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.OTA_UPDATES_RUNTIME_VERSION]: {
+    desc: t('The runtime version of the current build from EAS Update'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.OTA_UPDATES_UPDATE_ID]: {
+    desc: t('The UUID that uniquely identifies the update.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
 };
 
 const SPAN_HTTP_FIELD_DEFINITIONS: Record<SpanHttpField, FieldDefinition> = {
@@ -1931,6 +1950,7 @@ export const ISSUE_EVENT_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.STACK_MODULE,
   FieldKey.STACK_PACKAGE,
   FieldKey.STACK_STACK_LEVEL,
+  FieldKey.SYMBOLICATED_IN_APP,
   FieldKey.TIMESTAMP,
   FieldKey.TITLE,
   FieldKey.TRACE,
@@ -1940,6 +1960,9 @@ export const ISSUE_EVENT_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.USER_ID,
   FieldKey.USER_IP,
   FieldKey.USER_USERNAME,
+  FieldKey.OTA_UPDATES_CHANNEL,
+  FieldKey.OTA_UPDATES_RUNTIME_VERSION,
+  FieldKey.OTA_UPDATES_UPDATE_ID,
 ];
 
 export const ISSUE_FIELDS: FieldKey[] = [
@@ -2009,6 +2032,9 @@ export const ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS: Set<FieldKey> = new
   FieldKey.USER_ID,
   FieldKey.USER_IP,
   FieldKey.USER_USERNAME,
+  FieldKey.OTA_UPDATES_CHANNEL,
+  FieldKey.OTA_UPDATES_RUNTIME_VERSION,
+  FieldKey.OTA_UPDATES_UPDATE_ID,
 ]);
 
 /**
@@ -2090,6 +2116,7 @@ export const DISCOVER_FIELDS = [
   FieldKey.STACK_COLNO,
   FieldKey.STACK_LINENO,
   FieldKey.STACK_STACK_LEVEL,
+  FieldKey.SYMBOLICATED_IN_APP,
   // contexts.key and contexts.value omitted on purpose.
 
   // App context fields
@@ -2121,6 +2148,11 @@ export const DISCOVER_FIELDS = [
   SpanOpBreakdown.SPANS_HTTP,
   SpanOpBreakdown.SPANS_RESOURCE,
   SpanOpBreakdown.SPANS_UI,
+
+  // Expo Updates fields
+  FieldKey.OTA_UPDATES_CHANNEL,
+  FieldKey.OTA_UPDATES_RUNTIME_VERSION,
+  FieldKey.OTA_UPDATES_UPDATE_ID,
 ];
 
 export enum ReplayFieldKey {
@@ -2130,13 +2162,17 @@ export enum ReplayFieldKey {
   COUNT_DEAD_CLICKS = 'count_dead_clicks',
   COUNT_RAGE_CLICKS = 'count_rage_clicks',
   COUNT_ERRORS = 'count_errors',
+  COUNT_SCREENS = 'count_screens',
   COUNT_SEGMENTS = 'count_segments',
+  COUNT_TRACES = 'count_traces',
   COUNT_URLS = 'count_urls',
   DURATION = 'duration',
   ERROR_IDS = 'error_ids',
   OS_NAME = 'os.name',
   OS_VERSION = 'os.version',
   REPLAY_TYPE = 'replay_type',
+  SCREEN = 'screen',
+  SCREENS = 'screens',
   SEEN_BY_ME = 'seen_by_me',
   URLS = 'urls',
   URL = 'url',
@@ -2174,7 +2210,9 @@ export const REPLAY_FIELDS = [
   ReplayFieldKey.COUNT_DEAD_CLICKS,
   ReplayFieldKey.COUNT_RAGE_CLICKS,
   ReplayFieldKey.COUNT_ERRORS,
+  ReplayFieldKey.COUNT_SCREENS,
   ReplayFieldKey.COUNT_SEGMENTS,
+  ReplayFieldKey.COUNT_TRACES,
   ReplayFieldKey.COUNT_URLS,
   FieldKey.DEVICE_BRAND,
   FieldKey.DEVICE_FAMILY,
@@ -2189,6 +2227,8 @@ export const REPLAY_FIELDS = [
   FieldKey.PLATFORM,
   FieldKey.RELEASE,
   ReplayFieldKey.REPLAY_TYPE,
+  ReplayFieldKey.SCREEN,
+  ReplayFieldKey.SCREENS,
   FieldKey.SDK_NAME,
   FieldKey.SDK_VERSION,
   ReplayFieldKey.SEEN_BY_ME,
@@ -2233,8 +2273,18 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.INTEGER,
   },
+  [ReplayFieldKey.COUNT_SCREENS]: {
+    desc: t('Number of screens visited within the replay. Alias of count_urls.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
   [ReplayFieldKey.COUNT_SEGMENTS]: {
     desc: t('Number of segments in the replay'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  [ReplayFieldKey.COUNT_TRACES]: {
+    desc: t('Number of traces in the replay'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.INTEGER,
   },
@@ -2274,6 +2324,16 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.BOOLEAN,
+  },
+  [ReplayFieldKey.SCREEN]: {
+    desc: t('A screen visited within the replay. Alias of url.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayFieldKey.SCREENS]: {
+    desc: t('List of screens that were visited within the replay. Alias of urls.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
   },
   [ReplayFieldKey.URL]: {
     desc: t('A url visited within the replay'),
@@ -2404,6 +2464,7 @@ export const FEEDBACK_FIELDS = [
   FieldKey.DEVICE_NAME,
   FieldKey.DIST,
   FieldKey.ENVIRONMENT,
+  FieldKey.HAS,
   FieldKey.ID,
   FieldKey.IS,
   FieldKey.LEVEL,
@@ -2509,17 +2570,11 @@ export const getFieldDefinition = (
       // aggregate functions. We assign value type based on kind, so that we can filter
       // on them when suggesting function parameters.
       if (kind === FieldKind.MEASUREMENT) {
-        return {
-          kind: FieldKind.FIELD,
-          valueType: FieldValueType.NUMBER,
-        };
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.NUMBER};
       }
 
       if (kind === FieldKind.TAG) {
-        return {
-          kind: FieldKind.FIELD,
-          valueType: FieldValueType.STRING,
-        };
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.STRING};
       }
 
       return null;
@@ -2534,17 +2589,11 @@ export const getFieldDefinition = (
       // aggregate functions. We assign value type based on kind, so that we can filter
       // on them when suggesting function parameters.
       if (kind === FieldKind.MEASUREMENT) {
-        return {
-          kind: FieldKind.FIELD,
-          valueType: FieldValueType.NUMBER,
-        };
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.NUMBER};
       }
 
       if (kind === FieldKind.TAG) {
-        return {
-          kind: FieldKind.FIELD,
-          valueType: FieldValueType.STRING,
-        };
+        return {kind: FieldKind.FIELD, valueType: FieldValueType.STRING};
       }
       return null;
 
@@ -2559,11 +2608,7 @@ export function makeTagCollection(fieldKeys: FieldKey[]): TagCollection {
   return Object.fromEntries(
     fieldKeys.map(fieldKey => [
       fieldKey,
-      {
-        key: fieldKey,
-        name: fieldKey,
-        kind: getFieldDefinition(fieldKey)?.kind,
-      },
+      {key: fieldKey, name: fieldKey, kind: getFieldDefinition(fieldKey)?.kind},
     ])
   );
 }

@@ -25,7 +25,7 @@ import {
 import {IconCheckmark, IconClose, IconFocus, IconInput} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {singleLineRenderer} from 'sentry/utils/marked';
+import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
@@ -68,7 +68,7 @@ const cardAnimationProps: AnimationProps = {
   }),
 };
 
-export function useSelectCause({groupId, runId}: {groupId: string; runId: string}) {
+function useSelectCause({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi();
   const queryClient = useQueryClient();
 
@@ -109,7 +109,7 @@ export function useSelectCause({groupId, runId}: {groupId: string; runId: string
         queryClient,
         makeAutofixQueryKey(groupId),
         data => {
-          if (!data || !data.autofix) {
+          if (!data?.autofix) {
             return data;
           }
 

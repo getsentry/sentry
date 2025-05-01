@@ -4,8 +4,9 @@ import {DatePicker} from 'sentry/components/codecov/datePicker/datePicker';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {space} from 'sentry/styles/space';
+import {Summaries} from 'sentry/views/codecov/tests/summaries/summaries';
 
-export const DEFAULT_CODECOV_DATETIME_SELECTION = {
+const DEFAULT_CODECOV_DATETIME_SELECTION = {
   start: null,
   end: null,
   utc: false,
@@ -23,6 +24,7 @@ export default function TestsPage() {
           <DatePicker />
         </PageFilterBar>
       </PageFiltersContainer>
+      <Summaries />
     </LayoutGap>
   );
 }

@@ -130,7 +130,7 @@ export function getRelativeTimeFromEventDateCreated(
   );
 }
 
-export type KnownDataDetails = Omit<KeyValueListDataItem, 'key'> | undefined;
+type KnownDataDetails = Omit<KeyValueListDataItem, 'key'> | undefined;
 
 export function getKnownData<Data, DataType>({
   data,
@@ -187,31 +187,6 @@ export function getKnownStructuredData(
       <StructuredEventData data={kd.value} meta={meta?.[kd.key]} withAnnotatedText />
     ),
   }));
-}
-
-export function getUnknownData({
-  allData,
-  knownKeys,
-  meta,
-}: {
-  allData: Record<string, any>;
-  knownKeys: string[];
-  meta?: NonNullable<Event['_meta']>[keyof Event['_meta']];
-}): KeyValueListData {
-  return Object.entries(allData)
-    .filter(
-      ([key]) =>
-        key !== 'type' &&
-        key !== 'title' &&
-        !knownKeys.includes(key) &&
-        (typeof allData[key] !== 'number' && !allData[key] ? !!meta?.[key]?.[''] : true)
-    )
-    .map(([key, value]) => ({
-      key,
-      value,
-      subject: key,
-      meta: meta?.[key]?.[''],
-    }));
 }
 
 /**

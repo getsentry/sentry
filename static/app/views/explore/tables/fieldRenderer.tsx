@@ -1,11 +1,11 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
@@ -57,7 +57,7 @@ export function FieldRenderer({data, meta, unit, column}: FieldProps) {
   );
 }
 
-export interface MultiQueryFieldProps extends FieldProps {
+interface MultiQueryFieldProps extends FieldProps {
   index: number;
 }
 
