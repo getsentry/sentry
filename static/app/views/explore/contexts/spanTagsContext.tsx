@@ -1,21 +1,11 @@
 import type React from 'react';
-import {createContext} from 'react';
 
-import type {TagCollection} from 'sentry/types/group';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   TraceItemAttributeProvider,
   useTraceItemAttributes,
 } from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-
-type TypedSpanTags = {number: TagCollection; string: TagCollection};
-
-type TypedSpanTagsStatus = {numberTagsLoading: boolean; stringTagsLoading: boolean};
-
-type TypedSpanTagsResult = TypedSpanTags & TypedSpanTagsStatus;
-
-export const SpanTagsContext = createContext<TypedSpanTagsResult | undefined>(undefined);
 
 interface SpanTagsProviderProps {
   children: React.ReactNode;
