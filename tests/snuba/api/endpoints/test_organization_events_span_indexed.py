@@ -2034,6 +2034,9 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
             }
         )
 
+        segment_span_count = 1
+        total_time = 90 * 24 * 60
+
         assert response.status_code == 200, response.content
         data = response.data["data"]
         meta = response.data["meta"]
@@ -2041,7 +2044,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert data == [
             {
                 "description": "foo",
-                "tpm()": 1 / (90 * 24 * 60),
+                "tpm()": segment_span_count / total_time,
             },
         ]
         assert meta["dataset"] == self.dataset
