@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 import range from 'lodash/range';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import Matrix, {type PropMatrix} from 'sentry/components/stories/matrix';
 import SideBySide from 'sentry/components/stories/sideBySide';
@@ -273,4 +274,54 @@ export default storyBook('Tabs', story => {
       </div>
     );
   });
+
+  story('With Tooltips', () => (
+    <SideBySide>
+      <div>
+        <p>
+          Put your <JSXNode name="Tooltip" /> inside <JSXNode name="TabList.Item" /> as a
+          child.
+        </p>
+        <SizingWindow>
+          <Tabs>
+            <TabList>
+              {TABS.map(tab => (
+                <TabList.Item key={tab.key}>
+                  <Tooltip title="Hello world">{tab.label}</Tooltip>
+                </TabList.Item>
+              ))}
+            </TabList>
+            <TabPanels>
+              {TABS.map(tab => (
+                <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
+              ))}
+            </TabPanels>
+          </Tabs>
+        </SizingWindow>
+      </div>
+      <div>
+        <p>
+          When an item is disabled{' '}
+          <JSXNode name="TabList.Item" props={{disabled: true}} /> the tooltip should
+          still appear.
+        </p>
+        <SizingWindow>
+          <Tabs>
+            <TabList>
+              {TABS.map(tab => (
+                <TabList.Item key={tab.key} disabled>
+                  <Tooltip title="Hello world">{tab.label}</Tooltip>
+                </TabList.Item>
+              ))}
+            </TabList>
+            <TabPanels>
+              {TABS.map(tab => (
+                <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
+              ))}
+            </TabPanels>
+          </Tabs>
+        </SizingWindow>
+      </div>
+    </SideBySide>
+  ));
 });
