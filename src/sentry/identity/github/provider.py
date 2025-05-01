@@ -27,6 +27,20 @@ def get_user_info_installations(access_token):
             },
         )
         resp.raise_for_status()
+
+    return resp.json()
+
+
+def get_organization_memberships_for_user(access_token):
+    with http.build_session() as session:
+        resp = session.get(
+            "https://api.github.com/user/memberships/orgs",
+            headers={
+                "Accept": "application/vnd.github.machine-man-preview+json",
+                "Authorization": f"token {access_token}",
+            },
+        )
+        resp.raise_for_status()
     return resp.json()
 
 
