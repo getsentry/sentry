@@ -202,7 +202,6 @@ def _generate_integration_to_files_mapping(
                 platform=platform,
                 sdk_name=sdk_name,
                 code_mapping=code_mapping,
-                organization=organization,
             )
 
             if not src_path:
@@ -386,7 +385,6 @@ def _record_commit_context_all_frames_analytics(
                 platform=platform,
                 sdk_name=sdk_name,
                 code_mapping=selected_blame.code_mapping,
-                organization=Organization.objects.get(id=organization_id),
             )
             == selected_blame.path
         ),

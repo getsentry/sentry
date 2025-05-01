@@ -5,7 +5,6 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any, NamedTuple
 
-from sentry import features
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.repo_trees import (
     RepoAndBranch,
@@ -387,7 +386,6 @@ def convert_stacktrace_frame_path_to_source_path(
     code_mapping: RepositoryProjectPathConfig,
     platform: str | None,
     sdk_name: str | None,
-    organization: Organization | None,
 ) -> str | None:
     """
     Applies the given code mapping to the given stacktrace frame and returns the source path.
@@ -396,15 +394,6 @@ def convert_stacktrace_frame_path_to_source_path(
     """
 
     stack_root = code_mapping.stack_root
-
-    has_new_logic = (
-        features.has("organizations:java-frame-munging-new-logic", organization, actor=None)
-        if organization
-        else False
-    )
-    if has_new_logic and platform == "java":
-        # This will cause the new munging logic to be applied
-        platform = "java-new-logic"
 
     # In most cases, code mappings get applied to frame.filename, but some platforms such as Java
     # contain folder info in other parts of the frame (e.g. frame.module="com.example.app.MainActivity"
