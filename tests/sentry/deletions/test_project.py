@@ -2,7 +2,7 @@ from sentry import eventstore
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident
-from sentry.models.activity import Activity, ActivityType
+from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.debugfile import ProjectDebugFile
@@ -34,6 +34,7 @@ from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.skips import requires_snuba
+from sentry.types.activity import ActivityType
 from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
 from sentry.workflow_engine.models import (
     DataCondition,
