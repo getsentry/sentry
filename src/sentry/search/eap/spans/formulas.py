@@ -13,6 +13,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     StrArray,
 )
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
+    AndFilter,
     ComparisonFilter,
     ExistsFilter,
     TraceItemFilter,
@@ -27,6 +28,7 @@ from sentry.search.eap.columns import (
     ValueArgumentDefinition,
 )
 from sentry.search.eap.constants import RESPONSE_CODE_MAP
+from sentry.search.eap.spans.aggregates import resolve_key_eq_value_filter
 from sentry.search.eap.spans.utils import (
     WEB_VITALS_MEASUREMENTS,
     operate_multiple_columns,
@@ -118,6 +120,58 @@ def avg_compare(args: ResolvedArguments, settings: ResolverSettings) -> Column.B
     )
 
     return percentage_change
+
+
+def failure_rate_if(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+    extrapolation_mode = settings["extrapolation_mode"]
+    key = cast(AttributeKey, args[0])
+    value = cast(str, args[1])
+
+    (_, key_equal_value_filter) = resolve_key_eq_value_filter([key, key, value])
+
+    return Column.BinaryFormula(
+        default_value_double=0.0,
+        left=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_COUNT,
+                key=AttributeKey(
+                    name="sentry.trace.status",
+                    type=AttributeKey.TYPE_STRING,
+                ),
+                filter=TraceItemFilter(
+                    and_filter=AndFilter(
+                        filters=[
+                            TraceItemFilter(
+                                comparison_filter=ComparisonFilter(
+                                    key=AttributeKey(
+                                        name="sentry.trace.status",
+                                        type=AttributeKey.TYPE_STRING,
+                                    ),
+                                    op=ComparisonFilter.OP_NOT_IN,
+                                    value=AttributeValue(
+                                        val_str_array=StrArray(
+                                            values=["ok", "cancelled", "unknown"],
+                                        ),
+                                    ),
+                                ),
+                            ),
+                            key_equal_value_filter,
+                        ]
+                    )
+                ),
+                extrapolation_mode=extrapolation_mode,
+            ),
+        ),
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_COUNT,
+                key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.exclusive_time_ms"),
+                filter=key_equal_value_filter,
+                extrapolation_mode=extrapolation_mode,
+            ),
+        ),
+    )
 
 
 def failure_rate(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
@@ -575,6 +629,15 @@ SPAN_FORMULA_DEFINITIONS = {
         default_search_type="percentage",
         arguments=[],
         formula_resolver=failure_rate,
+        is_aggregate=True,
+    ),
+    "failure_rate_if": FormulaDefinition(
+        default_search_type="percentage",
+        arguments=[
+            AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
+            ValueArgumentDefinition(argument_types={"string"}),
+        ],
+        formula_resolver=failure_rate_if,
         is_aggregate=True,
     ),
     "ttfd_contribution_rate": FormulaDefinition(
