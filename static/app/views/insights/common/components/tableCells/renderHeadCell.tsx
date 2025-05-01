@@ -77,6 +77,7 @@ const SORTABLE_FIELDS = new Set([
   'p50(span.duration)',
   'p95(span.duration)',
   'failure_rate()',
+  'performance_score(measurements.score.total)',
   'count_unique(user)',
 ]);
 

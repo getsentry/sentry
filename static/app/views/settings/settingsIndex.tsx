@@ -58,7 +58,7 @@ function SettingsIndex(props: SettingsIndexProps) {
   // For the new navigation, we are removing this page. The default base route should
   // be the organization settings page.
   // When GAing, this page should be removed and the redirect should be moved to routes.tsx.
-  if (organization && prefersStackedNav()) {
+  if (organization && prefersStackedNav(organization)) {
     return (
       <Redirect
         to={normalizeUrl(
