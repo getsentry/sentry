@@ -10,6 +10,7 @@ import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 
@@ -123,7 +124,7 @@ function AddGiftBudgetModal({
                   .map(category =>
                     getPlanCategoryName({
                       plan: subscription.planDetails,
-                      category,
+                      category: category as DataCategory,
                       capitalize: false,
                       hadCustomDynamicSampling: true,
                     })

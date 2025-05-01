@@ -5,6 +5,7 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any, NamedTuple
 
+from sentry import features
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.repo_trees import (
     RepoAndBranch,
@@ -293,18 +294,7 @@ class CodeMappingTreesHelper:
             logger.warning("More than one repo matched %s", frame_filename.raw_path)
             return None
 
-        cm = code_mappings[0]
-        logger.info(
-            "Found code mapping.",
-            extra={
-                "stack_path": frame_filename.raw_path,
-                "stack_root": cm.stacktrace_root,
-                "source_path": cm.source_path,
-                "repo_name": cm.repo.name,
-                "repo_branch": cm.repo.branch,
-            },
-        )
-        return cm
+        return code_mappings[0]
 
     def _generate_code_mapping_from_tree(
         self,
@@ -397,6 +387,7 @@ def convert_stacktrace_frame_path_to_source_path(
     code_mapping: RepositoryProjectPathConfig,
     platform: str | None,
     sdk_name: str | None,
+    organization: Organization | None,
 ) -> str | None:
     """
     Applies the given code mapping to the given stacktrace frame and returns the source path.
@@ -405,6 +396,15 @@ def convert_stacktrace_frame_path_to_source_path(
     """
 
     stack_root = code_mapping.stack_root
+
+    has_new_logic = (
+        features.has("organizations:java-frame-munging-new-logic", organization, actor=None)
+        if organization
+        else False
+    )
+    if has_new_logic and platform == "java":
+        # This will cause the new munging logic to be applied
+        platform = "java-new-logic"
 
     # In most cases, code mappings get applied to frame.filename, but some platforms such as Java
     # contain folder info in other parts of the frame (e.g. frame.module="com.example.app.MainActivity"
@@ -610,13 +610,13 @@ def get_path_from_module(module: str, abs_path: str) -> tuple[str, str]:
 
     if len(parts) > 1:
         # com.example.foo.bar.Baz$InnerClass, Baz.kt ->
-        #    stack_root: com/example/
+        #    stack_root: com/example/foo/
         #    file_path:  com/example/foo/bar/Baz.kt
         granularity = STACK_ROOT_MAX_LEVEL - 1
 
         if parts[1] in SECOND_LEVEL_TLDS:
             # uk.co.example.foo.bar.Baz$InnerClass, Baz.kt ->
-            #    stack_root: uk/co/example/
+            #    stack_root: uk/co/example/foo/
             #    file_path:  uk/co/example/foo/bar/Baz.kt
             granularity = STACK_ROOT_MAX_LEVEL
 

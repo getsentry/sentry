@@ -31,6 +31,8 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
@@ -149,7 +151,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
             size="sm"
           />
         </Flex>
-        {!aiConfig.needsGenAIConsent && (
+        {!aiConfig.needsGenAiAcknowledgement && (
           <ButtonBarWrapper data-test-id="autofix-button-bar">
             <ButtonBar gap={1}>
               <Feature features={['organizations:autofix-seer-preferences']}>
@@ -177,15 +179,15 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
         )}
       </SeerDrawerNavigator>
 
-      {!aiConfig.isAutofixSetupLoading && !aiConfig.needsGenAIConsent && autofixData && (
-        <AutofixProgressBar autofixData={autofixData} />
-      )}
+      {!aiConfig.isAutofixSetupLoading &&
+        !aiConfig.needsGenAiAcknowledgement &&
+        autofixData && <AutofixProgressBar autofixData={autofixData} />}
       <SeerDrawerBody ref={scrollContainerRef} onScroll={handleScroll}>
         {aiConfig.isAutofixSetupLoading ? (
           <div data-test-id="ai-setup-loading-indicator">
             <LoadingIndicator />
           </div>
-        ) : aiConfig.needsGenAIConsent ? (
+        ) : aiConfig.needsGenAiAcknowledgement ? (
           <AiSetupDataConsent groupId={group.id} />
         ) : (
           <Fragment>
@@ -219,15 +221,22 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
   );
 }
 
-export const useOpenSeerDrawer = (
-  group: Group,
-  project: Project,
-  event: Event | undefined,
-  buttonRef?: React.RefObject<HTMLButtonElement | null>
-) => {
+export const useOpenSeerDrawer = ({
+  group,
+  project,
+  event,
+  buttonRef,
+}: {
+  event: Event | null;
+  group: Group;
+  project: Project;
+  buttonRef?: React.RefObject<HTMLButtonElement | null>;
+}) => {
   const {openDrawer} = useDrawer();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  return useCallback(() => {
+  const openSeerDrawer = useCallback(() => {
     if (!event) {
       return;
     }
@@ -280,8 +289,19 @@ export const useOpenSeerDrawer = (
         }
         return true;
       },
+      onClose: () => {
+        navigate({
+          pathname: location.pathname,
+          query: {
+            ...location.query,
+            seerDrawer: undefined,
+          },
+        });
+      },
     });
-  }, [openDrawer, buttonRef, event, group, project]);
+  }, [openDrawer, buttonRef, event, group, project, location, navigate]);
+
+  return {openSeerDrawer};
 };
 
 const StyledCard = styled('div')`

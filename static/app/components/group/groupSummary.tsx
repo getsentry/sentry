@@ -11,7 +11,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import marked from 'sentry/utils/marked';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import {type ApiQueryKey, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
@@ -290,12 +290,10 @@ export function GroupSummary({
                     <CardContent>
                       {card.insightElement}
                       {card.insight && (
-                        <div
-                          dangerouslySetInnerHTML={{
-                            __html: marked(
-                              preview ? card.insight.replace(/\*\*/g, '') : card.insight
-                            ),
-                          }}
+                        <MarkedText
+                          text={
+                            preview ? card.insight.replace(/\*\*/g, '') : card.insight
+                          }
                         />
                       )}
                     </CardContent>

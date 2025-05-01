@@ -5,6 +5,7 @@ from django.db import migrations
 import bitfield.models
 import sentry.db.models.fields.array
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -20,8 +21,6 @@ class Migration(CheckedMigration):
     #   change, it's completely safe to run the operation after the code has deployed.
     is_post_deployment = False
 
-    allow_run_sql = True
-
     dependencies = [
         ("hybridcloud", "0002_add_slug_reservation_replica_model"),
     ]
@@ -29,7 +28,7 @@ class Migration(CheckedMigration):
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     """
                     ALTER TABLE "hybridcloud_apikeyreplica" ADD COLUMN "scopes" BIGINT NOT NULL DEFAULT 0;
                     ALTER TABLE "hybridcloud_apikeyreplica" ADD COLUMN "scope_list" TEXT NULL;

@@ -28,7 +28,6 @@ from sentry.snuba import (
     metrics_enhanced_performance,
     metrics_performance,
     ourlogs,
-    spans_eap,
     spans_metrics,
     spans_rpc,
     transactions,
@@ -45,7 +44,7 @@ TOP_EVENTS_DATASETS = {
     metrics_performance,
     metrics_enhanced_performance,
     spans_metrics,
-    spans_eap,
+    spans_rpc,
     errors,
     transactions,
 }
@@ -74,10 +73,15 @@ class SeriesMeta(TypedDict):
     interval: float
 
 
+class GroupBy(TypedDict):
+    key: str
+    value: str
+
+
 class TimeSeries(TypedDict):
     values: list[Row]
-    yaxis: str
-    groupBy: NotRequired[list[str]]
+    yAxis: str
+    groupBy: NotRequired[list[GroupBy]]
     meta: SeriesMeta
 
 
@@ -160,7 +164,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                     raise ParseError(detail=f"{dataset} doesn't support topEvents yet")
 
             metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
-            use_rpc = dataset in {spans_eap, ourlogs, uptime_checks}
+            use_rpc = dataset in {spans_rpc, ourlogs, uptime_checks}
 
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
             try:
@@ -233,12 +237,12 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
         )
 
         if top_events > 0:
-            if dataset == spans_eap:
+            if dataset == spans_rpc:
                 return spans_rpc.run_top_events_timeseries_query(
                     params=snuba_params,
                     query_string=query,
                     y_axes=query_columns,
-                    raw_groupby=self.get_field_list(organization, request),
+                    raw_groupby=self.get_field_list(organization, request, param_name="groupBy"),
                     orderby=self.get_orderby(request),
                     limit=top_events,
                     referrer=referrer,
@@ -250,7 +254,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                 )
             return dataset.top_events_timeseries(
                 timeseries_columns=query_columns,
-                selected_columns=self.get_field_list(organization, request),
+                selected_columns=self.get_field_list(organization, request, param_name="groupBy"),
                 equations=self.get_equation_list(organization, request),
                 user_query=query,
                 snuba_params=snuba_params,
@@ -271,9 +275,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                 ),
             )
 
-        if dataset == spans_eap or dataset == ourlogs:
-            if dataset == spans_eap:
-                dataset = spans_rpc
+        if dataset in {spans_rpc, ourlogs}:
             return dataset.run_timeseries_query(
                 params=snuba_params,
                 query_string=query,
@@ -352,7 +354,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
 
         timeseries = TimeSeries(
             values=[],
-            yaxis=axis,
+            yAxis=axis,
             meta=series_meta,
         )
 

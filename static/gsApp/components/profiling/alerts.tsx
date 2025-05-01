@@ -2,11 +2,11 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
-import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
 import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
@@ -261,113 +261,6 @@ export const ProfilingBetaAlertBanner = withSubscription(
   {noLoader: true}
 );
 
-type UpgradePlanButtonProps = ButtonProps & {
-  children: React.ReactNode;
-  fallback: React.ReactNode;
-  organization: Organization;
-  subscription: Subscription;
-};
-
-const hidePromptTiers: string[] = [PlanTier.AM2, PlanTier.AM3];
-
-function UpgradePlanButton(props: UpgradePlanButtonProps) {
-  const {subscription, organization, ...buttonProps} = props;
-
-  if (hidePromptTiers.includes(subscription.planTier)) {
-    return <Fragment>{props.fallback}</Fragment>;
-  }
-
-  const userCanUpgradePlan = organization.access?.includes('org:billing');
-
-  if (subscription.canSelfServe) {
-    if (userCanUpgradePlan) {
-      return (
-        <Button
-          {...buttonProps}
-          onClick={evt => {
-            openAM2ProfilingUpsellModal({
-              organization,
-              subscription,
-            });
-            trackOpenModal({organization, subscription});
-            props.onClick?.(evt);
-          }}
-        >
-          {t('Update Plan')}
-        </Button>
-      );
-    }
-    return (
-      <Button
-        {...buttonProps}
-        to={makeLinkToOwnersAndBillingMembers(
-          organization,
-          `profiling_onboard_${
-            subscription.planTier === PlanTier.AM1 ? 'am1' : 'mmx'
-          }-alert`
-        )}
-        onClick={() => trackManageSubscriptionClicked({organization, subscription})}
-      >
-        {t('See who can update')}
-      </Button>
-    );
-  }
-  return (
-    <Button
-      {...buttonProps}
-      to={`/settings/${organization.slug}/billing/overview/?referrer=profiling_onboard_${
-        subscription.planTier === PlanTier.AM1 ? 'am1' : 'mmx'
-      }-alert`}
-      onClick={() => trackManageSubscriptionClicked({organization, subscription})}
-    >
-      {t('Manage subscription')}
-    </Button>
-  );
-}
-
-export const ProfilingUpgradePlanButton = withSubscription(UpgradePlanButton, {
-  noLoader: true,
-});
-
-interface ProfilingAM1OrMMXUpgradeProps {
-  fallback: React.ReactNode;
-  organization: Organization;
-  subscription: Subscription;
-}
-
-function ProfilingAM1OrMMXUpgradeComponent({
-  organization,
-  subscription,
-  fallback,
-}: ProfilingAM1OrMMXUpgradeProps) {
-  if (hidePromptTiers.includes(subscription.planTier)) {
-    return <Fragment>{fallback}</Fragment>;
-  }
-
-  const userCanUpgradePlan = organization.access?.includes('org:billing');
-  return (
-    <Fragment>
-      <h3>{t('Function level insights')}</h3>
-      <p>
-        {userCanUpgradePlan
-          ? t(
-              'Discover slow-to-execute or resource intensive functions within your application. To access profiling, please update to the latest version of your plan.'
-            )
-          : t(
-              'Discover slow-to-execute or resource intensive functions within your application. To access profiling, please request your account owner to update to the latest version of your plan.'
-            )}
-      </p>
-    </Fragment>
-  );
-}
-
-export const ProfilingAM1OrMMXUpgrade = withSubscription(
-  ProfilingAM1OrMMXUpgradeComponent,
-  {
-    noLoader: true,
-  }
-);
-
 interface ContinuousProfilingBetaAlertBannerInner {
   organization: Organization;
   subscription: Subscription;
@@ -381,55 +274,57 @@ function ContinuousProfilingBetaAlertBannerInner({
     return null;
   }
 
-  const eventTypes: EventType[] = ['profileDuration', 'profileDurationUI'];
+  const eventTypes: EventType[] = [
+    DataCategoryExact.PROFILE_DURATION,
+    DataCategoryExact.PROFILE_DURATION_UI,
+  ];
 
   return (
-    <Alert.Container>
-      <Alert
-        type="warning"
-        system
-        showIcon
-        trailingItems={
-          <AddEventsCTA
-            organization={organization}
-            subscription={subscription}
-            buttonProps={{
-              priority: 'default',
-              size: 'xs',
-            }}
-            eventTypes={eventTypes}
-            notificationType="overage_critical"
-            referrer={`overage-alert-${eventTypes.join('-')}`}
-            source="continuous-profiling-beta-trial-banner"
-          />
-        }
-      >
-        {subscription.isFree
-          ? isAm2Plan(subscription.plan)
+    <Alert
+      type="warning"
+      system
+      showIcon
+      trailingItems={
+        <AddEventsCTA
+          organization={organization}
+          subscription={subscription}
+          buttonProps={{
+            priority: 'default',
+            size: 'xs',
+            style: {marginBlock: `-${space(0.25)}`},
+          }}
+          eventTypes={eventTypes}
+          notificationType="overage_critical"
+          referrer={`overage-alert-${eventTypes.join('-')}`}
+          source="continuous-profiling-beta-trial-banner"
+        />
+      }
+    >
+      {subscription.isFree
+        ? isAm2Plan(subscription.plan)
+          ? tct(
+              '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a on-demand budget after this date. To avoid disruptions, upgrade to a paid plan.',
+              {bold: <b />}
+            )
+          : tct(
+              '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a pay-as-you-go budget after this date. To avoid disruptions, upgrade to a paid plan.',
+              {bold: <b />}
+            )
+        : isEnterprise(subscription)
+          ? tct(
+              '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. To avoid disruptions, contact your account manager before then to add it to your plan.',
+              {bold: <b />}
+            )
+          : isAm2Plan(subscription.plan)
             ? tct(
-                '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a on-demand budget after this date. To avoid disruptions, upgrade to a paid plan.',
+                '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require an on-demand budget after this date.',
                 {bold: <b />}
               )
             : tct(
-                '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a pay-as-you-go budget after this date. To avoid disruptions, upgrade to a paid plan.',
+                '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a pay-as-you-go budget after this date.',
                 {bold: <b />}
-              )
-          : isEnterprise(subscription)
-            ? tct(
-                '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. To avoid disruptions, contact your account manager before then to add it to your plan.',
-                {bold: <b />}
-              )
-            : isAm2Plan(subscription.plan)
-              ? tct(
-                  '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require an on-demand budget after this date.',
-                  {bold: <b />}
-                )
-              : tct(
-                  '[bold:Profiling Beta Ending Soon:] Your free access ends May 19, 2025. Profiling will require a pay-as-you-go budget after this date.',
-                  {bold: <b />}
-                )}
-      </Alert>
-    </Alert.Container>
+              )}
+    </Alert>
   );
 }
 

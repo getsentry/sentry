@@ -27,6 +27,7 @@ describe('LeftNavViewsHeader', function () {
 
   const defaultProps = {
     selectedProjectIds: [],
+    title: 'Issues',
   };
 
   const organization = OrganizationFixture({
@@ -52,7 +53,7 @@ describe('LeftNavViewsHeader', function () {
     it('does not render if not on a view', async function () {
       render(<LeftNavViewsHeader {...defaultProps} />, {
         organization,
-        enableRouterMocks: false,
+
         initialRouterConfig: onIssueFeedRouterConfig,
       });
 
@@ -68,7 +69,7 @@ describe('LeftNavViewsHeader', function () {
 
       const {router} = render(<LeftNavViewsHeader {...defaultProps} />, {
         organization,
-        enableRouterMocks: false,
+
         initialRouterConfig: onIssueViewRouterConfig,
       });
       renderGlobalModal();
@@ -115,7 +116,7 @@ describe('LeftNavViewsHeader', function () {
 
       render(<LeftNavViewsHeader {...defaultProps} />, {
         organization,
-        enableRouterMocks: false,
+
         initialRouterConfig: onIssueViewRouterConfig,
       });
 
