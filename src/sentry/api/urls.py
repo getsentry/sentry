@@ -708,6 +708,7 @@ from .endpoints.team_release_count import TeamReleaseCountEndpoint
 from .endpoints.team_stats import TeamStatsEndpoint
 from .endpoints.team_time_to_resolution import TeamTimeToResolutionEndpoint
 from .endpoints.team_unresolved_issue_age import TeamUnresolvedIssueAgeEndpoint
+from .endpoints.trace_explorer_ai_query import TraceExplorerAIQuery
 from .endpoints.user_organizationintegrations import UserOrganizationIntegrationsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
 from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
@@ -2051,6 +2052,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/trace-explorer-ai/setup/$",
         TraceExplorerAISetup.as_view(),
         name="sentry-api-0-trace-explorer-ai-setup",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/trace-explorer-ai/query/$",
+        TraceExplorerAIQuery.as_view(),
+        name="sentry-api-0-trace-explorer-ai-query",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/sentry-app-components/$",
