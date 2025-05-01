@@ -2051,6 +2051,47 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert meta["units"] == {"description": None, "tpm()": "1/minute"}
         assert meta["fields"] == {"description": "string", "tpm()": "rate"}
 
+    def test_p75_if(self):
+        self.store_spans(
+            [
+                self.create_span({"is_segment": True}, start_ts=self.ten_mins_ago, duration=1000),
+                self.create_span({"is_segment": True}, start_ts=self.ten_mins_ago, duration=1000),
+                self.create_span({"is_segment": True}, start_ts=self.ten_mins_ago, duration=2000),
+                self.create_span({"is_segment": True}, start_ts=self.ten_mins_ago, duration=2000),
+                self.create_span({"is_segment": True}, start_ts=self.ten_mins_ago, duration=3000),
+                self.create_span({"is_segment": True}, start_ts=self.ten_mins_ago, duration=3000),
+                self.create_span({"is_segment": True}, start_ts=self.ten_mins_ago, duration=3000),
+                self.create_span({"is_segment": True}, start_ts=self.ten_mins_ago, duration=4000),
+                self.create_span({"is_segment": False}, start_ts=self.ten_mins_ago, duration=5000),
+                self.create_span({"is_segment": False}, start_ts=self.ten_mins_ago, duration=5000),
+                self.create_span({"is_segment": False}, start_ts=self.ten_mins_ago, duration=5000),
+                self.create_span({"is_segment": False}, start_ts=self.ten_mins_ago, duration=5000),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["p75_if(span.duration, is_transaction, true)"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "p75_if(span.duration, is_transaction, true)": 3000,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+        assert meta["units"] == {"p75_if(span.duration, is_transaction, true)": "millisecond"}
+        assert meta["fields"] == {"p75_if(span.duration, is_transaction, true)": "duration"}
+
     def test_is_transaction(self):
         self.store_spans(
             [
