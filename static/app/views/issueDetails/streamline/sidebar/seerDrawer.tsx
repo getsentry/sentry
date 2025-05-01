@@ -14,6 +14,7 @@ import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixProgressBar} from 'sentry/components/events/autofix/autofixProgressBar';
 import {AutofixStartBox} from 'sentry/components/events/autofix/autofixStartBox';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
+import {AutofixStepType} from 'sentry/components/events/autofix/types';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
 import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
@@ -53,6 +54,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
   const organization = useOrganization();
   const {autofixData, triggerAutofix, reset} = useAiAutofix(group, event);
   const aiConfig = useAiConfig(group, project);
+  const location = useLocation();
 
   useRouteAnalyticsParams({autofix_status: autofixData?.status ?? 'none'});
 
@@ -85,12 +87,63 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
     }
   };
 
+  // Function to scroll to specific section
+  const scrollToSection = useCallback(
+    (sectionType: string | null) => {
+      if (!scrollContainerRef.current || !autofixData) {
+        return;
+      }
+
+      // Find the step with the matching type
+      const findStepByType = (type: string) => {
+        if (!autofixData?.steps?.length) {
+          return null;
+        }
+        const step = autofixData.steps.find(s => {
+          if (type === 'root_cause')
+            return s.type === AutofixStepType.ROOT_CAUSE_ANALYSIS;
+          if (type === 'solution') return s.type === AutofixStepType.SOLUTION;
+          if (type === 'code_changes') return s.type === AutofixStepType.CHANGES;
+          return false;
+        });
+        return step;
+      };
+
+      // We need to find the elements based on step IDs
+      if (sectionType) {
+        const step = findStepByType(sectionType);
+        if (step) {
+          const elementId = `autofix-step-${step.id}`;
+          const element = document.getElementById(elementId);
+          if (element) {
+            element.scrollIntoView({behavior: 'smooth'});
+            userScrolledRef.current = true; // User has explicitly requested a scroll
+          }
+        }
+      }
+    },
+    [autofixData]
+  );
+
   useEffect(() => {
     // Only auto-scroll if user hasn't manually scrolled
     if (!userScrolledRef.current && scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
     }
   }, [autofixData]);
+
+  // Handle scrollTo query parameter
+  useEffect(() => {
+    const scrollTo = location.query.scrollTo as string | undefined;
+    if (scrollTo) {
+      // Add a small delay to let the DOM fully render
+      const timeoutId = setTimeout(() => {
+        scrollToSection(scrollTo);
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    }
+    return () => {};
+  }, [location.query.scrollTo, scrollToSection, autofixData]);
 
   return (
     <SeerDrawerContainer className="seer-drawer-container">
