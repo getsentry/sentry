@@ -35,7 +35,7 @@ type GetConfigForIssueTypeParams = {eventOccurrenceType: number} | IssueCategory
 const BASE_CONFIG: IssueTypeConfig = {
   actions: {
     archiveUntilOccurrence: {enabled: true},
-    delete: {enabled: false},
+    delete: {enabled: true},
     deleteAndDiscard: {enabled: false},
     merge: {enabled: false},
     ignore: {enabled: false},
