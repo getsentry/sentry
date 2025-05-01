@@ -23,6 +23,8 @@ from sentry.integrations.github.integration import (
     GitHubInstallationError,
     GitHubIntegration,
     GitHubIntegrationProvider,
+    get_eligible_multi_org_installations,
+    get_owner_github_organizations,
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -226,6 +228,42 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         responses.add(responses.GET, self.base_url + "/repos/Test-Organization/foo/hooks", json=[])
 
+        # Mock response from GH /users/memberships endpoint
+        # (what is this user's role in each org, with this integration installed on)
+        responses.add(
+            responses.GET,
+            f"{self.base_url}/user/memberships/orgs",
+            json=[
+                {
+                    "state": "active",
+                    "role": "admin",
+                    "organization": {
+                        "login": "santry",
+                        "id": 1,
+                        "avatar_url": "https://all-the.bufo.zone/bufo-adding-bugs-to-the-code.gif",
+                    },
+                },
+                {
+                    "state": "disabled",
+                    "role": "admin",
+                    "organization": {
+                        "login": "bufo-bot",
+                        "id": 2,
+                        "avatar_url": "https://all-the.bufo.zone/bufo-achieving-coding-flow.png",
+                    },
+                },
+                {
+                    "state": "active",
+                    "role": "member",
+                    "organization": {
+                        "login": "poggers-org",
+                        "id": 3,
+                        "avatar_url": "https://all-the.bufo.zone/bufo-bonk.png",
+                    },
+                },
+            ],
+        )
+
         # Logic to get a tree for a repo
         # https://api.github.com/repos/getsentry/sentry/git/trees/master?recursive=1
         for repo_name, values in TREE_RESPONSES.items():
@@ -300,7 +338,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             "{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
         )
         # Call to the Github installations/installation_id endpoint
-        auth_header = responses.calls[3].request.headers["Authorization"]
+        auth_header = responses.calls[4].request.headers["Authorization"]
         assert auth_header == "Bearer jwt_token_1"
 
         self.assertDialogSuccess(resp)
@@ -1263,10 +1301,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
         assert resp.status_code == 200
-        auth_header = responses.calls[3].request.headers["Authorization"]
+        auth_header = responses.calls[4].request.headers["Authorization"]
         assert auth_header == "Bearer jwt_token_1"
         assert (
-            responses.calls[3].request.url
+            responses.calls[4].request.url
             == f"https://api.github.com/app/installations/{chosen_installation_id}"
         )
 
@@ -1325,10 +1363,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
             "{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
         )
 
-        auth_header = responses.calls[3].request.headers["Authorization"]
+        auth_header = responses.calls[4].request.headers["Authorization"]
         assert auth_header == "Bearer jwt_token_1"
         assert (
-            responses.calls[3].request.url
+            responses.calls[4].request.url
             == f"https://api.github.com/app/installations/{self.installation_id}"
         )
 
@@ -1340,3 +1378,35 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert OrganizationIntegration.objects.filter(
             organization_id=self.organization.id, integration=integration
         ).exists()
+
+    @responses.activate
+    def test_github_installation_gets_owner_orgs(self):
+        self._setup_with_existing_installations()
+
+        owner_orgs = get_owner_github_organizations(self.access_token)
+
+        assert owner_orgs == ["santry"]
+
+    @responses.activate
+    def test_github_installation_filters_valid_installations(self):
+        self._setup_with_existing_installations()
+
+        owner_orgs = get_owner_github_organizations(self.access_token)
+        assert owner_orgs == ["santry"]
+
+        installation_info = get_eligible_multi_org_installations(
+            access_token=self.access_token, owner_orgs=owner_orgs
+        )
+
+        assert installation_info == [
+            {
+                "installation_id": 1,
+                "github_organization": "santry",
+                "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pitchforks.png",
+            },
+            {
+                "installation_id": 2,
+                "github_organization": "bufo-bot",
+                "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pog.png",
+            },
+        ]
