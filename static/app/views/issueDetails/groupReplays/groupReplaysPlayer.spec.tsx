@@ -44,7 +44,7 @@ const mockReplay = ReplayReader.factory({
 });
 
 const render = (children: React.ReactElement, orgParams: Partial<Organization> = {}) => {
-  const {router, organization} = initializeOrg({
+  const {organization} = initializeOrg({
     organization: {slug: mockOrgSlug, ...orgParams},
     router: {
       routes: [
@@ -60,12 +60,11 @@ const render = (children: React.ReactElement, orgParams: Partial<Organization> =
   });
 
   return baseRender(children, {
-    router,
     organization,
   });
 };
 
-describe('ReplayClipPreview', () => {
+describe('GroupReplaysPlayer', () => {
   beforeEach(() => {
     mockIsFullscreen.mockReturnValue(false);
 
