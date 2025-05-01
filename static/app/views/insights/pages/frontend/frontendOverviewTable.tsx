@@ -32,6 +32,7 @@ type Row = Pick<
   | 'p95(span.duration)'
   | 'failure_rate()'
   | 'time_spent_percentage(span.duration)'
+  | 'count_unique(user)'
   | 'sum(span.duration)'
   | 'performance_score(measurements.score.total)'
 >;
@@ -45,6 +46,7 @@ type Column = GridColumnHeader<
   | 'p95(span.duration)'
   | 'failure_rate()'
   | 'time_spent_percentage(span.duration)'
+  | 'count_unique(user)'
   | 'sum(span.duration)'
   | 'performance_score(measurements.score.total)'
 >;
@@ -81,6 +83,11 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
+    key: 'count_unique(user)',
+    name: t('Users'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
     key: 'time_spent_percentage(span.duration)',
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
@@ -100,6 +107,7 @@ const SORTABLE_FIELDS = [
   'p50(span.duration)',
   'p95(span.duration)',
   'failure_rate()',
+  'count_unique(user)',
   'time_spent_percentage(span.duration)',
   'performance_score(measurements.score.total)',
 ] as const;

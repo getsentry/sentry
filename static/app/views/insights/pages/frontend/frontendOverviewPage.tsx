@@ -127,8 +127,9 @@ function EAPOverviewPage() {
   const showOnboarding = onboardingProject !== undefined;
 
   const doubleChartRowCharts = [
-    PerformanceWidgetSetting.SLOW_HTTP_OPS,
-    PerformanceWidgetSetting.SLOW_RESOURCE_OPS,
+    PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS,
+    PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES,
+    PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES,
   ];
   const tripleChartRowCharts = filterAllowedChartsMetrics(
     organization,
@@ -143,12 +144,6 @@ function EAPOverviewPage() {
     ],
     mepSetting
   );
-
-  if (organization.features.includes('insights-initial-modules')) {
-    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
-    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES);
-    doubleChartRowCharts.unshift(PerformanceWidgetSetting.HIGHEST_OPPORTUNITY_PAGES);
-  }
 
   const getFreeTextFromQuery = (query: string) => {
     const conditions = new MutableSearch(query);
@@ -202,6 +197,7 @@ function EAPOverviewPage() {
         'failure_rate()',
         'time_spent_percentage(span.duration)',
         'performance_score(measurements.score.total)',
+        'count_unique(user)',
         'sum(span.duration)',
       ],
     },
