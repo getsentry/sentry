@@ -345,6 +345,60 @@ class GitHubIntegrationTest(IntegrationTestCase):
         return resp
 
     @responses.activate
+    def test_plugin_migration(self):
+        with assume_test_silo_mode(SiloMode.REGION):
+            accessible_repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.com/Test-Organization/foo",
+                provider="github",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+            )
+
+            inaccessible_repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Not-My-Org/other",
+                provider="github",
+                external_id=321,
+                config={"name": "Not-My-Org/other"},
+            )
+
+        with self.tasks():
+            self.assert_setup_flow()
+
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            # Updates the existing Repository to belong to the new Integration
+            assert Repository.objects.get(id=accessible_repo.id).integration_id == integration.id
+            # Doesn't touch Repositories not accessible by the new Integration
+            assert Repository.objects.get(id=inaccessible_repo.id).integration_id is None
+
+    @responses.activate
+    def test_basic_flow(self):
+        with self.tasks():
+            self.assert_setup_flow()
+
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        assert integration.external_id == self.installation_id
+        assert integration.name == "Test Organization"
+        assert integration.metadata == {
+            "access_token": self.access_token,
+            # The metadata doesn't get saved with the timezone "Z" character
+            "expires_at": self.expires_at[:-1],
+            "icon": "http://example.com/avatar.png",
+            "domain_name": "github.com/Test-Organization",
+            "account_type": "Organization",
+            "account_id": 60591805,
+        }
+        oi = OrganizationIntegration.objects.get(
+            integration=integration, organization_id=self.organization.id
+        )
+        assert oi.config == {}
+
+    @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_github_installed_on_another_org(self, mock_record):
         self._stub_github()
@@ -406,60 +460,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert OrganizationIntegration.objects.filter(
             organization_id=self.organization_2.id, integration=integration
         ).exists()
-
-    @responses.activate
-    def test_plugin_migration(self):
-        with assume_test_silo_mode(SiloMode.REGION):
-            accessible_repo = Repository.objects.create(
-                organization_id=self.organization.id,
-                name="Test-Organization/foo",
-                url="https://github.com/Test-Organization/foo",
-                provider="github",
-                external_id=123,
-                config={"name": "Test-Organization/foo"},
-            )
-
-            inaccessible_repo = Repository.objects.create(
-                organization_id=self.organization.id,
-                name="Not-My-Org/other",
-                provider="github",
-                external_id=321,
-                config={"name": "Not-My-Org/other"},
-            )
-
-        with self.tasks():
-            self.assert_setup_flow()
-
-        integration = Integration.objects.get(provider=self.provider.key)
-
-        with assume_test_silo_mode(SiloMode.REGION):
-            # Updates the existing Repository to belong to the new Integration
-            assert Repository.objects.get(id=accessible_repo.id).integration_id == integration.id
-            # Doesn't touch Repositories not accessible by the new Integration
-            assert Repository.objects.get(id=inaccessible_repo.id).integration_id is None
-
-    @responses.activate
-    def test_basic_flow(self):
-        with self.tasks():
-            self.assert_setup_flow()
-
-        integration = Integration.objects.get(provider=self.provider.key)
-
-        assert integration.external_id == self.installation_id
-        assert integration.name == "Test Organization"
-        assert integration.metadata == {
-            "access_token": self.access_token,
-            # The metadata doesn't get saved with the timezone "Z" character
-            "expires_at": self.expires_at[:-1],
-            "icon": "http://example.com/avatar.png",
-            "domain_name": "github.com/Test-Organization",
-            "account_type": "Organization",
-            "account_id": 60591805,
-        }
-        oi = OrganizationIntegration.objects.get(
-            integration=integration, organization_id=self.organization.id
-        )
-        assert oi.config == {}
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
