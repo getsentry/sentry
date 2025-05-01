@@ -16,12 +16,12 @@ import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import type {Color} from 'sentry/utils/theme';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import {SidebarButton} from 'sentry/views/nav/primary/components';
 import {
   PrimaryButtonOverlay,
   usePrimaryButtonOverlay,
 } from 'sentry/views/nav/primary/primaryButtonOverlay';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
 import useSubscription from 'getsentry/hooks/useSubscription';

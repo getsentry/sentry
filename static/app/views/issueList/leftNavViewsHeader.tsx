@@ -25,7 +25,7 @@ import {useDeleteGroupSearchView} from 'sentry/views/issueList/mutations/useDele
 import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
 import {makeFetchGroupSearchViewKey} from 'sentry/views/issueList/queries/useFetchGroupSearchView';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 type LeftNavViewsHeaderProps = {
   selectedProjectIds: number[];

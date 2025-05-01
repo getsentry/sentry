@@ -35,7 +35,7 @@ import {
 import {useExploreSpansTour} from 'sentry/views/explore/spans/tour';
 import {StarSavedQueryButton} from 'sentry/views/explore/starSavedQueryButton';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 export function ExploreContent() {
   return (

@@ -13,7 +13,7 @@ export function makeDiscoverPathname({
   path: '/' | `/${string}/`;
 }) {
   return normalizeUrl(
-    prefersStackedNav()
+    prefersStackedNav(organization)
       ? `/organizations/${organization.slug}/${DISCOVER_BASE_PATHNAME}${path}`
       : `/organizations/${organization.slug}/${LEGACY_DISCOVER_BASE_PATHNAME}${path}`
   );

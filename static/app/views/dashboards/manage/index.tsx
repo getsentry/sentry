@@ -45,7 +45,7 @@ import {
 import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
 import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
 import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import RouteError from 'sentry/views/routeError';
 
 import DashboardGrid from './dashboardGrid';
