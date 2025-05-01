@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {getContextIcon} from 'sentry/components/events/contexts/utils';
-import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
+import {HighlightsIconSummary as TransactionEventHighlights} from 'sentry/components/events/highlights/highlightsIconSummary';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
@@ -315,13 +315,13 @@ function Highlights({rootEventResults, organization, project}: HighlightsProps) 
   }
 
   return (
-    <HighlightsIconSummaryWrapper>
-      <HighlightsIconSummary event={rootEventResults.data} />
-    </HighlightsIconSummaryWrapper>
+    <TransactionEventHighlightsWrapper>
+      <TransactionEventHighlights event={rootEventResults.data} />
+    </TransactionEventHighlightsWrapper>
   );
 }
 
-const HighlightsIconSummaryWrapper = styled('span')`
+const TransactionEventHighlightsWrapper = styled('span')`
   display: flex;
   align-items: center;
   & > div {
