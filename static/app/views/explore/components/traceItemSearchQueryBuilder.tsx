@@ -178,7 +178,7 @@ function useFilterKeySections(
         label: 'Custom Tags',
         children: Object.keys(stringAttributes).filter(key => !predefined.has(key)),
       },
-    ];
+    ].filter(section => section.children.length);
   }, [stringAttributes, itemType]);
 }
 
