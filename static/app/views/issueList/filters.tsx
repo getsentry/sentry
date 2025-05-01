@@ -12,6 +12,10 @@ import IssueListSortOptions from 'sentry/views/issueList/actions/sortOptions';
 import {IssueSearchWithSavedSearches} from 'sentry/views/issueList/issueSearchWithSavedSearches';
 import {IssueViewSaveButton} from 'sentry/views/issueList/issueViews/issueViewSaveButton';
 import type {IssueSortOptions} from 'sentry/views/issueList/utils';
+import {
+  usePrefersOldNavWithEnforcedStackedNav,
+  usePrefersStackedNav,
+} from 'sentry/views/nav/usePrefersStackedNav';
 
 interface Props {
   onSearch: (query: string) => void;
@@ -24,12 +28,11 @@ function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
   const organization = useOrganization();
 
   const hasIssueViews = organization.features.includes('issue-stream-custom-views');
-  const hasIssueViewSharing = organization.features.includes(
-    'enforce-stacked-navigation'
-  );
+  const prefersStackedNav = usePrefersStackedNav();
+  const prefersOldNavWithEnforcement = usePrefersOldNavWithEnforcedStackedNav();
 
   return (
-    <FiltersContainer hasIssueViewSharing={hasIssueViewSharing}>
+    <FiltersContainer hasIssueViewSharing={prefersStackedNav}>
       <GuideAnchor
         target="issue_views_page_filters_persistence"
         disabled={!hasIssueViews}
@@ -52,7 +55,9 @@ function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
           showIcon={false}
         />
 
-        {hasIssueViewSharing && <IssueViewSaveButton query={query} sort={sort} />}
+        {prefersStackedNav && !prefersOldNavWithEnforcement && (
+          <IssueViewSaveButton query={query} sort={sort} />
+        )}
       </SortSaveContainer>
     </FiltersContainer>
   );
