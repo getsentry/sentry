@@ -14,7 +14,7 @@ import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceIte
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 function FeedbackButton() {
   const openForm = useFeedbackForm();

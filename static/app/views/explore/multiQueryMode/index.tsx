@@ -13,7 +13,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {getTitleFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/title';
 import {MultiQueryModeContent} from 'sentry/views/explore/multiQueryMode/content';
 import {StarSavedQueryButton} from 'sentry/views/explore/starSavedQueryButton';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 export default function MultiQueryMode() {
