@@ -371,7 +371,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         slug: value.project_slug,
       });
 
-      let parentNode;
+      let parentNode: TraceTreeNode<TraceTree.NodeValue>;
       if (isEAPTransaction(value)) {
         // For collapsed eap-transactions we still render the embedded eap-transactions as visible children.
         // We parent the eap-transactions under the closest collapsed eap-transaction node. Mimics the behavior

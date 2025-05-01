@@ -51,7 +51,9 @@ function TraceActionsMenu({
             ? t('Open Events in Explore')
             : t('Open Events in Discover'),
           onAction: () => {
-            let target;
+            let target:
+              | ReturnType<typeof getSearchInExploreTarget>
+              | ReturnType<typeof traceEventView.getResultsViewUrlTarget>;
 
             if (hasExploreEnabled) {
               const key = 'trace';

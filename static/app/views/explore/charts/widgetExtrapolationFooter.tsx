@@ -51,7 +51,7 @@ export function WidgetExtrapolationFooter({
     );
   }
 
-  let loader;
+  let loader: React.ReactNode;
   // Show the loader if we haven't received best effort results yet
   if (
     samplingMode !== SAMPLING_MODE.BEST_EFFORT &&

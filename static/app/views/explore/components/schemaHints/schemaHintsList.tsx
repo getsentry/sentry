@@ -204,7 +204,7 @@ function SchemaHintsList({
       const container = schemaHintsContainerRef.current;
       const containerRect = container.getBoundingClientRect();
 
-      let lastVisibleIndex;
+      let lastVisibleIndex: number;
 
       // don't use the tagListState if the full list hasn't loaded yet
       if (tagListState && !isLoading) {

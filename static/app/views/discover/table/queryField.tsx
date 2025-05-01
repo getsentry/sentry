@@ -576,7 +576,8 @@ class _QueryField extends Component<Props> {
     if (shouldRenderTag === false) {
       return null;
     }
-    let text, tagType;
+    let text: string;
+    let tagType: 'success' | 'highlight' | 'warning' | undefined = undefined;
     switch (kind) {
       case FieldValueKind.FUNCTION:
         text = 'f(x)';
@@ -606,7 +607,6 @@ class _QueryField extends Component<Props> {
       default:
         text = kind;
     }
-    // @ts-expect-error TS(2322): Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
     return <Tag type={tagType}>{text}</Tag>;
   }
 
