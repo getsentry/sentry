@@ -75,6 +75,14 @@ export enum SpanFields {
   USER = 'user',
 }
 
+type WebVitalsMeasurements =
+  | 'measurements.score.cls'
+  | 'measurements.score.fcp'
+  | 'measurements.score.inp'
+  | 'measurements.score.lcp'
+  | 'measurements.score.ttfb'
+  | 'measurements.score.total';
+
 type SpanBooleanFields =
   | SpanFields.CACHE_HIT
   | SpanFields.IS_TRANSACTION
@@ -173,6 +181,8 @@ export const SPAN_FUNCTIONS = [
   'failure_rate',
 ] as const;
 
+export const WEB_VITAL_FUNCTIONS = ['performance_score'] as const;
+
 type BreakpointCondition = 'less' | 'greater';
 
 type RegressionFunctions = [
@@ -184,6 +194,8 @@ type RegressionFunctions = [
 type SpanAnyFunction = `any(${string})`;
 
 export type SpanFunctions = (typeof SPAN_FUNCTIONS)[number];
+
+type WebVitalsFunctions = (typeof WEB_VITAL_FUNCTIONS)[number];
 
 export type SpanMetricsResponse = {
   [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
@@ -226,6 +238,8 @@ export type EAPSpanResponse = {
   [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
 } & {
   [Property in SpanFunctions as `${Property}()`]: number;
+} & {
+  [Property in WebVitalsMeasurements as `${WebVitalsFunctions}(${Property})`]: number;
 } & {
   [Property in SpanStringFields as `${Property}`]: string;
 } & {
