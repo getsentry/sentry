@@ -217,13 +217,16 @@ export const useAiAutofix = (
       );
 
       try {
-        const response = await api.requestPromise(`/issues/${group.id}/autofix/`, {
-          method: 'POST',
-          data: {
-            event_id: event.id,
-            instruction,
-          },
-        });
+        const response = await api.requestPromise(
+          `/organizations/${orgSlug}/issues/${group.id}/autofix/`,
+          {
+            method: 'POST',
+            data: {
+              event_id: event.id,
+              instruction,
+            },
+          }
+        );
         setCurrentRunId(response.run_id ?? null);
         queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, group.id)});
       } catch (e) {

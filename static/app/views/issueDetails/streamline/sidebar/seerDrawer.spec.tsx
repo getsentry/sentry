@@ -147,7 +147,7 @@ describe('SeerDrawer', () => {
       }),
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       body: {autofix: null},
     });
 
@@ -170,7 +170,7 @@ describe('SeerDrawer', () => {
 
   it('renders initial state with Start Autofix button', async () => {
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       body: {autofix: null},
     });
 
@@ -204,7 +204,7 @@ describe('SeerDrawer', () => {
       }),
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       body: {autofix: null},
     });
 
@@ -225,12 +225,12 @@ describe('SeerDrawer', () => {
 
   it('triggers autofix on clicking the Start button', async () => {
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       method: 'POST',
       body: {autofix: null},
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       method: 'GET',
       body: {autofix: null},
     });
@@ -264,7 +264,7 @@ describe('SeerDrawer', () => {
       }),
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       body: {autofix: null},
     });
 
@@ -295,7 +295,7 @@ describe('SeerDrawer', () => {
       }),
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       body: {autofix: null},
     });
 
@@ -339,7 +339,7 @@ describe('SeerDrawer', () => {
       }),
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       body: {autofix: null},
     });
 
@@ -372,7 +372,7 @@ describe('SeerDrawer', () => {
       }),
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       body: {autofix: mockAutofixData},
     });
 
@@ -393,7 +393,7 @@ describe('SeerDrawer', () => {
 
   it('displays Start Over button with autofix data', async () => {
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       body: {autofix: mockAutofixData},
     });
 
@@ -406,7 +406,7 @@ describe('SeerDrawer', () => {
 
   it('displays Start Over button even without autofix data', async () => {
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       body: {autofix: null},
     });
 
@@ -423,7 +423,7 @@ describe('SeerDrawer', () => {
 
   it('resets autofix on clicking the start over button', async () => {
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       body: {autofix: mockAutofixData},
     });
 
@@ -453,7 +453,7 @@ describe('SeerDrawer', () => {
       }),
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       body: {autofix: null},
     });
     MockApiClient.addMockResponse({
@@ -492,7 +492,7 @@ describe('SeerDrawer', () => {
       }),
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       body: {autofix: mockAutofixWithReadableRepos},
     });
 
@@ -521,7 +521,7 @@ describe('SeerDrawer', () => {
       }),
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       body: {autofix: mockAutofixWithUnreadableGithubRepos},
     });
 
@@ -551,7 +551,7 @@ describe('SeerDrawer', () => {
       }),
     });
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       body: {autofix: mockAutofixWithUnreadableNonGithubRepos},
     });
 
