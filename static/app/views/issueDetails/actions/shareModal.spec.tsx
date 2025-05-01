@@ -12,7 +12,7 @@ import ShareIssueModal from 'sentry/views/issueDetails/actions/shareModal';
 
 describe('ShareIssueModal', () => {
   const project = ProjectFixture();
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({features: ['shared-issues']});
   const onToggle = jest.fn();
 
   beforeEach(() => {
