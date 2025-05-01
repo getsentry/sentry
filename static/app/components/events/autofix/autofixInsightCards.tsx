@@ -104,10 +104,7 @@ function AutofixInsightCard({
     <ContentWrapper>
       <AnimatePresence initial={isNewInsight}>
         <AnimationWrapper key="content">
-          <InsightContainer
-            data-new-insight={isNewInsight ? 'true' : 'false'}
-            expanded={expanded}
-          >
+          <InsightContainer data-new-insight={isNewInsight ? 'true' : 'false'}>
             {isEditing ? (
               <EditContainer>
                 <form onSubmit={handleSubmit}>
@@ -159,7 +156,10 @@ function AutofixInsightCard({
                   stepIndex={stepIndex}
                   retainInsightCardIndex={insightCardAboveIndex}
                 >
-                  <MiniHeader dangerouslySetInnerHTML={truncatedTitleHtml} />
+                  <MiniHeader
+                    dangerouslySetInnerHTML={truncatedTitleHtml}
+                    expanded={expanded}
+                  />
                 </AutofixHighlightWrapper>
 
                 <RightSection>
@@ -553,7 +553,7 @@ const CardsStack = styled('div')`
   gap: 0;
 `;
 
-const InsightContainer = styled(motion.div)<{expanded?: boolean}>`
+const InsightContainer = styled(motion.div)`
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
   margin-bottom: 0;
@@ -640,7 +640,7 @@ const RethinkButtonContainer = styled('div')<{parentAlignment?: 'start' | 'cente
 
 const ContentWrapper = styled('div')``;
 
-const MiniHeader = styled('p')`
+const MiniHeader = styled('p')<{expanded?: boolean}>`
   padding-top: ${space(0.25)};
   padding-bottom: ${space(0.25)};
   padding-left: ${space(1)};
@@ -648,7 +648,7 @@ const MiniHeader = styled('p')`
   margin: 0;
   flex: 1;
   word-break: break-word;
-  color: ${p => p.theme.subText};
+  color: ${p => (p.expanded ? p.theme.textColor : p.theme.subText)};
 `;
 
 const ContextBody = styled('div')`
