@@ -90,7 +90,7 @@ export function useGroupSummary(
 
   const refresh = () => {
     queryClient.invalidateQueries({
-      queryKey: [`/organizations/${organization.slug}/issues/${group.id}/summarize/`],
+      queryKey: makeGroupSummaryQueryKey(organization.slug, group.id),
       exact: false,
     });
     refetch();
@@ -140,10 +140,17 @@ export function GroupSummary({
   useEffect(() => {
     if (isFixable && !isPending && aiConfig.hasAutofix) {
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(group.id),
+        queryKey: makeAutofixQueryKey(organization.slug, group.id),
       });
     }
-  }, [isFixable, isPending, aiConfig.hasAutofix, group.id, queryClient]);
+  }, [
+    isFixable,
+    isPending,
+    aiConfig.hasAutofix,
+    group.id,
+    queryClient,
+    organization.slug,
+  ]);
 
   const eventDetailsItems = [
     {

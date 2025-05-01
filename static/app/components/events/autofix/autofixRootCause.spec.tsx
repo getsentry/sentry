@@ -9,7 +9,7 @@ describe('AutofixRootCause', function () {
 
   beforeEach(function () {
     mockApi = MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/update/',
+      url: '/organizations/org-slug/issues/1/autofix/update/',
       method: 'POST',
       body: {success: true},
     });
@@ -114,7 +114,7 @@ describe('AutofixRootCause', function () {
     await waitFor(
       () => {
         expect(mockApi).toHaveBeenCalledWith(
-          '/issues/1/autofix/update/',
+          '/organizations/org-slug/issues/1/autofix/update/',
           expect.objectContaining({
             method: 'POST',
             data: {

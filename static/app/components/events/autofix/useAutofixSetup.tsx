@@ -5,6 +5,7 @@ import {
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface AutofixSetupRepoDefinition extends AutofixRepoDefinition {
   ok: boolean;
@@ -26,11 +27,12 @@ export interface AutofixSetupResponse {
 }
 
 function makeAutofixSetupQueryKey(
+  orgSlug: string,
   groupId: string,
   checkWriteAccess?: boolean
 ): ApiQueryKey {
   return [
-    `/issues/${groupId}/autofix/setup/${checkWriteAccess ? '?check_write_access=true' : ''}`,
+    `/organizations/${orgSlug}/issues/${groupId}/autofix/setup/${checkWriteAccess ? '?check_write_access=true' : ''}`,
   ];
 }
 
@@ -38,8 +40,10 @@ export function useAutofixSetup(
   {groupId, checkWriteAccess}: {groupId: string; checkWriteAccess?: boolean},
   options: Omit<UseApiQueryOptions<AutofixSetupResponse, RequestError>, 'staleTime'> = {}
 ) {
+  const orgSlug = useOrganization().slug;
+
   const queryData = useApiQuery<AutofixSetupResponse>(
-    makeAutofixSetupQueryKey(groupId, checkWriteAccess),
+    makeAutofixSetupQueryKey(orgSlug, groupId, checkWriteAccess),
     {
       enabled: Boolean(groupId),
       staleTime: 0,

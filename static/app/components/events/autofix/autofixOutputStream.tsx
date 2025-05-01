@@ -17,6 +17,7 @@ import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 
 function StreamContentText({stream}: {stream: string}) {
   const [displayedText, setDisplayedText] = useState('');
@@ -119,21 +120,26 @@ export function AutofixOutputStream({
     enabled: !!activeLog,
   });
 
+  const orgSlug = useOrganization().slug;
+
   const {mutate: send} = useMutation({
     mutationFn: (params: {message: string}) => {
-      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
-        method: 'POST',
-        data: {
-          run_id: runId,
-          payload: {
-            type: 'user_message',
-            text: params.message,
+      return api.requestPromise(
+        `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
+        {
+          method: 'POST',
+          data: {
+            run_id: runId,
+            payload: {
+              type: 'user_message',
+              text: params.message,
+            },
           },
-        },
-      });
+        }
+      );
     },
     onSuccess: _ => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
       addSuccessMessage('Thanks for the input.');
     },
     onError: () => {

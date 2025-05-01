@@ -110,7 +110,7 @@ describe('AutofixInsightCards', () => {
 
   it('submits edit request when form is submitted', async () => {
     const mockApi = MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/update/',
+      url: '/organizations/org-slug/issues/1/autofix/update/',
       method: 'POST',
     });
 
@@ -125,7 +125,7 @@ describe('AutofixInsightCards', () => {
     await userEvent.click(submitButton);
 
     expect(mockApi).toHaveBeenCalledWith(
-      '/issues/1/autofix/update/',
+      '/organizations/org-slug/issues/1/autofix/update/',
       expect.objectContaining({
         method: 'POST',
         data: expect.objectContaining({
@@ -143,7 +143,7 @@ describe('AutofixInsightCards', () => {
 
   it('shows success message after successful edit submission', async () => {
     MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/update/',
+      url: '/organizations/org-slug/issues/1/autofix/update/',
       method: 'POST',
     });
 
@@ -164,7 +164,7 @@ describe('AutofixInsightCards', () => {
 
   it('shows error message after failed edit submission', async () => {
     MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/update/',
+      url: '/organizations/org-slug/issues/1/autofix/update/',
       method: 'POST',
       statusCode: 500,
     });
