@@ -62,7 +62,10 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
   const {tags: numberTags} = useSpanTags('number');
   const {tags: stringTags} = useSpanTags('string');
 
-  const paginationAnalyticsEvent = usePaginationAnalytics(result.data?.length ?? 0);
+  const paginationAnalyticsEvent = usePaginationAnalytics(
+    'samples',
+    result.data?.length ?? 0
+  );
 
   return (
     <Fragment>

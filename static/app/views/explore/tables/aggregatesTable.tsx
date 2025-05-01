@@ -85,7 +85,10 @@ export function AggregatesTable({
 
   const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 2); // -2 because getColorPalette artificially adds 1, I'm not sure why
 
-  const paginationAnalyticsEvent = usePaginationAnalytics(result.data?.length ?? 0);
+  const paginationAnalyticsEvent = usePaginationAnalytics(
+    'aggregates',
+    result.data?.length ?? 0
+  );
 
   return (
     <Fragment>
