@@ -2216,12 +2216,12 @@ function buildRoutes() {
         component={make(() => import('sentry/views/issueList/pages/errorsOutages'))}
       />
       <Route
-        path="metrics/"
-        component={make(() => import('sentry/views/issueList/pages/metrics'))}
+        path="regressions/"
+        component={make(() => import('sentry/views/issueList/pages/regressions'))}
       />
       <Route
-        path="best-practices/"
-        component={make(() => import('sentry/views/issueList/pages/bestPractices'))}
+        path="warnings/"
+        component={make(() => import('sentry/views/issueList/pages/warnings'))}
       />
       <Route
         path="views/"
