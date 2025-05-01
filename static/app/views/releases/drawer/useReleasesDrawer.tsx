@@ -1,11 +1,12 @@
 import {useEffect} from 'react';
 
 import useDrawer from 'sentry/components/globalDrawer';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import {useQuery} from 'sentry/utils/queryClient';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {ReleasesDrawer} from 'sentry/views/releases/drawer/releasesDrawer';
 
 import {
   cleanLocationQuery,
@@ -20,21 +21,32 @@ export function useReleasesDrawer() {
   const navigate = useNavigate();
   const location = useLocation();
   const {openDrawer} = useDrawer();
+  // Dynamically import the ReleasesDrawer component to avoid unnecessary bundle size + circular deps with version & versionHoverCard components
+  const {data: ReleasesDrawer, isPending} = useQuery({
+    queryKey: ['ReleasesDrawerComponent'],
+    queryFn: async () => {
+      const mod = await import('sentry/views/releases/drawer/releasesDrawer');
+      return mod.ReleasesDrawer;
+    },
+  });
 
   useEffect(() => {
     if (rd === 'show') {
-      openDrawer(() => <ReleasesDrawer />, {
-        shouldCloseOnLocationChange: nextLocation => {
-          return nextLocation.query[ReleasesDrawerFields.DRAWER] !== 'show';
-        },
-        ariaLabel: t('Releases drawer'),
-        transitionProps: {stiffness: 1000},
-        onClose: () => {
-          navigate({
-            query: cleanLocationQuery(location.query),
-          });
-        },
-      });
+      openDrawer(
+        () => (!isPending && ReleasesDrawer ? <ReleasesDrawer /> : <LoadingIndicator />),
+        {
+          shouldCloseOnLocationChange: nextLocation => {
+            return nextLocation.query[ReleasesDrawerFields.DRAWER] !== 'show';
+          },
+          ariaLabel: t('Releases drawer'),
+          transitionProps: {stiffness: 1000},
+          onClose: () => {
+            navigate({
+              query: cleanLocationQuery(location.query),
+            });
+          },
+        }
+      );
     }
-  }, [rd, location.query, navigate, openDrawer]);
+  }, [rd, location.query, navigate, openDrawer, ReleasesDrawer, isPending]);
 }
