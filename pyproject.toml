@@ -312,7 +312,6 @@ module = [
     "sentry.issues.status_change",
     "sentry.issues.status_change_consumer",
     "sentry.issues.status_change_message",
-    "sentry.issues.streamline",
     "sentry.issues.update_inbox",
     "sentry.lang.java.processing",
     "sentry.llm.*",
