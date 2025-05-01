@@ -641,7 +641,7 @@ def _do_save_event(
     soft_time_limit=60,
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
+        namespace=ingest_errors_tasks,
         processing_deadline_duration=65,
     ),
 )
