@@ -60,7 +60,7 @@ class TraceExplorerAISetup(OrganizationEndpoint):
         """
         Checks if we are able to run Autofix on the given group.
         """
-        project_ids = [int(x) for x in request.data.get("project_ids")]
+        project_ids = [int(x) for x in request.data.get("project_ids", [])]
 
         if not features.has(
             "organizations:gen-ai-explore-traces", organization=organization, actor=request.user
