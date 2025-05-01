@@ -311,7 +311,7 @@ export function AttributesTree<RendererExtra extends RenderFunctionBaggage>(
       columnCount={columnCount}
       data-test-id="fields-tree"
     >
-      <AttributesTreeColumns columnCount={columnCount} {...props} />
+      <AttributesTreeColumns {...props} columnCount={columnCount} />
     </TreeContainer>
   );
 }
