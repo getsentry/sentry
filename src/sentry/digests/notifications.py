@@ -167,11 +167,18 @@ def _build_digest_impl(
 
 def get_rules_from_workflows(project: Project, workflow_ids: set[int]) -> dict[int, Rule]:
     rules = {}
-    # We are only proccessing the workflows in the digest if under the new flag
+    if not workflow_ids:
+        return rules
+
+    # Fetch all workflows in bulk
+    workflows = Workflow.objects.filter(
+        id__in=workflow_ids, organization_id=project.organization_id
+    ).in_bulk(workflow_ids)
+
+    # We are only processing the workflows in the digest if under the new flag
     # This should be ok since we should only add workflow_ids to redis when under this flag
     if features.has("organizations:workflow-engine-ui-links", project.organization):
-        for workflow_id in workflow_ids:
-            workflow = Workflow.objects.get(id=workflow_id)
+        for workflow_id, workflow in workflows.items():
             assert (
                 workflow.organization_id == project.organization_id
             ), "Workflow must belong to Organization"
@@ -185,18 +192,40 @@ def get_rules_from_workflows(project: Project, workflow_ids: set[int]) -> dict[i
     # This is if we had workflows in the digest but the flag is not enabled
     # This can happen if we rollback the flag, but the records in the digest aren't flushed
     else:
+        alert_rule_workflows = AlertRuleWorkflow.objects.filter(
+            workflow_id__in=workflow_ids
+        ).select_related("workflow")
+        alert_rule_workflows_map = {awf.workflow_id: awf for awf in alert_rule_workflows}
+
+        rule_ids_to_fetch = {awf.rule_id for awf in alert_rule_workflows}
+
+        bulk_rules = Rule.objects.filter(id__in=rule_ids_to_fetch, project_id=project.id).in_bulk(
+            rule_ids_to_fetch
+        )
+
         for workflow_id in workflow_ids:
-            workflow = Workflow.objects.get(id=workflow_id)
-            # fetch the corresponding rule
-            try:
-                rule_id = AlertRuleWorkflow.objects.get(workflow=workflow).rule_id
-            except AlertRuleWorkflow.DoesNotExist:
-                logger.exception("Workflow %s does not have a corresponding rule", workflow_id)
+            alert_workflow = alert_rule_workflows_map.get(workflow_id)
+            if not alert_workflow:
+                logger.warning(
+                    "Workflow %s does not have a corresponding AlertRuleWorkflow entry", workflow_id
+                )
+                raise
+
+            rule = bulk_rules.get(alert_workflow.rule_id)
+            if not rule:
+                logger.warning(
+                    "Rule %s linked to Workflow %s not found or does not belong to project %s",
+                    alert_workflow.rule_id,
+                    workflow_id,
+                    project.id,
+                )
                 continue
-            rule = Rule.objects.get(id=rule_id)
+
             assert rule.project_id == project.id, "Rule must belong to Project"
+
             if features.has("organizations:workflow-engine-trigger-actions", project.organization):
-                rule.data["actions"][0]["legacy_rule_id"] = rule_id
+                rule.data["actions"][0]["legacy_rule_id"] = rule.id
+
             rules[workflow_id] = rule
     return rules
 
