@@ -13,6 +13,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
+from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     AggregateDefinition,
@@ -52,12 +53,21 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
     aggregate_key = cast(AttributeKey, args[0])
     key = cast(AttributeKey, args[1])
     value = cast(str, args[2])
+    attr_value = AttributeValue(val_str=value)
+
+    if key.type == AttributeKey.TYPE_BOOLEAN:
+        lower_value = value.lower()
+        if lower_value not in ["true", "false"]:
+            raise InvalidSearchQuery(
+                f"Invalid parameter {value}. Must be one of {["true", "false"]}"
+            )
+        attr_value = AttributeValue(val_bool=value == "true")
 
     filter = TraceItemFilter(
         comparison_filter=ComparisonFilter(
             key=key,
             op=ComparisonFilter.OP_EQUALS,
-            value=AttributeValue(val_str=value),
+            value=attr_value,
         )
     )
     return (aggregate_key, filter)
@@ -162,6 +172,96 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
             ),
             AttributeArgumentDefinition(attribute_types={"string"}),
             ValueArgumentDefinition(argument_types={"string"}),
+        ],
+        aggregate_resolver=resolve_key_eq_value_filter,
+    ),
+    "p50_if": ConditionalAggregateDefinition(
+        internal_function=Function.FUNCTION_P50,
+        default_search_type="duration",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            ),
+            AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
+            ValueArgumentDefinition(argument_types={"string", "boolean"}),
+        ],
+        aggregate_resolver=resolve_key_eq_value_filter,
+    ),
+    "p75_if": ConditionalAggregateDefinition(
+        internal_function=Function.FUNCTION_P75,
+        default_search_type="duration",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            ),
+            AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
+            ValueArgumentDefinition(argument_types={"string", "boolean"}),
+        ],
+        aggregate_resolver=resolve_key_eq_value_filter,
+    ),
+    "p90_if": ConditionalAggregateDefinition(
+        internal_function=Function.FUNCTION_P90,
+        default_search_type="duration",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            ),
+            AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
+            ValueArgumentDefinition(argument_types={"string", "boolean"}),
+        ],
+        aggregate_resolver=resolve_key_eq_value_filter,
+    ),
+    "p95_if": ConditionalAggregateDefinition(
+        internal_function=Function.FUNCTION_P95,
+        default_search_type="duration",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            ),
+            AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
+            ValueArgumentDefinition(argument_types={"string", "boolean"}),
+        ],
+        aggregate_resolver=resolve_key_eq_value_filter,
+    ),
+    "p99_if": ConditionalAggregateDefinition(
+        internal_function=Function.FUNCTION_P99,
+        default_search_type="duration",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            ),
+            AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
+            ValueArgumentDefinition(argument_types={"string", "boolean"}),
         ],
         aggregate_resolver=resolve_key_eq_value_filter,
     ),
