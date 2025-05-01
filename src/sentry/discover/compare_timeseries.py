@@ -201,7 +201,7 @@ def get_mismatch_type(mismatches: dict[int, dict[str, float]], total_buckets: in
     if all_rpc_values_zero:
         return MismatchType.RPC_ALWAYS_ZERO, many_low_conf_buckets, many_low_sample_rate_buckets
 
-    if snql_always_lower and total_buckets - (mismatches) < 2:
+    if snql_always_lower and total_buckets - len(mismatches) < 2:
         return MismatchType.SNQL_ALWAYS_LOWER, many_low_conf_buckets, many_low_sample_rate_buckets
 
     if rpc_always_lower and total_buckets - len(mismatches) < 2:
