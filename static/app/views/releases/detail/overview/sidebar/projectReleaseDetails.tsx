@@ -56,6 +56,7 @@ function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
                 {t('Finalized')}
                 <Tooltip
                   skipWrapper
+                  isHoverable
                   title={tct(
                     'By default a release is created "unreleased".[br]Finalizing a release means that we populate a second timestamp on the release record, which is prioritized over [code:date_created] when sorting releases. [docs:Read more].',
                     {
@@ -91,8 +92,8 @@ function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
                         )
                     )}
                   >
-                    <Button
-                      size="xs"
+                    <FinalizeButton
+                      size="zero"
                       onClick={() => {
                         finalizeRelease.mutate([release], {
                           onSettled() {
@@ -102,7 +103,7 @@ function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
                       }}
                     >
                       {t('Finalize')}
-                    </Button>
+                    </FinalizeButton>
                   </Tooltip>
                 </ButtonContainer>
               )
@@ -177,6 +178,11 @@ const ButtonContainer = styled('div')`
     position: absolute;
     right: 0;
   }
+`;
+
+const FinalizeButton = styled(Button)`
+  font-size: ${p => p.theme.fontSizeSmall};
+  padding-inline: ${space(0.5)};
 `;
 
 export default ProjectReleaseDetails;

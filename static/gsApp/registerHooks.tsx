@@ -31,7 +31,6 @@ import HelpSearchFooter from 'getsentry/components/helpSearchFooter';
 import InviteMembersButtonCustomization from 'getsentry/components/inviteMembersButtonCustomization';
 import LabelWithPowerIcon from 'getsentry/components/labelWithPowerIcon';
 import MemberInviteModalCustomization from 'getsentry/components/memberInviteModalCustomization';
-import OnboardingWizardHelp from 'getsentry/components/onboardingWizardHelp';
 import {OrganizationHeader} from 'getsentry/components/organizationHeader';
 import PowerFeatureHovercard from 'getsentry/components/powerFeatureHovercard';
 import {ProductSelectionAvailability} from 'getsentry/components/productSelectionAvailability';
@@ -174,11 +173,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'onboarding:targeted-onboarding-header': ({source}: {source: string}) => (
     <TargetedOnboardingHeader source={source} key="targeted-onboarding-header" />
   ),
-
-  /**
-   * Augment the onboarding wizard skip confirm help button
-   */
-  'onboarding-wizard:skip-help': () => OnboardingWizardHelp,
 
   /**
    * Get list of organization roles

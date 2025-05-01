@@ -2,7 +2,7 @@
 
 import {t} from 'sentry/locale';
 import type {DataCategoryInfo, Scope} from 'sentry/types/core';
-import {DataCategoryExact} from 'sentry/types/core';
+import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import type {PermissionResource} from 'sentry/types/integrations';
 import type {OrgRole} from 'sentry/types/organization';
 
@@ -260,7 +260,7 @@ export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.ERROR]: {
     name: DataCategoryExact.ERROR,
     apiName: 'error',
-    plural: 'errors',
+    plural: DataCategory.ERRORS,
     displayName: 'error',
     titleName: t('Errors'),
     productName: t('Error Monitoring'),
@@ -271,7 +271,7 @@ export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.TRANSACTION]: {
     name: DataCategoryExact.TRANSACTION,
     apiName: 'transaction',
-    plural: 'transactions',
+    plural: DataCategory.TRANSACTIONS,
     displayName: 'transaction',
     titleName: t('Transactions'),
     productName: t('Performance Monitoring'),
@@ -282,7 +282,7 @@ export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.ATTACHMENT]: {
     name: DataCategoryExact.ATTACHMENT,
     apiName: 'attachment',
-    plural: 'attachments',
+    plural: DataCategory.ATTACHMENTS,
     displayName: 'attachment',
     titleName: t('Attachments'),
     productName: t('Attachments'),
@@ -293,7 +293,7 @@ export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.PROFILE]: {
     name: DataCategoryExact.PROFILE,
     apiName: 'profile',
-    plural: 'profiles',
+    plural: DataCategory.PROFILES,
     displayName: 'profile',
     titleName: t('Profiles'),
     productName: t('Continuous Profiling'),
@@ -304,7 +304,7 @@ export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.REPLAY]: {
     name: DataCategoryExact.REPLAY,
     apiName: 'replay',
-    plural: 'replays',
+    plural: DataCategory.REPLAYS,
     displayName: 'replay',
     titleName: t('Session Replays'),
     productName: t('Session Replay'),
@@ -315,7 +315,7 @@ export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.TRANSACTION_PROCESSED]: {
     name: DataCategoryExact.TRANSACTION_PROCESSED,
     apiName: 'transactions',
-    plural: 'transactions',
+    plural: DataCategory.TRANSACTIONS_PROCESSED,
     displayName: 'transaction',
     titleName: t('Transactions'),
     productName: t('Performance Monitoring'),
@@ -325,7 +325,7 @@ export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.TRANSACTION_INDEXED]: {
     name: DataCategoryExact.TRANSACTION_INDEXED,
     apiName: 'transactionIndexed',
-    plural: 'indexed transactions',
+    plural: DataCategory.TRANSACTIONS_INDEXED,
     displayName: 'indexed transaction',
     titleName: t('Indexed Transactions'),
     productName: t('Performance Monitoring'),
@@ -335,7 +335,7 @@ export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.MONITOR]: {
     name: DataCategoryExact.MONITOR,
     apiName: 'monitor',
-    plural: 'monitor check-ins',
+    plural: DataCategory.MONITOR,
     displayName: 'monitor check-in',
     titleName: t('Monitor Check-Ins'),
     productName: t('Cron Monitoring'),
@@ -345,7 +345,7 @@ export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.SPAN]: {
     name: DataCategoryExact.SPAN,
     apiName: 'span',
-    plural: 'spans',
+    plural: DataCategory.SPANS,
     displayName: 'span',
     titleName: t('Spans'), // TODO(DS Spans): Update name
     productName: t('Tracing'),
@@ -356,7 +356,7 @@ export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.MONITOR_SEAT]: {
     name: DataCategoryExact.MONITOR_SEAT,
     apiName: 'monitorSeat',
-    plural: 'monitorSeats',
+    plural: DataCategory.MONITOR_SEATS,
     snakeCasePlural: 'monitor_seats',
     displayName: 'cron monitor',
     titleName: t('Cron Monitors'),
@@ -368,7 +368,7 @@ export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.SPAN_INDEXED]: {
     name: DataCategoryExact.SPAN_INDEXED,
     apiName: 'span_indexed',
-    plural: 'spansIndexed',
+    plural: DataCategory.SPANS_INDEXED,
     snakeCasePlural: 'spans_indexed',
     displayName: 'stored span',
     titleName: t('Stored Spans'),
@@ -380,7 +380,7 @@ export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.PROFILE_DURATION]: {
     name: DataCategoryExact.PROFILE_DURATION,
     apiName: 'profile_duration',
-    plural: 'profileDuration',
+    plural: DataCategory.PROFILE_DURATION,
     snakeCasePlural: 'profile_duration',
     displayName: 'continuous profile hour',
     titleName: t('Continuous Profile Hours'),
@@ -393,7 +393,7 @@ export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.PROFILE_DURATION_UI]: {
     name: DataCategoryExact.PROFILE_DURATION_UI,
     apiName: 'profile_duration_ui',
-    plural: 'profileDurationUI',
+    plural: DataCategory.PROFILE_DURATION_UI,
     snakeCasePlural: 'profile_duration_ui',
     displayName: 'UI profile hour',
     titleName: t('UI Profile Hours'),
@@ -406,7 +406,7 @@ export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.UPTIME]: {
     name: DataCategoryExact.UPTIME,
     apiName: 'uptime',
-    plural: 'uptime',
+    plural: DataCategory.UPTIME,
     displayName: 'uptime monitor',
     titleName: t('Uptime Monitors'),
     productName: t('Uptime Monitoring'),
@@ -417,7 +417,7 @@ export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.LOG_ITEM]: {
     name: DataCategoryExact.LOG_ITEM,
     apiName: 'log_item',
-    plural: 'log_items',
+    plural: DataCategory.LOG_ITEM,
     displayName: 'log',
     titleName: t('Logs'),
     productName: t('Logging'),
@@ -427,7 +427,7 @@ export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.LOG_BYTE]: {
     name: DataCategoryExact.LOG_BYTE,
     apiName: 'log_byte',
-    plural: 'log_bytes',
+    plural: DataCategory.LOG_BYTE,
     displayName: 'log byte',
     titleName: t('Logs Storage'),
     productName: t('Logging'),
