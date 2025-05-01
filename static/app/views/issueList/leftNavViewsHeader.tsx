@@ -234,6 +234,7 @@ const StyledLayoutTitle = styled('div')`
 `;
 
 const Actions = styled('div')`
+  align-items: center;
   display: flex;
   gap: ${space(1)};
 `;
