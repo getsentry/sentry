@@ -191,7 +191,7 @@ function EAPOverviewPage() {
         'is_starred_transaction',
         'transaction',
         'project',
-        'epm()',
+        'tpm()',
         'p50(span.duration)',
         'p95(span.duration)',
         'failure_rate()',

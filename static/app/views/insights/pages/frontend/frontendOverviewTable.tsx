@@ -27,7 +27,7 @@ type Row = Pick<
   | 'is_starred_transaction'
   | 'transaction'
   | 'project'
-  | 'epm()'
+  | 'tpm()'
   | 'p50(span.duration)'
   | 'p95(span.duration)'
   | 'failure_rate()'
@@ -41,7 +41,7 @@ type Column = GridColumnHeader<
   | 'is_starred_transaction'
   | 'transaction'
   | 'project'
-  | 'epm()'
+  | 'tpm()'
   | 'p50(span.duration)'
   | 'p95(span.duration)'
   | 'failure_rate()'
@@ -63,7 +63,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'epm()',
+    key: 'tpm()',
     name: t('TPM'),
     width: COL_WIDTH_UNDEFINED,
   },

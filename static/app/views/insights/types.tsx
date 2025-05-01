@@ -171,6 +171,7 @@ export const SPAN_FUNCTIONS = [
   'sps',
   'spm',
   'epm',
+  'tpm',
   'count',
   'time_spent_percentage',
   'http_response_rate',
@@ -443,6 +444,7 @@ export type SpanIndexedFieldTypes = SpanIndexedResponse;
 export enum SpanFunction {
   SPS = 'sps',
   EPM = 'epm',
+  TPM = 'tpm',
   TIME_SPENT_PERCENTAGE = 'time_spent_percentage',
   HTTP_RESPONSE_COUNT = 'http_response_count',
   HTTP_RESPONSE_RATE = 'http_response_rate',
