@@ -87,7 +87,6 @@ def taskworker_override(
                 elif "*" in rollout_map:
                     rollout_rate = rollout_map.get("*", 0)
 
-        random.seed(datetime.now().timestamp())
         if rollout_rate > random.random():
             return taskworker_attr(*args, **kwargs)
 
