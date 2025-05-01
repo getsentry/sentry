@@ -3,11 +3,14 @@ import styled from '@emotion/styled';
 
 import testsAnalyticsSummary from 'sentry-images/features/test-analytics-summary.svg';
 
+import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button';
 import Link from 'sentry/components/links/link';
 import {IconGithub} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types/organization';
+import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 
 const INSTRUCTIONS_TEXT = {
   noOrgs: {
@@ -32,12 +35,39 @@ const INSTRUCTIONS_TEXT = {
 // TODO: this should come from the backend
 const HAS_INTEGRATED_ORGS = false;
 
-export default function TestPreOnboardingPage() {
+interface Props {
+  organization: Organization;
+}
+
+export default function TestPreOnboardingPage({organization}: Props) {
   const instructionSet = HAS_INTEGRATED_ORGS
     ? INSTRUCTIONS_TEXT.hasOrgs
     : INSTRUCTIONS_TEXT.noOrgs;
+
+  const regionData = getRegionDataFromOrganization(organization);
+  const isUSStorage = regionData?.name === 'us';
+
   return (
     <LayoutGap>
+      {/* TODO: REMOVE AFTER DEMO */}
+      <Alert.Container>
+        <Alert type="info" showIcon>
+          {t(
+            'Test Analytics data is stored in the U.S. only. To use this feature, create a new Sentry organization with U.S. data storage.'
+          )}
+        </Alert>
+      </Alert.Container>
+      {/* TODO: REMOVE AFTER DEMO */}
+
+      {!isUSStorage && (
+        <Alert.Container>
+          <Alert type="info" showIcon>
+            {t(
+              'Test Analytics data is stored in the U.S. only. To use this feature, create a new Sentry organization with U.S. data storage.'
+            )}
+          </Alert>
+        </Alert.Container>
+      )}
       <IntroSection>
         <img src={testsAnalyticsSummary} />
         <div>
@@ -128,6 +158,77 @@ export default function TestPreOnboardingPage() {
           </Prerequisites>
         </PrerequisitesSection>
       </InstructionsSection>
+      {isUSStorage && (
+        <InstructionsSection>
+          <h2>{instructionSet.header}</h2>
+          <p>{instructionSet.subtext}</p>
+          <ButtonBar>
+            <LinkButton priority="primary" href={instructionSet.mainCTA}>
+              {instructionSet.mainCTA}
+            </LinkButton>
+            <LinkButton priority="default" href="/settings/integrations/github">
+              Learn more
+            </LinkButton>
+          </ButtonBar>
+          <PrerequisitesSection>
+            <PrerequisitesTitle>
+              {t('Prerequisites to connect your GitHub organization:')}
+            </PrerequisitesTitle>
+            <Prerequisites>
+              <Prereq>
+                <PrereqMainText>{t('Enable GitHub as an Auth Provider')}</PrereqMainText>
+                <PrereqSubText>
+                  {t(
+                    "Sentry Prevent analyzes your code through your Git provider. You'll need to authenticate to access data from your organizations."
+                  )}
+                </PrereqSubText>
+              </Prereq>
+              <Prereq>
+                <LinkButton
+                  priority="default"
+                  icon={<IconGithub />}
+                  href="https://github.com"
+                >
+                  {t('Sign in with GitHub')}
+                </LinkButton>
+              </Prereq>
+              <Prereq>
+                <PrereqMainText>{t('Install the GitHub Sentry App')}</PrereqMainText>
+                <PrereqSubText>
+                  <Link to="https://github.com/apps/sentry-io">
+                    {t('Install the app')}
+                  </Link>
+                  {t(
+                    " on your GitHub org in your Sentry org. You will need to be an Owner of your GitHub organization to fully configure the integration. Note: Once linked, a GitHub org/account can't be connected to another Sentry org."
+                  )}
+                </PrereqSubText>
+              </Prereq>
+              <Prereq>
+                <PrereqMainText>
+                  {t('Connect your GitHub identities in Sentry')}
+                </PrereqMainText>
+                <PrereqSubText>
+                  {t('In your Sentry ')}
+                  <Link to="https://sentry.io/settings/account/identities">
+                    {t('identities')}
+                  </Link>
+                  {t(
+                    " settings, link your GitHub account to your profile. If you're having trouble adding the integration, "
+                  )}
+                  <Link to="https://sentry.io/settings/account/identities">
+                    {t('disconnect')}
+                  </Link>
+                  {t(' then ')}
+                  {/* TODO: figma file links to https://sentry.io/auth/login/?next=/auth/sso/account/settings/social/associate/co[…]D6ee6a67e71b4459e8e4c%26state%3D7nJAqWF3l4bkczXAPzTcfo8EKIvSHyiB
+                      but not sure how to get the link to that currently */}
+                  <Link to="">{t('reconnect')}</Link>
+                  {t(' your GitHub identity.')}
+                </PrereqSubText>
+              </Prereq>
+            </Prerequisites>
+          </PrerequisitesSection>
+        </InstructionsSection>
+      )}
     </LayoutGap>
   );
 }
