@@ -13,6 +13,13 @@ export const OVERVIEW_PAGE_ALLOWED_OPS = [
   'navigation',
   'ui.render',
   'interaction',
+  'ui.interaction',
+  'ui.interaction.click',
+  'ui.interaction.hover',
+  'ui.interaction.drag',
+  'ui.interaction.press',
+  'ui.webvital.cls',
+  'ui.webvital.fcp',
 ];
 
 export const MODULES = [
