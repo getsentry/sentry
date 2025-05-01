@@ -47,9 +47,7 @@ function AllEventsTable({organization, excludedTags, group}: Props) {
     groupId: group.id,
   });
 
-  const isRegressionIssue =
-    group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION ||
-    group.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION;
+  const isRegressionIssue = group.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION;
   const {data, isLoading, isLoadingError} = useApiQuery<EventTransaction>([endpointUrl], {
     staleTime: 60000,
     enabled: isRegressionIssue,

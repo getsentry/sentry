@@ -785,7 +785,6 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
   const projectWithFallback = project ?? projects[0];
 
   const isRegressionIssue =
-    props.group?.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION ||
     props.group?.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION;
 
   useEffect(() => {
