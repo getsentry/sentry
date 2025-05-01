@@ -117,7 +117,6 @@ export enum IssueType {
   PERFORMANCE_UNCOMPRESSED_ASSET = 'performance_uncompressed_assets',
   PERFORMANCE_LARGE_HTTP_PAYLOAD = 'performance_large_http_payload',
   PERFORMANCE_HTTP_OVERHEAD = 'performance_http_overhead',
-  PERFORMANCE_DURATION_REGRESSION = 'performance_duration_regression',
   PERFORMANCE_ENDPOINT_REGRESSION = 'performance_p95_endpoint_regression',
 
   // Profile
@@ -126,9 +125,7 @@ export enum IssueType {
   PROFILE_JSON_DECODE_MAIN_THREAD = 'profile_json_decode_main_thread',
   PROFILE_REGEX_MAIN_THREAD = 'profile_regex_main_thread',
   PROFILE_FRAME_DROP = 'profile_frame_drop',
-  PROFILE_FRAME_DROP_EXPERIMENTAL = 'profile_frame_drop_experimental',
   PROFILE_FUNCTION_REGRESSION = 'profile_function_regression',
-  PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL = 'profile_function_regression_exp',
 
   // Replay
   REPLAY_RAGE_CLICK = 'replay_click_rage',
@@ -145,13 +142,7 @@ export enum IssueType {
 }
 
 // Update this if adding an issue type that you don't want to show up in search!
-export const VISIBLE_ISSUE_TYPES = Object.values(IssueType).filter(
-  type =>
-    ![
-      IssueType.PROFILE_FRAME_DROP_EXPERIMENTAL,
-      IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL,
-    ].includes(type)
-);
+export const VISIBLE_ISSUE_TYPES = Object.values(IssueType);
 
 export enum IssueTitle {
   ERROR = 'Error',
@@ -168,7 +159,6 @@ export enum IssueTitle {
   PERFORMANCE_UNCOMPRESSED_ASSET = 'Uncompressed Asset',
   PERFORMANCE_LARGE_HTTP_PAYLOAD = 'Large HTTP payload',
   PERFORMANCE_HTTP_OVERHEAD = 'HTTP/1.1 Overhead',
-  PERFORMANCE_DURATION_REGRESSION = 'Duration Regression',
   PERFORMANCE_ENDPOINT_REGRESSION = 'Endpoint Regression',
 
   // Profile
@@ -178,7 +168,6 @@ export enum IssueTitle {
   PROFILE_REGEX_MAIN_THREAD = 'Regex on Main Thread',
   PROFILE_FRAME_DROP = 'Frame Drop',
   PROFILE_FUNCTION_REGRESSION = 'Function Regression',
-  PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL = 'Function Duration Regression (Experimental)',
 
   // Replay
   REPLAY_RAGE_CLICK = 'Rage Click Detected',
@@ -199,7 +188,6 @@ const ISSUE_TYPE_TO_ISSUE_TITLE = {
   performance_uncompressed_assets: IssueTitle.PERFORMANCE_UNCOMPRESSED_ASSET,
   performance_large_http_payload: IssueTitle.PERFORMANCE_LARGE_HTTP_PAYLOAD,
   performance_http_overhead: IssueTitle.PERFORMANCE_HTTP_OVERHEAD,
-  performance_duration_regression: IssueTitle.PERFORMANCE_DURATION_REGRESSION,
   performance_p95_endpoint_regression: IssueTitle.PERFORMANCE_ENDPOINT_REGRESSION,
 
   profile_file_io_main_thread: IssueTitle.PROFILE_FILE_IO_MAIN_THREAD,
@@ -209,7 +197,6 @@ const ISSUE_TYPE_TO_ISSUE_TITLE = {
   profile_frame_drop: IssueTitle.PROFILE_FRAME_DROP,
   profile_frame_drop_experimental: IssueTitle.PROFILE_FRAME_DROP,
   profile_function_regression: IssueTitle.PROFILE_FUNCTION_REGRESSION,
-  profile_function_regression_exp: IssueTitle.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL,
 
   replay_click_rage: IssueTitle.REPLAY_RAGE_CLICK,
   replay_hydration_error: IssueTitle.REPLAY_HYDRATION_ERROR,
@@ -235,16 +222,13 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   1013: IssueType.PERFORMANCE_DB_MAIN_THREAD,
   1015: IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
   1016: IssueType.PERFORMANCE_HTTP_OVERHEAD,
-  1017: IssueType.PERFORMANCE_DURATION_REGRESSION,
   1018: IssueType.PERFORMANCE_ENDPOINT_REGRESSION,
   2001: IssueType.PROFILE_FILE_IO_MAIN_THREAD,
   2002: IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD,
   2003: IssueType.PROFILE_JSON_DECODE_MAIN_THREAD,
   2007: IssueType.PROFILE_REGEX_MAIN_THREAD,
   2008: IssueType.PROFILE_FRAME_DROP,
-  2009: IssueType.PROFILE_FRAME_DROP_EXPERIMENTAL,
   2010: IssueType.PROFILE_FUNCTION_REGRESSION,
-  2011: IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL,
 };
 
 const PERFORMANCE_REGRESSION_TYPE_IDS = new Set([1017, 1018, 2010, 2011]);
