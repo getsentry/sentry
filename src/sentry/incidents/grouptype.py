@@ -12,8 +12,11 @@ from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.models.organization import Organization
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
-from sentry.workflow_engine.handlers.detector import DetectorOccurrence, StatefulDetectorHandler
 from sentry.workflow_engine.handlers.detector.base import EvidenceData
+from sentry.workflow_engine.handlers.detector import (
+    DetectorOccurrence,
+    StatefulGroupingDetectorHandler,
+)
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorSettings
 
@@ -26,7 +29,7 @@ class MetricIssueEvidenceData(EvidenceData):
     alert_id: int
 
 
-class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate]):
+class MetricAlertDetectorHandler(StatefulGroupingDetectorHandler[QuerySubscriptionUpdate]):
     def build_occurrence_and_event_data(
         self, group_key: DetectorGroupKey, new_status: PriorityLevel
     ) -> tuple[DetectorOccurrence, dict[str, Any]]:
