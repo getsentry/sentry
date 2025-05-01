@@ -88,14 +88,12 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
     }
   };
 
-  // Function to scroll to specific section
   const scrollToSection = useCallback(
     (sectionType: string | null) => {
       if (!scrollContainerRef.current || !autofixData) {
         return;
       }
 
-      // Find the step with the matching type
       const findStepByType = (type: string) => {
         if (!autofixData?.steps?.length) {
           return null;
@@ -110,7 +108,6 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
         return step;
       };
 
-      // We need to find the elements based on step IDs
       if (sectionType) {
         const step = findStepByType(sectionType);
         if (step) {
@@ -118,7 +115,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
           const element = document.getElementById(elementId);
           if (element) {
             element.scrollIntoView({behavior: 'smooth'});
-            userScrolledRef.current = true; // User has explicitly requested a scroll
+            userScrolledRef.current = true;
 
             // Clear the scrollTo parameter from the URL after scrolling
             // This allows automatic scrolling to continue working for future updates
