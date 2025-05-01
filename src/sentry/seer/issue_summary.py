@@ -248,10 +248,11 @@ def _run_automation(
             except Exception:
                 logger.exception("Error generating fixability score", extra={"group_id": group.id})
 
-        if issue_summary.scores.is_fixable:
-            group.seer_is_fixable = True
+        if issue_summary.scores.fixability_score is not None:
+            group.seer_fixability_score = issue_summary.scores.fixability_score
             group.save()
 
+        if issue_summary.scores.is_fixable:
             with sentry_sdk.start_span(op="ai_summary.get_autofix_state"):
                 autofix_state = get_autofix_state(group_id=group.id)
 
