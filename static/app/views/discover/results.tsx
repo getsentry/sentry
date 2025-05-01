@@ -59,22 +59,24 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {
+  DEFAULT_EVENT_VIEW,
+  DEFAULT_EVENT_VIEW_MAP,
+} from 'sentry/views/discover/results/data';
+import ResultsChart from 'sentry/views/discover/results/resultsChart';
+import ResultsHeader from 'sentry/views/discover/results/resultsHeader';
+import ResultsSearchQueryBuilder from 'sentry/views/discover/results/resultsSearchQueryBuilder';
+import {SampleDataAlert} from 'sentry/views/discover/results/sampleDataAlert';
+import Tags from 'sentry/views/discover/results/tags';
 import {DATASET_LABEL_MAP} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
 import {
   getDatasetFromLocationOrSavedQueryDataset,
   getSavedQueryDataset,
   getSavedQueryWithDataset,
 } from 'sentry/views/discover/savedQuery/utils';
+import Table from 'sentry/views/discover/table';
+import {generateTitle} from 'sentry/views/discover/utils';
 import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
-
-import {DEFAULT_EVENT_VIEW, DEFAULT_EVENT_VIEW_MAP} from './data';
-import ResultsChart from './resultsChart';
-import ResultsHeader from './resultsHeader';
-import ResultsSearchQueryBuilder from './resultsSearchQueryBuilder';
-import {SampleDataAlert} from './sampleDataAlert';
-import Table from './table';
-import Tags from './tags';
-import {generateTitle} from './utils';
 
 type Props = {
   api: Client;
