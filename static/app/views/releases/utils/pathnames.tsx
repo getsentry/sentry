@@ -19,7 +19,7 @@ export function makeReleasesPathname({
   path: '/' | `/${string}/`;
 }) {
   return normalizeUrl(
-    prefersStackedNav()
+    prefersStackedNav(organization)
       ? `/organizations/${organization.slug}/${RELEASES_BASE_PATHNAME}${path}`
       : `/organizations/${organization.slug}/${LEGACY_RELEASES_BASE_PATHNAME}${path}`
   );
