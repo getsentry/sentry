@@ -44,7 +44,7 @@ describe('MultiQueryModeContent', function () {
     );
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/spans/fields/`,
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
       body: [{key: 'span.op', name: 'span.op'}],
     });
