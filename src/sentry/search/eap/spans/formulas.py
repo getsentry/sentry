@@ -497,9 +497,16 @@ def tpm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormul
     return Column.BinaryFormula(
         default_value_double=0.0,
         left=Column(
-            aggregation=AttributeAggregation(
+            conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
                 key=AttributeKey(type=AttributeKey.TYPE_BOOLEAN, name="sentry.is_segment"),
+                filter=TraceItemFilter(
+                    comparison_filter=ComparisonFilter(
+                        key=AttributeKey(type=AttributeKey.TYPE_BOOLEAN, name="sentry.is_segment"),
+                        op=ComparisonFilter.OP_EQUALS,
+                        value=AttributeValue(val_bool=True),
+                    )
+                ),
                 extrapolation_mode=extrapolation_mode,
             ),
         ),
