@@ -45,6 +45,7 @@ describe('ShareIssueModal', () => {
           projectSlug={project.slug}
           onToggle={onToggle}
           event={null}
+          hasIssueShare
         />
       ))
     );
@@ -73,6 +74,7 @@ describe('ShareIssueModal', () => {
           projectSlug={project.slug}
           onToggle={onToggle}
           event={event}
+          hasIssueShare
         />
       ))
     );
@@ -100,6 +102,7 @@ describe('ShareIssueModal', () => {
           projectSlug={project.slug}
           onToggle={onToggle}
           event={null}
+          hasIssueShare
         />
       ))
     );
@@ -132,6 +135,7 @@ describe('ShareIssueModal', () => {
           projectSlug={project.slug}
           onToggle={onToggle}
           event={null}
+          hasIssueShare
         />
       ))
     );
@@ -164,6 +168,7 @@ describe('ShareIssueModal', () => {
           projectSlug={project.slug}
           onToggle={onToggle}
           event={null}
+          hasIssueShare
         />
       ))
     );
