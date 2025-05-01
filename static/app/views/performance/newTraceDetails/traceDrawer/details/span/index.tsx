@@ -381,6 +381,7 @@ function EAPSpanNodeDetails({
               disableCollapsePersistence
             >
               <AttributesTree
+                columnCount={1}
                 attributes={attributes}
                 rendererExtra={{
                   theme,

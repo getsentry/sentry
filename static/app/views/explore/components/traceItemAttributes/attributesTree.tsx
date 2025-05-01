@@ -70,6 +70,8 @@ interface AttributesFieldRender<RendererExtra extends RenderFunctionBaggage> {
 interface AttributesTreeProps<RendererExtra extends RenderFunctionBaggage>
   extends AttributesFieldRender<RendererExtra> {
   attributes: TraceItemResponseAttribute[];
+  // If provided, locks the number of columns to this number. If not provided, the number of columns will be dynamic based on width.
+  columnCount?: number;
   config?: AttributesTreeRowConfig;
   getAdjustedAttributeKey?: (attribute: TraceItemResponseAttribute) => string;
   getCustomActions?: (content: AttributesTreeContent) => MenuItemProps[];
@@ -301,7 +303,8 @@ export function AttributesTree<RendererExtra extends RenderFunctionBaggage>(
   props: AttributesTreeProps<RendererExtra>
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const columnCount = useIssueDetailsColumnCount(containerRef);
+  const widthBasedColumnCount = useIssueDetailsColumnCount(containerRef);
+  const columnCount = props.columnCount ?? widthBasedColumnCount;
   return (
     <TreeContainer
       ref={containerRef}
@@ -523,7 +526,7 @@ const TreeContainer = styled('div')<{columnCount: number}>`
 
 const TreeColumn = styled('div')`
   display: grid;
-  grid-template-columns: minmax(auto, 175px) 1fr;
+  grid-template-columns: minmax(min-content, max-content) auto;
   grid-column-gap: ${space(3)};
   &:first-child {
     margin-left: -${space(1)};
