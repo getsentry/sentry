@@ -54,6 +54,24 @@ def get_total_span_count(settings: ResolverSettings) -> Column:
     )
 
 
+def get_total_time(settings: ResolverSettings, column: str, query_string: str = "") -> float:
+    snuba_params = settings["snuba_params"]
+
+    rpc_res = spans_rpc.run_table_query(
+        snuba_params,
+        query_string=query_string,
+        referrer=Referrer.INSIGHTS_TIME_SPENT_TOTAL_TIME.value,
+        selected_columns=[f"sum({column})"],
+        orderby=None,
+        offset=0,
+        limit=1,
+        sampling_mode=snuba_params.sampling_mode,
+        config=SearchResolverConfig(),
+    )
+
+    return cast(float, rpc_res["data"][0][f"sum({column})"])
+
+
 def division(args: ResolvedArguments, _: ResolverSettings) -> Column.BinaryFormula:
     dividend = cast(AttributeKey, args[0])
     divisor = cast(AttributeKey, args[1])
@@ -441,6 +459,44 @@ def ttid_contribution_rate(
     )
 
 
+def time_spent_percentage_if(
+    args: ResolvedArguments, settings: ResolverSettings
+) -> Column.BinaryFormula:
+    """Note this won't work for timeseries requests because we have to divide each bucket by it's own total time."""
+    extrapolation_mode = settings["extrapolation_mode"]
+    snuba_params = settings["snuba_params"]
+
+    attribute = cast(AttributeKey, args[0])
+    key = cast(AttributeKey, args[1])
+    value = cast(str, args[2])
+
+    column = "span.self_time" if attribute.name == "sentry.exclusive_time_ms" else "span.duration"
+
+    if snuba_params.organization_id is None:
+        raise Exception("An organization is required to resolve queries")
+
+    total_time = get_total_time(
+        settings,
+        column,
+        f"{key.name}:{value})",
+    )
+
+    return Column.BinaryFormula(
+        default_value_double=0.0,
+        left=Column(
+            aggregation=AttributeAggregation(
+                aggregate=Function.FUNCTION_SUM,
+                key=attribute,
+                extrapolation_mode=extrapolation_mode,
+            )
+        ),
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=Column(
+            literal=LiteralValue(val_double=total_time),
+        ),
+    )
+
+
 def time_spent_percentage(
     args: ResolvedArguments, settings: ResolverSettings
 ) -> Column.BinaryFormula:
@@ -454,19 +510,7 @@ def time_spent_percentage(
     if snuba_params.organization_id is None:
         raise Exception("An organization is required to resolve queries")
 
-    rpc_res = spans_rpc.run_table_query(
-        snuba_params,
-        query_string="",
-        referrer=Referrer.INSIGHTS_TIME_SPENT_TOTAL_TIME.value,
-        selected_columns=[f"sum({column})"],
-        orderby=None,
-        offset=0,
-        limit=1,
-        sampling_mode=snuba_params.sampling_mode,
-        config=SearchResolverConfig(),
-    )
-
-    total_time = rpc_res["data"][0][f"sum({column})"]
+    total_time = get_total_time(settings, column)
 
     return Column.BinaryFormula(
         default_value_double=0.0,
@@ -645,6 +689,15 @@ SPAN_FORMULA_DEFINITIONS = {
             ),
         ],
         formula_resolver=division,
+        is_aggregate=True,
+    ),
+    "time_spent_percentage_if": FormulaDefinition(
+        default_search_type="percentage",
+        arguments=[
+            AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
+            ValueArgumentDefinition(argument_types={"string"}),
+        ],
+        formula_resolver=time_spent_percentage_if,
         is_aggregate=True,
     ),
     "time_spent_percentage": FormulaDefinition(
