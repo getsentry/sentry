@@ -12,9 +12,8 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import ProjectEndpoint
+from sentry.api.bases import OrganizationEndpoint
 from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.seer.seer_setup import get_seer_org_acknowledgement, get_seer_user_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 
@@ -46,7 +45,7 @@ def fire_setup_request(org_id: int, project_ids: list[int]) -> None:
 
 
 @region_silo_endpoint
-class TraceExplorerAISetup(ProjectEndpoint):
+class TraceExplorerAISetup(OrganizationEndpoint):
     """
     This endpoint is called when a user visits the trace explorer with the correct flags enabled.
     """
@@ -56,19 +55,26 @@ class TraceExplorerAISetup(ProjectEndpoint):
     }
     owner = ApiOwner.ML_AI
 
-    def post(self, request: Request, project: Project) -> Response:
+    @staticmethod
+    def post(request: Request, organization: Organization) -> Response:
         """
         Checks if we are able to run Autofix on the given group.
         """
-        org: Organization = request.organization
+        project_ids = [int(x) for x in request.data.get("project_ids")]
 
-        if not features.has("organizations:gen-ai-explore-traces", organization=org):
+        if not features.has(
+            "organizations:gen-ai-explore-traces", organization=organization, actor=request.user
+        ):
             return Response(
                 {"detail": "Organization does not have access to this feature"},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        user_acknowledgement = get_seer_user_acknowledgement(user_id=request.user.id, org_id=org.id)
-        org_acknowledgement = user_acknowledgement or get_seer_org_acknowledgement(org_id=org.id)
+        user_acknowledgement = get_seer_user_acknowledgement(
+            user_id=request.user.id, org_id=organization.id
+        )
+        org_acknowledgement = user_acknowledgement or get_seer_org_acknowledgement(
+            org_id=organization.id
+        )
 
         if not org_acknowledgement:
             return Response(
@@ -76,6 +82,11 @@ class TraceExplorerAISetup(ProjectEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        fire_setup_request(org.id, [project.id])
+        if not settings.SEER_AUTOFIX_URL:
+            return Response(
+                {"detail": "Seer is not properly configured."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        fire_setup_request(organization.id, project_ids)
 
         return Response({"status": "ok"})

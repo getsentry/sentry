@@ -2048,6 +2048,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-sentry-apps",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/trace-explorer-ai/setup/$",
+        TraceExplorerAISetup.as_view(),
+        name="sentry-api-0-trace-explorer-ai-setup",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/sentry-app-components/$",
         OrganizationSentryAppComponentsEndpoint.as_view(),
         name="sentry-api-0-organization-sentry-app-components",
@@ -2464,11 +2469,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/files/dsyms/associate/$",
         AssociateDSymFilesEndpoint.as_view(),
         name="sentry-api-0-associate-dsym-files",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/trace-explorer-ai/setup/$",
-        TraceExplorerAISetup.as_view(),
-        name="sentry-api-0-trace-explorer-ai-setup",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/filters/$",
