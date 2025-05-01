@@ -24,7 +24,7 @@ export function useSamplesDrawer({
   onClose = undefined,
 }: UseSamplesDrawerProps): void {
   const organization = useOrganization();
-  const {openDrawer, isDrawerOpen} = useDrawer();
+  const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -99,7 +99,7 @@ export function useSamplesDrawer({
     if (shouldDrawerOpen) {
       openSamplesDrawer();
     }
-  }, [shouldDrawerOpen, openSamplesDrawer]);
+  }, [shouldDrawerOpen, openSamplesDrawer, closeDrawer]);
 }
 
 const FullHeightWrapper = styled('div')`

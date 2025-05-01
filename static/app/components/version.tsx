@@ -8,10 +8,7 @@ import Link from 'sentry/components/links/link';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import {
-  makeReleaseDrawerPathname,
-  makeReleasesPathname,
-} from 'sentry/views/releases/utils/pathnames';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 type Props = {
   /**
@@ -78,21 +75,13 @@ function Version({
   const renderVersion = () => {
     if (anchor && organization?.slug) {
       const props = {
-        to: organization.features.includes('release-bubbles-ui')
-          ? makeReleaseDrawerPathname({
-              location,
-              release: version,
-              projectId: releaseDetailProjectId,
-            })
-          : {
-              pathname: makeReleasesPathname({
-                path: `/${encodeURIComponent(version)}/`,
-                organization,
-              }),
-              query: releaseDetailProjectId
-                ? {project: releaseDetailProjectId}
-                : undefined,
-            },
+        to: {
+          pathname: makeReleasesPathname({
+            path: `/${encodeURIComponent(version)}/`,
+            organization,
+          }),
+          query: releaseDetailProjectId ? {project: releaseDetailProjectId} : undefined,
+        },
         className,
       };
       if (preservePageFilters) {
@@ -178,10 +167,7 @@ const truncateStyles = css`
   text-overflow: ellipsis;
 `;
 
-const VersionText = styled('span')<{
-  shouldWrapText?: boolean;
-  truncate?: boolean;
-}>`
+const VersionText = styled('span')<{shouldWrapText?: boolean; truncate?: boolean}>`
   ${p => p.truncate && truncateStyles}
   white-space: ${p => (p.shouldWrapText ? 'normal' : 'nowrap')};
 `;

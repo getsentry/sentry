@@ -22,7 +22,6 @@ import Nav from 'sentry/views/nav';
 import {NavContextProvider} from 'sentry/views/nav/context';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import OrganizationContainer from 'sentry/views/organizationContainer';
-import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
 
 import OrganizationDetailsBody from './body';
 
@@ -44,7 +43,6 @@ function DevToolInit() {
 
 function OrganizationLayout({children}: Props) {
   useRouteAnalyticsHookSetup();
-  useReleasesDrawer();
 
   // XXX(epurkhiser): The OrganizationContainer is responsible for ensuring the
   // oganization is loaded before rendering children. Organization may not be

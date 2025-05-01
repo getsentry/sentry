@@ -28,18 +28,15 @@ export function makeReleasesPathname({
 export function makeReleaseDrawerPathname({
   location,
   release,
-  projectId,
 }: {
   location: Location;
   release: string;
-  projectId?: string | string[] | null;
 }) {
   return {
     query: {
       ...cleanReleaseCursors(location.query),
       [ReleasesDrawerFields.DRAWER]: 'show',
       [ReleasesDrawerFields.RELEASE]: release,
-      [ReleasesDrawerFields.RELEASE_PROJECT_ID]: projectId,
     },
   };
 }
