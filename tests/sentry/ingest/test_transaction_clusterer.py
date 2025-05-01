@@ -345,6 +345,31 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
     )
 
 
+# From the test -- number of transactions: 30 == 10 * 2 + 5 * 2
+@mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 30)
+@mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 5)
+@mock.patch("sentry.ingest.transaction_clusterer.tasks.cluster_projects.delay")
+@django_db_all
+@freeze_time("2000-01-01 01:00:00")
+def test_run_clusterer_spawn_cluster_projects(cluster_projects_delay, default_organization):
+    def _add_mock_data(proj, number):
+        for i in range(0, number):
+            _record_sample(ClustererNamespace.TRANSACTIONS, proj, f"/user/tx-{proj.name}-{i}")
+            _record_sample(ClustererNamespace.TRANSACTIONS, proj, f"/org/tx-{proj.name}-{i}")
+
+    project1 = Project(id=123, name="project1", organization_id=default_organization.id)
+    project2 = Project(id=223, name="project2", organization_id=default_organization.id)
+    for project in (project1, project2):
+        project.save()
+        _add_mock_data(project, 4)
+
+    spawn_clusterers()
+
+    assert cluster_projects_delay.call_count == 1
+    # TODO(taskworker) This should use project_ids to avoid pickle
+    cluster_projects_delay.assert_called_once_with([project1, project2])
+
+
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 2)
 @mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 2)
 @mock.patch("sentry.ingest.transaction_clusterer.rules.update_rules")
@@ -363,7 +388,7 @@ def test_clusterer_only_runs_when_enough_transactions(mock_update_rules, default
 
     _record_sample(ClustererNamespace.TRANSACTIONS, project, "/transaction/number/1")
     _record_sample(ClustererNamespace.TRANSACTIONS, project, "/transaction/number/2")
-    cluster_projects([project])
+    cluster_projects(project_ids=[project.id])
     assert mock_update_rules.call_count == 2
     assert mock_update_rules.call_args == mock.call(
         ClustererNamespace.TRANSACTIONS, project, ["/transaction/number/*/**"]
