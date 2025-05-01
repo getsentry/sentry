@@ -248,6 +248,7 @@ class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
             self.project.slug,
             qs_params={
                 "file": "file.java",
+                "absPath": "file.java",
                 "module": "usr.src.getsentry.file",
                 "platform": "java",
             },
