@@ -265,6 +265,24 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
         ],
         aggregate_resolver=resolve_key_eq_value_filter,
     ),
+    "sum_if": ConditionalAggregateDefinition(
+        internal_function=Function.FUNCTION_SUM,
+        default_search_type="duration",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            ),
+            AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
+            ValueArgumentDefinition(argument_types={"string"}),
+        ],
+        aggregate_resolver=resolve_key_eq_value_filter,
+    ),
     "count_scores": ConditionalAggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
         default_search_type="integer",
