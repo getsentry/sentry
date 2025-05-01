@@ -43,11 +43,12 @@ def delete_group_list(
     if not group_list:
         return
 
-    group_ids = []
-    error_group_found = False
     # deterministic sort for sanity, and for very large deletions we'll
     # delete the "smaller" groups first
-    for g in sorted(group_list, key=lambda g: (g.times_seen, g.id)):
+    group_list.sort(key=lambda g: (g.times_seen, g.id))
+    group_ids = []
+    error_group_found = False
+    for g in group_list:
         group_ids.append(g.id)
         if g.issue_category == GroupCategory.ERROR:
             error_group_found = True
@@ -57,19 +58,9 @@ def delete_group_list(
     if not error_group_found:
         countdown = 0
 
-    # When is the transaction_id useful?
-    transaction_id = uuid4().hex
-    delete_logger.info(
-        "object.delete.begins",
-        extra={"organization_id": project.organization_id, "transaction_id": transaction_id},
-    )
-
-    # XXX: Where do we create activity for this?
     Group.objects.filter(id__in=group_ids).exclude(
         status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
     ).update(status=GroupStatus.PENDING_DELETION, substatus=None)
-
-    create_audit_entries(request, project, group_list, delete_type, transaction_id)
 
     eventstream_state = eventstream.backend.start_delete_groups(project.id, group_ids)
 
@@ -83,6 +74,12 @@ def delete_group_list(
     # We remove `GroupInbox` rows here so that they don't end up influencing queries for
     # `Group` instances that are pending deletion
     GroupInbox.objects.filter(project_id=project.id, group__id__in=group_ids).delete()
+
+    transaction_id = uuid4().hex
+    # Creating the audit entries allows us to see who requested a deletion
+    # regardless of the outcome of the deletion. Otherwise, if the deletion
+    # fails we will never know who requested it.
+    create_audit_entries(request, project, group_list, delete_type, transaction_id)
 
     delete_groups_task.apply_async(
         kwargs={
