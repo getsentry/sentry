@@ -177,6 +177,10 @@ except in mobile */
     display: none;
   }
 
+  & > div > button:focus-visible {
+    z-index: 3;
+  }
+
   & > div:first-child > button {
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
