@@ -3071,6 +3071,52 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert data[1]["transaction"] == "bar_transaction"
         assert meta["dataset"] == self.dataset
 
+    def test_time_spent_percentage_if(self):
+        spans = []
+        for _ in range(4):
+            spans.append(
+                self.create_span(
+                    {"sentry_tags": {"transaction": "foo_transaction"}, "is_segment": True},
+                    duration=1,
+                ),
+            )
+        spans.append(
+            self.create_span(
+                {"sentry_tags": {"transaction": "bar_transaction"}, "is_segment": True},
+                duration=1,
+            )
+        )
+        spans.append(
+            self.create_span(
+                {"sentry_tags": {"transaction": "bar_transaction"}, "is_segment": False},
+                duration=1,
+            )
+        )
+        self.store_spans(spans, is_eap=self.is_eap)
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "time_spent_percentage_if(span.duration, is_transaction, true)",
+                ],
+                "query": "",
+                "orderby": ["-time_spent_percentage_if(span.duration, is_transaction, true)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data[0]["time_spent_percentage_if(span.duration, is_transaction, true)"] == 0.8
+        assert data[0]["transaction"] == "foo_transaction"
+        assert data[1]["time_spent_percentage()"] == 0.2
+        assert data[1]["transaction"] == "bar_transaction"
+        assert meta["dataset"] == self.dataset
+
     def test_performance_score(self):
         self.store_spans(
             [

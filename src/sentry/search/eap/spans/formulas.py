@@ -27,6 +27,7 @@ from sentry.search.eap.columns import (
     ValueArgumentDefinition,
 )
 from sentry.search.eap.constants import RESPONSE_CODE_MAP
+from sentry.search.eap.spans.aggregates import resolve_key_eq_value_filter
 from sentry.search.eap.spans.utils import (
     WEB_VITALS_MEASUREMENTS,
     operate_multiple_columns,
@@ -468,6 +469,7 @@ def time_spent_percentage_if(
 
     attribute = cast(AttributeKey, args[0])
     key = cast(AttributeKey, args[1])
+    key_type = "boolean" if key.type == AttributeKey.TYPE_BOOLEAN else "string"
     value = cast(str, args[2])
 
     column = "span.self_time" if attribute.name == "sentry.exclusive_time_ms" else "span.duration"
@@ -478,15 +480,18 @@ def time_spent_percentage_if(
     total_time = get_total_time(
         settings,
         column,
-        f"{key.name}:{value})",
+        f"tags[{key.name},{key_type}]:{value}",
     )
+
+    (attr, key_equal_value_filter) = resolve_key_eq_value_filter([attribute, key, value])
 
     return Column.BinaryFormula(
         default_value_double=0.0,
         left=Column(
-            aggregation=AttributeAggregation(
+            conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_SUM,
-                key=attribute,
+                key=attr,
+                filter=key_equal_value_filter,
                 extrapolation_mode=extrapolation_mode,
             )
         ),
@@ -694,6 +699,17 @@ SPAN_FORMULA_DEFINITIONS = {
     "time_spent_percentage_if": FormulaDefinition(
         default_search_type="percentage",
         arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+                default_arg="span.self_time",
+                validator=literal_validator(["span.self_time", "span.duration"]),
+            ),
             AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
             ValueArgumentDefinition(argument_types={"string"}),
         ],
