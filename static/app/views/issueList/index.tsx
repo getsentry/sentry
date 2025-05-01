@@ -120,7 +120,6 @@ function IssueViewWrapper({children}: Props) {
 
 function IssueListContainer({children, title = t('Issues')}: Props) {
   const organization = useOrganization();
-  // Issue view sharing is tied to the release of the stacked nav
   const prefersStackedNav = usePrefersStackedNav();
   const prefersOldNavWithEnforcement = usePrefersOldNavWithEnforcedStackedNav();
   const hasIssueViewSharing = prefersStackedNav && !prefersOldNavWithEnforcement;
