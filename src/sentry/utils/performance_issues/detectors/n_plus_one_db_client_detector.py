@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import pprint
 from dataclasses import dataclass
 from typing import Any, TypedDict
 
@@ -10,13 +9,7 @@ from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils import metrics
-from sentry.utils.performance_issues.base import (
-    DetectorType,
-    PerformanceDetector,
-    get_notification_attachment_body,
-    get_span_evidence_value,
-    total_span_time,
-)
+from sentry.utils.performance_issues.base import DetectorType, PerformanceDetector, total_span_time
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.utils.performance_issues.types import Span
 
@@ -160,11 +153,6 @@ class NPlusOneDBClientDetector(PerformanceDetector):
 
         self.current_operation.is_complete = True
 
-        # If there isn't a previous operation, store the current one.
-        if self.previous_operation is None:
-            self.previous_operation = self.current_operation
-            self.operations.append(self.current_operation)
-
         # If the previous operation is empty, or equivalent to the current one, store the current one.
         if self.previous_operation is None or self.are_equivalent_operations(
             a=self.current_operation, b=self.previous_operation
@@ -179,26 +167,12 @@ class NPlusOneDBClientDetector(PerformanceDetector):
         self.current_operation = incoming_operation
 
     def maybe_store_problem(self) -> None:
-        data = []
-        for o in self.operations:
-            data.append(
-                {
-                    "client_span": o.client_span.get("description", ""),
-                    "db_span": o.db_span.get("description", ""),
-                    "db_predecessor_hash": o.db_predecessor_hash,
-                    "db_successor_hash": o.db_successor_hash,
-                }
-            )
-        pprint.pprint(data)
-
         fingerprint = self.generate_fingerprint()
         if not fingerprint:
             metrics.incr("performance.performance_issue.np1_db_client.no_fingerprint")
             return
 
-        client_span_list = [o.client_span for o in self.operations]
-
-        repetitions = len(client_span_list)
+        repetitions = len(self.operations)
         min_repetitions = self.settings.get("minimum_repetitions")
         above_minimum_repetitions = repetitions >= min_repetitions
 
@@ -206,6 +180,7 @@ class NPlusOneDBClientDetector(PerformanceDetector):
             metrics.incr("performance.performance_issue.np1_db_client.above_minimum_repetitions")
             return
 
+        client_span_list = [o.client_span for o in self.operations]
         min_duration = self.settings.get("minimum_total_duration_threshold")
         above_mininum_duration = total_span_time(client_span_list) < min_duration
 
@@ -213,38 +188,59 @@ class NPlusOneDBClientDetector(PerformanceDetector):
             metrics.incr("performance.performance_issue.np1_db_client.above_mininum_duration")
             return
 
+        db_span = None if self.previous_operation is None else self.previous_operation.db_span
+        client_span = (
+            None if self.previous_operation is None else self.previous_operation.client_span
+        )
+
+        if not db_span or not client_span or not self.previous_operation:
+            # This shouldn't ever happen, but will give us type safety.
+            metrics.incr("performance.performance_issue.np1_db_client.invalid_operation")
+            return
+
+        is_complete = all(o.is_complete for o in self.operations)
+        db_span_list = [o.db_span for o in self.operations if o.db_span is not None]
+
+        if len(client_span_list) != len(db_span_list) or not is_complete:
+            # Also shouldn't ever happen, but track it anyway
+            metrics.incr("performance.performance_issue.np1_db_client.incomplete_operations")
+            return
+
         if fingerprint not in self.stored_problems:
-            offender_span_ids = [span.get("span_id", None) for span in client_span_list]
+            client_span_ids = [span.get("span_id", None) for span in client_span_list]
+            db_span_ids = [span.get("span_id", None) for span in db_span_list]
 
             self.stored_problems[fingerprint] = PerformanceProblem(
                 fingerprint=fingerprint,
                 op="db",
-                desc=self.previous_operation.client_span.get("description", ""),
+                desc=db_span.get("description", ""),
                 type=PerformanceNPlusOneDBClientGroupType,
-                parent_span_ids=[self.previous_operation.client_span.get("parent_span_id")],
-                cause_span_ids=[self.source_span.get("span_id", None)],
-                offender_span_ids=offender_span_ids,
+                parent_span_ids=client_span_ids,
+                cause_span_ids=client_span_ids,
+                offender_span_ids=db_span_ids,
                 evidence_display=[
                     IssueEvidence(
-                        name="Offending Spans",
-                        value=get_notification_attachment_body(
-                            "db",
-                            self.n_spans[0].get("description", ""),
-                        ),
-                        # Has to be marked important to be displayed in the notifications
+                        name="Client Span",
+                        value=f"{get_client_span_name(client_span)} - {client_span.get('description', '')}",
                         important=True,
-                    )
+                    ),
+                    IssueEvidence(
+                        name="DB Span",
+                        value=f"{get_db_span_name(db_span)} - {db_span.get('description', '')}",
+                        important=True,
+                    ),
                 ],
                 evidence_data={
                     "transaction_name": self._event.get("transaction", ""),
-                    "parent_span_ids": [self.previous_operation.client_span.get("parent_span_id")],
-                    "cause_span_ids": [self.previous_operation.client_span.get("parent_span_id")],
-                    "offender_span_ids": offender_span_ids,
-                    "repeating_spans": get_span_evidence_value(self.previous_operation.client_span),
-                    "repeating_spans_compact": get_span_evidence_value(
-                        self.previous_operation.client_span, include_op=False
-                    ),
-                    "num_repeating_spans": str(len(offender_span_ids)),
+                    "op": "db",
+                    "parent_span_ids": client_span_ids,
+                    "cause_span_ids": client_span_ids,
+                    "offender_span_ids": db_span_ids,
+                    "repitition_count": repetitions,
+                    "repeating_db_span": get_db_span_name(db_span),
+                    "repeating_client_span": get_client_span_name(client_span),
+                    "db_predecessor_hash": self.previous_operation.db_predecessor_hash,
+                    "db_successor_hash": self.previous_operation.db_successor_hash,
                 },
             )
 
@@ -269,7 +265,7 @@ class NPlusOneDBClientDetector(PerformanceDetector):
     def is_valid_db_client_span(self, span: Span) -> bool:
         description = span.get("description", "")
         is_client_span = (
-            description and description == self.settings["allowed_client_span_descriptions"]
+            description and description in self.settings["allowed_client_span_descriptions"]
         )
         return is_client_span
 
@@ -277,18 +273,18 @@ class NPlusOneDBClientDetector(PerformanceDetector):
         op = span.get("op", "")
         is_db_span = op.startswith("db") and not op.startswith("db.redis")
         description = span.get("description")
-        is_full_query = description and not description.endswith("...")
+        is_full_query = description is not None and not description.endswith("...")
         return is_db_span and is_full_query
 
     def are_equivalent_operations(self, a: ClientOperation, b: ClientOperation) -> bool:
         """
-        Compares the current item against the previous item to see if they are a match.
+        Compares two ClientOperations to see if they are equivalent.
         """
+        if not a.db_span or not b.db_span:
+            return False
         return (
             a.db_span.get("hash") == b.db_span.get("hash")
-            and a.db_span.get("description") == b.db_span.get("description")
             and a.client_span.get("hash") == b.client_span.get("hash")
-            and a.client_span.get("description") == b.client_span.get("description")
             and a.db_predecessor_hash == b.db_predecessor_hash
             and a.db_successor_hash == b.db_successor_hash
         )
@@ -298,7 +294,7 @@ class NPlusOneDBClientDetector(PerformanceDetector):
         Generate a fingerprint for the saved operations.
         """
 
-        if not self.previous_operation:
+        if not self.previous_operation or not self.previous_operation.db_span:
             return None
         type_id = PerformanceNPlusOneDBClientGroupType.type_id
         operation_elements: list[str] = [
@@ -313,3 +309,11 @@ class NPlusOneDBClientDetector(PerformanceDetector):
         ).hexdigest()
 
         return f"1-{type_id}-{operation_fingerprint}"
+
+
+def get_client_span_name(span: Span) -> str:
+    return span.get("data", {}).get("name", span.get("description", "<unknown>"))
+
+
+def get_db_span_name(span: Span) -> str:
+    return span.get("sentry_tags", {}).get("system", span.get("op", "db"))
