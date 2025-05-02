@@ -1,8 +1,7 @@
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import type {LinkButtonProps} from 'sentry/components/core/button';
-import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
+import {REPLAY_LOADING_HEIGHT_LARGE} from 'sentry/components/events/eventReplay/constants';
 import ReplayPreviewPlayer from 'sentry/components/events/eventReplay/replayPreviewPlayer';
 import {StaticReplayPreview} from 'sentry/components/events/eventReplay/staticReplayPreview';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -16,16 +15,18 @@ import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 interface Props {
   analyticsContext: string;
-  fullReplayButtonProps: Partial<Omit<LinkButtonProps, 'external'>>;
+  handleBackClick: undefined | (() => void);
+  handleForwardClick: undefined | (() => void);
+  overlayContent: React.ReactNode;
   replayReaderResult: ReturnType<typeof useLoadReplayReader>;
-  overlayContent?: React.ReactNode;
 }
 
-export default function ReplayClipPreviewPlayer({
+export default function GroupReplaysPlayer({
   analyticsContext,
-  fullReplayButtonProps,
-  replayReaderResult,
+  handleForwardClick,
+  handleBackClick,
   overlayContent,
+  replayReaderResult,
 }: Props) {
   useLogEventReplayStatus({
     readerResult: replayReaderResult,
@@ -51,7 +52,6 @@ export default function ReplayClipPreviewPlayer({
               isFetching={false}
               replay={replay}
               replayId={replayReaderResult.replayId}
-              fullReplayButtonProps={fullReplayButtonProps}
               initialTimeOffsetMs={0}
             />
           );
@@ -59,15 +59,18 @@ export default function ReplayClipPreviewPlayer({
 
         return (
           <PlayerContainer data-test-id="player-container">
-            {replay.hasProcessingErrors() ? (
+            {replay?.hasProcessingErrors() ? (
               <ReplayProcessingError processingErrors={replay.processingErrors()} />
             ) : (
               <ReplayPreviewPlayer
                 errorBeforeReplayStart={replay.getErrorBeforeReplayStart()}
-                fullReplayButtonProps={fullReplayButtonProps}
-                overlayContent={overlayContent}
                 replayId={replayReaderResult.replayId}
                 replayRecord={replayReaderResult.replayRecord!}
+                handleBackClick={handleBackClick}
+                handleForwardClick={handleForwardClick}
+                overlayContent={overlayContent}
+                showNextAndPrevious
+                playPausePriority="default"
               />
             )}
           </PlayerContainer>
@@ -79,13 +82,13 @@ export default function ReplayClipPreviewPlayer({
 
 const PlayerContainer = styled(FluidHeight)`
   position: relative;
-  max-height: ${REPLAY_LOADING_HEIGHT + 16}px;
+  max-height: ${REPLAY_LOADING_HEIGHT_LARGE}px;
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    min-height: ${REPLAY_LOADING_HEIGHT + 16}px;
+    min-height: ${REPLAY_LOADING_HEIGHT_LARGE}px;
   }
 `;
 
 const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
-  height: ${REPLAY_LOADING_HEIGHT}px;
+  height: ${REPLAY_LOADING_HEIGHT_LARGE}px;
   border-radius: ${p => p.theme.borderRadius};
 `;
