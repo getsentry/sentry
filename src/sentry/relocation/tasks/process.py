@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import logging
 import re
 from collections import defaultdict
@@ -344,7 +345,7 @@ def fulfill_cross_region_export_request(
     requesting_region_name: str,
     replying_region_name: str,
     org_slug: str,
-    encrypt_with_public_key: bytes,
+    encrypt_with_public_key: str,
     # Unix timestamp, in seconds.
     scheduled_at: int,
 ) -> None:
@@ -357,6 +358,7 @@ def fulfill_cross_region_export_request(
     call is received with the encrypted export in tow, it will trigger the next step in the
     `SAAS_TO_SAAS` relocation's pipeline, namely `uploading_complete`.
     """
+    encrypt_with_public_key = base64.b64decode(encrypt_with_public_key)
 
     logger_data = {
         "uuid": uuid_str,
