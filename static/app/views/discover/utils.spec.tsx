@@ -1065,7 +1065,7 @@ describe('handleAddQueryToDashboard', function () {
           queries: [
             {
               name: '',
-              fields: ['count()'],
+              fields: [],
               aggregates: ['count()'],
               columns: [],
               orderby: '',
@@ -1106,7 +1106,7 @@ describe('handleAddQueryToDashboard', function () {
               name: '',
               aggregates: ['count()'],
               columns: ['transaction'],
-              fields: ['transaction', 'count()'],
+              fields: ['transaction'],
               orderby: '',
               conditions: '',
             },
@@ -1144,7 +1144,7 @@ describe('handleAddQueryToDashboard', function () {
               name: '',
               aggregates: ['count()', 'count_unique(user)'],
               columns: [],
-              fields: ['count()', 'count_unique(user)'],
+              fields: [],
               orderby: '',
               conditions: '',
             },
