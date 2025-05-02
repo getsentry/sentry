@@ -24,7 +24,7 @@ import type {
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {
-  ApiQueryKey,
+  type ApiQueryKey,
   useApiQuery,
   useMutation,
   useQueryClient,
