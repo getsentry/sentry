@@ -2,7 +2,9 @@ import time
 from collections.abc import Mapping, MutableMapping, Sequence
 
 
-def get_frames(filename: str) -> Sequence[MutableMapping[str, str]]:
+def get_frames(
+    filename: str = "/Users/user/repos/node_modules/@example/lib/file.ts",
+) -> Sequence[MutableMapping[str, str]]:
     frames = [
         {
             "function": "dispatchEvent",
