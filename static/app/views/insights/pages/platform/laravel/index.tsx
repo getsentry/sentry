@@ -7,7 +7,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
-import {BACKEND_LANDING_TITLE} from 'sentry/views/insights/pages/backend/settings';
 import {CachesWidget} from 'sentry/views/insights/pages/platform/laravel/cachesWidget';
 import {JobsWidget} from 'sentry/views/insights/pages/platform/laravel/jobsWidget';
 import {PathsTable} from 'sentry/views/insights/pages/platform/laravel/pathsTable';
@@ -38,7 +37,7 @@ export function LaravelOverviewPage() {
   const {query, setTransactionFilter} = useTransactionNameQuery();
 
   return (
-    <PlatformLandingPageLayout headerTitle={BACKEND_LANDING_TITLE}>
+    <PlatformLandingPageLayout performanceType={'backend'}>
       <WidgetGrid>
         <RequestsContainer>
           <TrafficWidget
