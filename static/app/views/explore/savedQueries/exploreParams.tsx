@@ -2,6 +2,7 @@ import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {t} from 'sentry/locale';
@@ -129,12 +130,17 @@ export function ExploreParams({
   const visibleTokens = defined(tokensToShow)
     ? tokens.slice(0, tokensToShow + 1)
     : tokens;
+  const hiddenTokens = defined(tokensToShow) ? tokens.slice(tokensToShow + 1) : [];
 
   if (defined(tokensToShow) && tokensToShow + 1 < tokens.length) {
     visibleTokens.push(
-      <Token key="more">
-        <ExploreMoreTokens>{'+' + (tokens.length - tokensToShow - 1)}</ExploreMoreTokens>
-      </Token>
+      <Tooltip title={<TooltipTokensContainer>{hiddenTokens}</TooltipTokensContainer>}>
+        <Token key="more">
+          <ExploreMoreTokens>
+            {'+' + (tokens.length - tokensToShow - 1)}
+          </ExploreMoreTokens>
+        </Token>
+      </Tooltip>
     );
   }
 
@@ -186,4 +192,11 @@ const ExploreMoreTokens = ExploreVisualizes;
 
 const FormattedQueryWrapper = styled('span')`
   display: inline-block;
+  font-size: ${p => p.theme.form.sm.fontSize};
+`;
+
+const TooltipTokensContainer = styled('span')`
+  display: flex;
+  gap: ${space(0.5)};
+  flex-wrap: wrap;
 `;
