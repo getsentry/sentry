@@ -146,11 +146,11 @@ function getBudgetMode(budget: OnDemandBudgets) {
 }
 
 export function getOnDemandBudget(budget: OnDemandBudgets, dataCategory: DataCategory) {
-  if (budget.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
-    if (dataCategory in budget.budgets) {
-      return budget.budgets[dataCategory] ?? 0;
-    }
-    return getTotalBudget(budget);
+  if (
+    budget.budgetMode === OnDemandBudgetMode.PER_CATEGORY &&
+    dataCategory in budget.budgets
+  ) {
+    return budget.budgets[dataCategory] ?? 0;
   }
   return getTotalBudget(budget);
 }
@@ -265,10 +265,12 @@ export function convertOnDemandBudget(
       newBudgets.transactions = transactionsBudget;
     }
 
-    const categoryBudgets: Partial<Record<string, number>> = {};
-    for (const category in newBudgets) {
-      categoryBudgets[`${category}Budget`] = newBudgets[category as DataCategory] ?? 0;
-    }
+    const categoryBudgets: Partial<Record<string, number>> = Object.fromEntries(
+      Object.entries(newBudgets).map(([category, value]) => [
+        `${category}Budget`,
+        value ?? 0,
+      ])
+    );
 
     return {
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
