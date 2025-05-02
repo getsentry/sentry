@@ -6,6 +6,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {BACKEND_LANDING_TITLE} from 'sentry/views/insights/pages/backend/settings';
 import {CachesWidget} from 'sentry/views/insights/pages/platform/laravel/cachesWidget';
 import {JobsWidget} from 'sentry/views/insights/pages/platform/laravel/jobsWidget';
@@ -19,6 +21,13 @@ import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shar
 
 export function LaravelOverviewPage() {
   const organization = useOrganization();
+  const pageFilters = usePageFilters();
+  const {releases: releasesWithDate} = useReleaseStats(pageFilters.selection);
+  const releases =
+    releasesWithDate?.map(({date, version}) => ({
+      timestamp: date,
+      version,
+    })) ?? [];
 
   useEffect(() => {
     trackAnalytics('laravel-insights.page-view', {
@@ -38,22 +47,23 @@ export function LaravelOverviewPage() {
             trafficSeriesName={t('Requests')}
             baseQuery={'span.op:http.server'}
             query={query}
+            releases={releases}
           />
         </RequestsContainer>
         <IssuesContainer>
           <IssuesWidget query={query} />
         </IssuesContainer>
         <DurationContainer>
-          <DurationWidget query={query} />
+          <DurationWidget query={query} releases={releases} />
         </DurationContainer>
         <JobsContainer>
-          <JobsWidget query={query} />
+          <JobsWidget query={query} releases={releases} />
         </JobsContainer>
         <QueriesContainer>
-          <QueriesWidget query={query} />
+          <QueriesWidget query={query} releases={releases} />
         </QueriesContainer>
         <CachesContainer>
-          <CachesWidget query={query} />
+          <CachesWidget query={query} releases={releases} />
         </CachesContainer>
       </WidgetGrid>
       <PathsTable handleAddTransactionFilter={setTransactionFilter} query={query} />
