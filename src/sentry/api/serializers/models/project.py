@@ -1100,10 +1100,14 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             },
             "symbolSources": serialized_sources,
             "isDynamicallySampled": sample_rate is not None and sample_rate < 1.0,
-            "autofixAutorunThreshold": self.get_value_with_default(
-                attrs, "sentry:autofix_autorun_threshold"
-            ),
         }
+
+        if features.has(
+            "organizations:trigger-autofix-on-issue-summary", obj.organization, actor=user
+        ):
+            data["autofixAutorunThreshold"] = self.get_value_with_default(
+                attrs, "sentry:autofix_autorun_threshold"
+            )
 
         if has_tempest_access(obj.organization, user):
             data["tempestFetchScreenshots"] = attrs["options"].get(
