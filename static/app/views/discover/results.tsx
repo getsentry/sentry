@@ -57,9 +57,9 @@ import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
-import withPageFilters from 'sentry/utils/withPageFilters';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {
   DEFAULT_EVENT_VIEW,
@@ -963,7 +963,13 @@ function SavedQueryAPI(props: Props) {
   );
 }
 
-function ResultsContainer(props: Props) {
+export default function ResultsContainer(
+  props: Omit<Props, 'api' | 'organization' | 'selection'>
+) {
+  const api = useApi();
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+
   /**
    * Block `<Results>` from mounting until GSH is ready since there are API
    * requests being performed on mount.
@@ -978,22 +984,25 @@ function ResultsContainer(props: Props) {
   return (
     <PageFiltersContainer
       disablePersistence={
-        props.organization.features.includes('discover-query') &&
+        organization.features.includes('discover-query') &&
         !!(props.savedQuery || props.location.query.id)
       }
       skipLoadLastUsed={
-        props.organization.features.includes('global-views') && !!props.savedQuery
+        organization.features.includes('global-views') && !!props.savedQuery
       }
       // The Discover Results component will manage URL params, including page filters state
       // This avoids an unnecessary re-render when forcing a project filter for team plan users
       skipInitializeUrlParams
     >
-      <SavedQueryAPI {...props} />
+      <SavedQueryAPI
+        api={api}
+        organization={organization}
+        selection={selection}
+        {...props}
+      />
     </PageFiltersContainer>
   );
 }
-
-export default withApi(withOrganization(withPageFilters(ResultsContainer)));
 
 const StyledCloseButton = styled(Button)`
   background-color: transparent;
