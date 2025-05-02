@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-CHUNK_SIZE = 10000
+CHUNK_SIZE = 100
 
 
 # copied constants and enums
@@ -51,8 +51,6 @@ class GroupStatus:
 
 
 # end copy
-
-BATCH_SIZE = 100
 
 
 def get_open_periods_for_group(
