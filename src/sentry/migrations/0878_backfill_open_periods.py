@@ -7,7 +7,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
-from django.db import migrations, router, transaction
+from django.db import IntegrityError, migrations, router, transaction
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-CHUNK_SIZE = 10000
+CHUNK_SIZE = 100
 
 
 # copied constants and enums
@@ -52,8 +52,6 @@ class GroupStatus:
 
 # end copy
 
-BATCH_SIZE = 100
-
 
 def get_open_periods_for_group(
     apps: StateApps,
@@ -64,7 +62,7 @@ def get_open_periods_for_group(
     activities: list[Any],
     GroupOpenPeriod: Any,
 ) -> list[Any]:
-    # Filter to REGRESSION and RESOLVED activties to find the bounds of each open period.
+    # Filter to REGRESSION and SET_RESOLVED_XX activties to find the bounds of each open period.
     # The only UNRESOLVED activity we would care about is the first UNRESOLVED activity for the group creation,
     # but we don't create an entry for that.
     open_periods = []
@@ -98,6 +96,13 @@ def get_open_periods_for_group(
                     extra={"group_id": group_id, "starting_activity": activity.id},
                 )
             if start is not None and end is not None:
+                if start > end:
+                    logger.error(
+                        "Open period has invalid start and end dates",
+                        extra={"group_id": group_id},
+                    )
+                    return []
+
                 open_periods.append(
                     GroupOpenPeriod(
                         group_id=group_id,
@@ -165,13 +170,19 @@ def _backfill_group_open_periods(
         )
 
     with transaction.atomic(router.db_for_write(GroupOpenPeriod)):
-        GroupOpenPeriod.objects.bulk_create(open_periods)
+        try:
+            GroupOpenPeriod.objects.bulk_create(open_periods)
+        except IntegrityError as e:
+            logger.exception(
+                "Error creating open period",
+                extra={"group_ids": group_ids, "error": e},
+            )
 
 
 def backfill_group_open_periods(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     Group = apps.get_model("sentry", "Group")
 
-    backfill_key = "backfill_group_open_periods_from_activity"
+    backfill_key = "backfill_group_open_periods_from_activity_1"
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
     progress_id = int(redis_client.get(backfill_key) or 0)
