@@ -1046,6 +1046,9 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             set_measurement("trace_view.projects", len_projects)
 
     def get(self, request: Request, organization: Organization, trace_id: str) -> HttpResponse:
+        if not request.user.is_authenticated:
+            return Response(status=400)
+
         if not self.has_feature(organization, request):
             return Response(status=404)
 
@@ -1106,7 +1109,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
                     False,
                     query_source=query_source,
                 )
-            self.record_analytics(transactions, trace_id, self.request.user.id, organization.id)
+            self.record_analytics(transactions, trace_id, request.user.id, organization.id)
 
         warning_extra: dict[str, str] = {"trace": trace_id, "organization": organization.slug}
 

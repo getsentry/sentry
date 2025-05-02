@@ -44,6 +44,9 @@ class ExploreSavedQueryStarredEndpoint(OrganizationEndpoint):
         """
         Update the starred status of a saved Explore query for the current organization member.
         """
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
         if not self.has_feature(organization, request):
             return self.respond(status=404)
 

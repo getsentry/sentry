@@ -58,6 +58,9 @@ class RelocationRetryEndpoint(Endpoint):
 
         logger.info("relocations.retry.post.start", extra={"caller": request.user.id})
 
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
         relocation = Relocation.objects.filter(uuid=relocation_uuid).first()
         if relocation is None:
             raise ResourceDoesNotExist

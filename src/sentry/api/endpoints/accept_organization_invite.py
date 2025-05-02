@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
 
 from django.http import HttpRequest
 from django.urls import reverse
@@ -31,7 +30,7 @@ def handle_empty_organization_id_or_slug(
     member_id: int, user_id: int, request: HttpRequest
 ) -> RpcUserInviteContext | None:
     member_mapping: OrganizationMemberMapping | None = None
-    member_mappings: Mapping[int, OrganizationMemberMapping] = {
+    member_mappings = {
         omm.organization_id: omm
         for omm in OrganizationMemberMapping.objects.filter(organizationmember_id=member_id).all()
     }
@@ -119,6 +118,8 @@ class AcceptOrganizationInvite(Endpoint):
         token: str,
         organization_id_or_slug: int | str | None = None,
     ) -> Response:
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         invite_context = get_invite_state(
             member_id=int(member_id),
@@ -219,6 +220,12 @@ class AcceptOrganizationInvite(Endpoint):
         token: str,
         organization_id_or_slug: int | str | None = None,
     ) -> Response:
+        if not request.user.is_authenticated:
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+                data={"details": "unable to accept organization invite"},
+            )
+
         invite_context = get_invite_state(
             member_id=int(member_id),
             organization_id_or_slug=organization_id_or_slug,
@@ -233,12 +240,7 @@ class AcceptOrganizationInvite(Endpoint):
 
         helper = self.get_helper(request, token, invite_context)
 
-        if not request.user.is_authenticated:
-            return Response(
-                status=status.HTTP_400_BAD_REQUEST,
-                data={"details": "unable to accept organization invite"},
-            )
-        elif helper.member_already_exists:
+        if helper.member_already_exists:
             response = Response(
                 status=status.HTTP_400_BAD_REQUEST, data={"details": "member already exists"}
             )

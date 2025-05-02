@@ -67,6 +67,9 @@ class AssistantEndpoint(Endpoint):
 
     def get(self, request: Request) -> Response:
         """Return all the guides with a 'seen' attribute if it has been 'viewed' or 'dismissed'."""
+        if not request.user.is_authenticated:
+            return Response(status=400)
+
         guide_map = deepcopy(manager.all())
         seen_ids = set(
             AssistantActivity.objects.filter(user_id=request.user.id).values_list(
@@ -86,6 +89,9 @@ class AssistantEndpoint(Endpoint):
             'useful' (optional): true / false,
         }
         """
+        if not request.user.is_authenticated:
+            return Response(status=400)
+
         serializer = AssistantSerializer(data=request.data)
 
         if not serializer.is_valid():
