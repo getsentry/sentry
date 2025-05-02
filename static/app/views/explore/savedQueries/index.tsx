@@ -7,6 +7,7 @@ import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SavedQueriesLandingContent} from 'sentry/views/explore/savedQueries/savedQueriesLandingContent';
+import {getExploreUrl} from 'sentry/views/explore/utils';
 
 export default function SavedQueriesView() {
   const organization = useOrganization();
@@ -25,7 +26,7 @@ export default function SavedQueriesView() {
                 priority="primary"
                 icon={<IconAdd />}
                 size="sm"
-                to={`/organizations/${organization.slug}/explore/traces/`}
+                to={getExploreUrl({organization, visualize: []})}
               >
                 {t('Create Query')}
               </LinkButton>
