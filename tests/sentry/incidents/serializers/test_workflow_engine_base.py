@@ -81,7 +81,7 @@ class TestWorklowEngineSerializer(TestCase):
             "detectionType": self.detector.type,
         }
 
-    def add_warning_trigger(self):
+    def add_warning_trigger(self) -> None:
         self.warning_trigger = self.create_alert_rule_trigger(
             alert_rule=self.alert_rule, label="warning"
         )
@@ -117,7 +117,7 @@ class TestWorklowEngineSerializer(TestCase):
         }
         self.expected_triggers.append(self.expected_warning_trigger)
 
-    def add_incident_data(self):
+    def add_incident_data(self) -> None:
         self.incident = self.create_incident(alert_rule=self.alert_rule, date_started=self.now)
         IncidentTrigger.objects.create(
             incident=self.incident,
