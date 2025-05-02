@@ -2,7 +2,7 @@
 
 import logging
 
-from django.db import migrations, router, transaction
+from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 from django.db.models import Exists, OuterRef
@@ -41,11 +41,10 @@ def delete_orphaned_migrated_metric_alert_objects(
     logger.info("orphaned action count: %s", orphaned_actions.count())
     logger.info("orphaned dcg count: %s", orphaned_dcgs.count())
 
-    with transaction.atomic(router.db_for_write(Action)):
-        for action in orphaned_actions:
-            action.delete()
-        for dcg in orphaned_dcgs:
-            dcg.delete()
+    for action in orphaned_actions:
+        action.delete()
+    for dcg in orphaned_dcgs:
+        dcg.delete()
 
 
 class Migration(CheckedMigration):
