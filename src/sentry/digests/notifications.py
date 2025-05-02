@@ -171,9 +171,9 @@ def get_rules_from_workflows(project: Project, workflow_ids: set[int]) -> dict[i
         return rules
 
     # Fetch all workflows in bulk
-    workflows = Workflow.objects.filter(
-        id__in=workflow_ids, organization_id=project.organization_id
-    ).in_bulk(workflow_ids)
+    workflows = Workflow.objects.filter(organization_id=project.organization_id).in_bulk(
+        workflow_ids
+    )
 
     # We are only processing the workflows in the digest if under the new flag
     # This should be ok since we should only add workflow_ids to redis when under this flag
@@ -192,9 +192,7 @@ def get_rules_from_workflows(project: Project, workflow_ids: set[int]) -> dict[i
     # This is if we had workflows in the digest but the flag is not enabled
     # This can happen if we rollback the flag, but the records in the digest aren't flushed
     else:
-        alert_rule_workflows = AlertRuleWorkflow.objects.filter(
-            workflow_id__in=workflow_ids
-        ).select_related("workflow")
+        alert_rule_workflows = AlertRuleWorkflow.objects.filter(workflow_id__in=workflow_ids)
         alert_rule_workflows_map = {awf.workflow_id: awf for awf in alert_rule_workflows}
 
         rule_ids_to_fetch = {awf.rule_id for awf in alert_rule_workflows}
