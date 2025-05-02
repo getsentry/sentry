@@ -1,6 +1,5 @@
 import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useGetSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
@@ -23,9 +22,6 @@ export function ExploreSecondaryNav() {
     perPage: MAX_STARRED_QUERIES_DISPLAYED,
   });
 
-  const locationIsPrebuiltQuery =
-    location.query.id === undefined && defined(location.query.title);
-
   return (
     <SecondaryNav>
       <SecondaryNav.Header>
@@ -37,10 +33,7 @@ export function ExploreSecondaryNav() {
             <SecondaryNav.Item
               to={`${baseUrl}/traces/`}
               analyticsItemName="explore_traces"
-              isActive={
-                !locationIsPrebuiltQuery &&
-                isLinkActive(`${baseUrl}/traces/`, location.pathname)
-              }
+              isActive={isLinkActive(`${baseUrl}/traces/`, location.pathname)}
             >
               {t('Traces')}
             </SecondaryNav.Item>
