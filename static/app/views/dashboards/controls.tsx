@@ -172,6 +172,13 @@ function Controls({
     },
   ];
 
+  const tooltipMessage = hasEditAccess
+    ? widgetLimitReached
+      ? tct('Max widgets ([maxWidgets]) per dashboard reached.', {
+          maxWidgets: MAX_WIDGETS,
+        })
+      : null
+    : t('You do not have permission to edit this dashboard');
   return (
     <StyledButtonBar gap={1} key="controls">
       <FeedbackWidgetButton />
@@ -254,10 +261,8 @@ function Controls({
             </Button>
             {hasFeature ? (
               <Tooltip
-                title={tct('Max widgets ([maxWidgets]) per dashboard reached.', {
-                  maxWidgets: MAX_WIDGETS,
-                })}
-                disabled={!widgetLimitReached}
+                title={tooltipMessage}
+                disabled={!widgetLimitReached && hasEditAccess}
               >
                 <DropdownMenu
                   items={addWidgetDropdownItems}
@@ -269,9 +274,6 @@ function Controls({
                     showChevron: true,
                     icon: <IconAdd isCircled size="sm" />,
                     priority: 'primary',
-                    title:
-                      !hasEditAccess &&
-                      t('You do not have permission to edit this dashboard'),
                   }}
                   position="bottom-end"
                 />
