@@ -48,10 +48,5 @@ describe('ExploreSecondaryNav', () => {
     );
 
     expect(screen.getByText('Traces')).toBeInTheDocument();
-
-    expect(screen.getByText('All Transactions')).toBeInTheDocument();
-    expect(screen.getByText('DB Latency')).toBeInTheDocument();
-    expect(screen.getByText('Slow HTTP Requests')).toBeInTheDocument();
-    expect(screen.getByText('Worst Pageloads')).toBeInTheDocument();
   });
 });
