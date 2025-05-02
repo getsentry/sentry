@@ -358,7 +358,7 @@ def fulfill_cross_region_export_request(
     call is received with the encrypted export in tow, it will trigger the next step in the
     `SAAS_TO_SAAS` relocation's pipeline, namely `uploading_complete`.
     """
-    encrypt_with_public_key = base64.b64decode(encrypt_with_public_key)
+    encrypt_with_public_key_bytes = base64.b64decode(encrypt_with_public_key.encode("utf8"))
 
     logger_data = {
         "uuid": uuid_str,
@@ -366,7 +366,7 @@ def fulfill_cross_region_export_request(
         "requesting_region_name": requesting_region_name,
         "replying_region_name": replying_region_name,
         "org_slug": org_slug,
-        "encrypted_public_key_size": len(encrypt_with_public_key),
+        "encrypted_public_key_size": len(encrypt_with_public_key_bytes),
         "scheduled_at": scheduled_at,
     }
     logger.info(
@@ -398,7 +398,7 @@ def fulfill_cross_region_export_request(
 
     export_in_organization_scope(
         fp,
-        encryptor=LocalFileEncryptor(BytesIO(encrypt_with_public_key)),
+        encryptor=LocalFileEncryptor(BytesIO(encrypt_with_public_key_bytes)),
         org_filter={org_slug},
         printer=LoggingPrinter(uuid_str),
         checkpointer=StorageBackedCheckpointExporter(
