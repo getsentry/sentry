@@ -162,6 +162,7 @@ export type Aggregate =
   | (typeof DISTRIBUTION_AGGREGATES)[number];
 
 type CounterConditionalAggregate =
+  | `sum_if`
   | `avg_if`
   | `p50_if`
   | `p75_if`
@@ -170,6 +171,7 @@ type CounterConditionalAggregate =
   | `p99_if`;
 
 type ConditionalAggregate =
+  | `avg_if`
   | `count_op`
   | `failure_rate_if`
   | 'trace_status_rate'

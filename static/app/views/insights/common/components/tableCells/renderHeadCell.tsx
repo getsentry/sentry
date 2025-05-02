@@ -84,7 +84,7 @@ const SORTABLE_FIELDS = new Set([
   'p50_if(span.duration,is_transaction,true)',
   'p95_if(span.duration,is_transaction,true)',
   'failure_rate_if(is_transaction,true)',
-  'sum(span.duration)',
+  'sum_if(span.duration,is_transaction,true)',
 ]);
 
 const NUMERIC_FIELDS = new Set([

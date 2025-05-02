@@ -197,7 +197,7 @@ function EAPOverviewPage() {
         'failure_rate_if(is_transaction,true)',
         'performance_score(measurements.score.total)',
         'count_unique(user)',
-        'sum(span.duration)',
+        'sum_if(span.duration,is_transaction,true)',
       ],
     },
     'api.performance.landing-table'

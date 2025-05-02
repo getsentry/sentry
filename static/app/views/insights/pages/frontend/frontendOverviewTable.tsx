@@ -32,7 +32,7 @@ type Row = Pick<
   | 'p95_if(span.duration,is_transaction,true)'
   | 'failure_rate_if(is_transaction,true)'
   | 'count_unique(user)'
-  | 'sum(span.duration)'
+  | 'sum_if(span.duration,is_transaction,true)'
   | 'performance_score(measurements.score.total)'
 >;
 
@@ -45,7 +45,7 @@ type Column = GridColumnHeader<
   | 'p95_if(span.duration,is_transaction,true)'
   | 'failure_rate_if(is_transaction,true)'
   | 'count_unique(user)'
-  | 'sum(span.duration)'
+  | 'sum_if(span.duration,is_transaction,true)'
   | 'performance_score(measurements.score.total)'
 >;
 
@@ -86,7 +86,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'sum(span.duration)',
+    key: 'sum_if(span.duration,is_transaction,true)',
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
   },
@@ -106,7 +106,7 @@ const SORTABLE_FIELDS = [
   'p95_if(span.duration,is_transaction,true)',
   'failure_rate_if(is_transaction,true)',
   'count_unique(user)',
-  'sum(span.duration)',
+  'sum_if(span.duration,is_transaction,true)',
   'performance_score(measurements.score.total)',
 ] as const;
 
