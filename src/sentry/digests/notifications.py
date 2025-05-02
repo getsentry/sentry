@@ -197,9 +197,7 @@ def get_rules_from_workflows(project: Project, workflow_ids: set[int]) -> dict[i
 
         rule_ids_to_fetch = {awf.rule_id for awf in alert_rule_workflows}
 
-        bulk_rules = Rule.objects.filter(id__in=rule_ids_to_fetch, project_id=project.id).in_bulk(
-            rule_ids_to_fetch
-        )
+        bulk_rules = Rule.objects.filter(project_id=project.id).in_bulk(rule_ids_to_fetch)
 
         for workflow_id in workflow_ids:
             alert_workflow = alert_rule_workflows_map.get(workflow_id)
