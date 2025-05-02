@@ -36,10 +36,25 @@ class NPlusOneDBClientSettings(TypedDict):
 @dataclass
 class ClientOperation:
     client_span: Span
+    """
+    The client span that is considered the start of the operation.
+    """
     db_predecessor_hash: str = ""
+    """
+    A cumulative hash of all the spans that precede the DB span.
+    """
     db_span: Span | None = None
+    """
+    The only DB span within the operation.
+    """
     db_successor_hash: str = ""
+    """
+    A cumulative hash of all the spans that follow the DB span.
+    """
     is_complete: bool = False
+    """
+    Whether the operation is complete, set to True when a new client operation is detected.
+    """
 
 
 class NPlusOneDBClientDetector(PerformanceDetector):
@@ -71,11 +86,12 @@ class NPlusOneDBClientDetector(PerformanceDetector):
                               []
         ...
 
-    The above example shows a few spans within the client span, before the DB span. The content of
-    these spans is irrelevant, but we should detect a problem if all the following are true:
+    The above example shows a few spans within the client span, before and afterthe DB span.
+    The content of these spans is irrelevant, but we should detect a problem if all are true:
         - The client span contains only one nested DB span
-        - The db spans are all identical
-        - The descendants of the client spans are all identical
+        - The client spans are equivalent
+        - The db spans are equivalent
+        - The descendants of the client spans are all identical (before + after DB span)
     """
 
     __slots__ = ("stored_problems", "operations", "previous_operation", "current_operation")
@@ -173,7 +189,7 @@ class NPlusOneDBClientDetector(PerformanceDetector):
             return
 
         repetitions = len(self.operations)
-        min_repetitions = self.settings.get("minimum_repetitions")
+        min_repetitions = self.settings["minimum_repetitions"]
         above_minimum_repetitions = repetitions >= min_repetitions
 
         if above_minimum_repetitions:
@@ -181,7 +197,7 @@ class NPlusOneDBClientDetector(PerformanceDetector):
             return
 
         client_span_list = [o.client_span for o in self.operations]
-        min_duration = self.settings.get("minimum_total_duration_threshold")
+        min_duration = self.settings["minimum_total_duration_threshold"]
         above_mininum_duration = total_span_time(client_span_list) < min_duration
 
         if above_mininum_duration:
@@ -206,43 +222,45 @@ class NPlusOneDBClientDetector(PerformanceDetector):
             metrics.incr("performance.performance_issue.np1_db_client.incomplete_operations")
             return
 
-        if fingerprint not in self.stored_problems:
-            client_span_ids = [span.get("span_id", None) for span in client_span_list]
-            db_span_ids = [span.get("span_id", None) for span in db_span_list]
+        if fingerprint in self.stored_problems:
+            return
 
-            self.stored_problems[fingerprint] = PerformanceProblem(
-                fingerprint=fingerprint,
-                op="db",
-                desc=db_span.get("description", ""),
-                type=PerformanceNPlusOneDBClientGroupType,
-                parent_span_ids=client_span_ids,
-                cause_span_ids=client_span_ids,
-                offender_span_ids=db_span_ids,
-                evidence_display=[
-                    IssueEvidence(
-                        name="Client Span",
-                        value=f"{get_client_span_name(client_span)} - {client_span.get('description', '')}",
-                        important=True,
-                    ),
-                    IssueEvidence(
-                        name="DB Span",
-                        value=f"{get_db_span_name(db_span)} - {db_span.get('description', '')}",
-                        important=True,
-                    ),
-                ],
-                evidence_data={
-                    "transaction_name": self._event.get("transaction", ""),
-                    "op": "db",
-                    "parent_span_ids": client_span_ids,
-                    "cause_span_ids": client_span_ids,
-                    "offender_span_ids": db_span_ids,
-                    "repitition_count": repetitions,
-                    "repeating_db_span": get_db_span_name(db_span),
-                    "repeating_client_span": get_client_span_name(client_span),
-                    "db_predecessor_hash": self.previous_operation.db_predecessor_hash,
-                    "db_successor_hash": self.previous_operation.db_successor_hash,
-                },
-            )
+        client_span_ids = [span.get("span_id", None) for span in client_span_list]
+        db_span_ids = [span.get("span_id", None) for span in db_span_list]
+
+        self.stored_problems[fingerprint] = PerformanceProblem(
+            fingerprint=fingerprint,
+            op="db",
+            desc=db_span.get("description", ""),
+            type=PerformanceNPlusOneDBClientGroupType,
+            parent_span_ids=client_span_ids,
+            cause_span_ids=client_span_ids,
+            offender_span_ids=db_span_ids,
+            evidence_display=[
+                IssueEvidence(
+                    name="Client Span",
+                    value=f"{get_client_span_name(client_span)} - {client_span.get('description', '')}",
+                    important=True,
+                ),
+                IssueEvidence(
+                    name="DB Span",
+                    value=f"{get_db_span_name(db_span)} - {db_span.get('description', '')}",
+                    important=True,
+                ),
+            ],
+            evidence_data={
+                "transaction_name": self._event.get("transaction", ""),
+                "op": "db",
+                "parent_span_ids": client_span_ids,
+                "cause_span_ids": client_span_ids,
+                "offender_span_ids": db_span_ids,
+                "repitition_count": repetitions,
+                "repeating_db_span": get_db_span_name(db_span),
+                "repeating_client_span": get_client_span_name(client_span),
+                "db_predecessor_hash": self.previous_operation.db_predecessor_hash,
+                "db_successor_hash": self.previous_operation.db_successor_hash,
+            },
+        )
 
     def reset_detection(self) -> None:
         """
@@ -255,7 +273,7 @@ class NPlusOneDBClientDetector(PerformanceDetector):
 
     def has_required_fields(self, span: Span) -> bool:
         """
-        Check whether a span has the required fields for us to process it. (span_id, hash)
+        Check whether a span has the required fields for us to process it.
         """
         has_id = span.get("span_id") is not None
         has_hash = span.get("hash") is not None
