@@ -43,6 +43,7 @@ export type SavedQuery = {
   queryDataset: string;
   starred: boolean;
   end?: string;
+  isPrebuilt?: boolean;
   range?: string;
   start?: string;
 };
