@@ -9,7 +9,6 @@ import sentry_sdk
 from django.urls import reverse
 
 from sentry import features
-from sentry.api.bases.organization import NoProjects
 from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_eap
 from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.incidents.models.alert_rule import (
@@ -343,9 +342,9 @@ def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
     snuba_query: SnubaQuery = alert_rule.snuba_query
     project = alert_rule.projects.first()
     if not project:
-        raise NoProjects
+        return {"is_close": False, "skipped": True, "mismatches": {}}
 
-    if snuba_query.aggregate in ["apdex()"]:
+    if "apdex" in snuba_query.aggregate:
         logger.info(
             "Skipping alert %s, %s aggregate not yet supported by RPC",
             alert_rule.id,
