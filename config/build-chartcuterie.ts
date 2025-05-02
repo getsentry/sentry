@@ -83,7 +83,7 @@ async function buildChartcuterie() {
 
   try {
     const commitHash = getCommitHash();
-    originalPackageJsonContent = await modifyPackageJsonSideEffects(true); // Enable sideEffects: false
+    originalPackageJsonContent = await modifyPackageJsonSideEffects(); // Enable sideEffects: false
     await runEsbuild(commitHash);
     esbuildSuccess = true;
   } catch (error) {
