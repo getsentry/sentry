@@ -187,10 +187,10 @@ class MetricIssueContext:
 
     @classmethod
     def _get_subscription(cls, evidence_data: MetricIssueEvidenceData) -> QuerySubscription:
-        data_sources = evidence_data.data_sources
-        if len(data_sources) != 1:
+        data_source_ids = evidence_data.data_source_ids
+        if len(data_source_ids) != 1:
             raise ValueError("Only one data source is supported for alert context")
-        data_source = DataSource.objects.get(id=data_sources[0])
+        data_source = DataSource.objects.get(id=data_source_ids[0])
 
         subscription = QuerySubscription.objects.get(id=data_source.source_id)
         return subscription

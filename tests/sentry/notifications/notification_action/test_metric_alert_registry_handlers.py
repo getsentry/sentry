@@ -105,7 +105,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
             data_condition_comparison_value=123,
             alert_id=self.alert_rule.id,
             detector_id=self.detector.id,
-            data_sources=[self.data_source.id],
+            data_source_ids=[self.data_source.id],
         )
         self.group, self.event, self.group_event = self.create_group_event(
             occurrence=self.create_issue_occurrence(
