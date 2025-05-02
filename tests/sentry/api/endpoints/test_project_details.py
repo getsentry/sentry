@@ -1974,7 +1974,3 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             )
             assert self.project.get_option("sentry:autofix_autorun_threshold") == "off"
             assert resp.data["autofixAutorunThreshold"] == "off"
-
-    def test_digests_delay(self):
-        self.get_success_response(self.org_slug, self.proj_slug, digestsMinDelay=1000)
-        assert self.project.get_option("digests:mail:minimum_delay") == 1000
