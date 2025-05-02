@@ -422,8 +422,8 @@ class ConvertCategoryValueTest(TestCase):
             convert_category_value(["outage"], [self.project], self.user, None)
         ) == GROUP_TYPE_REGISTRY.get_by_category(GroupCategory.OUTAGE.value)
         assert set(
-            convert_category_value(["performance_best_practice"], [self.project], self.user, None)
-        ) == GROUP_TYPE_REGISTRY.get_by_category(GroupCategory.PERFORMANCE_BEST_PRACTICE.value)
+            convert_category_value(["DB_QUERY"], [self.project], self.user, None)
+        ) == GROUP_TYPE_REGISTRY.get_by_category(GroupCategory.DB_QUERY.value)
 
         # Should raise an error for invalid values
         with pytest.raises(InvalidSearchQuery):

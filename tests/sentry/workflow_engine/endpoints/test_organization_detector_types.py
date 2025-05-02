@@ -74,7 +74,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             slug = PerformanceSlowDBQueryGroupType.slug
             description = "Performance"
             category = GroupCategory.PERFORMANCE.value
-            category_v2 = GroupCategory.PERFORMANCE_BEST_PRACTICE.value
+            category_v2 = GroupCategory.DB_QUERY.value
             released = True
 
     def tearDown(self):

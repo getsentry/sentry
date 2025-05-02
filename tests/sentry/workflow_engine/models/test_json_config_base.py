@@ -53,7 +53,7 @@ class JSONConfigBaseTest(BaseGroupTypeTest):
             slug = "example"
             description = "Example"
             category = GroupCategory.PERFORMANCE.value
-            category_v2 = GroupCategory.PERFORMANCE_BEST_PRACTICE.value
+            category_v2 = GroupCategory.DB_QUERY.value
             detector_settings = DetectorSettings(
                 config_schema={"type": "object", "additionalProperties": False},
             )
