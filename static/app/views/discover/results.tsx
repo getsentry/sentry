@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component, Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
@@ -13,9 +13,9 @@ import {Client} from 'sentry/api';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -53,6 +53,8 @@ import {
 import localStorage from 'sentry/utils/localStorage';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
@@ -918,47 +920,47 @@ const TipContainer = styled(MarkedText)`
   }
 `;
 
-type SavedQueryState = DeprecatedAsyncComponent['state'] & {
-  savedQuery?: SavedQuery | null;
-};
+function SavedQueryAPI(props: Props) {
+  const queryClient = useQueryClient();
+  const {organization, location} = props;
 
-class SavedQueryAPI extends DeprecatedAsyncComponent<Props, SavedQueryState> {
-  shouldReload = true;
+  const queryKey = useMemo(
+    (): ApiQueryKey => [
+      `/organizations/${organization.slug}/discover/saved/${location.query.id}/`,
+    ],
+    [organization, location.query.id]
+  );
+  const {data, isError, isPending, isFetching, refetch} = useApiQuery<
+    SavedQuery | undefined
+  >(queryKey, {
+    enabled: Boolean(location.query.id),
+    staleTime: 0,
+  });
 
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const {organization, location} = this.props;
+  const setSavedQuery = useCallback(
+    (newQuery?: SavedQuery) => {
+      setApiQueryData(queryClient, queryKey, newQuery);
+      queryClient.refetchQueries({queryKey});
+    },
+    [queryClient, queryKey]
+  );
 
-    const endpoints: ReturnType<DeprecatedAsyncComponent['getEndpoints']> = [];
-    if (location.query.id) {
-      endpoints.push([
-        'savedQuery',
-        `/organizations/${organization.slug}/discover/saved/${location.query.id}/`,
-      ]);
-      return endpoints;
-    }
-    return endpoints;
+  if (isPending) {
+    return <LoadingIndicator />;
   }
 
-  setSavedQuery = (newSavedQuery?: SavedQuery) => {
-    this.setState({savedQuery: newSavedQuery});
-  };
-
-  renderBody(): React.ReactNode {
-    const {organization} = this.props;
-    const {savedQuery, loading} = this.state;
-    let savedQueryWithDataset = savedQuery;
-    if (hasDatasetSelector(organization) && savedQuery) {
-      savedQueryWithDataset = getSavedQueryWithDataset(savedQuery) as SavedQuery;
-    }
-    return (
-      <Results
-        {...this.props}
-        savedQuery={savedQueryWithDataset ?? undefined}
-        loading={loading}
-        setSavedQuery={this.setSavedQuery}
-      />
-    );
+  if (isError) {
+    return <LoadingError message={t('Failed to load saved query')} onRetry={refetch} />;
   }
+
+  return (
+    <Results
+      {...props}
+      savedQuery={data}
+      loading={isFetching}
+      setSavedQuery={setSavedQuery}
+    />
+  );
 }
 
 function ResultsContainer(props: Props) {
