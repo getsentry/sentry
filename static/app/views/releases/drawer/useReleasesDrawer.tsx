@@ -39,6 +39,7 @@ export function useReleasesDrawer() {
             return nextLocation.query[ReleasesDrawerFields.DRAWER] !== 'show';
           },
           ariaLabel: t('Releases drawer'),
+          drawerKey: 'releases-drawer',
           transitionProps: {stiffness: 1000},
           onClose: () => {
             navigate({

@@ -18,7 +18,7 @@ export default function useOrganizationReleases({
   const organization = useOrganization();
   const {selection: defaultPageFilters} = usePageFilters();
 
-  let finalizedQuery;
+  let finalizedQuery: string | undefined;
   const hasFinalized = filters.includes('Finalized');
   const hasNotFinalized = filters.includes('Not Finalized');
 
@@ -31,7 +31,7 @@ export default function useOrganizationReleases({
     finalizedQuery = undefined;
   }
 
-  let status;
+  let status: 'open' | 'archived' | undefined;
   const hasOpen = filters.includes('Open');
   const hasArchived = filters.includes('Archived');
 
