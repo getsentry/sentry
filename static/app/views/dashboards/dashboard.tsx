@@ -27,10 +27,9 @@ import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DatasetSource} from 'sentry/utils/discover/types';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
+import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import type {Position} from './layoutUtils';
@@ -47,12 +46,11 @@ import {
   getDefaultWidgetHeight,
   getMobileLayout,
   getNextAvailablePosition,
-  METRIC_WIDGET_MIN_SIZE,
   pickDefinedStoreKeys,
 } from './layoutUtils';
 import SortableWidget from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
-import {DashboardWidgetSource, WidgetType} from './types';
+import {WidgetType} from './types';
 import {connectDashboardCharts, getDashboardFiltersFromURL} from './utils';
 import type WidgetLegendSelectionState from './widgetLegendSelectionState';
 
@@ -83,6 +81,7 @@ type Props = {
   handleUpdateWidgetList: (widgets: Widget[]) => void;
   isEditingDashboard: boolean;
   location: Location;
+  onAddWidget: (dataset: DataSet, openWidgetTemplates?: boolean) => void;
   /**
    * Fired when widgets are added/removed/sorted.
    */
@@ -97,7 +96,6 @@ type Props = {
   handleChangeSplitDataset?: (widget: Widget, index: number) => void;
   isPreview?: boolean;
   newWidget?: Widget;
-  onAddWidget?: (dataset: DataSet, openWidgetTemplates?: boolean) => void;
   onEditWidget?: (widget: Widget) => void;
   onSetNewWidget?: () => void;
   paramDashboardId?: string;
@@ -224,43 +222,6 @@ class Dashboard extends Component<Props, State> {
     const {api, organization, selection} = this.props;
     loadOrganizationTags(api, organization.slug, selection);
   }
-
-  handleStartAdd = (dataset?: DataSet) => {
-    const {organization, router, location, paramDashboardId, handleAddMetricWidget} =
-      this.props;
-
-    if (dataset === DataSet.METRICS) {
-      handleAddMetricWidget?.({...this.addWidgetLayout, ...METRIC_WIDGET_MIN_SIZE});
-      return;
-    }
-
-    if (paramDashboardId) {
-      router.push(
-        normalizeUrl({
-          pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/new/`,
-          query: {
-            ...location.query,
-            source: DashboardWidgetSource.DASHBOARDS,
-            dataset,
-          },
-        })
-      );
-      return;
-    }
-
-    router.push(
-      normalizeUrl({
-        pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
-        query: {
-          ...location.query,
-          source: DashboardWidgetSource.DASHBOARDS,
-          dataset,
-        },
-      })
-    );
-
-    return;
-  };
 
   handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
     const {isEditingDashboard, onUpdate, handleUpdateWidgetList} = this.props;
