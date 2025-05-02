@@ -54,10 +54,8 @@ class WorkflowEngineIncidentSerializer(Serializer):
             }
 
         if "activities" in self.expand:
-            # There could be many activities. An incident could seesaw between error/warning for a long period.
-            # e.g - every 1 minute for 10 months
             for open_period in item_list:
-                results[open_period]["activities"] = self.get_incident_activities(open_period)
+                results[open_period]["activities"] = self.get_open_period_activities(open_period)
 
         return results
 
@@ -66,20 +64,30 @@ class WorkflowEngineIncidentSerializer(Serializer):
             raise ValueError("Priority is required to get an incident status")
         return self.priority_to_incident_status[priority]
 
-    def get_incident_activities(
+    def get_open_period_activities(
         self, open_period: GroupOpenPeriod
     ) -> list[IncidentActivitySerializerResponse]:
-        # TODO: Implement this
+        # a metric issue will only have one openperiod because if it's reopened it'll make a new metric issue
+        # this won't actually work until we start writing to the table for metric issues (or are we planning a backfill? I can't remember)
         return [
             {
-                "id": "-1",
-                "incidentIdentifier": "-1",
-                "user": {},
-                "type": 1,
-                "value": "test",
-                "previousValue": "test",
-                "comment": "test",
-                "dateCreated": datetime.now(),
+                "id": "-1",  # how important is returning the IncidentActivity id? would need to add to join table
+                "incidentIdentifier": "-1",  # also dont have this info, need to add to IncidentGroupOpenPeriod
+                "type": 1,  # detected, created (both made at the same time), status change (move to warning, critical, or resolved)
+                # groupopenperiod has resolution_activity set if it's resolved
+                # if that's not set it's open and we'd read the warning/crit from the group priority Activity row
+                # maybe just dupe it since detected and created are the exact same data except for the IncidentActivity id
+                "value": "test",  # value is IncidentStatus but is only set when type = IncidentActivityType.STATUS_CHANGE
+                # should be able to get from Activity
+                # class IncidentStatus(Enum):
+                #     OPEN = 1
+                #     CLOSED = 2
+                #     WARNING = 10
+                #     CRITICAL = 20
+                "previousValue": "test",  # also IncidentStatus, should be able to get via Activity
+                "user": None,  # we have data in this column from 2020-03-04 - 2021-06-01 only, otherwise it's empty
+                "comment": None,  # not supported now, same timeline as user
+                "dateCreated": open_period.date_started,
             }
         ]
 
@@ -118,13 +126,15 @@ class WorkflowEngineIncidentSerializer(Serializer):
         **kwargs,
     ) -> IncidentSerializerResponse:
         """
-        Temporary serializer to take an OpenPeriod and serialize it for the old metric alert rule endpoints
+        Temporary serializer to take a GroupOpenPeriod and serialize it for the old incident endpoint
         """
 
         date_closed = obj.date_ended.replace(second=0, microsecond=0) if obj.date_ended else None
         return {
             "id": str(obj.id),
-            "identifier": str(obj.id),
+            "identifier": str(
+                obj.id
+            ),  # TODO this isn't the same thing, it's Incident.identifier which we might want to add to IncidentGroupOpenPeriod
             "organizationId": str(obj.project.organization.id),
             "projects": [obj.project.slug],
             "alertRule": attrs["alert_rule"],
