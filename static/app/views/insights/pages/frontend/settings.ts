@@ -45,6 +45,6 @@ export const FRONTEND_PLATFORMS: PlatformKey[] = frontend.filter(
 );
 
 export const DEFAULT_SORT: ValidSort = {
-  field: 'time_spent_percentage(span.duration)' satisfies EAPSpanProperty,
+  field: 'sum_if(span.duration,is_transaction,true)' satisfies EAPSpanProperty,
   kind: 'desc',
 };

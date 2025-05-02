@@ -161,9 +161,19 @@ export type Aggregate =
   | (typeof COUNTER_AGGREGATES)[number]
   | (typeof DISTRIBUTION_AGGREGATES)[number];
 
+type CounterConditionalAggregate =
+  | `sum_if`
+  | `avg_if`
+  | `p50_if`
+  | `p75_if`
+  | `p90_if`
+  | `p95_if`
+  | `p99_if`;
+
 type ConditionalAggregate =
   | `avg_if`
   | `count_op`
+  | `failure_rate_if`
   | 'trace_status_rate'
   | 'time_spent_percentage';
 
@@ -171,6 +181,7 @@ export const SPAN_FUNCTIONS = [
   'sps',
   'spm',
   'epm',
+  'tpm',
   'count',
   'time_spent_percentage',
   'http_response_rate',
@@ -261,6 +272,8 @@ export type EAPSpanResponse = {
     [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
   } & {
     [Property in SpanFields as `count_unique(${Property})`]: number;
+  } & {
+    [Property in SpanNumberFields as `${CounterConditionalAggregate}(${Property},${string},${string})`]: number;
   };
 
 export type EAPSpanProperty = keyof EAPSpanResponse;
@@ -443,6 +456,7 @@ export type SpanIndexedFieldTypes = SpanIndexedResponse;
 export enum SpanFunction {
   SPS = 'sps',
   EPM = 'epm',
+  TPM = 'tpm',
   TIME_SPENT_PERCENTAGE = 'time_spent_percentage',
   HTTP_RESPONSE_COUNT = 'http_response_count',
   HTTP_RESPONSE_RATE = 'http_response_rate',
