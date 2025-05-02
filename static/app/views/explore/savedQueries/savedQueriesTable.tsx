@@ -192,7 +192,7 @@ export function SavedQueriesTable({
               <SavedEntityTable.CellProjects projects={query.projects} />
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell>
-              <SavedEntityTable.CellEnvironments environments={query.environment} />
+              <SavedEntityTable.CellEnvironments environments={query.environment ?? []} />
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell>
               <StyledExploreParams
@@ -202,7 +202,7 @@ export function SavedQueriesTable({
               />
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell>
-              <Avatar user={query.createdBy} tooltip={query.createdBy.name} hasTooltip />
+              <Avatar user={query.createdBy} tooltip={query.createdBy?.name} hasTooltip />
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell>
               <SavedEntityTable.CellTimeSince date={query.lastVisited} />
