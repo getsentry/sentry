@@ -42,8 +42,10 @@ def delete_orphaned_migrated_metric_alert_objects(
     logger.info("orphaned dcg count: %s", orphaned_dcgs.count())
 
     with transaction.atomic(router.db_for_write(Action)):
-        orphaned_actions.delete()
-        orphaned_dcgs.delete()
+        for action in orphaned_actions:
+            action.delete()
+        for dcg in orphaned_dcgs:
+            dcg.delete()
 
 
 class Migration(CheckedMigration):
