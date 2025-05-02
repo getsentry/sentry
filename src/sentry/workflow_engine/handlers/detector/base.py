@@ -23,7 +23,7 @@ EvidenceValueT = TypeVar("EvidenceValueT")
 class EvidenceData(Generic[EvidenceValueT]):
     value: EvidenceValueT
     detector_id: int
-    data_sources: list[int]
+    data_source_ids: list[int]
     data_condition_ids: list[int]
     data_condition_type: Condition
     data_condition_comparison_value: T
