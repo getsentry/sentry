@@ -299,7 +299,7 @@ class DetectorSerializer(Serializer):
             attrs[item]["condition_group"] = condition_group_map.get(
                 str(item.workflow_condition_group_id)
             )
-            attrs[item]["connected_workflows"] = workflows_map.get(item.id, [])
+            attrs[item]["connected_workflows"] = workflows_map[item.id]
             if item.id in configs:
                 attrs[item]["config"] = configs[item.id]
             else:

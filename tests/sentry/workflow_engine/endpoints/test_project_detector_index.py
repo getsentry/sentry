@@ -50,6 +50,14 @@ class ProjectDetectorIndexGetTest(ProjectDetectorIndexBaseTest):
         response = self.get_success_response(self.organization.slug, self.project.slug)
         assert len(response.data) == 0
 
+    def test_invalid_sort_by(self):
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={"sortBy": "general_malaise"},
+        )
+        assert "sortBy" in response.data
+
     def test_sort_by_name(self):
         detector = self.create_detector(
             project_id=self.project.id, name="A Test Detector", type=MetricIssue.slug

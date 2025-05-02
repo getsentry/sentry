@@ -90,8 +90,7 @@ class ProjectDetectorIndexEndpoint(ProjectEndpoint):
         sort_by = request.GET.get("sortBy", "id")
         sort_field = sort_by[1:] if sort_by.startswith("-") else sort_by
         if sort_field not in SORT_ATTRS:
-            sort_field = "id"
-            sort_by = "id"
+            raise ValidationError({"sortBy": ["Invalid sort field"]})
         if sort_field == "connectedWorkflows":
             queryset = queryset.annotate(connectedWorkflows=Count("detectorworkflow"))
 
