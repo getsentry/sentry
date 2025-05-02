@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from base64 import b64decode
 from copy import deepcopy
 from datetime import datetime, timezone
 from operator import itemgetter
@@ -99,7 +100,7 @@ profile_chunks_producer = SingletonProducer(
 )
 def process_profile_task(
     profile: Profile | None = None,
-    payload: Any = None,
+    payload: str | None = None,
     sampled: bool = True,
     **kwargs: Any,
 ) -> None:
@@ -107,7 +108,7 @@ def process_profile_task(
         return
 
     if payload:
-        message_dict = msgpack.unpackb(payload, use_list=False)
+        message_dict = msgpack.unpackb(b64decode(payload), use_list=False)
         profile = json.loads(message_dict["payload"], use_rapid_json=True)
 
         assert profile is not None

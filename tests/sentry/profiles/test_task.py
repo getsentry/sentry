@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import zipfile
+from base64 import b64encode
 from io import BytesIO
 from os.path import join
 from typing import Any
 from unittest.mock import patch
 
+import msgpack
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
@@ -967,6 +969,59 @@ def test_track_latest_sdk(
 
     with Feature("organizations:profiling-sdks"):
         process_profile_task(profile=profile)
+
+    assert (
+        ProjectSDK.objects.get(
+            project=project,
+            event_type=event_type.value,
+            sdk_name="sentry.python",
+            sdk_version="2.23.0",
+        )
+        is not None
+    )
+
+
+@patch("sentry.profiles.task._push_profile_to_vroom")
+@patch("sentry.profiles.task._symbolicate_profile")
+@patch("sentry.models.projectsdk.get_sdk_index")
+@pytest.mark.parametrize(
+    ["profile", "event_type"],
+    [
+        ("sample_v1_profile", EventType.PROFILE),
+        ("sample_v2_profile", EventType.PROFILE_CHUNK),
+    ],
+)
+@django_db_all
+def test_track_latest_sdk_with_payload(
+    get_sdk_index,
+    _symbolicate_profile,
+    _push_profile_to_vroom,
+    profile,
+    event_type,
+    organization,
+    project,
+    request,
+):
+    _push_profile_to_vroom.return_value = True
+    _symbolicate_profile.return_value = True
+    get_sdk_index.return_value = {
+        "sentry.python": {},
+    }
+
+    profile = request.getfixturevalue(profile)
+    profile["organization_id"] = organization.id
+    profile["project_id"] = project.id
+
+    kafka_payload = {
+        "organization_id": organization.id,
+        "project_id": project.id,
+        "received": "2024-01-02T03:04:05",
+        "payload": json.dumps(profile),
+    }
+    payload = b64encode(msgpack.packb(kafka_payload))
+
+    with Feature("organizations:profiling-sdks"):
+        process_profile_task(payload=payload)
 
     assert (
         ProjectSDK.objects.get(
