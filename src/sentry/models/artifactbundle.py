@@ -5,7 +5,10 @@ from collections.abc import Callable, Iterable, Mapping
 from enum import Enum
 from typing import IO, Any
 
+from django.contrib.postgres.indexes import OpClass
 from django.db import models
+from django.db.models import F
+from django.db.models.functions import Reverse, Upper
 from django.db.models.signals import post_delete
 from django.utils import timezone
 from symbolic.debuginfo import normalize_debug_id
@@ -147,7 +150,15 @@ class ArtifactBundleIndex(Model):
         app_label = "sentry"
         db_table = "sentry_artifactbundleindex"
 
-        indexes = (models.Index(fields=("url", "artifact_bundle")),)
+        indexes = (
+            models.Index(fields=("url", "artifact_bundle")),
+            models.Index(
+                F("organization_id"),
+                F("artifact_bundle_id"),
+                OpClass(Upper(Reverse(F("url"))), name="text_pattern_ops"),
+                name="sentry_artifactbundleindex_url",
+            ),
+        )
 
 
 @region_silo_model
