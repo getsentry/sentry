@@ -809,7 +809,7 @@ function OpenDropdownButton() {
   const handleClick = () => {
     dispatch({
       type: "UPDATE_QUERY",
-      query: 'key:""',
+      query: 'browser.name:""',
       focusOverride: {
         // Focuses the filter with index 0
         itemKey: 'filter:0',
