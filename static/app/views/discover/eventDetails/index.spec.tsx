@@ -9,8 +9,8 @@ import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
-import {DEFAULT_EVENT_VIEW, getAllViews} from 'sentry/views/discover/data';
 import EventDetails from 'sentry/views/discover/eventDetails';
+import {DEFAULT_EVENT_VIEW, getAllViews} from 'sentry/views/discover/results/data';
 
 describe('Discover > EventDetails', function () {
   const allEventsView = EventView.fromSavedQuery(DEFAULT_EVENT_VIEW);

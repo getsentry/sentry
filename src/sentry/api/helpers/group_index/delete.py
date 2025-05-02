@@ -85,6 +85,16 @@ def delete_group_list(
         countdown=countdown,
     )
 
+    create_audit_entries(request, project, group_list, delete_type, transaction_id)
+
+
+def create_audit_entries(
+    request: Request,
+    project: Project,
+    group_list: Sequence[Group],
+    delete_type: Literal["delete", "discard"],
+    transaction_id: str,
+) -> None:
     for group in group_list:
         create_audit_entry(
             request=request,

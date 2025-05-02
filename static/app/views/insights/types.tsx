@@ -72,7 +72,16 @@ export enum SpanFields {
   CACHE_HIT = 'cache.hit',
   IS_STARRED_TRANSACTION = 'is_starred_transaction',
   SPAN_DURATION = 'span.duration',
+  USER = 'user',
 }
+
+type WebVitalsMeasurements =
+  | 'measurements.score.cls'
+  | 'measurements.score.fcp'
+  | 'measurements.score.inp'
+  | 'measurements.score.lcp'
+  | 'measurements.score.ttfb'
+  | 'measurements.score.total';
 
 type SpanBooleanFields =
   | SpanFields.CACHE_HIT
@@ -172,6 +181,8 @@ export const SPAN_FUNCTIONS = [
   'failure_rate',
 ] as const;
 
+export const WEB_VITAL_FUNCTIONS = ['performance_score'] as const;
+
 type BreakpointCondition = 'less' | 'greater';
 
 type RegressionFunctions = [
@@ -183,6 +194,8 @@ type RegressionFunctions = [
 type SpanAnyFunction = `any(${string})`;
 
 export type SpanFunctions = (typeof SPAN_FUNCTIONS)[number];
+
+type WebVitalsFunctions = (typeof WEB_VITAL_FUNCTIONS)[number];
 
 export type SpanMetricsResponse = {
   [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
@@ -226,6 +239,8 @@ export type EAPSpanResponse = {
 } & {
   [Property in SpanFunctions as `${Property}()`]: number;
 } & {
+  [Property in WebVitalsMeasurements as `${WebVitalsFunctions}(${Property})`]: number;
+} & {
   [Property in SpanStringFields as `${Property}`]: string;
 } & {
   [Property in SpanNumberFields as `${Property}`]: number;
@@ -244,6 +259,8 @@ export type EAPSpanResponse = {
       | `${Property}(${string},${string},${string})`]: number;
   } & {
     [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
+  } & {
+    [Property in SpanFields as `count_unique(${Property})`]: number;
   };
 
 export type EAPSpanProperty = keyof EAPSpanResponse;

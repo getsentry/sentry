@@ -254,7 +254,7 @@ export default function IssueViewsList() {
     useCreateGroupSearchView();
   const defaultProject = useDefaultProject();
 
-  if (!organization.features.includes('issue-view-sharing')) {
+  if (!organization.features.includes('enforce-stacked-navigation')) {
     return <Redirect to={`/organizations/${organization.slug}/issues/`} />;
   }
 
