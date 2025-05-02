@@ -105,7 +105,7 @@ class OrganizationIndexEndpoint(Endpoint):
             elif request.auth.organization_id is not None:
                 queryset = queryset.filter(id=request.auth.organization_id)
 
-        elif owner_only:
+        elif owner_only and request.user.is_authenticated:
             # This is used when closing an account
 
             # also fetches organizations in which you are a member of an owner team
