@@ -59,7 +59,8 @@ export interface DrawerOptions {
    */
   onOpen?: () => void;
   /**
-   * If true (default), allows the drawer to be resized
+   * If true (default), allows the drawer to be resized - requires `drawerKey`
+   * to be defined
    */
   resizable?: boolean;
   /**

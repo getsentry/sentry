@@ -24,7 +24,7 @@ import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageStat
 import {useDeleteSavedSearchOptimistic} from 'sentry/views/issueList/mutations/useDeleteSavedSearch';
 import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
-import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
+import {usePrefersOldNavWithEnforcedStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 interface SavedIssueSearchesProps {
   onSavedSearchSelect: (savedSearch: SavedSearch) => void;
@@ -175,14 +175,13 @@ function SavedIssueSearches({
     refetch,
   } = useFetchSavedSearchesForOrg({orgSlug: organization.slug});
   const isMobile = useMedia(`(max-width: ${theme.breakpoints.small})`);
-  const prefersStackedNav = usePrefersStackedNav();
+  const prefersOldNavWithEnforcement = usePrefersOldNavWithEnforcedStackedNav();
 
-  if (
-    !isOpen ||
-    isMobile ||
-    prefersStackedNav ||
-    organization.features.includes('issue-stream-custom-views')
-  ) {
+  const shouldShowSavedSearches =
+    !organization.features.includes('issue-stream-custom-views') ||
+    prefersOldNavWithEnforcement;
+
+  if (!isOpen || isMobile || !shouldShowSavedSearches) {
     return null;
   }
 
