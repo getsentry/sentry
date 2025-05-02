@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.conf import settings
 from django.db import models, router, transaction
-from django.db.models import QuerySet
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
@@ -25,6 +24,7 @@ from sentry.constants import (
 from sentry.db.models import BoundedPositiveIntegerField, region_silo_model, sane_repr
 from sentry.db.models.fields.slug import SentryOrgSlugField
 from sentry.db.models.manager.base import BaseManager
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.utils import slugify_instance
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.hybridcloud.outbox.base import ReplicatedRegionModel
@@ -86,14 +86,14 @@ OrganizationStatus_labels = {
 
 
 class OrganizationManager(BaseManager["Organization"]):
-    def get_for_user_ids(self, user_ids: Collection[int]) -> QuerySet:
+    def get_for_user_ids(self, user_ids: Collection[int]) -> BaseQuerySet[Organization]:
         """Returns the QuerySet of all organizations that a set of Users have access to."""
         return self.filter(
             status=OrganizationStatus.ACTIVE,
             member_set__user_id__in=user_ids,
         )
 
-    def get_for_team_ids(self, team_ids: Sequence[int]) -> QuerySet:
+    def get_for_team_ids(self, team_ids: Sequence[int]) -> BaseQuerySet[Organization]:
         """Returns the QuerySet of all organizations that a set of Teams have access to."""
         from sentry.models.team import Team
 
@@ -102,7 +102,7 @@ class OrganizationManager(BaseManager["Organization"]):
             id__in=Team.objects.filter(id__in=team_ids).values("organization"),
         )
 
-    def get_for_user(self, user, scope=None, only_visible=True):
+    def get_for_user(self, user, scope=None, only_visible=True) -> list[Organization]:
         """
         Returns a set of all organizations a user has access to.
         """
@@ -121,7 +121,7 @@ class OrganizationManager(BaseManager["Organization"]):
             return [r.organization for r in results if scope in r.get_scopes()]
         return [r.organization for r in results]
 
-    def get_organizations_where_user_is_owner(self, user_id: int) -> QuerySet:
+    def get_organizations_where_user_is_owner(self, user_id: int) -> BaseQuerySet[Organization]:
         """
         Returns a QuerySet of all organizations where a user has the top priority role.
         The default top priority role in Sentry is owner.
