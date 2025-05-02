@@ -15,6 +15,7 @@ import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import Text from 'sentry/components/text';
@@ -25,10 +26,12 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
+import type {ChartType} from 'sentry/views/insights/common/components/chart';
 
 interface TraceExploreAiQueryContextValue {
   onAiButtonClick: () => void;
@@ -41,7 +44,7 @@ const TraceExploreAiQueryContext = createContext<
 >(undefined);
 
 interface Visualization {
-  chart_type: number;
+  chart_type: ChartType;
   y_axes: string[];
 }
 
@@ -49,55 +52,43 @@ function formatQueryTokens(result: any) {
   const tokens = [];
 
   const parsedQuery = parseQueryBuilderValue(result.query, getFieldDefinition);
-  if (result.query) {
+  if (result.query && parsedQuery?.length) {
     tokens.push(
       <Token key="filter">
         <ExploreParamTitle>{t('Filter')}</ExploreParamTitle>
-      </Token>
-    );
-    parsedQuery
-      ?.filter(({text}) => text.trim() !== '')
-      .forEach(({text}, index) => {
-        tokens.push(
-          <Token key={`filter-${index}`}>
-            <FormattedQueryWrapper>
+        {parsedQuery
+          .filter(({text}) => text.trim() !== '')
+          .map(({text}) => (
+            <FormattedQueryWrapper key={text}>
               <ProvidedFormattedQuery query={text} />
             </FormattedQueryWrapper>
-          </Token>
-        );
-      });
+          ))}
+      </Token>
+    );
   }
 
   if (result.visualization && result.visualization.length > 0) {
     tokens.push(
       <Token key="visualization">
         <ExploreParamTitle>{t('Visualization')}</ExploreParamTitle>
+        {result.visualization.map((visualization: any, vIdx: number) =>
+          visualization.y_axes.map((y_axis: string) => (
+            <ExploreVisualizes key={`${vIdx}-${y_axis}`}>{y_axis}</ExploreVisualizes>
+          ))
+        )}
       </Token>
     );
-    result.visualization.forEach((visualization: any) => {
-      visualization.y_axes.forEach((y_axis: string, index: number) => {
-        tokens.push(
-          <Token key={`visualization-${index}`}>
-            <ExploreVisualizes key={y_axis}>{y_axis}</ExploreVisualizes>
-          </Token>
-        );
-      });
-    });
   }
 
   if (result.group_by && result.group_by.length > 0) {
     tokens.push(
       <Token key="groupBy">
         <ExploreParamTitle>{t('Group By')}</ExploreParamTitle>
+        {result.group_by.map((groupBy: string) => (
+          <ExploreGroupBys key={groupBy}>{groupBy}</ExploreGroupBys>
+        ))}
       </Token>
     );
-    result.group_by.forEach((groupBy: string, index: number) => {
-      tokens.push(
-        <Token key={`groupBy-${index}`}>
-          <ExploreGroupBys key={groupBy}>{groupBy}</ExploreGroupBys>
-        </Token>
-      );
-    });
   }
 
   return tokens;
@@ -112,6 +103,7 @@ export function AiQueryDrawer() {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const {closeDrawer} = useDrawer();
+  const openFeedbackForm = useFeedbackForm();
 
   const handleApply = useCallback(() => {
     if (!rawResult) {
@@ -126,7 +118,6 @@ export function AiQueryDrawer() {
       stats_period: statsPeriod,
     } = rawResult;
 
-    // const {start, end, period: statsPeriod} = pageFilters.selection.datetime;
     pageFilters.selection.datetime = {
       start: pageFilters.selection.datetime.start,
       end: pageFilters.selection.datetime.end,
@@ -187,21 +178,6 @@ export function AiQueryDrawer() {
         setResponse(query_tokens);
         setRawResult(result);
       } catch (error) {
-        // TODO: Remove this once we have a real result
-        const dummy_result = {
-          status: 'ok',
-          query: 'span.op:http.client',
-          stats_period: '7d',
-          group_by: ['http.request_method'],
-          visualization: [
-            {chart_type: 1, y_axes: ['count()']},
-            {chart_type: 3, y_axes: ['avg(span.duration)']},
-          ],
-          sort: '-avg(span.duration)',
-        };
-        const query_tokens = formatQueryTokens(dummy_result);
-        setResponse(query_tokens);
-        setRawResult(dummy_result);
         addErrorMessage(t('Failed to process AI query: %(error)s', {error}));
       } finally {
         setIsLoading(false);
@@ -233,7 +209,11 @@ export function AiQueryDrawer() {
               />
             </StyledInputGroup>
           </form>
-          {isLoading && <LoadingContainer>Loading...</LoadingContainer>}
+          {isLoading && (
+            <LoadingContainer>
+              <LoadingIndicator />
+            </LoadingContainer>
+          )}
           {response && (
             <Fragment>
               <div>
@@ -253,7 +233,17 @@ export function AiQueryDrawer() {
                 <Button
                   priority="default"
                   icon={<IconThumb direction="down" />}
-                  onClick={() => {}}
+                  onClick={() => {
+                    if (openFeedbackForm) {
+                      openFeedbackForm({
+                        messagePlaceholder: t('Why was this query incorrect?'),
+                        tags: {
+                          ['feedback.source']: 'trace_explorer_ai_query',
+                          ['feedback.owner']: 'ml-ai',
+                        },
+                      });
+                    }
+                  }}
                 >
                   {t('Nope')}
                 </Button>
@@ -312,7 +302,6 @@ export function TraceExploreAiQueryContextProvider({
                 organization,
               });
             },
-
             onClose: () => {
               trackAnalytics('trace.explorer.ai_query_drawer', {
                 drawer_open: false,
@@ -372,25 +361,10 @@ const SearchInput = styled(InputGroup.Input)`
   color: inherit;
 `;
 
-// const ResponseContainer = styled('div')`
-//   margin-top: ${space(2)};
-//   padding: ${space(1)};
-//   background: ${p => p.theme.backgroundSecondary};
-//   border-radius: ${p => p.theme.borderRadius};
-//   overflow: auto;
-
-//   pre {
-//     margin: 0;
-//     white-space: pre-wrap;
-//     word-break: break-word;
-//   }
-// `;
-
 const ExploreParamsContainer = styled('span')`
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   gap: ${space(1)};
-  flex-wrap: wrap;
   margin-top: ${space(1)};
   margin-bottom: ${space(1)};
   width: 100%;

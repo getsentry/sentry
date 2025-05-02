@@ -89,6 +89,7 @@ function FeedbackFooter() {
       <Feature features="organizations:gen-ai-explore-traces">
         {traceExploreAiQueryContext ? (
           <Button
+            priority="primary"
             size="xs"
             icon={<IconSeer />}
             onClick={() => traceExploreAiQueryContext?.onAiButtonClick?.()}
