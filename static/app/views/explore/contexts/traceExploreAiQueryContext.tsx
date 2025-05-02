@@ -15,10 +15,10 @@ import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
-// import {SearchInput} from 'sentry/components/events/eventDrawer';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
-import {IconSearch} from 'sentry/icons';
+import Text from 'sentry/components/text';
+import {IconSearch, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -29,7 +29,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-// import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 
 interface TraceExploreAiQueryContextValue {
   onAiButtonClick: () => void;
@@ -124,8 +123,16 @@ export function AiQueryDrawer() {
       visualization,
       group_by: groupBy,
       sort,
-      stats_period: interval,
+      stats_period: statsPeriod,
     } = rawResult;
+
+    // const {start, end, period: statsPeriod} = pageFilters.selection.datetime;
+    pageFilters.selection.datetime = {
+      start: pageFilters.selection.datetime.start,
+      end: pageFilters.selection.datetime.end,
+      period: statsPeriod,
+      utc: pageFilters.selection.datetime.utc,
+    };
 
     const mode = groupBy.length > 0 ? Mode.AGGREGATE : Mode.SAMPLES;
 
@@ -142,7 +149,6 @@ export function AiQueryDrawer() {
       visualize,
       groupBy,
       sort,
-      interval,
       mode,
     });
 
@@ -184,14 +190,14 @@ export function AiQueryDrawer() {
         // TODO: Remove this once we have a real result
         const dummy_result = {
           status: 'ok',
-          query: 'span.op:function',
-          stats_period: '7h',
-          group_by: ['project', 'http.response_code'],
+          query: 'span.op:http.client',
+          stats_period: '7d',
+          group_by: ['http.request_method'],
           visualization: [
-            {chart_type: 1, y_axes: ['count']},
+            {chart_type: 1, y_axes: ['count()']},
             {chart_type: 3, y_axes: ['avg(span.duration)']},
           ],
-          sort: '-span.duration',
+          sort: '-avg(span.duration)',
         };
         const query_tokens = formatQueryTokens(dummy_result);
         setResponse(query_tokens);
@@ -231,12 +237,27 @@ export function AiQueryDrawer() {
           {response && (
             <Fragment>
               <div>
+                <Text>{t('Do you want to run this query?')}</Text>
+              </div>
+              <StyledParamsContainer>
                 <ExploreParamsContainer>{response}</ExploreParamsContainer>
-              </div>
-              <div>
-                <Button onClick={handleApply}>Apply</Button>
-                <Button onClick={() => {}}>Wrong</Button>
-              </div>
+              </StyledParamsContainer>
+              <ButtonContainer>
+                <Button
+                  priority="primary"
+                  icon={<IconThumb direction="up" />}
+                  onClick={handleApply}
+                >
+                  {t('Run')}
+                </Button>
+                <Button
+                  priority="default"
+                  icon={<IconThumb direction="down" />}
+                  onClick={() => {}}
+                >
+                  {t('Nope')}
+                </Button>
+              </ButtonContainer>
             </Fragment>
           )}
         </HeaderContainer>
@@ -257,13 +278,16 @@ export function TraceExploreAiQueryContextProvider({
 
   useEffect(() => {
     if (organization.features.includes('organizations:gen-ai-explore-traces')) {
-      client.request(`/api/0/${organization.slug}/trace-explorer-ai-setup/`, {
-        method: 'POST',
-        data: {
-          org_id: organization.id,
-          project_ids: pageFilters.selection.projects,
-        },
-      });
+      client.requestPromise(
+        `/api/0/organizations/${organization.slug}/trace-explorer-ai/setup/`,
+        {
+          method: 'POST',
+          data: {
+            org_id: organization.id,
+            project_ids: pageFilters.selection.projects,
+          },
+        }
+      );
     }
   }, [
     client,
@@ -367,7 +391,8 @@ const ExploreParamsContainer = styled('span')`
   flex-direction: row;
   gap: ${space(1)};
   flex-wrap: wrap;
-  margin-bottom: ${space(2)};
+  margin-top: ${space(1)};
+  margin-bottom: ${space(1)};
   width: 100%;
 `;
 
@@ -401,4 +426,18 @@ const ExploreVisualizes = styled('span')`
 const ExploreGroupBys = ExploreVisualizes;
 const FormattedQueryWrapper = styled('span')`
   display: inline-block;
+`;
+
+const ButtonContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(1)};
+`;
+
+const StyledParamsContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(1)};
+  border-top: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
