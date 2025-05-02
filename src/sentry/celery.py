@@ -49,7 +49,7 @@ def holds_bad_pickle_object(value, memo=None):
         return None
     elif value is None:
         return None
-    elif not isinstance(value, (dict, list, str, float, int, bool, tuple, frozenset)):
+    elif not isinstance(value, (dict, list, str, float, int, bool, tuple, frozenset, bytes)):
         return value, "do not pickle stdlib classes"
     return None
 
