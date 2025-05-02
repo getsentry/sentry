@@ -6,6 +6,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {PathsTable} from 'sentry/views/insights/pages/platform/laravel/pathsTable';
 import {SlowSSRWidget} from 'sentry/views/insights/pages/platform/nextjs/slowSsrWidget';
@@ -21,6 +23,13 @@ function PlaceholderWidget() {
 
 export function NextJsOverviewPage({headerTitle}: {headerTitle: React.ReactNode}) {
   const organization = useOrganization();
+  const pageFilters = usePageFilters();
+  const {releases: releasesWithDate} = useReleaseStats(pageFilters.selection);
+  const releases =
+    releasesWithDate?.map(({date, version}) => ({
+      timestamp: date,
+      version,
+    })) ?? [];
 
   useEffect(() => {
     trackAnalytics('nextjs-insights.page-view', {
@@ -40,19 +49,20 @@ export function NextJsOverviewPage({headerTitle}: {headerTitle: React.ReactNode}
             trafficSeriesName={t('Page views')}
             baseQuery={'span.op:[navigation,pageload]'}
             query={query}
+            releases={releases}
           />
         </RequestsContainer>
         <IssuesContainer>
           <IssuesWidget query={query} />
         </IssuesContainer>
         <DurationContainer>
-          <DurationWidget query={query} />
+          <DurationWidget query={query} releases={releases} />
         </DurationContainer>
         <JobsContainer>
           <PlaceholderWidget />
         </JobsContainer>
         <QueriesContainer>
-          <SlowSSRWidget query={query} />
+          <SlowSSRWidget query={query} releases={releases} />
         </QueriesContainer>
         <CachesContainer>
           <PlaceholderWidget />
