@@ -14,13 +14,14 @@ type Option = {label: string; value: SortOption};
 
 export function SavedQueriesLandingContent() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [sort, setSort] = useState<SortOption>('recentlyViewed');
+  const [sort, setSort] = useState<SortOption>('mostStarred');
   const sortOptions: Option[] = [
-    {value: 'recentlyViewed', label: t('Recently Viewed')},
-    {value: 'name', label: t('Name')},
-    {value: '-dateAdded', label: t('Date Added')},
-    {value: '-dateUpdated', label: t('Date Updated')},
     {value: 'mostStarred', label: t('Most Starred')},
+    {value: 'recentlyViewed', label: t('Recently Viewed')},
+    {value: 'name', label: t('Name A-Z')},
+    {value: '-name', label: t('Name Z-A')},
+    {value: '-dateAdded', label: t('Created (Newest)')},
+    {value: 'dateAdded', label: t('Created (Oldest)')},
   ];
   return (
     <div>

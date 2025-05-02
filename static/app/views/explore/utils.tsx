@@ -105,7 +105,7 @@ export function getExploreUrlFromSavedQueryUrl({
           start: savedQuery.start ?? null,
           utc: null,
         },
-        environments: savedQuery.environment,
+        environments: savedQuery.environment ?? [],
         projects: savedQuery.projects,
       },
     });
@@ -115,7 +115,9 @@ export function getExploreUrlFromSavedQueryUrl({
     ...savedQuery,
     ...savedQuery.query[0],
     groupBy:
-      savedQuery.query[0].groupby.length === 0 ? [''] : savedQuery.query[0].groupby,
+      (savedQuery.query[0].groupby?.length ?? 0) === 0
+        ? ['']
+        : savedQuery.query[0].groupby,
     query: savedQuery.query[0].query,
     title: savedQuery.name,
     mode: savedQuery.query[0].mode,
@@ -127,7 +129,7 @@ export function getExploreUrlFromSavedQueryUrl({
         start: savedQuery.start ?? null,
         utc: null,
       },
-      environments: savedQuery.environment,
+      environments: savedQuery.environment ?? [],
       projects: savedQuery.projects,
     },
   });
