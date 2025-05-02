@@ -13,10 +13,17 @@ from sentry.incidents.endpoints.serializers.incident import (
     DetailedIncidentSerializerResponse,
     IncidentSerializerResponse,
 )
-from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod, IncidentType
+from sentry.incidents.models.incident import (
+    IncidentActivityType,
+    IncidentStatus,
+    IncidentStatusMethod,
+    IncidentType,
+)
+from sentry.models.activity import Activity
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
 from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -26,6 +33,7 @@ from sentry.workflow_engine.models import (
     DataConditionGroupAction,
     DataSourceDetector,
     DetectorWorkflow,
+    IncidentGroupOpenPeriod,
     WorkflowDataConditionGroup,
 )
 
@@ -69,27 +77,76 @@ class WorkflowEngineIncidentSerializer(Serializer):
     ) -> list[IncidentActivitySerializerResponse]:
         # a metric issue will only have one openperiod because if it's reopened it'll make a new metric issue
         # this won't actually work until we start writing to the table for metric issues (or are we planning a backfill? I can't remember)
-        return [
-            {
-                "id": "-1",  # how important is returning the IncidentActivity id? would need to add to join table
-                "incidentIdentifier": "-1",  # also dont have this info, need to add to IncidentGroupOpenPeriod
-                "type": 1,  # detected, created (both made at the same time), status change (move to warning, critical, or resolved)
-                # groupopenperiod has resolution_activity set if it's resolved
-                # if that's not set it's open and we'd read the warning/crit from the group priority Activity row
-                # maybe just dupe it since detected and created are the exact same data except for the IncidentActivity id
-                "value": "test",  # value is IncidentStatus but is only set when type = IncidentActivityType.STATUS_CHANGE
-                # should be able to get from Activity
-                # class IncidentStatus(Enum):
-                #     OPEN = 1
-                #     CLOSED = 2
-                #     WARNING = 10
-                #     CRITICAL = 20
-                "previousValue": "test",  # also IncidentStatus, should be able to get via Activity
-                "user": None,  # we have data in this column from 2020-03-04 - 2021-06-01 only, otherwise it's empty
-                "comment": None,  # not supported now, same timeline as user
+
+        open_period_activities = []
+        incident_identifier = "-1"  # temp until we add a column
+        # if we are here we have IncidentActivityType.CREATED and IncidentActivityType.DETECTED so fill those out
+        created = {
+            "id": "-1",  # TODO add lookup table to get this info
+            "incidentIdentifier": incident_identifier,
+            "type": IncidentActivityType.CREATED,
+            "value": None,
+            "previousValue": None,
+            "user": None,
+            "comment": None,
+            "dateCreated": open_period.date_started,
+        }
+        detected = created.copy()
+        detected["type"] = IncidentActivityType.DETECTED
+        open_period_activities.append(created)
+        open_period_activities.append(detected)
+
+        if open_period.resolution_activity:
+            resolved = {
+                "id": "-1",
+                "incidentIdentifier": incident_identifier,
+                "type": IncidentActivityType.STATUS_CHANGE,
+                "value": IncidentStatus.CLOSED,
+                "previousValue": None,
+                "user": None,
+                "comment": None,
                 "dateCreated": open_period.date_started,
             }
-        ]
+            open_period_activities.append(resolved)
+
+        # look up Activity rows for other status changes (warning / critical)
+        status_change_activities = Activity.objects.filter(
+            group=open_period.group, type=ActivityType.ActivityType.SET_PRIORITY
+        )
+
+        activity_status_to_incident_status = {
+            "high": IncidentStatus.CRITICAL,
+            "medium": IncidentStatus.WARNING,
+        }
+        for activity in status_change_activities:
+            priority = activity.data.get("priority")
+            previous_priority = None
+            previous_activities = status_change_activities.filter(datetime__lt=activity.datetime)
+
+            for previous_activity in previous_activities:
+                previous_priority_data = previous_activity.data.get("priority")
+                if (
+                    previous_priority_data != priority
+                    and previous_priority_data in activity_status_to_incident_status.keys()
+                ):
+                    previous_priority = activity_status_to_incident_status.get(
+                        previous_priority_data
+                    )
+                    break
+
+            status_change = {
+                "id": "-1",
+                "incidentIdentifier": incident_identifier,
+                "type": IncidentActivityType.STATUS_CHANGE,
+                "value": activity_status_to_incident_status.get(priority),
+                "previousValue": previous_priority,
+                "user": None,
+                "comment": None,
+                "dateCreated": open_period.date_started,
+            }
+            open_period_activities.append(status_change)
+
+        return open_period_activities
 
     def get_alert_rule(self, open_period: GroupOpenPeriod) -> AlertRuleSerializerResponse:
         # TODO: Implement this
@@ -128,10 +185,10 @@ class WorkflowEngineIncidentSerializer(Serializer):
         """
         Temporary serializer to take a GroupOpenPeriod and serialize it for the old incident endpoint
         """
-
+        incident_group_open_period = IncidentGroupOpenPeriod.objects.get(group_open_period=obj)
         date_closed = obj.date_ended.replace(second=0, microsecond=0) if obj.date_ended else None
         return {
-            "id": str(obj.id),
+            "id": str(incident_group_open_period.incident_id),
             "identifier": str(
                 obj.id
             ),  # TODO this isn't the same thing, it's Incident.identifier which we might want to add to IncidentGroupOpenPeriod
@@ -139,10 +196,12 @@ class WorkflowEngineIncidentSerializer(Serializer):
             "projects": [obj.project.slug],
             "alertRule": attrs["alert_rule"],
             "activities": attrs["activities"] if "activities" in self.expand else None,
-            "status": self.get_incident_status(obj.group.priority),
-            "statusMethod": IncidentStatusMethod.RULE_TRIGGERED.value,  # We don't allow manual updates or status updates based on detector config updates
+            "status": self.get_incident_status(
+                obj.group.priority
+            ),  # TODO could be closed, need to handle
+            "statusMethod": IncidentStatusMethod.RULE_TRIGGERED.value,  # TODO manual isn't allowed. could be RULE_UPDATED if status is closed
             "type": IncidentType.ALERT_TRIGGERED.value,  # IncidentType.Detected isn't used anymore
-            "title": obj.group.title,
+            "title": obj.group.title,  # TODO this corresponds to the detector name / alert rule name, is the openperiod the same?
             "dateStarted": obj.date_started,
             "dateDetected": obj.date_started,  # In workflow engine, date_started is the date the incident was detected
             "dateCreated": obj.date_added,
