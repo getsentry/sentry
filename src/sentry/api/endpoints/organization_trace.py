@@ -133,7 +133,11 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
                 project_slug=event["project.slug"],
                 profile_id=event["profile.id"],
                 profiler_id=event["profiler.id"],
-                parent_span_id=None if event["parent_span"] == "0" * 16 else event["parent_span"],
+                parent_span_id=(
+                    None
+                    if not event["parent_span"] or event["parent_span"] == "0" * 16
+                    else event["parent_span"]
+                ),
                 start_timestamp=event["precise.start_ts"],
                 end_timestamp=event["precise.finish_ts"],
                 measurements={
