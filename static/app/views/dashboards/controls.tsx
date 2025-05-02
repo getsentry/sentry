@@ -269,13 +269,11 @@ function Controls({
                     showChevron: true,
                     icon: <IconAdd isCircled size="sm" />,
                     priority: 'primary',
+                    title:
+                      !hasEditAccess &&
+                      t('You do not have permission to edit this dashboard'),
                   }}
                   position="bottom-end"
-                  // TODO: Add disabled tooltip
-                  // title={
-                  //   !hasEditAccess &&
-                  //   t('You do not have permission to edit this dashboard')
-                  // }
                 />
               </Tooltip>
             ) : null}

@@ -191,7 +191,7 @@ export function checkUserHasEditAccess(
 ): boolean {
   // TODO: update this to just check for owners
   if (
-    hasEveryAccess(['org:write'], {organization}) || // Managers and Owners
+    hasEveryAccess(['org:admin'], {organization}) || // Owners
     !dashboardPermissions ||
     dashboardPermissions.isEditableByEveryone ||
     dashboardCreator?.id === currentUser.id
