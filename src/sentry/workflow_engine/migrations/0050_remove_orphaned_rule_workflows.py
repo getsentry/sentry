@@ -4,6 +4,7 @@ from typing import Any
 from django.apps.registry import Apps
 from django.db import migrations, router, transaction
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
+from django.db.models import Exists, OuterRef
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapper
@@ -42,8 +43,9 @@ def remove_orphaned_rule_workflows(apps: Apps, schema_editor: BaseDatabaseSchema
 
         return True
 
-    orphaned_rule_workflow = AlertRuleWorkflow.objects.filter(rule_id__isnull=False).exclude(
-        rule_id__in=Rule.objects.all().values_list("id")
+    orphaned_rule_workflow = AlertRuleWorkflow.objects.filter(
+        ~Exists(Rule.objects.filter(id=OuterRef("rule_id"))),
+        rule_id__isnull=False,
     )
 
     for rule_workflow in RangeQuerySetWrapper(orphaned_rule_workflow):
