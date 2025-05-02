@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -29,7 +30,7 @@ import {
   useExploreTitle,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
-import {SpansTabContent} from 'sentry/views/explore/spans/spansTab';
+import {SpansTabContent, SpansTabOnboarding} from 'sentry/views/explore/spans/spansTab';
 import {
   EXPLORE_SPANS_TOUR_GUIDE_KEY,
   type ExploreSpansTour,
@@ -40,12 +41,17 @@ import {
 import {useExploreSpansTour} from 'sentry/views/explore/spans/tour';
 import {StarSavedQueryButton} from 'sentry/views/explore/starSavedQueryButton';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
+import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 export function ExploreContent() {
+  Sentry.setTag('explore.visited', 'yes');
+
   const organization = useOrganization();
   const {defaultPeriod, maxPickableDays, relativeOptions} =
     limitMaxPickableDays(organization);
+
+  const onboardingProject = useOnboardingProject();
 
   return (
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
@@ -53,11 +59,21 @@ export function ExploreContent() {
         <Layout.Page>
           <SpansTabWrapper>
             <SpansTabHeader organization={organization} />
-            <SpansTabContent
-              defaultPeriod={defaultPeriod}
-              maxPickableDays={maxPickableDays}
-              relativeOptions={relativeOptions}
-            />
+            {defined(onboardingProject) ? (
+              <SpansTabOnboarding
+                organization={organization}
+                project={onboardingProject}
+                defaultPeriod={defaultPeriod}
+                maxPickableDays={maxPickableDays}
+                relativeOptions={relativeOptions}
+              />
+            ) : (
+              <SpansTabContent
+                defaultPeriod={defaultPeriod}
+                maxPickableDays={maxPickableDays}
+                relativeOptions={relativeOptions}
+              />
+            )}
           </SpansTabWrapper>
         </Layout.Page>
       </PageFiltersContainer>
