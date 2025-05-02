@@ -10,6 +10,7 @@ import getDuration from 'sentry/utils/duration/getDuration';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import type {Release} from 'sentry/views/dashboards/widgets/common/types';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -28,6 +29,7 @@ import {
 } from 'sentry/views/insights/pages/platform/laravel/styles';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
+import {useReleaseBubbleProps} from 'sentry/views/insights/pages/platform/shared/getReleaseBubbleProps';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 
 function renameMeta(meta: EventsMetaType, from: string, to: string): EventsMetaType {
@@ -41,7 +43,7 @@ function renameMeta(meta: EventsMetaType, from: string, to: string): EventsMetaT
   };
 }
 
-export function SlowSSRWidget({query}: {query?: string}) {
+export function SlowSSRWidget({query, releases}: {query?: string; releases?: Release[]}) {
   const theme = useTheme();
   const {selection} = usePageFilters();
   const organization = useOrganization();
@@ -132,6 +134,7 @@ export function SlowSSRWidget({query}: {query?: string}) {
               alias: aliases[ts.seriesName],
             })
         ),
+        ...useReleaseBubbleProps(releases),
       }}
     />
   );
