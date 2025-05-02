@@ -32,6 +32,10 @@ class MigrateErroredMetricAlertTest(TestMigrations):
         )
         team.delete()
 
+        migrated = self.create_alert_rule(organization=self.organization)
+        trigger = self.create_alert_rule_trigger(alert_rule=migrated)
+        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
+
     def test_missing_org_member(self):
         alert_rule_workflow = AlertRuleWorkflow.objects.get(
             alert_rule_id=self.rule_missing_org_member.id
