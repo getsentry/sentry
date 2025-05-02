@@ -105,7 +105,7 @@ export function getExploreUrlFromSavedQueryUrl({
           start: savedQuery.start ?? null,
           utc: null,
         },
-        environments: savedQuery.environment,
+        environments: savedQuery.environment ?? [],
         projects: savedQuery.projects,
       },
     });
@@ -115,7 +115,9 @@ export function getExploreUrlFromSavedQueryUrl({
     ...savedQuery,
     ...savedQuery.query[0],
     groupBy:
-      savedQuery.query[0].groupby.length === 0 ? [''] : savedQuery.query[0].groupby,
+      (savedQuery.query[0].groupby?.length ?? 0) === 0
+        ? ['']
+        : savedQuery.query[0].groupby,
     query: savedQuery.query[0].query,
     title: savedQuery.name,
     mode: savedQuery.query[0].mode,
@@ -127,7 +129,7 @@ export function getExploreUrlFromSavedQueryUrl({
         start: savedQuery.start ?? null,
         utc: null,
       },
-      environments: savedQuery.environment,
+      environments: savedQuery.environment ?? [],
       projects: savedQuery.projects,
     },
   });
@@ -238,14 +240,16 @@ export function viewSamplesTarget(
   });
 }
 
-export type MaxPickableDays = 7 | 14 | 30;
-export type DefaultPeriod = '7d' | '14d' | '30d';
+type MaxPickableDays = 7 | 14 | 30;
+type DefaultPeriod = '24h' | '7d' | '14d' | '30d';
 
-export function limitMaxPickableDays(organization: Organization): {
+export interface PickableDays {
   defaultPeriod: DefaultPeriod;
   maxPickableDays: MaxPickableDays;
   relativeOptions: Record<string, React.ReactNode>;
-} {
+}
+
+export function limitMaxPickableDays(organization: Organization): PickableDays {
   const defaultPeriods: Record<MaxPickableDays, DefaultPeriod> = {
     7: '7d',
     14: '14d',

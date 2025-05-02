@@ -27,7 +27,6 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.query import in_iexact
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
-from sentry.issues.streamline import apply_streamline_rollout_group
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.projectplatform import ProjectPlatform
@@ -307,6 +306,7 @@ class OrganizationIndexEndpoint(Endpoint):
                 organization_id=org.id,
             )
 
-        apply_streamline_rollout_group(organization=org)
+        # New organizations should not see the legacy UI
+        org.update_option("sentry:streamline_ui_only", True)
 
         return Response(serialize(org, request.user), status=201)

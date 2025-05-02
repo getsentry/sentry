@@ -175,7 +175,11 @@ class CommitContextIntegration(ABC):
         group_owner: GroupOwner,
         group_id: int,
     ) -> None:
-        pr_comment_workflow = self.get_pr_comment_workflow()
+        try:
+            # TODO(jianyuan): Remove this try/except once we have implemented the abstract method for all integrations
+            pr_comment_workflow = self.get_pr_comment_workflow()
+        except NotImplementedError:
+            return
 
         with CommitContextIntegrationInteractionEvent(
             interaction_type=SCMIntegrationInteractionType.QUEUE_COMMENT_TASK,
@@ -335,11 +339,7 @@ class CommitContextIntegration(ABC):
             pull_request_id=pr.id,
         ).capture():
             if pr_comment is None:
-                resp = client.create_comment(
-                    repo=repo.name,
-                    issue_id=str(pr.key),
-                    data=comment_data,
-                )
+                resp = client.create_pr_comment(repo=repo, pr=pr, data=comment_data)
 
                 current_time = django_timezone.now()
                 comment = PullRequestComment.objects.create(
@@ -363,10 +363,10 @@ class CommitContextIntegration(ABC):
                         language=(language or "not found"),
                     )
             else:
-                resp = client.update_comment(
-                    repo=repo.name,
-                    issue_id=str(pr.key),
-                    comment_id=pr_comment.external_id,
+                resp = client.update_pr_comment(
+                    repo=repo,
+                    pr=pr,
+                    pr_comment=pr_comment,
                     data=comment_data,
                 )
                 metrics.incr(
@@ -393,6 +393,7 @@ class CommitContextIntegration(ABC):
         """
         raise NotImplementedError
 
+    # TODO(jianyuan): Make this an abstract method
     def get_pr_comment_workflow(self) -> PRCommentWorkflow:
         raise NotImplementedError
 
@@ -414,6 +415,20 @@ class CommitContextClient(ABC):
     @abstractmethod
     def update_comment(
         self, repo: str, issue_id: str, comment_id: str, data: dict[str, Any]
+    ) -> Any:
+        raise NotImplementedError
+
+    @abstractmethod
+    def create_pr_comment(self, repo: Repository, pr: PullRequest, data: dict[str, Any]) -> Any:
+        raise NotImplementedError
+
+    @abstractmethod
+    def update_pr_comment(
+        self,
+        repo: Repository,
+        pr: PullRequest,
+        pr_comment: PullRequestComment,
+        data: dict[str, Any],
     ) -> Any:
         raise NotImplementedError
 

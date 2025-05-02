@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -9,14 +10,12 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {
-  canUseMetricsData,
-  useMEPSettingContext,
-} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
-import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -53,24 +52,21 @@ import {
   OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS,
 } from 'sentry/views/insights/pages/mobile/settings';
 import {LaravelOverviewPage} from 'sentry/views/insights/pages/platform/laravel';
+import {CachesWidget} from 'sentry/views/insights/pages/platform/laravel/cachesWidget';
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
+import {JobsWidget} from 'sentry/views/insights/pages/platform/laravel/jobsWidget';
+import {QueriesWidget} from 'sentry/views/insights/pages/platform/laravel/queriesWidget';
 import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
 import {useIsNextJsInsightsEnabled} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {NewNextJsExperienceButton} from 'sentry/views/insights/pages/platform/nextjs/newNextjsExperienceToggle';
+import {DurationWidget} from 'sentry/views/insights/pages/platform/shared/durationWidget';
+import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
+import {TrafficWidget} from 'sentry/views/insights/pages/platform/shared/trafficWidget';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import type {EAPSpanProperty} from 'sentry/views/insights/types';
 import {generateBackendPerformanceEventView} from 'sentry/views/performance/data';
-import {
-  DoubleChartRow,
-  TripleChartRow,
-} from 'sentry/views/performance/landing/widgets/components/widgetChartRow';
-import {filterAllowedChartsMetrics} from 'sentry/views/performance/landing/widgets/utils';
-import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
-import {
-  getTransactionSearchQuery,
-  ProjectPerformanceType,
-} from 'sentry/views/performance/utils';
+import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 
 function BackendOverviewPage() {
   useOverviewPageTrackPageload();
@@ -81,7 +77,7 @@ function BackendOverviewPage() {
     return <LaravelOverviewPage />;
   }
   if (isNextJsPageEnabled) {
-    return <NextJsOverviewPage headerTitle={BACKEND_LANDING_TITLE} />;
+    return <NextJsOverviewPage performanceType="backend" />;
   }
   if (useEap) {
     return <EAPBackendOverviewPage />;
@@ -95,7 +91,6 @@ function EAPBackendOverviewPage() {
   const {projects} = useProjects();
   const onboardingProject = useOnboardingProject();
   const navigate = useNavigate();
-  const mepSetting = useMEPSettingContext();
   const {selection} = usePageFilters();
 
   const withStaticFilters = canUseMetricsData(organization);
@@ -123,7 +118,6 @@ function EAPBackendOverviewPage() {
     {field: 'user_misery()'},
   ].map(field => ({...field, width: COL_WIDTH_UNDEFINED}));
 
-  const doubleChartRowEventView = eventView.clone(); // some of the double chart rows rely on span metrics, so they can't be queried with the same tags/filters
   const disallowedOps = [
     ...new Set([...FRONTEND_OVERVIEW_PAGE_OPS, ...BACKEND_OVERVIEW_PAGE_OPS]),
   ];
@@ -165,37 +159,6 @@ function EAPBackendOverviewPage() {
 
   const showOnboarding = onboardingProject !== undefined;
 
-  const doubleChartRowCharts = [
-    PerformanceWidgetSetting.SLOW_HTTP_OPS,
-    PerformanceWidgetSetting.SLOW_DB_OPS,
-    PerformanceWidgetSetting.MOST_RELATED_ISSUES,
-  ];
-  const tripleChartRowCharts = filterAllowedChartsMetrics(
-    organization,
-    [
-      PerformanceWidgetSetting.TPM_AREA,
-      PerformanceWidgetSetting.DURATION_HISTOGRAM,
-      PerformanceWidgetSetting.P50_DURATION_AREA,
-      PerformanceWidgetSetting.P75_DURATION_AREA,
-      PerformanceWidgetSetting.P95_DURATION_AREA,
-      PerformanceWidgetSetting.P99_DURATION_AREA,
-      PerformanceWidgetSetting.FAILURE_RATE_AREA,
-      PerformanceWidgetSetting.APDEX_AREA,
-    ],
-    mepSetting
-  );
-
-  const sharedProps = {eventView, location, organization, withStaticFilters};
-
-  // Free tier does not have access to modules
-  if (organization.features.includes('insights-initial-modules')) {
-    doubleChartRowCharts.unshift(
-      PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS
-    );
-    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
-    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES);
-  }
-
   const getFreeTextFromQuery = (query: string) => {
     const conditions = new MutableSearch(query);
     const transactionValues = conditions.getFilterValues('transaction');
@@ -224,7 +187,7 @@ function EAPBackendOverviewPage() {
     });
   }
 
-  const derivedQuery = getTransactionSearchQuery(location, eventView.query);
+  const searchBarQuery = getTransactionSearchQuery(location);
 
   const sorts: [ValidSort, ValidSort] = [
     {
@@ -250,6 +213,7 @@ function EAPBackendOverviewPage() {
         'p50(span.duration)',
         'p95(span.duration)',
         'failure_rate()',
+        'count_unique(user)',
         'time_spent_percentage(span.duration)',
         'sum(span.duration)',
       ],
@@ -284,34 +248,49 @@ function EAPBackendOverviewPage() {
                     onSearch={(query: string) => {
                       handleSearch(query);
                     }}
-                    query={getFreeTextFromQuery(derivedQuery) ?? ''}
+                    query={getFreeTextFromQuery(searchBarQuery) ?? ''}
                   />
                 )}
               </ToolRibbon>
             </ModuleLayout.Full>
             <PageAlert />
-            <ModuleLayout.Full>
-              {!showOnboarding && (
-                <PerformanceDisplayProvider
-                  value={{performanceType: ProjectPerformanceType.BACKEND}}
-                >
-                  <DoubleChartRow
-                    allowedCharts={doubleChartRowCharts}
-                    {...sharedProps}
-                    eventView={doubleChartRowEventView}
-                  />
-                  <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
-                  <BackendOverviewTable response={response} sort={sorts[1]} />
-                </PerformanceDisplayProvider>
-              )}
-
-              {showOnboarding && (
-                <LegacyOnboarding
-                  project={onboardingProject}
-                  organization={organization}
-                />
-              )}
-            </ModuleLayout.Full>
+            {!showOnboarding && (
+              <Fragment>
+                <ModuleLayout.Third>
+                  <StackedWidgetWrapper>
+                    <TrafficWidget
+                      title={t('Requests')}
+                      trafficSeriesName={t('Requests')}
+                      baseQuery={'span.op:http.server'}
+                      query={searchBarQuery}
+                    />
+                    <DurationWidget query={searchBarQuery} />
+                  </StackedWidgetWrapper>
+                </ModuleLayout.Third>
+                <ModuleLayout.TwoThirds>
+                  <IssuesWidget query={searchBarQuery} />
+                </ModuleLayout.TwoThirds>
+                <ModuleLayout.Full>
+                  <TripleRowWidgetWrapper>
+                    <ModuleLayout.Third>
+                      <JobsWidget query={searchBarQuery} />
+                    </ModuleLayout.Third>
+                    <ModuleLayout.Third>
+                      <QueriesWidget query={searchBarQuery} />
+                    </ModuleLayout.Third>
+                    <ModuleLayout.Third>
+                      <CachesWidget query={searchBarQuery} />
+                    </ModuleLayout.Third>
+                  </TripleRowWidgetWrapper>
+                </ModuleLayout.Full>
+                <ModuleLayout.Full>
+                  <BackendOverviewTable response={response} sort={sorts[0]} />
+                </ModuleLayout.Full>
+              </Fragment>
+            )}
+            {showOnboarding && (
+              <LegacyOnboarding project={onboardingProject} organization={organization} />
+            )}
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>
@@ -342,3 +321,17 @@ const StyledTransactionNameSearchBar = styled(TransactionNameSearchBar)`
 `;
 
 export default BackendOverviewPageWithProviders;
+
+const StackedWidgetWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
+  height: 100%;
+`;
+
+const TripleRowWidgetWrapper = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: ${space(2)};
+  height: 300px;
+`;
