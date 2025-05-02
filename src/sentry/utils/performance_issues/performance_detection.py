@@ -292,6 +292,11 @@ def get_detection_settings(project_id: int | None = None) -> dict[DetectorType, 
             "max_sequence_length": 5,
             "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
         },
+        DetectorType.N_PLUS_ONE_DB_CLIENT: {
+            "count": settings["n_plus_one_db_count"],
+            "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
+            "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
+        },
         DetectorType.UNCOMPRESSED_ASSETS: {
             "size_threshold_bytes": settings["uncompressed_asset_size_threshold"],
             "duration_threshold": settings["uncompressed_asset_duration_threshold"],  # ms
