@@ -930,12 +930,13 @@ function SavedQueryAPI(props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQu
     ],
     [organization, location.query.id]
   );
-  const {data, isError, isPending, isFetching, refetch} = useApiQuery<
-    SavedQuery | undefined
-  >(queryKey, {
-    enabled: Boolean(location.query.id),
-    staleTime: 0,
-  });
+  const {data, isError, isFetching, refetch} = useApiQuery<SavedQuery | undefined>(
+    queryKey,
+    {
+      enabled: Boolean(location.query.id),
+      staleTime: 0,
+    }
+  );
 
   const setSavedQuery = useCallback(
     (newQuery?: SavedQuery) => {
@@ -945,7 +946,7 @@ function SavedQueryAPI(props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQu
     [queryClient, queryKey]
   );
 
-  if (isPending) {
+  if (isFetching) {
     return <LoadingIndicator />;
   }
 
@@ -956,7 +957,9 @@ function SavedQueryAPI(props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQu
   return (
     <Results
       {...props}
-      savedQuery={getSavedQueryWithDataset(data)}
+      savedQuery={
+        hasDatasetSelector(organization) ? getSavedQueryWithDataset(data) : data
+      }
       loading={isFetching}
       setSavedQuery={setSavedQuery}
     />
@@ -964,10 +967,7 @@ function SavedQueryAPI(props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQu
 }
 
 export default function ResultsContainer(
-  props: Omit<
-    Props,
-    'api' | 'organization' | 'selection' | 'savedQuery' | 'loading' | 'setSavedQuery'
-  >
+  props: Omit<Props, 'api' | 'organization' | 'selection' | 'loading' | 'setSavedQuery'>
 ) {
   const api = useApi();
   const organization = useOrganization();

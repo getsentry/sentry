@@ -1603,6 +1603,10 @@ describe('Results', function () {
         deprecatedRouterMocks: true,
       });
 
+      await waitFor(() =>
+        expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
+      );
+
       await userEvent.click(
         screen.getByPlaceholderText('Search for events, users, tags, and more')
       );
@@ -1714,6 +1718,10 @@ describe('Results', function () {
         organization,
         deprecatedRouterMocks: true,
       });
+
+      await waitFor(() =>
+        expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
+      );
 
       await userEvent.click(
         screen.getByPlaceholderText('Search for events, users, tags, and more')
