@@ -148,7 +148,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
   }
 
   const onTabChange = (value: Tab) => {
-    // XXX: Omit the cursor to prevent paginating the new tabs queries.
+    // XXX: Omit the cursor to prevent paginating the next tab's queries.
     const {cursor: _, ...query} = location.query;
     router.push({
       pathname: location.pathname,
