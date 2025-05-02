@@ -13,7 +13,7 @@ describe('EAPField', () => {
 
   beforeEach(() => {
     fieldsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/spans/fields/`,
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
     });
   });
@@ -25,15 +25,15 @@ describe('EAPField', () => {
       </SpanTagsProvider>
     );
     expect(fieldsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/spans/fields/`,
+      `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
-        query: expect.objectContaining({type: 'number'}),
+        query: expect.objectContaining({attributeType: 'number'}),
       })
     );
     expect(fieldsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/spans/fields/`,
+      `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
-        query: expect.objectContaining({type: 'string'}),
+        query: expect.objectContaining({attributeType: 'string'}),
       })
     );
     expect(screen.getByText('count')).toBeInTheDocument();
@@ -55,15 +55,15 @@ describe('EAPField', () => {
       </SpanTagsProvider>
     );
     expect(fieldsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/spans/fields/`,
+      `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
-        query: expect.objectContaining({type: 'number'}),
+        query: expect.objectContaining({attributeType: 'number'}),
       })
     );
     expect(fieldsMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/spans/fields/`,
+      `/organizations/${organization.slug}/trace-items/attributes/`,
       expect.objectContaining({
-        query: expect.objectContaining({type: 'string'}),
+        query: expect.objectContaining({attributeType: 'string'}),
       })
     );
     await userEvent.click(screen.getByText('count'));

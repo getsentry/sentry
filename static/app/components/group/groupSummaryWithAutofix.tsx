@@ -164,7 +164,13 @@ function AutofixSummary({
           organization,
           group_id: group.id,
         });
-        navigate(seerLink);
+        navigate({
+          ...seerLink,
+          query: {
+            ...seerLink.query,
+            scrollTo: 'root_cause',
+          },
+        });
       },
       copyTitle: t('Copy root cause as Markdown'),
       copyText: rootCauseCopyText,
@@ -183,7 +189,13 @@ function AutofixSummary({
                 organization,
                 group_id: group.id,
               });
-              navigate(seerLink);
+              navigate({
+                ...seerLink,
+                query: {
+                  ...seerLink.query,
+                  scrollTo: 'solution',
+                },
+              });
             },
             copyTitle: t('Copy solution as Markdown'),
             copyText: solutionCopyText,
@@ -204,7 +216,13 @@ function AutofixSummary({
                 organization,
                 group_id: group.id,
               });
-              navigate(seerLink);
+              navigate({
+                ...seerLink,
+                query: {
+                  ...seerLink.query,
+                  scrollTo: 'code_changes',
+                },
+              });
             },
           },
         ]

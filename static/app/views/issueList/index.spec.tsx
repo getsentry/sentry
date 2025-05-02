@@ -13,7 +13,7 @@ describe('IssueListContainer', function () {
   };
 
   const organization = OrganizationFixture({
-    features: ['issue-view-sharing'],
+    features: ['enforce-stacked-navigation'],
   });
 
   const initialRouterConfig = {

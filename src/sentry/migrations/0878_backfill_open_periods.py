@@ -27,9 +27,22 @@ CHUNK_SIZE = 10000
 
 # copied constants and enums
 class ActivityType(Enum):
-    SET_RESOLVED = 1
     SET_UNRESOLVED = 2
     SET_REGRESSION = 6
+    SET_RESOLVED = 1
+    SET_RESOLVED_IN_RELEASE = 13
+    SET_RESOLVED_BY_AGE = 15
+    SET_RESOLVED_IN_COMMIT = 16
+    SET_RESOLVED_IN_PULL_REQUEST = 21
+
+
+RESOLVED_ACTIVITY_TYPES = [
+    ActivityType.SET_RESOLVED.value,
+    ActivityType.SET_RESOLVED_IN_RELEASE.value,
+    ActivityType.SET_RESOLVED_BY_AGE.value,
+    ActivityType.SET_RESOLVED_IN_COMMIT.value,
+    ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
+]
 
 
 class GroupStatus:
@@ -74,7 +87,7 @@ def get_open_periods_for_group(
         activities = activities[1:]
 
     for activity in activities:
-        if activity.type == ActivityType.SET_RESOLVED.value:
+        if activity.type in RESOLVED_ACTIVITY_TYPES:
             end = activity.datetime
             end_activity = activity
         elif activity.type == ActivityType.SET_REGRESSION.value:
@@ -129,7 +142,7 @@ def _backfill_group_open_periods(
     activities = defaultdict(list)
     for activity in Activity.objects.filter(
         group_id__in=group_ids,
-        type__in=[ActivityType.SET_REGRESSION.value, ActivityType.SET_RESOLVED.value],
+        type__in=[ActivityType.SET_REGRESSION.value, *RESOLVED_ACTIVITY_TYPES],
     ).order_by("-datetime"):
         activities[activity.group_id].append(activity)
 

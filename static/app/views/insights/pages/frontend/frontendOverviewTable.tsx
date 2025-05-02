@@ -26,29 +26,27 @@ type Row = Pick<
   EAPSpanResponse,
   | 'is_starred_transaction'
   | 'transaction'
-  | 'span.op'
   | 'project'
-  | 'epm()'
-  | 'p50(span.duration)'
-  | 'p95(span.duration)'
-  | 'failure_rate()'
-  | 'time_spent_percentage(span.duration)'
+  | 'tpm()'
+  | 'p50_if(span.duration,is_transaction,true)'
+  | 'p95_if(span.duration,is_transaction,true)'
+  | 'failure_rate_if(is_transaction,true)'
   | 'count_unique(user)'
-  | 'sum(span.duration)'
+  | 'sum_if(span.duration,is_transaction,true)'
+  | 'performance_score(measurements.score.total)'
 >;
 
 type Column = GridColumnHeader<
   | 'is_starred_transaction'
   | 'transaction'
-  | 'span.op'
   | 'project'
-  | 'epm()'
-  | 'p50(span.duration)'
-  | 'p95(span.duration)'
-  | 'failure_rate()'
-  | 'time_spent_percentage(span.duration)'
+  | 'tpm()'
+  | 'p50_if(span.duration,is_transaction,true)'
+  | 'p95_if(span.duration,is_transaction,true)'
+  | 'failure_rate_if(is_transaction,true)'
   | 'count_unique(user)'
-  | 'sum(span.duration)'
+  | 'sum_if(span.duration,is_transaction,true)'
+  | 'performance_score(measurements.score.total)'
 >;
 
 const COLUMN_ORDER: Column[] = [
@@ -58,32 +56,27 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'span.op',
-    name: t('Operation'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
     key: 'project',
     name: t('Project'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'epm()',
+    key: 'tpm()',
     name: t('TPM'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `p50(span.duration)`,
+    key: `p50_if(span.duration,is_transaction,true)`,
     name: t('p50()'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'p95(span.duration)',
+    key: `p95_if(span.duration,is_transaction,true)`,
     name: t('p95()'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'failure_rate()',
+    key: 'failure_rate_if(is_transaction,true)',
     name: t('Failure Rate'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -93,8 +86,13 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'time_spent_percentage(span.duration)',
+    key: 'sum_if(span.duration,is_transaction,true)',
     name: DataTitles.timeSpent,
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'performance_score(measurements.score.total)',
+    name: t('Perf Score'),
     width: COL_WIDTH_UNDEFINED,
   },
 ];
@@ -102,14 +100,14 @@ const COLUMN_ORDER: Column[] = [
 const SORTABLE_FIELDS = [
   'is_starred_transaction',
   'transaction',
-  'span.op',
   'project',
-  'epm()',
-  'p50(span.duration)',
-  'p95(span.duration)',
-  'failure_rate()',
+  'tpm()',
+  'p50_if(span.duration,is_transaction,true)',
+  'p95_if(span.duration,is_transaction,true)',
+  'failure_rate_if(is_transaction,true)',
   'count_unique(user)',
-  'time_spent_percentage(span.duration)',
+  'sum_if(span.duration,is_transaction,true)',
+  'performance_score(measurements.score.total)',
 ] as const;
 
 export type ValidSort = Sort & {
@@ -211,13 +209,7 @@ function renderBodyCell(
   }
 
   if (column.key === 'transaction') {
-    return (
-      <TransactionCell
-        project={row.project}
-        transaction={row.transaction}
-        transactionMethod={row['span.op']}
-      />
-    );
+    return <TransactionCell project={row.project} transaction={row.transaction} />;
   }
 
   const renderer = getFieldRenderer(column.key, meta.fields, false);
