@@ -9,6 +9,7 @@ import pytest
 
 from sentry.grouping.component import FrameGroupingComponent, StacktraceGroupingComponent
 from sentry.grouping.enhancer import (
+    ENHANCEMENT_BASES,
     Enhancements,
     is_valid_profiling_action,
     is_valid_profiling_matcher,
@@ -609,6 +610,18 @@ class EnhancementsTest(TestCase):
         enhancements = Enhancements.from_rules_text(self.rules_text, version=3)
         assert len(enhancements.classifier_rules) > 0
         assert len(enhancements.contributes_rules) > 0
+
+    def test_adds_split_rules_to_base_enhancements(self):
+        for base in ENHANCEMENT_BASES.values():
+            # Make these sets so checking in them is faster
+            classifier_rules = set(base.classifier_rules)
+            contributes_rules = set(base.contributes_rules)
+
+            for rule in base.rules:
+                if rule.has_classifier_actions:
+                    assert rule.as_classifier_rule() in classifier_rules
+                if rule.has_contributes_actions:
+                    assert rule.as_contributes_rule() in contributes_rules
 
 
 class AssembleStacktraceComponentTest(TestCase):
