@@ -21,6 +21,7 @@ function TotalTestsRunTimeTooltip() {
     <Fragment>
       <p>
         <ToolTipTitle>Impact:</ToolTipTitle>
+        {/* TODO: this is a dynamic value based on the selector */}
         The cumulative CI time spent running tests over the last <strong>30 days</strong>.
       </p>
       <p>
@@ -70,21 +71,19 @@ function CIEfficiencyBody({
   slowestTests,
 }: CIEfficiencyBodyProps) {
   return (
-    <SummaryEntries largeColumnSpan={2} smallColumnSpan={1}>
-      <SummaryEntry>
+    <SummaryEntries largeColumnSpan={8} smallColumnSpan={1}>
+      <SummaryEntry columns={5}>
         <SummaryEntryLabel showUnderline body={<TotalTestsRunTimeTooltip />}>
           {t('Total Tests Run Time')}
         </SummaryEntryLabel>
-        <div>
-          <SummaryEntryValue>
-            {formatTimeDuration(totalTestsRunTime)}
-            <Tag type={totalTestsRunTimeChange > 0 ? 'error' : 'success'}>
-              {formatPercentRate(totalTestsRunTimeChange)}
-            </Tag>
-          </SummaryEntryValue>
-        </div>
+        <SummaryEntryValue>
+          {formatTimeDuration(totalTestsRunTime)}
+          <Tag type={totalTestsRunTimeChange > 0 ? 'error' : 'success'}>
+            {formatPercentRate(totalTestsRunTimeChange)}
+          </Tag>
+        </SummaryEntryValue>
       </SummaryEntry>
-      <SummaryEntry>
+      <SummaryEntry columns={3}>
         <SummaryEntryLabel
           showUnderline
           body={<SlowestTestsTooltip slowestTestsDuration={slowestTestsDuration} />}
@@ -122,6 +121,6 @@ const CIEfficiencyPanel = styled(Panel)`
   grid-column: span 24;
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-column: span 9;
+    grid-column: span 8;
   }
 `;
