@@ -46,7 +46,7 @@ def get_detector_validator(
     )
 
 
-SORT_ATTRS = {"name", "id", "type", "connected_workflows"}
+SORT_ATTRS = {"name", "id", "type", "connectedWorkflows"}
 
 
 @region_silo_endpoint
@@ -92,8 +92,8 @@ class ProjectDetectorIndexEndpoint(ProjectEndpoint):
         if sort_field not in SORT_ATTRS:
             sort_field = "id"
             sort_by = "id"
-        if sort_field == "connected_workflows":
-            queryset = queryset.annotate(connected_workflows=Count("detectorworkflow"))
+        if sort_field == "connectedWorkflows":
+            queryset = queryset.annotate(connectedWorkflows=Count("detectorworkflow"))
 
         queryset = queryset.order_by(sort_by)
 

@@ -430,7 +430,7 @@ Available fields are:
 - `name`
 - `id`
 - `type`
-- `connected_workflows`
+- `connectedWorkflows`
 
 Prefix with `-` to sort in descending order.
         """,

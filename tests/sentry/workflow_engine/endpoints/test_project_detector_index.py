@@ -81,14 +81,14 @@ class ProjectDetectorIndexGetTest(ProjectDetectorIndexBaseTest):
         self.create_detector_workflow(detector=detector, workflow=workflow)
         self.create_detector_workflow(detector=detector, workflow=workflow_2)
         response1 = self.get_success_response(
-            self.organization.slug, self.project.slug, qs_params={"sortBy": "-connected_workflows"}
+            self.organization.slug, self.project.slug, qs_params={"sortBy": "-connectedWorkflows"}
         )
         assert [d["name"] for d in response1.data] == [
             detector.name,
             detector_2.name,
         ]
         response2 = self.get_success_response(
-            self.organization.slug, self.project.slug, qs_params={"sortBy": "connected_workflows"}
+            self.organization.slug, self.project.slug, qs_params={"sortBy": "connectedWorkflows"}
         )
         assert [d["name"] for d in response2.data] == [
             detector_2.name,
