@@ -315,7 +315,7 @@ describe('add to dashboard modal', () => {
 
     await userEvent.click(screen.getByText('Open in Widget Builder'));
     expect(initialData.router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/dashboard/1/widget/new/',
+      pathname: '/organizations/org-slug/dashboard/1/widget-builder/widget/new/',
       query: mockWidgetAsQueryParams,
     });
   });
@@ -344,7 +344,7 @@ describe('add to dashboard modal', () => {
 
     await userEvent.click(screen.getByText('Open in Widget Builder'));
     expect(initialData.router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/dashboard/1/widget/new/',
+      pathname: '/organizations/org-slug/dashboard/1/widget-builder/widget/new/',
       query: expect.objectContaining({
         defaultTableColumns: ['field1', 'field2'],
         defaultTitle: 'Default title',

@@ -81,7 +81,6 @@ type Props = {
   handleUpdateWidgetList: (widgets: Widget[]) => void;
   isEditingDashboard: boolean;
   location: Location;
-  onAddWidget: (dataset: DataSet, openWidgetTemplates?: boolean) => void;
   /**
    * Fired when widgets are added/removed/sorted.
    */
@@ -96,6 +95,7 @@ type Props = {
   handleChangeSplitDataset?: (widget: Widget, index: number) => void;
   isPreview?: boolean;
   newWidget?: Widget;
+  onAddWidget?: (dataset: DataSet, openWidgetTemplates?: boolean) => void;
   onEditWidget?: (widget: Widget) => void;
   onSetNewWidget?: () => void;
   paramDashboardId?: string;

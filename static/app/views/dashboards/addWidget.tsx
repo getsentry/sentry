@@ -22,7 +22,7 @@ const initialStyles = {
 };
 
 type Props = {
-  onAddWidget: (dataset: DataSet, openWidgetTemplates?: boolean) => void;
+  onAddWidget?: (dataset: DataSet, openWidgetTemplates?: boolean) => void;
 };
 
 function AddWidget({onAddWidget}: Props) {
@@ -44,12 +44,12 @@ function AddWidget({onAddWidget}: Props) {
     {
       key: 'create-custom-widget',
       label: t('Create Custom Widget'),
-      onAction: () => onAddWidget(defaultDataset, false),
+      onAction: () => onAddWidget?.(defaultDataset, false),
     },
     {
       key: 'from-widget-library',
       label: t('From Widget Library'),
-      onAction: () => onAddWidget(defaultDataset, true),
+      onAction: () => onAddWidget?.(defaultDataset, true),
     },
   ];
 
@@ -75,7 +75,7 @@ function AddWidget({onAddWidget}: Props) {
           duration: 0.25,
         }}
       >
-        <InnerWrapper onClick={() => onAddWidget(defaultDataset)}>
+        <InnerWrapper onClick={() => onAddWidget?.(defaultDataset)}>
           <DropdownMenu
             items={addWidgetDropdownItems}
             data-test-id="widget-add"
