@@ -57,7 +57,7 @@ flake8-bugbear==22.10.27
 flake8-logging==1.5.0
 google-api-core==2.19.1
 google-auth==2.29.0
-google-cloud-bigtable==2.26.0
+google-cloud-bigtable==2.30.1
 google-cloud-build==3.24.2
 google-cloud-core==2.4.1
 google-cloud-functions==1.17.0
