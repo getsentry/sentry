@@ -1,7 +1,6 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -127,12 +126,6 @@ const IssuesContainer = styled('div')`
     min-width: 0;
     overflow-y: auto;
     margin-bottom: 0 !important;
-  }
-
-  & ${PanelHeader} {
-    position: sticky;
-    top: 0;
-    z-index: ${p => p.theme.zIndex.header};
   }
 `;
 
