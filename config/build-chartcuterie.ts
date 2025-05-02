@@ -17,22 +17,13 @@ const outfile = path.join(workspaceRoot, 'config/chartcuterie/config.js');
  * Reads package.json, modifies the sideEffects property, and writes it back.
  * Returns the original content of package.json before modification.
  */
-async function modifyPackageJsonSideEffects(setEnabled: boolean): Promise<string> {
+async function modifyPackageJsonSideEffects(): Promise<string> {
   const originalContent = await fs.readFile(packageJsonPath, 'utf-8');
   const packageJson = JSON.parse(originalContent);
 
-  const currentValue = packageJson.sideEffects;
-  const needsModification = setEnabled
-    ? currentValue !== false
-    : currentValue !== undefined;
-
-  if (needsModification) {
-    if (setEnabled) {
-      // Adding side effects false improves tree shaking and removes an additional 1mb
-      packageJson.sideEffects = false;
-    } else {
-      delete packageJson.sideEffects;
-    }
+  if (packageJson.sideEffects !== false) {
+    // Adding side effects false improves tree shaking and removes an additional 1mb
+    packageJson.sideEffects = false;
     await fs.writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2));
   }
 
@@ -55,7 +46,10 @@ async function restorePackageJson(originalContent: string | null) {
 }
 
 function getCommitHash(): string {
-  return childProcess.execSync('git rev-parse HEAD').toString().trim();
+  return (
+    process.env.SENTRY_BUILD ||
+    childProcess.execSync('git rev-parse HEAD').toString().trim()
+  );
 }
 
 async function runEsbuild(commitHash: string): Promise<void> {
