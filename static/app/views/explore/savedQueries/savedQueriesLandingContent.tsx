@@ -50,8 +50,6 @@ export function SavedQueriesLandingContent() {
         cursorKey="ownedCursor"
         sort={sort}
         searchQuery={searchQuery}
-        title={t('Created by Me')}
-        hideIfEmpty
       />
       <SavedQueriesTable
         mode="shared"
@@ -59,7 +57,6 @@ export function SavedQueriesLandingContent() {
         cursorKey="sharedCursor"
         sort={sort}
         searchQuery={searchQuery}
-        title={t('Created by Others')}
       />
     </div>
   );
