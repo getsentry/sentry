@@ -110,7 +110,7 @@ export function InsightsSecondaryNav() {
             <AddProjectButtonLink
               to={makeProjectsPathname({
                 path: '/new/',
-                orgSlug: organization.slug,
+                organization,
               })}
               icon={<IconAdd />}
               size="zero"

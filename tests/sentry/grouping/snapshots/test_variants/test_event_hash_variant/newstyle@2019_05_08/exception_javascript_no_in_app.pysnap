@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:46:48.189226+00:00'
+created: '2025-04-25T21:22:27.103761+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,14 +10,14 @@ app:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace (ignored because it contains no in-app frames)
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "app/components/modals/createTeamModal"
             filename (module takes precedence)
               "createteammodal.jsx"
             context-line*
               "onError(err);"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "app/views/settings/components/forms/form"
             filename (module takes precedence)

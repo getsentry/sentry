@@ -21,19 +21,29 @@ type LinkElementProps = Omit<
   'label' | 'size' | 'title' | 'href'
 >;
 
-interface BaseLinkButtonProps
-  extends DO_NOT_USE_CommonButtonProps,
-    Omit<LinkElementProps, 'role'> {
+interface BaseLinkButtonProps extends DO_NOT_USE_CommonButtonProps, LinkElementProps {
+  /**
+   * Determines if the link is disabled.
+   */
   disabled?: boolean;
 }
 
 interface LinkButtonPropsWithHref extends BaseLinkButtonProps {
+  /**
+   * Determines if the link is external and should open in a new tab.
+   */
   external?: boolean;
   href?: string;
 }
 
 interface LinkButtonPropsWithTo extends BaseLinkButtonProps {
+  /**
+   * If true, the link will not reset the scroll position of the page when clicked.
+   */
   preventScrollReset?: boolean;
+  /**
+   * Determines if the link should replace the current history entry.
+   */
   replace?: boolean;
   to?: string | LocationDescriptor;
 }

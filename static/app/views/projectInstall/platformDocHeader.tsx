@@ -74,7 +74,7 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
     router.replace(
       makeProjectsPathname({
         path: '/new/',
-        orgSlug: organization.slug,
+        organization,
       }) + `?referrer=getting-started&project=${recentCreatedProject.id}`
     );
   }, [api, recentCreatedProject, organization, isProjectActive, router]);

@@ -6,12 +6,8 @@ import type {Location} from 'history';
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import type {DropdownOption} from 'sentry/components/discover/transactionsList';
 import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/investigationRule';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  type GridColumnHeader,
-} from 'sentry/components/gridEditable';
+import GridEditable from 'sentry/components/gridEditable';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -29,84 +25,22 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
-import {
-  type EAPSpanResponse,
-  ModuleName,
-  SpanIndexedField,
-} from 'sentry/views/insights/types';
+import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {
+  SERVICE_ENTRY_SPANS_COLUMN_ORDER,
+  type ServiceEntrySpansColumn,
+  type ServiceEntrySpansRow,
+} from 'sentry/views/performance/otlp/types';
 import {useServiceEntrySpansQuery} from 'sentry/views/performance/otlp/useServiceEntrySpansQuery';
+import {
+  getOTelTransactionsListSort,
+  SERVICE_ENTRY_SPANS_CURSOR,
+} from 'sentry/views/performance/otlp/utils';
 import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
-// TODO: When supported, also add span operation breakdown as a field
-type Row = Pick<
-  EAPSpanResponse,
-  | 'span_id'
-  | 'user.display'
-  | 'user.id'
-  | 'user.email'
-  | 'user.username'
-  | 'user.ip'
-  | 'span.duration'
-  | 'trace'
-  | 'timestamp'
-  | 'replayId'
-  | 'profile.id'
-  | 'profiler.id'
-  | 'thread.id'
-  | 'precise.start_ts'
-  | 'precise.finish_ts'
->;
 
-type Column = GridColumnHeader<
-  | 'span_id'
-  | 'user.display'
-  | 'span.duration'
-  | 'trace'
-  | 'timestamp'
-  | 'replayId'
-  | 'profile.id'
->;
-
-const COLUMN_ORDER: Column[] = [
-  {
-    key: 'trace',
-    name: t('Trace ID'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'span_id',
-    name: t('Span ID'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'user.display',
-    name: t('User'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'span.duration',
-    name: t('Total Duration'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'timestamp',
-    name: t('Timestamp'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'replayId',
-    name: t('Replay'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'profile.id',
-    name: t('Profile'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-];
-
+const LIMIT = 5;
 const PAGINATION_CURSOR_SIZE = 'xs';
-const CURSOR_NAME = 'serviceEntrySpansCursor';
 
 type Props = {
   eventView: EventView;
@@ -132,12 +66,12 @@ export function ServiceEntrySpansTable({
   const navigate = useNavigate();
 
   const projectSlug = projects.find(p => p.id === `${eventView.project}`)?.slug;
-  const cursor = decodeScalar(location.query?.[CURSOR_NAME]);
+  const cursor = decodeScalar(location.query?.[SERVICE_ENTRY_SPANS_CURSOR]);
   const spanCategory = decodeScalar(location.query?.[SpanIndexedField.SPAN_CATEGORY]);
   const {selected, options} = getOTelTransactionsListSort(location, spanCategory);
 
   const p95 = totalValues?.['p95()'] ?? 0;
-  const eventViewQuery = new MutableSearch(eventView.query);
+  const eventViewQuery = new MutableSearch('');
   if (selected.value === TransactionFilterOptions.SLOW && p95) {
     eventViewQuery.addFilterValue('span.duration', `<=${p95.toFixed(0)}`);
   }
@@ -153,7 +87,7 @@ export function ServiceEntrySpansTable({
     sort: selected.sort,
     transactionName,
     p95,
-    selected,
+    limit: LIMIT,
   });
 
   const consolidatedData = tableData?.map(row => {
@@ -168,7 +102,7 @@ export function ServiceEntrySpansTable({
   const handleCursor: CursorHandler = (_cursor, pathname, query) => {
     navigate({
       pathname,
-      query: {...query, [CURSOR_NAME]: _cursor},
+      query: {...query, [SERVICE_ENTRY_SPANS_CURSOR]: _cursor},
     });
   };
 
@@ -230,7 +164,7 @@ export function ServiceEntrySpansTable({
         isLoading={isLoading}
         error={error}
         data={consolidatedData}
-        columnOrder={COLUMN_ORDER}
+        columnOrder={SERVICE_ENTRY_SPANS_COLUMN_ORDER}
         columnSortBy={[]}
         grid={{
           renderHeadCell: column =>
@@ -246,8 +180,8 @@ export function ServiceEntrySpansTable({
 }
 
 function renderBodyCell(
-  column: Column,
-  row: Row,
+  column: ServiceEntrySpansColumn,
+  row: ServiceEntrySpansRow,
   meta: EventsMetaType | undefined,
   projectSlug: string | undefined,
   location: Location,
@@ -351,54 +285,6 @@ function CustomPagination({
       size={PAGINATION_CURSOR_SIZE}
     />
   );
-}
-
-function getOTelFilterOptions(spanCategory?: string): DropdownOption[] {
-  return [
-    {
-      sort: {kind: 'asc', field: 'span.duration'},
-      value: TransactionFilterOptions.FASTEST,
-      label: spanCategory
-        ? t('Fastest %s Service Entry Spans', spanCategory)
-        : t('Fastest Service Entry Spans'),
-    },
-    {
-      sort: {kind: 'desc', field: 'span.duration'},
-      value: TransactionFilterOptions.SLOW,
-      label: spanCategory
-        ? t('Slow %s Service Entry Spans (p95)', spanCategory)
-        : t('Slow Service Entry Spans (p95)'),
-    },
-    {
-      sort: {kind: 'desc', field: 'span.duration'},
-      value: TransactionFilterOptions.OUTLIER,
-      label: spanCategory
-        ? t('Outlier %s Service Entry Spans (p100)', spanCategory)
-        : t('Outlier Service Entry Spans (p100)'),
-    },
-    {
-      sort: {kind: 'desc', field: 'timestamp'},
-      value: TransactionFilterOptions.RECENT,
-      // The category does not apply to this option
-      label: t('Recent Service Entry Spans'),
-    },
-  ];
-}
-
-function getOTelTransactionsListSort(
-  location: Location,
-  spanCategory?: string
-): {
-  options: DropdownOption[];
-  selected: DropdownOption;
-} {
-  const sortOptions = getOTelFilterOptions(spanCategory);
-  const urlParam = decodeScalar(
-    location.query.showTransactions,
-    TransactionFilterOptions.SLOW
-  );
-  const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0]!;
-  return {selected: selectedSort, options: sortOptions};
 }
 
 const Header = styled('div')`

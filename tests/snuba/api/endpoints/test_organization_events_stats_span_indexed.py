@@ -14,7 +14,6 @@ pytestmark = pytest.mark.sentry_metrics
 class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpointTestBase):
     endpoint = "sentry-api-0-organization-events-stats"
     is_eap = False
-    is_rpc = False
 
     @property
     def dataset(self):
@@ -37,8 +36,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
     def _do_request(self, data, url=None, features=None):
         if features is None:
             features = {"organizations:discover-basic": True}
-        if self.is_rpc:
-            data["useRpc"] = "1"
         features.update(self.features)
         with self.feature(features):
             return self.client.get(self.url if url is None else url, data=data, format="json")
@@ -671,7 +668,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
 class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetricsEndpointTest):
     is_eap = True
-    is_rpc = True
 
     def test_count_extrapolation(self):
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -860,15 +856,19 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
 
     def test_extrapolation_with_multiaxis(self):
         event_counts = [6, 0, 6, 3, 0, 3]
+        p95_counts = [0, 0, 6, 3, 0, 0]
         spans = []
         for hour, count in enumerate(event_counts):
+            measurements = {"client_sample_rate": {"value": 0.1}}
+            if hour in [2, 3]:
+                measurements["lcp"] = {"value": count}
             spans.extend(
                 [
                     self.create_span(
                         {
                             "description": "foo",
                             "sentry_tags": {"status": "success"},
-                            "measurements": {"client_sample_rate": {"value": 0.1}},
+                            "measurements": measurements,
                         },
                         duration=count,
                         start_ts=self.day_ago + timedelta(hours=hour, minutes=minute),
@@ -883,49 +883,53 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "start": self.day_ago,
                 "end": self.day_ago + timedelta(hours=6),
                 "interval": "1h",
-                "yAxis": ["count()", "p95()"],
+                "yAxis": ["count()", "p95(measurements.lcp)"],
                 "project": self.project.id,
                 "dataset": self.dataset,
             },
         )
         assert response.status_code == 200, response.content
         count_data = response.data["count()"]["data"]
-        p95_data = response.data["p95()"]["data"]
+        p95_data = response.data["p95(measurements.lcp)"]["data"]
         assert len(count_data) == len(p95_data) == 6
 
         count_rows = count_data[0:6]
         for test in zip(event_counts, count_rows):
             assert test[1][1][0]["count"] == test[0] * 10
 
-        for column in ["count()", "p95()"]:
+        for column in ["count()", "p95(measurements.lcp)"]:
+            if column == "p95(measurements.lcp)":
+                counts = p95_counts
+            else:
+                counts = event_counts
             accuracy = response.data[column]["meta"]["accuracy"]
             confidence = accuracy["confidence"]
             sample_count = accuracy["sampleCount"]
             sample_rate = accuracy["samplingRate"]
-            for expected, actual in zip(event_counts, confidence[0:6]):
+            for expected, actual in zip(counts, confidence[0:6]):
                 if expected != 0:
                     assert actual["value"] in ("high", "low")
                 else:
                     assert actual["value"] is None
 
             old_confidence = response.data[column]["confidence"]
-            for expected, actual in zip(event_counts, old_confidence[0:6]):
+            for expected, actual in zip(counts, old_confidence[0:6]):
                 if expected != 0:
                     assert actual[1][0]["count"] in ("high", "low")
                 else:
                     assert actual[1][0]["count"] is None
 
-            for expected, actual in zip(event_counts, sample_count[0:6]):
+            for expected, actual in zip(counts, sample_count[0:6]):
                 assert actual["value"] == expected
 
-            for expected, actual in zip(event_counts, sample_rate[0:6]):
+            for expected, actual in zip(counts, sample_rate[0:6]):
                 if expected != 0:
                     assert actual["value"] == pytest.approx(0.1)
                 else:
                     assert actual["value"] is None
 
         p95_rows = p95_data[0:6]
-        for test in zip(event_counts, p95_rows):
+        for test in zip(p95_counts, p95_rows):
             assert test[1][1][0]["count"] == test[0]
 
     def test_top_events_with_extrapolation(self):
@@ -1965,6 +1969,9 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         for expected, result in zip([0, 1, 0], rows):
             assert result[1][0]["count"] == expected
 
+    @pytest.mark.xfail(
+        reason="https://github.com/getsentry/snuba/actions/runs/14717943981/job/41305773190"
+    )
     def test_downsampling_can_go_to_higher_accuracy_tier(self):
         span = self.create_span(
             {"description": "foo", "sentry_tags": {"status": "success"}},
