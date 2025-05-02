@@ -44,7 +44,8 @@ function FeedbackButton() {
 
 export default function LogsPage() {
   const organization = useOrganization();
-  const {defaultPeriod, maxPickableDays, relativeOptions} = logsPickableDays();
+  const {defaultPeriod, maxPickableDays, relativeOptions} =
+    logsPickableDays(organization);
 
   const prefersStackedNav = usePrefersStackedNav();
 
