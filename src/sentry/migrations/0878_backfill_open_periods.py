@@ -62,7 +62,7 @@ def get_open_periods_for_group(
     activities: list[Any],
     GroupOpenPeriod: Any,
 ) -> list[Any]:
-    # Filter to REGRESSION and RESOLVED activties to find the bounds of each open period.
+    # Filter to REGRESSION and SET_RESOLVED_XX activties to find the bounds of each open period.
     # The only UNRESOLVED activity we would care about is the first UNRESOLVED activity for the group creation,
     # but we don't create an entry for that.
     open_periods = []
@@ -96,6 +96,13 @@ def get_open_periods_for_group(
                     extra={"group_id": group_id, "starting_activity": activity.id},
                 )
             if start is not None and end is not None:
+                if start > end:
+                    logger.error(
+                        "Open period has invalid start and end dates",
+                        extra={"group_id": group_id},
+                    )
+                    return []
+
                 open_periods.append(
                     GroupOpenPeriod(
                         group_id=group_id,
