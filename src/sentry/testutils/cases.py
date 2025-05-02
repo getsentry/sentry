@@ -2250,7 +2250,7 @@ class ProfilesSnubaTestCase(
         if is_eap:
             assert (
                 requests.post(
-                    settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert",
+                    settings.SENTRY_SNUBA + "/tests/entities/eap_items_span/insert",
                     data=json.dumps([span]),
                 ).status_code
                 == 200
@@ -2269,7 +2269,7 @@ class ProfilesSnubaTestCase(
         if is_eap:
             assert (
                 requests.post(
-                    settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert",
+                    settings.SENTRY_SNUBA + "/tests/entities/eap_items_span/insert",
                     data=json.dumps(spans),
                 ).status_code
                 == 200
