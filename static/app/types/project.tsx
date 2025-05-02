@@ -64,7 +64,10 @@ export type Project = {
   team: Team;
   teams: Team[];
   verifySSL: boolean;
-  autofixAutorunThreshold?: string;
+  /**
+   * The minimum confidence level required for Autofix to automatically run on new issues.
+   */
+  autofixAutorunThreshold?: 'off' | 'low' | 'medium' | 'high';
   builtinSymbolSources?: string[];
   defaultEnvironment?: string;
   eventProcessing?: {
