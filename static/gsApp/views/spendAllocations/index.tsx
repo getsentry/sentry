@@ -79,7 +79,8 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
 
   const period = useMemo<Date[]>(() => {
     const {onDemandPeriodStart, onDemandPeriodEnd} = subscription;
-    let start, end;
+    let start: Date;
+    let end: Date;
     if (viewNextPeriod) {
       // NOTE: this is hacky and not a proper representation of the actual subscription periods.
       // There's currently no better way to get billing periods though, so for now we just
