@@ -20,7 +20,11 @@ function PlaceholderWidget() {
   return <Widget Title={<Widget.WidgetTitle title="Placeholder Widget" />} />;
 }
 
-export function NextJsOverviewPage({headerTitle}: {headerTitle: React.ReactNode}) {
+export function NextJsOverviewPage({
+  performanceType,
+}: {
+  performanceType: 'backend' | 'frontend';
+}) {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const {releases: releasesWithDate} = useReleaseStats(pageFilters.selection);
@@ -40,7 +44,7 @@ export function NextJsOverviewPage({headerTitle}: {headerTitle: React.ReactNode}
   const {query, setTransactionFilter} = useTransactionNameQuery();
 
   return (
-    <PlatformLandingPageLayout headerTitle={headerTitle}>
+    <PlatformLandingPageLayout performanceType={performanceType}>
       <WidgetGrid>
         <RequestsContainer>
           <TrafficWidget

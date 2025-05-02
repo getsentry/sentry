@@ -77,7 +77,7 @@ function BackendOverviewPage() {
     return <LaravelOverviewPage />;
   }
   if (isNextJsPageEnabled) {
-    return <NextJsOverviewPage headerTitle={BACKEND_LANDING_TITLE} />;
+    return <NextJsOverviewPage performanceType="backend" />;
   }
   if (useEap) {
     return <EAPBackendOverviewPage />;

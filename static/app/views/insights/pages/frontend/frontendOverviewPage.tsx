@@ -276,7 +276,7 @@ function FrontendOverviewPageWithProviders() {
   return (
     <DomainOverviewPageProviders maxPickableDays={maxPickableDays}>
       {isNextJsPageEnabled ? (
-        <NextJsOverviewPage headerTitle={FRONTEND_LANDING_TITLE} />
+        <NextJsOverviewPage performanceType="frontend" />
       ) : useEap ? (
         <EAPOverviewPage />
       ) : (
