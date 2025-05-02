@@ -530,10 +530,14 @@ def record_event(event: IntegrationPipelineViewType):
 class OAuthLoginView(PipelineView):
     def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.OAUTH_LOGIN).capture() as lifecycle:
-            self.active_organization = determine_active_organization(request)
+            self.active_user_organization = determine_active_organization(request)
             lifecycle.add_extra(
                 "organization_id",
-                self.active_organization.organization.id if self.active_organization else None,
+                (
+                    self.active_user_organization.organization.id
+                    if self.active_user_organization
+                    else None
+                ),
             )
 
             ghip = GitHubIdentityProvider()
@@ -559,7 +563,7 @@ class OAuthLoginView(PipelineView):
                 lifecycle.record_failure(GitHubInstallationError.INVALID_STATE)
                 return error(
                     request,
-                    self.active_organization,
+                    self.active_user_organization,
                     error_short=GitHubInstallationError.INVALID_STATE,
                 )
 
@@ -582,15 +586,15 @@ class OAuthLoginView(PipelineView):
                 lifecycle.record_failure(GitHubInstallationError.MISSING_TOKEN)
                 return error(
                     request,
-                    self.active_organization,
+                    self.active_user_organization,
                     error_short=GitHubInstallationError.MISSING_TOKEN,
                 )
 
             authenticated_user_info = get_user_info(payload["access_token"])
 
-            if self.active_organization is not None and features.has(
+            if self.active_user_organization.organization is not None and features.has(
                 "organizations:github-multi-org",
-                organization=self.active_organization,
+                organization=self.active_user_organization.organization,
                 actor=request.user,
             ):
                 owner_orgs = get_owner_github_organizations(access_token=payload["access_token"])
@@ -604,7 +608,7 @@ class OAuthLoginView(PipelineView):
                 lifecycle.record_failure(GitHubInstallationError.MISSING_LOGIN)
                 return error(
                     request,
-                    self.active_organization,
+                    self.active_user_organization,
                     error_short=GitHubInstallationError.MISSING_LOGIN,
                 )
             pipeline.bind_state("github_authenticated_user", authenticated_user_info["login"])
@@ -648,11 +652,11 @@ class GitHubInstallation(PipelineView):
 
     def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.GITHUB_INSTALLATION).capture() as lifecycle:
-            self.active_organization = determine_active_organization(request)
+            self.active_user_organization = determine_active_organization(request)
 
-            if self.active_organization is not None and features.has(
+            if self.active_user_organization.organization is not None and features.has(
                 "organizations:github-multi-org",
-                organization=self.active_organization,
+                organization=self.active_user_organization.organization,
                 actor=request.user,
             ):
                 chosen_installation = pipeline.fetch_state("chosen_installation")
@@ -670,16 +674,20 @@ class GitHubInstallation(PipelineView):
 
             lifecycle.add_extra(
                 "organization_id",
-                self.active_organization.organization.id if self.active_organization else None,
+                (
+                    self.active_user_organization.organization.id
+                    if self.active_user_organization
+                    else None
+                ),
             )
 
             integration_pending_deletion_exists = False
-            if self.active_organization:
+            if self.active_user_organization:
                 # We want to wait until the scheduled deletions finish or else the
                 # post install to migrate repos do not work.
                 integration_pending_deletion_exists = OrganizationIntegration.objects.filter(
                     integration__provider=GitHubIntegrationProvider.key,
-                    organization_id=self.active_organization.organization.id,
+                    organization_id=self.active_user_organization.organization.id,
                     status=ObjectStatus.PENDING_DELETION,
                 ).exists()
 
@@ -687,7 +695,7 @@ class GitHubInstallation(PipelineView):
                 lifecycle.record_failure(GitHubInstallationError.PENDING_DELETION)
                 return error(
                     request,
-                    self.active_organization,
+                    self.active_user_organization,
                     error_short=GitHubInstallationError.PENDING_DELETION,
                     error_long=ERR_INTEGRATION_PENDING_DELETION,
                 )
@@ -705,7 +713,7 @@ class GitHubInstallation(PipelineView):
                 lifecycle.record_failure(GitHubInstallationError.INSTALLATION_EXISTS)
                 return error(
                     request,
-                    self.active_organization,
+                    self.active_user_organization,
                     error_short=GitHubInstallationError.INSTALLATION_EXISTS,
                     error_long=ERR_INTEGRATION_EXISTS_ON_ANOTHER_ORG,
                 )
@@ -717,7 +725,7 @@ class GitHubInstallation(PipelineView):
                 )
             except Integration.DoesNotExist:
                 lifecycle.record_failure(GitHubInstallationError.MISSING_INTEGRATION)
-                return error(request, self.active_organization)
+                return error(request, self.active_user_organization)
 
             # Check that the authenticated GitHub user is the same as who installed the app.
             if (
@@ -727,7 +735,7 @@ class GitHubInstallation(PipelineView):
                 lifecycle.record_failure(GitHubInstallationError.USER_MISMATCH)
                 return error(
                     request,
-                    self.active_organization,
+                    self.active_user_organization,
                     error_short=GitHubInstallationError.USER_MISMATCH,
                 )
 
@@ -736,16 +744,15 @@ class GitHubInstallation(PipelineView):
 
 class GithubOrganizationSelection(PipelineView):
     def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
-        self.active_organization = determine_active_organization(request)
-
-        if self.active_organization is None or not features.has(
+        self.active_user_organization = determine_active_organization(request)
+        if self.active_user_organization.organization is None or not features.has(
             "organizations:github-multi-org",
-            organization=self.active_organization,
+            organization=self.active_user_organization.organization,
             actor=request.user,
         ):
             return pipeline.next_step()
 
-        installation_info = pipeline.fetch_state("existing_installation_info")
+        installation_info = pipeline.fetch_state("existing_installation_info") or []
 
         if len(installation_info) == 0:
             return pipeline.next_step()
