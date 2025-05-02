@@ -37,12 +37,11 @@ import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/results/data';
 import {
   handleAddQueryToDashboard,
   SAVED_QUERY_DATASET_TO_WIDGET_TYPE,
 } from 'sentry/views/discover/utils';
-
-import {DEFAULT_EVENT_VIEW} from '../data';
 
 import {
   getDatasetFromLocationOrSavedQueryDataset,

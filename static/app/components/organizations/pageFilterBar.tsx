@@ -1,3 +1,4 @@
+import {Children, cloneElement, Fragment, isValidElement} from 'react';
 import type {DO_NOT_USE_ChonkTheme, Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -8,9 +9,34 @@ import {space} from 'sentry/styles/space';
 // static/app/views/explore/multiQueryMode/queryConstructors/sortBy.tsx
 // and static/app/views/explore/multiQueryMode/queryConstructors/visualize.tsx
 // and not just for PageFilters as the name indicates.
-const PageFilterBar = styled('div')<{condensed?: boolean}>`
+interface PageFilterBarProps extends React.HTMLAttributes<HTMLDivElement> {
+  condensed?: boolean;
+}
+
+const PageFilterBar = styled(({children, condensed, ...props}: PageFilterBarProps) => {
+  if (Children.count(children) <= 1) {
+    if (isValidElement(children)) {
+      if (children.type !== Fragment) {
+        return cloneElement(children, props);
+      }
+      return children;
+    }
+
+    return children;
+  }
+
+  return (
+    <StyledPageFilterBar condensed={condensed} {...props}>
+      {children}
+    </StyledPageFilterBar>
+  );
+})``;
+
+const StyledPageFilterBar = styled('div')<{condensed?: boolean}>`
   ${p => (p.theme.isChonk ? chonkPageFilterBarStyles(p as any) : pageFilterBarStyles(p))}
 `;
+
+export default PageFilterBar;
 
 const pageFilterBarStyles = (p: {theme: Theme; condensed?: boolean}) => css`
   display: flex;
@@ -151,6 +177,10 @@ except in mobile */
     display: none;
   }
 
+  & > div > button:focus-visible {
+    z-index: 3;
+  }
+
   & > div:first-child > button {
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
@@ -170,5 +200,3 @@ except in mobile */
     border-bottom-left-radius: 0;
   }
 `;
-
-export default PageFilterBar;

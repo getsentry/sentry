@@ -4,9 +4,10 @@ from rest_framework.response import Response
 from sentry import tsdb
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import EnvironmentMixin, StatsMixin, region_silo_endpoint
+from sentry.api.base import StatsMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.helpers.environments import get_environment_id
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.project import Project
@@ -15,10 +16,10 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 @region_silo_endpoint
-class ProjectGroupStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
+class ProjectGroupStatsEndpoint(ProjectEndpoint, StatsMixin):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     enforce_rate_limit = True
     rate_limits = {
@@ -31,7 +32,7 @@ class ProjectGroupStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
 
     def get(self, request: Request, project: Project) -> Response:
         try:
-            environment_id = self._get_environment_id_from_request(request, project.organization_id)
+            environment_id = get_environment_id(request, project.organization_id)
         except Environment.DoesNotExist:
             raise ResourceDoesNotExist
 

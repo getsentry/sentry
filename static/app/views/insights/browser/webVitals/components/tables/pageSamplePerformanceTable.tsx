@@ -5,6 +5,8 @@ import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button, LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
@@ -12,8 +14,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconPlay, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -95,9 +95,10 @@ const INTERACTION_SAMPLES_COLUMN_ORDER: Array<
   {key: 'totalScore', width: COL_WIDTH_UNDEFINED, name: t('Score')},
 ];
 
-const SPANS_SAMPLES_WITHOUT_TRACE_COLUMN_ORDER: Array<
+const SPANS_SAMPLES_WITH_DESCRIPTION_COLUMN_ORDER: Array<
   GridColumnOrder<keyof SpanSampleRowWithScore | 'webVital'>
 > = [
+  {key: 'id', width: COL_WIDTH_UNDEFINED, name: t('Trace')},
   {
     key: SpanIndexedField.SPAN_DESCRIPTION,
     width: COL_WIDTH_UNDEFINED,
@@ -424,10 +425,10 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     if (key === 'profile.id') {
       const profileId = String(row[key]);
       const profileTarget =
-        defined(row.projectSlug) && defined(row[key])
+        defined(row.project) && defined(row[key])
           ? generateProfileFlamechartRoute({
               organization,
-              projectSlug: row.projectSlug,
+              projectSlug: row.project,
               profileId,
             })
           : null;
@@ -490,7 +491,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
 
     if (key === 'id' || key === SpanIndexedField.SPAN_DESCRIPTION) {
       const traceViewLink = generateLinkToEventInTraceView({
-        projectSlug: row.projectSlug,
+        projectSlug: row.project,
         traceSlug: row.trace,
         eventId: row.id,
         timestamp: row.timestamp,
@@ -631,7 +632,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
               : PAGELOADS_COLUMN_ORDER
           }
           columnSortBy={[]}
-          data={tableData}
+          data={tableData as any as TransactionSampleRowWithScore[]} // TODO: fix typing
           grid={{
             renderHeadCell,
             renderBodyCell,
@@ -646,7 +647,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
             datatype === Datatype.INTERACTIONS
               ? INTERACTION_SAMPLES_COLUMN_ORDER
               : ['cls', 'lcp', 'inp'].includes(datatype)
-                ? SPANS_SAMPLES_WITHOUT_TRACE_COLUMN_ORDER
+                ? SPANS_SAMPLES_WITH_DESCRIPTION_COLUMN_ORDER
                 : SPANS_SAMPLES_WITHOUT_DESCRIPTION_COLUMN_ORDER
           }
           columnSortBy={[]}

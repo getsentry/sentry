@@ -14,16 +14,18 @@ import withApi from 'sentry/utils/withApi';
 import withConfig from 'sentry/utils/withConfig';
 import {getThresholdUnits} from 'sentry/views/alerts/rules/metric/constants';
 import ThresholdControl from 'sentry/views/alerts/rules/metric/triggers/thresholdControl';
-
-import {isSessionAggregate} from '../../../utils';
 import type {
   AlertRuleThresholdType,
   ThresholdControlValue,
   Trigger,
   UnsavedMetricRule,
   UnsavedTrigger,
-} from '../types';
-import {AlertRuleComparisonType, AlertRuleTriggerType} from '../types';
+} from 'sentry/views/alerts/rules/metric/types';
+import {
+  AlertRuleComparisonType,
+  AlertRuleTriggerType,
+} from 'sentry/views/alerts/rules/metric/types';
+import {isSessionAggregate} from 'sentry/views/alerts/utils';
 
 type Props = {
   aggregate: UnsavedMetricRule['aggregate'];
@@ -48,7 +50,7 @@ type Props = {
   /**
    * Map of fieldName -> errorMessage
    */
-  error?: {[fieldName: string]: string};
+  error?: Record<string, string>;
 
   hideControl?: boolean;
 };
@@ -126,7 +128,7 @@ type TriggerFormContainerProps = Omit<
     resolveThreshold: UnsavedMetricRule['resolveThreshold']
   ) => void;
   triggers: Trigger[];
-  errors?: Map<number, {[fieldName: string]: string}>;
+  errors?: Map<number, Record<string, string>>;
 };
 
 class TriggerFormContainer extends Component<TriggerFormContainerProps> {

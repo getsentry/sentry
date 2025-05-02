@@ -61,7 +61,7 @@ function getFiltersFromRecentSearches(
   }
   const filtersInCurrentQuery = getFiltersFromParsedQuery(parsedCurrentQuery);
 
-  const filterCounts: {[filter: string]: number} = recentSearchesData
+  const filterCounts: Record<string, number> = recentSearchesData
     .flatMap(search =>
       getFiltersFromQuery({query: search.query, getFieldDefinition, filterKeys})
     )

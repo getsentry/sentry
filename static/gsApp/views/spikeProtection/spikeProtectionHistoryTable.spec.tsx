@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {cleanup, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {DataCategoryExact} from 'sentry/types/core';
@@ -39,10 +39,6 @@ describe('SpikeProtectionHistoryTable', () => {
     });
   });
 
-  afterEach(() => {
-    cleanup();
-  });
-
   it('renders an empty state when no spikes are provided', async () => {
     render(
       <SpikeProtectionHistoryTable
@@ -51,7 +47,11 @@ describe('SpikeProtectionHistoryTable', () => {
         project={project}
         onEnableSpikeProtection={() => {}}
       />,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     const emptyState = await screen.findByTestId('spike-history-empty');
@@ -71,7 +71,11 @@ describe('SpikeProtectionHistoryTable', () => {
         project={project}
         onEnableSpikeProtection={onEnableFunction}
       />,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     const disabledState = screen.getByTestId('spike-history-disabled');
@@ -106,7 +110,11 @@ describe('SpikeProtectionHistoryTable', () => {
         project={project}
         onEnableSpikeProtection={() => {}}
       />,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
     await screen.findByTestId('spike-protection-history-table');
     screen.getByText('2wk');
@@ -149,7 +157,11 @@ describe('SpikeProtectionHistoryTable', () => {
         project={project}
         onEnableSpikeProtection={() => {}}
       />,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await screen.findByTestId('spike-protection-history-table');

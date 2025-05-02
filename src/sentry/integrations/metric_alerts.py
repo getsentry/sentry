@@ -26,6 +26,8 @@ from sentry.snuba.metrics import format_mri_field, format_mri_field_value, is_mr
 from sentry.snuba.models import SnubaQuery
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
+from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
+from sentry.workflow_engine.models.incident_groupopenperiod import IncidentGroupOpenPeriod
 
 QUERY_AGGREGATION_DISPLAY = {
     "count()": "events",
@@ -59,6 +61,7 @@ class TitleLinkParams(TypedDict, total=False):
     referrer: str
     detection_type: str
     notification_uuid: str
+    project_id: int | None
 
 
 def logo_url() -> str:
@@ -150,6 +153,23 @@ def get_title(status: str, name: str) -> str:
     return f"{status}: {name}"
 
 
+def build_title_link_workflow_engine_ui(
+    identifier_id: int, organization: Organization, project_id: int, params: TitleLinkParams
+) -> str:
+    """Builds the URL for the metric issue with the given parameters."""
+    return organization.absolute_url(
+        reverse(
+            "sentry-group",
+            kwargs={
+                "organization_slug": organization.slug,
+                "project_id": project_id,
+                "group_id": identifier_id,
+            },
+        ),
+        query=parse.urlencode(params),
+    )
+
+
 def build_title_link(
     identifier_id: int, organization: Organization, params: TitleLinkParams
 ) -> str:
@@ -199,9 +219,54 @@ def incident_attachment_info(
     if notification_uuid:
         title_link_params["notification_uuid"] = notification_uuid
 
-    title_link = build_title_link(
-        alert_context.action_identifier_id, organization, title_link_params
-    )
+    if features.has("organizations:workflow-engine-trigger-actions", organization):
+        try:
+            alert_rule_id = AlertRuleDetector.objects.values_list("alert_rule_id", flat=True).get(
+                detector_id=alert_context.action_identifier_id
+            )
+            if alert_rule_id is None:
+                raise ValueError("Alert rule id not found when querying for AlertRuleDetector")
+        except AlertRuleDetector.DoesNotExist:
+            raise ValueError("Alert rule detector not found when querying for AlertRuleDetector")
+
+        try:
+            open_period_incident = IncidentGroupOpenPeriod.objects.get(
+                group_open_period_id=metric_issue_context.open_period_identifier
+            )
+        except IncidentGroupOpenPeriod.DoesNotExist:
+            raise ValueError(
+                "Incident group open period not found when querying for IncidentGroupOpenPeriod"
+            )
+
+        workflow_engine_params = title_link_params.copy()
+
+        incident_identifier = Incident.objects.values_list("identifier", flat=True).get(
+            id=open_period_incident.incident_id
+        )
+
+        workflow_engine_params["alert"] = str(incident_identifier)
+
+        title_link = build_title_link(alert_rule_id, organization, workflow_engine_params)
+
+    elif features.has("organizations:workflow-engine-ui-links", organization):
+        if metric_issue_context.group is None:
+            raise ValueError("Group is required for workflow engine UI links")
+
+        # We don't need to save the query param the alert rule id here because the link is to the group and not the alert rule
+        # TODO(iamrajjoshi): This this through and perhaps
+        workflow_engine_ui_params = title_link_params.copy()
+        workflow_engine_ui_params.pop("alert", None)
+
+        title_link = build_title_link_workflow_engine_ui(
+            metric_issue_context.group.id,
+            organization,
+            metric_issue_context.group.project.id,
+            workflow_engine_ui_params,
+        )
+    else:
+        title_link = build_title_link(
+            alert_context.action_identifier_id, organization, title_link_params
+        )
 
     return AttachmentInfo(
         title=title,

@@ -258,9 +258,87 @@ class Handler extends ExceptionHandler
   nextSteps: () => [],
 };
 
+const profilingOnboarding: OnboardingConfig = {
+  introduction: () => (
+    <p>
+      {tct(
+        'This guide is for Laravel 11.0 an up. We also provide instructions for [otherVersionsLink:other versions] as well as [lumenSpecificLink:Lumen-specific instructions].',
+        {
+          otherVersionsLink: (
+            <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/other-versions/" />
+          ),
+          lumenSpecificLink: (
+            <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/other-versions/lumen/" />
+          ),
+        }
+      )}
+    </p>
+  ),
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      configurations: [
+        {
+          description: tct('Install the [code:sentry/sentry-laravel] package:', {
+            code: <code />,
+          }),
+          language: 'bash',
+          code: `composer require sentry/sentry-laravel`,
+        },
+        {
+          description: t('Install the Excimer extension via PECL:'),
+          language: 'bash',
+          code: 'pecl install excimer',
+        },
+        {
+          description: tct(
+            "The Excimer PHP extension supports PHP 7.2 and up. Excimer requires Linux or macOS and doesn't support Windows. For additional ways to install Excimer, see [sentryPhpDocumentationLink: Sentry documentation].",
+            {
+              sentryPhpDocumentationLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/php/profiling/#installation" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      configurations: [
+        {
+          description: t('Configure the Sentry DSN with this command:'),
+          language: 'shell',
+          code: `php artisan sentry:publish --dsn=${params.dsn.public}`,
+        },
+        {
+          description: tct(
+            'It creates the config file ([code:config/sentry.php]) and adds the [code:DSN] to your [code:.env] file where you can add further configuration options:',
+            {code: <code />}
+          ),
+          language: 'shell',
+          code: getConfigureSnippet(params),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'Verify that profiling is working correctly by simply using your application.'
+      ),
+      configurations: [],
+    },
+  ],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
+  profilingOnboarding,
   crashReportOnboarding,
   feedbackOnboardingJsLoader,
 };

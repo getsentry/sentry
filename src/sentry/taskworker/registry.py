@@ -6,11 +6,13 @@ from collections.abc import Callable
 from concurrent import futures
 from typing import Any
 
+import sentry_sdk
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import BrokerValue
 from arroyo.types import Topic as ArroyoTopic
 from django.conf import settings
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import TaskActivation
+from sentry_sdk.consts import OP, SPANDATA
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.taskworker.constants import DEFAULT_PROCESSING_DEADLINE
@@ -41,12 +43,14 @@ class TaskNamespace:
         retry: Retry | None,
         expires: int | datetime.timedelta | None = None,
         processing_deadline_duration: int = DEFAULT_PROCESSING_DEADLINE,
+        app_feature: str | None = None,
     ):
         self.name = name
         self.router = router
         self.default_retry = retry
         self.default_expires = expires  # seconds
         self.default_processing_deadline_duration = processing_deadline_duration  # seconds
+        self.app_feature = app_feature or name
         self._registered_tasks: dict[str, Task[Any, Any]] = {}
         self._producers: dict[Topic, SingletonProducer] = {}
 
@@ -140,11 +144,25 @@ class TaskNamespace:
 
     def send_task(self, activation: TaskActivation, wait_for_delivery: bool = False) -> None:
         topic = self.router.route_namespace(self.name)
-        produce_future = self._producer(topic).produce(
-            ArroyoTopic(name=topic.value),
-            KafkaPayload(key=None, value=activation.SerializeToString(), headers=[]),
-        )
-        produce_future.add_done_callback(
+
+        with sentry_sdk.start_span(
+            op=OP.QUEUE_PUBLISH,
+            name=activation.taskname,
+            origin="taskworker",
+        ) as span:
+            # TODO(taskworker) add monitor headers
+            span.set_data(SPANDATA.MESSAGING_DESTINATION_NAME, activation.namespace)
+            span.set_data(SPANDATA.MESSAGING_MESSAGE_ID, activation.id)
+            span.set_data(SPANDATA.MESSAGING_SYSTEM, "taskworker")
+
+            produce_future = self._producer(topic).produce(
+                ArroyoTopic(name=topic.value),
+                KafkaPayload(key=None, value=activation.SerializeToString(), headers=[]),
+            )
+
+        # We know this type is futures.Future, but cannot assert so,
+        # because it is also mock.Mock in tests.
+        produce_future.add_done_callback(  # type:ignore[union-attr]
             lambda future: self._handle_produce_future(
                 future=future,
                 tags={
@@ -212,9 +230,10 @@ class TaskRegistry:
         retry: Retry | None = None,
         expires: int | datetime.timedelta | None = None,
         processing_deadline_duration: int = DEFAULT_PROCESSING_DEADLINE,
+        app_feature: str | None = None,
     ) -> TaskNamespace:
         """
-        Create a namespaces.
+        Create a task namespace.
 
         Namespaces are mapped onto topics through the configured router allowing
         infrastructure to be scaled based on a region's requirements.
@@ -227,6 +246,7 @@ class TaskRegistry:
             retry=retry,
             expires=expires,
             processing_deadline_duration=processing_deadline_duration,
+            app_feature=app_feature,
         )
         self._namespaces[name] = namespace
 

@@ -18,4 +18,16 @@ COMMON_COLUMNS = [
         internal_name="sentry.project_id",
         search_type="integer",
     ),
+    ResolvedAttribute(
+        public_alias="sentry.item_type",
+        search_type="integer",
+        internal_name="sentry.item_type",
+        private=True,
+    ),
+    ResolvedAttribute(
+        public_alias="sentry.organization_id",
+        search_type="integer",
+        internal_name="sentry.organization_id",
+        private=True,
+    ),
 ]

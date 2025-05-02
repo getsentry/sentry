@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import enum
 import re
 from abc import ABC, abstractmethod
 from collections import defaultdict
@@ -22,17 +23,9 @@ from sentry.backup.helpers import Side
 
 UNIX_EPOCH = unix_zero_date = datetime.fromtimestamp(0, timezone.utc).isoformat()
 
-
-class ScrubbedData:
-    """A singleton class used to indicate data has been scrubbed, without indicating what that data
-    is. A unit type indicating "scrubbing was successful" only."""
-
-    instance: ScrubbedData
-
-    def __new__(cls):
-        if getattr(cls, "instance", None) is None:
-            cls.instance = super().__new__(cls)
-        return cls.instance
+# A singleton class used to indicate data has been scrubbed, without indicating what that data
+# is. A unit type indicating "scrubbing was successful" only.
+ScrubbedData = enum.Enum("ScrubbedData", "SCRUBBED_DATA")
 
 
 class JSONScrubbingComparator(ABC):
@@ -106,7 +99,7 @@ class JSONScrubbingComparator(ABC):
         right: Any,
         f: (
             Callable[[list[str]], list[str]] | Callable[[list[str]], ScrubbedData]
-        ) = lambda _: ScrubbedData(),
+        ) = lambda _: ScrubbedData.SCRUBBED_DATA,
     ) -> None:
         """Removes all of the fields compared by this comparator from the `fields` dict, so that the
         remaining fields may be compared for equality. Public callers should use the inheritance-safe wrapper, `scrub`, rather than using this internal method directly.
@@ -818,7 +811,6 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "sentry.incidentactivity": [UUID4Comparator("notification_uuid")],
             "sentry.incidenttrigger": [DateUpdatedComparator("date_modified")],
             "sentry.integration": [DateUpdatedComparator("date_updated")],
-            "sentry.monitor": [UUID4Comparator("guid")],
             "sentry.orgauthtoken": [
                 HashObfuscatingComparator("token_hashed", "token_last_characters")
             ],
@@ -832,6 +824,7 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             ],
             "sentry.organizationmemberinvite": [
                 DateUpdatedComparator("date_updated", "date_added"),
+                HashObfuscatingComparator("token"),
             ],
             "sentry.projectkey": [
                 HashObfuscatingComparator("public_key", "secret_key"),
@@ -915,6 +908,12 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "workflow_engine.alertruleworkflow": [
                 DateUpdatedComparator("date_updated", "date_added")
             ],
+            "workflow_engine.dataconditionalertruletrigger": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
+            "workflow_engine.incidentgroupopenperiod": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
             "tempest.tempestcredentials": [
                 DateUpdatedComparator("date_updated", "date_added"),
             ],
@@ -922,6 +921,10 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "explore.exploresavedquerystarred": [
                 DateUpdatedComparator("date_updated", "date_added")
             ],
+            "insights.insightsstarredsegment": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
+            "monitors.monitor": [UUID4Comparator("guid")],
         },
     )
 

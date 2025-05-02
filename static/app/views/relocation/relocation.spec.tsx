@@ -24,7 +24,7 @@ type FakeRegion = {
   url: string;
 };
 
-const fakeRegions: {[key: string]: FakeRegion} = {
+const fakeRegions: Record<string, FakeRegion> = {
   Earth: {
     name: 'earth',
     url: 'https://earth.example.com',
@@ -92,6 +92,7 @@ describe('Relocation', function () {
     return render(<Relocation {...routerProps} />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
   }
 

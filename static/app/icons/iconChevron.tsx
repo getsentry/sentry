@@ -69,7 +69,6 @@ function IconChevron({isDouble, isCircled, direction = 'up', ...props}: Props) {
       css={
         direction
           ? css`
-              transition: transform 120ms ease-in-out;
               transform: rotate(${theme.iconDirections[direction]}deg);
             `
           : undefined

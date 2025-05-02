@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -21,9 +20,7 @@ jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
 }));
 
 describe('NewIssueExperienceButton', function () {
-  const organization = OrganizationFixture();
-  const user = UserFixture();
-  user.options.prefersIssueDetailsStreamlinedUI = true;
+  const organization = OrganizationFixture({streamlineOnly: null});
 
   beforeEach(() => {
     ConfigStore.init();
@@ -78,18 +75,12 @@ describe('NewIssueExperienceButton', function () {
 
     render(<NewIssueExperienceButton />, {organization});
 
-    const button = screen.getByRole('button', {
+    const newExperienceButton = screen.getByRole('button', {
       name: 'Switch to the new issue experience',
     });
 
-    await userEvent.click(button);
+    await userEvent.click(newExperienceButton);
 
-    const dropdownButton = screen.getByRole('button', {name: 'Manage issue experience'});
-    await userEvent.click(dropdownButton);
-    const oldExperienceButton = screen.getByRole('menuitemradio', {
-      name: 'Switch to the old issue experience',
-    });
-    expect(oldExperienceButton).toBeInTheDocument();
     // User option should be saved
     await waitFor(() => {
       expect(mockChangeUserSettings).toHaveBeenCalledWith(
@@ -105,6 +96,10 @@ describe('NewIssueExperienceButton', function () {
     });
     expect(trackAnalytics).toHaveBeenCalledTimes(1);
 
+    await userEvent.click(screen.getByRole('button', {name: 'Manage issue experience'}));
+    const oldExperienceButton = screen.getByRole('menuitemradio', {
+      name: 'Switch to the old issue experience',
+    });
     // Clicking again toggles it off
     await userEvent.click(oldExperienceButton);
     // Old text should be back

@@ -26,8 +26,9 @@ import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {getAggregateAlias, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
-export type TimeSeriesData = {
+type TimeSeriesData = {
   allTimeseriesData?: EventsStatsData;
   comparisonTimeseriesData?: Series[];
   originalPreviousTimeseriesData?: EventsStatsData | null;
@@ -199,6 +200,10 @@ type EventsRequestPartialProps = {
    * Sample rate used for data extrapolation in OnDemandMetricsRequest
    */
   sampleRate?: number;
+  /**
+   * The type of sampling mode used for EAP dataset requests
+   */
+  sampling?: SamplingMode;
   /**
    * Should loading be shown.
    */

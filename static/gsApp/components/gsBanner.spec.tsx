@@ -102,7 +102,10 @@ describe('GSBanner', function () {
     const organization = OrganizationFixture();
     SubscriptionStore.set(organization.slug, {});
 
-    const {container} = render(<GSBanner organization={organization} />, {organization});
+    const {container} = render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     // wait for requests to finish
     await act(tick);
@@ -125,7 +128,10 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     expect(
       await screen.findByTestId('overage-banner-transaction-attachment')
@@ -153,7 +159,10 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     expect(
       await screen.findByTestId('overage-banner-error-transaction-attachment-monitorSeat')
@@ -174,7 +183,10 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    const {container} = render(<GSBanner organization={organization} />, {organization});
+    const {container} = render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     await act(tick);
     expect(container).toBeEmptyDOMElement();
@@ -199,7 +211,10 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    const {container} = render(<GSBanner organization={organization} />, {organization});
+    const {container} = render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     await act(tick);
     expect(container).toBeEmptyDOMElement();
@@ -227,7 +242,10 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     expect(await screen.findByTestId('overage-banner-attachment')).toBeInTheDocument();
     expect(screen.queryByTestId('overage-banner-replay')).not.toBeInTheDocument();
@@ -250,7 +268,10 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     expect(
       await screen.findByTestId('overage-banner-transaction-attachment')
@@ -276,7 +297,10 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     expect(
       await screen.findByTestId('overage-banner-error-attachment')
@@ -304,7 +328,10 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     expect(
       await screen.findByTestId(
@@ -334,7 +361,7 @@ describe('GSBanner', function () {
       canSelfServe: true,
       productTrials: [
         {
-          category: 'spans',
+          category: DataCategory.SPANS,
           reasonCode: 1001,
           isStarted: false,
           lengthDays: undefined,
@@ -345,7 +372,10 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     expect(
       await screen.findByRole('button', {name: /setup pay-as-you-go/i})
@@ -371,7 +401,7 @@ describe('GSBanner', function () {
       canSelfServe: true,
       productTrials: [
         {
-          category: 'spans',
+          category: DataCategory.SPANS,
           reasonCode: 1001,
           isStarted: true,
           lengthDays: 20,
@@ -382,7 +412,10 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
     await act(tick);
     expect(
       screen.queryByRole('button', {name: /setup pay-as-you-go/i})
@@ -413,7 +446,10 @@ describe('GSBanner', function () {
       url: `/organizations/${organization.slug}/prompts-activity/`,
       body: {},
     });
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     expect(
       await screen.findByTestId(
@@ -481,7 +517,10 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    const {container} = render(<GSBanner organization={organization} />, {organization});
+    const {container} = render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     await act(tick);
     expect(container).toBeEmptyDOMElement();
@@ -506,7 +545,10 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     expect(
       await screen.findByRole('button', {name: /setup on-demand/i})
@@ -533,7 +575,7 @@ describe('GSBanner', function () {
       canSelfServe: true,
       productTrials: [
         {
-          category: 'replays',
+          category: DataCategory.REPLAYS,
           reasonCode: 1001,
           isStarted: false,
           lengthDays: undefined,
@@ -544,7 +586,10 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     expect(
       await screen.findByRole('button', {name: /setup pay-as-you-go/i})
@@ -569,7 +614,7 @@ describe('GSBanner', function () {
       canSelfServe: true,
       productTrials: [
         {
-          category: 'replays',
+          category: DataCategory.REPLAYS,
           reasonCode: 1001,
           isStarted: true,
           lengthDays: 20,
@@ -580,7 +625,10 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
     await act(tick);
     expect(
       screen.queryByRole('button', {name: /setup pay-as-you-go/i})
@@ -601,7 +649,10 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     await act(tick);
     expect(
@@ -631,7 +682,10 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    const {container} = render(<GSBanner organization={organization} />, {organization});
+    const {container} = render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     await act(tick);
     expect(container).toBeEmptyDOMElement();
@@ -662,7 +716,10 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     expect(await screen.findByTestId('overage-banner-error')).toBeInTheDocument();
     expect(screen.queryByTestId('overage-banner-monitorSeat')).not.toBeInTheDocument();
@@ -688,7 +745,10 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     await act(tick);
     expect(
@@ -716,7 +776,10 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     await act(tick);
     expect(
@@ -761,6 +824,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
+      deprecatedRouterMocks: true,
     });
 
     await act(tick);
@@ -778,8 +842,11 @@ describe('GSBanner', function () {
       SubscriptionFixture({organization, isSuspended: true})
     );
 
-    render(<GSBanner organization={organization} />, {organization});
-    renderGlobalModal();
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
+    renderGlobalModal({deprecatedRouterMocks: true});
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
@@ -791,8 +858,11 @@ describe('GSBanner', function () {
       SubscriptionFixture({organization, usageExceeded: true})
     );
 
-    render(<GSBanner organization={organization} />, {organization});
-    renderGlobalModal();
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
+    renderGlobalModal({deprecatedRouterMocks: true});
 
     expect(await screen.findByTestId('modal-usage-exceeded')).toBeInTheDocument();
   });
@@ -807,8 +877,11 @@ describe('GSBanner', function () {
       SubscriptionFixture({organization, isGracePeriod: true})
     );
 
-    render(<GSBanner organization={organization} />, {organization});
-    renderGlobalModal();
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
+    renderGlobalModal({deprecatedRouterMocks: true});
 
     expect(await screen.findByTestId('modal-grace-period')).toBeInTheDocument();
   });
@@ -827,7 +900,10 @@ describe('GSBanner', function () {
       })
     );
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     await act(tick);
     expect(screen.queryByTestId('grace-period-banner')).not.toBeInTheDocument();
@@ -848,11 +924,14 @@ describe('GSBanner', function () {
         isTrial: true,
         hasDismissedTrialEndingNotice: false,
         plan: 'am1_t',
-        trialEnd: now.add(2, 'day').toString(),
+        trialEnd: now.add(2, 'day').toISOString(),
       })
     );
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     await waitFor(() => expect(openTrialEndingModal).toHaveBeenCalled());
   });
@@ -866,11 +945,14 @@ describe('GSBanner', function () {
         organization,
         hasDismissedTrialEndingNotice: false,
         plan: 'am1_t',
-        trialEnd: now.add(5, 'day').toString(),
+        trialEnd: now.add(5, 'day').toISOString(),
       })
     );
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     await act(tick);
     expect(openTrialEndingModal).not.toHaveBeenCalled();
@@ -887,7 +969,10 @@ describe('GSBanner', function () {
       })
     );
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     await act(tick);
     expect(openTrialEndingModal).not.toHaveBeenCalled();
@@ -902,11 +987,14 @@ describe('GSBanner', function () {
         organization,
         hasDismissedTrialEndingNotice: false,
         plan: 'am1_team',
-        trialEnd: now.add(2, 'day').toString(),
+        trialEnd: now.add(2, 'day').toISOString(),
       })
     );
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     await act(tick);
     expect(openTrialEndingModal).not.toHaveBeenCalled();
@@ -924,12 +1012,15 @@ describe('GSBanner', function () {
         isTrial: true,
         hasDismissedTrialEndingNotice: false,
         plan: 'am1_business',
-        trialEnd: now.add(2, 'day').toString(),
+        trialEnd: now.add(2, 'day').toISOString(),
         isEnterpriseTrial: true,
       })
     );
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     await act(tick);
     expect(openTrialEndingModal).not.toHaveBeenCalled();
@@ -945,7 +1036,7 @@ describe('GSBanner', function () {
       organization.slug,
       SubscriptionFixture({
         organization,
-        contractPeriodEnd: now.add(30, 'day').toString(),
+        contractPeriodEnd: now.add(30, 'day').toISOString(),
         isTrial: true,
         plan: 'am2_sponsored_team_auf',
         partner: {
@@ -961,7 +1052,10 @@ describe('GSBanner', function () {
       })
     );
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     await waitFor(() => expect(openPartnerPlanEndingModal).toHaveBeenCalled());
   });
@@ -976,7 +1070,7 @@ describe('GSBanner', function () {
       organization.slug,
       SubscriptionFixture({
         organization,
-        contractPeriodEnd: now.add(7, 'day').toString(),
+        contractPeriodEnd: now.add(7, 'day').toISOString(),
         isTrial: true,
         plan: 'am2_sponsored_team_auf',
         partner: {
@@ -992,7 +1086,10 @@ describe('GSBanner', function () {
       })
     );
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     await waitFor(() => expect(openPartnerPlanEndingModal).toHaveBeenCalled());
   });
@@ -1007,7 +1104,7 @@ describe('GSBanner', function () {
       organization.slug,
       SubscriptionFixture({
         organization,
-        contractPeriodEnd: now.add(2, 'days').toString(),
+        contractPeriodEnd: now.add(2, 'days').toISOString(),
         isTrial: true,
         plan: 'am2_sponsored_team_auf',
         partner: {
@@ -1023,7 +1120,10 @@ describe('GSBanner', function () {
       })
     );
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     await waitFor(() => expect(openPartnerPlanEndingModal).toHaveBeenCalled());
   });
@@ -1038,7 +1138,7 @@ describe('GSBanner', function () {
       organization.slug,
       SubscriptionFixture({
         organization,
-        contractPeriodEnd: now.toString(),
+        contractPeriodEnd: now.toISOString(),
         isTrial: true,
         plan: 'am2_sponsored_team_auf',
         partner: {
@@ -1054,7 +1154,10 @@ describe('GSBanner', function () {
       })
     );
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     await waitFor(() => expect(openPartnerPlanEndingModal).toHaveBeenCalled());
   });
@@ -1068,7 +1171,7 @@ describe('GSBanner', function () {
       organization.slug,
       SubscriptionFixture({
         organization,
-        contractPeriodEnd: now.add(7, 'day').toString(),
+        contractPeriodEnd: now.add(7, 'day').toISOString(),
         isTrial: true,
         plan: 'am2_sponsored_team_auf',
         partner: {
@@ -1084,7 +1187,10 @@ describe('GSBanner', function () {
       })
     );
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     await waitFor(() => expect(openPartnerPlanEndingModal).not.toHaveBeenCalled());
   });
@@ -1099,7 +1205,7 @@ describe('GSBanner', function () {
       organization.slug,
       SubscriptionFixture({
         organization,
-        contractPeriodEnd: now.add(7, 'day').toString(),
+        contractPeriodEnd: now.add(7, 'day').toISOString(),
         isTrial: true,
         plan: 'am2_sponsored_team_auf',
         partner: {
@@ -1122,7 +1228,10 @@ describe('GSBanner', function () {
       })
     );
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     await waitFor(() => expect(openPartnerPlanEndingModal).not.toHaveBeenCalled());
   });
@@ -1137,7 +1246,7 @@ describe('GSBanner', function () {
       organization.slug,
       SubscriptionFixture({
         organization,
-        contractPeriodEnd: now.add(7, 'day').toString(),
+        contractPeriodEnd: now.add(7, 'day').toISOString(),
         isTrial: true,
         plan: 'am2_sponsored_team_auf',
         partner: {
@@ -1160,7 +1269,10 @@ describe('GSBanner', function () {
       })
     );
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     await waitFor(() => expect(openPartnerPlanEndingModal).toHaveBeenCalled());
   });
@@ -1175,7 +1287,7 @@ describe('GSBanner', function () {
       organization.slug,
       SubscriptionFixture({
         organization,
-        contractPeriodEnd: now.add(31, 'day').toString(),
+        contractPeriodEnd: now.add(31, 'day').toISOString(),
         isTrial: true,
         plan: 'am2_sponsored_team_auf',
         partner: {
@@ -1191,7 +1303,10 @@ describe('GSBanner', function () {
       })
     );
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     await waitFor(() => expect(openPartnerPlanEndingModal).not.toHaveBeenCalled());
   });
@@ -1216,7 +1331,7 @@ describe('GSBanner', function () {
       organization.slug,
       SubscriptionFixture({
         organization,
-        contractPeriodEnd: now.add(20, 'day').toString(),
+        contractPeriodEnd: now.add(20, 'day').toISOString(),
         isTrial: true,
         plan: 'am2_sponsored_team_auf',
         partner: {
@@ -1232,7 +1347,10 @@ describe('GSBanner', function () {
       })
     );
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     await waitFor(() => expect(openPartnerPlanEndingModal).not.toHaveBeenCalled());
   });
@@ -1256,7 +1374,7 @@ describe('GSBanner', function () {
       organization.slug,
       SubscriptionFixture({
         organization,
-        contractPeriodEnd: now.add(1, 'day').toString(),
+        contractPeriodEnd: now.add(1, 'day').toISOString(),
         isTrial: true,
         plan: 'am2_sponsored_team_auf',
         partner: {
@@ -1272,7 +1390,10 @@ describe('GSBanner', function () {
       })
     );
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     await waitFor(() => expect(openPartnerPlanEndingModal).toHaveBeenCalled());
   });
@@ -1296,7 +1417,7 @@ describe('GSBanner', function () {
       organization.slug,
       SubscriptionFixture({
         organization,
-        contractPeriodEnd: now.toString(),
+        contractPeriodEnd: now.toISOString(),
         isTrial: true,
         plan: 'am2_sponsored_team_auf',
         partner: {
@@ -1312,7 +1433,10 @@ describe('GSBanner', function () {
       })
     );
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     await waitFor(() => expect(openPartnerPlanEndingModal).toHaveBeenCalled());
   });
@@ -1336,7 +1460,7 @@ describe('GSBanner', function () {
       organization.slug,
       SubscriptionFixture({
         organization,
-        contractPeriodEnd: now.add(1, 'day').toString(),
+        contractPeriodEnd: now.add(1, 'day').toISOString(),
         isTrial: true,
         plan: 'am2_sponsored_team_auf',
         partner: {
@@ -1352,7 +1476,10 @@ describe('GSBanner', function () {
       })
     );
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     await waitFor(() => expect(openPartnerPlanEndingModal).not.toHaveBeenCalled());
   });
@@ -1370,7 +1497,10 @@ describe('GSBanner', function () {
       })
     );
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     expect(
       await screen.findByText(textWithMarkupMatcher(/2 members have been deactivated/i))
@@ -1443,6 +1573,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => {
@@ -1527,6 +1658,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => {
@@ -1562,6 +1694,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => {
@@ -1600,6 +1733,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => {
@@ -1624,7 +1758,7 @@ describe('GSBanner', function () {
         organization,
         hasDismissedForcedTrialNotice: false,
         plan: 'am1_t',
-        trialEnd: now.add(14, 'day').toString(),
+        trialEnd: now.add(14, 'day').toISOString(),
         isForcedTrial: true,
         isTrial: true,
       })
@@ -1632,6 +1766,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => expect(openForcedTrialModal).toHaveBeenCalled());
@@ -1648,7 +1783,7 @@ describe('GSBanner', function () {
         organization,
         hasDismissedForcedTrialNotice: true,
         plan: 'am1_t',
-        trialEnd: now.add(14, 'day').toString(),
+        trialEnd: now.add(14, 'day').toISOString(),
         isForcedTrial: true,
         isTrial: true,
       })
@@ -1656,6 +1791,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
+      deprecatedRouterMocks: true,
     });
 
     await act(tick);
@@ -1702,6 +1838,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => {
@@ -1753,6 +1890,7 @@ describe('GSBanner', function () {
 
     render(<GSBanner organization={organization} />, {
       organization,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => {
@@ -1777,8 +1915,11 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {organization});
-    renderGlobalModal();
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
+    renderGlobalModal({deprecatedRouterMocks: true});
 
     expect(await screen.findByTestId('banner-alert-past-due')).toBeInTheDocument();
     expect(
@@ -1796,9 +1937,11 @@ describe('GSBanner', function () {
       )
     ).toBeInTheDocument();
     await userEvent.click(screen.getByTestId('modal-continue-button'));
-    expect(browserHistory.push).toHaveBeenCalledWith(
-      `/settings/past-due/billing/details/?referrer=banner-billing-failure`
-    );
+    await waitFor(() => {
+      expect(browserHistory.push).toHaveBeenCalledWith(
+        `/settings/past-due/billing/details/?referrer=banner-billing-failure`
+      );
+    });
   });
 
   it('shows past due modal and banner for non-billing users', async function () {
@@ -1813,8 +1956,11 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {organization});
-    renderGlobalModal();
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
+    renderGlobalModal({deprecatedRouterMocks: true});
 
     expect(await screen.findByTestId('banner-alert-past-due')).toBeInTheDocument();
     expect(await screen.findByTestId('modal-past-due')).toBeInTheDocument();
@@ -1834,8 +1980,11 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {organization});
-    renderGlobalModal();
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
+    renderGlobalModal({deprecatedRouterMocks: true});
 
     await act(tick);
     expect(screen.queryByTestId('modal-past-due')).not.toBeInTheDocument();
@@ -1860,7 +2009,10 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     expect(
       await screen.findByText(
@@ -1891,7 +2043,10 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     expect(
       await screen.findByText(
@@ -1917,8 +2072,11 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {organization});
-    renderGlobalModal();
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
+    renderGlobalModal({deprecatedRouterMocks: true});
 
     await act(tick);
     expect(screen.queryByTestId('banner-alert-past-due')).not.toBeInTheDocument();
@@ -1947,7 +2105,10 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     expect(await screen.findByTestId('overage-banner-span')).toBeInTheDocument();
 
@@ -1972,7 +2133,10 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     expect(
       await screen.findByTestId(
@@ -1999,7 +2163,10 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     await act(tick);
     expect(
@@ -2026,7 +2193,10 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     expect(
       await screen.findByRole('button', {name: /setup on-demand/i})
@@ -2047,7 +2217,10 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     await act(tick);
     expect(
@@ -2074,7 +2247,10 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    const {container} = render(<GSBanner organization={organization} />, {organization});
+    const {container} = render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     await act(tick);
     expect(container).toBeEmptyDOMElement();
@@ -2102,7 +2278,10 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     expect(await screen.findByTestId('overage-banner-span')).toBeInTheDocument();
     expect(screen.queryByTestId('overage-banner-replay')).not.toBeInTheDocument();
@@ -2129,7 +2308,10 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     expect(
       await screen.findByRole('button', {name: /setup pay-as-you-go/i})
@@ -2157,7 +2339,10 @@ describe('GSBanner', function () {
     });
     SubscriptionStore.set(organization.slug, subscription);
 
-    render(<GSBanner organization={organization} />, {organization});
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
 
     expect(
       await screen.findByRole('button', {name: /setup pay-as-you-go/i})

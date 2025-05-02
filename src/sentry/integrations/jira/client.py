@@ -7,6 +7,7 @@ from urllib.parse import parse_qs, urlparse, urlsplit
 from requests import PreparedRequest
 
 from sentry.integrations.client import ApiClient
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.utils.atlassian_connect import get_query_hash
 from sentry.shared_integrations.exceptions import ApiError
@@ -29,6 +30,7 @@ class JiraCloudClient(ApiClient):
     ISSUE_URL = "/rest/api/2/issue/%s"
     META_URL = "/rest/api/2/issue/createmeta"
     PRIORITIES_URL = "/rest/api/2/priority"
+    PROJECTS_PAGINATED_URL = "/rest/api/2/project/search"
     PROJECT_URL = "/rest/api/2/project"
     SEARCH_URL = "/rest/api/2/search/"
     VERSIONS_URL = "/rest/api/2/project/%s/versions"
@@ -51,7 +53,7 @@ class JiraCloudClient(ApiClient):
 
     def __init__(
         self,
-        integration: RpcIntegration,
+        integration: RpcIntegration | Integration,
         verify_ssl: bool,
         logging_context: Any | None = None,
     ):
@@ -122,7 +124,12 @@ class JiraCloudClient(ApiClient):
     def update_comment(self, issue_key, comment_id, comment):
         return self.put(self.COMMENT_URL % (issue_key, comment_id), data={"body": comment})
 
+    def get_projects_paginated(self, params: dict[str, Any] | None = None):
+        response = self.get(self.PROJECTS_PAGINATED_URL, params=params)
+        return response
+
     def get_projects_list(self):
+        """deprecated - please use paginated projects endpoint"""
         return self.get_cached(self.PROJECT_URL)
 
     def get_project_key_for_id(self, project_id) -> str:

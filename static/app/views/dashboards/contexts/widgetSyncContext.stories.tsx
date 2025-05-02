@@ -5,18 +5,17 @@ import {Button} from 'sentry/components/core/button';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import storyBook from 'sentry/stories/storyBook';
-
-import {sampleDurationTimeSeries} from '../widgets/timeSeriesWidget/fixtures/sampleDurationTimeSeries';
-import {sampleThroughputTimeSeries} from '../widgets/timeSeriesWidget/fixtures/sampleThroughputTimeSeries';
-import {Line} from '../widgets/timeSeriesWidget/plottables/line';
-import {TimeSeriesWidgetVisualization} from '../widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
+import {sampleDurationTimeSeries} from 'sentry/views/dashboards/widgets/timeSeriesWidget/fixtures/sampleDurationTimeSeries';
+import {sampleThroughputTimeSeries} from 'sentry/views/dashboards/widgets/timeSeriesWidget/fixtures/sampleThroughputTimeSeries';
+import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
+import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 
 import {WidgetSyncContextProvider} from './widgetSyncContext';
 
 const sampleDurationTimeSeries2 = {
   ...sampleDurationTimeSeries,
   field: 'p50(span.duration)',
-  data: sampleDurationTimeSeries.data.map(datum => {
+  data: sampleDurationTimeSeries.values.map(datum => {
     return {
       ...datum,
       value: datum.value ? datum.value * 0.3 + 30 * Math.random() : null,

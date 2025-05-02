@@ -10,14 +10,15 @@ from rest_framework.response import Response
 from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import EnvironmentMixin, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.helpers.default_inbound_filters import set_default_inbound_filters
 from sentry.api.helpers.default_symbol_sources import set_default_symbol_sources
+from sentry.api.helpers.environments import get_environment_id
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import ProjectSummarySerializer, serialize
-from sentry.api.serializers.models.project import OrganizationProjectResponse, ProjectSerializer
+from sentry.api.serializers.models.project import OrganizationProjectResponse
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.examples.team_examples import TeamExamples
@@ -95,7 +96,7 @@ class AuditData(TypedDict):
 
 @extend_schema(tags=["Teams"])
 @region_silo_endpoint
-class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
+class TeamProjectsEndpoint(TeamEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
@@ -147,9 +148,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
                 x,
                 request.user,
                 ProjectSummarySerializer(
-                    environment_id=self._get_environment_id_from_request(
-                        request, team.organization.id
-                    ),
+                    environment_id=get_environment_id(request, team.organization.id),
                     stats_period=stats_period,
                 ),
             ),
@@ -166,7 +165,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         ],
         request=ProjectPostSerializer,
         responses={
-            201: ProjectSerializer,
+            201: ProjectSummarySerializer,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: OpenApiResponse(description="Team not found."),
@@ -259,4 +258,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
             if project_is_seer_eligible(project):
                 project.update_option("sentry:similarity_backfill_completed", int(time.time()))
 
-        return Response(serialize(project, request.user), status=201)
+        return Response(
+            serialize(project, request.user, ProjectSummarySerializer(collapse=["unusedFeatures"])),
+            status=201,
+        )

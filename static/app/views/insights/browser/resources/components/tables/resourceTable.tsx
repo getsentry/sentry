@@ -64,7 +64,7 @@ type Row = {
   'project.id': number;
   'sentry.normalized_description': string;
   'span.group': string;
-  'span.op': `resource.${'script' | 'img' | 'css' | 'iframe' | string}`;
+  'span.op': string;
   'sum(span.self_time)': number;
   'time_spent_percentage()': number;
 };
@@ -245,7 +245,7 @@ function ResourceIcon(props: {fileExtension: string; spanOp: string}) {
     return <PlatformIcon platform="font" />;
   }
   if (spanOp === ResourceSpanOps.IMAGE || IMAGE_FILE_EXTENSIONS.includes(fileExtension)) {
-    return <IconImage color="black" legacySize="20px" />;
+    return <IconImage legacySize="20px" />;
   }
   return <PlatformIcon platform="unknown" />;
 }

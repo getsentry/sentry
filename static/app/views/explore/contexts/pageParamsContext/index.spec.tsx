@@ -4,7 +4,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   PageParamsProvider,
   useExplorePageParams,
-  useSetExploreDataset,
   useSetExploreFields,
   useSetExploreGroupBys,
   useSetExploreId,
@@ -20,6 +19,7 @@ import {
   DEFAULT_VISUALIZATION,
   DEFAULT_VISUALIZATION_AGGREGATE,
   DEFAULT_VISUALIZATION_FIELD,
+  Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
@@ -40,7 +40,6 @@ describe('defaults', function () {
 describe('PageParamsProvider', function () {
   let pageParams: ReturnType<typeof useExplorePageParams>;
   let setPageParams: ReturnType<typeof useSetExplorePageParams>;
-  let setDataset: ReturnType<typeof useSetExploreDataset>;
   let setFields: ReturnType<typeof useSetExploreFields>;
   let setGroupBys: ReturnType<typeof useSetExploreGroupBys>;
   let setMode: ReturnType<typeof useSetExploreMode>;
@@ -53,7 +52,6 @@ describe('PageParamsProvider', function () {
   function Component() {
     pageParams = useExplorePageParams();
     setPageParams = useSetExplorePageParams();
-    setDataset = useSetExploreDataset();
     setFields = useSetExploreFields();
     setGroupBys = useSetExploreGroupBys();
     setMode = useSetExploreMode();
@@ -69,8 +67,7 @@ describe('PageParamsProvider', function () {
     render(
       <PageParamsProvider>
         <Component />
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </PageParamsProvider>
     );
 
     act(() =>
@@ -97,8 +94,7 @@ describe('PageParamsProvider', function () {
     render(
       <PageParamsProvider>
         <Component />
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </PageParamsProvider>
     );
 
     expect(pageParams).toEqual({
@@ -111,39 +107,11 @@ describe('PageParamsProvider', function () {
         'transaction',
         'timestamp',
       ],
-      groupBys: ['span.op'],
+      groupBys: [''],
       mode: Mode.SAMPLES,
       query: '',
       sortBys: [{field: 'timestamp', kind: 'desc'}],
-      visualizes: [
-        {
-          chartType: ChartType.LINE,
-          label: 'A',
-          yAxes: ['count(span.duration)'],
-        },
-      ],
-    });
-  });
-
-  it('correctly updates dataset', function () {
-    renderTestComponent();
-
-    act(() => setDataset(DiscoverDatasets.SPANS_EAP));
-
-    expect(pageParams).toEqual({
-      dataset: DiscoverDatasets.SPANS_EAP,
-      fields: ['id', 'timestamp'],
-      groupBys: ['span.op'],
-      mode: Mode.AGGREGATE,
-      query: '',
-      sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
-      visualizes: [
-        {
-          chartType: ChartType.AREA,
-          label: 'A',
-          yAxes: ['count(span.self_time)'],
-        },
-      ],
+      visualizes: [new Visualize(['count(span.duration)'], 'A')],
     });
   });
 
@@ -159,13 +127,7 @@ describe('PageParamsProvider', function () {
       mode: Mode.AGGREGATE,
       query: '',
       sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
-      visualizes: [
-        {
-          chartType: ChartType.AREA,
-          label: 'A',
-          yAxes: ['count(span.self_time)'],
-        },
-      ],
+      visualizes: [new Visualize(['count(span.self_time)'], 'A', ChartType.AREA)],
     });
   });
 
@@ -181,13 +143,7 @@ describe('PageParamsProvider', function () {
       mode: Mode.AGGREGATE,
       query: '',
       sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
-      visualizes: [
-        {
-          chartType: ChartType.AREA,
-          label: 'A',
-          yAxes: ['count(span.self_time)'],
-        },
-      ],
+      visualizes: [new Visualize(['count(span.self_time)'], 'A', ChartType.AREA)],
     });
   });
 
@@ -199,17 +155,11 @@ describe('PageParamsProvider', function () {
     expect(pageParams).toEqual({
       dataset: DiscoverDatasets.SPANS_EAP_RPC,
       fields: ['id', 'timestamp'],
-      groupBys: ['span.op'],
+      groupBys: [''],
       mode: Mode.AGGREGATE,
       query: '',
       sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
-      visualizes: [
-        {
-          chartType: ChartType.AREA,
-          label: 'A',
-          yAxes: ['count(span.self_time)'],
-        },
-      ],
+      visualizes: [new Visualize(['count(span.self_time)'], 'A', ChartType.AREA)],
     });
   });
 
@@ -225,13 +175,7 @@ describe('PageParamsProvider', function () {
       mode: Mode.AGGREGATE,
       query: '',
       sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
-      visualizes: [
-        {
-          chartType: ChartType.AREA,
-          label: 'A',
-          yAxes: ['count(span.self_time)'],
-        },
-      ],
+      visualizes: [new Visualize(['count(span.self_time)'], 'A', ChartType.AREA)],
     });
   });
 
@@ -247,13 +191,7 @@ describe('PageParamsProvider', function () {
       mode: Mode.AGGREGATE,
       query: '',
       sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
-      visualizes: [
-        {
-          chartType: ChartType.AREA,
-          label: 'A',
-          yAxes: ['count(span.self_time)'],
-        },
-      ],
+      visualizes: [new Visualize(['count(span.self_time)'], 'A', ChartType.AREA)],
     });
   });
 
@@ -269,13 +207,7 @@ describe('PageParamsProvider', function () {
       mode: Mode.SAMPLES,
       query: '',
       sortBys: [{field: 'timestamp', kind: 'desc'}],
-      visualizes: [
-        {
-          chartType: ChartType.AREA,
-          label: 'A',
-          yAxes: ['count(span.self_time)'],
-        },
-      ],
+      visualizes: [new Visualize(['count(span.self_time)'], 'A', ChartType.AREA)],
     });
   });
 
@@ -296,13 +228,7 @@ describe('PageParamsProvider', function () {
       mode: Mode.SAMPLES,
       query: '',
       sortBys: [{field: 'timestamp', kind: 'desc'}],
-      visualizes: [
-        {
-          chartType: ChartType.AREA,
-          label: 'A',
-          yAxes: ['count(span.self_time)'],
-        },
-      ],
+      visualizes: [new Visualize(['count(span.self_time)'], 'A', ChartType.AREA)],
     });
   });
 
@@ -318,13 +244,7 @@ describe('PageParamsProvider', function () {
       mode: Mode.AGGREGATE,
       query: 'foo:bar',
       sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
-      visualizes: [
-        {
-          chartType: ChartType.AREA,
-          label: 'A',
-          yAxes: ['count(span.self_time)'],
-        },
-      ],
+      visualizes: [new Visualize(['count(span.self_time)'], 'A', ChartType.AREA)],
     });
   });
 
@@ -340,13 +260,7 @@ describe('PageParamsProvider', function () {
       mode: Mode.SAMPLES,
       query: '',
       sortBys: [{field: 'id', kind: 'desc'}],
-      visualizes: [
-        {
-          chartType: ChartType.AREA,
-          label: 'A',
-          yAxes: ['count(span.self_time)'],
-        },
-      ],
+      visualizes: [new Visualize(['count(span.self_time)'], 'A', ChartType.AREA)],
     });
   });
 
@@ -362,13 +276,7 @@ describe('PageParamsProvider', function () {
       mode: Mode.SAMPLES,
       query: '',
       sortBys: [{field: 'timestamp', kind: 'desc'}],
-      visualizes: [
-        {
-          chartType: ChartType.AREA,
-          label: 'A',
-          yAxes: ['count(span.self_time)'],
-        },
-      ],
+      visualizes: [new Visualize(['count(span.self_time)'], 'A', ChartType.AREA)],
     });
   });
 
@@ -394,11 +302,7 @@ describe('PageParamsProvider', function () {
       query: '',
       sortBys: [{field: 'max(span.duration)', kind: 'desc'}],
       visualizes: [
-        {
-          chartType: ChartType.AREA,
-          label: 'A',
-          yAxes: ['min(span.self_time)', 'max(span.duration)'],
-        },
+        new Visualize(['min(span.self_time)', 'max(span.duration)'], 'A', ChartType.AREA),
       ],
     });
   });
@@ -425,11 +329,7 @@ describe('PageParamsProvider', function () {
       query: '',
       sortBys: [{field: 'min(span.self_time)', kind: 'desc'}],
       visualizes: [
-        {
-          chartType: ChartType.AREA,
-          label: 'A',
-          yAxes: ['min(span.self_time)', 'max(span.duration)'],
-        },
+        new Visualize(['min(span.self_time)', 'max(span.duration)'], 'A', ChartType.AREA),
       ],
     });
   });
@@ -446,13 +346,7 @@ describe('PageParamsProvider', function () {
       mode: Mode.AGGREGATE,
       query: '',
       sortBys: [{field: 'sdk.name', kind: 'desc'}],
-      visualizes: [
-        {
-          chartType: ChartType.AREA,
-          label: 'A',
-          yAxes: ['count(span.self_time)'],
-        },
-      ],
+      visualizes: [new Visualize(['count(span.self_time)'], 'A', ChartType.AREA)],
     });
   });
 
@@ -468,13 +362,7 @@ describe('PageParamsProvider', function () {
       mode: Mode.AGGREGATE,
       query: '',
       sortBys: [{field: 'count(span.self_time)', kind: 'desc'}],
-      visualizes: [
-        {
-          chartType: ChartType.AREA,
-          label: 'A',
-          yAxes: ['count(span.self_time)'],
-        },
-      ],
+      visualizes: [new Visualize(['count(span.self_time)'], 'A', ChartType.AREA)],
     });
   });
 
@@ -502,16 +390,8 @@ describe('PageParamsProvider', function () {
       query: '',
       sortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
       visualizes: [
-        {
-          chartType: ChartType.AREA,
-          label: 'A',
-          yAxes: ['count(span.self_time)'],
-        },
-        {
-          chartType: ChartType.LINE,
-          label: 'B',
-          yAxes: ['avg(span.duration)', 'avg(span.self_time)'],
-        },
+        new Visualize(['count(span.self_time)'], 'A', ChartType.AREA),
+        new Visualize(['avg(span.duration)', 'avg(span.self_time)'], 'B', ChartType.LINE),
       ],
     });
   });

@@ -130,7 +130,7 @@ export function getRelativeTimeFromEventDateCreated(
   );
 }
 
-export type KnownDataDetails = Omit<KeyValueListDataItem, 'key'> | undefined;
+type KnownDataDetails = Omit<KeyValueListDataItem, 'key'> | undefined;
 
 export function getKnownData<Data, DataType>({
   data,
@@ -189,31 +189,6 @@ export function getKnownStructuredData(
   }));
 }
 
-export function getUnknownData({
-  allData,
-  knownKeys,
-  meta,
-}: {
-  allData: Record<string, any>;
-  knownKeys: string[];
-  meta?: NonNullable<Event['_meta']>[keyof Event['_meta']];
-}): KeyValueListData {
-  return Object.entries(allData)
-    .filter(
-      ([key]) =>
-        key !== 'type' &&
-        key !== 'title' &&
-        !knownKeys.includes(key) &&
-        (typeof allData[key] !== 'number' && !allData[key] ? !!meta?.[key]?.[''] : true)
-    )
-    .map(([key, value]) => ({
-      key,
-      value,
-      subject: key,
-      meta: meta?.[key]?.[''],
-    }));
-}
-
 /**
  * Returns the type of a given context, after coercing from its type and alias.
  * - 'type' refers the the `type` key on it's data blob. This is usually overridden by the SDK for known types, but not always.
@@ -260,6 +235,11 @@ export function getContextTitle({
 
   if (PLATFORM_CONTEXT_KEYS.has(contextType)) {
     return getPlatformContextTitle({platform: alias});
+  }
+
+  if (alias === 'client_os') {
+    // To differentiate from `os` and avoid confusion with two items called "Operating System"
+    return t('Client Operating System');
   }
 
   switch (contextType) {

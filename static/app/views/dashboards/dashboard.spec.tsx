@@ -15,8 +15,7 @@ import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhan
 import Dashboard from 'sentry/views/dashboards/dashboard';
 import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-
-import {OrganizationContext} from '../organizationContext';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import WidgetLegendSelectionState from './widgetLegendSelectionState';
 
@@ -156,8 +155,7 @@ describe('Dashboards > Dashboard', () => {
         widgetLimitReached={false}
         isEditingDashboard={false}
         widgetLegendState={widgetLegendState}
-      />,
-      {router: initialData.router}
+      />
     );
     expect(tagsMock).toHaveBeenCalled();
   });
@@ -181,8 +179,7 @@ describe('Dashboards > Dashboard', () => {
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
         widgetLegendState={widgetLegendState}
-      />,
-      {router: initialData.router}
+      />
     );
     await waitFor(() => expect(mockHandleAddCustomWidget).toHaveBeenCalled());
     expect(mockCallbackToUnsetNewWidget).toHaveBeenCalled();
@@ -206,8 +203,7 @@ describe('Dashboards > Dashboard', () => {
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
         widgetLegendState={widgetLegendState}
-      />,
-      {router: initialData.router}
+      />
     );
     expect(mockHandleAddCustomWidget).not.toHaveBeenCalled();
     expect(mockCallbackToUnsetNewWidget).not.toHaveBeenCalled();
@@ -253,8 +249,7 @@ describe('Dashboards > Dashboard', () => {
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
         widgetLegendState={widgetLegendState}
-      />,
-      {router: initialData.router}
+      />
     );
     expect(mockHandleAddCustomWidget).not.toHaveBeenCalled();
     expect(mockCallbackToUnsetNewWidget).not.toHaveBeenCalled();

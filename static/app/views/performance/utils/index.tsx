@@ -29,8 +29,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
-
-import {DEFAULT_MAX_DURATION} from '../trends/utils';
+import {DEFAULT_MAX_DURATION} from 'sentry/views/performance/trends/utils';
 
 export const QUERY_KEYS = [
   'environment',
@@ -42,8 +41,6 @@ export const QUERY_KEYS = [
 ] as const;
 
 export const UNPARAMETERIZED_TRANSACTION = '<< unparameterized >>'; // Represents 'other' transactions with high cardinality names that were dropped on the metrics dataset.
-const UNPARAMETRIZED_TRANSACTION = '<< unparametrized >>'; // Old spelling. Can be deleted in the future when all data for this transaction name is gone.
-export const EXCLUDE_METRICS_UNPARAM_CONDITIONS = `(!transaction:"${UNPARAMETERIZED_TRANSACTION}" AND !transaction:"${UNPARAMETRIZED_TRANSACTION}")`;
 const SHOW_UNPARAM_BANNER = 'showUnparameterizedBanner';
 
 export enum DiscoverQueryPageSource {
@@ -248,7 +245,7 @@ export function trendsTargetRoute({
 }: {
   location: Location;
   organization: Organization;
-  additionalQuery?: {[x: string]: string};
+  additionalQuery?: Record<string, string>;
   initialConditions?: MutableSearch;
   view?: DomainView;
 }) {

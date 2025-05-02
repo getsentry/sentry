@@ -12,7 +12,7 @@ from sentry import analytics, audit_log, features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.rule import RuleEndpoint
-from sentry.api.endpoints.project_rules import find_duplicate_rule, send_confirmation_notification
+from sentry.api.endpoints.project_rules import find_duplicate_rule
 from sentry.api.fields.actor import ActorField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer
@@ -35,11 +35,9 @@ from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.projects.project_rules.updater import ProjectRuleUpdater
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
-from sentry.rules.actions.utils import get_changed_data, get_updated_rule_data
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.signals import alert_rule_edited
 from sentry.types.actor import Actor
-from sentry.utils import metrics
 from sentry.workflow_engine.migration_helpers.issue_alert_dual_write import (
     delete_migrated_issue_alert,
 )
@@ -330,16 +328,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 sender=self,
                 is_api_token=request.auth is not None,
             )
-            if features.has(
-                "organizations:rule-create-edit-confirm-notification", project.organization
-            ):
-                new_rule_data = get_updated_rule_data(rule)
-                changed_data = get_changed_data(rule, new_rule_data, rule_data_before)
-                send_confirmation_notification(rule=rule, new=False, changed=changed_data)
-                metrics.incr(
-                    "rule_confirmation.edit.notification.sent",
-                    skip_internal=False,
-                )
+
             return Response(serialize(updated_rule, request.user))
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

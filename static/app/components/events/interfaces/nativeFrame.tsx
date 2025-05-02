@@ -1,10 +1,10 @@
 import type {MouseEvent} from 'react';
-import {Fragment, useContext, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Chevron} from 'sentry/components/chevron';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {OpenInContextLine} from 'sentry/components/events/interfaces/frame/openInContextLine';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
@@ -17,13 +17,13 @@ import {
   isExpandable,
   trimPackage,
 } from 'sentry/components/events/interfaces/frame/utils';
+import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import {formatAddress, parseAddress} from 'sentry/components/events/interfaces/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import {TraceEventDataSectionContext} from 'sentry/components/events/traceEventDataSection';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import StrictClick from 'sentry/components/strictClick';
-import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
+import {IconChevron} from 'sentry/icons';
 import {IconFileBroken} from 'sentry/icons/iconFileBroken';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {IconWarning} from 'sentry/icons/iconWarning';
@@ -36,7 +36,7 @@ import type {
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types/integrations';
 import type {PlatformKey} from 'sentry/types/project';
-import type {StacktraceType} from 'sentry/types/stacktrace';
+import {type StacktraceType, StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
@@ -98,7 +98,7 @@ function NativeFrame({
   emptySourceNotation,
   isHoverPreviewed = false,
 }: Props) {
-  const traceEventDataSectionContext = useContext(TraceEventDataSectionContext);
+  const {displayOptions, stackView} = useStacktraceContext();
 
   const {sectionData} = useIssueDetails();
   const debugSectionConfig = sectionData[SectionKey.DEBUGMETA];
@@ -108,16 +108,11 @@ function NativeFrame({
   );
   const hasStreamlinedUI = useHasStreamlinedUI();
 
-  const absolute = traceEventDataSectionContext?.display.includes('absolute-addresses');
+  const fullStackTrace = stackView === StackView.FULL;
 
-  const fullStackTrace = traceEventDataSectionContext?.fullStackTrace;
-
-  const fullFunctionName = traceEventDataSectionContext?.display.includes(
-    'verbose-function-names'
-  );
-
-  const absoluteFilePaths =
-    traceEventDataSectionContext?.display.includes('absolute-file-paths');
+  const absolute = displayOptions.includes('absolute-addresses');
+  const fullFunctionName = displayOptions.includes('verbose-function-names');
+  const absoluteFilePaths = displayOptions.includes('absolute-file-paths');
 
   const tooltipDelay = isHoverPreviewed ? SLOW_TOOLTIP_DELAY : undefined;
   const foundByStackScanning = frame.trust === 'scan' || frame.trust === 'cfi-scan';
@@ -396,6 +391,7 @@ function NativeFrame({
                   frame={frame}
                   line={contextLine ? contextLine[1] : ''}
                   event={event}
+                  disableSetup={isHoverPreviewed}
                 />
               </ErrorBoundary>
             )}
@@ -419,7 +415,7 @@ function NativeFrame({
                 size="zero"
                 borderless
                 aria-label={expanded ? t('Collapse Context') : t('Expand Context')}
-                icon={<Chevron size="medium" direction={expanded ? 'up' : 'down'} />}
+                icon={<IconChevron size="sm" direction={expanded ? 'up' : 'down'} />}
               />
             )}
           </ExpandCell>

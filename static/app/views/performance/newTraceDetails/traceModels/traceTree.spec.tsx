@@ -19,6 +19,7 @@ import {
   assertEAPSpanNode,
   assertTransactionNode,
   makeEAPError,
+  makeEAPOccurrence,
   makeEAPSpan,
   makeEAPTrace,
   makeEventTransaction,
@@ -188,6 +189,21 @@ const eapTraceWithErrors = makeEAPTrace([
   }),
 ]);
 
+const eapTraceWithOccurences = makeEAPTrace([
+  makeEAPSpan({
+    event_id: 'eap-span-1',
+    is_transaction: true,
+    occurrences: [],
+    children: [
+      makeEAPSpan({
+        event_id: 'eap-span-2',
+        is_transaction: false,
+        occurrences: [makeEAPOccurrence({event_id: 'eap-occurence-1'})],
+      }),
+    ],
+  }),
+]);
+
 const eapTraceWithOrphanErrors = makeEAPTrace([
   makeEAPError({
     event_id: 'eap-error-1',
@@ -252,7 +268,7 @@ describe('TraceTree', () => {
         }),
         traceMetadata
       );
-      expect(tree.root.children[0]!.children[0]!.performance_issues.size).toBe(1);
+      expect(tree.root.children[0]!.children[0]!.occurrences.size).toBe(1);
     });
 
     it('adds transaction profile to node', () => {
@@ -582,6 +598,74 @@ describe('TraceTree', () => {
 
       expect(eapTransaction?.errors.size).toBe(1);
       expect(eapSpan?.errors.size).toBe(1);
+    });
+
+    it('adds eap occurences to tree nodes', () => {
+      const tree = TraceTree.FromTrace(eapTraceWithOccurences, traceMetadata);
+
+      expect(tree.root.children[0]!.occurrences.size).toBe(1);
+
+      const eapTransaction = findEAPSpanByEventId(tree, 'eap-span-1');
+      const eapSpan = findEAPSpanByEventId(tree, 'eap-span-2');
+
+      expect(eapTransaction?.occurrences.size).toBe(1);
+      expect(eapSpan?.occurrences.size).toBe(1);
+    });
+
+    it('initializes eap span ops breakdown', () => {
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'eap-span-1',
+            is_transaction: true,
+            op: 'op-1',
+            occurrences: [],
+            children: [
+              makeEAPSpan({
+                event_id: 'eap-span-2',
+                is_transaction: false,
+                op: 'op-2',
+                children: [
+                  makeEAPSpan({
+                    event_id: 'eap-span-4',
+                    is_transaction: false,
+                    op: 'op-3',
+                    occurrences: [],
+                    children: [],
+                  }),
+                ],
+              }),
+              makeEAPSpan({
+                event_id: 'eap-span-3',
+                is_transaction: true,
+                op: 'op-2',
+                occurrences: [],
+                children: [],
+              }),
+            ],
+          }),
+        ]),
+        traceMetadata
+      );
+
+      const eapSpan1 = findEAPSpanByEventId(tree, 'eap-span-1');
+      expect(eapSpan1?.eapSpanOpsBreakdown).toEqual(
+        expect.arrayContaining([
+          {op: 'op-2', count: 2},
+          {op: 'op-3', count: 1},
+        ])
+      );
+
+      const eapSpan2 = findEAPSpanByEventId(tree, 'eap-span-2');
+      expect(eapSpan2?.eapSpanOpsBreakdown).toEqual(
+        expect.arrayContaining([{op: 'op-3', count: 1}])
+      );
+
+      const eapSpan3 = findEAPSpanByEventId(tree, 'eap-span-3');
+      expect(eapSpan3?.eapSpanOpsBreakdown).toEqual([]);
+
+      const eapSpan4 = findEAPSpanByEventId(tree, 'eap-span-4');
+      expect(eapSpan4?.eapSpanOpsBreakdown).toEqual([]);
     });
 
     it('initializes expanded based on is_transaction property', () => {
@@ -1817,6 +1901,53 @@ describe('TraceTree', () => {
       });
 
       expect(request).toHaveBeenCalled();
+      expect(tree.build().serialize()).toMatchSnapshot();
+    });
+  });
+
+  describe('printTraceTreeNode', () => {
+    it('adds prefetch prefix to spans with http.request.prefetch attribute', () => {
+      const tree = TraceTree.FromTrace(trace, traceMetadata);
+
+      const prefetchSpan = makeSpan({
+        op: 'http',
+        description: 'GET /api/users',
+        data: {
+          'http.request.prefetch': true,
+        },
+      });
+
+      const regularSpan = makeSpan({
+        op: 'http',
+        description: 'GET /api/users',
+      });
+
+      TraceTree.FromSpans(
+        tree.root.children[0]!.children[0]!,
+        [prefetchSpan, regularSpan],
+        makeEventTransaction()
+      );
+
+      expect(tree.build().serialize()).toMatchSnapshot();
+    });
+
+    it('handles falsy prefetch attribute', () => {
+      const tree = TraceTree.FromTrace(trace, traceMetadata);
+
+      const falsePrefetchSpan = makeSpan({
+        op: 'http',
+        description: 'GET /api/users',
+        data: {
+          'http.request.prefetch': false,
+        },
+      });
+
+      TraceTree.FromSpans(
+        tree.root.children[0]!.children[0]!,
+        [falsePrefetchSpan],
+        makeEventTransaction()
+      );
+
       expect(tree.build().serialize()).toMatchSnapshot();
     });
   });

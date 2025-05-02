@@ -4,9 +4,9 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
 import {DATA_TYPE_PLURAL as RESOURCES_DATA_TYPE_PLURAL} from 'sentry/views/insights/browser/resources/settings';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {DATA_TYPE_PLURAL as QUERIES_DATA_TYPE_PLURAL} from 'sentry/views/insights/database/settings';
-
-import {getTermHelp, PerformanceTerm} from '../../data';
+import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 
 import {GenericPerformanceWidgetDataType} from './types';
 
@@ -89,12 +89,16 @@ export const WIDGET_DEFINITIONS: ({
   organization: Organization;
   theme: Theme;
 }) => {
-  const WIDGET_PALETTE = theme.chart.colors[10];
+  const useEap = useInsightsEap();
+  const WIDGET_PALETTE = theme.chart.getColorPalette(10);
+
+  const durationField = useEap ? 'span.duration' : 'transaction.duration';
+
   return {
     [PerformanceWidgetSetting.DURATION_HISTOGRAM]: {
       title: t('Duration Distribution'),
       titleTooltip: getTermHelp(organization, PerformanceTerm.DURATION_DISTRIBUTION),
-      fields: ['transaction.duration'],
+      fields: [durationField],
       dataType: GenericPerformanceWidgetDataType.HISTOGRAM,
       chartColor: WIDGET_PALETTE[5],
     },
@@ -162,7 +166,7 @@ export const WIDGET_DEFINITIONS: ({
     [PerformanceWidgetSetting.TPM_AREA]: {
       title: t('Transactions Per Minute'),
       titleTooltip: getTermHelp(organization, PerformanceTerm.TPM),
-      fields: ['tpm()'],
+      fields: ['epm()'],
       dataType: GenericPerformanceWidgetDataType.AREA,
       chartColor: WIDGET_PALETTE[1],
       allowsOpenInDiscover: true,
@@ -178,7 +182,7 @@ export const WIDGET_DEFINITIONS: ({
     [PerformanceWidgetSetting.P50_DURATION_AREA]: {
       title: t('p50 Duration'),
       titleTooltip: getTermHelp(organization, PerformanceTerm.P50),
-      fields: ['p50(transaction.duration)'],
+      fields: [`p50(${durationField})`],
       dataType: GenericPerformanceWidgetDataType.AREA,
       chartColor: WIDGET_PALETTE[3],
       allowsOpenInDiscover: true,
@@ -186,7 +190,7 @@ export const WIDGET_DEFINITIONS: ({
     [PerformanceWidgetSetting.P75_DURATION_AREA]: {
       title: t('p75 Duration'),
       titleTooltip: getTermHelp(organization, PerformanceTerm.P75),
-      fields: ['p75(transaction.duration)'],
+      fields: [`p75(${durationField})`],
       dataType: GenericPerformanceWidgetDataType.AREA,
       chartColor: WIDGET_PALETTE[3],
       allowsOpenInDiscover: true,
@@ -194,7 +198,7 @@ export const WIDGET_DEFINITIONS: ({
     [PerformanceWidgetSetting.P95_DURATION_AREA]: {
       title: t('p95 Duration'),
       titleTooltip: getTermHelp(organization, PerformanceTerm.P95),
-      fields: ['p95(transaction.duration)'],
+      fields: [`p95(${durationField})`],
       dataType: GenericPerformanceWidgetDataType.AREA,
       chartColor: WIDGET_PALETTE[3],
       allowsOpenInDiscover: true,
@@ -202,7 +206,7 @@ export const WIDGET_DEFINITIONS: ({
     [PerformanceWidgetSetting.P99_DURATION_AREA]: {
       title: t('p99 Duration'),
       titleTooltip: getTermHelp(organization, PerformanceTerm.P99),
-      fields: ['p99(transaction.duration)'],
+      fields: [`p99(${durationField})`],
       dataType: GenericPerformanceWidgetDataType.AREA,
       chartColor: WIDGET_PALETTE[3],
       allowsOpenInDiscover: true,

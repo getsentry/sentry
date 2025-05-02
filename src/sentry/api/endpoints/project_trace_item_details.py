@@ -8,8 +8,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDetailsRequest
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -20,14 +18,9 @@ from sentry.api.exceptions import BadRequest
 from sentry.models.project import Project
 from sentry.search.eap import constants
 from sentry.search.eap.types import SupportedTraceItemType, TraceItemAttribute
-from sentry.search.eap.utils import translate_internal_to_public_alias
+from sentry.search.eap.utils import PRIVATE_ATTRIBUTES, translate_internal_to_public_alias
 from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba_rpc
-
-DISALLOW_LIST = {
-    "sentry.organization_id",
-    "sentry.item_type",
-}
 
 
 def convert_rpc_attribute_to_json(
@@ -37,7 +30,7 @@ def convert_rpc_attribute_to_json(
     result: list[TraceItemAttribute] = []
     for attribute in attributes:
         internal_name = attribute["name"]
-        if internal_name in DISALLOW_LIST:
+        if internal_name in PRIVATE_ATTRIBUTES.get(trace_item_type, []):
             continue
         source = attribute["value"]
         if len(source) == 0:
@@ -51,6 +44,8 @@ def convert_rpc_attribute_to_json(
                     column_type = "string"
                 elif val_type in ["int", "float", "double"]:
                     column_type = "number"
+                    if val_type == "double":
+                        val_type = "float"
                 else:
                     raise BadRequest(f"unknown column type in protobuf: {val_type}")
 
@@ -153,18 +148,7 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
                 trace_item_type=trace_item_type,
                 request_id=str(uuid.uuid4()),
             ),
-            filter=TraceItemFilter(
-                comparison_filter=ComparisonFilter(
-                    key=AttributeKey(
-                        type=AttributeKey.TYPE_STRING,
-                        name="sentry.trace_id",
-                    ),
-                    op=ComparisonFilter.OP_EQUALS,
-                    value=AttributeValue(
-                        val_str=trace_id,
-                    ),
-                )
-            ),
+            trace_id=trace_id,
         )
 
         resp = MessageToDict(snuba_rpc.trace_item_details_rpc(req))

@@ -126,6 +126,7 @@ class ProjectKey(Model):
         max_length=32,
         choices=[(v.value, v.value) for v in UseCase],
         default=UseCase.USER.value,
+        db_default=UseCase.USER.value,
     )
 
     # support legacy project keys in API
@@ -310,7 +311,7 @@ class ProjectKey(Model):
 
         return endpoint
 
-    def get_allowed_origins(self):
+    def get_allowed_origins(self) -> frozenset[str]:
         from sentry.utils.http import get_origins
 
         return get_origins(self.project)

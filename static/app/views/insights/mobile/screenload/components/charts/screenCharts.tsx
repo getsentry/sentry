@@ -3,7 +3,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import {Alert} from 'sentry/components/core/alert';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
@@ -119,11 +118,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
     Sentry.captureException(new Error('Screen summary missing releases'));
   }, [primaryRelease, isReleasesLoading]);
 
-  const transformedReleaseSeries: {
-    [yAxisName: string]: {
-      [releaseVersion: string]: Series;
-    };
-  } = {};
+  const transformedReleaseSeries: Record<string, Record<string, Series>> = {};
   yAxes.forEach(val => {
     transformedReleaseSeries[YAXIS_COLUMNS[val]] = {};
   });
@@ -144,7 +139,8 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
               } as SeriesDataUnit;
             }) ?? [];
 
-          const color = isPrimary ? theme.chart.colors[3][0] : theme.chart.colors[3][1];
+          const colors = theme.chart.getColorPalette(3);
+          const color = isPrimary ? colors[0] : colors[1];
           transformedReleaseSeries[yAxis]![release] = {
             seriesName: formatVersion(label, true),
             color,
@@ -392,10 +388,6 @@ const StyledRow = styled('div')`
 
 const ChartsContainerItem = styled('div')`
   flex: 1;
-`;
-
-export const Spacer = styled('div')`
-  margin-top: ${space(3)};
 `;
 
 const Container = styled('div')`

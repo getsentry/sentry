@@ -19,12 +19,11 @@ import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DataCategoryInfo, IntervalPeriod, SelectValue} from 'sentry/types/core';
+import type {DataCategory, IntervalPeriod, SelectValue} from 'sentry/types/core';
 import {Outcome} from 'sentry/types/core';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
-
-import {formatUsageWithUnits} from '../utils';
+import {formatUsageWithUnits} from 'sentry/views/organizationStats/utils';
 
 import {getTooltipFormatter, getXAxisDates, getXAxisLabelVisibility} from './utils';
 
@@ -35,7 +34,7 @@ export type CategoryOption = {
    * Scale of y-axis with no usage data.
    */
   yAxisMinInterval: number;
-} & SelectValue<DataCategoryInfo['plural']>;
+} & SelectValue<DataCategory>;
 
 export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
   {
@@ -135,7 +134,7 @@ export const enum SeriesTypes {
 }
 
 export type UsageChartProps = {
-  dataCategory: DataCategoryInfo['plural'];
+  dataCategory: DataCategory;
   dataTransform: ChartDataTransform;
   usageDateEnd: string;
   usageDateStart: string;

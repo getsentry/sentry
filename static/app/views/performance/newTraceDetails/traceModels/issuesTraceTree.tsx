@@ -1,17 +1,17 @@
 import type {Client} from 'sentry/api';
+import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {
   isEAPErrorNode,
   isEAPSpanNode,
   isTraceErrorNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {CollapsedNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceCollapsedNode';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import type {ReplayRecord} from 'sentry/views/replays/types';
-
-import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
-import {CollapsedNode} from '../traceModels/traceCollapsedNode';
 
 import {makeExampleTrace} from './makeExampleTrace';
 import type {TraceTreeNode} from './traceTreeNode';
@@ -56,7 +56,7 @@ export class IssuesTraceTree extends TraceTree {
 
   static ExpandToEvent(
     tree: IssuesTraceTree,
-    eventId: string,
+    event: Event,
     options: {
       api: Client;
       organization: Organization;
@@ -65,21 +65,25 @@ export class IssuesTraceTree extends TraceTree {
   ): Promise<void> {
     const node = TraceTree.Find(tree.root, n => {
       if (isTraceErrorNode(n) || isEAPErrorNode(n)) {
-        return n.value.event_id === eventId;
+        return n.value.event_id === event.eventID;
       }
       if (isTransactionNode(n) || isEAPSpanNode(n)) {
-        if (n.value.event_id === eventId) {
+        if (n.value.event_id === event.eventID) {
           return true;
         }
 
         for (const e of n.errors) {
-          if (e.event_id === eventId) {
+          if (e.event_id === event.eventID) {
             return true;
           }
         }
 
-        for (const p of n.performance_issues) {
-          if (p.event_id === eventId) {
+        for (const o of n.occurrences) {
+          if (isTransactionNode(n)) {
+            if (o.event_id === event.eventID) {
+              return true;
+            }
+          } else if (o.event_id === event.occurrence?.id) {
             return true;
           }
         }

@@ -71,6 +71,17 @@ def get_active_projects(namespace: ClustererNamespace) -> Iterator[Project]:
             logger.debug("Could not find project %s in db", project_id)
 
 
+def get_active_project_ids(namespace: ClustererNamespace) -> Iterator[int]:
+    """
+    Scan redis for projects and fetch their ids.
+
+    Unlike get_active_projects(), this will include ids for projects
+    that have been deleted since clustering was scheduled.
+    """
+    for key in _get_all_keys(namespace):
+        yield int(key)
+
+
 def _record_sample(namespace: ClustererNamespace, project: Project, sample: str) -> None:
     with sentry_sdk.start_span(op=f"cluster.{namespace.value.name}.record_sample"):
         client = get_redis_client()

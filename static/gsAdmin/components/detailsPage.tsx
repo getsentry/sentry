@@ -2,10 +2,10 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 
 import type {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
@@ -145,7 +145,7 @@ function DetailsPage({
           </NameWithBadges>,
         ]}
       >
-        {actions.filter(a => a.visible !== false).length > 0 && (
+        {actions.some(a => a.visible !== false) && (
           <DropdownActions actions={actions} label={`${rootName} Actions`} />
         )}
       </PageHeader>

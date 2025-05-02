@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from typing import Any, ClassVar, NotRequired, Self, TypedDict
 
 from sentry.models.grouphash import GroupHash
-from sentry.utils.json import apply_key_filter
 
 logger = logging.getLogger(__name__)
 
@@ -77,9 +76,9 @@ class SeerSimilarIssueData:
         """
 
         # Filter out any data we're not expecting, and then make sure what's left isn't missing anything
-        raw_similar_issue_data = apply_key_filter(
-            raw_similar_issue_data, keep_keys=cls.expected_incoming_keys
-        )
+        raw_similar_issue_data = {
+            k: v for k, v in raw_similar_issue_data.items() if k in cls.expected_incoming_keys
+        }
         missing_keys = cls.required_incoming_keys - raw_similar_issue_data.keys()
         if missing_keys:
             raise IncompleteSeerDataError(
@@ -98,11 +97,9 @@ class SeerSimilarIssueData:
         )
 
         if not parent_grouphash:
-            # TODO: Report back to seer that the hash has been deleted.
             raise SimilarHashNotFoundError("Similar hash suggested by Seer does not exist")
 
         if not parent_grouphash.group_id:
-            # TODO: Report back to seer that the hash has been deleted.
             raise SimilarHashMissingGroupError("Similar hash suggested by Seer missing group id")
 
         # TODO: The `Any` casting here isn't great, but Python currently has no way to

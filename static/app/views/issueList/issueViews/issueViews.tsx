@@ -25,6 +25,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {useUser} from 'sentry/utils/useUser';
 import {useUpdateGroupSearchViews} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViews';
 import type {
   GroupSearchView,
@@ -146,7 +147,7 @@ type SyncViewsToBackendAction = {
   type: 'SYNC_VIEWS_TO_BACKEND';
 };
 
-export type IssueViewsActions =
+type IssueViewsActions =
   | ReorderTabsAction
   | SaveChangesAction
   | DiscardChangesAction
@@ -174,12 +175,12 @@ const ACTION_ANALYTICS_MAP: Partial<Record<IssueViewsActions['type'], string>> =
   CREATE_NEW_VIEW: 'issue_views.add_view.clicked',
 };
 
-export interface IssueViewsState {
+interface IssueViewsState {
   views: IssueView[];
   tempView?: IssueView;
 }
 
-export interface IssueViewsContextType extends TabContext {
+interface IssueViewsContextType extends TabContext {
   defaultProject: number[];
   dispatch: Dispatch<IssueViewsActions>;
   state: IssueViewsState;
@@ -405,7 +406,7 @@ interface IssueViewsStateProviderProps extends Omit<TabsProps<any>, 'children'> 
   router: InjectedRouter;
 }
 
-export function IssueViewsStateProvider({
+function IssueViewsStateProvider({
   children,
   initialViews,
   router,
@@ -418,6 +419,7 @@ export function IssueViewsStateProvider({
   const {className: _className, ...restProps} = props;
 
   const allowMultipleProjects = organization.features.includes('global-views');
+  const user = useUser();
   const isSuperUser = isActiveSuperuser();
 
   const {projects: allProjects} = useProjects();
@@ -444,7 +446,7 @@ export function IssueViewsStateProvider({
   // generated temporary view ids with the permanent view ids from the backend
   const replaceWithPersistentViewIds = (views: GroupSearchView[]) => {
     const newlyCreatedViews = views.filter(
-      view => !state.views.find(tab => tab.id === view.id)
+      view => !state.views.some(tab => tab.id === view.id)
     );
     if (newlyCreatedViews.length > 0) {
       dispatch({type: 'UPDATE_VIEW_IDS', newViews: newlyCreatedViews});
@@ -498,11 +500,14 @@ export function IssueViewsStateProvider({
                 projects: tab.projects,
                 environments: tab.environments,
                 timeFilters: tab.timeFilters,
+                starred: true,
+                createdBy: user,
+                stars: 0,
               })),
           });
         }
       }, 500),
-    [organization.slug, updateViews]
+    [organization.slug, updateViews, user]
   );
 
   const reducer: Reducer<IssueViewsState, IssueViewsActions> = useCallback(
@@ -552,7 +557,7 @@ export function IssueViewsStateProvider({
       : IssueSortOptions.DATE;
 
   const initialTempView: IssueView | undefined =
-    query && (!viewId || !initialViews.find(tab => tab.id === viewId))
+    query && (!viewId || !initialViews.some(tab => tab.id === viewId))
       ? {
           id: TEMPORARY_TAB_KEY,
           key: TEMPORARY_TAB_KEY,

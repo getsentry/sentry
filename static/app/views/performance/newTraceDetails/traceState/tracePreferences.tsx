@@ -1,8 +1,7 @@
 import * as Sentry from '@sentry/react';
 
 import clamp from 'sentry/utils/number/clamp';
-
-import {traceReducerExhaustiveActionCheck} from '../traceState';
+import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
 
 type TraceLayoutPreferences = 'drawer left' | 'drawer bottom' | 'drawer right';
 
@@ -21,9 +20,7 @@ type TracePreferencesAction =
 type TraceDrawerPreferences = {
   layoutOptions: TraceLayoutPreferences[];
   minimized: boolean;
-  sizes: {
-    [key in TraceLayoutPreferences | 'trace grid height']: number;
-  };
+  sizes: Record<TraceLayoutPreferences | 'trace grid height', number>;
 };
 
 export type TracePreferencesState = {

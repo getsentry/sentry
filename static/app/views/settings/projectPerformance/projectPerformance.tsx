@@ -71,7 +71,7 @@ export const allowedCountValues: number[] = [5, 10, 20, 50, 100];
 
 export const projectDetectorSettingsId = 'detector-threshold-settings';
 
-type ProjectPerformanceSettings = {[key: string]: number | boolean};
+type ProjectPerformanceSettings = Record<string, number | boolean>;
 
 enum DetectorConfigAdmin {
   N_PLUS_DB_ENABLED = 'n_plus_one_db_queries_detection_enabled',
@@ -1036,55 +1036,55 @@ function ProjectPerformance() {
         </Form>
       </Feature>
       <Fragment>
-        <Feature features="organizations:performance-issues-dev">
-          <Form
-            saveOnBlur
-            allowUndo
-            initialData={{
-              performanceIssueCreationRate: project.performanceIssueCreationRate,
-              performanceIssueSendToPlatform: project.performanceIssueSendToPlatform,
-              performanceIssueCreationThroughPlatform:
-                project.performanceIssueCreationThroughPlatform,
-            }}
-            apiMethod="PUT"
-            apiEndpoint={projectEndpoint}
-          >
-            <Access access={requiredScopes} project={project}>
-              {({hasAccess}) => (
-                <JsonForm
-                  title={t('Performance Issues - All')}
-                  fields={performanceIssueFormFields}
-                  disabled={!hasAccess}
-                />
-              )}
-            </Access>
-          </Form>
-        </Feature>
         {isSuperUser && (
-          <Form
-            saveOnBlur
-            allowUndo
-            initialData={performanceIssueSettings}
-            apiMethod="PUT"
-            onSubmitError={error => {
-              if (error.status === 403) {
-                addErrorMessage(
-                  t(
-                    'This action requires active super user access. Please re-authenticate to make changes.'
-                  )
-                );
-              }
-            }}
-            apiEndpoint={performanceIssuesEndpoint}
-          >
-            <JsonForm
-              title={t(
-                '### INTERNAL ONLY ### - Performance Issues Admin Detector Settings'
-              )}
-              fields={performanceIssueDetectorAdminFields}
-              disabled={!isSuperUser}
-            />
-          </Form>
+          <Fragment>
+            <Form
+              saveOnBlur
+              allowUndo
+              initialData={{
+                performanceIssueCreationRate: project.performanceIssueCreationRate,
+                performanceIssueSendToPlatform: project.performanceIssueSendToPlatform,
+                performanceIssueCreationThroughPlatform:
+                  project.performanceIssueCreationThroughPlatform,
+              }}
+              apiMethod="PUT"
+              apiEndpoint={projectEndpoint}
+            >
+              <Access access={requiredScopes} project={project}>
+                {({hasAccess}) => (
+                  <JsonForm
+                    title={t('Performance Issues - All')}
+                    fields={performanceIssueFormFields}
+                    disabled={!hasAccess}
+                  />
+                )}
+              </Access>
+            </Form>
+            <Form
+              saveOnBlur
+              allowUndo
+              initialData={performanceIssueSettings}
+              apiMethod="PUT"
+              onSubmitError={error => {
+                if (error.status === 403) {
+                  addErrorMessage(
+                    t(
+                      'This action requires active super user access. Please re-authenticate to make changes.'
+                    )
+                  );
+                }
+              }}
+              apiEndpoint={performanceIssuesEndpoint}
+            >
+              <JsonForm
+                title={t(
+                  '### INTERNAL ONLY ### - Performance Issues Admin Detector Settings'
+                )}
+                fields={performanceIssueDetectorAdminFields}
+                disabled={!isSuperUser}
+              />
+            </Form>
+          </Fragment>
         )}
         <Form
           allowUndo
@@ -1092,7 +1092,7 @@ function ProjectPerformance() {
           apiMethod="PUT"
           apiEndpoint={performanceIssuesEndpoint}
           saveOnBlur
-          onSubmitSuccess={(option: {[key: string]: number}) => {
+          onSubmitSuccess={(option: Record<string, number>) => {
             const [threshold_key, threshold_value] = Object.entries(option)[0]!;
 
             trackAnalytics(

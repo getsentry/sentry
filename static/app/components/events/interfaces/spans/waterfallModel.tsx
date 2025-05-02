@@ -165,14 +165,14 @@ class WaterfallModel {
 
         let tagKeys: string[] = [];
         let tagValues: string[] = [];
-        const tags: {[tag_name: string]: string} | undefined = span?.tags;
+        const tags: Record<string, string> | undefined = span?.tags;
 
         if (tags) {
           tagKeys = Object.keys(tags);
           tagValues = Object.values(tags);
         }
 
-        const data: {[data_name: string]: any} | undefined = span?.data ?? {};
+        const data: Record<string, any> | undefined = span?.data ?? {};
 
         let dataKeys: string[] = [];
         let dataValues: string[] = [];

@@ -1,16 +1,15 @@
 import {useTheme} from '@emotion/react';
 
-import type {DataUnit} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
-import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
+import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useSpanIndexedSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useEAPSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 import {
   filterToColor,
@@ -18,10 +17,14 @@ import {
 } from 'sentry/views/performance/transactionSummary/filter';
 import {transformData} from 'sentry/views/performance/transactionSummary/transactionOverview/durationPercentileChart/utils';
 import {EAPWidgetType} from 'sentry/views/performance/transactionSummary/transactionOverview/eapChartsWidget';
+import {eapSeriesDataToTimeSeries} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 
 import DurationPercentileChart from './durationPercentileChart/chart';
 
+const REFERRER = 'transaction-summary-charts-widget';
+
 type Options = {
+  query: string;
   selectedWidget: EAPWidgetType;
   transactionName: string;
 };
@@ -35,23 +38,71 @@ type Options = {
 export function useWidgetChartVisualization({
   selectedWidget,
   transactionName,
+  query,
 }: Options): React.ReactNode {
+  const durationBreakdownVisualization = useDurationBreakdownVisualization({
+    enabled: selectedWidget === EAPWidgetType.DURATION_BREAKDOWN,
+    transactionName,
+    query,
+  });
+
+  const durationPercentilesVisualization = useDurationPercentilesVisualization({
+    enabled: selectedWidget === EAPWidgetType.DURATION_PERCENTILES,
+    transactionName,
+    query,
+  });
+
+  if (selectedWidget === EAPWidgetType.DURATION_BREAKDOWN) {
+    return durationBreakdownVisualization;
+  }
+
+  if (selectedWidget === EAPWidgetType.DURATION_PERCENTILES) {
+    return durationPercentilesVisualization;
+  }
+
+  return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
+}
+
+type DurationBreakdownVisualizationOptions = {
+  enabled: boolean;
+  query: string;
+  transactionName: string;
+};
+
+function useDurationBreakdownVisualization({
+  enabled,
+  transactionName,
+  query,
+}: DurationBreakdownVisualizationOptions) {
   const location = useLocation();
   const spanCategoryUrlParam = decodeScalar(
     location.query?.[SpanIndexedField.SPAN_CATEGORY]
   );
   const {selection} = usePageFilters();
-  const theme = useTheme();
-  const query = new MutableSearch('');
-  query.addFilterValue('transaction', transactionName);
+  const organization = useOrganization();
+
+  const {releases: releasesWithDate} = useReleaseStats(selection);
+  const releases =
+    releasesWithDate?.map(({date, version}) => ({
+      timestamp: date,
+      version,
+    })) ?? [];
+
+  const newQuery = new MutableSearch(query);
+  newQuery.addFilterValue('transaction', transactionName);
+  newQuery.addFilterValue('is_transaction', '1');
+
+  // If a span category is selected, the chart will focus on that span category rather than just the service entry span
   if (spanCategoryUrlParam) {
-    query.addFilterValue('span.category', spanCategoryUrlParam);
+    newQuery.addFilterValue('span.category', spanCategoryUrlParam);
+    newQuery.removeFilterValue('is_transaction', '1');
   }
+
   const {
     data: spanSeriesData,
     isPending: isSpanSeriesPending,
     isError: isSpanSeriesError,
-  } = useSpanIndexedSeries(
+  } = useEAPSeries(
     {
       yAxis: [
         'avg(span.duration)',
@@ -62,14 +113,58 @@ export function useWidgetChartVisualization({
         'p75(span.duration)',
         'p50(span.duration)',
       ],
-      search: query,
+      search: newQuery,
       transformAliasToInputFormat: true,
-      enabled: selectedWidget === EAPWidgetType.DURATION_BREAKDOWN,
+      enabled,
     },
-
-    'transaction-summary-charts-widget',
-    DiscoverDatasets.SPANS_EAP
+    REFERRER
   );
+
+  if (!enabled) {
+    return null;
+  }
+
+  if (isSpanSeriesPending || isSpanSeriesError) {
+    return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
+  }
+
+  const timeSeries = eapSeriesDataToTimeSeries(spanSeriesData);
+  const plottables = timeSeries.map(series => new Line(series));
+
+  const enableReleaseBubblesProps = organization.features.includes('release-bubbles-ui')
+    ? ({releases, showReleaseAs: 'bubble'} as const)
+    : {};
+
+  return (
+    <TimeSeriesWidgetVisualization
+      plottables={plottables}
+      {...enableReleaseBubblesProps}
+    />
+  );
+}
+
+type DurationPercentilesVisualizationOptions = {
+  enabled: boolean;
+  query: string;
+  transactionName: string;
+};
+
+function useDurationPercentilesVisualization({
+  enabled,
+  transactionName,
+  query,
+}: DurationPercentilesVisualizationOptions) {
+  const location = useLocation();
+  const {selection} = usePageFilters();
+  const theme = useTheme();
+
+  const spanCategoryUrlParam = decodeScalar(
+    location.query?.[SpanIndexedField.SPAN_CATEGORY]
+  );
+
+  const newQuery = new MutableSearch(query);
+  newQuery.addFilterValue('transaction', transactionName);
+  newQuery.addFilterValue('is_transaction', '1');
 
   const {
     data: durationPercentilesData,
@@ -85,56 +180,26 @@ export function useWidgetChartVisualization({
         'p99(span.duration)',
         'p100(span.duration)',
       ],
-      search: query,
+      search: newQuery,
       pageFilters: selection,
-      enabled: selectedWidget === EAPWidgetType.DURATION_PERCENTILES,
+      enabled,
     },
-    'transaction-summary-charts-widget'
+    REFERRER
   );
 
-  if (selectedWidget === EAPWidgetType.DURATION_BREAKDOWN) {
-    if (isSpanSeriesPending || isSpanSeriesError) {
-      return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
-    }
-
-    const timeSeries: TimeSeries[] = [];
-    Object.entries(spanSeriesData).forEach(([key, value]) => {
-      timeSeries.push({
-        field: key,
-        meta: {
-          type: value.meta?.fields?.[key] ?? null,
-          unit: value.meta?.units?.[key] as DataUnit,
-        },
-        data:
-          value.data.map(item => ({
-            timestamp: item.name.toString(),
-            value: item.value,
-          })) ?? [],
-      });
-    });
-
-    const plottables = timeSeries.map(series => new Area(series));
-
-    return <TimeSeriesWidgetVisualization plottables={plottables} />;
+  if (isDurationPercentilesPending || isDurationPercentilesError) {
+    return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
   }
 
-  if (selectedWidget === EAPWidgetType.DURATION_PERCENTILES) {
-    if (isDurationPercentilesPending || isDurationPercentilesError) {
-      return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
-    }
+  const colors = () =>
+    spanCategoryUrlParam === undefined
+      ? theme.chart.getColorPalette(1)
+      : [filterToColor(spanCategoryUrlParam as SpanOperationBreakdownFilter, theme)];
 
-    const colors = () =>
-      spanCategoryUrlParam === undefined
-        ? theme.chart.getColorPalette(1)
-        : [filterToColor(spanCategoryUrlParam as SpanOperationBreakdownFilter, theme)];
-
-    return (
-      <DurationPercentileChart
-        series={transformData(durationPercentilesData, false, /p(\d+)\(/)}
-        colors={colors}
-      />
-    );
-  }
-
-  return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
+  return (
+    <DurationPercentileChart
+      series={transformData(durationPercentilesData, false, /p(\d+)\(/)}
+      colors={colors}
+    />
+  );
 }

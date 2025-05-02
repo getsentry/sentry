@@ -1,3 +1,4 @@
+import * as qs from 'query-string';
 import {ConfigFixture} from 'sentry-fixture/config';
 import {EnvironmentsFixture} from 'sentry-fixture/environments';
 import {EventFixture} from 'sentry-fixture/event';
@@ -52,9 +53,7 @@ describe('groupDetails', () => {
   const initRouter = {
     location: {
       pathname: `/organizations/org-slug/issues/${group.id}/`,
-      query: {},
-      search: '?foo=bar',
-      hash: '#hash',
+      query: {project: group.project.id},
     },
     params: {
       groupId: group.id,
@@ -90,11 +89,17 @@ describe('groupDetails', () => {
   }
 
   const createWrapper = (init = defaultInit) => {
+    // Add project id to the url to skip over the _allp redirect
+    window.location.search = qs.stringify({project: group.project.id});
     return render(
       <GroupDetails {...init.routerProps}>
         <MockComponent />
       </GroupDetails>,
-      {organization: init.organization, router: init.router}
+      {
+        organization: init.organization,
+        router: init.router,
+        deprecatedRouterMocks: true,
+      }
     );
   };
 
@@ -237,7 +242,7 @@ describe('groupDetails', () => {
         ...initRouter,
         location: LocationFixture({
           ...initRouter.location,
-          query: {environment: 'staging'},
+          query: {environment: 'staging', project: group.project.id},
         }),
       },
     });
@@ -360,7 +365,7 @@ describe('groupDetails', () => {
   });
 
   it('does not refire for request with streamlined UI', async function () {
-    (useHasStreamlinedUI as jest.Mock).mockReturnValue(true);
+    jest.mocked(useHasStreamlinedUI).mockReturnValue(true);
     // Bunch of mocks to load streamlined UI
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/flags/logs/',
@@ -399,8 +404,7 @@ describe('groupDetails', () => {
       url: `/organizations/${defaultInit.organization.slug}/sentry-app-components/`,
       body: [],
     });
-
-    const recommendedWithSearchMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/recommended/`,
       query: {
         query: 'foo:bar',
@@ -412,7 +416,9 @@ describe('groupDetails', () => {
       },
     });
     createWrapper();
-    await waitFor(() => expect(recommendedWithSearchMock).toHaveBeenCalledTimes(1));
+    expect(
+      await screen.findByText("We couldn't track down an event")
+    ).toBeInTheDocument();
     await waitFor(() => expect(mockNavigate).not.toHaveBeenCalled());
   });
 

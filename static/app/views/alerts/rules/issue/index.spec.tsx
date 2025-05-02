@@ -107,7 +107,11 @@ const createWrapper = (props = {}) => {
         userTeamIds={[]}
       />
     </ProjectAlerts>,
-    {router, organization}
+    {
+      router,
+      organization,
+      deprecatedRouterMocks: true,
+    }
   );
 
   return {
@@ -248,7 +252,7 @@ describe('IssueRuleEditor', function () {
         body: {},
       });
       const {router} = createWrapper();
-      renderGlobalModal({router});
+      renderGlobalModal({router, deprecatedRouterMocks: true});
       await userEvent.click(screen.getByLabelText('Delete Rule'));
 
       expect(
@@ -425,10 +429,10 @@ describe('IssueRuleEditor', function () {
         projects: [ProjectFixture({environments: ['production', 'staging']})],
       });
 
-      // Add the adopted release filter
+      // Add the release filter
       await selectEvent.select(
         screen.getByText('Add optional filter...'),
-        /The {oldest_or_newest} adopted release associated/
+        /The {oldest_or_newest} release associated/
       );
 
       const filtersContainer = await screen.findByTestId('rule-filters');

@@ -455,7 +455,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
         assert int(response.data[0]["id"]) == event.group_id
 
 
-class OrganizationSpansSamplesEndpoint(APITestCase, SnubaTestCase):
+class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointTestBase, SnubaTestCase):
     url_name = "sentry-api-0-organization-spans-samples"
 
     @mock.patch("sentry.search.events.builder.base.raw_snql_query")
@@ -531,12 +531,115 @@ class OrganizationSpansSamplesEndpoint(APITestCase, SnubaTestCase):
                 in mock_raw_snql_query.call_args_list[0][0][0].serialize()
             )
 
+    def test_basic_query(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        url = reverse(self.url_name, kwargs={"organization_id_or_slug": project.organization.slug})
+
+        span = self.create_span(
+            {
+                "span_id": "ab4d0a103a55489c",
+                "op": "db",
+                "description": "SELECT *",
+                "sentry_tags": {
+                    "op": "db",
+                    "category": "db",
+                },
+            },
+            duration=200,
+            start_ts=self.ten_mins_ago,
+        )
+        self.store_span(span)
+
+        response = self.client.get(
+            url,
+            {
+                "query": "",
+                "lowerBound": "0",
+                "firstBound": "100",
+                "secondBound": "200",
+                "upperBound": "300",
+                "column": "span.duration",
+                "project": self.project.id,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.content
+
+        data = response.data["data"]
+
+        assert data[0]["span.duration"] == 200
+        assert data[0]["span_id"] == "ab4d0a103a55489c"
+        assert data[0]["project"] == self.project.slug
+
+        meta = response.data["meta"]
+
+        assert meta["fields"]["span.duration"] == "duration"
+        assert meta["units"]["span.duration"] == "millisecond"
+
+    def test_order_by(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        url = reverse(self.url_name, kwargs={"organization_id_or_slug": project.organization.slug})
+
+        spans = [
+            self.create_span(
+                {"description": "SELECT * FROM users"},
+                start_ts=self.ten_mins_ago,
+                duration=20,
+            ),
+            self.create_span(
+                {"description": "SELECT * FROM orders"},
+                start_ts=self.nine_mins_ago,
+                duration=200,
+            ),
+        ]
+
+        self.store_spans(spans)
+
+        response = self.client.get(
+            url,
+            {
+                "lowerBound": "0",
+                "firstBound": "100",
+                "secondBound": "250",
+                "upperBound": "500",
+                "project": self.project.id,
+                "additionalFields": "span.duration",
+                "sort": "-span.duration",
+            },
+            format="json",
+        )
+
+        data = response.data["data"]
+        assert data[0]["span.duration"] == 200
+        assert data[1]["span.duration"] == 20
+
+        response = self.client.get(
+            url,
+            {
+                "lowerBound": "0",
+                "firstBound": "100",
+                "secondBound": "250",
+                "upperBound": "500",
+                "project": self.project.id,
+                "additionalFields": "span.duration",
+                "sort": "span.duration",
+            },
+            format="json",
+        )
+
+        data = response.data["data"]
+        assert data[0]["span.duration"] == 20
+        assert data[1]["span.duration"] == 200
+
 
 class OrganizationSpansSamplesEAPRPCEndpointTest(OrganizationEventsEndpointTestBase):
     viewname = "sentry-api-0-organization-spans-samples"
 
     def do_request(self, query, features=None, **kwargs):
-        query["useRpc"] = "1"
+        query["dataset"] = "spans"
         return super().do_request(query, features, **kwargs)
 
     def test_simple(self):
@@ -585,9 +688,10 @@ class OrganizationSpansSamplesEAPRPCEndpointTest(OrganizationEventsEndpointTestB
             {
                 "query": "",
                 "lowerBound": "0",
-                "firstBound": "10",
+                "firstBound": "10.0",
                 "secondBound": "20",
                 "upperBound": "200",
+                "column": "span.duration",
                 "project": self.project.id,
             },
         )
@@ -598,3 +702,8 @@ class OrganizationSpansSamplesEAPRPCEndpointTest(OrganizationEventsEndpointTestB
         assert data[1]["span_id"] == spans[2]["span_id"]
         assert data[2]["span_id"] == spans[3]["span_id"]
         assert data[3]["span_id"] == spans[4]["span_id"]
+
+        meta = response.data["meta"]
+        assert meta["fields"]["span.duration"] == "duration"
+        assert meta["units"]["span.duration"] == "millisecond"
+        assert meta["dataset"] == "spans"

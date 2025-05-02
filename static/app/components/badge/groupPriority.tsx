@@ -6,16 +6,15 @@ import bannerStar from 'sentry-images/spot/banner-star.svg';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
-import {Chevron} from 'sentry/components/chevron';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button, LinkButton} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Placeholder from 'sentry/components/placeholder';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconClose} from 'sentry/icons';
+import {IconChevron, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Activity} from 'sentry/types/group';
@@ -206,7 +205,7 @@ export function GroupPriorityDropdown({
           size="zero"
         >
           <GroupPriorityBadge showLabel={false} priority={value}>
-            <Chevron light direction={isOpen ? 'up' : 'down'} size="small" />
+            <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" color="subText" />
           </GroupPriorityBadge>
         </DropdownButton>
       )}

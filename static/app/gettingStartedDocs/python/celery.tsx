@@ -6,7 +6,6 @@ import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStarted
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   type Docs,
-  DocsPageLocation,
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -16,10 +15,12 @@ import {
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {
+  getPythonInstallConfig,
+  getPythonProfilingOnboarding,
+} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
-
-const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[celery]'`;
 
 const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
@@ -62,7 +63,7 @@ const onboarding: OnboardingConfig = {
     tct('The celery integration adds support for the [link:Celery Task Queue System].', {
       link: <ExternalLink href="https://docs.celeryq.dev/en/stable/" />,
     }),
-  install: (params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
       description: tct(
@@ -71,21 +72,7 @@ const onboarding: OnboardingConfig = {
           code: <code />,
         }
       ),
-      configurations: [
-        {
-          description:
-            params.docsLocation === DocsPageLocation.PROFILING_PAGE
-              ? tct(
-                  'You need a minimum version [code:2.24.1] of the [code:sentry-python] SDK for the profiling feature.',
-                  {
-                    code: <code />,
-                  }
-                )
-              : undefined,
-          language: 'bash',
-          code: getInstallSnippet(),
-        },
-      ],
+      configurations: getPythonInstallConfig({packageName: "'sentry-sdk[celery]'"}),
     },
   ],
   configure: (params: Params) => [
@@ -201,15 +188,14 @@ def init_sentry(**_kwargs):
 
 const docs: Docs = {
   onboarding,
-
+  profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[celery]'}),
   crashReportOnboarding: crashReportOnboardingPython,
 };
 
 export default docs;
 
-const CONTENT_SPACING = space(2);
 const SpacedOnboardingCodeSnippet = styled(OnboardingCodeSnippet)`
   pre {
-    margin-bottom: ${CONTENT_SPACING};
+    margin-bottom: ${space(2)};
   }
 `;

@@ -2,8 +2,8 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/core/alert';
-import {Button, LinkButton} from 'sentry/components/core/button';
 import type {SmartSearchBarProps} from 'sentry/components/deprecatedSmartSearchBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -16,18 +16,16 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import Pagination from 'sentry/components/pagination';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {
-  ProfilingAM1OrMMXUpgrade,
+  ContinuousProfilingBetaAlertBanner,
+  ContinuousProfilingBetaSDKAlertBanner,
   ProfilingBetaAlertBanner,
-  ProfilingUpgradeButton,
 } from 'sentry/components/profiling/billing/alerts';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
@@ -39,12 +37,12 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import {LandingAggregateFlamegraph} from 'sentry/views/profiling/landingAggregateFlamegraph';
+import {Onboarding} from 'sentry/views/profiling/onboarding';
 import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
 import {LandingWidgetSelector} from './landing/landingWidgetSelector';
-import {ProfilingOnboardingPanel} from './profilingOnboardingPanel';
 
 const LEFT_WIDGET_CURSOR = 'leftCursor';
 const RIGHT_WIDGET_CURSOR = 'rightCursor';
@@ -101,6 +99,10 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
       >
         <Layout.Page>
           <ProfilingBetaAlertBanner organization={organization} />
+          <Feature features="continuous-profiling-beta-ui">
+            <ContinuousProfilingBetaAlertBanner organization={organization} />
+            <ContinuousProfilingBetaSDKAlertBanner />
+          </Feature>
           <ProfilingContentPageHeader />
           <LayoutBody>
             <LayoutMain fullWidth>
@@ -112,7 +114,7 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
                 </PageFilterBar>
               </ActionBar>
               {showOnboardingPanel ? (
-                <ProfilingOnboardingCTA />
+                <Onboarding />
               ) : (
                 <Fragment>
                   {organization.features.includes(
@@ -275,57 +277,6 @@ function shouldShowProfilingOnboardingPanel(selection: PageFilters, projects: Pr
     projects.filter(project => project.hasProfiles).map(project => project.id)
   );
   return selection.projects.every(project => !projectsWithProfiles.has(String(project)));
-}
-
-function ProfilingOnboardingCTA() {
-  const organization = useOrganization();
-  // Open the modal on demand
-  const onSetupProfilingClick = useCallback(() => {
-    trackAnalytics('profiling_views.onboarding', {
-      organization,
-    });
-    SidebarPanelStore.activatePanel(SidebarPanelKey.PROFILING_ONBOARDING);
-  }, [organization]);
-
-  return (
-    <Fragment>
-      <ProfilingOnboardingPanel
-        content={
-          // If user is on m2, show default
-          <ProfilingAM1OrMMXUpgrade
-            organization={organization}
-            fallback={
-              <Fragment>
-                <h3>{t('Function level insights')}</h3>
-                <p>
-                  {t(
-                    'Discover slow-to-execute or resource intensive functions within your application'
-                  )}
-                </p>
-              </Fragment>
-            }
-          />
-        }
-      >
-        <ProfilingUpgradeButton
-          data-test-id="profiling-upgrade"
-          organization={organization}
-          priority="primary"
-          onClick={onSetupProfilingClick}
-          fallback={
-            <Button onClick={onSetupProfilingClick} priority="primary">
-              {t('Set Up Profiling')}
-            </Button>
-          }
-        >
-          {t('Set Up Profiling')}
-        </ProfilingUpgradeButton>
-        <LinkButton href="https://docs.sentry.io/product/profiling/" external>
-          {t('Read Docs')}
-        </LinkButton>
-      </ProfilingOnboardingPanel>
-    </Fragment>
-  );
 }
 
 function ProfilingContentPageHeader() {

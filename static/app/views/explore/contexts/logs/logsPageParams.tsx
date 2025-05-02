@@ -1,16 +1,18 @@
-import {useCallback} from 'react';
+import {useCallback, useLayoutEffect} from 'react';
 import type {Location} from 'history';
 
 import type {CursorHandler} from 'sentry/components/pagination';
 import {defined} from 'sentry/utils';
 import type {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {decodeProjects} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
+import localStorage from 'sentry/utils/localStorage';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   defaultLogFields,
   getLogFieldsFromLocation,
@@ -22,8 +24,9 @@ import {
 } from 'sentry/views/explore/contexts/logs/sortBys';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
-const LOGS_QUERY_KEY = 'logsQuery'; // Logs may exist on other pages.
-const LOGS_CURSOR_KEY = 'logsCursor';
+const LOGS_PARAMS_VERSION = 1;
+export const LOGS_QUERY_KEY = 'logsQuery'; // Logs may exist on other pages.
+export const LOGS_CURSOR_KEY = 'logsCursor';
 export const LOGS_FIELDS_KEY = 'logsFields';
 
 interface LogsPageParams {
@@ -87,9 +90,11 @@ export function LogsPageParamsProvider({
   const sortBys = isTableEditingFrozen
     ? [logsTimestampDescendingSortBy]
     : getLogSortBysFromLocation(location, fields);
+  const pageFilters = usePageFilters();
   const projectIds = isOnEmbeddedView
     ? (limitToProjectIds ?? [-1])
-    : decodeProjects(location);
+    : pageFilters.selection.projects;
+  // TODO we should handle environments in a similar way to projects - otherwise page filters might break embedded views
 
   const cursor = getLogCursorFromLocation(location);
 
@@ -111,10 +116,10 @@ export function LogsPageParamsProvider({
   );
 }
 
-export const useLogsPageParams = _useLogsPageParams;
+const useLogsPageParams = _useLogsPageParams;
 
 const decodeLogsQuery = (location: Location): string => {
-  if (!location.query || !location.query[LOGS_QUERY_KEY]) {
+  if (!location.query?.[LOGS_QUERY_KEY]) {
     return '';
   }
 
@@ -129,7 +134,7 @@ function setLogsPageParams(location: Location, pageParams: LogPageParamsUpdate) 
   updateNullableLocation(target, LOGS_CURSOR_KEY, pageParams.cursor);
   updateNullableLocation(target, LOGS_FIELDS_KEY, pageParams.fields);
   if (!pageParams.isTableEditingFrozen) {
-    updateLocationWithLogSortBys(target, pageParams.sortBys, LOGS_CURSOR_KEY);
+    updateLocationWithLogSortBys(target, pageParams.sortBys);
   }
   return target;
 }
@@ -203,6 +208,22 @@ export function useLogsIsTableEditingFrozen() {
   return isTableEditingFrozen;
 }
 
+export function usePersistedLogsPageParams() {
+  useLayoutEffect(() => {
+    const pastParams = localStorage.getItem(
+      getPastLogsParamsStorageKey(LOGS_PARAMS_VERSION)
+    );
+    if (pastParams) {
+      localStorage.removeItem(getPastLogsParamsStorageKey(LOGS_PARAMS_VERSION));
+    }
+  });
+
+  return useLocalStorageState(getLogsParamsStorageKey(LOGS_PARAMS_VERSION), {
+    fields: defaultLogFields() as string[],
+    sortBys: [logsTimestampDescendingSortBy],
+  });
+}
+
 export function useLogsSortBys() {
   const {sortBys} = useLogsPageParams();
   return sortBys;
@@ -220,11 +241,15 @@ export function useLogsProjectIds() {
 
 export function useSetLogsFields() {
   const setPageParams = useSetLogsPageParams();
+
+  const [_, setPersistentParams] = usePersistedLogsPageParams();
+
   return useCallback(
     (fields: string[]) => {
       setPageParams({fields});
+      setPersistentParams(prev => ({...prev, fields}));
     },
-    [setPageParams]
+    [setPageParams, setPersistentParams]
   );
 }
 
@@ -246,6 +271,7 @@ export function useSetLogsCursor() {
 export function useSetLogsSortBys() {
   const setPageParams = useSetLogsPageParams();
   const currentPageSortBys = useLogsSortBys();
+  const [_, setPersistentParams] = usePersistedLogsPageParams();
 
   return useCallback(
     (desiredSortBys: ToggleableSortBy[]) => {
@@ -264,9 +290,10 @@ export function useSetLogsSortBys() {
         };
       });
 
+      setPersistentParams(prev => ({...prev, sortBys: targetSortBys}));
       setPageParams({sortBys: targetSortBys});
     },
-    [setPageParams, currentPageSortBys]
+    [setPageParams, currentPageSortBys, setPersistentParams]
   );
 }
 
@@ -276,13 +303,28 @@ export function useLogsAnalyticsPageSource() {
 }
 
 function getLogCursorFromLocation(location: Location): string {
-  if (!location.query || !location.query[LOGS_CURSOR_KEY]) {
+  if (!location.query?.[LOGS_CURSOR_KEY]) {
     return '';
   }
 
   return decodeScalar(location.query[LOGS_CURSOR_KEY], '');
 }
 
+export function stripLogParamsFromLocation(location: Location): Location {
+  const target: Location = {...location, query: {...location.query}};
+  delete target.query[LOGS_CURSOR_KEY];
+  delete target.query[LOGS_FIELDS_KEY];
+  delete target.query[LOGS_QUERY_KEY];
+  return target;
+}
+
+function getLogsParamsStorageKey(version: number) {
+  return `logs-params-v${version}`;
+}
+
+function getPastLogsParamsStorageKey(version: number) {
+  return `logs-params-v${version - 1}`;
+}
 interface ToggleableSortBy {
   field: string;
   defaultDirection?: 'asc' | 'desc'; // Defaults to descending if not provided.

@@ -198,7 +198,7 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
               })}
               icon={
                 sourceCodeLink.isPending ? (
-                  <StyledLoadingIndicator size={10} hideMessage />
+                  <StyledLoadingIndicator size={10} />
                 ) : (
                   <IconGithub size="xs" />
                 )
@@ -448,7 +448,7 @@ export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProp
               })}
               icon={
                 sourceCodeLink.isPending ? (
-                  <StyledLoadingIndicator size={10} hideMessage />
+                  <StyledLoadingIndicator size={10} />
                 ) : (
                   <IconGithub size="xs" />
                 )

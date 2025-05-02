@@ -81,7 +81,7 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
 
         self.check_object_permissions(request, query)
 
-        return Response(serialize(query), status=200)
+        return Response(serialize(query, request.user), status=200)
 
     @extend_schema(
         operation_id="Edit an Organization's Explore Saved Query",

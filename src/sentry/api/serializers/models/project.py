@@ -948,7 +948,6 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     dynamicSamplingBiases: list[dict[str, str | bool]]
     eventProcessing: dict[str, bool]
     symbolSources: str
-    uptimeAutodetection: NotRequired[bool]
     isDynamicallySampled: bool
     tempestFetchScreenshots: NotRequired[bool]
     tempestFetchDumps: NotRequired[bool]
@@ -1101,11 +1100,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "symbolSources": serialized_sources,
             "isDynamicallySampled": sample_rate is not None and sample_rate < 1.0,
         }
-
-        if features.has("organizations:uptime-settings", obj.organization):
-            data["uptimeAutodetection"] = bool(
-                attrs["options"].get("sentry:uptime_autodetection", True)
-            )
 
         if has_tempest_access(obj.organization, user):
             data["tempestFetchScreenshots"] = attrs["options"].get(

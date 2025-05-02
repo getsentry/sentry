@@ -1,7 +1,7 @@
 export const SUPPORTED_PROVIDERS = ['email', 'slack', 'msteams'] as const;
 export type SupportedProviders = (typeof SUPPORTED_PROVIDERS)[number];
 
-export type ProviderValue = 'always' | 'never';
+type ProviderValue = 'always' | 'never';
 
 type NotificationBaseObject = {
   id: string;
@@ -39,10 +39,10 @@ export const NOTIFICATION_SETTINGS_TYPES = [
 export const SELF_NOTIFICATION_SETTINGS_TYPES = [
   'personalActivityNotifications',
   'selfAssignOnResolve',
-];
+] as const;
 
 // 'alerts' | 'workflow' ...
-type NotificationSettingsType = (typeof NOTIFICATION_SETTINGS_TYPES)[number];
+export type NotificationSettingsType = (typeof NOTIFICATION_SETTINGS_TYPES)[number];
 
 export const NOTIFICATION_SETTINGS_PATHNAMES: Record<NotificationSettingsType, string> = {
   alerts: 'alerts',

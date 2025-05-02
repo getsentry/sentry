@@ -13,9 +13,6 @@ import {
   GridHead,
   GridHeadCell,
   GridRow,
-  Header,
-  HeaderButtonContainer,
-  HeaderTitle,
 } from 'sentry/components/gridEditable/styles';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -67,6 +64,7 @@ export function useTableStyles(
   options?: {
     minimumColumnWidth?: number;
     prefixColumnWidth?: 'min-content' | number;
+    staticColumnWidths?: Record<string, number | '1fr'>;
   }
 ) {
   const minimumColumnWidth = options?.minimumColumnWidth ?? MINIMUM_COLUMN_WIDTH;
@@ -85,14 +83,20 @@ export function useTableStyles(
   }, [fields]);
 
   const initialTableStyles = useMemo(() => {
-    const gridTemplateColumns = fields.map(() => `minmax(${minimumColumnWidth}px, auto)`);
+    const gridTemplateColumns = fields.map(field => {
+      const staticWidth = options?.staticColumnWidths?.[field];
+      if (staticWidth) {
+        return typeof staticWidth === 'number' ? `${staticWidth}px` : staticWidth;
+      }
+      return `minmax(${minimumColumnWidth}px, auto)`;
+    });
     if (defined(prefixColumnWidth)) {
       gridTemplateColumns.unshift(prefixColumnWidth);
     }
     return {
       gridTemplateColumns: gridTemplateColumns.join(' '),
     };
-  }, [fields, minimumColumnWidth, prefixColumnWidth]);
+  }, [fields, minimumColumnWidth, prefixColumnWidth, options?.staticColumnWidths]);
 
   const onResizeMouseDown = useCallback(
     (event: React.MouseEvent<HTMLDivElement>, index: number) => {
@@ -157,9 +161,6 @@ export const TableRow = GridRow;
 export const TableBodyCell = GridBodyCell;
 
 export const TableHead = GridHead;
-export const TableHeader = Header;
-export const TableHeaderActions = HeaderButtonContainer;
-export const TableHeaderTitle = HeaderTitle;
 export const TableHeadCell = styled(GridHeadCell)<{align?: Alignments}>`
   ${p => p.align && `justify-content: ${p.align};`}
 `;

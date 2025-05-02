@@ -1,12 +1,13 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {TooltipSubLabel} from 'sentry/components/charts/components/tooltip';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {tct} from 'sentry/locale';
-import type {DataCategoryInfo} from 'sentry/types/core';
+import type {DataCategoryInfo, IntervalPeriod} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {WithRouteAnalyticsProps} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
@@ -14,6 +15,11 @@ import withRouteAnalytics from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withProjects from 'sentry/utils/withProjects';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
+import {mapSeriesToChart} from 'sentry/views/organizationStats/mapSeriesToChart';
+import type {
+  ChartDataTransform,
+  ChartStats,
+} from 'sentry/views/organizationStats/usageChart';
 import type {UsageStatsOrganizationProps} from 'sentry/views/organizationStats/usageStatsOrg';
 import UsageStatsOrganization from 'sentry/views/organizationStats/usageStatsOrg';
 import {
@@ -24,7 +30,7 @@ import {
 } from 'sentry/views/organizationStats/utils';
 
 import withSubscription from 'getsentry/components/withSubscription';
-import type {Subscription} from 'getsentry/types';
+import {PlanTier, type Subscription} from 'getsentry/types';
 import {SPIKE_PROTECTION_OPTION_DISABLED} from 'getsentry/views/spikeProtection/constants';
 import {SpikeProtectionRangeLimitation} from 'getsentry/views/spikeProtection/spikeProtectionCallouts';
 import SpikeProtectionHistoryTable from 'getsentry/views/spikeProtection/spikeProtectionHistoryTable';
@@ -388,6 +394,59 @@ class EnhancedUsageStatsOrganization extends UsageStatsOrganization<
         {super.renderComponent()}
       </Fragment>
     );
+  }
+
+  get endpointQuery() {
+    const {dataCategoryApiName, subscription} = this.props;
+
+    const query = super.endpointQuery;
+
+    if (
+      dataCategoryApiName === 'profile_duration' &&
+      subscription.planTier !== PlanTier.AM2
+    ) {
+      query.category.push('profile');
+    }
+
+    return query;
+  }
+
+  get chartData(): {
+    cardStats: {
+      accepted?: string;
+      accepted_stored?: string;
+      filtered?: string;
+      invalid?: string;
+      rateLimited?: string;
+      total?: string;
+    };
+    chartDateEnd: string;
+    chartDateEndDisplay: string;
+    chartDateInterval: IntervalPeriod;
+    chartDateStart: string;
+    chartDateStartDisplay: string;
+    chartDateTimezoneDisplay: string;
+    chartDateUtc: boolean;
+    chartStats: ChartStats;
+    chartSubLabels: TooltipSubLabel[];
+    chartTransform: ChartDataTransform;
+    dataError?: Error;
+  } {
+    const {dataCategoryApiName, subscription} = this.props;
+    return {
+      ...mapSeriesToChart({
+        orgStats: this.state.orgStats,
+        chartDateInterval: this.chartDateRange.chartDateInterval,
+        chartDateUtc: this.chartDateRange.chartDateUtc,
+        dataCategory: this.props.dataCategory,
+        endpointQuery: this.endpointQuery,
+        shouldEstimateDroppedProfiles:
+          dataCategoryApiName === 'profile_duration' &&
+          subscription.planTier !== PlanTier.AM2,
+      }),
+      ...this.chartDateRange,
+      ...this.chartTransform,
+    };
   }
 }
 

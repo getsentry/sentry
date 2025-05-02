@@ -12,10 +12,12 @@ import {
   crashReportOnboardingPython,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
+import {
+  getPythonInstallConfig,
+  getPythonProfilingOnboarding,
+} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
-
-const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[rq]'`;
 
 const getInitCallSnippet = (params: Params) => `
 sentry_sdk.init(
@@ -99,12 +101,7 @@ const onboarding: OnboardingConfig = {
       description: tct('Install [code:sentry-sdk] from PyPI with the [code:rq] extra:', {
         code: <code />,
       }),
-      configurations: [
-        {
-          language: 'bash',
-          code: getInstallSnippet(),
-        },
-      ],
+      configurations: getPythonInstallConfig({packageName: "'sentry-sdk[rq]'"}),
     },
   ],
   configure: (params: Params) => [
@@ -235,7 +232,7 @@ const onboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
-
+  profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[rq]'}),
   crashReportOnboarding: crashReportOnboardingPython,
 };
 

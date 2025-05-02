@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Literal, TypeAlias, TypedDict
@@ -22,7 +22,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.events.types import SnubaParams
 
-ResolvedArgument: TypeAlias = AttributeKey | str | int
+ResolvedArgument: TypeAlias = AttributeKey | str | int | float
 ResolvedArguments: TypeAlias = list[ResolvedArgument]
 
 
@@ -44,7 +44,7 @@ class ResolvedColumn:
     # Processor is the function run in the post process step to transform a row into the final result
     processor: Callable[[Any], Any] | None = None
     # Validator to check if the value in a query is correct
-    validator: Callable[[Any], bool] | None = None
+    validator: Callable[[Any], bool] | list[Callable[[Any], bool]] | None = None
     # Indicates this attribute is a secondary alias for the attribute.
     # It exists for compatibility or convenience reasons and should NOT be preferred.
     secondary_alias: bool = False
@@ -56,9 +56,16 @@ class ResolvedColumn:
         return value
 
     def validate(self, value: Any) -> None:
-        if self.validator is not None:
-            if not self.validator(value):
-                raise InvalidSearchQuery(f"{value} is an invalid value for {self.public_alias}")
+        if callable(self.validator):
+            if self.validator(value):
+                return
+            raise InvalidSearchQuery(f"{value} is an invalid value for {self.public_alias}")
+
+        elif isinstance(self.validator, Iterable):
+            for validator in self.validator:
+                if validator(value):
+                    return
+            raise InvalidSearchQuery(f"{value} is an invalid value for {self.public_alias}")
 
     @property
     def proto_type(self) -> AttributeKey.Type.ValueType:
@@ -74,6 +81,8 @@ class ResolvedAttribute(ResolvedColumn):
     # The internal rpc alias for this column
     internal_name: str
     is_aggregate: bool = field(default=False, init=False)
+    # There are columns in RPC that are available but we don't want rendered to the user
+    private: bool = False
 
     @property
     def proto_definition(self) -> AttributeKey:
@@ -97,7 +106,7 @@ class BaseArgumentDefinition:
 @dataclass
 class ValueArgumentDefinition(BaseArgumentDefinition):
     # the type of the argument itself, if the type is a non-string you should ensure an appropriate validator is provided to avoid conversion errors
-    argument_types: set[Literal["integer", "string"]] | None = None
+    argument_types: set[Literal["integer", "string", "number"]] | None = None
 
 
 @dataclass
@@ -119,6 +128,8 @@ class VirtualColumnDefinition:
     ) = None
     filter_column: str | None = None
     default_value: str | None = None
+    # Processor is the function run in the post process step to transform a row into the final result
+    processor: Callable[[Any], Any] | None = None
 
 
 @dataclass(frozen=True, kw_only=True)

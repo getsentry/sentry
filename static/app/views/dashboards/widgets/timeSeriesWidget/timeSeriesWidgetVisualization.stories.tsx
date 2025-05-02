@@ -1,9 +1,11 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import shuffle from 'lodash/shuffle';
 import moment from 'moment-timezone';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Button} from 'sentry/components/core/button';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
@@ -11,12 +13,16 @@ import storyBook from 'sentry/stories/storyBook';
 import type {DateString} from 'sentry/types/core';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {shiftTabularDataToNow} from 'sentry/utils/tabularData/shiftTabularDataToNow';
-import {shiftTimeSeriesToNow} from 'sentry/utils/timeSeries/shiftTimeSeriesToNow';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import type {
+  LegendSelection,
+  Release,
+  TimeSeries,
+  TimeSeriesMeta,
+} from 'sentry/views/dashboards/widgets/common/types';
 
-import type {LegendSelection, Release, TimeSeries, TimeSeriesMeta} from '../common/types';
-
+import {shiftTabularDataToNow} from './__stories__/shiftTabularDataToNow';
+import {shiftTimeSeriesToNow} from './__stories__/shiftTimeSeriesToNow';
 import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
 import {sampleScoreTimeSeries} from './fixtures/sampleScoreTimeSeries';
 import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
@@ -30,10 +36,10 @@ import {TimeSeriesWidgetVisualization} from './timeSeriesWidgetVisualization';
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import types from '!!type-loader!sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 
-const sampleDurationTimeSeries2 = {
+const sampleDurationTimeSeriesP50: TimeSeries = {
   ...sampleDurationTimeSeries,
   field: 'p50(span.duration)',
-  data: sampleDurationTimeSeries.data.map(datum => {
+  values: sampleDurationTimeSeries.values.map(datum => {
     return {
       ...datum,
       value: datum.value ? datum.value * 0.3 + 30 * Math.random() : null,
@@ -41,16 +47,18 @@ const sampleDurationTimeSeries2 = {
   }),
 };
 
-const sampleDurationTimeSeries3 = {
+const sampleDurationTimeSeriesP75: TimeSeries = {
   ...sampleDurationTimeSeries,
   field: 'p75(span.duration)',
-  data: sampleDurationTimeSeries.data.map(datum => {
+  values: sampleDurationTimeSeries.values.map(datum => {
     return {
       ...datum,
       value: datum.value ? datum.value * 0.1 + 30 * Math.random() : null,
     };
   }),
 };
+
+const shiftedSpanSamples = shiftTabularDataToNow(spanSamplesWithDurations);
 
 export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) => {
   APIReference(types.TimeSeriesWidgetVisualization);
@@ -99,7 +107,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
             <TimeSeriesWidgetVisualization
               plottables={[
                 new Area(sampleDurationTimeSeries),
-                new Area(sampleDurationTimeSeries2),
+                new Area(sampleDurationTimeSeriesP50),
               ]}
             />
           </SmallWidget>
@@ -107,7 +115,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
             <TimeSeriesWidgetVisualization
               plottables={[
                 new Line(sampleDurationTimeSeries),
-                new Line(sampleDurationTimeSeries2),
+                new Line(sampleDurationTimeSeriesP50),
               ]}
             />
           </SmallWidget>
@@ -191,11 +199,11 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
   "data": [
     {
       "value": 163.26759544018776,
-      "timestamp": "2024-10-24T15:00:00-04:00",
+      "timestamp": 1729798200000,
     },
     {
       "value": 164.07690380778297,
-      "timestamp": "2024-10-24T15:30:00-04:00",
+      "timestamp": 1729800000000,
     },
   ]
 }
@@ -307,7 +315,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
               plottables={[
                 new Line(shiftTimeSeriesToNow(sampleThroughputTimeSeries), {delay: 90}),
                 new Line(shiftTimeSeriesToNow(sampleDurationTimeSeries), {delay: 90}),
-                new Line(shiftTimeSeriesToNow(sampleDurationTimeSeries2), {delay: 90}),
+                new Line(shiftTimeSeriesToNow(sampleDurationTimeSeriesP50), {delay: 90}),
               ]}
             />
           </MediumWidget>
@@ -344,8 +352,8 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
                   ...sampleThroughputTimeSeries,
                   field: 'equation|spm() + 1',
                   meta: {
-                    type: 'number',
-                    unit: null,
+                    valueType: 'number',
+                    valueUnit: null,
                   },
                 }),
                 new Line({
@@ -364,24 +372,24 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
                   ...sampleDurationTimeSeries,
                   field: 'custom_agg(duration)',
                   meta: {
-                    type: 'number',
-                    unit: null,
+                    valueType: 'number',
+                    valueUnit: null,
                   },
                 }),
                 new Line({
-                  ...sampleDurationTimeSeries2,
+                  ...sampleDurationTimeSeriesP50,
                   field: 'custom_agg2(duration)',
                   meta: {
-                    type: 'integer',
-                    unit: null,
+                    valueType: 'integer',
+                    valueUnit: null,
                   },
                 }),
                 new Line({
                   ...sampleThroughputTimeSeries,
                   field: 'custom_agg3(duration)',
                   meta: {
-                    type: 'duration',
-                    unit: DurationUnit.MILLISECOND,
+                    valueType: 'duration',
+                    valueUnit: DurationUnit.MILLISECOND,
                   },
                 }),
               ]}
@@ -392,21 +400,43 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     );
   });
 
+  story('X Axis', () => {
+    return (
+      <Fragment>
+        <p>
+          In a <JSXNode name="TimeSeriesWidgetVisualization" />, the X axis is by
+          definition always time. The ticks and labels are automatically determined based
+          on the domain of the data set. You can, however, use the <code>showXAxis</code>{' '}
+          prop to hide the X axis in contexts where it would be too busy or distracting.
+          This might be the case in small sidebar charts, for example. Setting the{' '}
+          <code>showXAxis</code> prop to <code>"never"</code> will hide the X axis.
+        </p>
+
+        <SmallWidget>
+          <TimeSeriesWidgetVisualization
+            plottables={[new Line(sampleDurationTimeSeries)]}
+            showXAxis="never"
+          />
+        </SmallWidget>
+      </Fragment>
+    );
+  });
+
   story('Unit Alignment', () => {
     const millisecondsSeries = sampleDurationTimeSeries;
 
     // Create a very similar series, but with a different unit to demonstrate automatic scaling
     const secondsSeries: TimeSeries = {
       field: 'p99(span.self_time)',
-      data: sampleDurationTimeSeries.data.map(datum => {
+      values: sampleDurationTimeSeries.values.map(datum => {
         return {
           ...datum,
           value: datum.value ? (datum.value / 1000) * (1 + Math.random() / 10) : null, // Introduce jitter so the series is visible
         };
       }),
       meta: {
-        type: 'duration',
-        unit: DurationUnit.SECOND,
+        valueType: 'duration',
+        valueUnit: DurationUnit.SECOND,
       },
     };
 
@@ -431,8 +461,6 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
   });
 
   story('Samples', () => {
-    const [sampleId, setSampleId] = useState<string>();
-
     const timeSeriesPlottable = useMemo(() => {
       return new Bars(shiftTimeSeriesToNow(sampleDurationTimeSeries), {
         delay: 1800,
@@ -440,14 +468,11 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     }, []);
 
     const samplesPlottable = useMemo(() => {
-      return new Samples(shiftTabularDataToNow(spanSamplesWithDurations), {
+      return new Samples(shiftedSpanSamples, {
         alias: 'Span Samples',
         attributeName: 'p99(span.duration)',
         baselineValue: 175,
         baselineLabel: 'Average',
-        onHighlight: row => {
-          setSampleId(row.id);
-        },
       });
     }, []);
 
@@ -459,13 +484,6 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           below, we plot a set of span duration samples on top of an aggregate series of
           the 99th percentile of those durations. Samples that are faster than a baseline
           are green, samples that are slower are red.
-        </p>
-
-        <p>
-          <code>Samples</code> supports the <code>onHighlight</code> configuration option.
-          It's a callback, called whenever a sample is highlighted by bringing the X axis
-          cursor near its timestamp. e.g., here's the sample ID of the most recent
-          highlighted sample: {sampleId}
         </p>
 
         <MediumWidget>
@@ -492,7 +510,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
             <TimeSeriesWidgetVisualization
               plottables={[
                 new Bars(sampleDurationTimeSeries, {}),
-                new Bars(sampleDurationTimeSeries2, {}),
+                new Bars(sampleDurationTimeSeriesP50, {}),
               ]}
             />
           </MediumWidget>
@@ -500,7 +518,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
             <TimeSeriesWidgetVisualization
               plottables={[
                 new Bars(sampleDurationTimeSeries, {stack: 'all'}),
-                new Bars(sampleDurationTimeSeries2, {stack: 'all'}),
+                new Bars(sampleDurationTimeSeriesP50, {stack: 'all'}),
               ]}
             />
           </MediumWidget>
@@ -515,8 +533,8 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           <TimeSeriesWidgetVisualization
             plottables={[
               new Bars(sampleDurationTimeSeries, {stack: 'all'}),
-              new Bars(sampleDurationTimeSeries2, {stack: 'all'}),
-              new Bars(sampleDurationTimeSeries3),
+              new Bars(sampleDurationTimeSeriesP50, {stack: 'all'}),
+              new Bars(sampleDurationTimeSeriesP75),
             ]}
           />
         </LargeWidget>
@@ -529,7 +547,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
       sampleDurationTimeSeries
     );
     const shiftedSampleDurationTimeSeries2 = shiftTimeSeriesToNow(
-      sampleDurationTimeSeries2
+      sampleDurationTimeSeriesP50
     );
 
     const delay = 60 * 60 * 3;
@@ -572,6 +590,127 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     );
   });
 
+  story('Click Events', () => {
+    const [sampleId, setSampleId] = useState<string>();
+
+    const samplesPlottable = useMemo(() => {
+      return new Samples(shiftedSpanSamples, {
+        alias: 'Span Samples',
+        attributeName: 'p99(span.duration)',
+        baselineValue: 175,
+        baselineLabel: 'Average',
+        onClick: row => {
+          setSampleId(row.id);
+        },
+      });
+    }, []);
+
+    return (
+      <Fragment>
+        <p>
+          You can respond to chart click events by passing the <code>onClick</code>{' '}
+          configuration option, if it's supported by the relevant plottable. Right now,
+          only the <code>Samples</code> plottable supports this configuration option.
+        </p>
+
+        <MediumWidget>
+          <TimeSeriesWidgetVisualization plottables={[samplesPlottable]} />
+
+          <p>Clicked sample ID: {sampleId}</p>
+        </MediumWidget>
+      </Fragment>
+    );
+  });
+
+  story('Highlighting', () => {
+    const [legendSelection, setLegendSelection] = useState<LegendSelection>({});
+    const [sampleId, setSampleId] = useState<string | null>(null);
+
+    const aggregatePlottable = new Line(shiftTimeSeriesToNow(sampleDurationTimeSeries), {
+      delay: 1800,
+    });
+
+    const samplesPlottable = useMemo(() => {
+      return new Samples(shiftedSpanSamples, {
+        alias: 'Span Samples',
+        attributeName: 'p99(span.duration)',
+        baselineValue: 175,
+        baselineLabel: 'Average',
+        onHighlight: row => {
+          setSampleId(row.id);
+        },
+        onDownplay: () => {
+          setSampleId(null);
+        },
+      });
+    }, []);
+
+    // Synchronize the highlighted sample ID state with ECharts
+    useEffect(() => {
+      const sample = shiftedSpanSamples.data.find(datum => datum.id === sampleId)!;
+
+      // Highlight the new selected sample
+      if (sample) {
+        samplesPlottable.highlight(sample);
+      }
+
+      return () => {
+        // Downplay the previous selected sample
+        if (sample) {
+          samplesPlottable.downplay(sample);
+        }
+      };
+    }, [sampleId, samplesPlottable]);
+
+    return (
+      <Fragment>
+        <p>
+          You can control the highlighting of data points on your charts in two ways. The
+          first way is to pass the <code>onHighlight</code> configuration option to your
+          plottable. All plottables support this configuration option. It's a callback,
+          called whenever a data point is highlighted by bringing the X axis cursor near
+          its timestamp. There is also a corresponding <code>onDownplay</code> option. The
+          second way is to manually cause highlighting on your plottables by calling the{' '}
+          <code>highlight</code> method of the plottable instance. Note: only{' '}
+          <code>Samples</code> supports this right now.
+        </p>
+
+        <p>
+          e.g., the <code>Samples</code> plottable in the chart below has both a callback,
+          and manual highlighting. The callback reports the ID of the currently
+          highlighted sample. The "Highlight Random Sample" button manually highlights a
+          random sample in the plottable.
+        </p>
+
+        <Button
+          size="sm"
+          onClick={() => {
+            const sample = shuffle(shiftedSpanSamples.data).find(
+              shuffledSample => shuffledSample.id !== sampleId
+            ) as {
+              id: string;
+              timestamp: string;
+            };
+
+            setSampleId(sample.id);
+          }}
+        >
+          Highlight Random Sample
+        </Button>
+
+        <MediumWidget>
+          <TimeSeriesWidgetVisualization
+            legendSelection={legendSelection}
+            onLegendSelectionChange={setLegendSelection}
+            plottables={[aggregatePlottable, samplesPlottable]}
+          />
+
+          <p>Highlighted sample ID: {sampleId}</p>
+        </MediumWidget>
+      </Fragment>
+    );
+  });
+
   story('Color', () => {
     const theme = useTheme();
 
@@ -579,8 +718,8 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
       ...sampleThroughputTimeSeries,
       field: 'error_rate()',
       meta: {
-        type: 'rate',
-        unit: RateUnit.PER_SECOND,
+        valueType: 'rate',
+        valueUnit: RateUnit.PER_SECOND,
       },
     };
 
@@ -643,7 +782,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     );
 
     const durationTimeSeries2 = toTimeSeriesSelection(
-      sampleDurationTimeSeries2,
+      sampleDurationTimeSeriesP50,
       start,
       end
     );
@@ -671,7 +810,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
 
   story('Legends', () => {
     const [legendSelection, setLegendSelection] = useState<LegendSelection>({
-      p99: false,
+      'p99(span.duration)': false,
     });
 
     return (
@@ -703,8 +842,8 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           <MediumWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
-                new Area(sampleDurationTimeSeries, {alias: 'p50'}),
-                new Area(sampleDurationTimeSeries2, {alias: 'p99'}),
+                new Area(sampleDurationTimeSeries, {alias: 'p99'}),
+                new Area(sampleDurationTimeSeriesP50, {alias: 'p50'}),
               ]}
               legendSelection={legendSelection}
               onLegendSelectionChange={setLegendSelection}
@@ -714,7 +853,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
             <TimeSeriesWidgetVisualization
               plottables={[
                 new Area(sampleDurationTimeSeries, {alias: 'Duration'}),
-                new Area(sampleDurationTimeSeries2, {alias: 'Duration'}),
+                new Area(sampleDurationTimeSeriesP50, {alias: 'Duration'}),
               ]}
             />
           </MediumWidget>
@@ -727,11 +866,15 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     const releases = [
       {
         version: 'ui@0.1.2',
-        timestamp: sampleThroughputTimeSeries.data.at(2)?.timestamp,
+        timestamp: new Date(
+          sampleThroughputTimeSeries.values.at(2)!.timestamp
+        ).toISOString(),
       },
       {
         version: 'ui@0.1.3',
-        timestamp: sampleThroughputTimeSeries.data.at(20)?.timestamp,
+        timestamp: new Date(
+          sampleThroughputTimeSeries.values.at(20)!.timestamp
+        ).toISOString(),
       },
     ].filter(hasTimestamp);
 
@@ -739,21 +882,43 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
       <Fragment>
         <p>
           Area and line charts support showing release markers via the{' '}
-          <code>releases</code> prop. Clicking on a release line will open the release
-          details page.
+          <code>releases</code> prop with two different visualizations specified by the
+          <code>showReleaseAs</code> prop: <code>"line"</code> and <code>"bubble"</code>.
         </p>
 
-        <MediumWidget>
-          <TimeSeriesWidgetVisualization
-            plottables={[
-              new Line({
-                ...sampleThroughputTimeSeries,
-                field: 'error_rate()',
-              }),
-            ]}
-            releases={releases}
-          />
-        </MediumWidget>
+        <p>
+          Clicking on a release bubble will open the releases flyout. Releases lines
+          should be reserved for inside the flyout when there are an appropriate number of
+          releases to display. Clicking on a release line should open the release details
+          inside of the flyout.
+        </p>
+
+        <SideBySide>
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line({
+                  ...sampleThroughputTimeSeries,
+                  field: 'error_rate()',
+                }),
+              ]}
+              releases={releases}
+            />
+          </MediumWidget>
+
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line({
+                  ...sampleThroughputTimeSeries,
+                  field: 'error_rate()',
+                }),
+              ]}
+              showReleaseAs="bubble"
+              releases={releases}
+            />
+          </MediumWidget>
+        </SideBySide>
       </Fragment>
     );
   });
@@ -794,7 +959,7 @@ function toTimeSeriesSelection(
 ): TimeSeries {
   return {
     ...timeSeries,
-    data: timeSeries.data.filter(datum => {
+    values: timeSeries.values.filter(datum => {
       if (start && moment(datum.timestamp).isBefore(moment.utc(start))) {
         return false;
       }
@@ -813,6 +978,6 @@ function hasTimestamp(release: Partial<Release>): release is Release {
 }
 
 const NULL_META: TimeSeriesMeta = {
-  type: null,
-  unit: null,
+  valueType: null,
+  valueUnit: null,
 };

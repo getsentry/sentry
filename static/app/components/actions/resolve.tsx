@@ -3,22 +3,23 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Chevron} from 'sentry/components/chevron';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Button, LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import CustomCommitsResolutionModal from 'sentry/components/customCommitsResolutionModal';
 import CustomResolutionModal from 'sentry/components/customResolutionModal';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconReleases} from 'sentry/icons';
+import {IconChevron, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {GroupStatusResolution, ResolvedStatusDetails} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
@@ -49,7 +50,7 @@ function SetupReleasesPrompt() {
   );
 }
 
-export interface ResolveActionsProps {
+interface ResolveActionsProps {
   hasRelease: boolean;
   onUpdate: (data: GroupStatusResolution) => void;
   confirmLabel?: string;
@@ -272,14 +273,7 @@ function ResolveActions({
             size={size}
             priority={priority}
             aria-label={t('More resolve options')}
-            icon={
-              <Chevron
-                light
-                color="subText"
-                weight="medium"
-                direction={isOpen ? 'up' : 'down'}
-              />
-            }
+            icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
             disabled={isDisabled}
           />
         )}
@@ -365,22 +359,27 @@ function ResolveActions({
 
 export default ResolveActions;
 
-const ResolveButton = styled(Button)<{priority?: 'primary'}>`
-  box-shadow: none;
-  ${p =>
-    p.priority === 'primary' &&
-    css`
-      &::after {
-        content: '';
-        position: absolute;
-        top: -1px;
-        bottom: -1px;
-        right: -1px;
-        border-right: solid 1px currentColor;
-        opacity: 0.25;
-      }
-    `}
-`;
+const ResolveButton = withChonk(
+  styled(Button)<{priority?: 'primary'}>`
+    box-shadow: none;
+    ${p =>
+      p.priority === 'primary' &&
+      css`
+        &::after {
+          content: '';
+          position: absolute;
+          top: -1px;
+          bottom: -1px;
+          right: -1px;
+          border-right: solid 1px currentColor;
+          opacity: 0.25;
+        }
+      `}
+  `,
+  chonkStyled(Button)`
+    box-shadow: none;
+`
+);
 
 const DropdownTrigger = styled(Button)`
   box-shadow: none;

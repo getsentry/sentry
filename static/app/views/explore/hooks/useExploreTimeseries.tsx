@@ -1,9 +1,11 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import isEqual from 'lodash/isEqual';
 
+import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePrevious from 'sentry/utils/usePrevious';
+import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {
   useExploreDataset,
   useExploreGroupBys,
@@ -13,13 +15,14 @@ import {
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
+import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
-  QUERY_MODE,
   type SpansRPCQueryExtras,
   useProgressiveQuery,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
+import {computeVisualizeSampleTotals} from 'sentry/views/explore/utils';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 interface UseExploreTimeseriesOptions {
@@ -40,10 +43,23 @@ export const useExploreTimeseries = ({
   enabled: boolean;
   query: string;
 }) => {
+  const visualizes = useExploreVisualizes();
+  const topEvents = useTopEvents();
+  const isTopN = topEvents ? topEvents > 0 : false;
+
+  const canTriggerHighAccuracy = useCallback(
+    (result: ReturnType<typeof useExploreTimeseriesImpl>['result']) => {
+      return shouldTriggerHighAccuracy(result.data, visualizes, isTopN);
+    },
+    [visualizes, isTopN]
+  );
+
   return useProgressiveQuery<typeof useExploreTimeseriesImpl>({
     queryHookImplementation: useExploreTimeseriesImpl,
     queryHookArgs: {query, enabled},
-    queryMode: QUERY_MODE.SERIAL,
+    queryOptions: {
+      canTriggerHighAccuracy,
+    },
   });
 };
 
@@ -138,4 +154,28 @@ function useExploreTimeseriesImpl({
     result: timeseriesResult,
     canUsePreviousResults,
   };
+}
+
+export function shouldTriggerHighAccuracy(
+  data: ReturnType<typeof useSortedTimeSeries>['data'],
+  visualizes: Visualize[],
+  isTopN: boolean
+) {
+  const hasData = computeVisualizeSampleTotals(visualizes, data, isTopN).some(
+    total => total > 0
+  );
+  return !hasData && _checkCanQueryForMoreData(data, visualizes, isTopN);
+}
+
+function _checkCanQueryForMoreData(
+  data: ReturnType<typeof useSortedTimeSeries>['data'],
+  visualizes: Visualize[],
+  isTopN: boolean
+) {
+  return visualizes.some(visualize => {
+    const dedupedYAxes = dedupeArray(visualize.yAxes);
+    const series = dedupedYAxes.flatMap(yAxis => data[yAxis]).filter(defined);
+    const {dataScanned} = determineSeriesSampleCountAndIsSampled(series, isTopN);
+    return dataScanned === 'partial';
+  });
 }

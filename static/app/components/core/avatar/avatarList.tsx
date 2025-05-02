@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
 import {UserAvatar, type UserAvatarProps} from 'sentry/components/core/avatar/userAvatar';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {Team} from 'sentry/types/organization';
@@ -38,7 +38,11 @@ export function CollapsedAvatars({
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   if (hasStreamlinedUI) {
-    return <CollapsedAvatarPill ref={ref}>{children}</CollapsedAvatarPill>;
+    return (
+      <CollapsedAvatarPill ref={ref} data-test-id="avatarList-collapsedavatars">
+        {children}
+      </CollapsedAvatarPill>
+    );
   }
   return (
     <CollapsedAvatarsCicle
@@ -152,7 +156,7 @@ function AvatarList({
 export default AvatarList;
 
 // used in releases list page to do some alignment
-export const AvatarListWrapper = styled('div')`
+const AvatarListWrapper = styled('div')`
   display: flex;
   align-items: center;
   flex-direction: row-reverse;

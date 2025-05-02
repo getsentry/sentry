@@ -13,7 +13,7 @@ type Props = ModalRenderProps & {
   headerContent: React.ReactNode;
   providers: IntegrationProvider[];
   bodyContent?: React.ReactNode;
-  modalParams?: {[key: string]: string};
+  modalParams?: Record<string, string>;
   onAddIntegration?: () => void;
 };
 

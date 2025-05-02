@@ -7,10 +7,12 @@ from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.client import ApiClient
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.on_call.metrics import OnCallInteractionType
-from sentry.integrations.opsgenie.metrics import record_event
+from sentry.integrations.opsgenie.metrics import record_event, record_lifecycle_termination_level
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.group import Group
 from sentry.notifications.utils.links import create_link_to_workflow
+from sentry.notifications.utils.rules import get_key_from_rule_data
+from sentry.shared_integrations.exceptions import ApiError
 
 OPSGENIE_API_VERSION = "v2"
 # Defaults to P3 if null, but we can be explicit - https://docs.opsgenie.com/docs/alert-api
@@ -44,8 +46,7 @@ class OpsgenieClient(ApiClient):
         workflow_urls = []
         for rule in rules:
             # fetch the workflow_id from the rule.data
-            workflow_id = rule.data.get("workflow_id")
-            assert workflow_id is not None
+            workflow_id = get_key_from_rule_data(rule, "workflow_id")
             workflow_urls.append(
                 organization.absolute_url(create_link_to_workflow(organization.id, workflow_id))
             )
@@ -57,9 +58,8 @@ class OpsgenieClient(ApiClient):
         for rule in rules:
             rule_id = rule.id
             if features.has("organizations:workflow-engine-trigger-actions", organization):
-                rule_id = rule.data.get("legacy_rule_id")
+                rule_id = get_key_from_rule_data(rule, "legacy_rule_id")
 
-            assert rule_id is not None
             path = f"/organizations/{organization.slug}/alerts/rules/{group.project.slug}/{rule_id}/details/"
             rule_urls.append(organization.absolute_url(path))
         return rule_urls
@@ -117,30 +117,36 @@ class OpsgenieClient(ApiClient):
 
     def send_notification(self, data):
         headers = self._get_auth_headers()
-        with record_event(OnCallInteractionType.CREATE).capture():
-            resp = self.post("/alerts", data=data, headers=headers)
-        return resp
+        with record_event(OnCallInteractionType.CREATE).capture() as lifecycle:
+            try:
+                return self.post("/alerts", data=data, headers=headers)
+            except ApiError as e:
+                record_lifecycle_termination_level(lifecycle=lifecycle, error=e)
+                raise
 
     # TODO(iamrajjoshi): We need to delete this method during notification platform
-    def send_metric_alert_notification(
-        self,
-        data,
-    ):
+    def send_metric_alert_notification(self, data):
         headers = self._get_auth_headers()
-        interaction_type = OnCallInteractionType.CREATE
-        # if we're closing the alert—meaning that the Sentry alert was resolved
+
+        # If closing an alert (when Sentry alert was resolved)
         if data.get("identifier"):
-            interaction_type = OnCallInteractionType.RESOLVE
             alias = data["identifier"]
-            resp = self.post(
-                f"/alerts/{alias}/close",
-                data={},
-                params={"identifierType": "alias"},
-                headers=headers,
-            )
-            return resp
-        # this is a metric alert
-        payload = data
-        with record_event(interaction_type).capture():
-            resp = self.post("/alerts", data=payload, headers=headers)
-        return resp
+            with record_event(OnCallInteractionType.RESOLVE).capture() as lifecycle:
+                try:
+                    return self.post(
+                        f"/alerts/{alias}/close",
+                        data={},
+                        params={"identifierType": "alias"},
+                        headers=headers,
+                    )
+                except ApiError as e:
+                    record_lifecycle_termination_level(lifecycle=lifecycle, error=e)
+                    raise
+
+        # Creating a metric alert
+        with record_event(OnCallInteractionType.CREATE).capture() as lifecycle:
+            try:
+                return self.post("/alerts", data=data, headers=headers)
+            except ApiError as e:
+                record_lifecycle_termination_level(lifecycle=lifecycle, error=e)
+                raise

@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
+import color from 'color';
 
 import {Button} from 'sentry/components/core/button';
 import {IconCopy, IconDelete, IconEdit, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-
-import {DRAG_HANDLE_CLASS} from '../dashboard';
+import {DRAG_HANDLE_CLASS} from 'sentry/views/dashboards/dashboard';
 
 type ToolbarProps = {
   isMobile?: boolean;
@@ -74,7 +74,7 @@ const ToolbarPanel = styled('div')`
   justify-content: flex-end;
   align-items: flex-start;
 
-  background-color: ${p => p.theme.overlayBackgroundAlpha};
+  background-color: ${p => color(p.theme.surface300).alpha(0.7).string()};
   border-radius: calc(${p => p.theme.borderRadius} - 1px);
 `;
 
@@ -86,15 +86,4 @@ const IconContainer = styled('div')`
 
 const GrabbableButton = styled(Button)`
   cursor: grab;
-`;
-
-export const WidgetTitleRow = styled('span')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.75)};
-`;
-
-export const WidgetDescription = styled('small')`
-  ${p => p.theme.overflowEllipsis}
-  color: ${p => p.theme.subText};
 `;

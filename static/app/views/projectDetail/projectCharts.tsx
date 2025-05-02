@@ -26,7 +26,6 @@ import Placeholder from 'sentry/components/placeholder';
 import {NOT_AVAILABLE_MESSAGES} from 'sentry/constants/notAvailableMessages';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -36,6 +35,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
+import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 import {
   getANRRateText,
   isPlatformANRCompatible,
@@ -45,8 +45,6 @@ import {
   getSessionTermDescription,
   SessionTerm,
 } from 'sentry/views/releases/utils/sessionTerm';
-
-import {getTermHelp, PerformanceTerm} from '../performance/data';
 
 import ProjectBaseEventsChart from './charts/projectBaseEventsChart';
 import ProjectBaseSessionsChart from './charts/projectBaseSessionsChart';
@@ -73,7 +71,6 @@ type Props = {
   hasTransactions: boolean;
   location: Location;
   organization: Organization;
-  router: InjectedRouter;
   theme: Theme;
   visibleCharts: string[];
   project?: Project;
@@ -321,7 +318,7 @@ class ProjectCharts extends Component<Props, State> {
   };
 
   render() {
-    const {api, router, organization, theme, projectId, hasSessions, query, project} =
+    const {api, location, organization, theme, projectId, hasSessions, query, project} =
       this.props;
     const {totalValues} = this.state;
     const hasDiscover = organization.features.includes('discover-basic');
@@ -350,10 +347,10 @@ class ProjectCharts extends Component<Props, State> {
                   yAxis="apdex()"
                   field={['apdex()']}
                   api={api}
-                  router={router}
+                  location={location}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
-                  colors={[theme.chart.colors[0][0], theme.purple200]}
+                  colors={[theme.chart.getColorPalette(0)[0], theme.purple200]}
                 />
               )}
               {displayMode === DisplayModes.FAILURE_RATE && (
@@ -367,7 +364,7 @@ class ProjectCharts extends Component<Props, State> {
                   yAxis="failure_rate()"
                   field={[`failure_rate()`]}
                   api={api}
-                  router={router}
+                  location={location}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
                   colors={[theme.red300, theme.purple200]}
@@ -384,7 +381,7 @@ class ProjectCharts extends Component<Props, State> {
                   yAxis="tpm()"
                   field={[`tpm()`]}
                   api={api}
-                  router={router}
+                  location={location}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
                   colors={[theme.yellow300, theme.purple200]}
@@ -402,7 +399,7 @@ class ProjectCharts extends Component<Props, State> {
                     yAxis="count()"
                     field={[`count()`]}
                     api={api}
-                    router={router}
+                    location={location}
                     organization={organization}
                     onTotalValuesChange={this.handleTotalValuesChange}
                     colors={[theme.purple300, theme.purple200]}
@@ -427,7 +424,7 @@ class ProjectCharts extends Component<Props, State> {
                   yAxis="count()"
                   field={[`count()`]}
                   api={api}
-                  router={router}
+                  location={location}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
                   colors={[theme.gray200, theme.purple200]}

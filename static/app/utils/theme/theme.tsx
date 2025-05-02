@@ -11,7 +11,7 @@ import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import color from 'color';
 
-import {DataCategory, Outcome} from 'sentry/types/core';
+import {Outcome} from 'sentry/types/core';
 
 // palette generated via: https://gka.github.io/palettes/#colors=444674,69519A,E1567C,FB7D46,F2B712|steps=20|bez=1|coL=1
 const CHART_PALETTE = [
@@ -205,15 +205,12 @@ type NextTuple<T extends unknown[], A extends unknown[] = []> = T extends [
   ...infer Rest,
 ]
   ? // eslint-disable-next-line @typescript-eslint/no-restricted-types
-    {[K in A['length']]: Rest extends [] ? never : Rest[0]} & NextTuple<
-      Rest,
-      [...A, unknown]
-    >
+    Record<A['length'], Rest extends [] ? never : Rest[0]> &
+      NextTuple<Rest, [...A, unknown]>
   : Record<number, unknown>;
 
 type NextMap = NextTuple<TupleOf<ColorLength>>;
 type Next<R extends ValidLengthArgument> = NextMap[R];
-
 /**
  * Returns the color palette for a given number of series.
  * If length argument is statically analyzable, the return type will be narrowed
@@ -222,16 +219,56 @@ type Next<R extends ValidLengthArgument> = NextMap[R];
  * return a single color, not two colors. It smells like either a bug or off by one error.
  * @param length - The number of series to return a color palette for?
  */
-function getChartColorPalette<Length extends ValidLengthArgument>(
+function makeChartColorPalette<T extends ChartColorPalette>(
+  palette: T
+): <Length extends ValidLengthArgument>(
   length: Length | number
-): Exclude<ChartColorPalette[Next<Length>], undefined> {
-  // @TODO(jonasbadalic) we guarantee type safety and sort of guarantee runtime safety by clamping and
-  // the palette is not sparse, but we should probably add a runtime check here as well.
-  const index = Math.max(0, Math.min(CHART_PALETTE.length - 1, length + 1));
-  return CHART_PALETTE[index] as Exclude<ChartColorPalette[Next<Length>], undefined>;
+) => Exclude<ChartColorPalette[Next<Length>], undefined> {
+  return function getChartColorPalette<Length extends ValidLengthArgument>(
+    length: Length | number
+  ): Exclude<ChartColorPalette[Next<Length>], undefined> {
+    // @TODO(jonasbadalic) we guarantee type safety and sort of guarantee runtime safety by clamping and
+    // the palette is not sparse, but we should probably add a runtime check here as well.
+    const index = Math.max(0, Math.min(palette.length - 1, length + 1));
+    return palette[index] as Exclude<ChartColorPalette[Next<Length>], undefined>;
+  };
 }
 
-export const generateThemeAliases = (colors: Colors) => ({
+const generateTokens = (colors: Colors) => ({
+  content: {
+    primary: colors.gray400, // theme.textColor
+    muted: colors.gray300, // theme.subText
+    accent: colors.purple400, // new
+    promotion: colors.pink400, // new
+    danger: colors.red400, // theme.errorText
+    warning: colors.yellow400, // theme.warningText
+    success: colors.green400, // theme.successText
+  },
+  graphics: {
+    muted: colors.gray300,
+    accent: colors.blue300,
+    promotion: colors.pink300,
+    danger: colors.red300,
+    warning: colors.yellow300,
+    success: colors.green300,
+  },
+  background: {
+    primary: colors.surface300, // theme.background
+    secondary: colors.surface200, // theme.backgroundSecondary
+    tertiary: colors.surface100, // theme.backgroundTertiary
+  },
+  border: {
+    primary: colors.gray200, // theme.border
+    muted: colors.gray100, // theme.innerBorder
+    accent: colors.purple300, // theme.focusBorder
+    promotion: colors.pink400, // new
+    danger: colors.red200, // theme.errorFocus
+    warning: colors.yellow200, // theme.warningFocus
+    success: colors.green200, // theme.successFocus
+  },
+});
+
+const generateThemeAliases = (colors: Colors) => ({
   /**
    * Heading text color
    */
@@ -380,9 +417,9 @@ export const generateThemeAliases = (colors: Colors) => ({
   chartOther: colors.gray200,
 
   /**
-   * Color of the divider used in the content slider diff
+   * Hover color of the drag handle used in the content slider diff view.
    */
-  diffSliderDivider: colors.purple400,
+  diffSliderDragHandleHover: colors.purple400,
 
   /**
    * Default Progressbar color
@@ -393,11 +430,6 @@ export const generateThemeAliases = (colors: Colors) => ({
    * Default Progressbar color
    */
   progressBackground: colors.gray100,
-
-  /**
-   * Overlay for partial opacity
-   */
-  overlayBackgroundAlpha: color(colors.surface200).alpha(0.7).string(),
 
   /**
    * Tag progress bars
@@ -437,8 +469,9 @@ export const generateThemeAliases = (colors: Colors) => ({
 
 type Alert = 'muted' | 'info' | 'warning' | 'success' | 'error';
 
-type AlertColors = {
-  [key in Alert]: {
+type AlertColors = Record<
+  Alert,
+  {
     background: string;
     backgroundLight: string;
     border: string;
@@ -446,8 +479,8 @@ type AlertColors = {
     color: string;
     // @TODO(jonasbadalic): Why is textLight optional and only set on error?
     textLight?: string;
-  };
-};
+  }
+>;
 
 export const generateThemeUtils = (colors: Colors, aliases: Aliases) => ({
   tooltipUnderline: (underlineColor: ColorOrAlias = 'gray300') => ({
@@ -908,24 +941,24 @@ type Tag =
   | 'white'
   | 'black';
 
-type TagColors = {
-  [key in Tag]: {
+type TagColors = Record<
+  Tag,
+  {
     background: string;
     border: string;
     color: string;
-  };
-};
+  }
+>;
 
 // @TODO: is this loose coupling enough?
 type Level = 'sample' | 'info' | 'warning' | 'error' | 'fatal' | 'default' | 'unknown';
-type LevelColors = {
-  [key in Level]: string;
-};
+type LevelColors = Record<Level, string>;
 
 // @TODO(jonasbadalic): Disabled is not a button variant, it's a state
 type Button = 'default' | 'primary' | 'danger' | 'link' | 'disabled';
-type ButtonColors = {
-  [key in Button]: {
+type ButtonColors = Record<
+  Button,
+  {
     background: string;
     backgroundActive: string;
     border: string;
@@ -935,18 +968,19 @@ type ButtonColors = {
     colorActive: string;
     focusBorder: string;
     focusShadow: string;
-  };
-};
+  }
+>;
 
 type ButtonSize = 'md' | 'sm' | 'xs';
-type ButtonPaddingSizes = {
-  [key in ButtonSize]: {
+type ButtonPaddingSizes = Record<
+  ButtonSize,
+  {
     paddingBottom: number;
     paddingLeft: number;
     paddingRight: number;
     paddingTop: number;
-  };
-};
+  }
+>;
 const buttonPaddingSizes: ButtonPaddingSizes = {
   md: {
     paddingLeft: 16,
@@ -981,9 +1015,7 @@ const breakpoints = {
 } as const satisfies Breakpoints;
 
 type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
-type Sizes = {
-  [key in Size]: string;
-};
+type Sizes = Record<Size, string>;
 const iconNumberSizes: Record<Size, number> = {
   xs: 12,
   sm: 14,
@@ -1005,30 +1037,31 @@ const iconDirectionToAngle: Record<IconDirection, number> = {
 export type FormSize = 'xs' | 'sm' | 'md';
 
 export type FormTheme = {
-  form: {
-    [key in FormSize]: {
+  form: Record<
+    FormSize,
+    {
       fontSize: string;
       height: string;
       lineHeight: string;
       minHeight: string;
-    };
-  };
-  formPadding: {
-    [key in FormSize]: {
+    }
+  >;
+  formPadding: Record<
+    FormSize,
+    {
       paddingBottom: number;
       paddingLeft: number;
       paddingRight: number;
       paddingTop: number;
-    };
-  };
-  formRadius: {
-    [key in FormSize]: {
+    }
+  >;
+  formRadius: Record<
+    FormSize,
+    {
       borderRadius: string;
-    };
-  };
-  formSpacing: {
-    [key in FormSize]: string;
-  };
+    }
+  >;
+  formSpacing: Record<FormSize, string>;
 };
 
 const formTheme: FormTheme = {
@@ -1107,28 +1140,6 @@ const iconSizes: Sizes = {
   xl: `${iconNumberSizes.xl}px`,
   xxl: `${iconNumberSizes.xxl}px`,
 } as const;
-
-// @TODO(jonasbadalic): This was missing profiles, profileChunks, profileDuration, spans, spansIndexed, uptime, what do we do with them?
-const dataCategory: Record<
-  Exclude<
-    DataCategory,
-    | DataCategory.PROFILES
-    | DataCategory.PROFILE_CHUNKS
-    | DataCategory.PROFILE_DURATION
-    | DataCategory.PROFILE_CHUNKS_UI
-    | DataCategory.PROFILE_DURATION_UI
-    | DataCategory.SPANS
-    | DataCategory.SPANS_INDEXED
-    | DataCategory.UPTIME
-  >,
-  string
-> = {
-  [DataCategory.ERRORS]: CHART_PALETTE[4][3],
-  [DataCategory.TRANSACTIONS]: CHART_PALETTE[4][2],
-  [DataCategory.ATTACHMENTS]: CHART_PALETTE[4][1],
-  [DataCategory.REPLAYS]: CHART_PALETTE[4][4],
-  [DataCategory.MONITOR_SEATS]: '#a397f7',
-};
 
 /**
  * Default colors for data usage outcomes.
@@ -1266,11 +1277,10 @@ const commonTheme = {
 
   // @TODO(jonasbadalic) Do these need to be here?
   outcome,
-  dataCategory,
 };
 
-// Redeclare as we dont want to use the deprecation
-const getColorPalette = getChartColorPalette;
+const lightTokens = generateTokens(lightColors);
+const darkTokens = generateTokens(darkColors);
 
 // Light and dark theme definitions
 const lightAliases = generateThemeAliases(lightColors);
@@ -1286,9 +1296,11 @@ export const lightTheme = {
   ...lightColors,
   ...lightAliases,
   ...lightShadows,
+  tokens: lightTokens,
   inverted: {
     ...darkColors,
     ...darkAliases,
+    tokens: darkTokens,
   },
   ...generateThemeUtils(lightColors, lightAliases),
   alert: generateAlertTheme(lightColors, lightAliases),
@@ -1307,7 +1319,7 @@ export const lightTheme = {
   },
   chart: {
     colors: CHART_PALETTE,
-    getColorPalette,
+    getColorPalette: makeChartColorPalette(CHART_PALETTE),
   },
   prismVariables: generateThemePrismVariables(
     prismLight,
@@ -1338,9 +1350,11 @@ export const darkTheme: typeof lightTheme = {
   ...darkColors,
   ...darkAliases,
   ...darkShadows,
+  tokens: darkTokens,
   inverted: {
     ...lightColors,
     ...lightAliases,
+    tokens: lightTokens,
   },
   ...generateThemeUtils(darkColors, darkAliases),
   alert: generateAlertTheme(darkColors, darkAliases),
@@ -1364,7 +1378,7 @@ export const darkTheme: typeof lightTheme = {
   },
   chart: {
     colors: CHART_PALETTE,
-    getColorPalette: getChartColorPalette,
+    getColorPalette: makeChartColorPalette(CHART_PALETTE),
   },
   sidebar: {
     // @TODO(jonasbadalic) What are these colors and where do they come from?

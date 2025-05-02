@@ -4,19 +4,25 @@ from enum import Enum
 from typing import TypedDict
 
 from django.conf import settings
-from django.db import models
+from django.db import models, router, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from sentry import features
 from sentry.backup.dependencies import ImportKind
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, region_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.exceptions import UnableToAcceptMemberInvitationException
+from sentry.models.team import Team
 from sentry.roles import organization_roles
+from sentry.signals import member_invited
 
 INVITE_DAYS_VALID = 30
+
+__all__ = ("OrganizationMemberInvite",)
 
 
 class InviteStatus(Enum):
@@ -41,6 +47,9 @@ invite_status_names = {
     InviteStatus.REQUESTED_TO_BE_INVITED.value: "requested_to_be_invited",
     InviteStatus.REQUESTED_TO_JOIN.value: "requested_to_join",
 }
+
+ERR_CANNOT_INVITE = "Your organization is not allowed to invite members."
+ERR_JOIN_REQUESTS_DISABLED = "Your organization does not allow requests to join."
 
 
 def default_expiration():
@@ -77,6 +86,9 @@ class OrganizationMemberInvite(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
     organization = FlexibleForeignKey("sentry.Organization", related_name="invite_set")
+    # SCIM provisioning requires that the OrganizationMember object exist. Until the user
+    # accepts their invite, the OrganizationMember is a placeholder and will not be surfaced via API.
+    organization_member = FlexibleForeignKey("sentry.OrganizationMember")
     inviter_id = HybridCloudForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
@@ -89,7 +101,7 @@ class OrganizationMemberInvite(DefaultFieldsModel):
     )
     email = models.EmailField(max_length=75)
     role = models.CharField(max_length=32, default=str(organization_roles.get_default().id))
-    organization_member_team_data = models.JSONField(default=dict)
+    organization_member_team_data = models.JSONField(default=list)
     token = models.CharField(max_length=64, unique=True, default=generate_token)
     token_expires_at = models.DateTimeField(default=default_expiration)
 
@@ -97,7 +109,7 @@ class OrganizationMemberInvite(DefaultFieldsModel):
     sso_linked = models.BooleanField(default=False)
     sso_invalid = models.BooleanField(default=False)
     member_limit_restricted = models.BooleanField(default=False)
-    idp_provisioned = models.BooleanField(default=False)
+    idp_provisioned = models.BooleanField(default=False, db_default=False)
     idp_role_restricted = models.BooleanField(default=False)
     partnership_restricted = models.BooleanField(default=False)
 
@@ -131,6 +143,62 @@ class OrganizationMemberInvite(DefaultFieldsModel):
 
     def get_invite_status_name(self):
         return invite_status_names[self.invite_status]
+
+    def set_org_role(self, orgRole: str):
+        self.role = orgRole
+        self.save()
+
+    def set_teams(self, teams: list[Team]):
+        team_data = []
+        for team in teams:
+            team_data.append({"id": team.id, "slug": team.slug, "role": None})
+        self.organization_member_team_data = team_data
+        self.save()
+
+    def validate_invitation(self, allowed_roles):
+        """
+        Validates whether an org has the options to invite members, handle join requests,
+        and that the member role doesn't exceed the allowed roles to invite.
+        """
+        organization = self.organization
+        if not features.has("organizations:invite-members", organization):
+            raise UnableToAcceptMemberInvitationException(ERR_CANNOT_INVITE)
+
+        if (
+            organization.get_option("sentry:join_requests") is False
+            and self.invite_status == InviteStatus.REQUESTED_TO_JOIN.value
+        ):
+            raise UnableToAcceptMemberInvitationException(ERR_JOIN_REQUESTS_DISABLED)
+
+        # members cannot invite roles higher than their own
+        if not {self.role} & {r.id for r in allowed_roles}:
+            raise UnableToAcceptMemberInvitationException(
+                f"You do not have permission to approve a member invitation with the role {self.role}."
+            )
+        return True
+
+    def approve_invite_request(self, approving_user, api_key=None, ip_address=None, referrer=None):
+        """
+        Approve a member invite/join request and send an audit log entry
+        """
+        from sentry import audit_log
+        from sentry.utils.audit import create_audit_entry_from_user
+
+        with transaction.atomic(using=router.db_for_write(OrganizationMemberInvite)):
+            self.approve_invite()
+            self.save()
+
+        self.send_invite_email(referrer)
+        member_invited.send_robust(member=self, user=approving_user, sender=self, referrer=referrer)
+        create_audit_entry_from_user(
+            approving_user,
+            api_key,
+            ip_address,
+            organization_id=self.organization_id,
+            target_object=self.id,
+            data=self.get_audit_log_data(),
+            event=(audit_log.get_event_id("MEMBER_INVITE")),
+        )
 
     @property
     def invite_approved(self):

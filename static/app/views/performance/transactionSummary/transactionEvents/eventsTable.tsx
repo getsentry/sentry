@@ -1,19 +1,18 @@
 import type React from 'react';
-import {Component, Fragment, type ReactNode} from 'react';
+import {Fragment, type ReactNode, useCallback, useMemo, useState} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
 import groupBy from 'lodash/groupBy';
 
-import {Client} from 'sentry/api';
 import {LinkButton} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {GridColumn} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
@@ -38,19 +37,19 @@ import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import useApi from 'sentry/utils/useApi';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import type {DomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-
-import {COLUMN_TITLES} from '../../data';
-import {TraceViewSources} from '../../newTraceDetails/traceHeader/breadcrumbs';
-import Tab from '../tabs';
+import {COLUMN_TITLES} from 'sentry/views/performance/data';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import Tab from 'sentry/views/performance/transactionSummary/tabs';
 import {
   generateProfileLink,
   generateReplayLink,
   generateTraceLink,
   normalizeSearchConditions,
-} from '../utils';
+} from 'sentry/views/performance/transactionSummary/utils';
 
 import type {TitleProps} from './operationSort';
 import OperationSort from './operationSort';
@@ -114,393 +113,391 @@ type Props = {
   }) => ReactNode;
 };
 
-type State = {
-  attachments: IssueAttachment[];
-  hasMinidumps: boolean;
-  lastFetchedCursor: string;
-  widths: number[];
-};
+function EventsTable({
+  eventView,
+  location,
+  organization,
+  routes,
+  setError,
+  theme,
+  transactionName,
+  applyEnvironmentFilter,
+  columnTitles: initialColumnTitles,
+  customColumns,
+  domainViewFilters,
+  excludedTags,
+  hidePagination,
+  isEventLoading,
+  isRegressionIssue,
+  issueId,
+  projectSlug,
+  referrer,
+  renderTableHeader,
+}: Props) {
+  const api = useApi({persistInFlight: true});
+  const [widths, setWidths] = useState<number[]>([]);
+  const [lastFetchedCursor, setLastFetchedCursor] = useState('');
+  const [attachments, setAttachments] = useState<IssueAttachment[]>([]);
+  const [hasMinidumps, setHasMinidumps] = useState(false);
 
-class EventsTable extends Component<Props, State> {
-  state: State = {
-    widths: [],
-    lastFetchedCursor: '',
-    attachments: [],
-    hasMinidumps: false,
-  };
+  const replayLinkGenerator = useMemo(() => generateReplayLink(routes), [routes]);
 
-  api = new Client();
-  replayLinkGenerator = generateReplayLink(this.props.routes);
-
-  handleCellAction = (column: TableColumn<keyof TableDataRow>) => {
-    return (action: Actions, value: string | number) => {
-      const {eventView, location, organization, excludedTags, applyEnvironmentFilter} =
-        this.props;
-
-      trackAnalytics('performance_views.transactionEvents.cellaction', {
-        organization,
-        action,
-      });
-
-      const searchConditions = normalizeSearchConditions(eventView.query);
-
-      if (excludedTags) {
-        excludedTags.forEach(tag => {
-          searchConditions.removeFilter(tag);
+  const handleCellAction = useCallback(
+    (column: TableColumn<keyof TableDataRow>) => {
+      return (action: Actions, value: string | number) => {
+        trackAnalytics('performance_views.transactionEvents.cellaction', {
+          organization,
+          action,
         });
-      }
 
-      updateQuery(searchConditions, action, column, value);
+        const searchConditions = normalizeSearchConditions(eventView.query);
 
-      if (applyEnvironmentFilter && column.key === 'environment') {
-        let newEnvs = toArray(location.query.environment);
-
-        if (action === Actions.ADD) {
-          if (!newEnvs.includes(String(value))) {
-            newEnvs.push(String(value));
-          }
-        } else {
-          newEnvs = newEnvs.filter(env => env !== value);
+        if (excludedTags) {
+          excludedTags.forEach(tag => {
+            searchConditions.removeFilter(tag);
+          });
         }
 
-        // Updates the environment filter, instead of relying on the search query
+        updateQuery(searchConditions, action, column, value);
+
+        if (applyEnvironmentFilter && column.key === 'environment') {
+          let newEnvs = toArray(location.query.environment);
+
+          if (action === Actions.ADD) {
+            if (!newEnvs.includes(String(value))) {
+              newEnvs.push(String(value));
+            }
+          } else {
+            newEnvs = newEnvs.filter(env => env !== value);
+          }
+
+          browserHistory.push({
+            pathname: location.pathname,
+            query: {
+              ...location.query,
+              cursor: undefined,
+              environment: newEnvs,
+            },
+          });
+          return;
+        }
+
         browserHistory.push({
           pathname: location.pathname,
           query: {
             ...location.query,
             cursor: undefined,
-            environment: newEnvs,
+            query: searchConditions.formatString(),
           },
         });
-        return;
+      };
+    },
+    [organization, eventView, excludedTags, applyEnvironmentFilter, location]
+  );
+
+  const renderBodyCell = useCallback(
+    (
+      tableData: TableData | null,
+      column: TableColumn<keyof TableDataRow>,
+      dataRow: TableDataRow
+    ): React.ReactNode => {
+      if (!tableData || !tableData.meta) {
+        return dataRow[column.key];
+      }
+      const tableMeta = tableData.meta;
+      const field = String(column.key);
+      const fieldRenderer = getFieldRenderer(field, tableMeta);
+      const rendered = fieldRenderer(dataRow, {
+        organization,
+        location,
+        eventView,
+        theme,
+        projectSlug,
+      });
+
+      const allowActions = [
+        Actions.ADD,
+        Actions.EXCLUDE,
+        Actions.SHOW_GREATER_THAN,
+        Actions.SHOW_LESS_THAN,
+      ];
+
+      if (['attachments', 'minidump'].includes(field)) {
+        return rendered;
       }
 
-      browserHistory.push({
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          cursor: undefined,
-          query: searchConditions.formatString(),
-        },
-      });
-    };
-  };
+      const cellActionHandler = handleCellAction(column);
 
-  renderBodyCell(
-    tableData: TableData | null,
-    column: TableColumn<keyof TableDataRow>,
-    dataRow: TableDataRow
-  ): React.ReactNode {
-    const {eventView, organization, location, transactionName, projectSlug, theme} =
-      this.props;
+      if (field === 'id' || field === 'trace') {
+        const isIssue = !!issueId;
+        let target: LocationDescriptor = {};
+        const locationWithTab = {
+          ...location,
+          query: {...location.query, tab: Tab.EVENTS},
+        };
+        if (isIssue && !isRegressionIssue && field === 'id') {
+          target.pathname = `/organizations/${organization.slug}/issues/${issueId}/events/${dataRow.id}/`;
+        } else {
+          if (field === 'id') {
+            target = generateLinkToEventInTraceView({
+              traceSlug: dataRow.trace?.toString()!,
+              projectSlug: dataRow['project.name']?.toString()!,
+              eventId: dataRow.id,
+              timestamp: dataRow.timestamp!,
+              location: locationWithTab,
+              organization,
+              transactionName,
+              source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+              view: domainViewFilters?.view,
+            });
+          } else {
+            target = generateTraceLink(transactionName, domainViewFilters?.view)(
+              organization,
+              dataRow,
+              locationWithTab
+            );
+          }
+        }
 
-    if (!tableData || !tableData.meta) {
-      return dataRow[column.key];
-    }
-    const tableMeta = tableData.meta;
-    const field = String(column.key);
-    const fieldRenderer = getFieldRenderer(field, tableMeta);
-    const rendered = fieldRenderer(dataRow, {
+        return (
+          <CellAction
+            column={column}
+            dataRow={dataRow}
+            handleCellAction={cellActionHandler}
+            allowActions={allowActions}
+          >
+            <Link to={target}>{rendered}</Link>
+          </CellAction>
+        );
+      }
+
+      if (field === 'replayId') {
+        const target: LocationDescriptor | null = dataRow.replayId
+          ? replayLinkGenerator(organization, dataRow, undefined)
+          : null;
+
+        return (
+          <CellAction
+            column={column}
+            dataRow={dataRow}
+            handleCellAction={cellActionHandler}
+            allowActions={allowActions}
+          >
+            {target ? (
+              <ViewReplayLink replayId={dataRow.replayId!} to={target}>
+                {rendered}
+              </ViewReplayLink>
+            ) : (
+              rendered
+            )}
+          </CellAction>
+        );
+      }
+
+      if (field === 'profile.id') {
+        const target = generateProfileLink()(organization, dataRow, undefined);
+        const transactionMeetsProfilingRequirements =
+          typeof dataRow['transaction.duration'] === 'number' &&
+          dataRow['transaction.duration'] > 20;
+
+        return (
+          <Tooltip
+            title={
+              !transactionMeetsProfilingRequirements && !dataRow['profile.id']
+                ? t('Profiles require a transaction duration of at least 20ms')
+                : null
+            }
+          >
+            <CellAction
+              column={column}
+              dataRow={dataRow}
+              handleCellAction={cellActionHandler}
+              allowActions={allowActions}
+            >
+              <div>
+                <LinkButton
+                  disabled={!target || isEmptyObject(target)}
+                  to={target || {}}
+                  size="xs"
+                >
+                  <IconProfiling size="xs" />
+                </LinkButton>
+              </div>
+            </CellAction>
+          </Tooltip>
+        );
+      }
+
+      const fieldName = getAggregateAlias(field);
+      const value = dataRow[fieldName];
+      if (
+        tableMeta[fieldName] === 'integer' &&
+        typeof value === 'number' &&
+        value > 999
+      ) {
+        return (
+          <Tooltip
+            title={value.toLocaleString()}
+            containerDisplayMode="block"
+            position="right"
+          >
+            <CellAction
+              column={column}
+              dataRow={dataRow}
+              handleCellAction={cellActionHandler}
+              allowActions={allowActions}
+            >
+              {rendered}
+            </CellAction>
+          </Tooltip>
+        );
+      }
+
+      return (
+        <CellAction
+          column={column}
+          dataRow={dataRow}
+          handleCellAction={cellActionHandler}
+          allowActions={allowActions}
+        >
+          {rendered}
+        </CellAction>
+      );
+    },
+    [
       organization,
       location,
       eventView,
       theme,
       projectSlug,
-    });
+      transactionName,
+      issueId,
+      isRegressionIssue,
+      domainViewFilters,
+      replayLinkGenerator,
+      handleCellAction,
+    ]
+  );
 
-    const allowActions = [
-      Actions.ADD,
-      Actions.EXCLUDE,
-      Actions.SHOW_GREATER_THAN,
-      Actions.SHOW_LESS_THAN,
-    ];
-
-    if (['attachments', 'minidump'].includes(field)) {
-      return rendered;
-    }
-
-    if (field === 'id' || field === 'trace') {
-      const {issueId, isRegressionIssue} = this.props;
-      const isIssue = !!issueId;
-      let target: LocationDescriptor = {};
-      const locationWithTab = {...location, query: {...location.query, tab: Tab.EVENTS}};
-      // TODO: set referrer properly
-      if (isIssue && !isRegressionIssue && field === 'id') {
-        target.pathname = `/organizations/${organization.slug}/issues/${issueId}/events/${dataRow.id}/`;
-      } else {
-        if (field === 'id') {
-          target = generateLinkToEventInTraceView({
-            traceSlug: dataRow.trace?.toString()!,
-            projectSlug: dataRow['project.name']?.toString()!,
-            eventId: dataRow.id,
-            timestamp: dataRow.timestamp!,
-            location: locationWithTab,
-            organization,
-            transactionName,
-            source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
-            view: this.props.domainViewFilters?.view,
-          });
-        } else {
-          target = generateTraceLink(transactionName, this.props.domainViewFilters?.view)(
-            organization,
-            dataRow,
-            locationWithTab
-          );
-        }
-      }
-
+  const renderBodyCellWithData = useCallback(
+    (tableData: TableData | null) => {
       return (
-        <CellAction
-          column={column}
-          dataRow={dataRow}
-          handleCellAction={this.handleCellAction(column)}
-          allowActions={allowActions}
-        >
-          <Link to={target}>{rendered}</Link>
-        </CellAction>
-      );
-    }
+        column: TableColumn<keyof TableDataRow>,
+        dataRow: TableDataRow
+      ): React.ReactNode => renderBodyCell(tableData, column, dataRow);
+    },
+    [renderBodyCell]
+  );
 
-    if (field === 'replayId') {
-      const target: LocationDescriptor | null = dataRow.replayId
-        ? this.replayLinkGenerator(organization, dataRow, undefined)
-        : null;
+  const onSortClick = useCallback(
+    (currentSortKind?: string, currentSortField?: string) => {
+      trackAnalytics('performance_views.transactionEvents.sort', {
+        organization,
+        field: currentSortField,
+        direction: currentSortKind,
+      });
+    },
+    [organization]
+  );
 
-      return (
-        <CellAction
-          column={column}
-          dataRow={dataRow}
-          handleCellAction={this.handleCellAction(column)}
-          allowActions={allowActions}
-        >
-          {target ? (
-            <ViewReplayLink replayId={dataRow.replayId!} to={target}>
-              {rendered}
-            </ViewReplayLink>
-          ) : (
-            rendered
-          )}
-        </CellAction>
-      );
-    }
-
-    if (field === 'profile.id') {
-      const target = generateProfileLink()(organization, dataRow, undefined);
-      const transactionMeetsProfilingRequirements =
-        typeof dataRow['transaction.duration'] === 'number' &&
-        dataRow['transaction.duration'] > 20;
-
-      return (
-        <Tooltip
-          title={
-            !transactionMeetsProfilingRequirements && !dataRow['profile.id']
-              ? t('Profiles require a transaction duration of at least 20ms')
-              : null
-          }
-        >
-          <CellAction
-            column={column}
-            dataRow={dataRow}
-            handleCellAction={this.handleCellAction(column)}
-            allowActions={allowActions}
-          >
-            <div>
-              <LinkButton
-                disabled={!target || isEmptyObject(target)}
-                to={target || {}}
-                size="xs"
-              >
-                <IconProfiling size="xs" />
-              </LinkButton>
-            </div>
-          </CellAction>
-        </Tooltip>
-      );
-    }
-
-    const fieldName = getAggregateAlias(field);
-    const value = dataRow[fieldName];
-    if (tableMeta[fieldName] === 'integer' && typeof value === 'number' && value > 999) {
-      return (
-        <Tooltip
-          title={value.toLocaleString()}
-          containerDisplayMode="block"
-          position="right"
-        >
-          <CellAction
-            column={column}
-            dataRow={dataRow}
-            handleCellAction={this.handleCellAction(column)}
-            allowActions={allowActions}
-          >
-            {rendered}
-          </CellAction>
-        </Tooltip>
-      );
-    }
-
-    return (
-      <CellAction
-        column={column}
-        dataRow={dataRow}
-        handleCellAction={this.handleCellAction(column)}
-        allowActions={allowActions}
-      >
-        {rendered}
-      </CellAction>
-    );
-  }
-
-  renderBodyCellWithData = (tableData: TableData | null) => {
-    return (
+  const renderHeadCell = useCallback(
+    (
+      tableMeta: TableData['meta'],
       column: TableColumn<keyof TableDataRow>,
-      dataRow: TableDataRow
-    ): React.ReactNode => this.renderBodyCell(tableData, column, dataRow);
-  };
+      title: React.ReactNode
+    ): React.ReactNode => {
+      const align = fieldAlignment(column.name, column.type, tableMeta);
+      const field = {field: column.name, width: column.width};
 
-  onSortClick(currentSortKind?: string, currentSortField?: string) {
-    const {organization} = this.props;
-    trackAnalytics('performance_views.transactionEvents.sort', {
-      organization,
-      field: currentSortField,
-      direction: currentSortKind,
-    });
-  }
+      function generateSortLink(): LocationDescriptorObject | undefined {
+        if (!tableMeta) {
+          return undefined;
+        }
 
-  renderHeadCell(
-    tableMeta: TableData['meta'],
-    column: TableColumn<keyof TableDataRow>,
-    title: React.ReactNode
-  ): React.ReactNode {
-    const {eventView, location} = this.props;
+        const nextEventView = eventView.sortOnField(field, tableMeta);
+        const queryStringObject = nextEventView.generateQueryStringObject();
 
-    const align = fieldAlignment(column.name, column.type, tableMeta);
-    const field = {field: column.name, width: column.width};
+        return {
+          ...location,
+          query: {...location.query, sort: queryStringObject.sort},
+        };
+      }
+      const currentSort = eventView.sortForField(field, tableMeta);
+      const canSort =
+        field.field !== 'id' &&
+        field.field !== 'trace' &&
+        field.field !== 'replayId' &&
+        field.field !== SPAN_OP_RELATIVE_BREAKDOWN_FIELD &&
+        isFieldSortable(field, tableMeta);
 
-    function generateSortLink(): LocationDescriptorObject | undefined {
-      if (!tableMeta) {
-        return undefined;
+      const currentSortKind = currentSort ? currentSort.kind : undefined;
+      const currentSortField = currentSort ? currentSort.field : undefined;
+
+      if (field.field === SPAN_OP_RELATIVE_BREAKDOWN_FIELD) {
+        title = (
+          <OperationSort
+            title={OperationTitle}
+            eventView={eventView}
+            tableMeta={tableMeta}
+            location={location}
+          />
+        );
       }
 
-      const nextEventView = eventView.sortOnField(field, tableMeta);
-      const queryStringObject = nextEventView.generateQueryStringObject();
-
-      return {
-        ...location,
-        query: {...location.query, sort: queryStringObject.sort},
-      };
-    }
-    const currentSort = eventView.sortForField(field, tableMeta);
-    // EventId, TraceId, and ReplayId are technically sortable but we don't want to sort them here since sorting by a uuid value doesn't make sense
-    const canSort =
-      field.field !== 'id' &&
-      field.field !== 'trace' &&
-      field.field !== 'replayId' &&
-      field.field !== SPAN_OP_RELATIVE_BREAKDOWN_FIELD &&
-      isFieldSortable(field, tableMeta);
-
-    const currentSortKind = currentSort ? currentSort.kind : undefined;
-    const currentSortField = currentSort ? currentSort.field : undefined;
-
-    if (field.field === SPAN_OP_RELATIVE_BREAKDOWN_FIELD) {
-      title = (
-        <OperationSort
-          title={OperationTitle}
-          eventView={eventView}
-          tableMeta={tableMeta}
-          location={location}
+      const sortLink = (
+        <SortLink
+          align={align}
+          title={title || field.field}
+          direction={currentSortKind}
+          canSort={canSort}
+          generateSortLink={generateSortLink}
+          onClick={() => onSortClick(currentSortKind, currentSortField)}
         />
       );
-    }
+      return sortLink;
+    },
+    [eventView, location, onSortClick]
+  );
 
-    const sortLink = (
-      <SortLink
-        align={align}
-        title={title || field.field}
-        direction={currentSortKind}
-        canSort={canSort}
-        generateSortLink={generateSortLink}
-        onClick={() => this.onSortClick(currentSortKind, currentSortField)}
-      />
-    );
-    return sortLink;
-  }
+  const renderHeadCellWithMeta = useCallback(
+    (tableMeta: TableData['meta']) => {
+      const columnTitles = initialColumnTitles ?? COLUMN_TITLES;
+      return (column: TableColumn<keyof TableDataRow>, index: number): React.ReactNode =>
+        renderHeadCell(tableMeta, column, columnTitles[index]);
+    },
+    [renderHeadCell, initialColumnTitles]
+  );
 
-  renderHeadCellWithMeta = (tableMeta: TableData['meta']) => {
-    const columnTitles = this.props.columnTitles ?? COLUMN_TITLES;
-    return (column: TableColumn<keyof TableDataRow>, index: number): React.ReactNode =>
-      this.renderHeadCell(tableMeta, column, columnTitles[index]);
-  };
-
-  handleResizeColumn = (columnIndex: number, nextColumn: GridColumn) => {
-    const widths: number[] = [...this.state.widths];
-    widths[columnIndex] = nextColumn.width
-      ? Number(nextColumn.width)
-      : COL_WIDTH_UNDEFINED;
-    this.setState({...this.state, widths});
-  };
-
-  render() {
-    const {eventView, organization, location, setError, referrer, isEventLoading} =
-      this.props;
-
-    const totalEventsView = eventView.clone();
-    totalEventsView.sorts = [];
-    totalEventsView.fields = [{field: 'count()', width: -1}];
-
-    const {widths} = this.state;
-    const containsSpanOpsBreakdown = !!eventView
-      .getColumns()
-      .find(
-        (col: TableColumn<string | number>) =>
-          col.name === SPAN_OP_RELATIVE_BREAKDOWN_FIELD
-      );
-
-    const columnOrder = eventView
-      .getColumns()
-      .filter((col: TableColumn<string | number>) =>
-        shouldRenderColumn(containsSpanOpsBreakdown, col.name)
-      )
-      .map((col: TableColumn<string | number>, i: number) => {
-        if (typeof widths[i] === 'number') {
-          return {...col, width: widths[i]};
-        }
-        return col;
+  const handleResizeColumn = useCallback(
+    (columnIndex: number, nextColumn: GridColumn) => {
+      setWidths(prevWidths => {
+        const newWidths = [...prevWidths];
+        newWidths[columnIndex] = nextColumn.width
+          ? Number(nextColumn.width)
+          : COL_WIDTH_UNDEFINED;
+        return newWidths;
       });
+    },
+    []
+  );
 
-    if (
-      this.props.customColumns?.includes('attachments') &&
-      this.state.attachments.length
-    ) {
-      columnOrder.push({
-        isSortable: false,
-        key: 'attachments',
-        name: 'attachments',
-        type: 'never',
-        column: {field: 'attachments', kind: 'field', alias: undefined},
-      });
-    }
-
-    if (this.props.customColumns?.includes('minidump') && this.state.hasMinidumps) {
-      columnOrder.push({
-        isSortable: false,
-        key: 'minidump',
-        name: 'minidump',
-        type: 'never',
-        column: {field: 'minidump', kind: 'field', alias: undefined},
-      });
-    }
-
-    const joinCustomData = ({data}: TableData) => {
-      const attachmentsByEvent = groupBy(this.state.attachments, 'event_id');
-      data.forEach(event => {
+  const joinCustomData = useCallback(
+    (tableData: TableData | null) => {
+      if (!tableData?.data) {
+        return;
+      }
+      const attachmentsByEvent = groupBy(attachments, 'event_id');
+      tableData.data.forEach(event => {
         event.attachments = (attachmentsByEvent[event.id] || []) as any;
       });
-    };
+    },
+    [attachments]
+  );
 
-    const fetchAttachments = async ({data}: TableData, cursor: string) => {
-      const eventIds = data.map(value => value.id);
-      const fetchOnlyMinidumps = !this.props.customColumns?.includes('attachments');
+  const fetchAttachments = useCallback(
+    async (tableData: TableData, cursor: string) => {
+      const eventIds = tableData.data.map(value => value.id);
+      const fetchOnlyMinidumps = !customColumns?.includes('attachments');
 
       const queries: string = [
         'per_page=50',
@@ -508,119 +505,157 @@ class EventsTable extends Component<Props, State> {
         ...eventIds.map(eventId => `event_id=${eventId}`),
       ].join('&');
 
-      const res: IssueAttachment[] = await this.api.requestPromise(
-        `/api/0/issues/${this.props.issueId}/attachments/?${queries}`
+      const res: IssueAttachment[] = await api.requestPromise(
+        `/api/0/issues/${issueId}/attachments/?${queries}`
       );
 
-      let hasMinidumps = false;
+      let newHasMinidumps = false;
 
       res.forEach(attachment => {
         if (attachment.type === 'event.minidump') {
-          hasMinidumps = true;
+          newHasMinidumps = true;
         }
       });
 
-      this.setState({
-        ...this.state,
-        lastFetchedCursor: cursor,
-        attachments: res,
-        hasMinidumps,
-      });
-    };
+      setLastFetchedCursor(cursor);
+      setAttachments(res);
+      setHasMinidumps(newHasMinidumps);
+    },
+    [api, customColumns, issueId]
+  );
 
-    return (
-      <div data-test-id="events-table">
-        <DiscoverQuery
-          eventView={totalEventsView}
-          orgSlug={organization.slug}
-          location={location}
-          setError={error => setError(error?.message)}
-          referrer="api.performance.transaction-summary"
-          cursor="0:0:0"
-        >
-          {({isLoading: isTotalEventsLoading, tableData: table}) => {
-            const totalEventsCount = table?.data[0]?.['count()'] ?? 0;
+  const totalEventsView = eventView.clone();
+  totalEventsView.sorts = [];
+  totalEventsView.fields = [{field: 'count()', width: -1}];
 
-            return (
-              <DiscoverQuery
-                eventView={eventView}
-                orgSlug={organization.slug}
-                location={location}
-                setError={error => setError(error?.message)}
-                referrer={referrer || 'api.performance.transaction-events'}
-              >
-                {({pageLinks, isLoading: isDiscoverQueryLoading, tableData}) => {
-                  tableData ??= {data: []};
-                  const pageEventsCount = tableData?.data?.length ?? 0;
-                  const parsedPageLinks = parseLinkHeader(pageLinks);
-                  const cursor = parsedPageLinks?.next?.cursor;
-                  const shouldFetchAttachments: boolean =
-                    organization.features.includes('event-attachments') &&
-                    !!this.props.issueId &&
-                    !!cursor &&
-                    this.state.lastFetchedCursor !== cursor; // Only fetch on issue details page
-
-                  const paginationCaption =
-                    totalEventsCount && pageEventsCount
-                      ? tct('Showing [pageEventsCount] of [totalEventsCount] events', {
-                          pageEventsCount: pageEventsCount.toLocaleString(),
-                          totalEventsCount: totalEventsCount.toLocaleString(),
-                        })
-                      : undefined;
-                  if (cursor && shouldFetchAttachments) {
-                    fetchAttachments(tableData, cursor);
-                  }
-                  joinCustomData(tableData);
-                  return (
-                    <Fragment>
-                      <VisuallyCompleteWithData
-                        id="TransactionEvents-EventsTable"
-                        hasData={!!tableData?.data?.length}
-                      >
-                        {this.props.renderTableHeader
-                          ? this.props.renderTableHeader({
-                              isPending: isDiscoverQueryLoading,
-                              pageLinks,
-                              pageEventsCount,
-                              totalEventsCount,
-                            })
-                          : null}
-                        <GridEditable
-                          isLoading={
-                            isTotalEventsLoading ||
-                            isDiscoverQueryLoading ||
-                            shouldFetchAttachments ||
-                            isEventLoading
-                          }
-                          data={tableData?.data ?? []}
-                          columnOrder={columnOrder}
-                          columnSortBy={eventView.getSorts()}
-                          grid={{
-                            onResizeColumn: this.handleResizeColumn,
-                            renderHeadCell: this.renderHeadCellWithMeta(
-                              tableData?.meta
-                            ) as any,
-                            renderBodyCell: this.renderBodyCellWithData(tableData) as any,
-                          }}
-                        />
-                      </VisuallyCompleteWithData>
-                      {this.props.hidePagination ? null : (
-                        <Pagination
-                          disabled={isDiscoverQueryLoading}
-                          caption={paginationCaption}
-                          pageLinks={pageLinks}
-                        />
-                      )}
-                    </Fragment>
-                  );
-                }}
-              </DiscoverQuery>
-            );
-          }}
-        </DiscoverQuery>
-      </div>
+  const containsSpanOpsBreakdown = eventView
+    .getColumns()
+    .some(
+      (col: TableColumn<string | number>) => col.name === SPAN_OP_RELATIVE_BREAKDOWN_FIELD
     );
+
+  const columnOrder = eventView
+    .getColumns()
+    .filter((col: TableColumn<string | number>) =>
+      shouldRenderColumn(containsSpanOpsBreakdown, col.name)
+    )
+    .map((col: TableColumn<string | number>, i: number) => {
+      if (typeof widths[i] === 'number') {
+        return {...col, width: widths[i]};
+      }
+      return col;
+    });
+
+  if (customColumns?.includes('attachments') && attachments.length) {
+    columnOrder.push({
+      isSortable: false,
+      key: 'attachments',
+      name: 'attachments',
+      type: 'never',
+      column: {field: 'attachments', kind: 'field', alias: undefined},
+    });
   }
+
+  if (customColumns?.includes('minidump') && hasMinidumps) {
+    columnOrder.push({
+      isSortable: false,
+      key: 'minidump',
+      name: 'minidump',
+      type: 'never',
+      column: {field: 'minidump', kind: 'field', alias: undefined},
+    });
+  }
+
+  return (
+    <div data-test-id="events-table">
+      <DiscoverQuery
+        eventView={totalEventsView}
+        orgSlug={organization.slug}
+        location={location}
+        setError={error => setError(error?.message)}
+        referrer="api.performance.transaction-summary"
+        cursor="0:0:0"
+      >
+        {({isLoading: isTotalEventsLoading, tableData: table}) => {
+          const totalEventsCount = table?.data[0]?.['count()'] ?? 0;
+
+          return (
+            <DiscoverQuery
+              eventView={eventView}
+              orgSlug={organization.slug}
+              location={location}
+              setError={error => setError(error?.message)}
+              referrer={referrer || 'api.performance.transaction-events'}
+            >
+              {({pageLinks, isLoading: isDiscoverQueryLoading, tableData}) => {
+                tableData ??= {data: []};
+                const pageEventsCount = tableData?.data?.length ?? 0;
+                const parsedPageLinks = parseLinkHeader(pageLinks);
+                const cursor = parsedPageLinks?.next?.cursor;
+                const shouldFetchAttachments: boolean =
+                  organization.features.includes('event-attachments') &&
+                  !!issueId &&
+                  !!cursor &&
+                  lastFetchedCursor !== cursor; // Only fetch on issue details page
+
+                const paginationCaption =
+                  totalEventsCount && pageEventsCount
+                    ? tct('Showing [pageEventsCount] of [totalEventsCount] events', {
+                        pageEventsCount: pageEventsCount.toLocaleString(),
+                        totalEventsCount: totalEventsCount.toLocaleString(),
+                      })
+                    : undefined;
+                if (cursor && shouldFetchAttachments) {
+                  fetchAttachments(tableData, cursor);
+                }
+                joinCustomData(tableData);
+                return (
+                  <Fragment>
+                    <VisuallyCompleteWithData
+                      id="TransactionEvents-EventsTable"
+                      hasData={!!tableData?.data?.length}
+                    >
+                      {renderTableHeader
+                        ? renderTableHeader({
+                            isPending: isDiscoverQueryLoading,
+                            pageLinks,
+                            pageEventsCount,
+                            totalEventsCount,
+                          })
+                        : null}
+                      <GridEditable
+                        isLoading={
+                          isTotalEventsLoading ||
+                          isDiscoverQueryLoading ||
+                          shouldFetchAttachments ||
+                          isEventLoading
+                        }
+                        data={tableData?.data ?? []}
+                        columnOrder={columnOrder}
+                        columnSortBy={eventView.getSorts()}
+                        grid={{
+                          onResizeColumn: handleResizeColumn,
+                          renderHeadCell: renderHeadCellWithMeta(tableData?.meta) as any,
+                          renderBodyCell: renderBodyCellWithData(tableData) as any,
+                        }}
+                      />
+                    </VisuallyCompleteWithData>
+                    {hidePagination ? null : (
+                      <Pagination
+                        disabled={isDiscoverQueryLoading}
+                        caption={paginationCaption}
+                        pageLinks={pageLinks}
+                      />
+                    )}
+                  </Fragment>
+                );
+              }}
+            </DiscoverQuery>
+          );
+        }}
+      </DiscoverQuery>
+    </div>
+  );
 }
 
 const StyledIconQuestion = styled(QuestionTooltip)`

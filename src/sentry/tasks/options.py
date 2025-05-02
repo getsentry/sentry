@@ -18,7 +18,7 @@ logger = logging.getLogger("sentry")
     name="sentry.tasks.options.sync_options_control",
     queue="options.control",
     silo_mode=SiloMode.CONTROL,
-    taskworker=TaskworkerConfig(namespace=options_control_tasks),
+    taskworker_config=TaskworkerConfig(namespace=options_control_tasks),
 )
 def sync_options_control(cutoff=ONE_HOUR):
     _sync_options(cutoff)
@@ -27,7 +27,7 @@ def sync_options_control(cutoff=ONE_HOUR):
 @instrumented_task(
     name="sentry.tasks.options.sync_options",
     queue="options",
-    taskworker=TaskworkerConfig(namespace=options_tasks),
+    taskworker_config=TaskworkerConfig(namespace=options_tasks),
 )
 def sync_options(cutoff=ONE_HOUR):
     _sync_options(cutoff)

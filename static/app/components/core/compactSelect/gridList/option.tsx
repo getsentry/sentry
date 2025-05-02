@@ -8,12 +8,11 @@ import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
 import {Checkbox} from 'sentry/components/core/checkbox';
+import {CheckWrap} from 'sentry/components/core/compactSelect/styles';
 import {InnerWrap, MenuListItem} from 'sentry/components/core/menuListItem';
 import {IconCheckmark} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {FormSize} from 'sentry/utils/theme';
-
-import {CheckWrap} from '../styles';
 
 interface GridListOptionProps extends AriaGridListItemOptions {
   listState: ListState<any>;
@@ -42,11 +41,8 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
     ? selectionMode === 'multiple'
     : listState.selectionManager.selectionMode === 'multiple';
 
-  const {rowProps, gridCellProps, isSelected, isDisabled, isPressed} = useGridListItem(
-    {node, shouldSelectOnPressUp: true},
-    listState,
-    ref
-  );
+  const {rowProps, gridCellProps, isSelected, isDisabled, isPressed, isFocused} =
+    useGridListItem({node, shouldSelectOnPressUp: true}, listState, ref);
 
   const {
     checkboxProps: {
@@ -106,7 +102,9 @@ export function GridListOption({node, listState, size}: GridListOptionProps) {
             )}
           </CheckWrap>
         )}
-        {leadingItems}
+        {typeof leadingItems === 'function'
+          ? leadingItems({disabled: isDisabled, isFocused, isSelected})
+          : leadingItems}
       </Fragment>
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps

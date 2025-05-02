@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
@@ -32,22 +33,8 @@ describe('WebVitalsLandingPage', function () {
       action: 'PUSH',
       key: '',
     });
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [],
-      },
-    });
+
+    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -79,7 +66,7 @@ describe('WebVitalsLandingPage', function () {
   });
 
   it('renders', async () => {
-    render(<WebVitalsLandingPage />, {organization});
+    render(<WebVitalsLandingPage />, {organization, deprecatedRouterMocks: true});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     // Table query
     expect(eventsMock).toHaveBeenNthCalledWith(
@@ -105,6 +92,7 @@ describe('WebVitalsLandingPage', function () {
             'count_scores(measurements.score.cls)',
             'count_scores(measurements.score.inp)',
             'count_scores(measurements.score.ttfb)',
+            'count_scores(measurements.score.total)',
             'total_opportunity_score()',
           ],
           query:
@@ -125,12 +113,6 @@ describe('WebVitalsLandingPage', function () {
             'p75(measurements.cls)',
             'p75(measurements.ttfb)',
             'p75(measurements.inp)',
-            'p75(transaction.duration)',
-            'count_web_vitals(measurements.lcp, any)',
-            'count_web_vitals(measurements.fcp, any)',
-            'count_web_vitals(measurements.cls, any)',
-            'count_web_vitals(measurements.ttfb, any)',
-            'count_web_vitals(measurements.inp, any)',
             'count()',
           ],
           query:

@@ -110,7 +110,7 @@ export default function CustomIgnoreDurationModal(props: Props) {
             {t('Cancel')}
           </Button>
           <Button priority="primary" onClick={snoozeClicked}>
-            {t('Ignore')}
+            {t('Archive')}
           </Button>
         </ButtonBar>
       </Footer>

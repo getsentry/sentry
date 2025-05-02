@@ -7,6 +7,7 @@ import {
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DetectorTypeForm} from 'sentry/views/detectors/components/detectorTypeForm';
 import NewDetectorLayout from 'sentry/views/detectors/layouts/new';
 
 export default function DetectorNew() {
@@ -14,6 +15,7 @@ export default function DetectorNew() {
 
   return (
     <NewDetectorLayout>
+      <DetectorTypeForm />
       <StickyFooter>
         <StickyFooterLabel>{t('Step 1 of 2')}</StickyFooterLabel>
         <Flex gap={space(1)}>

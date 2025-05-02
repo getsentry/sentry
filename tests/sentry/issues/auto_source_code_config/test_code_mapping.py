@@ -152,25 +152,25 @@ class TestFrameInfo:
         [
             pytest.param(
                 {"module": "foo.bar.Baz$handle$1", "abs_path": "baz.java"},
-                "foo/bar",
+                "foo/bar/",
                 "foo/bar/baz.java",
                 id="dollar_symbol_in_module",
             ),
             pytest.param(
                 {"module": "foo.bar.Baz", "abs_path": "baz.extra.java"},
-                "foo/bar",
+                "foo/bar/",
                 "foo/bar/baz.extra.java",
                 id="two_dots_in_abs_path",
             ),
             pytest.param(
                 {"module": "foo.bar.Baz", "abs_path": "no_extension"},
-                "foo/bar",
+                "foo/bar/",
                 "foo/bar/Baz",  # The path does not use the abs_path
                 id="invalid_abs_path_no_extension",
             ),
             pytest.param(
                 {"module": "foo.bar.Baz", "abs_path": "foo$bar"},
-                "foo/bar",
+                "foo/bar/",
                 "foo/bar/Baz",  # The path does not use the abs_path
                 id="invalid_abs_path_dollar_sign",
             ),
@@ -499,6 +499,7 @@ class TestConvertStacktraceFramePathToSourcePath(TestCase):
                 frame=EventFrame(
                     filename="File.java",
                     module="sentry.module.File",
+                    abs_path="File.java",
                 ),
                 code_mapping=self.code_mapping_file,
                 platform="java",
@@ -532,6 +533,11 @@ class TestConvertStacktraceFramePathToSourcePath(TestCase):
                 "com.example.vu.android.empowerplant.MainFragment$3$1",
                 "MainFragment.java",
                 "src/com/example/vu/android/empowerplant/MainFragment.java",
+            ),
+            (
+                "com.example.foo.BarImpl$invoke$bazFetch$2",
+                "Bar.kt",  # Notice "Impl" is not included in the module above
+                "src/com/example/foo/Bar.kt",
             ),
         ]:
             assert (

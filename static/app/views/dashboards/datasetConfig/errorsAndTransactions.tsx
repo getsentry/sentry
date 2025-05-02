@@ -4,8 +4,8 @@ import trimStart from 'lodash/trimStart';
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client, ResponseMeta} from 'sentry/api';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Link from 'sentry/components/links/link';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
@@ -49,6 +49,18 @@ import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {shouldUseOnDemandMetrics} from 'sentry/utils/performance/contexts/onDemandControl';
+import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {
+  eventViewFromWidget,
+  getDashboardsMEPQueryParams,
+  getNumEquations,
+  getWidgetInterval,
+  hasDatasetSelector,
+} from 'sentry/views/dashboards/utils';
+import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
+import {EventsSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
+import {CUSTOM_EQUATION_VALUE} from 'sentry/views/dashboards/widgetBuilder/buildSteps/sortByStep';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -60,19 +72,6 @@ import {
   DiscoverQueryPageSource,
   UNPARAMETERIZED_TRANSACTION,
 } from 'sentry/views/performance/utils';
-
-import type {Widget, WidgetQuery} from '../types';
-import {DisplayType, WidgetType} from '../types';
-import {
-  eventViewFromWidget,
-  getDashboardsMEPQueryParams,
-  getNumEquations,
-  getWidgetInterval,
-  hasDatasetSelector,
-} from '../utils';
-import {transformEventsResponseToSeries} from '../utils/transformEventsResponseToSeries';
-import {EventsSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
-import {CUSTOM_EQUATION_VALUE} from '../widgetBuilder/buildSteps/sortByStep';
 
 import type {DatasetConfig} from './base';
 import {handleOrderByReset} from './base';
@@ -458,7 +457,7 @@ export function getCustomEventsFieldRenderer(
   return getFieldRenderer(field, meta, false);
 }
 
-export function getEventsRequest(
+function getEventsRequest(
   url: string,
   api: Client,
   query: WidgetQuery,
@@ -518,11 +517,7 @@ function getEventsSeriesRequest(
   const {displayType, limit} = widget;
   const {environments, projects} = pageFilters;
   const {start, end, period: statsPeriod} = pageFilters.datetime;
-  const interval = getWidgetInterval(
-    displayType,
-    {start, end, period: statsPeriod},
-    '1m'
-  );
+  const interval = getWidgetInterval(widget, {start, end, period: statsPeriod}, '1m');
   const isMEPEnabled = defined(mepSetting) && mepSetting !== MEPState.TRANSACTIONS_ONLY;
 
   let requestData: any;

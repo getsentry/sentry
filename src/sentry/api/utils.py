@@ -378,6 +378,7 @@ def handle_query_errors() -> Generator[None]:
         if isinstance(arg, TimeoutError):
             sentry_sdk.set_tag("query.error_reason", "Timeout")
             raise ParseError(detail=TIMEOUT_RPC_ERROR_MESSAGE)
+        sentry_sdk.capture_exception(error)
         raise APIException(detail=message)
     except SnubaError as error:
         message = "Internal error. Please try again."
@@ -427,7 +428,7 @@ def handle_query_errors() -> Generator[None]:
     except OperationalError as error:
         error_message = str(error)
         is_timeout = "canceling statement due to statement timeout" in error_message
-        if is_timeout and options.get("api.postgres-query-timeout-error-handling.enabled"):
+        if is_timeout:
             sentry_sdk.set_tag("query.error_reason", "Postgres statement timeout")
             sentry_sdk.capture_exception(error, level="warning")
             raise Throttled(

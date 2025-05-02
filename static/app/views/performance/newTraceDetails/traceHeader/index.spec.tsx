@@ -42,6 +42,7 @@ const baseProps: Partial<TraceMetadataHeaderProps> = {
     projects: [],
     version: 2,
   }),
+  traceSlug: 'trace-slug',
 };
 let organization: Organization;
 
@@ -57,7 +58,7 @@ describe('TraceMetaDataHeader', () => {
     it('should render module breadcrumbs', () => {
       useLocationMock.mockReturnValue(
         LocationFixture({
-          pathname: '/organizations/org-slug/insights/backend/trace/123',
+          pathname: '/organizations/org-slug/insights/backend/trace/trace-slug',
           query: {
             source: TraceViewSources.REQUESTS_MODULE,
           },
@@ -76,7 +77,7 @@ describe('TraceMetaDataHeader', () => {
       expect(breadcrumbsLinks[0]).toHaveTextContent('Backend');
       expect(breadcrumbsLinks[1]).toHaveTextContent('Domain Summary');
       expect(breadcrumbsItems).toHaveLength(1);
-      expect(breadcrumbsItems[0]).toHaveTextContent('Trace View');
+      expect(breadcrumbsItems[0]).toHaveTextContent(/trace-slug/);
     });
 
     it('should show insights from transaction summary with perf removal feature', () => {
@@ -106,7 +107,7 @@ describe('TraceMetaDataHeader', () => {
       );
       expect(breadcrumbsItems).toHaveLength(2);
       expect(breadcrumbsItems[0]).toHaveTextContent('Insights');
-      expect(breadcrumbsItems[1]).toHaveTextContent('Trace View');
+      expect(breadcrumbsItems[1]).toHaveTextContent(/trace-slug/);
     });
 
     it('should show insights from transaction summary', () => {
@@ -136,7 +137,7 @@ describe('TraceMetaDataHeader', () => {
       );
       expect(breadcrumbsItems).toHaveLength(2);
       expect(breadcrumbsItems[0]).toHaveTextContent('Insights');
-      expect(breadcrumbsItems[1]).toHaveTextContent('Trace View');
+      expect(breadcrumbsItems[1]).toHaveTextContent(/trace-slug/);
     });
 
     it('should render domain overview breadcrumbs', () => {
@@ -161,7 +162,7 @@ describe('TraceMetaDataHeader', () => {
       expect(breadcrumbsLinks[0]).toHaveTextContent('Frontend');
       expect(breadcrumbsLinks[1]).toHaveTextContent('Transaction Summary');
       expect(breadcrumbsItems).toHaveLength(1);
-      expect(breadcrumbsItems[0]).toHaveTextContent('Trace View');
+      expect(breadcrumbsItems[0]).toHaveTextContent(/trace-slug/);
     });
   });
 });

@@ -23,8 +23,6 @@ const AUTH_ENDPOINT = '/auth/';
 describe('AccountSecurity', function () {
   const router = RouterFixture();
   beforeEach(function () {
-    jest.spyOn(window.location, 'assign').mockImplementation(() => {});
-
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
@@ -34,10 +32,6 @@ describe('AccountSecurity', function () {
       url: ACCOUNT_EMAILS_ENDPOINT,
       body: AccountEmailsFixture(),
     });
-  });
-
-  afterEach(function () {
-    jest.mocked(window.location.assign).mockRestore();
   });
 
   function renderComponent() {
@@ -58,12 +52,7 @@ describe('AccountSecurity', function () {
           routeParams={router.params}
           params={{...router.params, authId: '15'}}
         />
-      </AccountSecurityWrapper>,
-      {
-        router: {
-          params: {authId: '15'},
-        },
-      }
+      </AccountSecurityWrapper>
     );
   }
 

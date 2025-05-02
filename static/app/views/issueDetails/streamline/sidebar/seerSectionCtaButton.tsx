@@ -2,8 +2,7 @@ import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Chevron} from 'sentry/components/chevron';
-import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button';
 import {
   AutofixStatus,
   type AutofixStep,
@@ -12,21 +11,18 @@ import {
 import {useAiAutofix, useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {useLocation} from 'sentry/utils/useLocation';
+import type {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
 
 interface Props {
-  aiConfig: {
-    hasAutofix: boolean | null | undefined;
-    hasResources: boolean;
-    hasSummary: boolean;
-    isAutofixSetupLoading: boolean;
-    needsGenAIConsent: boolean;
-  };
+  aiConfig: ReturnType<typeof useAiConfig>;
   event: Event;
   group: Group;
   hasStreamlinedUI: boolean;
@@ -40,12 +36,26 @@ export function SeerSectionCtaButton({
   project,
   hasStreamlinedUI,
 }: Props) {
+  const location = useLocation();
+  const seerLink = {
+    pathname: location.pathname,
+    query: {
+      ...location.query,
+      seerDrawer: true,
+    },
+  };
+
   const openButtonRef = useRef<HTMLButtonElement>(null);
 
   const {isPending: isAutofixPending} = useAutofixData({groupId: group.id});
   const {autofixData} = useAiAutofix(group, event, {isSidebar: true, pollInterval: 1500});
 
-  const openSeerDrawer = useOpenSeerDrawer(group, project, event, openButtonRef);
+  const {openSeerDrawer} = useOpenSeerDrawer({
+    group,
+    project,
+    event,
+    buttonRef: openButtonRef,
+  });
   const isDrawerOpenRef = useRef(false);
 
   // Keep track of previous steps to detect state transitions and notify the user
@@ -86,12 +96,12 @@ export function SeerSectionCtaButton({
         step => step.type === AutofixStepType.DEFAULT
       );
       if (prevProcessingStep && prevProcessingStep.status !== AutofixStatus.COMPLETED) {
-        if (currentSteps.find(step => step.type === AutofixStepType.CHANGES)) {
+        if (currentSteps.some(step => step.type === AutofixStepType.CHANGES)) {
           addSuccessMessage(t('Autofix has finished coding.'));
-        } else if (currentSteps.find(step => step.type === AutofixStepType.SOLUTION)) {
+        } else if (currentSteps.some(step => step.type === AutofixStepType.SOLUTION)) {
           addSuccessMessage(t('Autofix has found a solution.'));
         } else if (
-          currentSteps.find(step => step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS)
+          currentSteps.some(step => step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS)
         ) {
           addSuccessMessage(t('Autofix has found the root cause.'));
         }
@@ -122,7 +132,7 @@ export function SeerSectionCtaButton({
   }, []);
 
   const showCtaButton =
-    aiConfig.needsGenAIConsent ||
+    aiConfig.needsGenAiAcknowledgement ||
     aiConfig.hasAutofix ||
     (aiConfig.hasSummary && aiConfig.hasResources);
   const isButtonLoading = aiConfig.isAutofixSetupLoading || isAutofixPending;
@@ -137,8 +147,8 @@ export function SeerSectionCtaButton({
     autofixData?.steps?.some(step => step.type === type);
 
   const getButtonText = () => {
-    if (aiConfig.needsGenAIConsent) {
-      return t('Set Up Autofix');
+    if (aiConfig.needsGenAiAcknowledgement) {
+      return t('Set Up Seer');
     }
 
     if (!aiConfig.hasAutofix) {
@@ -190,7 +200,7 @@ export function SeerSectionCtaButton({
 
   return (
     <StyledButton
-      ref={openButtonRef}
+      to={seerLink}
       onClick={handleOpenDrawer}
       analyticsEventKey="issue_details.seer_opened"
       analyticsEventName="Issue Details: Seer Opened"
@@ -203,16 +213,16 @@ export function SeerSectionCtaButton({
       {getButtonText()}
       <ChevronContainer>
         {isAutofixInProgress ? (
-          <StyledLoadingIndicator mini size={14} hideMessage />
+          <StyledLoadingIndicator size={14} />
         ) : (
-          <Chevron direction="right" size="large" />
+          <IconChevron direction="right" size="xs" />
         )}
       </ChevronContainer>
     </StyledButton>
   );
 }
 
-const StyledButton = styled(Button)`
+const StyledButton = styled(LinkButton)`
   margin-top: ${space(1)};
   width: 100%;
   background: ${p => p.theme.background}
@@ -231,7 +241,7 @@ const ChevronContainer = styled('div')`
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   position: relative;
-  top: 5px;
+  margin-left: ${space(1)};
   color: ${p => p.theme.pink400};
 
   .loading-indicator {

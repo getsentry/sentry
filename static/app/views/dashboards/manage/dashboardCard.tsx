@@ -16,7 +16,7 @@ import type {User} from 'sentry/types/user';
 
 interface Props {
   detail: React.ReactNode;
-  onFavorite: (isFavorited: boolean) => void;
+  onFavorite: (isFavorited: boolean) => Promise<void>;
   renderWidgets: () => React.ReactNode;
   title: string;
   to: LinkProps['to'];

@@ -1,4 +1,3 @@
-import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -9,33 +8,39 @@ import type {EventTransaction} from 'sentry/types/event';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {TraceContextProfiles} from 'sentry/views/performance/newTraceDetails/traceContextProfiles';
 import {TraceContextVitals} from 'sentry/views/performance/newTraceDetails/traceContextVitals';
+import {TraceContextSectionKeys} from 'sentry/views/performance/newTraceDetails/traceHeader/scrollToSectionLinks';
 import {TraceLinkNavigationButton} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/traceLinkNavigationButton';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {TraceViewLogsSection} from 'sentry/views/performance/newTraceDetails/traceOurlogs';
+import {TraceSummarySection} from 'sentry/views/performance/newTraceDetails/traceSummary';
+import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
 
 type Props = {
+  logs: OurLogsResponseItem[] | undefined;
+  onScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
+  traceSlug: string;
   tree: TraceTree;
 };
 
-export function TraceContextPanel({tree, rootEvent}: Props) {
-  const renderTags = useCallback(() => {
-    if (!rootEvent.data) {
-      return null;
-    }
-
-    return (
-      <EventTagsTree
-        event={rootEvent.data}
-        meta={rootEvent.data._meta}
-        projectSlug={rootEvent.data.projectSlug ?? ''}
-        tags={rootEvent.data.tags ?? []}
-      />
-    );
-  }, [rootEvent.data]);
+export function TraceContextPanel({
+  traceSlug,
+  tree,
+  rootEvent,
+  onScrollToNode,
+  logs,
+}: Props) {
+  const {hasProfiles, hasLogs, hasTags} = useTraceContextSections({
+    tree,
+    rootEvent,
+    logs,
+  });
 
   const organization = useOrganization();
   const showLinkedTraces = organization?.features.includes('trace-view-linked-traces');
@@ -53,21 +58,54 @@ export function TraceContextPanel({tree, rootEvent}: Props) {
               end: rootEvent.data?.endTimestamp,
             }}
           />
+          <TraceLinkNavigationButton
+            direction={'next'}
+            isLoading={rootEvent.isLoading}
+            projectID={rootEvent.data?.projectID ?? ''}
+            traceContext={rootEvent.data?.contexts.trace}
+            currentTraceTimestamps={{
+              start: rootEvent.data?.startTimestamp,
+              end: rootEvent.data?.endTimestamp,
+            }}
+          />
         </TraceLinksNavigationContainer>
       )}
 
-      <VitalMetersContainer>
-        <TraceContextVitals tree={tree} />
+      <VitalMetersContainer id={TraceContextSectionKeys.WEB_VITALS}>
+        <TraceContextVitals rootEvent={rootEvent} tree={tree} logs={logs} />
       </VitalMetersContainer>
-      <TraceTagsContainer>
-        <FoldSection sectionKey={'trace_tags' as SectionKey} title={t('Trace Tags')}>
-          {renderTags()}
-        </FoldSection>
-      </TraceTagsContainer>
+      {hasTags && rootEvent.data && (
+        <ContextRow>
+          <FoldSection
+            sectionKey={TraceContextSectionKeys.TAGS as string as SectionKey}
+            title={t('Tags')}
+            disableCollapsePersistence
+          >
+            <EventTagsTree
+              event={rootEvent.data}
+              meta={rootEvent.data._meta}
+              projectSlug={rootEvent.data.projectSlug ?? ''}
+              tags={rootEvent.data.tags}
+            />
+          </FoldSection>
+        </ContextRow>
+      )}
+      {hasProfiles && (
+        <ContextRow>
+          <TraceContextProfiles tree={tree} onScrollToNode={onScrollToNode} />
+        </ContextRow>
+      )}
       <Feature features={['ourlogs-enabled']}>
-        <TraceTagsContainer>
-          <TraceViewLogsSection />
-        </TraceTagsContainer>
+        {hasLogs && (
+          <ContextRow>
+            <TraceViewLogsSection />
+          </ContextRow>
+        )}
+      </Feature>
+      <Feature features={['single-trace-summary']}>
+        <ContextRow>
+          <TraceSummarySection traceSlug={traceSlug} />
+        </ContextRow>
       </Feature>
     </Container>
   );
@@ -89,7 +127,7 @@ const VitalMetersContainer = styled('div')`
   width: 100%;
 `;
 
-const TraceTagsContainer = styled('div')`
+const ContextRow = styled('div')`
   background-color: ${p => p.theme.background};
   width: 100%;
   border: 1px solid ${p => p.theme.border};
@@ -101,5 +139,8 @@ const TraceLinksNavigationContainer = styled('div')`
   display: flex;
   justify-content: space-between;
   flex-direction: row;
-  margin: ${space(1)} 0;
+
+  &:not(:empty) {
+    margin-top: ${space(1)};
+  }
 `;

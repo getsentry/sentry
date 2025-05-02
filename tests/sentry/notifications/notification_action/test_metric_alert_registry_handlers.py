@@ -8,32 +8,38 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 
-from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
-from sentry.incidents.models.incident import IncidentStatus
+from sentry.incidents.grouptype import MetricIssue
+from sentry.incidents.models.alert_rule import (
+    AlertRuleDetectionType,
+    AlertRuleSensitivity,
+    AlertRuleThresholdType,
+)
+from sentry.incidents.models.incident import IncidentStatus, TriggerStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
     MetricIssueContext,
     NotificationContext,
     OpenPeriodContext,
 )
-from sentry.issues.grouptype import MetricIssuePOC
+from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.notifications.models.notificationaction import ActionTarget
-from sentry.notifications.notification_action.metric_alert_registry import (
-    OpsgenieMetricAlertHandler,
-    PagerDutyMetricAlertHandler,
-)
 from sentry.notifications.notification_action.types import BaseMetricAlertHandler
-from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
-from sentry.types.activity import ActivityType
+from sentry.testutils.skips import requires_snuba
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
+
+pytestmark = [requires_snuba]
 
 
 class TestHandler(BaseMetricAlertHandler):
@@ -44,25 +50,47 @@ class TestHandler(BaseMetricAlertHandler):
         alert_context: AlertContext,
         metric_issue_context: MetricIssueContext,
         open_period_context: OpenPeriodContext,
-        organization: Organization,
+        trigger_status: TriggerStatus,
         notification_uuid: str,
+        organization: Organization,
+        project: Project,
     ) -> None:
         pass
 
 
 @apply_feature_flag_on_cls("organizations:issue-open-periods")
 class MetricAlertHandlerBase(BaseWorkflowTest):
-    def setUp(self):
-        super().setUp()
+    def create_models(self):
         self.project = self.create_project()
         self.detector = self.create_detector(project=self.project)
+
+        with self.tasks():
+            self.snuba_query = create_snuba_query(
+                query_type=SnubaQuery.Type.ERROR,
+                dataset=Dataset.Events,
+                query="hello",
+                aggregate="count()",
+                time_window=timedelta(minutes=1),
+                resolution=timedelta(minutes=1),
+                environment=self.environment,
+                event_types=[SnubaQueryEventType.EventType.ERROR],
+            )
+            self.query_subscription = create_snuba_subscription(
+                project=self.project,
+                subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+                snuba_query=self.snuba_query,
+            )
+        self.data_source = self.create_data_source(
+            organization=self.organization, source_id=self.query_subscription.id
+        )
+        self.create_data_source_detector(data_source=self.data_source, detector=self.detector)
         self.workflow = self.create_workflow(environment=self.environment)
 
         self.snuba_query = self.create_snuba_query()
 
         self.group, self.event, self.group_event = self.create_group_event(
             occurrence=self.create_issue_occurrence(
-                initial_issue_priority=PriorityLevel.HIGH.value,
+                priority=PriorityLevel.HIGH.value,
                 level="error",
                 evidence_data={
                     "snuba_query_id": self.snuba_query.id,
@@ -70,24 +98,23 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
                 },
             ),
         )
-
-        self.save_group_with_open_period(self.group)
-        self.event_data = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
-
-    def save_group_with_open_period(self, group: Group) -> None:
-        # test a new group has an open period
-        group.type = MetricIssuePOC.type_id
-        group.save()
-        Activity.objects.create(
-            group=group,
-            project=group.project,
-            type=ActivityType.SET_RESOLVED.value,
-            datetime=timezone.now() + timedelta(days=1),
+        self.group.priority = PriorityLevel.HIGH.value
+        self.group.save()
+        self.open_period, _ = GroupOpenPeriod.objects.get_or_create(
+            group=self.group,
+            project=self.project,
+            date_started=self.group_event.group.first_seen,
         )
+        self.event_data = WorkflowEventData(
+            event=self.group_event, workflow_env=self.workflow.environment
+        )
+
+    def setUp(self):
+        self.create_models()
 
     def create_issue_occurrence(
         self,
-        initial_issue_priority: int | None = None,
+        priority: int | None = None,
         level: str = "error",
         evidence_data: Mapping[str, Any] | None = None,
     ):
@@ -104,11 +131,11 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
             resource_id="test_resource_id",
             evidence_data=evidence_data,
             evidence_display=[],
-            type=MetricIssuePOC,
+            type=MetricIssue,
             detection_time=timezone.now(),
             level=level,
             culprit="test_culprit",
-            initial_issue_priority=initial_issue_priority,
+            priority=priority,
             assignee=None,
         )
 
@@ -120,6 +147,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         target_display: str | None = None,
         sentry_app_config: list[dict[str, Any]] | dict[str, Any] | None = None,
         sentry_app_id: str | None = None,
+        target_type: ActionTarget | None = None,
     ):
         assert asdict(notification_context) == {
             "id": notification_context.id,
@@ -128,6 +156,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
             "target_display": target_display,
             "sentry_app_config": sentry_app_config,
             "sentry_app_id": sentry_app_id,
+            "target_type": target_type,
         }
 
     def assert_alert_context(
@@ -138,6 +167,9 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         threshold_type: AlertRuleThresholdType | None = None,
         detection_type: AlertRuleDetectionType | None = None,
         comparison_delta: int | None = None,
+        sensitivity: AlertRuleSensitivity | None = None,
+        resolve_threshold: float | None = None,
+        alert_threshold: float | None = None,
     ):
         assert asdict(alert_context) == {
             "name": name,
@@ -145,6 +177,9 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
             "threshold_type": threshold_type,
             "detection_type": detection_type,
             "comparison_delta": comparison_delta,
+            "sensitivity": sensitivity,
+            "resolve_threshold": resolve_threshold,
+            "alert_threshold": alert_threshold,
         }
 
     def assert_metric_issue_context(
@@ -153,6 +188,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         open_period_identifier: int,
         snuba_query: SnubaQuery,
         new_status: IncidentStatus,
+        title: str,
         metric_value: float | None = None,
         subscription: QuerySubscription | None = None,
         group: Group | None = None,
@@ -164,16 +200,19 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
             "subscription": subscription,
             "new_status": new_status,
             "metric_value": metric_value,
+            "title": title,
             "group": group,
         }
 
     def assert_open_period_context(
         self,
         open_period_context: OpenPeriodContext,
+        id: int,
         date_started: datetime,
         date_closed: datetime | None,
     ):
         assert asdict(open_period_context) == {
+            "id": id,
             "date_started": date_started,
             "date_closed": date_closed,
         }
@@ -208,15 +247,22 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         )
 
         self.group, self.event, self.group_event = self.create_group_event(
-            group_type_id=MetricIssuePOC.type_id,
+            group_type_id=MetricIssue.type_id,
             occurrence=self.create_issue_occurrence(
-                initial_issue_priority=PriorityLevel.HIGH.value,
+                priority=PriorityLevel.HIGH.value,
                 level="error",
                 evidence_data={
                     "snuba_query_id": self.snuba_query.id,
                     "metric_value": 123.45,
                 },
             ),
+        )
+        self.group.priority = PriorityLevel.HIGH.value
+        self.group.save()
+        self.open_period, _ = GroupOpenPeriod.objects.get_or_create(
+            group=self.group,
+            project=self.project,
+            date_started=self.group_event.group.first_seen,
         )
         self.event_data = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
         self.handler = TestHandler()
@@ -230,9 +276,9 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
     def test_get_incident_status(self):
         # Initial priority is high -> incident is critical
         group, _, group_event = self.create_group_event(
-            group_type_id=MetricIssuePOC.type_id,
+            group_type_id=MetricIssue.type_id,
             occurrence=self.create_issue_occurrence(
-                initial_issue_priority=PriorityLevel.HIGH.value,
+                priority=PriorityLevel.HIGH.value,
                 level="error",
             ),
         )
@@ -244,9 +290,9 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
 
         # Initial priority is medium -> incident is warning
         group, _, group_event = self.create_group_event(
-            group_type_id=MetricIssuePOC.type_id,
+            group_type_id=MetricIssue.type_id,
             occurrence=self.create_issue_occurrence(
-                initial_issue_priority=PriorityLevel.MEDIUM.value,
+                priority=PriorityLevel.MEDIUM.value,
                 level="warning",
             ),
         )
@@ -258,9 +304,9 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
 
         # Resolved group -> incident is closed
         group, _, group_event = self.create_group_event(
-            group_type_id=MetricIssuePOC.type_id,
+            group_type_id=MetricIssue.type_id,
             occurrence=self.create_issue_occurrence(
-                initial_issue_priority=PriorityLevel.MEDIUM.value,
+                priority=PriorityLevel.MEDIUM.value,
                 level="warning",
             ),
         )
@@ -290,9 +336,9 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
 
     def test_get_snuba_query(self):
         _, _, group_event = self.create_group_event(
-            group_type_id=MetricIssuePOC.type_id,
+            group_type_id=MetricIssue.type_id,
             occurrence=self.create_issue_occurrence(
-                initial_issue_priority=PriorityLevel.HIGH.value,
+                priority=PriorityLevel.HIGH.value,
                 level="error",
                 evidence_data={"snuba_query_id": self.snuba_query.id},
             ),
@@ -309,9 +355,9 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         assert status == IncidentStatus.CRITICAL
 
         _, _, group_event = self.create_group_event(
-            group_type_id=MetricIssuePOC.type_id,
+            group_type_id=MetricIssue.type_id,
             occurrence=self.create_issue_occurrence(
-                initial_issue_priority=PriorityLevel.MEDIUM.value,
+                priority=PriorityLevel.MEDIUM.value,
                 level="warning",
                 evidence_data={"snuba_query_id": self.snuba_query.id},
             ),
@@ -322,9 +368,9 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
 
     def test_get_metric_value(self):
         _, _, group_event = self.create_group_event(
-            group_type_id=MetricIssuePOC.type_id,
+            group_type_id=MetricIssue.type_id,
             occurrence=self.create_issue_occurrence(
-                initial_issue_priority=PriorityLevel.MEDIUM.value,
+                priority=PriorityLevel.MEDIUM.value,
                 level="warning",
                 evidence_data={"metric_value": 123.45},
             ),
@@ -362,13 +408,17 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             threshold_type=None,
             detection_type=None,
             comparison_delta=None,
+            sensitivity=None,
+            resolve_threshold=None,
+            alert_threshold=1.0,
         )
         self.assert_metric_issue_context(
             metric_issue_context,
-            open_period_identifier=self.group_event.group.id,
+            open_period_identifier=self.open_period.id,
             snuba_query=self.snuba_query,
             new_status=IncidentStatus.CRITICAL,
             metric_value=123.45,
+            title=self.group_event.group.title,
             group=self.group_event.group,
         )
         assert organization == self.detector.project.organization
@@ -381,230 +431,8 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
                 alert_context=mock.MagicMock(),
                 metric_issue_context=mock.MagicMock(),
                 open_period_context=mock.MagicMock(),
+                trigger_status=TriggerStatus.ACTIVE,
                 organization=mock.MagicMock(),
+                project=mock.MagicMock(),
                 notification_uuid="test-uuid",
             )
-
-
-@apply_feature_flag_on_cls("organizations:issue-open-periods")
-class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
-    def setUp(self):
-        super().setUp()
-        self.action = self.create_action(
-            type=Action.Type.PAGERDUTY,
-            integration_id=1234567890,
-            config={"target_identifier": "service123", "target_type": ActionTarget.SPECIFIC},
-            data={"priority": "default"},
-        )
-        self.snuba_query = self.create_snuba_query()
-
-        self.group, self.event, self.group_event = self.create_group_event(
-            occurrence=self.create_issue_occurrence(
-                initial_issue_priority=PriorityLevel.HIGH.value,
-                level="error",
-                evidence_data={
-                    "snuba_query_id": self.snuba_query.id,
-                    "metric_value": 123.45,
-                },
-            ),
-        )
-        self.event_data = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
-        self.handler = PagerDutyMetricAlertHandler()
-
-    @mock.patch(
-        "sentry.notifications.notification_action.metric_alert_registry.handlers.pagerduty_metric_alert_handler.send_incident_alert_notification"
-    )
-    def test_send_alert(self, mock_send_incident_alert_notification):
-        notification_context = NotificationContext.from_action_model(self.action)
-        assert self.group_event.occurrence is not None
-        alert_context = AlertContext.from_workflow_engine_models(
-            self.detector, self.group_event.occurrence
-        )
-        metric_issue_context = MetricIssueContext.from_group_event(self.group_event)
-        open_period_context = OpenPeriodContext.from_group(self.group)
-        notification_uuid = str(uuid.uuid4())
-
-        self.handler.send_alert(
-            notification_context=notification_context,
-            alert_context=alert_context,
-            metric_issue_context=metric_issue_context,
-            open_period_context=open_period_context,
-            organization=self.detector.project.organization,
-            notification_uuid=notification_uuid,
-        )
-
-        mock_send_incident_alert_notification.assert_called_once_with(
-            notification_context=notification_context,
-            alert_context=alert_context,
-            metric_issue_context=metric_issue_context,
-            organization=self.detector.project.organization,
-            notification_uuid=notification_uuid,
-        )
-
-    @mock.patch(
-        "sentry.notifications.notification_action.metric_alert_registry.PagerDutyMetricAlertHandler.send_alert"
-    )
-    def test_invoke_legacy_registry(self, mock_send_alert):
-        self.handler.invoke_legacy_registry(self.event_data, self.action, self.detector)
-
-        assert mock_send_alert.call_count == 1
-        (
-            notification_context,
-            alert_context,
-            metric_issue_context,
-            open_period_context,
-            organization,
-            notification_uuid,
-        ) = self.unpack_kwargs(mock_send_alert)
-
-        assert organization == self.detector.project.organization
-        assert isinstance(notification_uuid, str)
-
-        self.assert_notification_context(
-            notification_context,
-            integration_id=1234567890,
-            target_identifier="service123",
-            target_display=None,
-            sentry_app_config={"priority": "default"},
-            sentry_app_id=None,
-        )
-
-        self.assert_alert_context(
-            alert_context,
-            name=self.detector.name,
-            action_identifier_id=self.detector.id,
-            threshold_type=None,
-            detection_type=None,
-            comparison_delta=None,
-        )
-
-        self.assert_metric_issue_context(
-            metric_issue_context,
-            open_period_identifier=self.group_event.group.id,
-            snuba_query=self.snuba_query,
-            new_status=IncidentStatus.CRITICAL,
-            metric_value=123.45,
-            group=self.group_event.group,
-        )
-
-        self.assert_open_period_context(
-            open_period_context,
-            date_started=self.group_event.group.first_seen,
-            date_closed=None,
-        )
-
-        assert organization == self.detector.project.organization
-        assert isinstance(notification_uuid, str)
-
-
-@apply_feature_flag_on_cls("organizations:issue-open-periods")
-class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
-    def setUp(self):
-        super().setUp()
-        self.action = self.create_action(
-            type=Action.Type.OPSGENIE,
-            integration_id=1234567890,
-            config={"target_identifier": "team123", "target_type": ActionTarget.SPECIFIC},
-            data={"priority": "P1"},
-        )
-        self.snuba_query = self.create_snuba_query()
-
-        self.group, self.event, self.group_event = self.create_group_event(
-            occurrence=self.create_issue_occurrence(
-                initial_issue_priority=PriorityLevel.HIGH.value,
-                level="error",
-                evidence_data={
-                    "snuba_query_id": self.snuba_query.id,
-                    "metric_value": 123.45,
-                },
-            ),
-        )
-        self.event_data = WorkflowEventData(
-            event=self.group_event, workflow_env=self.workflow.environment
-        )
-        self.handler = OpsgenieMetricAlertHandler()
-
-    @mock.patch(
-        "sentry.notifications.notification_action.metric_alert_registry.handlers.opsgenie_metric_alert_handler.send_incident_alert_notification"
-    )
-    def test_send_alert(self, mock_send_incident_alert_notification):
-        notification_context = NotificationContext.from_action_model(self.action)
-        assert self.group_event.occurrence is not None
-        alert_context = AlertContext.from_workflow_engine_models(
-            self.detector, self.group_event.occurrence
-        )
-        metric_issue_context = MetricIssueContext.from_group_event(self.group_event)
-        open_period_context = OpenPeriodContext.from_group(self.group)
-        notification_uuid = str(uuid.uuid4())
-
-        self.handler.send_alert(
-            notification_context=notification_context,
-            alert_context=alert_context,
-            metric_issue_context=metric_issue_context,
-            open_period_context=open_period_context,
-            organization=self.detector.project.organization,
-            notification_uuid=notification_uuid,
-        )
-
-        mock_send_incident_alert_notification.assert_called_once_with(
-            notification_context=notification_context,
-            alert_context=alert_context,
-            metric_issue_context=metric_issue_context,
-            organization=self.detector.project.organization,
-            notification_uuid=notification_uuid,
-        )
-
-    @mock.patch(
-        "sentry.notifications.notification_action.metric_alert_registry.OpsgenieMetricAlertHandler.send_alert"
-    )
-    def test_invoke_legacy_registry(self, mock_send_alert):
-        self.handler.invoke_legacy_registry(self.event_data, self.action, self.detector)
-
-        assert mock_send_alert.call_count == 1
-        (
-            notification_context,
-            alert_context,
-            metric_issue_context,
-            open_period_context,
-            organization,
-            notification_uuid,
-        ) = self.unpack_kwargs(mock_send_alert)
-
-        assert isinstance(notification_context, NotificationContext)
-        assert isinstance(alert_context, AlertContext)
-        assert isinstance(metric_issue_context, MetricIssueContext)
-        self.assert_notification_context(
-            notification_context,
-            integration_id=1234567890,
-            target_identifier="team123",
-            target_display=None,
-            sentry_app_config={"priority": "P1"},
-            sentry_app_id=None,
-        )
-
-        self.assert_alert_context(
-            alert_context,
-            name=self.detector.name,
-            action_identifier_id=self.detector.id,
-            threshold_type=None,
-            detection_type=None,
-            comparison_delta=None,
-        )
-
-        self.assert_metric_issue_context(
-            metric_issue_context,
-            open_period_identifier=self.group_event.group.id,
-            snuba_query=self.snuba_query,
-            new_status=IncidentStatus.CRITICAL,
-            metric_value=123.45,
-            group=self.group_event.group,
-        )
-
-        self.assert_open_period_context(
-            open_period_context,
-            date_started=self.group_event.group.first_seen,
-            date_closed=None,
-        )
-
-        assert organization == self.detector.project.organization
-        assert isinstance(notification_uuid, str)

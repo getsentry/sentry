@@ -2,7 +2,6 @@ import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
 import type BaseChart from 'sentry/components/charts/baseChart';
-import type {RenderProps} from 'sentry/components/charts/eventsRequest';
 import type {DateString} from 'sentry/types/core';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -10,7 +9,7 @@ import type EventView from 'sentry/utils/discover/eventView';
 import type {PerformanceWidgetContainerTypes} from './components/performanceWidgetContainer';
 import type {ChartDefinition, PerformanceWidgetSetting} from './widgetDefinitions';
 
-export enum VisualizationDataState {
+enum VisualizationDataState {
   ERROR = 'error',
   LOADING = 'loading',
   EMPTY = 'empty',
@@ -57,14 +56,12 @@ export interface WidgetDataResult {
   isErrored: boolean;
   isLoading: boolean;
 }
-export interface WidgetDataConstraint {
-  [dataKey: string]: WidgetDataResult | undefined;
-}
+export type WidgetDataConstraint = Record<string, WidgetDataResult | undefined>;
 
-export type QueryChildren = {
+type QueryChildren = {
   children: (props: any) => React.ReactNode; // TODO(k-fish): Fix any type.
 };
-export type QueryFC<T extends WidgetDataConstraint> = React.ComponentType<
+type QueryFC<T extends WidgetDataConstraint> = React.ComponentType<
   QueryChildren & {
     eventView: EventView;
     orgSlug: string;
@@ -96,7 +93,7 @@ export type QueryDefinition<
   ) => S; // TODO(k-fish): Fix any type.
   enabled?: (data: T) => boolean;
 };
-export type Queries<T extends WidgetDataConstraint> = Record<
+type Queries<T extends WidgetDataConstraint> = Record<
   string,
   QueryDefinition<T, T[string]>
 >;
@@ -158,16 +155,11 @@ export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
   containerType?: PerformanceWidgetContainerTypes;
 };
 
-export type GenericPerformanceWithData<T extends WidgetDataConstraint> =
-  GenericPerformanceWidgetProps<T> & WidgetDataProps<T>;
-
 export type WidgetDataProps<T> = {
   removeWidgetDataForKey: (dataKey: string) => void;
   setWidgetDataForKey: (dataKey: string, result?: WidgetDataResult) => void;
   widgetData: T;
 };
-
-export type EventsRequestChildrenProps = RenderProps;
 
 export type QueryDefinitionWithKey<T extends WidgetDataConstraint> = QueryDefinition<
   T,

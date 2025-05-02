@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {useFetchEventAttachments} from 'sentry/actionCreators/events';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {
   getContextIcon,
@@ -15,15 +16,17 @@ import ScreenshotModal, {
   modalCss,
 } from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
 import {SCREENSHOT_NAMES} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/utils';
+import {getRuntimeLabelAndTooltip} from 'sentry/components/events/highlights/util';
+import {Text} from 'sentry/components/replays/virtualizedGrid/bodyCell';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
-import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconAttachment, IconReleases, IconWindow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types/event';
+import type {Event, EventTag} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Divider} from 'sentry/views/issueDetails/divider';
@@ -52,7 +55,13 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
   // Hide device for non-native platforms since it's mostly duplicate of the client_os or os context
   const shouldDisplayDevice =
     isMobilePlatform(projectPlatform) || isNativePlatform(projectPlatform);
-  // For now, highlight icons are only interpretted from context. We should extend this to tags
+
+  // Events from the backend of a Meta-Framework (e.g. Next.js) also include the client context
+  const isMetaFrameworkBackendEvent =
+    Object.keys(event.contexts).includes('client_os') &&
+    Object.keys(event.contexts).includes('os');
+
+  // For now, highlight icons are only interpreted from context. We should extend this to tags
   // eventually, but for now, it'll match the previous expectations.
   const items = getOrderedContextItems(event)
     .map(item => ({
@@ -71,8 +80,11 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
       }),
     }))
     .filter((item, _index, array) => {
-      // Prefer the "os" context for OS information
-      if (item.contextType === 'client_os' && array.find(i => i.contextType === 'os')) {
+      if (
+        // Hide client information in backend events (always prefer `os` over `client_os`)
+        isMetaFrameworkBackendEvent &&
+        (item.contextType === 'browser' || item.alias === 'client_os')
+      ) {
         return false;
       }
 
@@ -96,10 +108,23 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
   const releaseTag = event.tags?.find(tag => tag.key === 'release');
   const environmentTag = event.tags?.find(tag => tag.key === 'environment');
 
+  const runtimeInfo = getRuntimeLabelAndTooltip(event);
+
   return items.length || screenshot ? (
     <Fragment>
       <IconBar>
         <ScrollCarousel gap={2} aria-label={t('Icon highlights')}>
+          {runtimeInfo && (
+            <Fragment>
+              <Tooltip title={runtimeInfo.tooltip} isHoverable>
+                <StyledRuntimeText>{runtimeInfo.label}</StyledRuntimeText>
+              </Tooltip>
+              <DividerWrapper>
+                <Divider />
+              </DividerWrapper>
+            </Fragment>
+          )}
+
           {screenshot && group && (
             <Fragment>
               <ScreenshotButton
@@ -142,37 +167,74 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
               </IconDescription>
             </IconContainer>
           ))}
-          {releaseTag && projectSlug && projectId && (
-            <IconContainer key="release">
-              <IconWrapper>
-                <IconReleases size="sm" color="subText" />
-              </IconWrapper>
-              <IconDescription aria-label={t('Event release')}>
-                <VersionHoverCard
-                  organization={organization}
-                  projectSlug={projectSlug}
-                  releaseVersion={releaseTag.value}
-                >
-                  <StyledVersion version={releaseTag.value} projectId={projectId} />
-                </VersionHoverCard>
-              </IconDescription>
-            </IconContainer>
+          {projectSlug && projectId && (
+            <ReleaseHighlight
+              organization={organization}
+              projectSlug={projectSlug}
+              projectId={projectId}
+              releaseTag={releaseTag}
+            />
           )}
-          {environmentTag && (
-            <IconContainer key="environment">
-              <IconWrapper>
-                <IconWindow size="sm" color="subText" />
-              </IconWrapper>
-              <IconDescription aria-label={t('Event environment')}>
-                <Tooltip title={t('Environment')}>{environmentTag.value}</Tooltip>
-              </IconDescription>
-            </IconContainer>
-          )}
+          <EnvironmentHighlight environmentTag={environmentTag} />
         </ScrollCarousel>
       </IconBar>
       <SectionDivider style={{marginTop: space(1)}} />
     </Fragment>
   ) : null;
+}
+
+export function ReleaseHighlight({
+  releaseTag,
+  organization,
+  projectSlug,
+  projectId,
+}: {
+  organization: Organization;
+  projectId: string;
+  projectSlug: string;
+  releaseTag: EventTag | undefined;
+}) {
+  if (!releaseTag) {
+    return null;
+  }
+
+  return (
+    <IconContainer key="release">
+      <IconWrapper>
+        <IconReleases size="sm" color="subText" />
+      </IconWrapper>
+      <IconDescription aria-label={t('Event release')}>
+        <VersionHoverCard
+          organization={organization}
+          projectSlug={projectSlug}
+          releaseVersion={releaseTag.value}
+        >
+          <StyledVersion version={releaseTag.value} projectId={projectId} />
+        </VersionHoverCard>
+      </IconDescription>
+    </IconContainer>
+  );
+}
+
+export function EnvironmentHighlight({
+  environmentTag,
+}: {
+  environmentTag: EventTag | undefined;
+}) {
+  if (!environmentTag) {
+    return null;
+  }
+
+  return (
+    <IconContainer key="environment">
+      <IconWrapper>
+        <IconWindow size="sm" color="subText" />
+      </IconWrapper>
+      <IconDescription aria-label={t('Event environment')}>
+        <Tooltip title={t('Environment')}>{environmentTag.value}</Tooltip>
+      </IconDescription>
+    </IconContainer>
+  );
 }
 
 const IconBar = styled('div')`
@@ -214,4 +276,14 @@ const StyledVersion = styled(Version)`
 
 const ScreenshotButton = styled(Button)`
   font-weight: normal;
+`;
+
+const DividerWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  font-size: 1.25rem;
+`;
+
+const StyledRuntimeText = styled(Text)`
+  padding: ${space(0.5)} 0;
 `;

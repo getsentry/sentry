@@ -73,6 +73,7 @@ def process_event(
 
     platform = event.platform
     assert platform is not None
+    set_tag("platform", platform)
 
     platform_config = PlatformConfig(platform)
     if not platform_config.is_supported():

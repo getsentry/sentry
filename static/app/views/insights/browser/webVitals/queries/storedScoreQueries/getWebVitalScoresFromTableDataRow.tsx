@@ -1,17 +1,20 @@
-import type {WebVitalsRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
+import type {MetricsResponse} from 'sentry/views/insights/types';
 
-type Data = Pick<
-  WebVitalsRow,
+type PerformanceScores = Pick<
+  MetricsResponse,
   | 'performance_score(measurements.score.cls)'
   | 'performance_score(measurements.score.fcp)'
   | 'performance_score(measurements.score.inp)'
   | 'performance_score(measurements.score.lcp)'
   | 'performance_score(measurements.score.ttfb)'
-  | 'avg(measurements.score.total)'
+>;
+
+type CountScores = Pick<
+  MetricsResponse,
   | 'count_scores(measurements.score.cls)'
   | 'count_scores(measurements.score.fcp)'
   | 'count_scores(measurements.score.inp)'
@@ -20,26 +23,30 @@ type Data = Pick<
   | 'count_scores(measurements.score.total)'
 >;
 
-function getWebVitalScore(data: Data, webVital: WebVitals): number {
-  return (data[`performance_score(measurements.score.${webVital})`] as number) * 100;
+type TotalPerformanceScore = {'avg(measurements.score.total)': number};
+
+function getWebVitalScore(data: PerformanceScores, webVital: WebVitals): number {
+  return data[`performance_score(measurements.score.${webVital})`] * 100;
 }
 
-function getTotalScore(data: Data): number {
-  return (data[`avg(measurements.score.total)`] as number) * 100;
+function getTotalScore(data: TotalPerformanceScore): number {
+  return data[`avg(measurements.score.total)`] * 100;
 }
 
-function getWebVitalScoreCount(data: Data, webVital: WebVitals | 'total'): number {
-  return data[`count_scores(measurements.score.${webVital})`] as number;
+function getWebVitalScoreCount(data: CountScores, webVital: WebVitals | 'total'): number {
+  return data[`count_scores(measurements.score.${webVital})`];
 }
 
-function hasWebVitalScore(data: Data, webVital: WebVitals): boolean {
+function hasWebVitalScore(data: CountScores, webVital: WebVitals): boolean {
   if (data.hasOwnProperty(`count_scores(measurements.score.${webVital})`)) {
     return getWebVitalScoreCount(data, webVital) > 0;
   }
   return false;
 }
 
-export function getWebVitalScoresFromTableDataRow(data?: WebVitalsRow): ProjectScore {
+export function getWebVitalScoresFromTableDataRow(
+  data?: CountScores & PerformanceScores & TotalPerformanceScore
+): ProjectScore {
   if (!data) {
     return {};
   }

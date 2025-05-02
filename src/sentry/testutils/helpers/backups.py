@@ -50,6 +50,7 @@ from sentry.incidents.models.incident import (
     PendingIncidentSnapshot,
     TimeSeriesSnapshot,
 )
+from sentry.insights.models import InsightsStarredSegment
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.project_integration import ProjectIntegration
@@ -114,12 +115,7 @@ from sentry.users.models.user_option import UserOption
 from sentry.users.models.userip import UserIP
 from sentry.users.models.userrole import UserRole, UserRoleUser
 from sentry.utils import json
-from sentry.workflow_engine.models import (
-    Action,
-    AlertRuleDetector,
-    AlertRuleWorkflow,
-    DataConditionGroup,
-)
+from sentry.workflow_engine.models import Action, DataConditionAlertRuleTrigger, DataConditionGroup
 from sentry.workflow_engine.models.action_group_status import ActionGroupStatus
 
 __all__ = [
@@ -417,8 +413,11 @@ class ExhaustiveFixtures(Fixtures):
                     inviter_id=inviter.id,
                     invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
                 )
+                # OrganizationMemberInvite + placeholder OrganizationMember
+                om = OrganizationMember.objects.create(organization_id=org.id)
                 OrganizationMemberInvite.objects.create(
                     organization_id=org.id,
+                    organization_member_id=om.id,
                     role="member",
                     email=email,
                     inviter_id=inviter.id,
@@ -688,16 +687,19 @@ class ExhaustiveFixtures(Fixtures):
         self.create_data_condition_group_action(
             action=trigger_workflows_action, condition_group=detector_conditions
         )
-        self.create_data_condition(
+        data_condition = self.create_data_condition(
             comparison=75,
             condition_result=True,
             condition_group=detector_conditions,
         )
         detector.workflow_condition_group = detector_conditions
 
-        AlertRuleDetector.objects.create(detector=detector, alert_rule_id=alert.id)
-        AlertRuleWorkflow.objects.create(workflow=workflow, alert_rule_id=alert.id)
+        self.create_alert_rule_detector(detector=detector, alert_rule_id=alert.id)
+        self.create_alert_rule_workflow(workflow=workflow, alert_rule_id=alert.id)
         ActionGroupStatus.objects.create(action=send_notification_action, group=group)
+        DataConditionAlertRuleTrigger.objects.create(
+            data_condition=data_condition, alert_rule_trigger_id=trigger.id
+        )
 
         TempestCredentials.objects.create(
             project=project,
@@ -725,6 +727,13 @@ class ExhaustiveFixtures(Fixtures):
             user_id=owner_id,
             explore_saved_query=explore_saved_query,
             position=0,
+        )
+
+        InsightsStarredSegment.objects.create(
+            organization=org,
+            user_id=owner_id,
+            project=project,
+            segment_name="test_transaction",
         )
 
         return org

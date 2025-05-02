@@ -26,6 +26,7 @@ import type {
   DefaultSettings,
   NotificationOptionsObject,
   NotificationProvidersObject,
+  NotificationSettingsType,
   SupportedProviders,
 } from './constants';
 import {SUPPORTED_PROVIDERS} from './constants';
@@ -97,7 +98,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
     });
   };
 
-  const getInitialTopOptionData = (): {[key: string]: string} => {
+  const getInitialTopOptionData = (): Record<string, string> => {
     const matchedOption = notificationOptions.find(
       option => option.type === notificationType && option.scopeType === 'user'
     );
@@ -284,7 +285,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
     } else {
       const defaultField: Field = Object.assign(
         {},
-        NOTIFICATION_SETTING_FIELDS[notificationType],
+        NOTIFICATION_SETTING_FIELDS[notificationType as NotificationSettingsType],
         {
           help,
           defaultValue: 'always',
@@ -307,7 +308,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
   const getProviderFields = (): Field[] => {
     // get the choices but only the ones that are available to the user
     const choices = (
-      NOTIFICATION_SETTING_FIELDS.provider!.choices as Array<[SupportedProviders, string]>
+      NOTIFICATION_SETTING_FIELDS.provider.choices as Array<[SupportedProviders, string]>
     ).filter(([providerSlug]) => isProviderSupported(providerSlug));
 
     const defaultField = Object.assign({}, NOTIFICATION_SETTING_FIELDS.provider, {

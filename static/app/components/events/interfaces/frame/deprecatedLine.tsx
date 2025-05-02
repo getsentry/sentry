@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Chevron} from 'sentry/components/chevron';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -16,7 +15,7 @@ import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourc
 import {getThreadById} from 'sentry/components/events/interfaces/utils';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import StrictClick from 'sentry/components/strictClick';
-import {IconFix, IconRefresh} from 'sentry/icons';
+import {IconChevron, IconFix, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Frame} from 'sentry/types/event';
@@ -34,9 +33,6 @@ import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import Context from './context';
 import DefaultTitle from './defaultTitle';
 import {OpenInContextLine} from './openInContextLine';
-import {PackageStatusIcon} from './packageStatus';
-import {FunctionNameToggleIcon} from './symbol';
-import {AddressToggleIcon} from './togglableAddress';
 import {
   getPlatform,
   hasAssembly,
@@ -191,7 +187,7 @@ function DeprecatedLine({
   });
 
   return (
-    <StyledLi data-test-id="line" className={className}>
+    <li data-test-id="line" className={className}>
       <StrictClick onClick={isExpandable ? toggleContext : undefined}>
         <DefaultLine
           data-test-id="title"
@@ -234,6 +230,7 @@ function DeprecatedLine({
                   frame={data}
                   line={contextLine ? contextLine[1] : ''}
                   event={event}
+                  disableSetup={isHoverPreviewed}
                 />
               </ErrorBoundary>
             )}
@@ -322,7 +319,7 @@ function DeprecatedLine({
                 onClick={toggleContext}
                 borderless
               >
-                <Chevron direction={isExpanded ? 'up' : 'down'} size="medium" />
+                <IconChevron direction={isExpanded ? 'up' : 'down'} size="sm" />
               </ToggleContextButton>
             ) : (
               <div style={{width: 20, height: 20}} />
@@ -345,7 +342,7 @@ function DeprecatedLine({
         frameMeta={frameMeta}
         platform={propPlatform}
       />
-    </StyledLi>
+    </li>
   );
 }
 
@@ -424,23 +421,6 @@ const DefaultLineTagWrapper = styled('div')`
 
 const ToggleContextButton = styled(Button)`
   color: ${p => p.theme.subText};
-`;
-
-const StyledLi = styled('li')`
-  ${PackageStatusIcon} {
-    flex-shrink: 0;
-  }
-  :hover {
-    ${PackageStatusIcon} {
-      visibility: visible;
-    }
-    ${AddressToggleIcon} {
-      visibility: visible;
-    }
-    ${FunctionNameToggleIcon} {
-      visibility: visible;
-    }
-  }
 `;
 
 const ToggleButton = styled(Button)`

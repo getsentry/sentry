@@ -1,31 +1,38 @@
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {space} from 'sentry/styles/space';
+import type {EventTransaction} from 'sentry/types/event';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import type {Vital} from 'sentry/utils/performance/vitals/types';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
+import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {VITAL_DESCRIPTIONS} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
 import {WEB_VITALS_METERS_CONFIG} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
-import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/insights/browser/webVitals/utils/performanceScoreColors';
+import {
+  makePerformanceScoreColors,
+  type PerformanceScore,
+} from 'sentry/views/insights/browser/webVitals/utils/performanceScoreColors';
 import {
   scoreToStatus,
   STATUS_TEXT,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
 
 type Props = {
+  logs: OurLogsResponseItem[] | undefined;
+  rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
   tree: TraceTree;
 };
 
-export function TraceContextVitals({tree}: Props) {
-  const allowedVitals = Object.keys(VITAL_DETAILS);
-  const hasValidWebVitals = Array.from(tree.vitals.values()).some(vitalGroup =>
-    vitalGroup.some(vital => allowedVitals.includes(`measurements.${vital.key}`))
-  );
+export function TraceContextVitals({rootEvent, tree, logs}: Props) {
+  const {hasVitals} = useTraceContextSections({tree, rootEvent, logs});
 
-  if (!hasValidWebVitals) {
+  if (!hasVitals) {
     return null;
   }
 
@@ -62,7 +69,7 @@ type VitalPillProps = {
   vital: Vital;
 };
 
-export function VitalPill({vital, score, meterValue}: VitalPillProps) {
+function VitalPill({vital, score, meterValue}: VitalPillProps) {
   const status = score === undefined || isNaN(score) ? 'none' : scoreToStatus(score);
   const webVitalsConfig = WEB_VITALS_METERS_CONFIG;
 
@@ -104,7 +111,7 @@ const VitalPillContainer = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const VitalPillName = styled('div')<{status: keyof typeof PERFORMANCE_SCORE_COLORS}>`
+const VitalPillName = styled('div')<{status: PerformanceScore}>`
   display: flex;
   align-items: center;
   position: relative;
@@ -112,11 +119,11 @@ const VitalPillName = styled('div')<{status: keyof typeof PERFORMANCE_SCORE_COLO
 
   height: 100%;
   padding: 0 ${space(1)};
-  border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].border]};
+  border: solid 1px ${p => makePerformanceScoreColors(p.theme)[p.status].border};
   border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
 
-  background-color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
-  color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
+  background-color: ${p => makePerformanceScoreColors(p.theme)[p.status].light};
+  color: ${p => makePerformanceScoreColors(p.theme)[p.status].normal};
 
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: ${p => p.theme.fontWeightBold};
@@ -136,7 +143,7 @@ const VitalPillValue = styled('div')`
 
   height: 100%;
   padding: 0 ${space(0.5)};
-  border: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.border};
   border-left: none;
   border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
 

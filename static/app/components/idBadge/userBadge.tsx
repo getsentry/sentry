@@ -1,9 +1,8 @@
 import styled from '@emotion/styled';
 
+import Link from 'sentry/components/links/link';
 import {space} from 'sentry/styles/space';
 import type {AvatarUser} from 'sentry/types/user';
-
-import Link from '../links/link';
 
 import BadgeDisplayName from './badgeDisplayName';
 import {BaseBadge, type BaseBadgeProps} from './baseBadge';
