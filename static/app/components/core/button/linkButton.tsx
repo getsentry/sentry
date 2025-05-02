@@ -111,7 +111,9 @@ const StyledLinkButton = styled(
       );
     }
 
-    return <a {...props} role="button" />;
+    // @ts-expect-error these props cannot be statically determined at this point
+    const {external: _e, replace: _r, preventScrollReset: _p, ...rest} = props;
+    return <a {...rest} role="button" />;
   },
   {
     shouldForwardProp: prop =>
