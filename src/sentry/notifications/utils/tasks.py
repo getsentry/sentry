@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from django.apps import apps
+from django.contrib.auth.models import AnonymousUser
 from django.utils.functional import SimpleLazyObject
 
 from sentry.db.models import Model
@@ -19,6 +20,7 @@ if TYPE_CHECKING:
     from sentry.notifications.notifications.base import BaseNotification
 
 
+ANONYMOUS_USER_KEY = "anonymoususer"
 LAZY_OBJECT_KEY = "lazyobjectrpcuser"
 MODEL_KEY = "model"
 
@@ -50,6 +52,14 @@ def serialize_model(arg: Model, key: str | None = None) -> dict[str, Any]:
     }
 
 
+def serialize_anonymous_user(arg: AnonymousUser, key: str | None = None) -> dict[str, Any]:
+    return {
+        "type": ANONYMOUS_USER_KEY,
+        "data": {},
+        "key": key,
+    }
+
+
 @region_silo_function
 def async_send_notification(
     NotificationClass: type[BaseNotification], *args: Any, **kwargs: Any
@@ -70,6 +80,8 @@ def async_send_notification(
             task_args.append(serialize_model(arg))
         elif isinstance(arg, SimpleLazyObject):
             task_args.append(serialize_lazy_object_user(arg))
+        elif isinstance(arg, AnonymousUser):
+            task_args.append(serialize_anonymous_user(arg))
         # maybe we need an explicit check if it's a primitive?
         else:
             task_args.append({"type": "other", "value": arg, "key": None})
@@ -78,6 +90,8 @@ def async_send_notification(
             task_args.append(serialize_model(val, key))
         elif isinstance(val, SimpleLazyObject):
             task_args.append(serialize_lazy_object_user(val, key))
+        elif isinstance(val, AnonymousUser):
+            task_args.append(serialize_anonymous_user(val, key))
         # maybe we need an explicit check if it's a primitive?
         else:
             task_args.append({"type": "other", "value": val, "key": key})
@@ -113,6 +127,12 @@ def _send_notification(notification_class_name: str, arg_list: Iterable[Mapping[
                 output_kwargs[arg["key"]] = user
             else:
                 output_args.append(user)
+        elif arg["type"] == ANONYMOUS_USER_KEY:
+            anon_user = AnonymousUser()
+            if arg["key"]:
+                output_kwargs[arg["key"]] = anon_user
+            else:
+                output_args.append(anon_user)
         elif arg["key"]:
             output_kwargs[arg["key"]] = arg["value"]
         else:
