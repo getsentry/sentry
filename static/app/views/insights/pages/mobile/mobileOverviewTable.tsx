@@ -29,11 +29,9 @@ type Row = Pick<
   | 'span.op'
   | 'project'
   | 'epm()'
-  | 'p50(span.duration)'
-  | 'p95(span.duration)'
-  | 'failure_rate()'
+  | 'division(mobile.slow_frames,mobile.total_frames)'
+  | 'division(mobile.frozen_frames,mobile.total_frames)'
   | 'count_unique(user)'
-  | 'time_spent_percentage(span.duration)'
   | 'sum(span.duration)'
 >;
 
@@ -43,11 +41,9 @@ type Column = GridColumnHeader<
   | 'span.op'
   | 'project'
   | 'epm()'
-  | 'p50(span.duration)'
-  | 'p95(span.duration)'
-  | 'failure_rate()'
+  | 'division(mobile.slow_frames,mobile.total_frames)'
+  | 'division(mobile.frozen_frames,mobile.total_frames)'
   | 'count_unique(user)'
-  | 'time_spent_percentage(span.duration)'
   | 'sum(span.duration)'
 >;
 
@@ -73,18 +69,13 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'p50(span.duration)',
-    name: t('p50()'),
+    key: 'division(mobile.slow_frames,mobile.total_frames)',
+    name: t('Slow Frame %'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'p95(span.duration)',
-    name: t('p95()'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'failure_rate()',
-    name: t('Failure Rate'),
+    key: 'division(mobile.frozen_frames,mobile.total_frames)',
+    name: t('Frozen Frame %'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
@@ -93,7 +84,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'time_spent_percentage(span.duration)',
+    key: 'sum(span.duration)',
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
   },
@@ -105,11 +96,10 @@ const SORTABLE_FIELDS = [
   'span.op',
   'project',
   'epm()',
-  'p50(span.duration)',
-  'p95(span.duration)',
-  'failure_rate()',
+  'division(mobile.slow_frames,mobile.total_frames)',
+  'division(mobile.frozen_frames,mobile.total_frames)',
   'count_unique(user)',
-  'time_spent_percentage(span.duration)',
+  'sum(span.duration)',
 ] as const;
 
 export type ValidSort = Sort & {
