@@ -12,6 +12,7 @@ from django.apps.registry import Apps
 from django.conf import settings
 from django.db import migrations, router, transaction
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
+from django.db.models import Exists, OuterRef
 from jsonschema import ValidationError, validate
 
 from sentry.new_migrations.migrations import CheckedMigration
@@ -2240,12 +2241,12 @@ def migrate_remaining_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchema
             )
             sentry_sdk.capture_exception(e)
 
-    migrated_issue_alerts = AlertRuleWorkflow.objects.filter(rule_id__isnull=False).values_list(
-        "rule_id", flat=True
+    migrated_issue_alerts = AlertRuleWorkflow.objects.filter(
+        rule_id=OuterRef("id"), rule_id__isnull=False
     )
 
     for rule in RangeQuerySetWrapperWithProgressBarApprox(
-        Rule.objects.filter(id__gt=progress_id).exclude(id__in=migrated_issue_alerts)
+        Rule.objects.filter(~Exists(migrated_issue_alerts), id__gt=progress_id)
     ):
         migrate_issue_alert(rule)
         # Update the progress in Redis
