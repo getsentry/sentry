@@ -181,7 +181,7 @@ export const SPAN_FUNCTIONS = [
   'failure_rate',
 ] as const;
 
-export const WEB_VITAL_FUNCTIONS = ['performance_score'] as const;
+export const WEB_VITAL_FUNCTIONS = ['performance_score', 'count_scores'] as const;
 
 type BreakpointCondition = 'less' | 'greater';
 
@@ -556,6 +556,7 @@ enum DiscoverFields {
   FCP = 'measurements.fcp',
   CLS = 'measurements.cls',
   TTFB = 'measurements.ttfb',
+  INP = 'measurements.inp',
   TRANSACTION_DURATION = 'transaction.duration',
   SPAN_DURATION = 'span.duration',
   REPLAY_ID = 'replayId',
@@ -583,6 +584,7 @@ enum DiscoverFields {
 export type MetricsProperty = keyof MetricsResponse;
 
 type DiscoverNumberFields =
+  | DiscoverFields.INP
   | DiscoverFields.CLS
   | DiscoverFields.FCP
   | DiscoverFields.LCP
