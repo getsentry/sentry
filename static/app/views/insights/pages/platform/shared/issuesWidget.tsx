@@ -320,7 +320,7 @@ const SuperHeader = styled(PanelHeader)`
 const HeaderContainer = styled('div')`
   position: sticky;
   top: 0;
-  z-index: ${p => p.theme.zIndex.header};;
+  z-index: ${p => p.theme.zIndex.header};
 `;
 
 export function IssuesWidget({query = ''}: {query?: string}) {
