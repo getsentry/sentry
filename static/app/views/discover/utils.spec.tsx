@@ -928,7 +928,7 @@ describe('constructAddQueryToDashboardLink', function () {
   describe('new widget builder', function () {
     beforeEach(() => {
       organization = OrganizationFixture({
-        features: ['dashboards-widget-builder-redesign'],
+        features: [],
       });
       location = LocationFixture();
     });
@@ -1160,7 +1160,7 @@ describe('handleAddQueryToDashboard', function () {
   describe('new widget builder', function () {
     beforeEach(() => {
       organization = OrganizationFixture({
-        features: ['dashboards-widget-builder-redesign'],
+        features: [],
       });
     });
 

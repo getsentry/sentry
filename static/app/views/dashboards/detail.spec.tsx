@@ -2339,7 +2339,6 @@ describe('Dashboards > Detail', function () {
               'dashboards-edit',
               'discover-query',
               'performance-discover-dataset-selector',
-              'dashboards-widget-builder-redesign',
             ],
           }),
         });

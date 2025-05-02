@@ -97,11 +97,7 @@ type Props = {
   handleChangeSplitDataset?: (widget: Widget, index: number) => void;
   isPreview?: boolean;
   newWidget?: Widget;
-  onAddWidget?: (dataset?: DataSet) => void;
-  onAddWidgetFromNewWidgetBuilder?: (
-    dataset: DataSet,
-    openWidgetTemplates?: boolean
-  ) => void;
+  onAddWidget?: (dataset: DataSet, openWidgetTemplates?: boolean) => void;
   onEditWidget?: (widget: Widget) => void;
   onSetNewWidget?: () => void;
   paramDashboardId?: string;
@@ -230,38 +226,18 @@ class Dashboard extends Component<Props, State> {
   }
 
   handleStartAdd = (dataset?: DataSet) => {
-    const {
-      organization,
-      router,
-      location,
-      paramDashboardId,
-      handleAddMetricWidget,
-      onAddWidget,
-    } = this.props;
+    const {organization, router, location, paramDashboardId, handleAddMetricWidget} =
+      this.props;
 
     if (dataset === DataSet.METRICS) {
       handleAddMetricWidget?.({...this.addWidgetLayout, ...METRIC_WIDGET_MIN_SIZE});
       return;
     }
 
-    if (!organization.features.includes('dashboards-widget-builder-redesign')) {
-      if (paramDashboardId) {
-        router.push(
-          normalizeUrl({
-            pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/new/`,
-            query: {
-              ...location.query,
-              source: DashboardWidgetSource.DASHBOARDS,
-              dataset,
-            },
-          })
-        );
-        return;
-      }
-
+    if (paramDashboardId) {
       router.push(
         normalizeUrl({
-          pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
+          pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/new/`,
           query: {
             ...location.query,
             source: DashboardWidgetSource.DASHBOARDS,
@@ -269,11 +245,20 @@ class Dashboard extends Component<Props, State> {
           },
         })
       );
-
       return;
     }
 
-    onAddWidget?.();
+    router.push(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
+        query: {
+          ...location.query,
+          source: DashboardWidgetSource.DASHBOARDS,
+          dataset,
+        },
+      })
+    );
+
     return;
   };
 
@@ -379,7 +364,7 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleEditWidget = (index: number) => () => {
-    const {organization, router, location, paramDashboardId, onEditWidget} = this.props;
+    const {organization, onEditWidget} = this.props;
     const widget = this.props.dashboard.widgets[index]!;
 
     trackAnalytics('dashboards_views.widget.edit', {
@@ -391,34 +376,7 @@ class Dashboard extends Component<Props, State> {
       return;
     }
 
-    if (organization.features.includes('dashboards-widget-builder-redesign')) {
-      onEditWidget?.(widget);
-      return;
-    }
-
-    if (paramDashboardId) {
-      router.push(
-        normalizeUrl({
-          pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/${index}/edit/`,
-          query: {
-            ...location.query,
-            source: DashboardWidgetSource.DASHBOARDS,
-          },
-        })
-      );
-      return;
-    }
-
-    router.push(
-      normalizeUrl({
-        pathname: `/organizations/${organization.slug}/dashboards/new/widget/${index}/edit/`,
-        query: {
-          ...location.query,
-          source: DashboardWidgetSource.DASHBOARDS,
-        },
-      })
-    );
-
+    onEditWidget?.(widget);
     return;
   };
 
@@ -568,13 +526,8 @@ class Dashboard extends Component<Props, State> {
 
   render() {
     const {layouts, isMobile} = this.state;
-    const {
-      isEditingDashboard,
-      dashboard,
-      widgetLimitReached,
-      isPreview,
-      onAddWidgetFromNewWidgetBuilder,
-    } = this.props;
+    const {isEditingDashboard, dashboard, widgetLimitReached, isPreview, onAddWidget} =
+      this.props;
     const {widgets} = dashboard;
 
     const columnDepths = calculateColumnDepths(layouts[DESKTOP]!);
@@ -615,10 +568,7 @@ class Dashboard extends Component<Props, State> {
             key={ADD_WIDGET_BUTTON_DRAG_ID}
             data-grid={this.addWidgetLayout}
           >
-            <AddWidget
-              onAddWidget={this.handleStartAdd}
-              onAddWidgetFromNewWidgetBuilder={onAddWidgetFromNewWidgetBuilder}
-            />
+            <AddWidget onAddWidget={onAddWidget} />
           </AddWidgetWrapper>
         )}
       </GridLayout>
