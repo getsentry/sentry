@@ -1,14 +1,12 @@
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from datetime import datetime
 from typing import Any, ClassVar
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Subquery
 
-from sentry.api.serializers import Serializer
+from sentry.api.serializers import Serializer, serialize
 from sentry.api.serializers.models.incidentactivity import IncidentActivitySerializerResponse
-from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
 from sentry.incidents.endpoints.serializers.incident import (
     DetailedIncidentSerializerResponse,
     IncidentSerializerResponse,
@@ -32,6 +30,7 @@ from sentry.workflow_engine.models import (
     DataCondition,
     DataConditionGroupAction,
     DataSourceDetector,
+    Detector,
     DetectorWorkflow,
     IncidentGroupOpenPeriod,
     WorkflowDataConditionGroup,
@@ -54,12 +53,27 @@ class WorkflowEngineIncidentSerializer(Serializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> defaultdict[GroupOpenPeriod, dict[str, list[str]]]:
+
+        from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
+            WorkflowEngineDetectorSerializer,
+        )
+
         # TODO: improve typing here
         results: dict[GroupOpenPeriod, dict[str, Any]] = {}
+        alert_rules = {
+            d["id"]: d
+            for d in serialize(
+                {self.get_detector(i) for i in item_list},
+                user,
+                WorkflowEngineDetectorSerializer(expand=self.expand),
+            )
+        }
         for open_period in item_list:
-            results[open_period] = {
-                "alert_rule": self.get_alert_rule(open_period),
-            }
+            results[open_period] = {"projects": [open_period.project.slug]}
+            # results[incident]["alert_rule"] = alert_rules.get(str(incident.alert_rule.id))  # type: ignore[assignment]
+            # how do we go from openperiod to alertrule id? openperiod -> detector -> alertruledetector
+            # TODO need a mapping of openperiod to detector
+            results[open_period]["alert_rule"] = alert_rules["1"]
 
         if "activities" in self.expand:
             for open_period in item_list:
@@ -148,32 +162,23 @@ class WorkflowEngineIncidentSerializer(Serializer):
 
         return open_period_activities
 
-    def get_alert_rule(self, open_period: GroupOpenPeriod) -> AlertRuleSerializerResponse:
-        # TODO: Implement this
-        return {
-            "id": "-1",
-            "name": "Test Alert Rule",
-            "organizationId": "-1",
-            "status": 1,
-            "query": "test",
-            "aggregate": "test",
-            "timeWindow": 1,
-            "resolution": 1,
-            "thresholdPeriod": 1,
-            "triggers": [
-                {
-                    "id": "-1",
-                    "status": 1,
-                    "dateModified": datetime.now(),
-                    "dateCreated": datetime.now(),
-                }
-            ],
-            "dateModified": datetime.now(),
-            "dateCreated": datetime.now(),
-            "createdBy": {},
-            "description": "test",
-            "detectionType": "test",
-        }
+    def get_detector(self, open_period: GroupOpenPeriod) -> Detector:
+        # TODO refactor to get all at once rather than iteratively and create a mapping from open period to detector
+        action_group_status = ActionGroupStatus.objects.filter(group=open_period.group).first()
+        condition_groups = Subquery(
+            DataConditionGroupAction.objects.filter(action=action_group_status.action).values(
+                "condition_group"
+            )
+        )
+        action_filters = DataCondition.objects.filter(condition_group__in=condition_groups)
+        detector_workflow = DetectorWorkflow.objects.filter(
+            workflow__in=Subquery(
+                WorkflowDataConditionGroup.objects.filter(
+                    condition_group__in=Subquery(action_filters.values("condition_group"))
+                ).values("workflow")
+            )
+        ).first()
+        return detector_workflow.detector
 
     def serialize(
         self,
@@ -193,8 +198,9 @@ class WorkflowEngineIncidentSerializer(Serializer):
                 obj.id
             ),  # TODO this isn't the same thing, it's Incident.identifier which we might want to add to IncidentGroupOpenPeriod
             "organizationId": str(obj.project.organization.id),
-            "projects": [obj.project.slug],
-            "alertRule": attrs["alert_rule"],
+            "projects": attrs["projects"],
+            # "alertRule": attrs["alert_rule"],
+            "alertRule": {},
             "activities": attrs["activities"] if "activities" in self.expand else None,
             "status": self.get_incident_status(
                 obj.group.priority
@@ -215,6 +221,7 @@ class WorkflowEngineDetailedIncidentSerializer(WorkflowEngineIncidentSerializer)
             expand = []
         if "original_alert_rule" not in expand:
             expand.append("original_alert_rule")
+            # this gets propogated to the detectorserializer but we don't use it since it's for snapshots, might just remove
         super().__init__(expand=expand)
 
     def serialize(self, obj, attrs, user, **kwargs) -> DetailedIncidentSerializerResponse:
@@ -227,29 +234,7 @@ class WorkflowEngineDetailedIncidentSerializer(WorkflowEngineIncidentSerializer)
         return context
 
     def _build_discover_query(self, open_period: GroupOpenPeriod) -> str:
-        try:
-            action_group_status = ActionGroupStatus.objects.get(group=open_period.group)
-        except ActionGroupStatus.DoesNotExist:
-            return ""
-
-        condition_groups = Subquery(
-            DataConditionGroupAction.filter(action=action_group_status.action).values(
-                "condition_group"
-            )
-        )
-        action_filters = DataCondition.objects.filter(condition_group__in=condition_groups)
-
-        try:
-            detector = DetectorWorkflow.objects.get(
-                workflow__in=Subquery(
-                    WorkflowDataConditionGroup.objects.filter(
-                        condition_group__in=Subquery(action_filters.values("condition_group"))
-                    ).values("workflow")
-                )
-            ).values("detector")
-        except DetectorWorkflow.DoesNotExist:
-            return ""
-
+        detector = self.get_detector(open_period)
         try:
             data_source_detector = DataSourceDetector.objects.get(detector=detector)
         except DataSourceDetector.DoesNotExist:
