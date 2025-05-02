@@ -84,7 +84,7 @@ def delete_group_list(
     delete_groups_task.apply_async(
         kwargs={
             "object_ids": group_ids,
-            "transaction_id": transaction_id,
+            "transaction_id": str(transaction_id),
             "eventstream_state": eventstream_state,
         },
         countdown=countdown,
