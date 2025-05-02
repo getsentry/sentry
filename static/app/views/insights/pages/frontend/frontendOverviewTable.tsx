@@ -28,10 +28,9 @@ type Row = Pick<
   | 'transaction'
   | 'project'
   | 'tpm()'
-  | 'p50(span.duration)'
-  | 'p95(span.duration)'
-  | 'failure_rate()'
-  | 'time_spent_percentage(span.duration)'
+  | 'p50_if(span.duration,is_transaction,true)'
+  | 'p95_if(span.duration,is_transaction,true)'
+  | 'failure_rate_if(is_transaction,true)'
   | 'count_unique(user)'
   | 'sum(span.duration)'
   | 'performance_score(measurements.score.total)'
@@ -42,10 +41,9 @@ type Column = GridColumnHeader<
   | 'transaction'
   | 'project'
   | 'tpm()'
-  | 'p50(span.duration)'
-  | 'p95(span.duration)'
-  | 'failure_rate()'
-  | 'time_spent_percentage(span.duration)'
+  | 'p50_if(span.duration,is_transaction,true)'
+  | 'p95_if(span.duration,is_transaction,true)'
+  | 'failure_rate_if(is_transaction,true)'
   | 'count_unique(user)'
   | 'sum(span.duration)'
   | 'performance_score(measurements.score.total)'
@@ -68,17 +66,17 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `p50(span.duration)`,
+    key: `p50_if(span.duration,is_transaction,true)`,
     name: t('p50()'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'p95(span.duration)',
+    key: `p95_if(span.duration,is_transaction,true)`,
     name: t('p95()'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'failure_rate()',
+    key: 'failure_rate_if(is_transaction,true)',
     name: t('Failure Rate'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -88,7 +86,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'time_spent_percentage(span.duration)',
+    key: 'sum(span.duration)',
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
   },
@@ -103,12 +101,12 @@ const SORTABLE_FIELDS = [
   'is_starred_transaction',
   'transaction',
   'project',
-  'epm()',
-  'p50(span.duration)',
-  'p95(span.duration)',
-  'failure_rate()',
+  'tpm()',
+  'p50_if(span.duration,is_transaction,true)',
+  'p95_if(span.duration,is_transaction,true)',
+  'failure_rate_if(is_transaction,true)',
   'count_unique(user)',
-  'time_spent_percentage(span.duration)',
+  'sum(span.duration)',
   'performance_score(measurements.score.total)',
 ] as const;
 

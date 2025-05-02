@@ -161,9 +161,17 @@ export type Aggregate =
   | (typeof COUNTER_AGGREGATES)[number]
   | (typeof DISTRIBUTION_AGGREGATES)[number];
 
-type ConditionalAggregate =
+type CounterConditionalAggregate =
   | `avg_if`
+  | `p50_if`
+  | `p75_if`
+  | `p90_if`
+  | `p95_if`
+  | `p99_if`;
+
+type ConditionalAggregate =
   | `count_op`
+  | `failure_rate_if`
   | 'trace_status_rate'
   | 'time_spent_percentage';
 
@@ -262,6 +270,8 @@ export type EAPSpanResponse = {
     [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
   } & {
     [Property in SpanFields as `count_unique(${Property})`]: number;
+  } & {
+    [Property in SpanNumberFields as `${CounterConditionalAggregate}(${Property},${string},${string})`]: number;
   };
 
 export type EAPSpanProperty = keyof EAPSpanResponse;
