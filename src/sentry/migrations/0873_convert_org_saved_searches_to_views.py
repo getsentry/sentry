@@ -19,13 +19,15 @@ def convert_org_saved_searches_to_views(
     org_saved_searches = SavedSearch.objects.filter(visibility=Visibility.ORGANIZATION)
 
     for saved_search in RangeQuerySetWrapperWithProgressBar(org_saved_searches):
-        GroupSearchView.objects.create(
+        GroupSearchView.objects.update_or_create(
             organization=saved_search.organization,
             user_id=saved_search.owner_id,
             name=saved_search.name,
-            query=saved_search.query,
-            query_sort=saved_search.sort,
-            date_added=saved_search.date_added,
+            defaults={
+                "query": saved_search.query,
+                "query_sort": saved_search.sort,
+                "date_added": saved_search.date_added,
+            },
         )
 
 
