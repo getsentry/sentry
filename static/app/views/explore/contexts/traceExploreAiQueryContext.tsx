@@ -27,6 +27,7 @@ import {getFieldDefinition} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 // import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 
@@ -118,7 +119,15 @@ export function AiQueryDrawer() {
       return;
     }
 
-    const {query, visualization, group_by: groupBy, sort} = rawResult;
+    const {
+      query,
+      visualization,
+      group_by: groupBy,
+      sort,
+      stats_period: interval,
+    } = rawResult;
+
+    const mode = groupBy.length > 0 ? Mode.AGGREGATE : Mode.SAMPLES;
 
     const visualize =
       visualization?.map((v: Visualization) => ({
@@ -133,6 +142,8 @@ export function AiQueryDrawer() {
       visualize,
       groupBy,
       sort,
+      interval,
+      mode,
     });
 
     trackAnalytics('trace.explorer.ai_query_applied', {
@@ -157,7 +168,7 @@ export function AiQueryDrawer() {
       try {
         setIsLoading(true);
         const result = await api.requestPromise(
-          `/${organization.slug}/trace-explorer-ai/query/`,
+          `/api/0/organizations/${organization.slug}/trace-explorer-ai/query/`,
           {
             method: 'POST',
             data: {
@@ -180,7 +191,7 @@ export function AiQueryDrawer() {
             {chart_type: 1, y_axes: ['count']},
             {chart_type: 3, y_axes: ['avg(span.duration)']},
           ],
-          sort: '-timestamp',
+          sort: '-span.duration',
         };
         const query_tokens = formatQueryTokens(dummy_result);
         setResponse(query_tokens);
