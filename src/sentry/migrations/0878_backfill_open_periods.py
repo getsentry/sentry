@@ -7,7 +7,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
-from django.db import migrations, router, transaction
+from django.db import IntegrityError, migrations, router, transaction
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 
@@ -170,7 +170,13 @@ def _backfill_group_open_periods(
         )
 
     with transaction.atomic(router.db_for_write(GroupOpenPeriod)):
-        GroupOpenPeriod.objects.bulk_create(open_periods)
+        try:
+            GroupOpenPeriod.objects.bulk_create(open_periods)
+        except IntegrityError as e:
+            logger.exception(
+                "Error creating open period",
+                extra={"group_ids": group_ids, "error": e},
+            )
 
 
 def backfill_group_open_periods(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
