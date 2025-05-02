@@ -4,6 +4,7 @@ import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
+import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {IssueViewNavItems} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavItems';
@@ -31,7 +32,7 @@ export function IssuesSecondaryNav() {
               to={`${baseUrl}/feedback/`}
               analyticsItemName="issues_feedback"
             >
-              {t('Feedback')}
+              {t('User Feedback')}
             </SecondaryNav.Item>
           </SecondaryNav.Section>
         )}
@@ -43,32 +44,21 @@ export function IssuesSecondaryNav() {
               </SecondaryNav.Item>
             </SecondaryNav.Section>
             <SecondaryNav.Section>
-              <SecondaryNav.Item
-                to={`${baseUrl}/errors-outages/`}
-                end
-                analyticsItemName="issues_types_errors_outages"
-              >
-                {t('Errors & Outages')}
-              </SecondaryNav.Item>
-              <SecondaryNav.Item
-                to={`${baseUrl}/metrics/`}
-                end
-                analyticsItemName="issues_types_metrics"
-              >
-                {t('Metrics')}
-              </SecondaryNav.Item>
-              <SecondaryNav.Item
-                to={`${baseUrl}/best-practices/`}
-                end
-                analyticsItemName="issues_types_best_practices"
-              >
-                {t('Best Practices')}
-              </SecondaryNav.Item>
+              {Object.values(ISSUE_TAXONOMY_CONFIG).map(({key, label}) => (
+                <SecondaryNav.Item
+                  key={key}
+                  to={`${baseUrl}/${key}/`}
+                  end
+                  analyticsItemName={`issues_types_${key}`}
+                >
+                  {label}
+                </SecondaryNav.Item>
+              ))}
               <SecondaryNav.Item
                 to={`${baseUrl}/feedback/`}
                 analyticsItemName="issues_feedback"
               >
-                {t('Feedback')}
+                {t('User Feedback')}
               </SecondaryNav.Item>
             </SecondaryNav.Section>
           </Fragment>
