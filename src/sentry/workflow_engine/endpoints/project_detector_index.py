@@ -1,3 +1,4 @@
+from django.db.models import Count
 from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
@@ -8,6 +9,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import ProjectAlertRulePermission, ProjectEndpoint
+from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -15,7 +17,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.parameters import DetectorParams, GlobalParams
 from sentry.issues import grouptype
 from sentry.models.project import Project
 from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
@@ -44,6 +46,9 @@ def get_detector_validator(
     )
 
 
+SORT_ATTRS = {"name", "id", "type", "connected_workflows"}
+
+
 @region_silo_endpoint
 @extend_schema(tags=["Workflows"])
 class ProjectDetectorIndexEndpoint(ProjectEndpoint):
@@ -62,6 +67,7 @@ class ProjectDetectorIndexEndpoint(ProjectEndpoint):
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
+            DetectorParams.SORT,
         ],
         responses={
             201: DetectorSerializer,
@@ -79,12 +85,23 @@ class ProjectDetectorIndexEndpoint(ProjectEndpoint):
         """
         queryset = Detector.objects.filter(
             project_id=project.id,
-        ).order_by("id")
+        )
+
+        sort_by = request.GET.get("sortBy", "id")
+        sort_field = sort_by[1:] if sort_by.startswith("-") else sort_by
+        if sort_field not in SORT_ATTRS:
+            sort_field = "id"
+            sort_by = "id"
+        if sort_field == "connected_workflows":
+            queryset = queryset.annotate(connected_workflows=Count("detectorworkflow"))
+
+        queryset = queryset.order_by(sort_by)
 
         return self.paginate(
             request=request,
+            paginator_cls=OffsetPaginator,
             queryset=queryset,
-            order_by="id",
+            order_by=sort_by,
             on_results=lambda x: serialize(x, request.user),
         )
 

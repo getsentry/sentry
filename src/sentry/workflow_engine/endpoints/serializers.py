@@ -275,6 +275,10 @@ class DetectorSerializer(Serializer):
             for group, serialized in zip(condition_groups, serialize(condition_groups, user=user))
         }
 
+        workflows_map = defaultdict[int, list[str]](list)
+        for dw in DetectorWorkflow.objects.filter(detector__in=item_list):
+            workflows_map[dw.detector_id].append(str(dw.workflow_id))
+
         filtered_item_list = [item for item in item_list if item.type == ErrorGroupType.slug]
         project_ids = [item.project_id for item in filtered_item_list]
 
@@ -295,6 +299,7 @@ class DetectorSerializer(Serializer):
             attrs[item]["condition_group"] = condition_group_map.get(
                 str(item.workflow_condition_group_id)
             )
+            attrs[item]["connected_workflows"] = workflows_map.get(item.id, [])
             if item.id in configs:
                 attrs[item]["config"] = configs[item.id]
             else:
@@ -308,6 +313,7 @@ class DetectorSerializer(Serializer):
             "projectId": str(obj.project_id),
             "name": obj.name,
             "type": obj.type,
+            "connectedWorkflows": attrs.get("connected_workflows"),
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
             "dataSources": attrs.get("data_sources"),
