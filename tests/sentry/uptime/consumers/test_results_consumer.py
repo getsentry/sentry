@@ -156,7 +156,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assignee = group.get_assignee()
         assert assignee and (assignee.id == self.user.id)
         self.project_subscription.refresh_from_db()
-        assert self.project_subscription.uptime_status == UptimeStatus.FAILED
         assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.FAILED
 
     def test_does_nothing_when_missing_project_subscription(self):
@@ -221,7 +220,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
 
         # subscription status is still updated
         self.project_subscription.refresh_from_db()
-        assert self.project_subscription.uptime_status == UptimeStatus.FAILED
         assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.FAILED
 
     def test_reset_fail_count(self):
@@ -318,7 +316,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
         self.project_subscription.refresh_from_db()
-        assert self.project_subscription.uptime_status == UptimeStatus.OK
         assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.OK
 
     def test_no_create_issues_feature(self):
@@ -351,7 +348,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
         self.project_subscription.refresh_from_db()
-        assert self.project_subscription.uptime_status == UptimeStatus.FAILED
         assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.FAILED
 
     def test_resolve(self):
@@ -412,7 +408,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert group.issue_type == UptimeDomainCheckFailure
         assert group.status == GroupStatus.UNRESOLVED
         self.project_subscription.refresh_from_db()
-        assert self.project_subscription.uptime_status == UptimeStatus.FAILED
         assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.FAILED
 
         result = self.create_uptime_result(
@@ -443,7 +438,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         group.refresh_from_db()
         assert group.status == GroupStatus.RESOLVED
         self.project_subscription.refresh_from_db()
-        assert self.project_subscription.uptime_status == UptimeStatus.OK
         assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.OK
 
     def test_no_subscription(self):

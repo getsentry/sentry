@@ -17,12 +17,11 @@ import type {Organization, SavedQuery} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import withApi from 'sentry/utils/withApi';
+import DiscoverBreadcrumb from 'sentry/views/discover/breadcrumb';
+import EventInputName from 'sentry/views/discover/eventInputName';
+import SavedQueryButtonGroup from 'sentry/views/discover/savedQuery';
 import {DatasetSelectorTabs} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
-
-import DiscoverBreadcrumb from './breadcrumb';
-import EventInputName from './eventInputName';
-import SavedQueryButtonGroup from './savedQuery';
 
 type Props = {
   api: Client;
