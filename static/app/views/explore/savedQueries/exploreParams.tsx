@@ -134,8 +134,11 @@ export function ExploreParams({
 
   if (defined(tokensToShow) && tokensToShow + 1 < tokens.length) {
     visibleTokens.push(
-      <Tooltip title={<TooltipTokensContainer>{hiddenTokens}</TooltipTokensContainer>}>
-        <Token key="more">
+      <Tooltip
+        key="more"
+        title={<TooltipTokensContainer>{hiddenTokens}</TooltipTokensContainer>}
+      >
+        <Token>
           <ExploreMoreTokens>
             {'+' + (tokens.length - tokensToShow - 1)}
           </ExploreMoreTokens>
