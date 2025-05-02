@@ -3,9 +3,10 @@
 from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
-from django.db.models import Count, Q
+from django.db.models import Q
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 
 def delete_single_prioritized_groupsearchviews(
@@ -13,30 +14,11 @@ def delete_single_prioritized_groupsearchviews(
 ) -> None:
     GroupSearchView = apps.get_model("sentry", "GroupSearchView")
 
-    """
-    Intended query:
-
-        SELECT
-            user_id,
-            organization_id,
-            COUNT(*) as view_count
-        FROM
-            sentry_groupsearchview
-        WHERE
-            name = 'Prioritized' AND query = 'is:unresolved issue.priority:[high, medium]'
-        GROUP BY
-            user_id, organization_id
-        HAVING
-            COUNT(*) = 1
-    """
-    target_query_set = (
-        GroupSearchView.objects.values("user_id", "organization_id")
-        .annotate(view_count=Count("id"))
-        .filter(view_count=1)
-        .filter(Q(name="Prioritized") & Q(query="is:unresolved issue.priority:[high, medium]"))
+    target_query_set = GroupSearchView.objects.filter(
+        Q(name="Prioritized") & Q(query="is:unresolved issue.priority:[high, medium]")
     )
 
-    for gsv in target_query_set:
+    for gsv in RangeQuerySetWrapperWithProgressBar(target_query_set):
         gsv.delete()
 
 
