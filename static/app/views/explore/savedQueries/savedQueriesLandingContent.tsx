@@ -44,6 +44,7 @@ export function SavedQueriesLandingContent() {
           onChange={option => setSort(option.value)}
         />
       </FilterContainer>
+      <h4>{t('Created by Me')}</h4>
       <SavedQueriesTable
         mode="owned"
         perPage={20}
@@ -51,6 +52,7 @@ export function SavedQueriesLandingContent() {
         sort={sort}
         searchQuery={searchQuery}
       />
+      <h4>{t('Created by Others')}</h4>
       <SavedQueriesTable
         mode="shared"
         perPage={20}
