@@ -490,9 +490,17 @@ function generateChonkTokens(colorScheme: typeof lightColors) {
       muted: colorScheme.gray500,
       accent: colorScheme.blue500,
       promotion: colorScheme.pink500,
-      danger: colorScheme.red400,
+      danger: colorScheme.red500,
       warning: colorScheme.yellow500,
       success: colorScheme.green500,
+    },
+    graphics: {
+      muted: colorScheme.gray400,
+      accent: colorScheme.blue400,
+      promotion: colorScheme.pink400,
+      danger: colorScheme.red400,
+      warning: colorScheme.yellow400,
+      success: colorScheme.green400,
     },
     background: {
       primary: colorScheme.surface500,
