@@ -2,6 +2,7 @@ import functools
 import logging
 from collections.abc import Sequence
 from datetime import timedelta
+from typing import Any
 
 from django.utils import timezone
 from rest_framework.request import Request
@@ -83,11 +84,11 @@ class GroupDetailsEndpoint(GroupEndpoint):
         },
     }
 
-    def _get_seen_by(self, request: Request, group: Group):
+    def _get_seen_by(self, request: Request, group: Group) -> list[dict[str, Any]]:
         seen_by = list(GroupSeen.objects.filter(group=group).order_by("-last_seen"))
         return [seen for seen in serialize(seen_by, request.user) if seen is not None]
 
-    def _get_context_plugins(self, request: Request, group: Group):
+    def _get_context_plugins(self, request: Request, group: Group) -> list[dict[str, Any]]:
         project = group.project
         return serialize(
             [
