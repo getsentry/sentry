@@ -29,6 +29,7 @@ interface SearchQueryBuilderContextData {
   focusOverride: FocusOverride | null;
   getFieldDefinition: (key: string, kind?: FieldKind) => FieldDefinition | null;
   getTagValues: (tag: Tag, query: string) => Promise<string[]>;
+  handleOnChange: (query: string) => void;
   handleSearch: (query: string) => void;
   parsedQuery: ParseResult | null;
   query: string;
@@ -70,6 +71,7 @@ export function SearchQueryBuilderProvider({
   filterKeyMenuWidth = 360,
   filterKeySections,
   getTagValues,
+  onChange,
   onSearch,
   placeholder,
   recentSearches,
@@ -114,6 +116,14 @@ export function SearchQueryBuilderProvider({
     recentSearches,
     searchSource,
     onSearch,
+    trigger: 'onsearch',
+  });
+  const handleOnChange = useHandleSearch({
+    parsedQuery,
+    recentSearches,
+    searchSource,
+    onSearch: onChange,
+    trigger: 'onchange',
   });
   const {width: searchBarWidth} = useDimensions({elementRef: wrapperRef});
   const size =
@@ -135,6 +145,7 @@ export function SearchQueryBuilderProvider({
       wrapperRef,
       actionBarRef,
       handleSearch,
+      handleOnChange,
       placeholder,
       recentSearches,
       searchSource,
@@ -154,6 +165,7 @@ export function SearchQueryBuilderProvider({
     fieldDefinitionGetter,
     dispatch,
     handleSearch,
+    handleOnChange,
     placeholder,
     recentSearches,
     searchSource,

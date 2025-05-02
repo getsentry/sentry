@@ -71,10 +71,15 @@ export type SearchEventParameters = {
   };
   'search.saved_search_open_create_modal': OpenEvent;
   'search.saved_search_sidebar_toggle_clicked': {open: boolean};
-  'search.search_with_invalid': SearchEventBase;
-  'search.searched': SearchEventBase;
+  'search.search_with_invalid': SearchEventBase & {
+    trigger: 'onchange' | 'onsearch';
+  };
+  'search.searched': SearchEventBase & {
+    trigger: 'onchange' | 'onsearch';
+  };
   'search.searched_filter': SearchEventBase & {
     key: string;
+    trigger: 'onchange' | 'onsearch';
     values: string[];
   };
   'search.shortcut_used': SearchEventBase & {

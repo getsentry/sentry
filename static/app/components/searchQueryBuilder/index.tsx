@@ -25,8 +25,6 @@ import {space} from 'sentry/styles/space';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import PanelProvider from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
-import usePrevious from 'sentry/utils/usePrevious';
 
 export interface SearchQueryBuilderProps {
   /**
@@ -181,7 +179,6 @@ function SearchQueryBuilderUI({
   disabled = false,
   label,
   initialQuery,
-  onChange,
   onBlur,
   queryInterface = QueryInterfaceType.TOKENIZED,
   showUnsubmittedIndicator,
@@ -193,13 +190,6 @@ function SearchQueryBuilderUI({
   useLayoutEffect(() => {
     dispatch({type: 'UPDATE_QUERY', query: initialQuery});
   }, [dispatch, initialQuery]);
-
-  const previousQuery = usePrevious(query);
-  useEffectAfterFirstRender(() => {
-    if (previousQuery !== query) {
-      onChange?.(query, {parsedQuery, queryIsValid: queryIsValid(parsedQuery)});
-    }
-  }, [onChange, query, previousQuery, parsedQuery]);
 
   const {width: actionBarWidth} = useDimensions({elementRef: actionBarRef});
 

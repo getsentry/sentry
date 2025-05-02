@@ -21,6 +21,7 @@ type UseHandleSearchProps = {
   parsedQuery: ParseResult | null;
   recentSearches: SavedSearchType | undefined;
   searchSource: string;
+  trigger: 'onchange' | 'onsearch';
   onSearch?: (query: string, state: CallbackSearchState) => void;
 };
 
@@ -55,12 +56,14 @@ function trackIndividualSearchFilters({
   searchSource,
   query,
   organization,
+  trigger,
 }: {
   organization: Organization;
   parsedQuery: ParseResult | null;
   query: string;
   searchSource: string;
   searchType: string;
+  trigger: 'onchange' | 'onsearch';
 }) {
   try {
     parsedQuery?.forEach(token => {
@@ -82,6 +85,7 @@ function trackIndividualSearchFilters({
         search_type: searchType,
         search_source: searchSource,
         new_experience: true,
+        trigger,
       });
     });
   } catch (e) {
@@ -94,6 +98,7 @@ export function useHandleSearch({
   recentSearches,
   searchSource,
   onSearch,
+  trigger,
 }: UseHandleSearchProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -111,6 +116,7 @@ export function useHandleSearch({
           search_type: searchType,
           search_source: searchSource,
           new_experience: true,
+          trigger,
         });
         return;
       }
@@ -120,7 +126,7 @@ export function useHandleSearch({
         query,
         search_type: searchType,
         search_source: searchSource,
-        new_experience: true,
+        trigger,
       });
 
       trackIndividualSearchFilters({
@@ -129,10 +135,11 @@ export function useHandleSearch({
         searchSource,
         query,
         organization,
+        trigger,
       });
 
       saveAsRecentSearch({api, organization, query, recentSearches});
     },
-    [api, onSearch, organization, parsedQuery, recentSearches, searchSource]
+    [api, onSearch, organization, parsedQuery, recentSearches, searchSource, trigger]
   );
 }
