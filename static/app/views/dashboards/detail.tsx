@@ -189,7 +189,6 @@ export function checkUserHasEditAccess(
   dashboardPermissions?: DashboardPermissions,
   dashboardCreator?: User
 ): boolean {
-  // TODO: update this to just check for owners
   if (
     hasEveryAccess(['org:admin'], {organization}) || // Owners
     !dashboardPermissions ||
