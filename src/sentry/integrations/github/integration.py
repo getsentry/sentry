@@ -587,12 +587,18 @@ class OAuthLoginView(PipelineView):
                 )
 
             authenticated_user_info = get_user_info(payload["access_token"])
-            owner_orgs = get_owner_github_organizations(access_token=payload["access_token"])
 
-            installation_info = get_eligible_multi_org_installations(
-                access_token=payload["access_token"], owner_orgs=owner_orgs
-            )
-            pipeline.bind_state("existing_installation_info", installation_info)
+            if self.active_organization is not None and features.has(
+                "organizations:github-multi-org",
+                organization=self.active_organization,
+                actor=request.user,
+            ):
+                owner_orgs = get_owner_github_organizations(access_token=payload["access_token"])
+
+                installation_info = get_eligible_multi_org_installations(
+                    access_token=payload["access_token"], owner_orgs=owner_orgs
+                )
+                pipeline.bind_state("existing_installation_info", installation_info)
 
             if "login" not in authenticated_user_info:
                 lifecycle.record_failure(GitHubInstallationError.MISSING_LOGIN)
@@ -612,7 +618,7 @@ def get_owner_github_organizations(access_token: str) -> list[str]:
         gh_org.get("organization", {}).get("login")
         for gh_org in user_org_membership_details
         if (
-            gh_org.get("role", "").lower() == "owner"
+            gh_org.get("role", "").lower() == "admin"
             and gh_org.get("state", "").lower() == "active"
         )
     ]
@@ -628,7 +634,10 @@ def get_eligible_multi_org_installations(access_token: str, owner_orgs: list[str
             "avatar_url": installation.get("account").get("avatar_url"),
         }
         for installation in installed_orgs["installations"]
-        if installation.get("account").get("login") in owner_orgs
+        if (
+            installation.get("account").get("login") in owner_orgs
+            or installation.get("target_type") == "User"
+        )
     ]
 
 
@@ -639,10 +648,18 @@ class GitHubInstallation(PipelineView):
 
     def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.GITHUB_INSTALLATION).capture() as lifecycle:
-            chosen_installation = pipeline.fetch_state("chosen_installation")
-            if chosen_installation is not None:
-                pipeline.bind_state("installation_id", chosen_installation)
-                return pipeline.next_step()
+            self.active_organization = determine_active_organization(request)
+
+            if self.active_organization is not None and features.has(
+                "organizations:github-multi-org",
+                organization=self.active_organization,
+                actor=request.user,
+            ):
+                chosen_installation = pipeline.fetch_state("chosen_installation")
+                if chosen_installation is not None:
+                    pipeline.bind_state("installation_id", chosen_installation)
+                    return pipeline.next_step()
+
             installation_id = request.GET.get(
                 "installation_id", pipeline.fetch_state("installation_id")
             )
@@ -650,7 +667,7 @@ class GitHubInstallation(PipelineView):
                 return HttpResponseRedirect(self.get_app_url())
 
             pipeline.bind_state("installation_id", installation_id)
-            self.active_organization = determine_active_organization(request)
+
             lifecycle.add_extra(
                 "organization_id",
                 self.active_organization.organization.id if self.active_organization else None,
@@ -674,12 +691,33 @@ class GitHubInstallation(PipelineView):
                     error_short=GitHubInstallationError.PENDING_DELETION,
                     error_long=ERR_INTEGRATION_PENDING_DELETION,
                 )
+
+            try:
+                # We want to limit GitHub integrations to 1 organization
+                installations_exist = OrganizationIntegration.objects.filter(
+                    integration=Integration.objects.get(external_id=installation_id)
+                ).exists()
+
+            except Integration.DoesNotExist:
+                return pipeline.next_step()
+
+            if installations_exist:
+                lifecycle.record_failure(GitHubInstallationError.INSTALLATION_EXISTS)
+                return error(
+                    request,
+                    self.active_organization,
+                    error_short=GitHubInstallationError.INSTALLATION_EXISTS,
+                    error_long=ERR_INTEGRATION_EXISTS_ON_ANOTHER_ORG,
+                )
+
+            # OrganizationIntegration does not exist, but Integration does exist.
             try:
                 integration = Integration.objects.get(
                     external_id=installation_id, status=ObjectStatus.ACTIVE
                 )
             except Integration.DoesNotExist:
-                return pipeline.next_step()
+                lifecycle.record_failure(GitHubInstallationError.MISSING_INTEGRATION)
+                return error(request, self.active_organization)
 
             # Check that the authenticated GitHub user is the same as who installed the app.
             if (
@@ -698,6 +736,15 @@ class GitHubInstallation(PipelineView):
 
 class GithubOrganizationSelection(PipelineView):
     def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+        self.active_organization = determine_active_organization(request)
+
+        if self.active_organization is None or not features.has(
+            "organizations:github-multi-org",
+            organization=self.active_organization,
+            actor=request.user,
+        ):
+            return pipeline.next_step()
+
         installation_info = pipeline.fetch_state("existing_installation_info")
 
         if len(installation_info) == 0:

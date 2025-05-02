@@ -23,6 +23,8 @@ from sentry.integrations.github.integration import (
     GitHubInstallationError,
     GitHubIntegration,
     GitHubIntegrationProvider,
+    get_eligible_multi_org_installations,
+    get_owner_github_organizations,
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -42,6 +44,7 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -226,6 +229,42 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         responses.add(responses.GET, self.base_url + "/repos/Test-Organization/foo/hooks", json=[])
 
+        # Mock response from GH /users/memberships endpoint
+        # (what is this user's role in each org, with this integration installed on)
+        responses.add(
+            responses.GET,
+            f"{self.base_url}/user/memberships/orgs",
+            json=[
+                {
+                    "state": "active",
+                    "role": "admin",
+                    "organization": {
+                        "login": "santry",
+                        "id": 1,
+                        "avatar_url": "https://all-the.bufo.zone/bufo-adding-bugs-to-the-code.gif",
+                    },
+                },
+                {
+                    "state": "disabled",
+                    "role": "admin",
+                    "organization": {
+                        "login": "bufo-bot",
+                        "id": 2,
+                        "avatar_url": "https://all-the.bufo.zone/bufo-achieving-coding-flow.png",
+                    },
+                },
+                {
+                    "state": "active",
+                    "role": "member",
+                    "organization": {
+                        "login": "poggers-org",
+                        "id": 3,
+                        "avatar_url": "https://all-the.bufo.zone/bufo-bonk.png",
+                    },
+                },
+            ],
+        )
+
         # Logic to get a tree for a repo
         # https://api.github.com/repos/getsentry/sentry/git/trees/master?recursive=1
         for repo_name, values in TREE_RESPONSES.items():
@@ -241,6 +280,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             "installations": [
                 {
                     "id": 1,
+                    "target_type": "Organization",
                     "account": {
                         "login": "santry",
                         "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pitchforks.png",
@@ -248,6 +288,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 },
                 {
                     "id": 2,
+                    "target_type": "User",
                     "account": {
                         "login": "bufo-bot",
                         "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pog.png",
@@ -269,7 +310,6 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
     def assert_setup_flow(self):
-        self._setup_without_existing_installations()
 
         resp = self.client.get(self.init_path)
         assert resp.status_code == 302
@@ -298,7 +338,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             "{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
         )
         # Call to the Github installations/installation_id endpoint
-        auth_header = responses.calls[3].request.headers["Authorization"]
+        auth_header = responses.calls[2].request.headers["Authorization"]
         assert auth_header == "Bearer jwt_token_1"
 
         self.assertDialogSuccess(resp)
@@ -357,6 +397,69 @@ class GitHubIntegrationTest(IntegrationTestCase):
             integration=integration, organization_id=self.organization.id
         )
         assert oi.config == {}
+
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_github_installed_on_another_org(self, mock_record):
+        self._stub_github()
+        # First installation should be successful
+        self.assert_setup_flow()
+
+        # Second installation attempt for same Github account should fail
+        self.organization_2 = self.create_organization(name="petal", owner=self.user)
+        # Use the same Github installation_id
+        self.init_path_2 = "{}?{}".format(
+            reverse(
+                "sentry-organization-integrations-setup",
+                kwargs={
+                    "organization_slug": self.organization_2.slug,
+                    "provider_id": self.provider.key,
+                },
+            ),
+            urlencode({"installation_id": self.installation_id}),
+        )
+        self.setup_path_2 = "{}?{}".format(
+            self.setup_path,
+            urlencode({"code": "12345678901234567890", "state": self.pipeline.signature}),
+        )
+        mock_record.reset_mock()
+        with self.feature({"system:multi-region": True}):
+            resp = self.client.get(self.init_path_2)
+            resp = self.client.get(self.setup_path_2)
+            self.assertTemplateUsed(resp, "sentry/integrations/github-integration-failed.html")
+            assert (
+                b'{"success":false,"data":{"error":"Github installed on another Sentry organization."}}'
+                in resp.content
+            )
+            assert (
+                b"It seems that your GitHub account has been installed on another Sentry organization. Please uninstall and try again."
+                in resp.content
+            )
+            assert b'window.opener.postMessage({"success":false' in resp.content
+            assert (
+                f', "{generate_organization_url(self.organization_2.slug)}");'.encode()
+                in resp.content
+            )
+            assert_failure_metric(mock_record, GitHubInstallationError.INSTALLATION_EXISTS)
+
+        # Delete the Integration
+        integration = Integration.objects.get(external_id=self.installation_id)
+        for oi in OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id, integration=integration
+        ):
+            oi.delete()
+        integration.delete()
+
+        # Try again and should be successful
+        resp = self.client.get(self.init_path_2)
+        resp = self.client.get(self.setup_path_2)
+
+        self.assertDialogSuccess(resp)
+        integration = Integration.objects.get(external_id=self.installation_id)
+        assert integration.provider == "github"
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization_2.id, integration=integration
+        ).exists()
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -1160,6 +1263,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         integration = Integration.objects.get(id=integration_id)
         assert integration.metadata["account_id"] == 60591805
 
+    @with_feature("organizations:github-multi-org")
     @responses.activate
     @patch.object(PipelineView, "render_react_view", return_value=HttpResponse())
     def test_github_installation_calls_ui(self, mock_render):
@@ -1204,6 +1308,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             props={"installation_info": installations},
         )
 
+    @with_feature("organizations:github-multi-org")
     @responses.activate
     def test_github_installation_stores_chosen_installation(self):
         self._setup_with_existing_installations()
@@ -1261,10 +1366,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
         assert resp.status_code == 200
-        auth_header = responses.calls[3].request.headers["Authorization"]
+        auth_header = responses.calls[4].request.headers["Authorization"]
         assert auth_header == "Bearer jwt_token_1"
         assert (
-            responses.calls[3].request.url
+            responses.calls[4].request.url
             == f"https://api.github.com/app/installations/{chosen_installation_id}"
         )
 
@@ -1277,6 +1382,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             organization_id=self.organization.id, integration=integration
         ).exists()
 
+    @with_feature("organizations:github-multi-org")
     @responses.activate
     def test_github_installation_skips_chosen_installation(self):
         self._setup_with_existing_installations()
@@ -1323,10 +1429,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
             "{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
         )
 
-        auth_header = responses.calls[3].request.headers["Authorization"]
+        auth_header = responses.calls[4].request.headers["Authorization"]
         assert auth_header == "Bearer jwt_token_1"
         assert (
-            responses.calls[3].request.url
+            responses.calls[4].request.url
             == f"https://api.github.com/app/installations/{self.installation_id}"
         )
 
@@ -1338,3 +1444,37 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert OrganizationIntegration.objects.filter(
             organization_id=self.organization.id, integration=integration
         ).exists()
+
+    @with_feature("organizations:github-multi-org")
+    @responses.activate
+    def test_github_installation_gets_owner_orgs(self):
+        self._setup_with_existing_installations()
+
+        owner_orgs = get_owner_github_organizations(self.access_token)
+
+        assert owner_orgs == ["santry"]
+
+    @with_feature("organizations:github-multi-org")
+    @responses.activate
+    def test_github_installation_filters_valid_installations(self):
+        self._setup_with_existing_installations()
+
+        owner_orgs = get_owner_github_organizations(self.access_token)
+        assert owner_orgs == ["santry"]
+
+        installation_info = get_eligible_multi_org_installations(
+            access_token=self.access_token, owner_orgs=owner_orgs
+        )
+
+        assert installation_info == [
+            {
+                "installation_id": 1,
+                "github_organization": "santry",
+                "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pitchforks.png",
+            },
+            {
+                "installation_id": 2,
+                "github_organization": "bufo-bot",
+                "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pog.png",
+            },
+        ]
