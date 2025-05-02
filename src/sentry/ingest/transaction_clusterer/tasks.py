@@ -76,13 +76,8 @@ def spawn_clusterers(**kwargs: Any) -> None:
         retry=Retry(times=5),
     ),
 )
-def cluster_projects(
-    projects: Sequence[Project] | None = None, project_ids: Sequence[int] | None = None
-) -> None:
-    if project_ids:
-        projects = Project.objects.get_many_from_cache(project_ids)
-    assert projects is not None, "Either projects or project_ids must be provided"
-
+def cluster_projects(project_ids: Sequence[int]) -> None:
+    projects = Project.objects.get_many_from_cache(project_ids)
     pending = set(projects)
     num_clustered = 0
     try:
