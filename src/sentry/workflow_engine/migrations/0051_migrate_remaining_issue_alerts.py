@@ -12,16 +12,16 @@ from django.apps.registry import Apps
 from django.conf import settings
 from django.db import migrations, router, transaction
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
-from django.db.models import Exists, OuterRef
 from jsonschema import ValidationError, validate
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils import redis
+from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 
 logger = logging.getLogger(__name__)
 
-CHUNK_SIZE = 1000
+CHUNK_SIZE = 5000
 
 # COPY PASTES FOR RULE REGISTRY
 
@@ -2185,10 +2185,6 @@ def migrate_remaining_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchema
         DataConditionGroupAction.objects.bulk_create(dcg_actions)
 
     # EXECUTION STARTS HERE
-    backfill_key = "backfill_workflow_engine_remaining_issue_alerts"
-    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-    progress_id = int(redis_client.get(backfill_key) or 0)
-
     def migrate_issue_alert(rule: Any) -> None:
         error_detector, _ = Detector.objects.get_or_create(
             type="error",
@@ -2202,12 +2198,9 @@ def migrate_remaining_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchema
                     logger.info("Rule not found", extra={"rule_id": rule.id})
                     return
 
-                # make sure rule is not already migrated
-                _, created = AlertRuleDetector.objects.get_or_create(
+                AlertRuleDetector.objects.get_or_create(
                     detector_id=error_detector.id, rule_id=rule.id
                 )
-                if not created:
-                    raise Exception("Rule already migrated")
 
                 data = rule.data
                 user_id = None
@@ -2241,16 +2234,29 @@ def migrate_remaining_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchema
             )
             sentry_sdk.capture_exception(e)
 
-    migrated_issue_alerts = AlertRuleWorkflow.objects.filter(
-        rule_id=OuterRef("id"), rule_id__isnull=False
-    )
+    backfill_key = "backfill_workflow_engine_remaining_issue_alerts"
+    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+    progress_id = int(redis_client.get(backfill_key) or 0)
 
-    for rule in RangeQuerySetWrapperWithProgressBarApprox(
-        Rule.objects.filter(~Exists(migrated_issue_alerts), id__gt=progress_id)
+    for rules in chunked(
+        RangeQuerySetWrapperWithProgressBarApprox(
+            Rule.objects.filter(id__gt=progress_id), step=CHUNK_SIZE
+        ),
+        CHUNK_SIZE,
     ):
-        migrate_issue_alert(rule)
-        # Update the progress in Redis
-        redis_client.set(backfill_key, rule.id, ex=60 * 60 * 24 * 7)
+        rule_ids = [rule.id for rule in rules]
+        migrated_rules = AlertRuleWorkflow.objects.filter(rule_id__in=rule_ids).values_list(
+            "rule_id", flat=True
+        )
+
+        for rule in rules:
+            if rule.id in migrated_rules:
+                continue
+
+            migrate_issue_alert(rule)
+            logger.info("Migrated issue alert", extra={"rule_id": rule.id})
+
+        redis_client.set(backfill_key, rules[-1].id, ex=60 * 60 * 24 * 7)
 
 
 class Migration(CheckedMigration):

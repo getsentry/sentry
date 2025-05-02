@@ -138,7 +138,7 @@ class TestMigrateRemainingIssueAlerts(TestMigrations):
         IssueAlertMigrator(self.issue_alert_already_migrated, self.user.id).run()
 
         self.project2 = self.create_project(organization=self.organization)
-        self.project2_detector = self.create_detector(project=self.project2)
+        self.project2_detector = self.create_detector(project=self.project2, name="Error Detector")
         self.issue_alert_with_existing_detector = self.create_project_rule(
             project=self.project2,
             name="test9",
@@ -199,9 +199,28 @@ class TestMigrateRemainingIssueAlerts(TestMigrations):
             frequency=5,
         )
 
+        self.issue_alert_only_detector_lookup = self.create_project_rule(
+            name="test14",
+            action_match="any",
+            filter_match="any",
+            project=self.project2,
+            condition_data=conditions,
+            frequency=5,
+        )
+        AlertRuleDetector.objects.create(
+            rule_id=self.issue_alert_only_detector_lookup.id, detector=self.project2_detector
+        )
+
     def assert_issue_alert_migrated(
-        self, issue_alert, is_enabled=True, logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT
+        self,
+        issue_alert,
+        is_enabled=True,
+        logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT,
+        project=None,
     ) -> Workflow:
+        if not project:
+            project = self.project
+
         issue_alert_workflow = AlertRuleWorkflow.objects.get(rule_id=issue_alert.id)
         issue_alert_detector = AlertRuleDetector.objects.get(rule_id=issue_alert.id)
 
@@ -215,7 +234,7 @@ class TestMigrateRemainingIssueAlerts(TestMigrations):
 
         detector = Detector.objects.get(id=issue_alert_detector.detector.id)
         assert detector.name == "Error Detector"
-        assert detector.project_id == self.project.id
+        assert detector.project_id == project.id
         assert detector.enabled is True
         assert detector.owner_user_id is None
         assert detector.owner_team is None
@@ -270,6 +289,7 @@ class TestMigrateRemainingIssueAlerts(TestMigrations):
         self._test_run__skip_invalid_conditions()
         self._test_run__skip_migration_if_no_valid_conditions()
         self._test_run__no_double_migrate()
+        self._test_run__migrates_rule_with_only_detector_lookup()
 
     def test_3(self):
         self._test_run__detector_exists()
@@ -402,4 +422,10 @@ class TestMigrateRemainingIssueAlerts(TestMigrations):
                 rule_id=self.issue_alert_invalid_environment.id
             ).count()
             == 0
+        )
+
+    def _test_run__migrates_rule_with_only_detector_lookup(self):
+        self.assert_issue_alert_migrated(
+            self.issue_alert_only_detector_lookup,
+            project=self.project2,
         )
