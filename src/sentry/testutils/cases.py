@@ -1150,7 +1150,7 @@ class SnubaTestCase(BaseTestCase):
         if is_eap:
             assert (
                 requests.post(
-                    settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert",
+                    settings.SENTRY_SNUBA + "/tests/entities/eap_items_span/insert",
                     data=json.dumps([span]),
                 ).status_code
                 == 200
@@ -1169,7 +1169,7 @@ class SnubaTestCase(BaseTestCase):
         if is_eap:
             assert (
                 requests.post(
-                    settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert",
+                    settings.SENTRY_SNUBA + "/tests/entities/eap_items_span/insert",
                     data=json.dumps(spans),
                 ).status_code
                 == 200
@@ -2309,7 +2309,8 @@ class ReplaysSnubaTestCase(TestCase):
 class UptimeCheckSnubaTestCase(TestCase):
     def store_uptime_check(self, uptime_check):
         response = requests.post(
-            settings.SENTRY_SNUBA + "/tests/entities/uptime_checks/insert", json=[uptime_check]
+            settings.SENTRY_SNUBA + "/tests/entities/uptime_checks/insert",
+            json=[uptime_check],
         )
         assert response.status_code == 200
 
@@ -3309,7 +3310,6 @@ class OurLogTestCase(BaseTestCase):
         timestamp: datetime | None = None,
         attributes: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-
         if organization is None:
             organization = self.organization
         if project is None:
