@@ -4,7 +4,7 @@ from typing import TypedDict
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register
-from sentry.incidents.models.incident import IncidentActivity
+from sentry.incidents.models.incident import IncidentActivity, IncidentActivityType
 from sentry.interfaces.user import EventUserApiContext
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
@@ -14,7 +14,7 @@ class IncidentActivitySerializerResponse(TypedDict):
     id: str
     incidentIdentifier: str
     user: EventUserApiContext
-    type: int
+    type: IncidentActivityType.value
     value: str
     previousValue: str
     comment: str

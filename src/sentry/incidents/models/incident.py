@@ -144,8 +144,8 @@ class IncidentStatus(Enum):
 
 
 class IncidentStatusMethod(Enum):
-    MANUAL = 1
-    RULE_UPDATED = 2
+    MANUAL = 1  # not in use
+    RULE_UPDATED = 2  # always corresponds with IncidentStatus.CLOSED
     RULE_TRIGGERED = 3
 
 
