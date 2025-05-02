@@ -17,6 +17,9 @@ from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_DETECTION
 from sentry.utils import metrics
 from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.event_frames import get_sdk_name
+from sentry.utils.performance_issues.detectors.n_plus_one_db_client_detector import (
+    NPlusOneDBClientDetector,
+)
 from sentry.utils.safe import get_path
 
 from .base import DetectorType, PerformanceDetector
@@ -293,8 +296,9 @@ def get_detection_settings(project_id: int | None = None) -> dict[DetectorType, 
             "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
         },
         DetectorType.N_PLUS_ONE_DB_CLIENT: {
-            "count": settings["n_plus_one_db_count"],
-            "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
+            "minimum_repetitions": settings["n_plus_one_db_count"],
+            "minimum_total_duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
+            "allowed_client_span_descriptions": ["prisma:client:operation"],
             "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],
         },
         DetectorType.UNCOMPRESSED_ASSETS: {
@@ -335,6 +339,7 @@ DETECTOR_CLASSES: list[type[PerformanceDetector]] = [
     FileIOMainThreadDetector,
     NPlusOneAPICallsDetector,
     NPlusOneAPICallsExperimentalDetector,
+    NPlusOneDBClientDetector,
     MNPlusOneDBSpanDetector,
     UncompressedAssetSpanDetector,
     LargeHTTPPayloadDetector,

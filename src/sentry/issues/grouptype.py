@@ -471,18 +471,6 @@ class PerformanceP95EndpointRegressionGroupType(GroupType):
     notification_config = NotificationConfig(context=[NotificationContextField.APPROX_START_TIME])
 
 
-@dataclass(frozen=True)
-class PerformanceNPlusOneDBClientGroupType(PerformanceGroupTypeDefaults, GroupType):
-    type_id = 1019
-    slug = "performance_n_plus_one_db_client"
-    # UI should still display regular N+1 title, even if detected separately.
-    description = "N+1 Query"
-    category = GroupCategory.PERFORMANCE.value
-    category_v2 = GroupCategory.PERFORMANCE_BEST_PRACTICE.value
-    default_priority = PriorityLevel.LOW
-    released = True
-
-
 # experimental
 @dataclass(frozen=True)
 class PerformanceStreamedSpansGroupTypeExperimental(GroupType):
@@ -494,6 +482,18 @@ class PerformanceStreamedSpansGroupTypeExperimental(GroupType):
     enable_auto_resolve = False
     enable_escalation_detection = False
     default_priority = PriorityLevel.LOW
+
+
+@dataclass(frozen=True)
+class PerformanceNPlusOneDBClientGroupType(PerformanceGroupTypeDefaults, GroupType):
+    type_id = 1020
+    slug = "performance_n_plus_one_db_client"
+    # UI should still display regular N+1 title, even if detected separately.
+    description = "N+1 Query"
+    category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.PERFORMANCE_BEST_PRACTICE.value
+    default_priority = PriorityLevel.LOW
+    released = False
 
 
 # 2000 was ProfileBlockingFunctionMainThreadType
