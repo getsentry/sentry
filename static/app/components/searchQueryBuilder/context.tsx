@@ -19,6 +19,7 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 
 interface SearchQueryBuilderContextData {
   actionBarRef: React.RefObject<HTMLDivElement | null>;
+  committedQuery: string;
   disabled: boolean;
   disallowFreeText: boolean;
   disallowWildcard: boolean;
