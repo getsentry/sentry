@@ -134,6 +134,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         "performanceIssueSendToPlatform",
         "tempestFetchScreenshots",
         "tempestFetchDumps",
+        "autofixAutorunThreshold",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
