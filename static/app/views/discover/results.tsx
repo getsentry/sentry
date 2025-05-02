@@ -920,7 +920,7 @@ const TipContainer = styled(MarkedText)`
   }
 `;
 
-function SavedQueryAPI(props: Props) {
+function SavedQueryAPI(props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQuery'>) {
   const queryClient = useQueryClient();
   const {organization, location} = props;
 
@@ -956,7 +956,7 @@ function SavedQueryAPI(props: Props) {
   return (
     <Results
       {...props}
-      savedQuery={data}
+      savedQuery={getSavedQueryWithDataset(data)}
       loading={isFetching}
       setSavedQuery={setSavedQuery}
     />
@@ -964,7 +964,10 @@ function SavedQueryAPI(props: Props) {
 }
 
 export default function ResultsContainer(
-  props: Omit<Props, 'api' | 'organization' | 'selection'>
+  props: Omit<
+    Props,
+    'api' | 'organization' | 'selection' | 'savedQuery' | 'loading' | 'setSavedQuery'
+  >
 ) {
   const api = useApi();
   const organization = useOrganization();
