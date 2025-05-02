@@ -51,7 +51,7 @@ function ReplaySection({
   ) : null;
 }
 
-function ReplayPreview({
+export default function ReplayPreview({
   event,
   organization,
 }: {
@@ -85,5 +85,3 @@ const ReplaySectionTitle = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
   margin-bottom: ${space(2)};
 `;
-
-export default ReplayPreview;
