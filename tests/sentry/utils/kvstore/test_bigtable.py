@@ -98,4 +98,4 @@ def test_get_uses_5s_deadline_for_retry():
         _, kwargs = mock_table.read_row.call_args
         retry_arg = kwargs["retry"]
         assert hasattr(retry_arg, "_deadline")
-        assert retry_arg._deadline == 5.1
+        assert retry_arg._deadline == 5.0
