@@ -103,16 +103,6 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     discover: discoverCap,
   } = config;
 
-  // Update the deleteCap to be enabled if the feature flag is present
-  const hasIssuePlatformDeletionUI = organization.features.includes(
-    'issue-platform-deletion-ui'
-  );
-  const updatedDeleteCap = {
-    ...deleteCap,
-    enabled: hasIssuePlatformDeletionUI || deleteCap.enabled,
-    disabledReason: hasIssuePlatformDeletionUI ? null : deleteCap.disabledReason,
-  };
-
   const getDiscoverUrl = () => {
     const {title, type, shortId} = group;
 
@@ -548,8 +538,8 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             priority: 'danger',
             label: t('Delete'),
             hidden: !hasDeleteAccess,
-            disabled: !updatedDeleteCap.enabled,
-            details: updatedDeleteCap.disabledReason,
+            disabled: !deleteCap.enabled,
+            details: deleteCap.disabledReason,
             onAction: openDeleteModal,
           },
           {

@@ -20,7 +20,6 @@ class DetectorType(Enum):
     SLOW_DB_QUERY = "slow_db_query"
     RENDER_BLOCKING_ASSET_SPAN = "render_blocking_assets"
     N_PLUS_ONE_DB_QUERIES = "n_plus_one_db"
-    N_PLUS_ONE_DB_QUERIES_EXTENDED = "n_plus_one_db_ext"
     N_PLUS_ONE_API_CALLS = "n_plus_one_api_calls"
     CONSECUTIVE_DB_OP = "consecutive_db"
     CONSECUTIVE_HTTP_OP = "consecutive_http"
@@ -30,15 +29,16 @@ class DetectorType(Enum):
     UNCOMPRESSED_ASSETS = "uncompressed_assets"
     DB_MAIN_THREAD = "db_main_thread"
     HTTP_OVERHEAD = "http_overhead"
+    EXPERIMENTAL_N_PLUS_ONE_API_CALLS = "experimental_n_plus_one_api_calls"
+    EXPERIMENTAL_N_PLUS_ONE_DB_QUERIES = "experimental_n_plus_one_db_queries"
 
 
 # Detector and the corresponding system option must be added to this list to have issues created.
 DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.N_PLUS_ONE_DB_QUERIES: "performance.issues.n_plus_one_db.problem-creation",
-    DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: "performance.issues.n_plus_one_db_ext.problem-creation",
     DetectorType.CONSECUTIVE_DB_OP: "performance.issues.consecutive_db.problem-creation",
-    DetectorType.CONSECUTIVE_HTTP_OP: "performance.issues.consecutive_http.flag_disabled",
-    DetectorType.LARGE_HTTP_PAYLOAD: "performance.issues.large_http_payload.flag_disabled",
+    DetectorType.CONSECUTIVE_HTTP_OP: "performance.issues.consecutive_http.problem-creation",
+    DetectorType.LARGE_HTTP_PAYLOAD: "performance.issues.large_http_payload.problem-creation",
     DetectorType.N_PLUS_ONE_API_CALLS: "performance.issues.n_plus_one_api_calls.problem-creation",
     DetectorType.FILE_IO_MAIN_THREAD: "performance.issues.file_io_main_thread.problem-creation",
     DetectorType.UNCOMPRESSED_ASSETS: "performance.issues.compressed_assets.problem-creation",
@@ -96,8 +96,14 @@ class PerformanceDetector(ABC):
     def on_complete(self) -> None:
         pass
 
-    def is_creation_allowed_for_system(self) -> bool:
-        system_option = DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION.get(self.__class__.type, None)
+    @classmethod
+    def is_detection_allowed_for_system(cls) -> bool:
+        """
+        This method determines whether the detector should be run at all for this Sentry instance.
+
+        See `_detect_performance_problems` in `performance_detection.py` for more context.
+        """
+        system_option = DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION.get(cls.type, None)
 
         if not system_option:
             return False
@@ -116,14 +122,22 @@ class PerformanceDetector(ABC):
             return False
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return False  # Creation is off by default. Ideally, it should auto-generate the feature flag name, and check its value
+        """
+        After running the detector, this method determines whether the found problems should be
+        passed to the issue platform for a given organization.
+
+        See `_detect_performance_problems` in `performance_detection.py` for more context.
+        """
+        return False
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return False  # Creation is off by default. Ideally, it should auto-generate the project option name, and check its value
+        """
+        After running the detector, this method determines whether the found problems should be
+        passed to the issue platform for a given project.
 
-    @classmethod
-    def is_detector_enabled(cls) -> bool:
-        return True
+        See `_detect_performance_problems` in `performance_detection.py` for more context.
+        """
+        return False
 
     @classmethod
     def is_event_eligible(cls, event, project: Project | None = None) -> bool:

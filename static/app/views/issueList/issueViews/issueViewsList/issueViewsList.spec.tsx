@@ -14,7 +14,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import IssueViewsList from 'sentry/views/issueList/issueViews/issueViewsList/issueViewsList';
 
 const organization = OrganizationFixture({
-  features: ['issue-view-sharing'],
+  features: ['enforce-stacked-navigation'],
 });
 
 describe('IssueViewsList', function () {
@@ -108,7 +108,7 @@ describe('IssueViewsList', function () {
       ],
     });
 
-    render(<IssueViewsList />, {organization, enableRouterMocks: false});
+    render(<IssueViewsList />, {organization, deprecatedRouterMocks: false});
 
     // By default, sorts by popularity (desc) then visited (desc) then created (desc)
     await waitFor(() => {

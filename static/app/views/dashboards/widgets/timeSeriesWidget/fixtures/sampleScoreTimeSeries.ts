@@ -3,10 +3,10 @@ import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 export const sampleScoreTimeSeries: TimeSeries = {
   field: 'performance_score(measurements.score.lcp)',
   meta: {
-    type: 'score',
-    unit: null,
+    valueType: 'score',
+    valueUnit: null,
   },
-  data: [
+  values: [
     {
       value: 16,
       timestamp: 1729796400000, // '2024-10-24T15:00:00-04:00'

@@ -20,6 +20,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
 type AutofixDiffProps = {
@@ -190,6 +191,8 @@ function HunkHeader({lines, sectionHeader}: {lines: DiffLine[]; sectionHeader: s
 function useUpdateHunk({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
+  const orgSlug = useOrganization().slug;
+
   return useMutation({
     mutationFn: (params: {
       fileName: string;
@@ -197,22 +200,25 @@ function useUpdateHunk({groupId, runId}: {groupId: string; runId: string}) {
       lines: DiffLine[];
       repoId?: string;
     }) => {
-      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
-        method: 'POST',
-        data: {
-          run_id: runId,
-          payload: {
-            type: 'update_code_change',
-            repo_id: params.repoId ?? null,
-            hunk_index: params.hunkIndex,
-            lines: params.lines,
-            file_path: params.fileName,
+      return api.requestPromise(
+        `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
+        {
+          method: 'POST',
+          data: {
+            run_id: runId,
+            payload: {
+              type: 'update_code_change',
+              repo_id: params.repoId ?? null,
+              hunk_index: params.hunkIndex,
+              lines: params.lines,
+              file_path: params.fileName,
+            },
           },
-        },
-      });
+        }
+      );
     },
     onSuccess: _ => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when updating changes.'));

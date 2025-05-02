@@ -8,6 +8,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -24,7 +25,7 @@ import {useDeleteGroupSearchView} from 'sentry/views/issueList/mutations/useDele
 import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
 import {makeFetchGroupSearchViewKey} from 'sentry/views/issueList/queries/useFetchGroupSearchView';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 type LeftNavViewsHeaderProps = {
   selectedProjectIds: number[];
@@ -35,7 +36,9 @@ function PageTitle({title}: {title: ReactNode}) {
   const organization = useOrganization();
   const {data: groupSearchView} = useSelectedGroupSearchView();
   const user = useUser();
-  const hasIssueViewSharing = organization.features.includes('issue-view-sharing');
+  const hasIssueViewSharing = organization.features.includes(
+    'enforce-stacked-navigation'
+  );
 
   if (
     hasIssueViewSharing &&
@@ -54,6 +57,7 @@ function PageTitle({title}: {title: ReactNode}) {
 
 function IssueViewStarButton() {
   const organization = useOrganization();
+  const user = useUser();
   const queryClient = useQueryClient();
   const {data: groupSearchView} = useSelectedGroupSearchView();
   const {mutate: mutateViewStarred} = useUpdateGroupSearchViewStarred({
@@ -85,18 +89,33 @@ function IssueViewStarButton() {
     },
   });
 
-  if (!organization.features.includes('issue-view-sharing') || !groupSearchView) {
+  if (!organization.features.includes('enforce-stacked-navigation') || !groupSearchView) {
     return null;
   }
 
   return (
     <Button
       onClick={() => {
-        mutateViewStarred({
-          id: groupSearchView.id,
-          starred: !groupSearchView?.starred,
-          view: groupSearchView,
-        });
+        mutateViewStarred(
+          {
+            id: groupSearchView.id,
+            starred: !groupSearchView?.starred,
+            view: groupSearchView,
+          },
+          {
+            onSuccess: () => {
+              trackAnalytics('issue_views.star_view', {
+                organization,
+                ownership:
+                  user?.id === groupSearchView.createdBy?.id
+                    ? 'personal'
+                    : 'organization',
+                starred: !groupSearchView?.starred,
+                surface: 'issue-view-details',
+              });
+            },
+          }
+        );
       }}
       aria-label={groupSearchView?.starred ? t('Unstar view') : t('Star view')}
       icon={
@@ -117,7 +136,7 @@ function IssueViewEditMenu() {
   const {mutate: deleteIssueView} = useDeleteGroupSearchView();
   const navigate = useNavigate();
 
-  if (!organization.features.includes('issue-view-sharing') || !groupSearchView) {
+  if (!organization.features.includes('enforce-stacked-navigation') || !groupSearchView) {
     return null;
   }
 
@@ -144,6 +163,14 @@ function IssueViewEditMenu() {
                       navigate(
                         normalizeUrl(`/organizations/${organization.slug}/issues/`)
                       );
+                      trackAnalytics('issue_views.delete_view', {
+                        organization,
+                        ownership:
+                          user?.id === groupSearchView.createdBy?.id
+                            ? 'personal'
+                            : 'organization',
+                        surface: 'issue-view-details',
+                      });
                     },
                   }
                 ),
@@ -209,6 +236,7 @@ const StyledLayoutTitle = styled('div')`
 `;
 
 const Actions = styled('div')`
+  align-items: center;
   display: flex;
   gap: ${space(1)};
 `;

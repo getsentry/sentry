@@ -1,6 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import AlertStore from 'sentry/stores/alertStore';
@@ -18,8 +17,6 @@ jest.mock(
 );
 
 describe('OrganizationLayout', function () {
-  const {router} = initializeOrg();
-
   beforeEach(function () {
     OrganizationStore.reset();
     ProjectsStore.reset();
@@ -50,7 +47,9 @@ describe('OrganizationLayout', function () {
         <OrganizationLayout>
           <div />
         </OrganizationLayout>,
-        {router, organization}
+        {
+          organization,
+        }
       );
 
       expect(await screen.findByText('Deletion Scheduled')).toBeInTheDocument();
@@ -76,7 +75,9 @@ describe('OrganizationLayout', function () {
         <OrganizationLayout>
           <div />
         </OrganizationLayout>,
-        {router, organization}
+        {
+          organization,
+        }
       );
 
       expect(await screen.findByText('Deletion Scheduled')).toBeInTheDocument();
@@ -103,7 +104,9 @@ describe('OrganizationLayout', function () {
       <OrganizationLayout>
         <div />
       </OrganizationLayout>,
-      {router, organization}
+      {
+        organization,
+      }
     );
 
     const inProgress = await screen.findByText(

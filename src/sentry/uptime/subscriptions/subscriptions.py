@@ -75,6 +75,7 @@ def create_uptime_subscription(
     headers: Sequence[tuple[str, str]] | None = None,
     body: str | None = None,
     trace_sampling: bool = False,
+    uptime_status: UptimeStatus = UptimeStatus.OK,
 ) -> UptimeSubscription:
     """
     Creates a new uptime subscription. This creates the row in postgres, and fires a task that will send the config
@@ -98,6 +99,7 @@ def create_uptime_subscription(
         headers=headers,  # type: ignore[misc]
         body=body,
         trace_sampling=trace_sampling,
+        uptime_status=uptime_status,
     )
 
     # Associate active regions with this subscription
@@ -212,6 +214,7 @@ def create_project_uptime_subscription(
             headers=headers,
             body=body,
             trace_sampling=trace_sampling,
+            uptime_status=uptime_status,
         )
         owner_user_id = None
         owner_team_id = None
@@ -342,14 +345,14 @@ def disable_uptime_detector(detector: Detector):
     also be disabled.
     """
     uptime_monitor = get_project_subscription(detector)
+    uptime_subscription = uptime_monitor.uptime_subscription
+
     if uptime_monitor.status == ObjectStatus.DISABLED:
         return
 
-    if uptime_monitor.uptime_status == UptimeStatus.FAILED:
+    if uptime_subscription.uptime_status == UptimeStatus.FAILED:
         # Resolve the issue so that we don't see it in the ui anymore
         resolve_uptime_issue(uptime_monitor)
-
-    uptime_subscription = uptime_monitor.uptime_subscription
 
     uptime_monitor.update(
         status=ObjectStatus.DISABLED,

@@ -7,7 +7,7 @@ import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {Release, TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -24,10 +24,11 @@ import {
 } from 'sentry/views/insights/pages/platform/laravel/styles';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
+import {useReleaseBubbleProps} from 'sentry/views/insights/pages/platform/shared/getReleaseBubbleProps';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {QueuesWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
-export function JobsWidget({query}: {query?: string}) {
+export function JobsWidget({query, releases}: {query?: string; releases?: Release[]}) {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({
     granularity: 'spans-low',
@@ -95,7 +96,7 @@ export function JobsWidget({query}: {query?: string}) {
     () =>
       plottables.every(
         plottable =>
-          plottable.isEmpty || plottable.timeSeries.data.every(point => !point.value)
+          plottable.isEmpty || plottable.timeSeries.values.every(point => !point.value)
       ),
     [plottables]
   );
@@ -110,16 +111,17 @@ export function JobsWidget({query}: {query?: string}) {
       visualizationProps={{
         showLegend: 'never',
         plottables,
+        ...useReleaseBubbleProps(releases),
       }}
     />
   );
 
   const {totalJobs, overallErrorRate} = useMemo(() => {
     const errorSeries = plottables[1]!.timeSeries;
-    const jobCounts = plottables[0]!.timeSeries.data;
+    const jobCounts = plottables[0]!.timeSeries.values;
     let jobsCount = 0;
     let errorCount = 0;
-    errorSeries.data.forEach((point, i) => {
+    errorSeries.values.forEach((point, i) => {
       const count = jobCounts[i]?.value!;
       jobsCount += count;
       errorCount += point.value! * count;

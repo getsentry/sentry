@@ -7,22 +7,30 @@ import type {Organization} from 'sentry/types/organization';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
+import {BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
 import type {
+  BilledDataCategoryInfo,
   BillingMetricHistory,
   Plan,
   RecurringCredit,
   Subscription,
 } from 'getsentry/types';
 
-const DATA_CATEGORY_FEATURES: Record<string, string | null> = {
-  [DataCategory.ERRORS]: null, // All plans have access to errors
-  [DataCategory.TRANSACTIONS]: 'performance-view',
-  [DataCategory.REPLAYS]: 'session-replay',
-  [DataCategory.ATTACHMENTS]: 'event-attachments',
-  [DataCategory.MONITOR_SEATS]: 'monitor-seat-billing',
-  [DataCategory.SPANS]: 'spans-usage-tracking',
-  [DataCategory.UPTIME]: 'uptime',
-};
+/**
+ * Returns the data category info defined in DATA_CATEGORY_INFO for the given category,
+ * with billing context defined in BILLED_DATA_CATEGORY_INFO.
+ *
+ * Returns null for categories not defined in DATA_CATEGORY_INFO.
+ */
+export function getCategoryInfoFromPlural(
+  category: DataCategory
+): BilledDataCategoryInfo | null {
+  const info = Object.values(BILLED_DATA_CATEGORY_INFO).find(c => c.plural === category);
+  if (!info) {
+    return null;
+  }
+  return info;
+}
 
 /**
  *
@@ -39,7 +47,7 @@ export function getCreditDataCategory(credit: RecurringCredit): DataCategory | n
 }
 
 type CategoryNameProps = {
-  category: string;
+  category: DataCategory;
   capitalize?: boolean;
   hadCustomDynamicSampling?: boolean;
   plan?: Plan;
@@ -56,7 +64,6 @@ export function getPlanCategoryName({
   capitalize = true,
   title = false,
 }: CategoryNameProps) {
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const displayNames = plan?.categoryDisplayNames?.[category];
   const categoryName =
     category === DataCategory.SPANS && hadCustomDynamicSampling
@@ -81,7 +88,6 @@ export function getSingularCategoryName({
   capitalize = true,
   title = false,
 }: CategoryNameProps) {
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const displayNames = plan?.categoryDisplayNames?.[category];
   const categoryName =
     category === DataCategory.SPANS && hadCustomDynamicSampling
@@ -105,7 +111,7 @@ export function getReservedBudgetDisplayName({
   hadCustomDynamicSampling = false,
   shouldTitleCase = false,
 }: Omit<CategoryNameProps, 'category' | 'capitalize'> & {
-  categories: string[];
+  categories: DataCategory[];
   shouldTitleCase?: boolean;
 }) {
   return oxfordizeArray(
@@ -133,17 +139,25 @@ export function listDisplayNames({
   plan,
   categories,
   hadCustomDynamicSampling = false,
+  shouldTitleCase = false,
 }: {
-  categories: string[];
+  categories: DataCategory[];
   plan: Plan;
   hadCustomDynamicSampling?: boolean;
+  shouldTitleCase?: boolean;
 }) {
   const categoryNames = categories
     .filter(
       category => category !== DataCategory.SPANS_INDEXED || hadCustomDynamicSampling // filter out stored spans if no DS
     )
     .map(category =>
-      getPlanCategoryName({plan, category, capitalize: false, hadCustomDynamicSampling})
+      getPlanCategoryName({
+        plan,
+        category,
+        capitalize: false,
+        hadCustomDynamicSampling,
+        title: shouldTitleCase,
+      })
     );
   return oxfordizeArray(categoryNames);
 }
@@ -168,11 +182,11 @@ export function sortCategoriesWithKeys(
 /**
  * Whether the subscription plan includes a data category.
  */
-function hasCategory(subscription: Subscription, category: string) {
+function hasCategory(subscription: Subscription, category: DataCategory) {
   return hasPlanCategory(subscription.planDetails, category);
 }
 
-function hasPlanCategory(plan: Plan, category: string) {
+function hasPlanCategory(plan: Plan, category: DataCategory) {
   return plan.categories.includes(category);
 }
 
@@ -183,7 +197,7 @@ function hasPlanCategory(plan: Plan, category: string) {
  * custom feature handlers and plan trial. Used for usage UI.
  */
 export function hasCategoryFeature(
-  category: string,
+  category: DataCategory,
   subscription: Subscription,
   organization: Organization
 ) {
@@ -191,8 +205,8 @@ export function hasCategoryFeature(
     return true;
   }
 
-  const feature = DATA_CATEGORY_FEATURES[category];
-  if (typeof feature === 'undefined') {
+  const feature = getCategoryInfoFromPlural(category)?.feature;
+  if (!feature) {
     return false;
   }
   return feature ? organization.features.includes(feature) : true;
