@@ -120,6 +120,7 @@ class IntegrationFeatures(StrEnum):
     TICKET_RULES = "ticket-rules"
     STACKTRACE_LINK = "stacktrace-link"
     CODEOWNERS = "codeowners"
+    USER_MAPPING = "user-mapping"
 
     # features currently only existing on plugins:
     DATA_FORWARDING = "data-forwarding"
@@ -436,7 +437,8 @@ class IntegrationInstallation(abc.ABC):
         """
         raise NotImplementedError
 
-    def get_default_identity(self) -> RpcIdentity:
+    @cached_property
+    def default_identity(self) -> RpcIdentity:
         """For Integrations that rely solely on user auth for authentication."""
         try:
             org_integration = self.org_integration

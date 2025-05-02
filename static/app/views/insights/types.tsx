@@ -1,9 +1,3 @@
-export enum StarfishType {
-  BACKEND = 'backend',
-  MOBILE = 'mobile',
-  FRONTEND = 'frontend',
-}
-
 export enum ModuleName {
   HTTP = 'http',
   DB = 'db',
@@ -77,14 +71,24 @@ export enum SpanFields {
   IS_TRANSACTION = 'is_transaction',
   CACHE_HIT = 'cache.hit',
   IS_STARRED_TRANSACTION = 'is_starred_transaction',
+  SPAN_DURATION = 'span.duration',
+  USER = 'user',
 }
 
-export type SpanBooleanFields =
+type WebVitalsMeasurements =
+  | 'measurements.score.cls'
+  | 'measurements.score.fcp'
+  | 'measurements.score.inp'
+  | 'measurements.score.lcp'
+  | 'measurements.score.ttfb'
+  | 'measurements.score.total';
+
+type SpanBooleanFields =
   | SpanFields.CACHE_HIT
   | SpanFields.IS_TRANSACTION
   | SpanFields.IS_STARRED_TRANSACTION;
 
-export type SpanNumberFields =
+type SpanNumberFields =
   | SpanMetricsField.AI_TOTAL_COST
   | SpanMetricsField.AI_TOTAL_TOKENS_USED
   | SpanMetricsField.SPAN_SELF_TIME
@@ -100,9 +104,10 @@ export type SpanNumberFields =
   | SpanMetricsField.MOBILE_FROZEN_FRAMES
   | SpanMetricsField.MOBILE_TOTAL_FRAMES
   | SpanMetricsField.MOBILE_SLOW_FRAMES
+  | SpanMetricsField.SPAN_DURATION
   | DiscoverNumberFields;
 
-export type SpanStringFields =
+type SpanStringFields =
   | SpanMetricsField.RESOURCE_RENDER_BLOCKING_STATUS
   | 'id'
   | 'span_id'
@@ -147,16 +152,16 @@ export type SpanIndexedQueryFilters = Partial<Record<SpanStringFields, string>> 
   [SpanIndexedField.PROJECT_ID]?: string;
 };
 
-export type SpanStringArrayFields = 'span.domain';
+type SpanStringArrayFields = 'span.domain';
 
 export const COUNTER_AGGREGATES = ['sum', 'avg', 'min', 'max', 'p100'] as const;
 export const DISTRIBUTION_AGGREGATES = ['p50', 'p75', 'p90', 'p95', 'p99'] as const;
 
-export const AGGREGATES = [...COUNTER_AGGREGATES, ...DISTRIBUTION_AGGREGATES] as const;
+export type Aggregate =
+  | (typeof COUNTER_AGGREGATES)[number]
+  | (typeof DISTRIBUTION_AGGREGATES)[number];
 
-export type Aggregate = (typeof AGGREGATES)[number];
-
-export type ConditionalAggregate =
+type ConditionalAggregate =
   | `avg_if`
   | `count_op`
   | 'trace_status_rate'
@@ -176,6 +181,8 @@ export const SPAN_FUNCTIONS = [
   'failure_rate',
 ] as const;
 
+export const WEB_VITAL_FUNCTIONS = ['performance_score'] as const;
+
 type BreakpointCondition = 'less' | 'greater';
 
 type RegressionFunctions = [
@@ -187,6 +194,8 @@ type RegressionFunctions = [
 type SpanAnyFunction = `any(${string})`;
 
 export type SpanFunctions = (typeof SPAN_FUNCTIONS)[number];
+
+type WebVitalsFunctions = (typeof WEB_VITAL_FUNCTIONS)[number];
 
 export type SpanMetricsResponse = {
   [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
@@ -230,6 +239,8 @@ export type EAPSpanResponse = {
 } & {
   [Property in SpanFunctions as `${Property}()`]: number;
 } & {
+  [Property in WebVitalsMeasurements as `${WebVitalsFunctions}(${Property})`]: number;
+} & {
   [Property in SpanStringFields as `${Property}`]: string;
 } & {
   [Property in SpanNumberFields as `${Property}`]: number;
@@ -248,6 +259,8 @@ export type EAPSpanResponse = {
       | `${Property}(${string},${string},${string})`]: number;
   } & {
     [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
+  } & {
+    [Property in SpanFields as `count_unique(${Property})`]: number;
   };
 
 export type EAPSpanProperty = keyof EAPSpanResponse;
@@ -427,8 +440,6 @@ export type SpanIndexedProperty = keyof SpanIndexedResponse;
 // TODO: When convenient, remove this alias and use `IndexedResponse` everywhere
 export type SpanIndexedFieldTypes = SpanIndexedResponse;
 
-export type Op = SpanIndexedFieldTypes[SpanIndexedField.SPAN_OP];
-
 export enum SpanFunction {
   SPS = 'sps',
   EPM = 'epm',
@@ -443,14 +454,13 @@ export enum SpanFunction {
 
 // TODO - add more functions and fields, combine shared ones, etc
 
-export const METRICS_FUNCTIONS = [
-  'count',
-  'performance_score',
-  'count_scores',
-  'opportunity_score',
-  'total_opportunity_score',
-  'p75',
-] as const;
+type MetricsFunctions =
+  | 'count'
+  | 'performance_score'
+  | 'count_scores'
+  | 'opportunity_score'
+  | 'total_opportunity_score'
+  | 'p75';
 
 export enum MetricsFields {
   TRANSACTION_DURATION = 'transaction.duration',
@@ -488,7 +498,7 @@ export enum MetricsFields {
   RELEASE = 'release',
 }
 
-export type MetricsNumberFields =
+type MetricsNumberFields =
   | MetricsFields.TRANSACTION_DURATION
   | MetricsFields.SPAN_DURATION
   | MetricsFields.LCP_SCORE
@@ -513,7 +523,7 @@ export type MetricsNumberFields =
   | MetricsFields.TIME_TO_INITIAL_DISPLAY
   | MetricsFields.TIME_TO_FULL_DISPLAY;
 
-export type MetricsStringFields =
+type MetricsStringFields =
   | MetricsFields.TRANSACTION
   | MetricsFields.PROJECT
   | MetricsFields.ID
@@ -522,8 +532,6 @@ export type MetricsStringFields =
   | MetricsFields.PROFILE_ID
   | MetricsFields.RELEASE
   | MetricsFields.TIMESTAMP;
-
-export type MetricsFunctions = (typeof METRICS_FUNCTIONS)[number];
 
 export type MetricsResponse = {
   [Property in MetricsNumberFields as `${Aggregate}(${Property})`]: number;
@@ -539,7 +547,7 @@ export type MetricsResponse = {
   ['project.id']: number;
 };
 
-export enum DiscoverFields {
+enum DiscoverFields {
   ID = 'id',
   TRACE = 'trace',
   USER_DISPLAY = 'user.display',
@@ -574,7 +582,7 @@ export enum DiscoverFields {
 
 export type MetricsProperty = keyof MetricsResponse;
 
-export type DiscoverNumberFields =
+type DiscoverNumberFields =
   | DiscoverFields.CLS
   | DiscoverFields.FCP
   | DiscoverFields.LCP
@@ -598,7 +606,7 @@ export type DiscoverNumberFields =
   | DiscoverFields.SCORE_RATIO_TTFB
   | DiscoverFields.SCORE_RATIO_INP;
 
-export type DiscoverStringFields =
+type DiscoverStringFields =
   | DiscoverFields.ID
   | DiscoverFields.TRACE
   | DiscoverFields.USER_DISPLAY
@@ -617,6 +625,11 @@ export type DiscoverResponse = {
 export type DiscoverProperty = keyof DiscoverResponse;
 
 export type MetricsQueryFilters = Partial<Record<MetricsStringFields, string>> & {
+  [SpanIndexedField.PROJECT_ID]?: string;
+};
+
+export type SpanQueryFilters = Partial<Record<SpanStringFields, string>> & {
+  is_transaction?: 'true' | 'false';
   [SpanIndexedField.PROJECT_ID]?: string;
 };
 

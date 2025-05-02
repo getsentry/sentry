@@ -2,7 +2,6 @@ import type {ReactNode} from 'react';
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import DropdownButton from 'sentry/components/dropdownButton';
@@ -36,7 +35,7 @@ import {
 import {useExploreSpansTour} from 'sentry/views/explore/spans/tour';
 import {StarSavedQueryButton} from 'sentry/views/explore/starSavedQueryButton';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 export function ExploreContent() {
   return (
@@ -74,14 +73,6 @@ function ExploreContentImpl() {
                     'Find problematic spans/traces or compute real-time metrics via aggregation.'
                   )}
                   linkLabel={t('Read the Discussion')}
-                />
-                <FeatureBadge
-                  tooltipProps={{
-                    title: t(
-                      'This feature is available for early adopters and the UX may change'
-                    ),
-                  }}
-                  type="beta"
                 />
               </Layout.Title>
             </Layout.HeaderContent>

@@ -104,8 +104,9 @@ function renderTestComponent({
       widgetLegendState={widgetLegendState}
     />,
     {
-      router,
+      deprecatedRouterMocks: true,
       organization,
+      router,
     }
   );
 
@@ -240,7 +241,7 @@ describe('WidgetBuilder', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/spans/fields/`,
+      url: `/organizations/org-slug/trace-items/attributes/`,
       body: [],
     });
 

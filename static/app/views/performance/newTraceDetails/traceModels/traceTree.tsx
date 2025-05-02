@@ -253,6 +253,11 @@ export declare namespace TraceTree {
     spans?: number;
   };
 
+  type OpsBreakdown = Array<{
+    count: number;
+    op: string;
+  }>;
+
   type Indicator = {
     duration: number;
     label: string;
@@ -366,7 +371,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         slug: value.project_slug,
       });
 
-      let parentNode;
+      let parentNode: TraceTreeNode<TraceTree.NodeValue>;
       if (isEAPTransaction(value)) {
         // For collapsed eap-transactions we still render the embedded eap-transactions as visible children.
         // We parent the eap-transactions under the closest collapsed eap-transaction node. Mimics the behavior
@@ -458,6 +463,26 @@ export class TraceTree extends TraceTreeEventDispatcher {
           if (closestEAPTransaction) {
             closestEAPTransaction.occurrences.add(occurence);
           }
+        }
+
+        function updateAncestorOpsBreakdown(
+          node: TraceTreeNode<TraceTree.EAPSpan>,
+          op: string
+        ) {
+          let current = node.parent;
+          while (current) {
+            const existing = current.eapSpanOpsBreakdown.find(b => b.op === op);
+            if (existing) {
+              existing.count++;
+            } else {
+              current.eapSpanOpsBreakdown.push({op, count: 1});
+            }
+            current = current.parent;
+          }
+        }
+
+        if (isEAPSpanNode(c)) {
+          updateAncestorOpsBreakdown(c, c.value.op);
         }
       }
 

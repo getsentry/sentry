@@ -5,7 +5,7 @@ from uuid import uuid4
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.incidents.grouptype import MetricAlertFire
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
@@ -119,7 +119,8 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         self,
         name_prefix: str = "test",
         workflow_triggers: DataConditionGroup | None = None,
-        detector_type: str = MetricAlertFire.slug,
+        detector_type: str = MetricIssue.slug,
+        project: Project | None = None,
         **kwargs,
     ) -> tuple[Workflow, Detector, DetectorWorkflow, DataConditionGroup]:
         """
@@ -146,7 +147,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         detector = self.create_detector(
             name=f"{name_prefix}_detector",
             type=detector_type,
-            project=self.project,
+            project=project if project else self.project,
         )
 
         detector_workflow = self.create_detector_workflow(

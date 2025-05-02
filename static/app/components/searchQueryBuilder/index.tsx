@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   SearchQueryBuilderContext,
   SearchQueryBuilderProvider,
@@ -18,7 +19,6 @@ import {
 } from 'sentry/components/searchQueryBuilder/types';
 import {queryIsValid} from 'sentry/components/searchQueryBuilder/utils';
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -176,7 +176,7 @@ function ActionButtons({
   );
 }
 
-export function SearchQueryBuilderUI({
+function SearchQueryBuilderUI({
   className,
   disabled = false,
   label,
@@ -257,7 +257,8 @@ const Wrapper = styled(Input.withComponent('div'))`
 const ButtonsWrapper = styled('div')`
   position: absolute;
   right: 9px;
-  top: 9px;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
   gap: ${space(0.5)};

@@ -37,7 +37,7 @@ const {
   CACHE_MISS_RATE,
 } = SpanFunction;
 
-export const SORTABLE_FIELDS = new Set([
+const SORTABLE_FIELDS = new Set([
   `avg(${SPAN_SELF_TIME})`,
   `avg(${SPAN_DURATION})`,
   `sum(${SPAN_SELF_TIME})`,
@@ -77,6 +77,8 @@ export const SORTABLE_FIELDS = new Set([
   'p50(span.duration)',
   'p95(span.duration)',
   'failure_rate()',
+  'performance_score(measurements.score.total)',
+  'count_unique(user)',
 ]);
 
 const NUMERIC_FIELDS = new Set([
@@ -121,7 +123,7 @@ export const renderHeadCell = ({column, location, sort, sortParameterName}: Opti
   );
 };
 
-export const getAlignment = (key: string): Alignments => {
+const getAlignment = (key: string): Alignments => {
   const result = parseFunction(key);
 
   if (result) {

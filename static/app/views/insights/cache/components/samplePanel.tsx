@@ -1,9 +1,9 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import keyBy from 'lodash/keyBy';
 
 import {Button} from 'sentry/components/core/button';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {DrawerHeader} from 'sentry/components/globalDrawer/components';
+import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -32,6 +32,7 @@ import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/compon
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {
   useDiscoverOrEap,
+  useEAPSpans,
   useMetrics,
   useSpanMetrics,
   useSpansIndexed,
@@ -42,17 +43,20 @@ import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import {useDebouncedState} from 'sentry/views/insights/http/utils/useDebouncedState';
+import type {
+  MetricsQueryFilters,
+  SpanIndexedQueryFilters,
+  SpanIndexedResponse,
+  SpanMetricsQueryFilters,
+  SpanQueryFilters,
+} from 'sentry/views/insights/types';
 import {
   MetricsFields,
-  type MetricsQueryFilters,
   ModuleName,
+  SpanFields,
   SpanFunction,
   SpanIndexedField,
-  type SpanIndexedQueryFilters,
-  type SpanIndexedResponse,
   SpanMetricsField,
-  type SpanMetricsQueryFilters,
 } from 'sentry/views/insights/types';
 
 // This is similar to http sample table, its difficult to use the generic span samples sidebar as we require a bunch of custom things.
@@ -72,10 +76,8 @@ export function CacheSamplePanel() {
     },
   });
 
-  const [highlightedSpanId, setHighlightedSpanId] = useDebouncedState<string | undefined>(
-    undefined,
-    [],
-    10
+  const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
+    undefined
   );
 
   // @ts-expect-error TS(7006): Parameter 'newStatusClass' implicitly has an 'any'... Remove this comment to see the full error message
@@ -126,15 +128,7 @@ export function CacheSamplePanel() {
     );
 
   const {data: transactionDurationData, isPending: isTransactionDurationLoading} =
-    useMetrics(
-      {
-        search: MutableSearch.fromQueryObject({
-          transaction: query.transaction,
-        } satisfies MetricsQueryFilters),
-        fields: [`avg(${MetricsFields.TRANSACTION_DURATION})`],
-      },
-      Referrer.SAMPLES_CACHE_TRANSACTION_DURATION
-    );
+    useTransactionDuration({transaction: query.transaction});
 
   const sampleFilters: SpanIndexedQueryFilters = {
     ...BASE_FILTERS,
@@ -252,8 +246,7 @@ export function CacheSamplePanel() {
     refetchCacheMisses();
   };
 
-  const avg =
-    transactionDurationData?.[0]?.[`avg(${MetricsFields.TRANSACTION_DURATION})`] ?? 0;
+  const avg = transactionDurationData?.[0]?.[`avg(${SpanFields.SPAN_DURATION})`] ?? 0;
 
   const samplesPlottable = useMemo(() => {
     // Create a `TabularData` object from multiple datasets. This requires
@@ -297,12 +290,12 @@ export function CacheSamplePanel() {
 
   return (
     <PageAlertProvider>
-      <DrawerHeader>
+      <EventDrawerHeader>
         <SampleDrawerHeaderTransaction
           project={project}
           transaction={query.transaction}
         />
-      </DrawerHeader>
+      </EventDrawerHeader>
 
       <SampleDrawerBody>
         <ModuleLayout.Layout>
@@ -327,11 +320,7 @@ export function CacheSamplePanel() {
 
               <MetricReadout
                 title={DataTitles[`avg(${MetricsFields.TRANSACTION_DURATION})`]}
-                value={
-                  transactionDurationData?.[0]?.[
-                    `avg(${MetricsFields.TRANSACTION_DURATION})`
-                  ]
-                }
+                value={transactionDurationData?.[0]?.[`avg(${SpanFields.SPAN_DURATION})`]}
                 unit={DurationUnit.MILLISECOND}
                 isLoading={isTransactionDurationLoading}
               />
@@ -451,3 +440,38 @@ const CACHE_STATUS_OPTIONS = [
     label: t('Miss'),
   },
 ];
+
+export const useTransactionDuration = ({transaction}: {transaction: string}) => {
+  const useEap = useInsightsEap();
+
+  const metricsResult = useMetrics(
+    {
+      enabled: !useEap && Boolean(transaction),
+      search: MutableSearch.fromQueryObject({
+        transaction,
+      } satisfies MetricsQueryFilters),
+      fields: [`avg(${MetricsFields.TRANSACTION_DURATION})`],
+    },
+    Referrer.SAMPLES_CACHE_TRANSACTION_DURATION
+  );
+
+  const eapResult = useEAPSpans(
+    {
+      search: MutableSearch.fromQueryObject({
+        transaction,
+        is_transaction: 'true',
+      } satisfies SpanQueryFilters),
+      fields: [`avg(${SpanFields.SPAN_DURATION})`],
+    },
+    Referrer.SAMPLES_CACHE_TRANSACTION_DURATION
+  );
+
+  const result = useEap ? eapResult : metricsResult;
+  const finalData: Array<{[`avg(span.duration)`]: number}> = useEap
+    ? eapResult.data
+    : metricsResult.data.map(row => ({
+        'avg(span.duration)': row[`avg(${MetricsFields.TRANSACTION_DURATION})`],
+      }));
+
+  return {...result, data: finalData};
+};

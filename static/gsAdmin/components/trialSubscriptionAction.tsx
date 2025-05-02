@@ -88,16 +88,12 @@ class TrialSubscriptionAction extends Component<Props, State> {
     );
     const trialEndDate = currentTrialEnd.add(trialDays, 'days').format('MMMM Do YYYY');
 
-    const tierChoices: Array<[string | PlanTier, string | PlanTier]> = [];
-
-    // TODO(DS Spans): remove this if we ever put DS on the regular AM3 enterprise trial
-    tierChoices.push([AM3_ENTERPRISE_TRIAL_PLAN, 'am3 with Dynamic Sampling']);
-
-    tierChoices.push(
+    const tierChoices: Array<[string | PlanTier, string | PlanTier]> = [
+      [AM3_ENTERPRISE_TRIAL_PLAN, 'am3 with Dynamic Sampling'],
       [PlanTier.AM3, PlanTier.AM3],
       [PlanTier.AM2, PlanTier.AM2],
-      [PlanTier.AM1, PlanTier.AM1]
-    );
+      [PlanTier.AM1, PlanTier.AM1],
+    ];
 
     return (
       <Fragment>

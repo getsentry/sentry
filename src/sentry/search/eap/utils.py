@@ -70,6 +70,7 @@ def transform_binary_formula_to_expression(
         left=transform_column_to_expression(column.left),
         right=transform_column_to_expression(column.right),
         op=BINARY_FORMULA_OPERATOR_MAP[column.op],
+        default_value_double=column.default_value_double,
     )
 
 
@@ -101,7 +102,7 @@ def transform_column_to_expression(column: Column) -> Expression:
 
 def validate_sampling(sampling_mode: SAMPLING_MODES | None) -> DownsampledStorageConfig:
     if sampling_mode is None:
-        return DownsampledStorageConfig(mode=DownsampledStorageConfig.MODE_UNSPECIFIED)
+        return DownsampledStorageConfig(mode=DownsampledStorageConfig.MODE_HIGHEST_ACCURACY)
     if sampling_mode not in SAMPLING_MODE_MAP:
         raise InvalidSearchQuery(f"sampling mode: {sampling_mode} is not supported")
     else:
@@ -137,10 +138,4 @@ def can_expose_attribute(attribute: str, item_type: SupportedTraceItemType) -> b
 
 
 def handle_downsample_meta(meta: DownsampledStorageMeta) -> bool:
-    if meta.tier in {
-        DownsampledStorageMeta.SELECTED_TIER_1,
-        DownsampledStorageMeta.SELECTED_TIER_UNSPECIFIED,
-    }:
-        return True
-    else:
-        return False
+    return not meta.can_go_to_higher_accuracy_tier

@@ -49,7 +49,10 @@ describe('FilesChanged', () => {
       >
         <FilesChanged />
       </ReleaseContext>,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
   }
 

@@ -24,17 +24,20 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
+import {isAggregateField} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   type AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
 } from 'sentry/utils/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ExploreCharts} from 'sentry/views/explore/charts';
 import SchemaHintsList, {
   SchemaHintsSection,
-} from 'sentry/views/explore/components/schemaHintsList';
-import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
+} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {
   PageParamsProvider,
   useExploreDataset,
@@ -44,7 +47,6 @@ import {
   useExploreQuery,
   useExploreVisualizes,
   useSetExplorePageParams,
-  useSetExploreQuery,
   useSetExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -64,24 +66,16 @@ import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
-import {
-  combineConfidenceForSeries,
-  type DefaultPeriod,
-  type MaxPickableDays,
-} from 'sentry/views/explore/utils';
+import {combineConfidenceForSeries, type PickableDays} from 'sentry/views/explore/utils';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {Onboarding} from 'sentry/views/performance/onboarding';
 
 // eslint-disable-next-line no-restricted-imports
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
-export type SpanTabProps = {
-  defaultPeriod: DefaultPeriod;
-  maxPickableDays: MaxPickableDays;
-  relativeOptions: Record<string, React.ReactNode>;
-};
+type SpanTabProps = PickableDays;
 
-export function SpansTabContentImpl({
+function SpansTabContentImpl({
   defaultPeriod,
   maxPickableDays,
   relativeOptions,
@@ -91,14 +85,13 @@ export function SpansTabContentImpl({
   const mode = useExploreMode();
   const visualizes = useExploreVisualizes();
   const setVisualizes = useSetExploreVisualizes();
+  const fields = useExploreFields();
   const [samplesTab, setSamplesTab] = useTab();
 
   const {tags: numberTags, isLoading: numberTagsLoading} = useSpanTags('number');
   const {tags: stringTags, isLoading: stringTagsLoading} = useSpanTags('string');
 
   const query = useExploreQuery();
-  const setQuery = useSetExploreQuery();
-  const fields = useExploreFields();
   const setExplorePageParams = useSetExplorePageParams();
 
   const id = useExploreId();
@@ -112,9 +105,6 @@ export function SpansTabContentImpl({
   const toolbarExtras = [
     ...(organization?.features?.includes('visibility-explore-equations')
       ? ['equations' as const]
-      : []),
-    ...(organization?.features?.includes('visibility-explore-tabs')
-      ? ['tabs' as const]
       : []),
   ];
 
@@ -202,13 +192,25 @@ export function SpansTabContentImpl({
     (queryType === 'samples'
       ? false // Samples mode won't show the progressive loading spinner
       : queryType === 'aggregate'
-        ? aggregatesTableResult.samplingMode !== SAMPLING_MODE.BEST_EFFORT
+        ? // Only show the progressive spinner after the preflight query has been run
+          aggregatesTableResult.samplingMode === SAMPLING_MODE.PREFLIGHT &&
+          aggregatesTableResult.result.isFetched
         : false);
 
   const eapSpanSearchQueryBuilderProps = {
     projects: selection.projects,
     initialQuery: query,
-    onSearch: setQuery,
+    onSearch: (newQuery: string) => {
+      const newFields = new MutableSearch(newQuery)
+        .getFilterKeys()
+        .map(key => (key.startsWith('!') ? key.slice(1) : key))
+        // don't add aggregate functions to table fields
+        .filter(key => !isAggregateField(key));
+      setExplorePageParams({
+        query: newQuery,
+        fields: [...new Set([...fields, ...newFields])],
+      });
+    },
     searchSource: 'explore',
     getFilterTokenWarning:
       mode === Mode.SAMPLES
@@ -271,8 +273,6 @@ export function SpansTabContentImpl({
                   isLoading={numberTagsLoading || stringTagsLoading}
                   exploreQuery={query}
                   source={SchemaHintsSources.EXPLORE}
-                  tableColumns={fields}
-                  setPageParams={setExplorePageParams}
                 />
               </StyledSchemaHintsSection>
             </Feature>
@@ -313,6 +313,7 @@ export function SpansTabContentImpl({
                 visualizes={visualizes}
                 setVisualizes={setVisualizes}
                 samplingMode={timeseriesSamplingMode}
+                dataset={DiscoverDatasets.SPANS_EAP}
               />
               <ExploreTables
                 aggregatesTableResult={aggregatesTableResult}
@@ -322,7 +323,6 @@ export function SpansTabContentImpl({
                 samplesTab={samplesTab}
                 setSamplesTab={setSamplesTab}
                 isProgressivelyLoading={tableIsProgressivelyLoading}
-                useTabs={organization.features.includes('visibility-explore-tabs')}
               />
               <Toggle>
                 <StyledButton
@@ -409,7 +409,7 @@ export function SpansTabContent(props: SpanTabProps) {
 
 function checkIsAllowedSelection(
   selection: PageFilters,
-  maxPickableDays: MaxPickableDays
+  maxPickableDays: PickableDays['maxPickableDays']
 ) {
   const maxPickableMinutes = maxPickableDays * 24 * 60;
   const selectedMinutes = getDiffInMinutes(selection.datetime);

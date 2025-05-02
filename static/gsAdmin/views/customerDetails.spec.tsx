@@ -34,7 +34,7 @@ import ModalStore from 'sentry/stores/modalStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 
-import {FREE_EVENTS_KEYS} from 'admin/components/addGiftEventsAction';
+import {getFreeEventsKey} from 'admin/components/addGiftEventsAction';
 import type {StatsGroup} from 'admin/components/customers/customerStats';
 import {populateChartData, useSeries} from 'admin/components/customers/customerStats';
 import CustomerDetails from 'admin/views/customerDetails';
@@ -2065,167 +2065,6 @@ describe('Customer Details', function () {
   });
 
   describe('test vercel api endpoints', function () {
-    it('calls api with correct args', async function () {
-      organization.features.push('vc-marketplace-active-customer');
-      const subscription = SubscriptionFixture({
-        organization,
-        isSelfServePartner: true,
-        partner: {
-          externalId: '123',
-          name: 'test',
-          partnership: {
-            id: 'XX',
-            displayName: 'XX',
-            supportNote: '',
-          },
-          isActive: true,
-        },
-      });
-      setUpMocks(organization, subscription);
-
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />,
-        {organization}
-      );
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
-
-      renderGlobalModal();
-
-      await userEvent.click(screen.getByText('Test Vercel API'));
-
-      expect(
-        screen.getByText(
-          'Test Vercel API endpoints for development and debugging purposes.'
-        )
-      ).toBeInTheDocument();
-
-      await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Vercel Endpoint'}));
-
-      ['submit_billing_data', 'submit_invoice', 'create_event'].forEach(endpoint =>
-        expect(screen.getByRole('menuitemradio', {name: endpoint})).toBeInTheDocument()
-      );
-
-      await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Vercel Endpoint'}),
-        'submit_billing_data'
-      );
-
-      const apiMock = MockApiClient.addMockResponse({
-        url: `/_admin/${organization.slug}/test-vercel-api/`,
-        method: 'POST',
-        body: {},
-      });
-
-      await userEvent.click(screen.getByRole('button', {name: 'Send Request'}));
-
-      await waitFor(() =>
-        expect(apiMock).toHaveBeenCalledWith(
-          `/_admin/${organization.slug}/test-vercel-api/`,
-          expect.objectContaining({
-            method: 'POST',
-            data: {
-              extra: null,
-              vercel_endpoint: 'submit_billing_data',
-            },
-          })
-        )
-      );
-    });
-
-    it('calls api with extra data for submit invoice', async function () {
-      organization.features.push('vc-marketplace-active-customer');
-      const subscription = SubscriptionFixture({
-        organization,
-        isSelfServePartner: true,
-        partner: {
-          externalId: '123',
-          name: 'test',
-          partnership: {
-            id: 'XX',
-            displayName: 'XX',
-            supportNote: '',
-          },
-          isActive: true,
-        },
-      });
-      setUpMocks(organization, subscription);
-
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />,
-        {organization}
-      );
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
-
-      renderGlobalModal();
-
-      await userEvent.click(screen.getByText('Test Vercel API'));
-
-      expect(
-        screen.getByText(
-          'Test Vercel API endpoints for development and debugging purposes.'
-        )
-      ).toBeInTheDocument();
-
-      await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Vercel Endpoint'}),
-        'submit_invoice'
-      );
-
-      await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Invoice Result'}),
-        'paid'
-      );
-
-      const apiMock = MockApiClient.addMockResponse({
-        url: `/_admin/${organization.slug}/test-vercel-api/`,
-        method: 'POST',
-        body: {},
-      });
-
-      await userEvent.click(screen.getByRole('button', {name: 'Send Request'}));
-
-      await waitFor(() =>
-        expect(apiMock).toHaveBeenCalledWith(
-          `/_admin/${organization.slug}/test-vercel-api/`,
-          expect.objectContaining({
-            method: 'POST',
-            data: {
-              extra: 'paid',
-              vercel_endpoint: 'submit_invoice',
-            },
-          })
-        )
-      );
-    });
-
     it('calls api with extra data for refund', async function () {
       organization.features.push('vc-marketplace-active-customer');
       const subscription = SubscriptionFixture({
@@ -2266,23 +2105,19 @@ describe('Customer Details', function () {
 
       renderGlobalModal();
 
-      await userEvent.click(screen.getByText('Test Vercel API'));
+      await userEvent.click(screen.getByText('Vercel Refund'));
 
       expect(
         screen.getByText(
-          'Test Vercel API endpoints for development and debugging purposes.'
+          'Send request to Vercel to initiate a refund for a given invoice.'
         )
       ).toBeInTheDocument();
 
-      await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Vercel Endpoint'}),
-        'refund'
-      );
-
-      await userEvent.type(screen.getByRole('textbox', {name: 'Invoice ID'}), '123');
+      await userEvent.type(screen.getByRole('textbox', {name: 'Invoice GUID'}), '123');
+      await userEvent.type(screen.getByRole('textbox', {name: 'Reason'}), 'test');
 
       const apiMock = MockApiClient.addMockResponse({
-        url: `/_admin/${organization.slug}/test-vercel-api/`,
+        url: `/_admin/${organization.slug}/refund-vercel/`,
         method: 'POST',
         body: {},
       });
@@ -2291,12 +2126,12 @@ describe('Customer Details', function () {
 
       await waitFor(() =>
         expect(apiMock).toHaveBeenCalledWith(
-          `/_admin/${organization.slug}/test-vercel-api/`,
+          `/_admin/${organization.slug}/refund-vercel/`,
           expect.objectContaining({
             method: 'POST',
             data: {
-              extra: '123',
-              vercel_endpoint: 'refund',
+              guid: '123',
+              reason: 'test',
             },
           })
         )
@@ -2343,7 +2178,7 @@ describe('Customer Details', function () {
 
       renderGlobalModal();
 
-      expect(screen.queryByText('Test Vercel API')).not.toBeInTheDocument();
+      expect(screen.queryByText('Vercel Refund')).not.toBeInTheDocument();
     });
 
     it('does not render without vc-marketplace-active-customer feature', async function () {
@@ -2386,7 +2221,7 @@ describe('Customer Details', function () {
 
       renderGlobalModal();
 
-      expect(screen.queryByText('Test Vercel API')).not.toBeInTheDocument();
+      expect(screen.queryByText('Vercel Refund')).not.toBeInTheDocument();
     });
   });
 
@@ -3272,7 +3107,7 @@ describe('Customer Details', function () {
         })[0]!
       );
 
-      const freeEventsKey = FREE_EVENTS_KEYS[DataCategory.ERRORS];
+      const freeEventsKey = getFreeEventsKey(DataCategory.ERRORS);
       const updateMock = MockApiClient.addMockResponse({
         url: `/customers/${organization.slug}/`,
         method: 'PUT',
@@ -3332,7 +3167,7 @@ describe('Customer Details', function () {
         })[0]!
       );
 
-      const freeEventsKey = FREE_EVENTS_KEYS[DataCategory.TRANSACTIONS];
+      const freeEventsKey = getFreeEventsKey(DataCategory.TRANSACTIONS);
       const updateMock = MockApiClient.addMockResponse({
         url: `/customers/${organization.slug}/`,
         method: 'PUT',
@@ -3394,7 +3229,7 @@ describe('Customer Details', function () {
       })[0]!
     );
 
-    const freeEventsKey = FREE_EVENTS_KEYS[DataCategory.REPLAYS];
+    const freeEventsKey = getFreeEventsKey(DataCategory.REPLAYS);
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,
       method: 'PUT',
@@ -3455,7 +3290,7 @@ describe('Customer Details', function () {
       })[0]!
     );
 
-    const freeEventsKey = FREE_EVENTS_KEYS[DataCategory.SPANS];
+    const freeEventsKey = getFreeEventsKey(DataCategory.SPANS);
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,
       method: 'PUT',
@@ -3544,9 +3379,8 @@ describe('Customer Details', function () {
       })[0]!
     );
 
-    const item = screen.getByTestId(`gift-${DataCategory.SPANS_INDEXED}`);
-    expect(item).toBeInTheDocument();
-    expect(item).toHaveAttribute('aria-disabled', 'true');
+    const item = screen.queryByTestId(`gift-${DataCategory.SPANS_INDEXED}`);
+    expect(item).not.toBeInTheDocument();
   });
 
   it('can gift events - MONITOR SEATS', async function () {
@@ -3575,7 +3409,7 @@ describe('Customer Details', function () {
       })[0]!
     );
 
-    const freeEventsKey = FREE_EVENTS_KEYS[DataCategory.MONITOR_SEATS];
+    const freeEventsKey = getFreeEventsKey(DataCategory.MONITOR_SEATS);
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,
       method: 'PUT',
@@ -4022,7 +3856,11 @@ describe('Gift Categories Availability', function () {
       organization,
       planDetails: {
         ...SubscriptionFixture({organization}).planDetails,
-        checkoutCategories: [DataCategory.ERRORS, DataCategory.REPLAYS],
+        checkoutCategories: [
+          DataCategory.ERRORS,
+          DataCategory.REPLAYS,
+          DataCategory.SPANS,
+        ],
         onDemandCategories: [DataCategory.ERRORS, DataCategory.PROFILE_DURATION],
         categories: [
           DataCategory.ERRORS,
@@ -4106,9 +3944,9 @@ describe('Gift Categories Availability', function () {
     expect(giftCategories[DataCategory.SPANS]?.disabled).toBe(true);
   });
 
-  it('disables categories in neither checkoutCategories nor onDemandCategories', function () {
+  it('filters out categories in neither checkoutCategories nor onDemandCategories', function () {
     const giftCategories = customerDetails.giftCategories;
     // PROFILE_DURATION_UI is not in either checkoutCategories or onDemandCategories
-    expect(giftCategories[DataCategory.PROFILE_DURATION_UI]?.disabled).toBe(true);
+    expect(Object.keys(giftCategories)).not.toContain(DataCategory.PROFILE_DURATION_UI);
   });
 });

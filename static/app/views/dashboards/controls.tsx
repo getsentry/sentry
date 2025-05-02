@@ -7,15 +7,16 @@ import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {Hovercard} from 'sentry/components/hovercard';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconDownload, IconEdit, IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -62,7 +63,7 @@ function Controls({
   onAddWidgetFromNewWidgetBuilder,
 }: Props) {
   const [isFavorited, setIsFavorited] = useState(dashboard.isFavorited);
-
+  const queryClient = useQueryClient();
   function renderCancelButton(label = t('Cancel')) {
     return (
       <Button
@@ -214,6 +215,7 @@ function Controls({
                       setIsFavorited(!isFavorited);
                       await updateDashboardFavorite(
                         api,
+                        queryClient,
                         organization.slug,
                         dashboard.id,
                         !isFavorited

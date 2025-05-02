@@ -64,7 +64,7 @@ class ProjectUptimeSubscriptionSerializer(Serializer):
             "environment": obj.environment.name if obj.environment else None,
             "name": obj.name or f"Uptime Monitoring for {obj.uptime_subscription.url}",
             "status": obj.get_status_display(),
-            "uptimeStatus": obj.uptime_status,
+            "uptimeStatus": obj.uptime_subscription.uptime_status,
             "mode": obj.mode,
             "url": obj.uptime_subscription.url,
             "headers": obj.uptime_subscription.headers,

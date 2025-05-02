@@ -5,7 +5,7 @@ import {IconGrabbable} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
-export type DividerProps = {
+type DividerProps = {
   'data-is-held': boolean;
   'data-slide-direction': 'leftright' | 'updown';
   onDoubleClick: React.MouseEventHandler<HTMLElement>;
@@ -13,7 +13,7 @@ export type DividerProps = {
   icon?: React.ReactNode;
 } & React.DOMAttributes<HTMLDivElement>;
 
-export const BaseSplitDivider = styled(({icon, ...props}: DividerProps) => (
+const BaseSplitDivider = styled(({icon, ...props}: DividerProps) => (
   <div {...props}>{icon || <IconGrabbable size="sm" />}</div>
 ))<DividerProps>`
   display: grid;
@@ -48,7 +48,7 @@ export const BaseSplitDivider = styled(({icon, ...props}: DividerProps) => (
   }
 `;
 
-export const SplitPanelContext = createContext({
+const SplitPanelContext = createContext({
   isMaximized: false,
   isMinimized: false,
   maximiseSize: () => {},

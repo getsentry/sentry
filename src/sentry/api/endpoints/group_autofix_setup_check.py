@@ -17,6 +17,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.seer.seer_setup import get_seer_org_acknowledgement, get_seer_user_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 
 logger = logging.getLogger(__name__)
@@ -99,7 +100,6 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
         Checks if we are able to run Autofix on the given group.
         """
         org: Organization = request.organization
-        has_gen_ai_consent = org.get_option("sentry:gen_ai_consent_v2024_11_14", False)
 
         integration_check = None
         # This check is to skip using the GitHub integration for Autofix in s4s.
@@ -118,16 +118,21 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
                 "repos": repos,
             }
 
+        user_acknowledgement = get_seer_user_acknowledgement(user_id=request.user.id, org_id=org.id)
+        org_acknowledgement = True
+        if not user_acknowledgement:  # If the user has acknowledged, the org must have too.
+            org_acknowledgement = get_seer_org_acknowledgement(org_id=org.id)
+
         return Response(
             {
-                "genAIConsent": {
-                    "ok": has_gen_ai_consent,
-                    "reason": None,
-                },
                 "integration": {
                     "ok": integration_check is None,
                     "reason": integration_check,
                 },
                 "githubWriteIntegration": write_integration_check,
+                "setupAcknowledgement": {
+                    "orgHasAcknowledged": org_acknowledgement,
+                    "userHasAcknowledged": user_acknowledgement,
+                },
             }
         )

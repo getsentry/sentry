@@ -1,3 +1,4 @@
+import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -12,7 +13,6 @@ describe('GroupSummary', function () {
   const mockGroup = GroupFixture();
   const mockProject = ProjectFixture();
   const organization = OrganizationFixture({
-    genAIConsent: true,
     hideAiFeatures: false,
     features: ['gen-ai-features'],
   });
@@ -54,15 +54,26 @@ describe('GroupSummary', function () {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/setup/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       method: 'GET',
-      body: {
-        genAIConsent: {ok: true},
-        integration: {ok: true},
-        githubWriteIntegration: {
-          repos: [{ok: true, owner: 'owner', name: 'hello-world', id: 100}],
+      body: AutofixSetupFixture({
+        setupAcknowledgement: {
+          orgHasAcknowledged: true,
+          userHasAcknowledged: true,
         },
-      },
+        integration: {ok: true, reason: null},
+        githubWriteIntegration: {
+          ok: true,
+          repos: [
+            {
+              ok: true,
+              owner: 'owner',
+              name: 'hello-world',
+              provider: 'integrations:github',
+            },
+          ],
+        },
+      }),
     });
   });
 
@@ -80,7 +91,7 @@ describe('GroupSummary', function () {
     await waitFor(() => {
       expect(screen.getByText("What's Wrong")).toBeInTheDocument();
     });
-    expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
+    expect(await screen.findByText('Test whats wrong')).toBeInTheDocument();
     expect(screen.getByText('In the Trace')).toBeInTheDocument();
     expect(screen.getByText('Test trace')).toBeInTheDocument();
     expect(screen.getByText('Possible Cause')).toBeInTheDocument();
@@ -101,7 +112,7 @@ describe('GroupSummary', function () {
     await waitFor(() => {
       expect(screen.getByText("What's Wrong")).toBeInTheDocument();
     });
-    expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
+    expect(await screen.findByText('Test whats wrong')).toBeInTheDocument();
     expect(screen.getByText('In the Trace')).toBeInTheDocument();
     expect(screen.getByText('Test trace')).toBeInTheDocument();
     expect(screen.getByText('Possible Cause')).toBeInTheDocument();
@@ -122,7 +133,7 @@ describe('GroupSummary', function () {
     await waitFor(() => {
       expect(screen.getByText("What's Wrong")).toBeInTheDocument();
     });
-    expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
+    expect(await screen.findByText('Test whats wrong')).toBeInTheDocument();
     expect(screen.getByText('In the Trace')).toBeInTheDocument();
     expect(screen.getByText('Test trace')).toBeInTheDocument();
     expect(screen.queryByText('Possible Cause')).not.toBeInTheDocument();
@@ -178,7 +189,7 @@ describe('GroupSummary', function () {
     await waitFor(() => {
       expect(screen.getByText("What's Wrong")).toBeInTheDocument();
     });
-    expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
+    expect(await screen.findByText('Test whats wrong')).toBeInTheDocument();
     expect(screen.queryByText('In the Trace')).not.toBeInTheDocument();
     expect(screen.getByText('Possible Cause')).toBeInTheDocument();
     expect(screen.getByText('Test possible cause')).toBeInTheDocument();
@@ -199,6 +210,6 @@ describe('GroupSummary', function () {
     await waitFor(() => {
       expect(screen.getByText("What's Wrong")).toBeInTheDocument();
     });
-    expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
+    expect(await screen.findByText('Test whats wrong')).toBeInTheDocument();
   });
 });

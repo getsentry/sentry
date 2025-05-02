@@ -8,6 +8,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {PathsTable} from 'sentry/views/insights/pages/platform/laravel/pathsTable';
+import {SlowSSRWidget} from 'sentry/views/insights/pages/platform/nextjs/slowSsrWidget';
 import {WebVitalsWidget} from 'sentry/views/insights/pages/platform/nextjs/webVitalsWidget';
 import {DurationWidget} from 'sentry/views/insights/pages/platform/shared/durationWidget';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
@@ -52,13 +53,18 @@ export function NextJsOverviewPage({headerTitle}: {headerTitle: React.ReactNode}
           <WebVitalsWidget query={query} />
         </WebVitalsContainer>
         <QueriesContainer>
-          <PlaceholderWidget />
+          <SlowSSRWidget query={query} />
         </QueriesContainer>
         <CachesContainer>
           <PlaceholderWidget />
         </CachesContainer>
       </WidgetGrid>
-      <PathsTable handleAddTransactionFilter={setTransactionFilter} query={query} />
+      <PathsTable
+        handleAddTransactionFilter={setTransactionFilter}
+        query={query}
+        showHttpMethodColumn={false}
+        showUsersColumn={false}
+      />
     </PlatformLandingPageLayout>
   );
 }

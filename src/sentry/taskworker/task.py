@@ -96,20 +96,24 @@ class Task(Generic[P, R]):
         Schedule a task to run later with a set of arguments.
 
         The provided parameters will be JSON encoded and stored within
-        a `TaskActivation` protobuf that is appended to kafka
+        a `TaskActivation` protobuf that is appended to kafka.
         """
         if args is None:
             args = []
         if kwargs is None:
             kwargs = {}
-        if settings.TASK_WORKER_ALWAYS_EAGER:
+
+        # Generate an activation even if we're in immediate mode to
+        # catch serialization errors in tests.
+        activation = self.create_activation(
+            args=args, kwargs=kwargs, headers=headers, expires=expires, countdown=countdown
+        )
+        if settings.TASKWORKER_ALWAYS_EAGER:
             self._func(*args, **kwargs)
         else:
             # TODO(taskworker) promote parameters to headers
             self._namespace.send_task(
-                self.create_activation(
-                    args=args, kwargs=kwargs, headers=headers, expires=expires, countdown=countdown
-                ),
+                activation,
                 wait_for_delivery=self.wait_for_delivery,
             )
 
@@ -151,7 +155,9 @@ class Task(Generic[P, R]):
             del headers["sentry-monitor-config"]
 
         for key, value in headers.items():
-            if not isinstance(value, (str, bytes, int, bool, float)):
+            if value is None or isinstance(value, (str, bytes, int, bool, float)):
+                headers[key] = str(value)
+            else:
                 raise ValueError(
                     "Only scalar header values are supported. "
                     f"The `{key}` header value is of type {type(value)}"

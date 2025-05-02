@@ -22,7 +22,7 @@ import {FoldSection} from 'sentry/views/releases/drawer/foldSection';
 interface CommitsSectionProps {
   isLoadingMeta: boolean;
   isMetaError: boolean;
-  projectSlug: string;
+  projectSlug: string | undefined;
   release: string;
   releaseMeta: ReleaseMeta | undefined;
 }
@@ -43,7 +43,7 @@ export function CommitsFilesSection({
   });
   const releaseReposQuery = useReleaseRepositories({
     orgSlug: organization.slug,
-    projectSlug,
+    projectSlug: projectSlug ?? '',
     release,
     options: {
       enabled: !!projectSlug,
@@ -114,7 +114,7 @@ export function CommitsFilesSection({
         ) : (
           <TabPanels>
             <TabPanels.Item key="commits">
-              {releaseRepos?.length && (
+              {releaseRepos?.length && projectSlug && (
                 <CommitsList
                   release={release}
                   releaseRepos={releaseRepos}
