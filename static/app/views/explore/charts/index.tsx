@@ -210,7 +210,7 @@ export function ExploreCharts({
               timeseriesResult.isFetching &&
               samplingMode === SAMPLING_MODE.HIGH_ACCURACY
                 ? t(
-                    "Hey, we're gonna try scanning all data we can to get your query answered so just wait a bit more"
+                    "Hey, we're scanning all the data we can to answer your query, so please wait a bit longer"
                   )
                 : undefined;
             return (
