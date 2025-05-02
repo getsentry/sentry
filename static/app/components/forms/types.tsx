@@ -97,11 +97,7 @@ interface BaseField {
 
   /** Does editing this field require the Form to load new configs? */
   updatesForm?: boolean;
-  validate?: (data: {
-    form: Record<string, any>;
-    id: string;
-    model: FormModel;
-  }) => string[][];
+  validate?: (data: {form: Record<string, any>; id: string}) => string[][];
   visible?: boolean | ((props: any) => boolean);
 }
 
