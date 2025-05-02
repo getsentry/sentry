@@ -11,6 +11,7 @@ from django.utils import timezone
 from google.api_core import exceptions, retry
 from google.cloud import bigtable
 from google.cloud.bigtable.row import PartialRowData
+from google.cloud.bigtable.row_data import DEFAULT_RETRY_READ_ROWS
 from google.cloud.bigtable.row_set import RowSet
 from google.cloud.bigtable.table import Table
 
@@ -116,7 +117,10 @@ class BigtableKVStorage(KVStorage[str, bytes]):
 
     def get(self, key: str) -> bytes | None:
         with sentry_sdk.start_span(op="bigtable.get"):
-            row = self._get_table().read_row(key)
+            # Default timeout is 60 seconds, much too long for our ingestion pipeline
+            # Modify retry based on https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout#configuring-retries
+            modified_retry = DEFAULT_RETRY_READ_ROWS.with_deadline(5.0)
+            row = self._get_table().read_row(key, retry=modified_retry)
         if row is None:
             return None
 
