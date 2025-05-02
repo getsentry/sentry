@@ -65,6 +65,11 @@ def delete_group_list(
     eventstream_state = eventstream.backend.start_delete_groups(project.id, group_ids)
     transaction_id = uuid4().hex
 
+    # The moment groups are marked as pending deletion, we create audit entries
+    # so that we can see who requested the deletion. Even if anything after this point
+    # fails, we will still have a record of who requested the deletion.
+    create_audit_entries(request, project, group_list, delete_type, transaction_id)
+
     # Tell seer to delete grouping records for these groups
     call_delete_seer_grouping_records_by_hash(group_ids)
 
@@ -84,8 +89,6 @@ def delete_group_list(
         },
         countdown=countdown,
     )
-
-    create_audit_entries(request, project, group_list, delete_type, transaction_id)
 
 
 def create_audit_entries(
