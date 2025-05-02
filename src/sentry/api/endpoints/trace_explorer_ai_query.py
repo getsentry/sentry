@@ -14,6 +14,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
+from sentry.api.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
 from sentry.models.organization import Organization
 from sentry.seer.seer_setup import get_seer_org_acknowledgement, get_seer_user_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
@@ -57,6 +58,8 @@ class TraceExplorerAIQuery(OrganizationEndpoint):
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ML_AI
+
+    permission_classes = (OrganizationTraceExplorerAIPermission,)
 
     @staticmethod
     def post(request: Request, organization: Organization) -> Response:
