@@ -192,7 +192,6 @@ export function AiQueryDrawer() {
       <StyledDrawerBody>
         <HeaderContainer>
           <AiQueryHeader>{t('Seer Says...')}</AiQueryHeader>
-          {/* <Text>{t('Enter your query')}</Text> */}
           <form onSubmit={handleSubmit}>
             <StyledInputGroup>
               <InputGroup.LeadingItems disablePointerEvents>
