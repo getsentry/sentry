@@ -7,10 +7,6 @@ import {BaseAvatar} from 'sentry/components/core/avatar/baseAvatar';
 import {Button} from 'sentry/components/core/button';
 import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -25,16 +21,13 @@ type GithubInstallationProps = {
 };
 
 export function GithubInstallationSelect({installation_info}: GithubInstallationProps) {
-  const [model] = useState<FormModel>(() => new FormModel());
-  const [installationID, setInstallationID] = useState<SelectKey | null>(null);
+  const [installationID, setInstallationID] = useState<SelectKey | undefined>(undefined);
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
-  const handleSubmit = (e: React.MouseEvent) => {
+  const handleSubmit = (e: React.MouseEvent, id?: SelectKey) => {
     e.preventDefault();
-    const data = model.getData();
     addLoadingMessage(t('Submitting'));
     setIsSaving(true);
-    model.setFormSaving();
 
     const {
       location: {origin},
@@ -43,7 +36,7 @@ export function GithubInstallationSelect({installation_info}: GithubInstallation
     // redirect to the extensions endpoint with the form fields as query params
     // this is needed so we don't restart the pipeline loading from the original
     // OrganizationIntegrationSetupView route
-    const chosen_installation_id = data.installation_id || -1;
+    const chosen_installation_id = id ?? installationID ?? -1;
     const currentParams = new URLSearchParams(window.location.search);
     const newParams = {
       ...Object.fromEntries(currentParams),
@@ -56,7 +49,10 @@ export function GithubInstallationSelect({installation_info}: GithubInstallation
 
   const handleSelect = ({value}: SelectOption<SelectKey>) => {
     setInstallationID(value);
-    model.setValue('installation_id', value);
+  };
+
+  const handleSkip = (e: React.MouseEvent) => {
+    handleSubmit(e, -1);
   };
 
   const selectOptions = installation_info.map(
@@ -78,42 +74,55 @@ export function GithubInstallationSelect({installation_info}: GithubInstallation
 
   return (
     <Fragment>
-      <StyledList symbol="colored-numeric">
-        <ListItem>
-          <h3>{t('Select a Github Installation')}</h3>
-          <Form model={model} hideFooter>
-            <StyledSelect
-              onChange={handleSelect}
-              options={selectOptions}
-              value={model.getValue('installation_id')}
-            />
-          </Form>
-        </ListItem>
-      </StyledList>
-      <Footer>
-        <StyledButton onClick={handleSubmit} disabled={isSaving || !installationID}>
-          Next
-        </StyledButton>
-      </Footer>
+      <StyledContainer>
+        <StyledHeader>{t('Select a Github Installation')}</StyledHeader>
+        <StyledSelect
+          onChange={handleSelect}
+          options={selectOptions}
+          value={installationID}
+          triggerLabel={installationID ? undefined : 'Choose Installation'}
+        />
+
+        <ButtonContainer>
+          <Button onClick={handleSkip} disabled={isSaving}>
+            Skip
+          </Button>
+          <StyledButton onClick={handleSubmit} disabled={isSaving || !installationID}>
+            Install
+          </StyledButton>
+        </ButtonContainer>
+      </StyledContainer>
     </Fragment>
   );
 }
 
-const StyledList = styled(List)`
-  padding: 100px 50px 50px 50px;
+const StyledContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: ${space(2)};
+  width: 25%;
+  margin: 0 auto;
+  margin-top: 10%;
 `;
 
-const Footer = styled('form')`
-  width: 100%;
+const ButtonContainer = styled('div')`
   display: flex;
-  justify-content: flex-end;
-  background-color: ${p => p.theme.bodyBackground};
-  border-top: 1px solid ${p => p.theme.innerBorder};
-  padding: ${space(2)};
+  align-self: flex-end;
+  padding-top: ${space(2)};
 `;
 
 const StyledButton = styled(Button)`
-  margin-left: ${space(1)};
+  margin-left: ${space(0.75)};
+  &:not(:disabled) {
+    background-color: #6c5fc7;
+    color: #fff;
+  }
+`;
+
+const StyledHeader = styled('h3')`
+  margin-bottom: ${space(2)};
+  width: 100%;
 `;
 
 const OptionLabelWrapper = styled('div')`
@@ -127,7 +136,7 @@ const StyledAvatar = styled(BaseAvatar)`
 `;
 
 const StyledSelect = styled(CompactSelect)`
-  width: 35%;
+  width: 100%;
   > button {
     width: 100%;
   }
