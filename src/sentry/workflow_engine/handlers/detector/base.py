@@ -15,18 +15,20 @@ from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
 
+
 PacketT = TypeVar("PacketT")
 EvidenceValueT = TypeVar("EvidenceValueT")
 
 
 @dataclass
-class EvidenceData(Generic[EvidenceValueT]):
+class EvidenceData(Generic[EvidenceValueT, PacketT]):
     value: EvidenceValueT
     detector_id: int
     data_source_ids: list[int]
     data_condition_ids: list[int]
     data_condition_type: Condition
-    data_condition_comparison_value: T
+    # Represents the actual value that we are comparing against
+    data_condition_comparison_value: PacketT
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)

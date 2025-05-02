@@ -16,8 +16,7 @@ from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.types.group import PriorityLevel
-from sentry.workflow_engine.models import Action, Detector
-from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.models import Action, Condition, DataCondition, Detector
 from sentry.workflow_engine.models.data_source import DataSource
 
 if TYPE_CHECKING:
@@ -57,6 +56,15 @@ def fetch_resolve_threshold(
         return None
 
 
+def fetch_sensitivity(evidence_data: MetricIssueEvidenceData) -> str | None:
+    # TODO - (saponifi3d) - Update this once the platform supports this
+    for data_condition_id in evidence_data.data_condition_ids:
+        data_condition = DataCondition.objects.get(id=data_condition_id)
+        if data_condition.type == Condition.ANOMALY_DETECTION:
+            return data_condition.comparison.get("sensitivity")
+    return None
+
+
 @dataclass
 class AlertContext:
     name: str
@@ -90,6 +98,7 @@ class AlertContext:
         threshold_type = fetch_threshold_type(evidence_data)
         resolve_threshold = fetch_resolve_threshold(evidence_data, group_status)
         alert_threshold = fetch_alert_threshold(evidence_data, group_status)
+        sensitivity = fetch_sensitivity(evidence_data)
 
         return cls(
             name=detector.name,
@@ -97,7 +106,7 @@ class AlertContext:
             threshold_type=threshold_type,
             detection_type=detector.config.get("detection_type"),
             comparison_delta=detector.config.get("comparison_delta"),
-            sensitivity=evidence_data.sensitivity,
+            sensitivity=sensitivity,
             resolve_threshold=resolve_threshold,
             alert_threshold=alert_threshold,
         )
