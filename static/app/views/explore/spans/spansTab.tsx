@@ -39,8 +39,6 @@ import SchemaHintsList, {
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {
-  PageParamsProvider,
-  useExploreDataset,
   useExploreFields,
   useExploreId,
   useExploreMode,
@@ -50,10 +48,7 @@ import {
   useSetExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {
-  SpanTagsProvider,
-  useSpanTags,
-} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
@@ -349,16 +344,6 @@ function IconDoubleChevron(props: React.ComponentProps<typeof IconChevron>) {
   );
 }
 
-function ExploreTagsProvider({children}: any) {
-  const dataset = useExploreDataset();
-
-  return (
-    <SpanTagsProvider dataset={dataset} enabled>
-      {children}
-    </SpanTagsProvider>
-  );
-}
-
 type OnboardingContentProps = SpanTabProps & {onboardingProject: Project};
 
 function OnboardingContent(props: OnboardingContentProps) {
@@ -394,16 +379,10 @@ export function SpansTabContent(props: SpanTabProps) {
   const onboardingProject = useOnboardingProject();
   const showOnboarding = onboardingProject !== undefined;
 
-  return (
-    <PageParamsProvider>
-      <ExploreTagsProvider>
-        {showOnboarding ? (
-          <OnboardingContent {...props} onboardingProject={onboardingProject} />
-        ) : (
-          <SpansTabContentImpl {...props} />
-        )}
-      </ExploreTagsProvider>
-    </PageParamsProvider>
+  return showOnboarding ? (
+    <OnboardingContent {...props} onboardingProject={onboardingProject} />
+  ) : (
+    <SpansTabContentImpl {...props} />
   );
 }
 

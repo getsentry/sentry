@@ -22,8 +22,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
-import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
-import {getTitleFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/title';
+import {
+  PageParamsProvider,
+  useExploreDataset,
+  useExploreId,
+  useExploreTitle,
+} from 'sentry/views/explore/contexts/pageParamsContext';
+import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
 import {SpansTabContent} from 'sentry/views/explore/spans/spansTab';
 import {
   EXPLORE_SPANS_TOUR_GUIDE_KEY,
@@ -38,75 +43,44 @@ import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 export function ExploreContent() {
-  return (
-    <SpansTabTour>
-      <ExploreContentImpl />
-    </SpansTabTour>
-  );
-}
-
-function ExploreContentImpl() {
   const organization = useOrganization();
   const {defaultPeriod, maxPickableDays, relativeOptions} =
     limitMaxPickableDays(organization);
-  const prefersStackedNav = usePrefersStackedNav();
-
-  const location = useLocation();
-
-  const title = getTitleFromLocation(location);
-  const id = getIdFromLocation(location);
-
-  useExploreSpansTourModal();
 
   return (
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
       <PageFiltersContainer maxPickableDays={maxPickableDays}>
         <Layout.Page>
-          <Layout.Header unified={prefersStackedNav}>
-            <Layout.HeaderContent unified={prefersStackedNav}>
-              {title && defined(id) ? <ExploreBreadcrumb /> : null}
-              <Layout.Title>
-                {title ? title : t('Traces')}
-                <PageHeadingQuestionTooltip
-                  docsUrl="https://github.com/getsentry/sentry/discussions/81239"
-                  title={t(
-                    'Find problematic spans/traces or compute real-time metrics via aggregation.'
-                  )}
-                  linkLabel={t('Read the Discussion')}
-                />
-              </Layout.Title>
-            </Layout.HeaderContent>
-            <Layout.HeaderActions>
-              <ButtonBar gap={1}>
-                {!prefersStackedNav && (
-                  <LinkButton
-                    to={`/organizations/${organization.slug}/explore/saved-queries/`}
-                    size="sm"
-                  >
-                    {t('Saved Queries')}
-                  </LinkButton>
-                )}
-                <StarSavedQueryButton />
-                <ActionsButton organization={organization} />
-              </ButtonBar>
-            </Layout.HeaderActions>
-          </Layout.Header>
-          <SpansTabContent
-            defaultPeriod={defaultPeriod}
-            maxPickableDays={maxPickableDays}
-            relativeOptions={relativeOptions}
-          />
+          <SpansTabWrapper>
+            <SpansTabHeader organization={organization} />
+            <SpansTabContent
+              defaultPeriod={defaultPeriod}
+              maxPickableDays={maxPickableDays}
+              relativeOptions={relativeOptions}
+            />
+          </SpansTabWrapper>
         </Layout.Page>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );
 }
 
-interface SpansTabTourProps {
+function SpansTabWrapper({children}: SpansTabContextProps) {
+  return (
+    <SpansTabTourProvider>
+      <SpansTabTourTrigger />
+      <PageParamsProvider>
+        <ExploreTagsProvider>{children}</ExploreTagsProvider>
+      </PageParamsProvider>
+    </SpansTabTourProvider>
+  );
+}
+
+interface SpansTabContextProps {
   children: ReactNode;
 }
 
-function SpansTabTour({children}: SpansTabTourProps) {
+function SpansTabTourProvider({children}: SpansTabContextProps) {
   const {data: assistantData} = useAssistant();
   const isTourCompleted = useMemo(() => {
     const tourData = assistantData?.find(
@@ -126,6 +100,63 @@ function SpansTabTour({children}: SpansTabTourProps) {
     >
       {children}
     </TourContextProvider>
+  );
+}
+
+function SpansTabTourTrigger() {
+  useExploreSpansTourModal();
+  return null;
+}
+
+function ExploreTagsProvider({children}: SpansTabContextProps) {
+  const dataset = useExploreDataset();
+
+  return (
+    <SpanTagsProvider dataset={dataset} enabled>
+      {children}
+    </SpanTagsProvider>
+  );
+}
+
+interface SpansTabHeaderProps {
+  organization: Organization;
+}
+
+function SpansTabHeader({organization}: SpansTabHeaderProps) {
+  const prefersStackedNav = usePrefersStackedNav();
+  const id = useExploreId();
+  const title = useExploreTitle();
+
+  return (
+    <Layout.Header unified={prefersStackedNav}>
+      <Layout.HeaderContent unified={prefersStackedNav}>
+        {title && defined(id) ? <ExploreBreadcrumb /> : null}
+        <Layout.Title>
+          {title ? title : t('Traces')}
+          <PageHeadingQuestionTooltip
+            docsUrl="https://github.com/getsentry/sentry/discussions/81239"
+            title={t(
+              'Find problematic spans/traces or compute real-time metrics via aggregation.'
+            )}
+            linkLabel={t('Read the Discussion')}
+          />
+        </Layout.Title>
+      </Layout.HeaderContent>
+      <Layout.HeaderActions>
+        <ButtonBar gap={1}>
+          {!prefersStackedNav && (
+            <LinkButton
+              to={`/organizations/${organization.slug}/explore/saved-queries/`}
+              size="sm"
+            >
+              {t('Saved Queries')}
+            </LinkButton>
+          )}
+          <StarSavedQueryButton />
+          <ActionsButton organization={organization} />
+        </ButtonBar>
+      </Layout.HeaderActions>
+    </Layout.Header>
   );
 }
 
