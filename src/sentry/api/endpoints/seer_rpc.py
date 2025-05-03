@@ -231,7 +231,6 @@ def get_attribute_names(*, org_id: int, project_ids: list[int], stats_period: st
                     "string" if attr_type == AttributeKey.Type.TYPE_STRING else "number",
                     SupportedTraceItemType.SPANS,
                 )["key"],
-                # "name": attr.name,
                 "type": attr_type,
             }
             for attr in fields_resp.attributes
@@ -289,7 +288,12 @@ def get_attribute_values(
             limit=limit,
         )
 
-        values_response = snuba_rpc.attribute_values_rpc(req)
+        try:
+            values_response = snuba_rpc.attribute_values_rpc(req)
+        except Exception:
+            logger.warning("Error with fetching attribute %s", field)
+            values_response = []
+
         values[field["key"]] = [value for value in values_response.values]
 
     return {"values": values}
