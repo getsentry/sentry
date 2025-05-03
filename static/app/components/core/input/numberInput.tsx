@@ -14,7 +14,7 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {space} from 'sentry/styles/space';
 import type {FormSize} from 'sentry/utils/theme';
 
-export interface NumberInputProps
+interface NumberInputProps
   extends InputStylesProps,
     AriaNumberFieldProps,
     Pick<

@@ -12,7 +12,7 @@ import sys
 import tempfile
 from collections.abc import Callable, Mapping, MutableSequence
 from datetime import datetime, timedelta
-from typing import Any, Final, Union, overload
+from typing import Any, Final, Literal, Union, overload
 from urllib.parse import urlparse
 
 import sentry
@@ -20,6 +20,7 @@ import sentry.utils.types as env_types
 from sentry.conf.api_pagination_allowlist_do_not_modify import (
     SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
 )
+from sentry.conf.types.bgtask import BgTaskConfig
 from sentry.conf.types.celery import SplitQueueSize, SplitQueueTaskRoute
 from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
@@ -30,7 +31,6 @@ from sentry.conf.types.sentry_config import SentryMode
 from sentry.conf.types.service_options import ServiceOptions
 from sentry.conf.types.taskworker import ScheduleConfigMap
 from sentry.conf.types.uptime import UptimeRegionConfig
-from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import make_split_task_queues
 
 
@@ -359,7 +359,7 @@ ROOT_URLCONF = "sentry.conf.urls"
 # Once relay's fully rolled out, that can be deleted.
 # Until then, the safest and easiest thing to do is to disable this check
 # to leave things the way they were with Django <1.9.
-DATA_UPLOAD_MAX_MEMORY_SIZE = None
+DATA_UPLOAD_MAX_MEMORY_SIZE: int | None = None
 
 TEMPLATES = [
     {
@@ -436,6 +436,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.data_secrecy",
     "sentry.workflow_engine",
     "sentry.explore",
+    "sentry.insights",
 )
 
 # Silence internal hints from Django's system checks
@@ -615,7 +616,7 @@ SESSION_COOKIE_NAME = "sentrysid"
 # this breaks certain IDP flows where we need cookies sent to us on a redirected POST
 # request, and `Lax` doesnt permit this.
 # See here: https://docs.djangoproject.com/en/2.1/ref/settings/#session-cookie-samesite
-SESSION_COOKIE_SAMESITE = None
+SESSION_COOKIE_SAMESITE: Literal["Strict", "Lax", None] = None
 
 BITBUCKET_CONSUMER_KEY = ""
 BITBUCKET_CONSUMER_SECRET = ""
@@ -725,9 +726,6 @@ from kombu import Exchange, Queue
 BROKER_URL = "redis://127.0.0.1:6379"
 BROKER_TRANSPORT_OPTIONS: dict[str, int] = {}
 
-# Ensure workers run async by default
-# in Development you might want them to run in-process
-TASK_WORKER_ALWAYS_EAGER = False
 
 # Ensure workers run async by default
 # in Development you might want them to run in-process
@@ -746,7 +744,7 @@ CELERY_TASK_PROTOCOL = 1
 CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
 CELERY_IGNORE_RESULT = True
 CELERY_SEND_EVENTS = False
-CELERY_RESULT_BACKEND = None
+CELERY_RESULT_BACKEND: str | None = None
 CELERY_TASK_RESULT_EXPIRES = 1
 CELERY_DISABLE_RATE_LIMITS = True
 CELERY_DEFAULT_QUEUE = "default"
@@ -768,6 +766,7 @@ CELERY_IMPORTS = (
     "sentry.hybridcloud.tasks.backfill_outboxes",
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.incidents.tasks",
+    "sentry.integrations.source_code_management.tasks",
     "sentry.integrations.github.tasks",
     "sentry.integrations.github.tasks.pr_comment",
     "sentry.integrations.jira.tasks",
@@ -1041,8 +1040,8 @@ CELERYBEAT_SCHEDULE_CONTROL = {
     },
     "reattempt-deletions-control": {
         "task": "sentry.deletions.tasks.reattempt_deletions_control",
-        # 03:00 PDT, 07:00 EDT, 10:00 UTC
-        "schedule": crontab(hour="10", minute="0"),
+        # Every other hour
+        "schedule": crontab(hour="*/2", minute="0"),
         "options": {"expires": 60 * 25, "queue": "cleanup.control"},
     },
     "schedule-hybrid-cloud-foreign-key-jobs-control": {
@@ -1175,8 +1174,8 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "reattempt-deletions": {
         "task": "sentry.deletions.tasks.reattempt_deletions",
-        # 03:00 PDT, 07:00 EDT, 10:00 UTC
-        "schedule": crontab(hour="10", minute="0"),
+        # Every other hour
+        "schedule": crontab(hour="*/2", minute="0"),
         "options": {"expires": 60 * 25},
     },
     "schedule-weekly-organization-reports-new": {
@@ -1372,7 +1371,7 @@ TIMEDELTA_ALLOW_LIST = {
     "schedule-digests",
 }
 
-BGTASKS = {
+BGTASKS: dict[str, BgTaskConfig] = {
     "sentry.bgtasks.clean_dsymcache:clean_dsymcache": {"interval": 5 * 60, "roles": ["worker"]},
     "sentry.bgtasks.clean_releasefilecache:clean_releasefilecache": {
         "interval": 5 * 60,
@@ -1383,6 +1382,10 @@ BGTASKS = {
 #######################
 # Taskworker settings #
 #######################
+
+# If true, tasks will be run immediately.
+# Used primarily in tests.
+TASKWORKER_ALWAYS_EAGER = False
 
 # Shared secrets used to sign RPC requests to taskbrokers
 # The first secret is used for signing.
@@ -1398,11 +1401,20 @@ TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 # Like celery, taskworkers need to import task modules to make tasks
 # accessible to the worker.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
+    "sentry.data_export.tasks",
+    "sentry.debug_files.tasks",
     "sentry.deletions.tasks.hybrid_cloud",
     "sentry.deletions.tasks.scheduled",
+    "sentry.demo_mode.tasks",
+    "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
+    "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
+    "sentry.dynamic_sampling.tasks.custom_rule_notifications",
+    "sentry.dynamic_sampling.tasks.recalibrate_orgs",
+    "sentry.dynamic_sampling.tasks.sliding_window_org",
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.incidents.tasks",
+    "sentry.ingest.transaction_clusterer.tasks",
     "sentry.integrations.github.tasks.link_all_repos",
     "sentry.integrations.github.tasks.open_pr_comment",
     "sentry.integrations.github.tasks.pr_comment",
@@ -1422,33 +1434,87 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.tasks.update_comment",
     "sentry.integrations.vsts.tasks.kickoff_subscription_check",
     "sentry.integrations.vsts.tasks.subscription_check",
+    "sentry.issues.forecasts",
     "sentry.middleware.integrations.tasks",
     "sentry.monitors.tasks.clock_pulse",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
     "sentry.notifications.utils.tasks",
+    "sentry.profiles.task",
+    "sentry.release_health.tasks",
+    "sentry.relocation.tasks.process",
+    "sentry.relocation.tasks.transfer",
     "sentry.replays.tasks",
+    "sentry.rules.processing.delayed_processing",
     "sentry.sentry_apps.tasks.sentry_apps",
+    "sentry.sentry_apps.tasks.service_hooks",
     "sentry.snuba.tasks",
+    "sentry.tasks.assemble",
     "sentry.tasks.auth.auth",
     "sentry.tasks.auth.check_auth",
     "sentry.tasks.auto_enable_codecov",
+    "sentry.tasks.auto_ongoing_issues",
+    "sentry.tasks.auto_remove_inbox",
+    "sentry.tasks.auto_resolve_issues",
+    "sentry.tasks.auto_source_code_config",
+    "sentry.tasks.autofix",
+    "sentry.tasks.beacon",
+    "sentry.tasks.check_am2_compatibility",
+    "sentry.tasks.check_new_issue_threshold_met",
+    "sentry.tasks.clear_expired_resolutions",
+    "sentry.tasks.clear_expired_rulesnoozes",
+    "sentry.tasks.clear_expired_snoozes",
+    "sentry.tasks.codeowners.code_owners_auto_sync",
+    "sentry.tasks.codeowners.update_code_owners_schema",
+    "sentry.tasks.collect_project_platforms",
+    "sentry.tasks.commit_context",
+    "sentry.tasks.commits",
+    "sentry.tasks.delete_seer_grouping_records",
     "sentry.tasks.digests",
     "sentry.tasks.email",
-    "sentry.tasks.release_registry",
-    "sentry.tempest.tasks",
-    "sentry.tasks.beacon",
+    "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
+    "sentry.tasks.groupowner",
+    "sentry.tasks.merge",
+    "sentry.tasks.on_demand_metrics",
     "sentry.tasks.options",
     "sentry.tasks.ping",
+    "sentry.tasks.post_process",
+    "sentry.tasks.process_buffer",
+    "sentry.tasks.relay",
+    "sentry.tasks.release_registry",
     "sentry.tasks.repository",
+    "sentry.tasks.reprocessing2",
+    "sentry.tasks.statistical_detectors",
+    "sentry.tasks.store",
+    "sentry.tasks.summaries.daily_summary",
+    "sentry.tasks.summaries.weekly_reports",
+    "sentry.tasks.symbolication",
+    "sentry.tasks.unmerge",
+    "sentry.tasks.update_user_reports",
+    "sentry.tasks.user_report",
+    "sentry.tasks.weekly_escalating_forecast",
+    "sentry.tempest.tasks",
     "sentry.uptime.detectors.tasks",
-    "sentry.uptime.subscriptions.tasks",
     "sentry.uptime.rdap.tasks",
+    "sentry.uptime.subscriptions.tasks",
+    "sentry.workflow_engine.processors.delayed_workflow",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
 
 # Schedules for taskworker tasks to be spawned on.
-TASKWORKER_SCHEDULES: ScheduleConfigMap = {}
+TASKWORKER_SCHEDULES: ScheduleConfigMap = {
+    "sync_options_trial": {
+        "schedule": timedelta(minutes=5),
+        "task": "options:sentry.tasks.options.sync_options",
+    },
+}
+
+TASKWORKER_ENABLE_HIGH_THROUGHPUT_NAMESPACES = False
+TASKWORKER_HIGH_THROUGHPUT_NAMESPACES = {
+    "ingest.profiling",
+    "ingest.transactions",
+    "ingest.errors",
+}
 
 # Sentry logs to two major places: stdout, and its internal project.
 # To disable logging to the internal project, add a logger whose only
@@ -1813,6 +1879,10 @@ SENTRY_DIGESTS_OPTIONS: dict[str, Any] = {}
 # Quota backend
 SENTRY_QUOTAS = "sentry.quotas.Quota"
 SENTRY_QUOTA_OPTIONS: dict[str, str] = {}
+
+# Partnership backend
+SENTRY_PARTNERSHIPS = "sentry.partnerships.Partnership"
+SENTRY_PARTNERSHIP_OPTIONS: dict[str, str] = {}
 
 # Cache for Relay project configs
 SENTRY_RELAY_PROJECTCONFIG_CACHE = "sentry.relay.projectconfig_cache.redis.RedisProjectConfigCache"
@@ -2267,10 +2337,6 @@ SENTRY_DEFAULT_OPTIONS: dict[str, Any] = {}
 # Raise an error in dev on failed lookups
 SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
 
-# You should not change this setting after your database has been created
-# unless you have altered all schemas first
-SENTRY_USE_BIG_INTS = False
-
 # Delay (in ms) to induce on API responses
 #
 # Simulates a small amount of lag which helps uncover more obvious race
@@ -2629,7 +2695,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.3.0"
+SELF_HOSTED_STABLE_VERSION = "25.4.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2704,6 +2770,14 @@ SENTRY_PROFILING_ENABLED = os.environ.get("SENTRY_PROFILING_ENABLED", SPOTLIGHT)
 # This setting takes precedence over `SENTRY_PROFILING_ENABLED` forcing the SDK
 # to operate under the continuous profiling model.
 SENTRY_CONTINUOUS_PROFILING_ENABLED = os.environ.get("SENTRY_CONTINUOUS_PROFILING_ENABLED", False)
+
+# The sample rate to use for continuous profile sessions. This sample rate is
+# evaluated once per process and the decision is used for the remainer of the session.
+SENTRY_PROFILE_SESSION_SAMPLE_RATE = 1 if DEBUG else 0
+
+# Tells the sentry sdk to run under the trace lifecycle mode which
+# ensures the profiler is running whenever there is an active trace.
+SENTRY_PROFILE_LIFECYCLE: Literal["manual", "trace"] = "trace"
 
 # Callable to bind additional context for the Sentry SDK
 #
@@ -3054,6 +3128,9 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "ingest-metrics-dlq": "default",
     "snuba-metrics": "default",
     "profiles": "default",
+    "profiles-call-tree": "default",
+    "snuba-profile-chunks": "default",
+    "processed-profiles": "default",
     "ingest-performance-metrics": "default",
     "ingest-generic-metrics-dlq": "default",
     "snuba-generic-metrics": "default",
@@ -3064,9 +3141,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "monitors-clock-tick": "default",
     "monitors-clock-tasks": "default",
     "monitors-incident-occurrences": "default",
-    "uptime-configs": "default",
     "uptime-results": "default",
-    "uptime-configs": "default",
     "snuba-uptime-results": "default",
     "generic-events": "default",
     "snuba-generic-events-commit-log": "default",
@@ -3104,6 +3179,7 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "workflow_engine",
     "tempest",
     "explore",
+    "insights",
     "monitors",
 )
 # Where to write the lockfile to.
@@ -3162,9 +3238,6 @@ SENTRY_SYNTHETIC_MONITORING_PROJECT_ID: int | None = None
 # Similarity cluster to use
 # Similarity-v1: uses hardcoded set of event properties for diffing
 SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
-
-# Unused legacy option, there to satisfy getsentry CI. Remove from getsentry, then here
-SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER = None
 
 # How long the migration phase for grouping lasts
 SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 30 * 24 * 3600  # 30 days
@@ -3228,9 +3301,8 @@ PG_VERSION: str = os.getenv("PG_VERSION") or "14"
 # Zero Downtime Migrations settings as defined at
 # https://github.com/tbicr/django-pg-zero-downtime-migrations#settings
 ZERO_DOWNTIME_MIGRATIONS_RAISE_FOR_UNSAFE = True
-ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT = None
+ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT: str | None = None
 ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT: str | None = None
-ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT_FORCE = False
 ZERO_DOWNTIME_MIGRATIONS_IDEMPOTENT_SQL = False
 
 if int(PG_VERSION.split(".", maxsplit=1)[0]) < 12:
@@ -3356,8 +3428,12 @@ SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000
 
 SENTRY_GROUP_ATTRIBUTES_FUTURES_MAX_LIMIT = 10000
 
+SENTRY_PROCESSED_PROFILES_FUTURES_MAX_LIMIT = 10000
+SENTRY_PROFILE_FUNCTIONS_FUTURES_MAX_LIMIT = 10000
+SENTRY_PROFILE_CHUNKS_FUTURES_MAX_LIMIT = 10000
+
 # How long we should wait for a gateway proxy request to return before giving up
-GATEWAY_PROXY_TIMEOUT = None
+GATEWAY_PROXY_TIMEOUT: int | None = None
 
 SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
 # This maps a Sliceable for slicing by name and (lower logical partition, upper physical partition)

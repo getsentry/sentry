@@ -27,6 +27,7 @@ describe('ProjectCspReports', function () {
   it('renders', async function () {
     render(<ProjectCspReports />, {
       organization,
+      deprecatedRouterMocks: true,
     });
 
     // Renders the loading indication initially
@@ -47,6 +48,7 @@ describe('ProjectCspReports', function () {
     });
     render(<ProjectCspReports />, {
       organization,
+      deprecatedRouterMocks: true,
     });
 
     expect(
@@ -57,6 +59,7 @@ describe('ProjectCspReports', function () {
   it('can enable default ignored sources', async function () {
     render(<ProjectCspReports />, {
       organization,
+      deprecatedRouterMocks: true,
     });
 
     const mock = MockApiClient.addMockResponse({
@@ -86,6 +89,7 @@ describe('ProjectCspReports', function () {
   it('can set additional ignored sources', async function () {
     render(<ProjectCspReports />, {
       organization,
+      deprecatedRouterMocks: true,
     });
 
     const mock = MockApiClient.addMockResponse({

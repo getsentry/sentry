@@ -2,12 +2,15 @@ from dataclasses import dataclass
 from unittest.mock import ANY, patch
 
 from sentry.constants import SentryAppStatus
+from sentry.integrations.types import IntegrationProviderSlug
+from sentry.notifications.notification_action.action_handler_registry.base import (
+    IntegrationActionHandler,
+)
 from sentry.plugins.base.manager import PluginManager
 from sentry.plugins.sentry_webhooks.plugin import WebHooksPlugin
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.registry import Registry
-from sentry.workflow_engine.handlers.action.notification.base import IntegrationActionHandler
 from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.types import ActionHandler
 from sentry_plugins.pagerduty.plugin import PagerDutyPlugin
@@ -55,7 +58,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
         @dataclass(frozen=True)
         class SlackActionHandler(IntegrationActionHandler):
             group = ActionHandler.Group.NOTIFICATION
-            provider_slug = "slack"
+            provider_slug = IntegrationProviderSlug.SLACK
             config_schema = {}
             data_schema = {}
 
@@ -72,7 +75,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
         @dataclass(frozen=True)
         class GithubActionHandler(IntegrationActionHandler):
             group = ActionHandler.Group.TICKET_CREATION
-            provider_slug = "github"
+            provider_slug = IntegrationProviderSlug.GITHUB
             config_schema = {}
             data_schema = {}
 
@@ -90,7 +93,7 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
         @dataclass(frozen=True)
         class MSTeamsActionHandler(IntegrationActionHandler):
             group = ActionHandler.Group.NOTIFICATION
-            provider_slug = "msteams"
+            provider_slug = IntegrationProviderSlug.MSTEAMS
             config_schema = {}
             data_schema = {}
 

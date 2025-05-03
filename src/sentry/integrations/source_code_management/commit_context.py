@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import sentry_sdk
+from django.db import connection
 from django.utils import timezone as django_timezone
+from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query
+from snuba_sdk import Request as SnubaRequest
 
 from sentry import analytics
 from sentry.auth.exceptions import IdentityNotValid
@@ -25,6 +28,7 @@ from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner
 from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.pullrequest import (
     CommentType,
@@ -34,13 +38,17 @@ from sentry.models.pullrequest import (
 )
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import (
+    ApiError,
     ApiInvalidRequestError,
     ApiRateLimitedError,
     ApiRetryError,
 )
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.users.models.identity import Identity
 from sentry.utils import metrics
 from sentry.utils.cache import cache
+from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +67,9 @@ def _pr_comment_log(integration_name: str, suffix: str) -> str:
 
 PR_COMMENT_TASK_TTL = timedelta(minutes=5).total_seconds()
 PR_COMMENT_WINDOW = 14  # days
+
+MERGED_PR_METRICS_BASE = "{integration}.pr_comment.{key}"
+MAX_SUSPECT_COMMITS = 1000
 
 
 @dataclass
@@ -99,7 +110,7 @@ class CommitContextIntegration(ABC):
         raise NotImplementedError
 
     def get_blame_for_files(
-        self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
+        self, files: Sequence[SourceLineInfo], extra: dict[str, Any]
     ) -> list[FileBlameInfo]:
         """
         Calls the client's `get_blame_for_files` method to fetch blame for a list of files.
@@ -150,7 +161,7 @@ class CommitContextIntegration(ABC):
             return response
 
     def get_commit_context_all_frames(
-        self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
+        self, files: Sequence[SourceLineInfo], extra: dict[str, Any]
     ) -> list[FileBlameInfo]:
         """
         Given a list of source files and line numbers,returns the commit info for the most recent commit.
@@ -164,6 +175,12 @@ class CommitContextIntegration(ABC):
         group_owner: GroupOwner,
         group_id: int,
     ) -> None:
+        try:
+            # TODO(jianyuan): Remove this try/except once we have implemented the abstract method for all integrations
+            pr_comment_workflow = self.get_pr_comment_workflow()
+        except NotImplementedError:
+            return
+
         with CommitContextIntegrationInteractionEvent(
             interaction_type=SCMIntegrationInteractionType.QUEUE_COMMENT_TASK,
             provider_key=self.integration_name,
@@ -173,7 +190,7 @@ class CommitContextIntegration(ABC):
         ).capture() as lifecycle:
             if not OrganizationOption.objects.get_value(
                 organization=project.organization,
-                key="sentry:github_pr_bot",
+                key=pr_comment_workflow.organization_option_key,
                 default=True,
             ):
                 # TODO: remove logger in favor of the log recorded in  lifecycle.record_halt
@@ -210,7 +227,6 @@ class CommitContextIntegration(ABC):
             scope = sentry_sdk.Scope.get_isolation_scope()
             scope.set_tag("queue_comment_check.merge_commit_sha", commit.key)
             scope.set_tag("queue_comment_check.organization_id", commit.organization_id)
-            from sentry.integrations.github.tasks.pr_comment import github_comment_workflow
 
             # client will raise an Exception if the request is not successful
             try:
@@ -292,16 +308,13 @@ class CommitContextIntegration(ABC):
 
                     cache.set(cache_key, True, PR_COMMENT_TASK_TTL)
 
-                    github_comment_workflow.delay(
-                        pullrequest_id=pr.id, project_id=group_owner.project_id
-                    )
+                    pr_comment_workflow.queue_task(pr=pr, project_id=group_owner.project_id)
 
     def create_or_update_comment(
         self,
         repo: Repository,
-        pr_key: str,
+        pr: PullRequest,
         comment_data: dict[str, Any],
-        pullrequest_id: int,
         issue_list: list[int],
         metrics_base: str,
         comment_type: int = CommentType.MERGED_PR,
@@ -310,7 +323,7 @@ class CommitContextIntegration(ABC):
         client = self.get_client()
 
         pr_comment = PullRequestComment.objects.filter(
-            pull_request__id=pullrequest_id, comment_type=comment_type
+            pull_request__id=pr.id, comment_type=comment_type
         ).first()
 
         interaction_type = (
@@ -323,19 +336,15 @@ class CommitContextIntegration(ABC):
             interaction_type=interaction_type,
             provider_key=self.integration_name,
             repository=repo,
-            pull_request_id=pullrequest_id,
+            pull_request_id=pr.id,
         ).capture():
             if pr_comment is None:
-                resp = client.create_comment(
-                    repo=repo.name,
-                    issue_id=str(pr_key),
-                    data=comment_data,
-                )
+                resp = client.create_pr_comment(repo=repo, pr=pr, data=comment_data)
 
                 current_time = django_timezone.now()
                 comment = PullRequestComment.objects.create(
                     external_id=resp.body["id"],
-                    pull_request_id=pullrequest_id,
+                    pull_request_id=pr.id,
                     created_at=current_time,
                     updated_at=current_time,
                     group_ids=issue_list,
@@ -350,14 +359,14 @@ class CommitContextIntegration(ABC):
                         "open_pr_comment.created",
                         comment_id=comment.id,
                         org_id=repo.organization_id,
-                        pr_id=pullrequest_id,
+                        pr_id=pr.id,
                         language=(language or "not found"),
                     )
             else:
-                resp = client.update_comment(
-                    repo=repo.name,
-                    issue_id=str(pr_key),
-                    comment_id=pr_comment.external_id,
+                resp = client.update_pr_comment(
+                    repo=repo,
+                    pr=pr,
+                    pr_comment=pr_comment,
                     data=comment_data,
                 )
                 metrics.incr(
@@ -372,8 +381,21 @@ class CommitContextIntegration(ABC):
             )
             logger.info(
                 logger_event,
-                extra={"new_comment": pr_comment is None, "pr_key": pr_key, "repo": repo.name},
+                extra={"new_comment": pr_comment is None, "pr_key": pr.key, "repo": repo.name},
             )
+
+    @abstractmethod
+    def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
+        """
+        Handle errors from the create_or_update_comment method.
+
+        Returns True if the error was handled, False otherwise.
+        """
+        raise NotImplementedError
+
+    # TODO(jianyuan): Make this an abstract method
+    def get_pr_comment_workflow(self) -> PRCommentWorkflow:
+        raise NotImplementedError
 
 
 class CommitContextClient(ABC):
@@ -381,21 +403,119 @@ class CommitContextClient(ABC):
 
     @abstractmethod
     def get_blame_for_files(
-        self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
+        self, files: Sequence[SourceLineInfo], extra: dict[str, Any]
     ) -> list[FileBlameInfo]:
         """Get the blame for a list of files. This method should include custom metrics for the specific integration implementation."""
         raise NotImplementedError
 
     @abstractmethod
-    def create_comment(self, repo: str, issue_id: str, data: Mapping[str, Any]) -> Any:
+    def create_comment(self, repo: str, issue_id: str, data: dict[str, Any]) -> Any:
         raise NotImplementedError
 
     @abstractmethod
     def update_comment(
-        self, repo: str, issue_id: str, comment_id: str, data: Mapping[str, Any]
+        self, repo: str, issue_id: str, comment_id: str, data: dict[str, Any]
+    ) -> Any:
+        raise NotImplementedError
+
+    @abstractmethod
+    def create_pr_comment(self, repo: Repository, pr: PullRequest, data: dict[str, Any]) -> Any:
+        raise NotImplementedError
+
+    @abstractmethod
+    def update_pr_comment(
+        self,
+        repo: Repository,
+        pr: PullRequest,
+        pr_comment: PullRequestComment,
+        data: dict[str, Any],
     ) -> Any:
         raise NotImplementedError
 
     @abstractmethod
     def get_merge_commit_sha_from_commit(self, repo: Repository, sha: str) -> str | None:
         raise NotImplementedError
+
+
+class PRCommentWorkflow(ABC):
+    def __init__(self, integration: CommitContextIntegration):
+        self.integration = integration
+
+    @property
+    @abstractmethod
+    def organization_option_key(self) -> str:
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def referrer(self) -> Referrer:
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def referrer_id(self) -> str:
+        raise NotImplementedError
+
+    def queue_task(self, pr: PullRequest, project_id: int) -> None:
+        from sentry.integrations.source_code_management.tasks import pr_comment_workflow
+
+        pr_comment_workflow.delay(pr_id=pr.id, project_id=project_id)
+
+    @abstractmethod
+    def get_comment_body(self, issue_ids: list[int]) -> str:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_comment_data(
+        self,
+        organization: Organization,
+        repo: Repository,
+        pr: PullRequest,
+        comment_body: str,
+        issue_ids: list[int],
+    ) -> dict[str, Any]:
+        raise NotImplementedError
+
+    def get_issue_ids_from_pr(self, pr: PullRequest, limit: int = MAX_SUSPECT_COMMITS) -> list[int]:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT go.group_id issue_id
+                FROM sentry_groupowner go
+                JOIN sentry_pullrequest_commit c ON c.commit_id = (go.context::jsonb->>'commitId')::bigint
+                JOIN sentry_pull_request pr ON c.pull_request_id = pr.id
+                WHERE go.type=0
+                AND pr.id=%s
+                ORDER BY go.date_added
+                LIMIT %s
+                """,
+                params=[pr.id, limit],
+            )
+            return [issue_id for (issue_id,) in cursor.fetchall()]
+
+    def get_top_5_issues_by_count(
+        self, issue_ids: list[int], project: Project
+    ) -> list[dict[str, Any]]:
+        """Given a list of issue group ids, return a sublist of the top 5 ordered by event count"""
+        request = SnubaRequest(
+            dataset=Dataset.Events.value,
+            app_id="default",
+            tenant_ids={"organization_id": project.organization_id},
+            query=(
+                Query(Entity("events"))
+                .set_select([Column("group_id"), Function("count", [], "event_count")])
+                .set_groupby([Column("group_id")])
+                .set_where(
+                    [
+                        Condition(Column("project_id"), Op.EQ, project.id),
+                        Condition(Column("group_id"), Op.IN, issue_ids),
+                        Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=30)),
+                        Condition(Column("timestamp"), Op.LT, datetime.now()),
+                        Condition(Column("level"), Op.NEQ, "info"),
+                    ]
+                )
+                .set_orderby([OrderBy(Column("event_count"), Direction.DESC)])
+                .set_limit(5)
+            ),
+        )
+        return raw_snql_query(request, referrer=self.referrer.value)["data"]

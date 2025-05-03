@@ -20,19 +20,19 @@ from sentry.integrations.types import ExternalProviders
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.notify import notify
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, UnsubscribeContext
-from sentry.notifications.utils import (
-    NotificationRuleDetails,
-    get_email_link_extra_params,
-    get_integration_link,
-    get_rules,
-    has_alert_integration,
-)
+from sentry.notifications.utils import has_alert_integration
 from sentry.notifications.utils.digest import (
     get_digest_subject,
     send_as_alert_notification,
     should_send_as_alert_notification,
 )
+from sentry.notifications.utils.links import (
+    get_email_link_extra_params,
+    get_integration_link,
+    get_rules,
+)
 from sentry.types.actor import Actor
+from sentry.types.rules import NotificationRuleDetails
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -117,14 +117,20 @@ class DigestNotification(ProjectNotification):
 
         sentry_query_params = self.get_sentry_query_params(ExternalProviders.EMAIL)
 
-        snooze_alert = len(rule_details) > 0
-        snooze_alert_urls = {
-            rule.id: f"{rule.status_url}{sentry_query_params}&{urlencode({'mute': '1'})}"
-            for rule in rule_details
-        }
+        if not features.has("organizations:workflow-engine-ui-links", self.project.organization):
+            # TODO(iamrajjoshi): This actually mutes a rule for a user, something we have not ported over in the new system
+            # By not including this context, the template will not show the mute button
+            snooze_alert = len(rule_details) > 0
+            snooze_alert_urls = {
+                rule.id: f"{rule.status_url}{sentry_query_params}&{urlencode({'mute': '1'})}"
+                for rule in rule_details
+            }
 
-        context["snooze_alert"] = snooze_alert
-        context["snooze_alert_urls"] = snooze_alert_urls
+            context["snooze_alert"] = snooze_alert
+            context["snooze_alert_urls"] = snooze_alert_urls
+        else:
+            context["snooze_alert"] = False
+            context["snooze_alert_urls"] = None
 
         return context
 
@@ -210,6 +216,8 @@ class DigestNotification(ProjectNotification):
                 "team_ids": team_ids,
                 "user_ids": user_ids,
                 "notification_uuid": self.notification_uuid,
+                "number_of_rules": len(shared_context.get("rules_details", [])),
+                "group_count": len(shared_context.get("counts", [])),
             },
         )
 

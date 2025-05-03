@@ -1,0 +1,41 @@
+import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
+
+// IMPORTANT:
+// This hook and the prefersStackedNav function NEED to have the same logic.
+// Make sure to update both if you are changing this logic.
+
+export function usePrefersStackedNav() {
+  const user = useUser();
+  const organization = useOrganization({allowNull: true});
+  const userStackedNavOption = user?.options?.prefersStackedNavigation;
+
+  if (
+    userStackedNavOption !== false &&
+    organization?.features.includes('enforce-stacked-navigation')
+  ) {
+    return true;
+  }
+
+  return userStackedNavOption ?? false;
+}
+
+export function usePrefersOldNavWithEnforcedStackedNav() {
+  const organization = useOrganization({allowNull: true});
+  const user = useUser();
+
+  return (
+    !!organization?.features.includes('enforce-stacked-navigation') &&
+    user?.options?.prefersStackedNavigation === false
+  );
+}
+
+export function useHasIssueViewSharing() {
+  const organization = useOrganization({allowNull: true});
+  const user = useUser();
+
+  return (
+    !!organization?.features.includes('enforce-stacked-navigation') &&
+    user?.options?.prefersStackedNavigation !== false
+  );
+}

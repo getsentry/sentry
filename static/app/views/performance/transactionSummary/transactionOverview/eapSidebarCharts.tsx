@@ -69,8 +69,7 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
       fields: ['failure_rate()'],
       pageFilters: selection,
     },
-    REFERRER,
-    true
+    REFERRER
   );
 
   const getFailureRateBadge = () => {
@@ -112,6 +111,7 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
       }
       Visualization={<TimeSeriesWidgetVisualization plottables={plottables} />}
       height={200}
+      borderless
     />
   );
 }

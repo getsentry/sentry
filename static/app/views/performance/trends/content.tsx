@@ -27,8 +27,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {TrendsHeader} from 'sentry/views/performance/trends/trendsHeader';
 import getSelectedQueryKey from 'sentry/views/performance/trends/utils/getSelectedQueryKey';
-
-import {getTransactionSearchQuery} from '../utils';
+import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 
 import ChangedTransactions from './changedTransactions';
 import type {TrendFunctionField, TrendView} from './types';

@@ -50,7 +50,7 @@ describe('Subscription > UsageTotals', function () {
     });
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={totals}
         reservedUnits={100_000}
         prepaidUnits={100_000}
@@ -89,7 +89,7 @@ describe('Subscription > UsageTotals', function () {
     render(
       <UsageTotals
         showEventBreakdown
-        category="transactions"
+        category={DataCategory.TRANSACTIONS}
         totals={totals}
         eventTotals={{transactions: totals, profiles: totals}}
         reservedUnits={100_000}
@@ -146,7 +146,7 @@ describe('Subscription > UsageTotals', function () {
 
     render(
       <UsageTotals
-        category="profileDuration"
+        category={DataCategory.PROFILE_DURATION}
         totals={profileDurationTotals}
         eventTotals={{profileChunks: profileChunksTotals, profiles: profilesTotals}}
         subscription={subscription}
@@ -213,7 +213,7 @@ describe('Subscription > UsageTotals', function () {
 
     render(
       <UsageTotals
-        category="profileDuration"
+        category={DataCategory.PROFILE_DURATION}
         totals={profileDurationTotals}
         eventTotals={{profileChunks: profileChunksTotals, profiles: profilesTotals}}
         subscription={am2Subscription}
@@ -255,7 +255,7 @@ describe('Subscription > UsageTotals', function () {
     SubscriptionStore.set(organization.slug, am2Subscription);
     render(
       <UsageTotals
-        category="transactions"
+        category={DataCategory.TRANSACTIONS}
         totals={totals}
         eventTotals={{transactions: totals, profiles: totals}}
         reservedUnits={100_000}
@@ -290,7 +290,7 @@ describe('Subscription > UsageTotals', function () {
     render(
       <UsageTotals
         showEventBreakdown
-        category="spans"
+        category={DataCategory.SPANS}
         totals={totals}
         eventTotals={{spans: totals}}
         reservedUnits={RESERVED_BUDGET_QUOTA}
@@ -335,7 +335,7 @@ describe('Subscription > UsageTotals', function () {
     render(
       <UsageTotals
         showEventBreakdown
-        category="spans"
+        category={DataCategory.SPANS}
         totals={totals}
         eventTotals={{spans: totals}}
         reservedUnits={RESERVED_BUDGET_QUOTA}
@@ -372,7 +372,7 @@ describe('Subscription > UsageTotals', function () {
     });
     render(
       <UsageTotals
-        category="spans"
+        category={DataCategory.SPANS}
         totals={totals}
         eventTotals={{spans: totals}}
         reservedUnits={RESERVED_BUDGET_QUOTA}
@@ -409,7 +409,7 @@ describe('Subscription > UsageTotals', function () {
     });
     render(
       <UsageTotals
-        category="spans"
+        category={DataCategory.SPANS}
         totals={totals}
         eventTotals={{spans: totals}}
         reservedUnits={RESERVED_BUDGET_QUOTA}
@@ -435,7 +435,7 @@ describe('Subscription > UsageTotals', function () {
     });
     render(
       <UsageTotals
-        category="attachments"
+        category={DataCategory.ATTACHMENTS}
         totals={totals}
         reservedUnits={100}
         prepaidUnits={100}
@@ -470,7 +470,7 @@ describe('Subscription > UsageTotals', function () {
     });
     render(
       <UsageTotals
-        category="transactions"
+        category={DataCategory.TRANSACTIONS}
         subscription={subscription}
         organization={organization}
         displayMode="usage"
@@ -485,7 +485,7 @@ describe('Subscription > UsageTotals', function () {
     subscription.categories.errors = MetricHistoryFixture({usage: 175_000});
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={UsageTotalFixture({accepted: 175_000})}
         reservedUnits={50_000}
         freeUnits={150_000}
@@ -510,7 +510,7 @@ describe('Subscription > UsageTotals', function () {
     subscription.categories.transactions = MetricHistoryFixture({});
     render(
       <UsageTotals
-        category="transactions"
+        category={DataCategory.TRANSACTIONS}
         totals={totals}
         reservedUnits={100_000}
         freeUnits={200_000}
@@ -533,7 +533,7 @@ describe('Subscription > UsageTotals', function () {
     subscription.categories.transactions = MetricHistoryFixture({});
     render(
       <UsageTotals
-        category="transactions"
+        category={DataCategory.TRANSACTIONS}
         totals={totals}
         reservedUnits={UNLIMITED_RESERVED}
         freeUnits={200_000}
@@ -549,7 +549,7 @@ describe('Subscription > UsageTotals', function () {
   it('renders gifted attachments', function () {
     render(
       <UsageTotals
-        category="attachments"
+        category={DataCategory.ATTACHMENTS}
         totals={totals}
         freeUnits={2}
         reservedUnits={1}
@@ -571,7 +571,7 @@ describe('Subscription > UsageTotals', function () {
     const attachments = UsageTotalFixture({accepted: GIGABYTE * 0.6});
     render(
       <UsageTotals
-        category="attachments"
+        category={DataCategory.ATTACHMENTS}
         totals={attachments}
         reservedUnits={1}
         prepaidUnits={1}
@@ -629,7 +629,7 @@ describe('Subscription > UsageTotals', function () {
     render(
       <UsageTotals
         trueForward
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={totals}
         reservedUnits={100_000}
         prepaidUnits={100_000}
@@ -647,7 +647,7 @@ describe('Subscription > UsageTotals', function () {
     render(
       <UsageTotals
         softCapType="ON_DEMAND"
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={totals}
         reservedUnits={100_000}
         prepaidUnits={100_000}
@@ -665,7 +665,7 @@ describe('Subscription > UsageTotals', function () {
     render(
       <UsageTotals
         softCapType="TRUE_FORWARD"
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={totals}
         reservedUnits={100_000}
         prepaidUnits={100_000}
@@ -683,7 +683,7 @@ describe('Subscription > UsageTotals', function () {
     render(
       <UsageTotals
         trueForward
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={totals}
         reservedUnits={100_000}
         prepaidUnits={100_000}
@@ -702,7 +702,7 @@ describe('Subscription > UsageTotals', function () {
     render(
       <UsageTotals
         softCapType="ON_DEMAND"
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={totals}
         reservedUnits={100_000}
         prepaidUnits={100_000}
@@ -721,7 +721,7 @@ describe('Subscription > UsageTotals', function () {
     render(
       <UsageTotals
         softCapType="TRUE_FORWARD"
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={totals}
         reservedUnits={100_000}
         prepaidUnits={100_000}
@@ -748,7 +748,7 @@ describe('Subscription > UsageTotals', function () {
     ];
     render(
       <UsageTotals
-        category="replays"
+        category={DataCategory.REPLAYS}
         totals={totals}
         reservedUnits={500}
         prepaidUnits={500}
@@ -774,7 +774,7 @@ describe('Subscription > UsageTotals', function () {
     ];
     render(
       <UsageTotals
-        category="replays"
+        category={DataCategory.REPLAYS}
         totals={totals}
         reservedUnits={500}
         prepaidUnits={500}
@@ -801,7 +801,7 @@ describe('Subscription > UsageTotals', function () {
     ];
     render(
       <UsageTotals
-        category="replays"
+        category={DataCategory.REPLAYS}
         totals={totals}
         reservedUnits={500}
         prepaidUnits={500}
@@ -835,7 +835,7 @@ describe('Subscription > UsageTotals', function () {
     });
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={spendTotals}
         reservedUnits={200_000}
         prepaidUnits={200_000}
@@ -869,7 +869,7 @@ describe('Subscription > UsageTotals', function () {
     });
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={spendTotals}
         reservedUnits={200_000}
         prepaidUnits={200_000}
@@ -892,7 +892,7 @@ describe('Subscription > UsageTotals', function () {
     });
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={totals}
         reservedUnits={100_000}
         prepaidUnits={100_000}
@@ -935,7 +935,7 @@ describe('Subscription > UsageTotals', function () {
 
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={totals}
         reservedUnits={100_000}
         prepaidUnits={100_000}
@@ -975,7 +975,7 @@ describe('Subscription > UsageTotals', function () {
 
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={totals}
         reservedUnits={100_000}
         prepaidUnits={100_000}
@@ -1017,7 +1017,7 @@ describe('Subscription > UsageTotals', function () {
 
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={usageTotals}
         reservedUnits={100_000}
         prepaidUnits={100_000}
@@ -1082,7 +1082,7 @@ describe('Subscription > UsageTotals', function () {
 
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={usageTotals}
         reservedUnits={100_000}
         prepaidUnits={100_000}
@@ -1129,7 +1129,7 @@ describe('Subscription > UsageTotals', function () {
   it('renders gifted hours for profile duration when gifted present', function () {
     render(
       <UsageTotals
-        category="profileDuration"
+        category={DataCategory.PROFILE_DURATION}
         totals={UsageTotalFixture({accepted: 15 * MILLISECONDS_IN_HOUR})}
         reservedUnits={null}
         freeUnits={50}
@@ -1149,7 +1149,7 @@ describe('Subscription > UsageTotals', function () {
   it('renders gifted hours for profile duration ui when gifted present', function () {
     render(
       <UsageTotals
-        category="profileDurationUI"
+        category={DataCategory.PROFILE_DURATION_UI}
         totals={UsageTotalFixture({accepted: 15 * MILLISECONDS_IN_HOUR})}
         reservedUnits={null}
         freeUnits={50}
@@ -1182,7 +1182,9 @@ describe('calculateCategoryPrepaidUsage', () => {
       reserved: prepaid,
       usage: prepaidUsage,
     });
-    expect(calculateCategoryPrepaidUsage('errors', subscription, prepaid)).toEqual({
+    expect(
+      calculateCategoryPrepaidUsage(DataCategory.ERRORS, subscription, prepaid)
+    ).toEqual({
       onDemandUsage: 0,
       prepaidPercentUsed: 50,
       prepaidPrice: 5000,
@@ -1202,7 +1204,9 @@ describe('calculateCategoryPrepaidUsage', () => {
       {events: 100_000, price: prepaidPrice * 12, unitPrice: 0.1, onDemandPrice: 0.2},
     ];
     subscription.categories.errors = MetricHistoryFixture({});
-    expect(calculateCategoryPrepaidUsage('errors', subscription, prepaidPrice)).toEqual({
+    expect(
+      calculateCategoryPrepaidUsage(DataCategory.ERRORS, subscription, prepaidPrice)
+    ).toEqual({
       onDemandUsage: 0,
       prepaidPercentUsed: 0,
       prepaidPrice,
@@ -1221,7 +1225,11 @@ describe('calculateCategoryPrepaidUsage', () => {
     delete subscription.planDetails.planCategories.monitorSeats;
     subscription.categories.errors = MetricHistoryFixture({});
     expect(
-      calculateCategoryPrepaidUsage('monitorSeats', subscription, prepaidPrice)
+      calculateCategoryPrepaidUsage(
+        DataCategory.MONITOR_SEATS,
+        subscription,
+        prepaidPrice
+      )
     ).toEqual({
       onDemandUsage: 0,
       prepaidPercentUsed: 0,
@@ -1243,7 +1251,9 @@ describe('calculateCategoryPrepaidUsage', () => {
       reserved: prepaid,
       usage: prepaidUsage,
     });
-    expect(calculateCategoryPrepaidUsage('monitorSeats', subscription, prepaid)).toEqual({
+    expect(
+      calculateCategoryPrepaidUsage(DataCategory.MONITOR_SEATS, subscription, prepaid)
+    ).toEqual({
       onDemandUsage: 0,
       prepaidPercentUsed: 0,
       prepaidPrice: 0,
@@ -1265,7 +1275,11 @@ describe('calculateCategoryPrepaidUsage', () => {
       usage: 150_000,
     });
 
-    const result = calculateCategoryPrepaidUsage('errors', subscription, prepaid);
+    const result = calculateCategoryPrepaidUsage(
+      DataCategory.ERRORS,
+      subscription,
+      prepaid
+    );
 
     expect(result.onDemandUsage).toBe(50_000);
     expect(result.prepaidUsage).toBe(100_000);
@@ -1284,7 +1298,11 @@ describe('calculateCategoryPrepaidUsage', () => {
       usage: 80_000,
     });
 
-    const result = calculateCategoryPrepaidUsage('errors', subscription, prepaid);
+    const result = calculateCategoryPrepaidUsage(
+      DataCategory.ERRORS,
+      subscription,
+      prepaid
+    );
 
     expect(result.onDemandUsage).toBe(0);
     expect(result.prepaidUsage).toBe(80_000);
@@ -1304,7 +1322,11 @@ describe('calculateCategoryPrepaidUsage', () => {
       usage: 150_000,
     });
 
-    const result = calculateCategoryPrepaidUsage('errors', subscription, prepaid);
+    const result = calculateCategoryPrepaidUsage(
+      DataCategory.ERRORS,
+      subscription,
+      prepaid
+    );
 
     expect(result.onDemandUsage).toBe(0);
     expect(result.prepaidUsage).toBe(150_000);
@@ -1320,7 +1342,7 @@ describe('calculateCategoryPrepaidUsage', () => {
     });
 
     const result = calculateCategoryPrepaidUsage(
-      'spans',
+      DataCategory.SPANS,
       subscription,
       prepaid,
       null,
@@ -1337,7 +1359,7 @@ describe('calculateCategoryPrepaidUsage', () => {
     });
 
     const result2 = calculateCategoryPrepaidUsage(
-      'spans',
+      DataCategory.SPANS,
       subscription,
       prepaid,
       null,
@@ -1353,7 +1375,7 @@ describe('calculateCategoryPrepaidUsage', () => {
     });
 
     const result3 = calculateCategoryPrepaidUsage(
-      'spans',
+      DataCategory.SPANS,
       subscription,
       prepaid,
       null,
@@ -1379,7 +1401,7 @@ describe('calculateCategoryPrepaidUsage', () => {
     });
 
     const result = calculateCategoryPrepaidUsage(
-      'spans',
+      DataCategory.SPANS,
       subscription,
       prepaid,
       null,
@@ -1414,7 +1436,7 @@ describe('calculateCategoryOnDemandUsage', () => {
     subscription.categories.errors = MetricHistoryFixture({
       onDemandSpendUsed: onDemandCategoryMax,
     });
-    expect(calculateCategoryOnDemandUsage('errors', subscription)).toEqual({
+    expect(calculateCategoryOnDemandUsage(DataCategory.ERRORS, subscription)).toEqual({
       onDemandTotalAvailable: onDemandCategoryMax,
       onDemandCategoryMax,
       onDemandCategorySpend: onDemandCategoryMax,
@@ -1438,7 +1460,7 @@ describe('calculateCategoryOnDemandUsage', () => {
     subscription.categories.errors = MetricHistoryFixture({
       onDemandSpendUsed: 0,
     });
-    expect(calculateCategoryOnDemandUsage('errors', subscription)).toEqual({
+    expect(calculateCategoryOnDemandUsage(DataCategory.ERRORS, subscription)).toEqual({
       onDemandTotalAvailable: onDemandCategoryMax,
       onDemandCategoryMax,
       onDemandCategorySpend: 0,
@@ -1463,7 +1485,7 @@ describe('calculateCategoryOnDemandUsage', () => {
     subscription.categories.replays = MetricHistoryFixture({
       onDemandSpendUsed: onDemandCategoryMax / 2,
     });
-    expect(calculateCategoryOnDemandUsage('errors', subscription)).toEqual({
+    expect(calculateCategoryOnDemandUsage(DataCategory.ERRORS, subscription)).toEqual({
       onDemandTotalAvailable: onDemandCategoryMax,
       // Half is left for other categories
       onDemandCategoryMax: onDemandCategoryMax / 2,
@@ -1492,7 +1514,7 @@ describe('hasReservedQuotaFunctionality', function () {
   it('does not render reserved quota section when reserved is null', function () {
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={UsageTotalFixture({accepted: 100})}
         reservedUnits={null}
         subscription={subscription}
@@ -1508,7 +1530,7 @@ describe('hasReservedQuotaFunctionality', function () {
   it('renders reserved quota section when reserved is UNLIMITED_RESERVED', function () {
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={UsageTotalFixture({accepted: 100})}
         reservedUnits={UNLIMITED_RESERVED}
         prepaidUnits={UNLIMITED_RESERVED}
@@ -1524,7 +1546,7 @@ describe('hasReservedQuotaFunctionality', function () {
   it('renders reserved quota section when reserved is greater than 0', function () {
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={UsageTotalFixture({accepted: 100})}
         reservedUnits={100_000}
         prepaidUnits={100_000}
@@ -1540,7 +1562,7 @@ describe('hasReservedQuotaFunctionality', function () {
   it('does not render reserved quota section when reserved is 0', function () {
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={UsageTotalFixture({accepted: 100})}
         reservedUnits={0}
         prepaidUnits={0}
@@ -1557,7 +1579,7 @@ describe('hasReservedQuotaFunctionality', function () {
   it('renders reserved quota with gifted amount when both present', function () {
     render(
       <UsageTotals
-        category="errors"
+        category={DataCategory.ERRORS}
         totals={UsageTotalFixture({accepted: 100})}
         reservedUnits={100_000}
         freeUnits={50_000}
@@ -1576,7 +1598,7 @@ describe('hasReservedQuotaFunctionality', function () {
   it('renders reserved budget quota when using budget-based reserved', function () {
     render(
       <UsageTotals
-        category="spans"
+        category={DataCategory.SPANS}
         totals={UsageTotalFixture({accepted: 100})}
         reservedUnits={RESERVED_BUDGET_QUOTA}
         prepaidUnits={RESERVED_BUDGET_QUOTA}
@@ -1595,7 +1617,7 @@ describe('hasReservedQuotaFunctionality', function () {
   it('renders reserved budget quota with gifted budget when both present', function () {
     render(
       <UsageTotals
-        category="spans"
+        category={DataCategory.SPANS}
         totals={UsageTotalFixture({accepted: 100})}
         reservedUnits={RESERVED_BUDGET_QUOTA}
         prepaidUnits={RESERVED_BUDGET_QUOTA}
@@ -1610,5 +1632,144 @@ describe('hasReservedQuotaFunctionality', function () {
     expect(screen.getByTestId('gifted-spans')).toHaveTextContent(
       '$100,000.00 Reserved + $10,000.00 Gifted'
     );
+  });
+});
+
+describe('Usage Bar Rendering', function () {
+  const organization = OrganizationFixture();
+  let subscription: Subscription;
+
+  beforeEach(() => {
+    subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+      isTrial: false,
+    });
+    // Mock basic category info
+    subscription.categories.errors = MetricHistoryFixture({usage: 0});
+    SubscriptionStore.set(organization.slug, subscription);
+  });
+
+  afterEach(() => {
+    SubscriptionStore.init();
+  });
+
+  it('renders 100% unused width when reserved is 0 and not a trial', function () {
+    subscription.categories.errors = MetricHistoryFixture({usage: 0});
+    render(
+      <UsageTotals
+        category={DataCategory.ERRORS}
+        totals={UsageTotalFixture({accepted: 0})}
+        reservedUnits={0}
+        prepaidUnits={0} // No prepaid units if reserved is 0
+        subscription={subscription}
+        organization={organization}
+        displayMode="usage"
+      />
+    );
+
+    expect(screen.getByTestId('usage-card-errors')).toBeInTheDocument();
+
+    const usageBarContainer = screen.getByTestId('usage-bar-container-errors');
+    expect(usageBarContainer).toBeInTheDocument();
+
+    const firstGroupBars = usageBarContainer?.querySelectorAll(
+      '[class*="PlanUseBarGroup"]:first-of-type > [class*="PlanUseBar"]'
+    );
+    // Should only be one bar (the unused bar)
+    expect(firstGroupBars).toHaveLength(1);
+    expect(firstGroupBars?.[0]).toHaveStyle({width: '100%'});
+  });
+
+  it('renders correct unused width when reserved is non-zero and not a trial (50% usage)', function () {
+    const reserved = 100_000;
+    const usage = reserved / 2;
+    subscription.categories.errors = MetricHistoryFixture({usage});
+
+    render(
+      <UsageTotals
+        category={DataCategory.ERRORS}
+        totals={UsageTotalFixture({accepted: usage})}
+        reservedUnits={reserved}
+        prepaidUnits={reserved} // Prepaid matches reserved
+        subscription={subscription}
+        organization={organization}
+        displayMode="usage"
+      />
+    );
+
+    expect(screen.getByTestId('usage-card-errors')).toBeInTheDocument();
+
+    const usageBarContainer = screen.getByTestId('usage-bar-container-errors');
+    expect(usageBarContainer).toBeInTheDocument();
+
+    const firstGroupBars = usageBarContainer?.querySelectorAll(
+      '[class*="PlanUseBarGroup"]:first-of-type > [class*="PlanUseBar"]'
+    );
+    // Should be two bars (used + unused)
+    expect(firstGroupBars).toHaveLength(2);
+    expect(firstGroupBars?.[0]).toHaveStyle({width: '50%'}); // Used bar
+    expect(firstGroupBars?.[1]).toHaveStyle({width: '50%'}); // Unused bar
+  });
+
+  it('renders correct unused width when reserved is 0 but is a trial (0% usage)', function () {
+    subscription.isTrial = true;
+    subscription.categories.errors = MetricHistoryFixture({usage: 0});
+
+    render(
+      <UsageTotals
+        category={DataCategory.ERRORS}
+        totals={UsageTotalFixture({accepted: 0})}
+        reservedUnits={0} // Reserved is 0
+        prepaidUnits={0} // Assume trial gives some implicit quota, or calculation handles 0
+        subscription={subscription}
+        organization={organization}
+        displayMode="usage"
+      />
+    );
+
+    expect(screen.getByTestId('usage-card-errors')).toBeInTheDocument();
+
+    const usageBarContainer = screen.getByTestId('usage-bar-container-errors');
+    expect(usageBarContainer).toBeInTheDocument();
+
+    const firstGroupBars = usageBarContainer?.querySelectorAll(
+      '[class*="PlanUseBarGroup"]:first-of-type > [class*="PlanUseBar"]'
+    );
+    // Should only be one bar (unused, calculated as 100 - 0%)
+    expect(firstGroupBars).toHaveLength(1);
+    expect(firstGroupBars?.[0]).toHaveStyle({width: '100%'});
+  });
+
+  it('renders correct unused width when reserved is 0 but is a trial (50% usage)', function () {
+    subscription.isTrial = true;
+    const trialQuota = 100_000; // Assume trial provides some implicit quota used for % calculation
+    const usage = trialQuota / 2;
+    subscription.categories.errors = MetricHistoryFixture({usage});
+
+    render(
+      <UsageTotals
+        category={DataCategory.ERRORS}
+        totals={UsageTotalFixture({accepted: usage})}
+        reservedUnits={0} // Reserved is 0
+        prepaidUnits={trialQuota} // Pass the trial quota as prepaid for calculation
+        subscription={subscription}
+        organization={organization}
+        displayMode="usage"
+      />
+    );
+
+    expect(screen.getByTestId('usage-card-errors')).toBeInTheDocument();
+
+    const usageBarContainer = screen.getByTestId('usage-bar-container-errors');
+    expect(usageBarContainer).toBeInTheDocument();
+
+    const firstGroupBars = usageBarContainer?.querySelectorAll(
+      '[class*="PlanUseBarGroup"]:first-of-type > [class*="PlanUseBar"]'
+    );
+    // Should be two bars (used + unused)
+    expect(firstGroupBars).toHaveLength(2);
+    expect(firstGroupBars?.[0]).toHaveStyle({width: '50%'}); // Used bar
+    expect(firstGroupBars?.[1]).toHaveStyle({width: '50%'}); // Unused bar (calculated as 100 - 50%)
   });
 });

@@ -12,12 +12,13 @@ import queuesPreviewImg from 'sentry-images/insights/module-upsells/insights-que
 import requestPreviewImg from 'sentry-images/insights/module-upsells/insights-requests-module-charts.svg';
 import screenLoadsPreviewImg from 'sentry-images/insights/module-upsells/insights-screen-loads-module-charts.svg';
 import screenRenderingPreviewImg from 'sentry-images/insights/module-upsells/insights-screen-rendering-module-charts.svg';
+import sessionHealthPreviewImg from 'sentry-images/insights/module-upsells/insights-session-health-module-charts.svg';
 import webVitalsPreviewImg from 'sentry-images/insights/module-upsells/insights-web-vitals-module-charts.svg';
 import emptyStateImg from 'sentry-images/spot/performance-waiting-for-span.svg';
 
 import {LinkButton} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Panel from 'sentry/components/panels/panel';
-import {Tooltip} from 'sentry/components/tooltip';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -28,6 +29,7 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import type {TitleableModuleNames} from 'sentry/views/insights/common/components/modulePageProviders';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   MODULE_DATA_TYPES,
   MODULE_DATA_TYPES_PLURAL,
@@ -78,6 +80,13 @@ export function ModulesOnboarding({children, moduleName}: ModuleOnboardingProps)
 }
 
 export function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
+  const {view} = useDomainViewFilters();
+  const docLink =
+    typeof MODULE_PRODUCT_DOC_LINKS[moduleName] === 'string'
+      ? MODULE_PRODUCT_DOC_LINKS[moduleName]
+      : view && MODULE_PRODUCT_DOC_LINKS[moduleName][view]
+        ? MODULE_PRODUCT_DOC_LINKS[moduleName][view]
+        : '';
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const emptyStateContent = EMPTY_STATE_CONTENT[moduleName];
   return (
@@ -105,11 +114,7 @@ export function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
             <PerfImage src={emptyStateImg} />
           </Sidebar>
         </SplitMainContent>
-        <LinkButton
-          priority="primary"
-          external
-          href={MODULE_PRODUCT_DOC_LINKS[moduleName]}
-        >
+        <LinkButton priority="primary" external href={docLink}>
           {t('Read the docs')}
         </LinkButton>
       </Container>
@@ -517,7 +522,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       t('Comparing adoption rates across different releases.'),
       t('Visualizing user adoption over time.'),
     ],
-    imageSrc: screenLoadsPreviewImg, // TODO: need new img
+    imageSrc: sessionHealthPreviewImg,
     supportedSdks: [
       'android',
       'flutter',

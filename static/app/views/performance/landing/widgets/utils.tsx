@@ -6,8 +6,7 @@ import {
   canUseMetricsData,
   MEPState,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-
-import type {ProjectPerformanceType} from '../../utils';
+import type {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
 import {PerformanceWidgetSetting} from './widgetDefinitions';
 
@@ -58,10 +57,6 @@ export function getMEPQueryParams(
 
   // Disallow any performance request from using aggregates since they aren't currently possible in all visualizations and we don't want to mix modes.
   return isEmptyObject(queryParams) ? undefined : queryParams;
-}
-
-export function getMetricOnlyQueryParams() {
-  return {...mepQueryParamBase, dataset: 'metrics'};
 }
 
 export const WIDGET_MAP_DENY_LIST = [

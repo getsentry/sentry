@@ -5,14 +5,17 @@ import onboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button';
+import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface SeerNoticesProps {
   groupId: string;
+  project: Project;
   hasGithubIntegration?: boolean;
 }
 
@@ -55,14 +58,72 @@ function GithubIntegrationSetupCard() {
   );
 }
 
-export function SeerNotices({groupId, hasGithubIntegration}: SeerNoticesProps) {
+function SelectReposCard() {
+  const organization = useOrganization();
+
+  return (
+    <IntegrationCard key="no-selected-repos">
+      <CardContent>
+        <CardTitle>{t('Pick Repositories to Work In')}</CardTitle>
+        <CardDescription>
+          <span>
+            {tct('Autofix is [bold:a lot better] when it has your codebase as context.', {
+              bold: <b />,
+            })}
+          </span>
+          <span>
+            {tct(
+              'Select the repos Autofix can explore in this project to allow it to go deeper when troubleshooting and fixing your issues–including writing the code and opening PRs.',
+              {
+                integrationLink: (
+                  <ExternalLink
+                    href={`/settings/${organization.slug}/integrations/github/`}
+                  />
+                ),
+              }
+            )}
+          </span>
+          <span>
+            {t(
+              'You can also configure working branches and custom instructions so Autofix acts just how you like.'
+            )}
+          </span>
+          <span>
+            {tct(
+              '[bold:Open the Project Settings menu in the top right] to get started.',
+              {
+                bold: <b />,
+              }
+            )}
+          </span>
+        </CardDescription>
+      </CardContent>
+      <CardIllustration src={onboardingInstall} alt="Install" />
+    </IntegrationCard>
+  );
+}
+
+export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNoticesProps) {
   const organization = useOrganization();
   const {repos} = useAutofixRepos(groupId);
+  const {
+    preference,
+    codeMappingRepos,
+    isLoading: isLoadingPreferences,
+  } = useProjectSeerPreferences(project);
+
   const unreadableRepos = repos.filter(repo => repo.is_readable === false);
   const notices: React.JSX.Element[] = [];
 
   if (!hasGithubIntegration) {
     notices.push(<GithubIntegrationSetupCard key="github-setup" />);
+  } else if (
+    repos.length === 0 &&
+    !preference?.repositories?.length &&
+    !codeMappingRepos?.length &&
+    !isLoadingPreferences
+  ) {
+    notices.push(<SelectReposCard key="repo-selection" />);
   }
 
   if (unreadableRepos.length > 1) {

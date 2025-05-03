@@ -16,15 +16,14 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {determineSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {
   convertEventsStatsToTimeSeriesData,
   transformToSeriesMap,
 } from 'sentry/views/insights/common/queries/useSortedTimeSeries';
-
-import type {DashboardFilters, Widget} from '../types';
-import {isEventsStats} from '../utils/isEventsStats';
 
 import type {
   GenericWidgetQueriesChildrenProps,
@@ -43,6 +42,8 @@ type SpansWidgetQueriesProps = {
   cursor?: string;
   dashboardFilters?: DashboardFilters;
   limit?: number;
+  onBestEffortDataFetched?: () => void;
+  onDataFetchStart?: () => void;
   onDataFetched?: (results: OnDataFetchedProps) => void;
 };
 
@@ -59,9 +60,9 @@ function SpansWidgetQueries(props: SpansWidgetQueriesProps) {
 
   const getConfidenceInformation = useCallback(
     (result: SeriesResult) => {
-      let seriesConfidence;
-      let seriesSampleCount;
-      let seriesIsSampled;
+      let seriesConfidence: Confidence | null;
+      let seriesSampleCount: number | undefined;
+      let seriesIsSampled: boolean | null;
 
       if (isEventsStats(result)) {
         seriesConfidence = determineSeriesConfidence(result);
@@ -84,8 +85,7 @@ function SpansWidgetQueries(props: SpansWidgetQueriesProps) {
         const {sampleCount: calculatedSampleCount, isSampled: calculatedIsSampled} =
           determineSeriesSampleCountAndIsSampled(
             series,
-            Object.keys(result).filter(seriesName => seriesName.toLowerCase() !== 'other')
-              .length > 0
+            Object.keys(result).some(seriesName => seriesName.toLowerCase() !== 'other')
           );
         seriesSampleCount = calculatedSampleCount;
         seriesConfidence = combineConfidenceForSeries(series);
@@ -100,7 +100,12 @@ function SpansWidgetQueries(props: SpansWidgetQueriesProps) {
     [props.widget.queries]
   );
 
-  if (organization.features.includes('visibility-explore-progressive-loading')) {
+  if (
+    organization.features.includes('visibility-explore-progressive-loading') &&
+    !organization.features.includes(
+      'visibility-explore-progressive-loading-normal-sampling-mode'
+    )
+  ) {
     return (
       <SpansWidgetQueriesProgressiveLoadingImpl
         {...props}
@@ -127,9 +132,14 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
   dashboardFilters,
   onDataFetched,
   getConfidenceInformation,
+  onDataFetchStart,
 }: SpansWidgetQueriesImplProps) {
   const config = SpansConfig;
   const organization = useOrganization();
+
+  const [confidence, setConfidence] = useState<Confidence | null>(null);
+  const [sampleCount, setSampleCount] = useState<number | undefined>(undefined);
+  const [isSampled, setIsSampled] = useState<boolean | null>(null);
 
   // The best effort response props are stored to render after the preflight
   const [bestEffortChildrenProps, setBestEffortChildrenProps] =
@@ -138,6 +148,10 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
   const afterFetchSeriesData = (result: SeriesResult) => {
     const {seriesConfidence, seriesSampleCount, seriesIsSampled} =
       getConfidenceInformation(result);
+
+    setConfidence(seriesConfidence);
+    setSampleCount(seriesSampleCount);
+    setIsSampled(seriesIsSampled);
 
     onDataFetched?.({
       confidence: seriesConfidence,
@@ -159,6 +173,7 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
         dashboardFilters={dashboardFilters}
         afterFetchSeriesData={afterFetchSeriesData}
         samplingMode={SAMPLING_MODE.PREFLIGHT}
+        onDataFetchStart={onDataFetchStart}
         onDataFetched={() => {
           setBestEffortChildrenProps(null);
         }}
@@ -171,6 +186,9 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
               children({
                 ...(bestEffortChildrenProps ?? preflightProps),
                 loading: preflightProps.loading,
+                confidence,
+                sampleCount,
+                isSampled,
               })
             ) : (
               <GenericWidgetQueries<SeriesResult, TableResult>
@@ -187,10 +205,13 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
                 onDataFetched={results => {
                   setBestEffortChildrenProps({
                     ...results,
+                    confidence,
+                    sampleCount,
+                    isSampled,
                     loading: false,
                     isProgressivelyLoading: false,
                   });
-                  onDataFetched?.(results);
+                  onDataFetched?.({...results, isProgressivelyLoading: false});
                 }}
               >
                 {bestEffortProps => {
@@ -200,9 +221,17 @@ function SpansWidgetQueriesProgressiveLoadingImpl({
                       loading: true,
                       isProgressivelyLoading:
                         !preflightProps.errorMessage && !bestEffortProps.errorMessage,
+                      confidence,
+                      sampleCount,
+                      isSampled,
                     });
                   }
-                  return children(bestEffortProps);
+                  return children({
+                    ...bestEffortProps,
+                    confidence,
+                    sampleCount,
+                    isSampled,
+                  });
                 }}
               </GenericWidgetQueries>
             )}
@@ -259,6 +288,13 @@ function SpansWidgetQueriesSingleRequestImpl({
         dashboardFilters={dashboardFilters}
         onDataFetched={onDataFetched}
         afterFetchSeriesData={afterFetchSeriesData}
+        samplingMode={
+          organization.features.includes(
+            'visibility-explore-progressive-loading-normal-sampling-mode'
+          )
+            ? SAMPLING_MODE.NORMAL
+            : undefined
+        }
       >
         {props =>
           children({

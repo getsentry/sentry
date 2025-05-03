@@ -80,9 +80,7 @@ function OnboardingItem({
           {...overlayTriggerProps}
           isMobile={isMobile}
           aria-label={showLabel ? undefined : label}
-          onMouseEnter={() => {
-            refetch();
-          }}
+          onMouseEnter={refetch}
         >
           <InteractionStateLayer />
           <ProgressRingWrapper isMobile={isMobile}>
@@ -92,7 +90,7 @@ function OnboardingItem({
               textCss={() => css`
                 font-size: ${isMobile ? theme.fontSizeExtraSmall : theme.fontSizeSmall};
                 font-weight: ${theme.fontWeightBold};
-                color: ${theme.purple400};
+                color: ${theme.tokens.content.accent};
               `}
               text={
                 doneTasks.length === allTasks.length ? (
@@ -104,14 +102,17 @@ function OnboardingItem({
               value={(doneTasks.length / allTasks.length) * 100}
               backgroundColor={theme.gray200}
               progressEndcaps="round"
-              progressColor={theme.purple400}
+              progressColor={theme.tokens.content.accent}
               size={isMobile ? 22 : 26}
               barWidth={4}
             />
           </ProgressRingWrapper>
           {showLabel ? label : null}
           {pendingCompletionSeen && (
-            <SidebarItemUnreadIndicator data-test-id="pending-seen-indicator" />
+            <SidebarItemUnreadIndicator
+              data-test-id="pending-seen-indicator"
+              isMobile={isMobile}
+            />
           )}
         </NavButton>
       </SidebarItem>

@@ -9,6 +9,8 @@ import {fetchRecentSearches, saveRecentSearch} from 'sentry/actionCreators/saved
 import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {
   BooleanOperator,
@@ -53,9 +55,6 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
-
-import type {MenuItemProps} from '../dropdownMenu';
-import {DropdownMenu} from '../dropdownMenu';
 
 import SearchBarDatePicker from './searchBarDatePicker';
 import SearchDropdown from './searchDropdown';
@@ -166,7 +165,7 @@ const pickParserOptions = (props: Props) => {
   } satisfies Partial<SearchConfig>;
 };
 
-export type ActionProps = {
+type ActionProps = {
   api: Client;
   /**
    * The organization
@@ -182,7 +181,7 @@ export type ActionProps = {
   savedSearchType?: SavedSearchType;
 };
 
-export type ActionBarItem = {
+type ActionBarItem = {
   /**
    * Name of the action
    */

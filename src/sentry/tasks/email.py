@@ -1,4 +1,7 @@
 import logging
+from typing import Any
+
+from django.core.mail import EmailMultiAlternatives
 
 from sentry.auth import access
 from sentry.models.group import Group
@@ -9,6 +12,7 @@ from sentry.taskworker.namespaces import notifications_control_tasks, notificati
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.email import send_messages
+from sentry.utils.email.message_builder import message_from_dict
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +29,7 @@ def _get_user_from_email(group: Group, email: str) -> RpcUser | None:
     return None
 
 
-def process_inbound_email(mailfrom: str, group_id: int, payload: str):
+def process_inbound_email(mailfrom: str, group_id: int, payload: str) -> None:
     from sentry.models.group import Group
     from sentry.web.forms import NewNoteForm
 
@@ -55,7 +59,9 @@ def process_inbound_email(mailfrom: str, group_id: int, payload: str):
         namespace=notifications_tasks,
     ),
 )
-def send_email(message):
+def send_email(message: EmailMultiAlternatives | dict[str, Any]) -> None:
+    if not isinstance(message, EmailMultiAlternatives):
+        message = message_from_dict(message)
     send_messages([message])
 
 
@@ -69,5 +75,7 @@ def send_email(message):
         namespace=notifications_control_tasks,
     ),
 )
-def send_email_control(message):
+def send_email_control(message: EmailMultiAlternatives | dict[str, Any]) -> None:
+    if not isinstance(message, EmailMultiAlternatives):
+        message = message_from_dict(message)
     send_messages([message])

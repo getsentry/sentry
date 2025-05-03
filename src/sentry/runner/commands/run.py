@@ -265,8 +265,8 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
 
     with managed_bgtasks(role="taskworker-scheduler"):
         runner = ScheduleRunner(taskregistry, run_storage)
-        for _, schedule_data in settings.TASKWORKER_SCHEDULES.items():
-            runner.add(schedule_data)
+        for key, schedule_data in settings.TASKWORKER_SCHEDULES.items():
+            runner.add(key, schedule_data)
 
         runner.log_startup()
         while True:
@@ -308,12 +308,18 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     help="The number of tasks to process before choosing a new broker instance. Requires num-brokers > 1",
     default=taskworker_constants.DEFAULT_REBALANCE_AFTER,
 )
+@click.option(
+    "--processing-pool-name",
+    help="The name of the processing pool being used",
+    default="unknown",
+)
 @log_options()
 @configuration
 def taskworker(**options: Any) -> None:
     """
     Run a taskworker worker
     """
+    os.environ["GRPC_ENABLE_FORK_SUPPORT"] = "0"
     if options["autoreload"]:
         autoreload.run_with_reloader(run_taskworker, **options)
     else:
@@ -329,6 +335,7 @@ def run_taskworker(
     child_tasks_queue_maxsize: int,
     result_queue_maxsize: int,
     rebalance_after: int,
+    processing_pool_name: str,
     **options: Any,
 ) -> None:
     """
@@ -346,6 +353,7 @@ def run_taskworker(
             child_tasks_queue_maxsize=child_tasks_queue_maxsize,
             result_queue_maxsize=result_queue_maxsize,
             rebalance_after=rebalance_after,
+            processing_pool_name=processing_pool_name,
             **options,
         )
         exitcode = worker.start()
@@ -552,9 +560,19 @@ def cron(**options: Any) -> None:
     type=int,
     help="The maximum number of messages to buffer in the dlq before dropping messages. Defaults to unbounded.",
 )
+@click.option(
+    "--quantized-rebalance-delay-secs",
+    type=int,
+    default=None,
+    help="Quantized rebalancing means that during deploys, rebalancing is triggered across all pods within a consumer group at the same time. The value is used by the pods to align their group join/leave activity to some multiple of the delay",
+)
 @configuration
 def basic_consumer(
-    consumer_name: str, consumer_args: tuple[str, ...], topic: str | None, **options: Any
+    consumer_name: str,
+    consumer_args: tuple[str, ...],
+    topic: str | None,
+    quantized_rebalance_delay_secs: int | None,
+    **options: Any,
 ) -> None:
     """
     Launch a "new-style" consumer based on its "consumer name".
@@ -586,7 +604,12 @@ def basic_consumer(
     initialize_arroyo_main()
 
     processor = get_stream_processor(consumer_name, consumer_args, topic=topic, **options)
-    run_processor_with_signals(processor, consumer_name)
+
+    # for backwards compat: should eventually be removed
+    if not quantized_rebalance_delay_secs and consumer_name == "ingest-generic-metrics":
+        quantized_rebalance_delay_secs = options.get("sentry-metrics.synchronized-rebalance-delay")
+
+    run_processor_with_signals(processor, quantized_rebalance_delay_secs)
 
 
 @run.command("dev-consumer")

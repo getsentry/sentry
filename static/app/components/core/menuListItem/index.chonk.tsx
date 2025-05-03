@@ -71,8 +71,12 @@ export const ChonkInnerWrap = chonkStyled('div', {
     font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};
 
     &,
-    &:hover {
+    &:hover,
+    &:focus,
+    &:focus-visible {
       color: ${getTextColor};
+      box-shadow: none;
+      outline: none;
     }
     ${p => p.disabled && `cursor: default;`}
 
@@ -118,6 +122,7 @@ export const ChonkLeadingItems = chonkStyled('div')<{
   gap: ${space(1)};
   margin-right: ${space(1)};
   flex-shrink: 0;
+  align-items: center;
 
   ${p => p.disabled && `opacity: 0.5;`}
 `;

@@ -1,3 +1,4 @@
+import { UserFixture } from "sentry-fixture/user";
 import { GroupSearchView, GroupSearchViewVisibility } from "sentry/views/issueList/types";
 import { IssueSortOptions } from "sentry/views/issueList/utils";
 
@@ -17,6 +18,11 @@ export function GroupSearchViewFixture(params: Partial<GroupSearchView> = {}): G
     },
     lastVisited: null,
     visibility: GroupSearchViewVisibility.ORGANIZATION,
+    starred: false,
+    createdBy: UserFixture(),
+    stars: 0,
+    dateCreated: '2025-04-25',
+    dateUpdated: '2025-04-25',
     ...params,
   };
 }

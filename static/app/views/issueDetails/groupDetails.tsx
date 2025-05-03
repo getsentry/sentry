@@ -35,10 +35,12 @@ import {
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
+import {decodeBoolean} from 'sentry/utils/queryString';
 import useDisableRouteAnalytics from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useApi from 'sentry/utils/useApi';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -49,6 +51,7 @@ import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
+import {useGroupDistributionsDrawer} from 'sentry/views/issueDetails/groupDistributions/useGroupDistributionsDrawer';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import GroupHeader from 'sentry/views/issueDetails/header';
 import {
@@ -62,10 +65,10 @@ import {GroupDetailsLayout} from 'sentry/views/issueDetails/streamline/groupDeta
 import {useIssueActivityDrawer} from 'sentry/views/issueDetails/streamline/hooks/useIssueActivityDrawer';
 import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useMergedIssuesDrawer';
 import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useSimilarIssuesDrawer';
+import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-import {useGroupDistributionsDrawer} from 'sentry/views/issueDetails/useGroupDistributionsDrawer';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {
   getGroupReprocessingStatus,
@@ -93,7 +96,8 @@ type FetchGroupDetailsState = {
   refetchGroup: () => void;
 };
 
-interface GroupDetailsContentProps extends GroupDetailsProps, FetchGroupDetailsState {
+interface GroupDetailsContentProps extends GroupDetailsProps {
+  event: Event | null;
   group: Group;
   project: Project;
 }
@@ -660,14 +664,29 @@ function GroupDetailsContent({
   const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({group, project});
   const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
   const {openIssueActivityDrawer} = useIssueActivityDrawer({group, project});
+  const {openSeerDrawer} = useOpenSeerDrawer({group, project, event});
   const {isDrawerOpen} = useDrawer();
 
   const {currentTab, baseUrl} = useGroupDetailsRoute();
+  const {seerDrawer} = useLocationQuery({
+    fields: {
+      seerDrawer: decodeBoolean,
+    },
+  });
 
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   useEffect(() => {
-    if (!hasStreamlinedUI || isDrawerOpen) {
+    if (isDrawerOpen) {
+      return;
+    }
+
+    if (seerDrawer) {
+      openSeerDrawer();
+      return;
+    }
+
+    if (!hasStreamlinedUI) {
       return;
     }
 
@@ -685,10 +704,12 @@ function GroupDetailsContent({
     currentTab,
     hasStreamlinedUI,
     isDrawerOpen,
+    seerDrawer,
     openDistributionsDrawer,
     openSimilarIssuesDrawer,
     openMergedIssuesDrawer,
     openIssueActivityDrawer,
+    openSeerDrawer,
   ]);
 
   useTrackView({group, event, project, tab: currentTab, organization});
@@ -764,7 +785,6 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
   const projectWithFallback = project ?? projects[0];
 
   const isRegressionIssue =
-    props.group?.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION ||
     props.group?.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION;
 
   useEffect(() => {
@@ -834,11 +854,12 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
       TourContext={IssueDetailsTourContext}
     >
       <GroupDetailsContent
-        {...props}
         project={projectWithFallback}
         group={props.group}
         event={props.event ?? injectedEvent}
-      />
+      >
+        {props.children}
+      </GroupDetailsContent>
     </TourContextProvider>
   );
 }

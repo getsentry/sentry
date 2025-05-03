@@ -47,31 +47,25 @@ export function getTourTask(
   guide: string
 ): {task: OnboardingTaskKey; tour: string} | undefined {
   switch (guide) {
+    case 'sidebar':
+      return {tour: 'tabs', task: OnboardingTaskKey.SIDEBAR_GUIDE};
+    // TODO(ogi): Remove this once we merge the new sidebar tour
     case 'sidebar_v2':
       return {tour: 'tabs', task: OnboardingTaskKey.SIDEBAR_GUIDE};
-    case 'issues_v3':
+    case 'issues':
       return {tour: 'issues', task: OnboardingTaskKey.ISSUE_GUIDE};
-    case 'release-details_v2':
+    case 'releases':
       return {tour: 'releases', task: OnboardingTaskKey.RELEASE_GUIDE};
     case 'performance':
       return {tour: 'performance', task: OnboardingTaskKey.PERFORMANCE_GUIDE};
+
     default:
       return undefined;
   }
 }
 
 export function getDemoGuides() {
-  return [
-    {guide: 'sidebar_v2', seen: false},
-    {guide: 'issues_v3', seen: false},
-    {guide: 'releases_v2', seen: false},
-    {guide: 'react-release', seen: false},
-    {guide: 'release-details_v2', seen: false},
-    {guide: 'performance', seen: false},
-    {guide: 'transaction_summary', seen: false},
-    {guide: 'transaction_details_v2', seen: false},
-    {guide: 'issue_stream_v3', seen: false},
-  ];
+  return [{guide: 'sidebar_v2', seen: false}];
 }
 
 export function getDemoModeGuides(): GuidesContent {
@@ -117,139 +111,6 @@ export function getDemoModeGuides(): GuidesContent {
             `Query and unlock insights into the health of your entire system and get answers to critical business questions all in one place.`
           ),
           nextText: t('Got it'),
-        },
-      ],
-    },
-    {
-      guide: 'issue_stream_v3',
-      requiredTargets: ['issue_stream'],
-      steps: [
-        {
-          title: t('Issues'),
-          target: 'issue_stream',
-          description: t(
-            `Sentry automatically groups similar events together into an issue. Similarity is
-            determined by stack trace and other factors. Click on an issue to learn more.`
-          ),
-        },
-      ],
-    },
-    {
-      guide: 'issues_v3',
-      requiredTargets: ['tags'],
-      steps: [
-        {
-          title: t('Metadata and metrics'),
-          target: 'tags',
-          description: t(
-            `See tags like specific users affected by the event, device, OS, and browser type.
-            On the right side of the page you can view the number of affected users and exception frequency overtime.`
-          ),
-        },
-        {
-          title: t('Find your broken code'),
-          target: 'stacktrace',
-          description: t(
-            `View the stack trace to see the exact sequence of function calls leading to the error in question.`
-          ),
-        },
-        {
-          title: t('Retrace your steps'),
-          target: 'breadcrumbs',
-          description: t(
-            `Sentry automatically captures breadcrumbs for events so you can see the sequence of events leading up to the error.`
-          ),
-          nextText: t('Got it'),
-        },
-      ],
-    },
-    {
-      guide: 'releases_v2',
-      requiredTargets: ['release_projects'],
-      priority: 1,
-      steps: [
-        {
-          title: t('Compare releases'),
-          target: 'release_projects',
-          description: t(
-            `Click here and select the "react" project to see how the release is trending compared to previous releases.`
-          ),
-        },
-      ],
-    },
-    {
-      guide: 'react-release',
-      requiredTargets: ['release_version'],
-      steps: [
-        {
-          title: t('Release-specific trends'),
-          target: 'release_version',
-          description: t(
-            `Select the latest release to review new and regressed issues, and business critical metrics like crash rate, and user adoption.`
-          ),
-        },
-      ],
-    },
-    {
-      guide: 'release-details_v2',
-      requiredTargets: ['release_states'],
-      steps: [
-        {
-          title: t('New and regressed issues'),
-          target: 'release_states',
-          description: t(
-            `Along with reviewing how your release is trending over time compared to previous releases, you can view new and regressed issues here.`
-          ),
-        },
-      ],
-    },
-    {
-      guide: 'performance',
-      requiredTargets: ['performance_table'],
-      steps: [
-        {
-          title: t('See slow transactions'),
-          target: 'performance_table',
-          description: t(
-            `Trace slow-loading pages back to their API calls, as well as, related errors and users impacted across projects. Select a transaction to see more details.`
-          ),
-          hasNextGuide: true,
-        },
-      ],
-    },
-    {
-      guide: 'transaction_summary',
-      requiredTargets: ['user_misery', 'transactions_table'],
-      steps: [
-        {
-          title: t('Identify the root cause'),
-          target: 'user_misery',
-          description: t(
-            'Dive into the details behind a slow transaction. See User Misery, Apdex, and more metrics, along with related events and suspect spans.'
-          ),
-        },
-        {
-          title: t('Breakdown event spans'),
-          target: 'transactions_table',
-          description: t(
-            'Select an Event ID from a list of slow transactions to uncover slow spans.'
-          ),
-          nextText: t('Got it'),
-          hasNextGuide: true,
-        },
-      ],
-    },
-    {
-      guide: 'transaction_details_v2',
-      requiredTargets: ['span_tree'],
-      steps: [
-        {
-          title: t('See slow fast'),
-          target: 'span_tree',
-          description: t(
-            `Expand the spans to see span details from start date, end date to the operation. Below you can view breadcrumbs for a play-by-play of what your users
-            did before encountering the performance issue.`
-          ),
         },
       ],
     },

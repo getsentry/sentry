@@ -10,7 +10,7 @@ from sentry.testutils.helpers.features import with_feature
 class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-group-search-view-starred-order"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.user_2 = self.create_user()
@@ -27,7 +27,7 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
                 user_id=self.user.id,
                 query=f"is:unresolved query:{i}",
                 query_sort="date",
-                visibility=GroupSearchViewVisibility.OWNER,
+                visibility=GroupSearchViewVisibility.ORGANIZATION,
             )
             self.views.append(view)
 
@@ -37,7 +37,7 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
             user_id=self.user.id,
             query="is:unresolved non_starred",
             query_sort="date",
-            visibility=GroupSearchViewVisibility.OWNER,
+            visibility=GroupSearchViewVisibility.ORGANIZATION,
         )
 
         self.user_2_view = GroupSearchView.objects.create(
@@ -46,7 +46,7 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
             user_id=self.user_2.id,
             query="is:unresolved user_2",
             query_sort="date",
-            visibility=GroupSearchViewVisibility.OWNER,
+            visibility=GroupSearchViewVisibility.ORGANIZATION,
         )
 
         self.shared_view = GroupSearchView.objects.create(
@@ -58,7 +58,7 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
             visibility=GroupSearchViewVisibility.ORGANIZATION,
         )
 
-    def star_views(self, view_ids: list[int]):
+    def star_views(self, view_ids: list[int]) -> None:
         for idx, view_id in enumerate(view_ids):
             GroupSearchViewStarred.objects.create(
                 organization=self.organization,
@@ -67,8 +67,8 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
                 position=idx,
             )
 
-    @with_feature("organizations:issue-view-sharing")
-    def test_simple_reordering(self):
+    @with_feature("organizations:issue-stream-custom-views")
+    def test_simple_reordering(self) -> None:
         self.star_views([self.views[0].id, self.views[1].id, self.views[2].id])
 
         new_order = [self.views[2].id, self.views[0].id, self.views[1].id]
@@ -91,8 +91,8 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
         assert starred_views[2].group_search_view_id == self.views[1].id
         assert starred_views[2].position == 2
 
-    @with_feature("organizations:issue-view-sharing")
-    def test_same_order_reordering(self):
+    @with_feature("organizations:issue-stream-custom-views")
+    def test_same_order_reordering(self) -> None:
         original_order = [self.views[0].id, self.views[1].id, self.views[2].id]
 
         self.star_views(original_order)
@@ -115,8 +115,8 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
         assert starred_views[2].group_search_view_id == self.views[2].id
         assert starred_views[2].position == 2
 
-    @with_feature("organizations:issue-view-sharing")
-    def reordering_with_shared_views(self):
+    @with_feature("organizations:issue-stream-custom-views")
+    def reordering_with_shared_views(self) -> None:
         self.star_views([self.views[0].id, self.views[1].id, self.views[2].id, self.shared_view.id])
 
         new_order = [self.shared_view.id, self.views[2].id, self.views[0].id, self.views[1].id]
@@ -142,8 +142,8 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
         assert starred_views[3].group_search_view_id == self.views[1].id
         assert starred_views[3].position == 3
 
-    @with_feature("organizations:issue-view-sharing")
-    def test_empty_starred_list(self):
+    @with_feature("organizations:issue-stream-custom-views")
+    def test_empty_starred_list(self) -> None:
         response = self.client.put(self.url, data={"view_ids": []}, format="json")
 
         assert response.status_code == 204
@@ -153,8 +153,8 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
             user_id=self.user.id,
         ).exists()
 
-    @with_feature("organizations:issue-view-sharing")
-    def test_error_on_fewer_views_than_starred_views(self):
+    @with_feature("organizations:issue-stream-custom-views")
+    def test_error_on_fewer_views_than_starred_views(self) -> None:
         self.star_views([self.views[0].id, self.views[1].id, self.views[2].id])
 
         response = self.client.put(
@@ -163,8 +163,8 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
 
         assert response.status_code == 400
 
-    @with_feature("organizations:issue-view-sharing")
-    def test_error_on_more_views_than_starred_views(self):
+    @with_feature("organizations:issue-stream-custom-views")
+    def test_error_on_more_views_than_starred_views(self) -> None:
         self.star_views([self.views[0].id, self.views[1].id])
 
         response = self.client.put(
@@ -175,8 +175,8 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
 
         assert response.status_code == 400
 
-    @with_feature("organizations:issue-view-sharing")
-    def test_error_on_duplicate_view_ids(self):
+    @with_feature("organizations:issue-stream-custom-views")
+    def test_error_on_duplicate_view_ids(self) -> None:
         view_ids = [self.views[0].id, self.views[1].id, self.views[1].id]
 
         response = self.client.put(self.url, data={"view_ids": view_ids}, format="json")
@@ -188,24 +188,11 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
             ]
         }
 
-    @with_feature("organizations:issue-view-sharing")
-    def test_error_on_inaccessible_views(self):
-        view_ids = [self.views[0].id, self.user_2_view.id]
-
-        response = self.client.put(self.url, data={"view_ids": view_ids}, format="json")
-
-        assert response.status_code == 400
-        assert response.data == {
-            "view_ids": [
-                ErrorDetail(string="You do not have access to one or more views", code="invalid")
-            ]
-        }
-
 
 class OrganizationGroupSearchViewStarredOrderTransactionTest(TransactionTestCase):
     endpoint = "sentry-api-0-organization-group-search-view-starred-order"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -221,8 +208,8 @@ class OrganizationGroupSearchViewStarredOrderTransactionTest(TransactionTestCase
             query_sort="date",
         )
 
-    @with_feature("organizations:issue-view-sharing")
-    def test_nonexistent_view_id(self):
+    @with_feature("organizations:issue-stream-custom-views")
+    def test_nonexistent_view_id(self) -> None:
         non_existent_id = 373737
         view_ids = [self.view.id, non_existent_id]
 

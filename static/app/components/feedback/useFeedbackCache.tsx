@@ -9,7 +9,7 @@ import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 
 type TFeedbackIds = 'all' | string[];
 
-export type ListCache = {
+type ListCache = {
   pageParams: unknown[];
   pages: Array<ApiResult<FeedbackIssueListItem[]>>;
 };

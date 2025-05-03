@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useState} from 'react';
 
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
@@ -66,4 +67,10 @@ function OrganizationFeatureFlagsNewSecet() {
   );
 }
 
-export default OrganizationFeatureFlagsNewSecet;
+export default function OrganizationFeatureFlagsNewSecretRoute() {
+  return (
+    <AnalyticsArea name="feature_flag_org_settings">
+      <OrganizationFeatureFlagsNewSecet />
+    </AnalyticsArea>
+  );
+}

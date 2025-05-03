@@ -13,7 +13,7 @@ export function makeReplaysPathname({
   path: '/' | `/${string}/`;
 }) {
   return normalizeUrl(
-    prefersStackedNav()
+    prefersStackedNav(organization)
       ? `/organizations/${organization.slug}/${REPLAYS_BASE_PATHNAME}${path}`
       : `/organizations/${organization.slug}/${LEGACY_REPLAYS_BASE_PATHNAME}${path}`
   );

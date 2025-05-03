@@ -35,6 +35,7 @@ from sentry.eventstore.models import Event
 from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import (
     create_alert_rule,
     create_alert_rule_trigger,
@@ -92,6 +93,7 @@ from sentry.models.files.file import File
 from sentry.models.group import Group
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
@@ -154,11 +156,11 @@ from sentry.types.token import AuthTokenType
 from sentry.uptime.models import (
     IntervalSecondsLiteral,
     ProjectUptimeSubscription,
-    ProjectUptimeSubscriptionMode,
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
 )
+from sentry.uptime.types import ProjectUptimeSubscriptionMode
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.users.models.user import User
 from sentry.users.models.user_avatar import UserAvatar
@@ -182,6 +184,7 @@ from sentry.workflow_engine.models import (
     Detector,
     DetectorState,
     DetectorWorkflow,
+    IncidentGroupOpenPeriod,
     Workflow,
     WorkflowDataConditionGroup,
 )
@@ -319,6 +322,10 @@ DEFAULT_EVENT_DATA = {
     },
     "tags": [],
     "platform": "python",
+}
+
+default_detector_config_data = {
+    MetricIssue.slug: {"threshold_period": 1, "detection_type": "static"}
 }
 
 
@@ -563,6 +570,7 @@ class Factories:
         name="Test Alert",
         action_match="all",
         filter_match="all",
+        frequency=30,
         **kwargs,
     ):
         actions = None
@@ -593,6 +601,7 @@ class Factories:
             "conditions": condition_data,
             "action_match": action_match,
             "filter_match": filter_match,
+            "frequency": frequency,
         }
         if actions:
             data["actions"] = actions
@@ -1049,8 +1058,10 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_group(project, **kwargs):
+    def create_group(project, create_open_period=True, **kwargs):
         from sentry.models.group import GroupStatus
+        from sentry.models.groupopenperiod import GroupOpenPeriod
+        from sentry.testutils.helpers.datetime import before_now
         from sentry.types.group import GroupSubStatus
 
         kwargs.setdefault("message", "Hello world")
@@ -1066,7 +1077,19 @@ class Factories:
             kwargs["status"] = GroupStatus.UNRESOLVED
             kwargs["substatus"] = GroupSubStatus.NEW
 
-        return Group.objects.create(project=project, **kwargs)
+        group = Group.objects.create(project=project, **kwargs)
+        if create_open_period:
+            open_period = GroupOpenPeriod.objects.create(
+                group=group,
+                project=project,
+                date_started=group.first_seen or before_now(minutes=5),
+            )
+            if group.status == GroupStatus.RESOLVED:
+                open_period.update(
+                    date_ended=group.resolved_at if group.resolved_at else timezone.now()
+                )
+
+        return group
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -1368,7 +1391,13 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_service_hook(actor=None, org=None, project=None, events=None, url=None, **kwargs):
+    def create_service_hook(
+        actor=None, org=None, project=None, events=None, url=None, project_ids=None, **kwargs
+    ):
+        if project:
+            if project_ids is not None:
+                raise ValueError("Cannot provide both project and project_ids")
+            project_ids = [project.id]
         if not actor:
             actor = Factories.create_user()
         if not org:
@@ -1376,8 +1405,8 @@ class Factories:
                 org = project.organization
             else:
                 org = Factories.create_organization(owner=actor)
-        if not project:
-            project = Factories.create_project(organization=org)
+        if project_ids is None:  # empty list for project_ids is valid and means no project filter
+            project_ids = [Factories.create_project(organization=org).id]
         if events is None:
             events = ["event.created"]
         if not url:
@@ -1394,7 +1423,7 @@ class Factories:
             actor_id=actor.id,
             installation_id=installation_id,
             organization_id=org.id,
-            project_ids=[project.id],
+            project_ids=project_ids,
             events=events,
             url=url,
         ).id
@@ -1982,6 +2011,8 @@ class Factories:
         headers,
         body,
         date_updated: datetime,
+        uptime_status: UptimeStatus,
+        uptime_status_update_date: datetime,
         trace_sampling: bool = False,
     ):
         if url is None:
@@ -2004,6 +2035,8 @@ class Factories:
             headers=headers,
             body=body,
             trace_sampling=trace_sampling,
+            uptime_status=uptime_status,
+            uptime_status_update_date=uptime_status_update_date,
         )
 
     @staticmethod
@@ -2015,8 +2048,6 @@ class Factories:
         mode: ProjectUptimeSubscriptionMode,
         name: str | None,
         owner: Actor | None,
-        uptime_status: UptimeStatus,
-        uptime_status_update_date: datetime,
         id: int | None,
     ):
         if name is None:
@@ -2038,8 +2069,6 @@ class Factories:
             name=name,
             owner_team_id=owner_team_id,
             owner_user_id=owner_user_id,
-            uptime_status=uptime_status,
-            uptime_status_update_date=uptime_status_update_date,
             pk=id,
         )
 
@@ -2181,7 +2210,7 @@ class Factories:
         if name is None:
             name = petname.generate(2, " ", letters=10).title()
         if config is None:
-            config = {}
+            config = default_detector_config_data.get(kwargs["type"], {})
 
         return Detector.objects.create(
             name=name,
@@ -2275,6 +2304,17 @@ class Factories:
 
         return AlertRuleWorkflow.objects.create(
             alert_rule_id=alert_rule_id, rule_id=rule_id, workflow=workflow, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_incident_group_open_period(
+        incident: Incident,
+        group_open_period: GroupOpenPeriod,
+        **kwargs,
+    ) -> IncidentGroupOpenPeriod:
+        return IncidentGroupOpenPeriod.objects.create(
+            incident_id=incident.id, group_open_period=group_open_period, **kwargs
         )
 
     @staticmethod

@@ -4,7 +4,7 @@ import logging
 import random
 from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, TypedDict
+from typing import Any
 from uuid import uuid4
 
 import jsonschema
@@ -12,6 +12,7 @@ import jsonschema
 from sentry import features, options
 from sentry.constants import DataCategory
 from sentry.eventstore.models import Event, GroupEvent
+from sentry.feedback.lib.types import UserReportDict
 from sentry.feedback.usecases.spam_detection import is_spam, spam_detection_enabled
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
@@ -100,8 +101,10 @@ def fix_for_issue_platform(event_data: dict[str, Any]) -> dict[str, Any]:
     """
     The issue platform has slightly different requirements than ingest for event schema,
     so we need to massage the data a bit.
+    * event["timestamp"] is converted to a UTC ISO string.
     * event["tags"] is coerced to a dict.
-    * If event["user"]["email"] is missing we try to set using the feedback context.
+    * If user or replay context is missing we try to set it using the feedback context.
+    * level defaults to "info" and environment defaults to "production".
 
     Returns:
         A dict[str, Any] conforming to sentry.issues.json_schemas.EVENT_PAYLOAD_SCHEMA.
@@ -130,27 +133,28 @@ def fix_for_issue_platform(event_data: dict[str, Any]) -> dict[str, Any]:
     ret_event["level"] = event_data.get("level", "info")
 
     ret_event["environment"] = event_data.get("environment", "production")
+    release_value = event_data.get("release")
+    if release_value:
+        ret_event["release"] = release_value
+
     if event_data.get("sdk"):
         ret_event["sdk"] = event_data["sdk"]
     ret_event["request"] = event_data.get("request", {})
 
     ret_event["user"] = event_data.get("user", {})
+    if "name" in ret_event["user"]:
+        del ret_event["user"]["name"]
 
-    if event_data.get("dist") is not None:
-        del event_data["dist"]
-    if event_data.get("user", {}).get("name") is not None:
-        del event_data["user"]["name"]
-    if event_data.get("user", {}).get("isStaff") is not None:
-        del event_data["user"]["isStaff"]
+    if "isStaff" in ret_event["user"]:
+        del ret_event["user"]["isStaff"]
 
-    if event_data.get("user", {}).get("id") is not None:
-        event_data["user"]["id"] = str(event_data["user"]["id"])
+    if "id" in ret_event["user"]:
+        ret_event["user"]["id"] = str(ret_event["user"]["id"])
 
     # If no user email was provided specify the contact-email as the user-email.
     feedback_obj = event_data.get("contexts", {}).get("feedback", {})
-    contact_email = feedback_obj.get("contact_email")
-    if not ret_event["user"].get("email", ""):
-        ret_event["user"]["email"] = contact_email
+    if "email" not in ret_event["user"]:
+        ret_event["user"]["email"] = feedback_obj.get("contact_email", "")
 
     # Force `tags` to be a dict if it's initially a list,
     # since we can't guarantee its type here.
@@ -283,7 +287,15 @@ def should_filter_feedback(
     return False, None
 
 
-def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource):
+def create_feedback_issue(
+    event: dict[str, Any], project_id: int, source: FeedbackCreationSource
+) -> dict[str, Any] | None:
+    """
+    Produces a feedback issue occurrence to kafka for issues processing. Applies filters, spam filters, and event validation.
+
+    Returns the formatted event data that was sent to issue platform.
+    """
+
     metrics.incr(
         "feedback.create_feedback_issue.entered",
         tags={
@@ -306,7 +318,7 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
             category=DataCategory.USER_REPORT_V2,
             quantity=1,
         )
-        return
+        return None
 
     feedback_message = event["contexts"]["feedback"]["message"]
 
@@ -366,6 +378,17 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
     if user_email and "user.email" not in event_fixed["tags"]:
         event_fixed["tags"]["user.email"] = user_email
 
+    # add the associated_event_id and has_linked_error to tags
+    associated_event_id = get_path(event_data, "contexts", "feedback", "associated_event_id")
+    if associated_event_id:
+        event_fixed["tags"]["associated_event_id"] = associated_event_id
+        event_fixed["tags"]["has_linked_error"] = "true"
+    else:
+        event_fixed["tags"]["has_linked_error"] = "false"
+
+    if event_fixed.get("release"):
+        event_fixed["tags"]["release"] = event_fixed["release"]
+
     # make sure event data is valid for issue platform
     validate_issue_platform_event_schema(event_fixed)
 
@@ -409,6 +432,8 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
         quantity=1,
     )
 
+    return event_fixed
+
 
 def auto_ignore_spam_feedbacks(project, issue_fingerprint):
     """
@@ -433,16 +458,8 @@ def auto_ignore_spam_feedbacks(project, issue_fingerprint):
 ###########
 
 
-class UserReportShimDict(TypedDict):
-    name: str
-    email: str
-    comments: str
-    event_id: str
-    level: str
-
-
 def shim_to_feedback(
-    report: UserReportShimDict,
+    report: UserReportDict,
     event: Event | GroupEvent,
     project: Project,
     source: FeedbackCreationSource,
@@ -473,7 +490,7 @@ def shim_to_feedback(
             "contexts": {
                 "feedback": {
                     "name": report.get("name", ""),
-                    "contact_email": report["email"],
+                    "contact_email": report.get("email", ""),
                     "message": report["comments"],
                 },
             },

@@ -12,11 +12,17 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleSensitivity,
     AlertRuleTrigger,
 )
-from sentry.incidents.models.incident import Incident
+from sentry.incidents.models.incident import Incident, IncidentProject
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
-from sentry.workflow_engine.models import AlertRuleDetector, AlertRuleWorkflow
+from sentry.workflow_engine.models import (
+    AlertRuleDetector,
+    AlertRuleWorkflow,
+    IncidentGroupOpenPeriod,
+)
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -33,6 +39,18 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
             projects=[self.project],
             alert_rule=alert_rule,
         )
+        one_minute = before_now(minutes=1).isoformat()
+        event = self.store_event(
+            data={"timestamp": one_minute, "fingerprint": ["group1"]}, project_id=self.project.id
+        )
+        group = event.group
+        assert group
+        group_open_period = GroupOpenPeriod.objects.create(
+            project=self.project, group=group, user_id=self.user.id
+        )
+        IncidentGroupOpenPeriod.objects.create(
+            incident_id=incident.id, group_open_period=group_open_period
+        )
 
         detector = self.create_detector()
         workflow = self.create_workflow()
@@ -48,6 +66,13 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
         assert not AlertRule.objects.filter(id=alert_rule.id).exists()
         assert not AlertRuleTrigger.objects.filter(id=alert_rule_trigger.id).exists()
         assert not Incident.objects.filter(id=incident.id).exists()
+        assert not IncidentProject.objects.filter(incident=incident, project=self.project).exists()
+        assert not IncidentGroupOpenPeriod.objects.filter(
+            incident_id=incident.id, group_open_period=group_open_period
+        ).exists()
+        assert not GroupOpenPeriod.objects.filter(
+            project=self.project, group=group, user_id=self.user.id
+        )
         assert not AlertRuleDetector.objects.filter(alert_rule_id=alert_rule.id).exists()
         assert not AlertRuleWorkflow.objects.filter(alert_rule_id=alert_rule.id).exists()
 
@@ -96,39 +121,3 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
         assert not Incident.objects.filter(id=incident.id).exists()
 
         assert mock_delete_request.call_count == 1
-
-    @patch("sentry.workflow_engine.migration_helpers.alert_rule.dual_delete_migrated_alert_rule")
-    def test_dual_delete(self, mock_dual_delete_call):
-        """
-        Test the that the pre delete signal deleting the ACI objects for a dual written alert rule is called.
-        """
-        organization = self.create_organization()
-        alert_rule = self.create_alert_rule(resolve_threshold=10, organization=organization)
-
-        self.ScheduledDeletion.schedule(instance=alert_rule, days=0)
-
-        with self.tasks():
-            run_scheduled_deletions()
-
-        assert mock_dual_delete_call.call_count == 1
-
-    @patch("sentry.incidents.models.alert_rule.logger")
-    @patch("sentry.workflow_engine.migration_helpers.alert_rule.dual_delete_migrated_alert_rule")
-    def test_dual_delete_error(self, mock_dual_delete_call, mock_logger):
-        """
-        Test that if an error happens in the dual delete helper, it is caught and logged.
-        """
-        mock_dual_delete_call.side_effect = Exception("bad stuff happened")
-        organization = self.create_organization()
-        alert_rule = self.create_alert_rule(resolve_threshold=10, organization=organization)
-
-        self.ScheduledDeletion.schedule(instance=alert_rule, days=0)
-
-        with self.tasks():
-            run_scheduled_deletions()
-
-        assert mock_dual_delete_call.call_count == 1
-        mock_logger.exception.assert_called_with(
-            "Error when dual deleting alert rule",
-            extra={"rule_id": alert_rule.id, "error": "bad stuff happened"},
-        )

@@ -2,7 +2,6 @@ import {useMemo} from 'react';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
-import type {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
 import type {EventTransaction} from 'sentry/types/event';
@@ -17,21 +16,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {TRACE_FORMAT_PREFERENCE_KEY} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
-
-import type {TraceTree} from '../traceModels/traceTree';
-
-export function fetchTrace(
-  api: Client,
-  params: {
-    orgSlug: string;
-    query: string;
-    traceId: string;
-  }
-): Promise<TraceSplitResults<TraceFullDetailed>> {
-  return api.requestPromise(
-    `/organizations/${params.orgSlug}/events-trace/${params.traceId}/?${params.query}`
-  );
-}
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 const DEFAULT_TIMESTAMP_LIMIT = 10_000;
 const DEFAULT_LIMIT = 1_000;

@@ -3,16 +3,15 @@ import {Fragment} from 'react';
 import BadStackTraceExample from 'sentry-images/issue_details/bad-stack-trace-example.png';
 import GoodStackTraceExample from 'sentry-images/issue_details/good-stack-trace-example.png';
 
+import {Flex} from 'sentry/components/container/flex';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import storyBook from 'sentry/stories/storyBook';
+import {space} from 'sentry/styles/space';
 
 import {ContentSliderDiff} from '.';
 
-// eslint-disable-next-line import/no-webpack-loader-syntax
-import types from '!!type-loader!sentry/components/contentSliderDiff';
-
-export default storyBook('ContentSliderDiff', (story, APIReference) => {
-  APIReference(types.ContentSliderDiff);
+export default storyBook('ContentSliderDiff', story => {
   story('Comparing images', function () {
     return (
       <Fragment>
@@ -28,13 +27,23 @@ export default storyBook('ContentSliderDiff', (story, APIReference) => {
         <p>
           An example <JSXNode name="ContentSliderDiff" /> using images looks like this:
         </p>
-        <ContentSliderDiff
-          beforeContent={<img src={BadStackTraceExample} />}
-          afterContent={<img src={GoodStackTraceExample} />}
-          beforeHelp="This is the before image"
-          afterHelp="This is the after image"
-          minHeight="300px"
-        />
+        <div>
+          <ContentSliderDiff.Header>
+            <Flex align="center" gap={space(0.5)}>
+              Before
+              <QuestionTooltip title="This is the before image" size="xs" />
+            </Flex>
+            <Flex align="center" gap={space(0.5)}>
+              After
+              <QuestionTooltip title="This is the after image" size="xs" />
+            </Flex>
+          </ContentSliderDiff.Header>
+          <ContentSliderDiff.Body
+            before={<img src={BadStackTraceExample} />}
+            after={<img src={GoodStackTraceExample} />}
+            minHeight="300px"
+          />
+        </div>
       </Fragment>
     );
   });

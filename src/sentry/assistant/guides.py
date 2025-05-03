@@ -32,4 +32,5 @@ GUIDES = {
     "issue_views_page_filters_persistence": 39,
     "tour.issue_details": 40,
     "tour.stacked_navigation": 41,
+    "tour.explore.spans": 42,
 }

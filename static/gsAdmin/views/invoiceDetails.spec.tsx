@@ -68,16 +68,15 @@ describe('InvoiceDetails', function () {
         },
       });
 
-      render(<InvoiceDetails />, {router});
-
-      expect(
-        await screen.findAllByRole('button', {name: 'Invoices Actions'})
-      ).toHaveLength(2);
+      render(<InvoiceDetails />, {
+        router,
+        deprecatedRouterMocks: true,
+      });
 
       await userEvent.click(
-        screen.getAllByRole('button', {name: 'Invoices Actions'})[0]!
+        await screen.findByRole('button', {name: 'Invoices Actions'})
       );
-      await userEvent.click(screen.getByTestId('action-closeInvoice'));
+      await userEvent.click(screen.getByText('Close Invoice'));
       renderGlobalModal();
 
       await userEvent.click(screen.getByTestId('confirm-button'));
@@ -103,17 +102,16 @@ describe('InvoiceDetails', function () {
         },
       });
 
-      render(<InvoiceDetails />, {router});
-
-      expect(
-        await screen.findAllByRole('button', {name: 'Invoices Actions'})
-      ).toHaveLength(2);
+      render(<InvoiceDetails />, {
+        router,
+        deprecatedRouterMocks: true,
+      });
 
       await userEvent.click(
-        screen.getAllByRole('button', {name: 'Invoices Actions'})[0]!
+        await screen.findByRole('button', {name: 'Invoices Actions'})
       );
 
-      expect(screen.getByTestId('action-closeInvoice')).toHaveAttribute(
+      expect(await screen.findByTestId('closeInvoice')).toHaveAttribute(
         'aria-disabled',
         'true'
       );
@@ -139,17 +137,16 @@ describe('InvoiceDetails', function () {
         },
       });
 
-      render(<InvoiceDetails />, {router});
-
-      expect(
-        await screen.findAllByRole('button', {name: 'Invoices Actions'})
-      ).toHaveLength(2);
+      render(<InvoiceDetails />, {
+        router,
+        deprecatedRouterMocks: true,
+      });
 
       await userEvent.click(
-        screen.getAllByRole('button', {name: 'Invoices Actions'})[0]!
+        await screen.findByRole('button', {name: 'Invoices Actions'})
       );
 
-      expect(screen.getByTestId('action-closeInvoice')).toHaveAttribute(
+      expect(await screen.findByTestId('closeInvoice')).toHaveAttribute(
         'aria-disabled',
         'true'
       );
@@ -183,16 +180,15 @@ describe('InvoiceDetails', function () {
         }),
       });
 
-      render(<InvoiceDetails />, {router});
-
-      expect(
-        await screen.findAllByRole('button', {name: 'Invoices Actions'})
-      ).toHaveLength(2);
+      render(<InvoiceDetails />, {
+        router,
+        deprecatedRouterMocks: true,
+      });
 
       await userEvent.click(
-        screen.getAllByRole('button', {name: 'Invoices Actions'})[0]!
+        await screen.findByRole('button', {name: 'Invoices Actions'})
       );
-      await userEvent.click(screen.getByTestId('action-retryPayment'));
+      await userEvent.click(screen.getByText('Retry Payment'));
       renderGlobalModal();
 
       await userEvent.click(screen.getByTestId('confirm-button'));
@@ -218,17 +214,16 @@ describe('InvoiceDetails', function () {
         },
       });
 
-      render(<InvoiceDetails />, {router});
-
-      expect(
-        await screen.findAllByRole('button', {name: 'Invoices Actions'})
-      ).toHaveLength(2);
+      render(<InvoiceDetails />, {
+        router,
+        deprecatedRouterMocks: true,
+      });
 
       await userEvent.click(
-        screen.getAllByRole('button', {name: 'Invoices Actions'})[0]!
+        await screen.findByRole('button', {name: 'Invoices Actions'})
       );
 
-      expect(screen.getByTestId('action-retryPayment')).toHaveAttribute(
+      expect(await screen.findByTestId('retryPayment')).toHaveAttribute(
         'aria-disabled',
         'true'
       );

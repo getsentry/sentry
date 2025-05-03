@@ -1,3 +1,4 @@
+import datetime
 import hashlib
 import hmac
 import logging
@@ -8,6 +9,7 @@ import orjson
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ObjectDoesNotExist
+from google.protobuf.timestamp_pb2 import Timestamp as ProtobufTimestamp
 from rest_framework.exceptions import (
     AuthenticationFailed,
     NotFound,
@@ -17,6 +19,12 @@ from rest_framework.exceptions import (
 )
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
+    TraceItemAttributeNamesRequest,
+    TraceItemAttributeValuesRequest,
+)
+from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_sdk import Scope, capture_exception
 
 from sentry import options
@@ -24,12 +32,24 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.endpoints.organization_trace_item_attributes import as_attribute_key
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.models.organization import Organization
+from sentry.search.eap.resolver import SearchResolver
+from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
+from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
+from sentry.search.eap.utils import can_expose_attribute
+from sentry.search.events.types import SnubaParams
 from sentry.seer.autofix_tools import get_error_event_details, get_profile_details
-from sentry.seer.fetch_issues.fetch_issues_given_patches import get_issues_related_to_file_patches
+from sentry.seer.fetch_issues.fetch_issues import (
+    get_issues_related_to_file_patches,
+    get_issues_related_to_function_names,
+)
+from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.silo.base import SiloMode
+from sentry.utils import snuba_rpc
+from sentry.utils.dates import parse_stats_period
 from sentry.utils.env import in_test_environment
 
 logger = logging.getLogger(__name__)
@@ -160,19 +180,130 @@ def get_organization_slug(*, org_id: int) -> dict:
 
 def get_organization_autofix_consent(*, org_id: int) -> dict:
     org: Organization = Organization.objects.get(id=org_id)
-    consent = org.get_option("sentry:gen_ai_consent_v2024_11_14", False)
+    seer_org_acknowledgement = get_seer_org_acknowledgement(org_id=org.id)
     github_extension_enabled = org_id in options.get("github-extension.enabled-orgs")
     return {
-        "consent": consent or github_extension_enabled,
+        "consent": seer_org_acknowledgement or github_extension_enabled,
     }
+
+
+def get_attribute_names(*, org_id: int, project_ids: list[int], stats_period: str) -> dict:
+    field_types = [
+        AttributeKey.Type.TYPE_STRING,
+        AttributeKey.Type.TYPE_DOUBLE,
+    ]
+
+    period = parse_stats_period(stats_period)
+    if period is None:
+        period = datetime.timedelta(days=7)
+
+    end = datetime.datetime.now()
+    start = end - period
+
+    start_time_proto = ProtobufTimestamp()
+    start_time_proto.FromDatetime(start)
+    end_time_proto = ProtobufTimestamp()
+    end_time_proto.FromDatetime(end)
+
+    fields = []
+
+    for attr_type in field_types:
+        req = TraceItemAttributeNamesRequest(
+            meta=RequestMeta(
+                organization_id=org_id,
+                cogs_category="events_analytics_platform",
+                referrer="seer-rpc",
+                project_ids=project_ids,
+                start_timestamp=start_time_proto,
+                end_timestamp=end_time_proto,
+                trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+            ),
+            type=attr_type,
+            limit=1000,
+        )
+
+        fields_resp = snuba_rpc.attribute_names_rpc(req)
+
+        parsed_fields = [
+            {
+                "key": as_attribute_key(
+                    attr.name,
+                    "string" if attr_type == AttributeKey.Type.TYPE_STRING else "number",
+                    SupportedTraceItemType.SPANS,
+                )["key"],
+                # "name": attr.name,
+                "type": attr_type,
+            }
+            for attr in fields_resp.attributes
+            if attr.name and can_expose_attribute(attr.name, SupportedTraceItemType.SPANS)
+        ]
+        fields.extend(parsed_fields)
+
+    return {"fields": fields}
+
+
+def get_attribute_values(
+    *,
+    fields: list[dict[str, Any]],
+    org_id: int,
+    project_ids: list[int],
+    stats_period: str,
+    limit: int = 100,
+) -> dict:
+    period = parse_stats_period(stats_period)
+    if period is None:
+        period = datetime.timedelta(days=7)
+
+    end = datetime.datetime.now()
+    start = end - period
+
+    start_time_proto = ProtobufTimestamp()
+    start_time_proto.FromDatetime(start)
+    end_time_proto = ProtobufTimestamp()
+    end_time_proto.FromDatetime(end)
+
+    values = {}
+    resolver = SearchResolver(
+        params=SnubaParams(
+            start=start,
+            end=end,
+        ),
+        config=SearchResolverConfig(),
+        definitions=SPAN_DEFINITIONS,
+    )
+
+    for field in fields:
+        resolved_column, _ = resolver.resolve_attribute(field["key"])
+
+        req = TraceItemAttributeValuesRequest(
+            meta=RequestMeta(
+                organization_id=org_id,
+                cogs_category="events_analytics_platform",
+                referrer="seer_rpc",
+                project_ids=project_ids,
+                start_timestamp=start_time_proto,
+                end_timestamp=end_time_proto,
+                trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+            ),
+            key=resolved_column.proto_definition,
+            limit=limit,
+        )
+
+        values_response = snuba_rpc.attribute_values_rpc(req)
+        values[field["key"]] = [value for value in values_response.values]
+
+    return {"values": values}
 
 
 seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_organization_slug": get_organization_slug,
     "get_organization_autofix_consent": get_organization_autofix_consent,
     "get_issues_related_to_file_patches": get_issues_related_to_file_patches,
+    "get_issues_related_to_function_names": get_issues_related_to_function_names,
     "get_error_event_details": get_error_event_details,
     "get_profile_details": get_profile_details,
+    "get_attribute_names": get_attribute_names,
+    "get_attribute_values": get_attribute_values,
 }
 
 

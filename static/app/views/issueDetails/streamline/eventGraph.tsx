@@ -1,3 +1,4 @@
+import type React from 'react';
 import {
   type CSSProperties,
   useCallback,
@@ -18,7 +19,6 @@ import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -26,16 +26,21 @@ import type {ReactEchartsRef, SeriesDataUnit} from 'sentry/types/echarts';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
+import type {ReleaseMetaBasic} from 'sentry/types/release';
+import type EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
+import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/streamline/eventGraphWidget';
 import useFlagSeries from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useFlagSeries';
 import {useCurrentEventMarklineSeries} from 'sentry/views/issueDetails/streamline/hooks/useEventMarkLineSeries';
 import {
@@ -45,9 +50,11 @@ import {
 import {useReleaseMarkLineSeries} from 'sentry/views/issueDetails/streamline/hooks/useReleaseMarkLineSeries';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
 import {useReleaseBubbles} from 'sentry/views/releases/releaseBubbles/useReleaseBubbles';
+import {makeReleaseDrawerPathname} from 'sentry/views/releases/utils/pathnames';
 
-const enum EventGraphSeries {
+enum EventGraphSeries {
   EVENT = 'event',
   USER = 'user',
 }
@@ -63,6 +70,7 @@ interface EventGraphProps {
    * chart).
    */
   disableZoomNavigation?: boolean;
+  eventView?: EventView;
   ref?: React.Ref<ReactEchartsRef>;
   /**
    * Configures showing releases on the chart as bubbles or lines. This is used
@@ -99,6 +107,7 @@ function createSeriesAndCount(stats: EventsStats) {
 export function EventGraph({
   group,
   event,
+  eventView: eventViewProps,
   disableZoomNavigation = false,
   showReleasesAs,
   showSummary = true,
@@ -107,6 +116,7 @@ export function EventGraph({
 }: EventGraphProps) {
   const theme = useTheme();
   const organization = useOrganization();
+  const navigate = useNavigate();
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
   const location = useLocation();
   const [visibleSeries, setVisibleSeries] = useState<EventGraphSeries>(
@@ -130,7 +140,8 @@ export function EventGraph({
     ref: chartContainerRef,
     onResize,
   });
-  const eventView = useIssueDetailsEventView({group, isSmallContainer});
+  const eventViewHook = useIssueDetailsEventView({group, isSmallContainer});
+  const eventView = eventViewProps || eventViewHook;
 
   const {
     data: groupStats = {},
@@ -254,9 +265,17 @@ export function EventGraph({
     }
   );
 
+  const handleReleaseLineClick = useCallback(
+    (release: ReleaseMetaBasic) => {
+      navigate(makeReleaseDrawerPathname({location, release: release.version}));
+    },
+    [location, navigate]
+  );
+
   const releaseSeries = useReleaseMarkLineSeries({
     group,
     releases: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? [] : releases,
+    onReleaseClick: handleReleaseLineClick,
   });
 
   // Do some manipulation to make sure the release buckets match up to `eventSeries`
@@ -276,19 +295,7 @@ export function EventGraph({
     releaseBubbleXAxis,
     releaseBubbleGrid,
   } = useReleaseBubbles({
-    chartRenderer: ({ref: chartRef}) => {
-      return (
-        <EventGraph
-          ref={chartRef}
-          group={group}
-          event={event}
-          showSummary={false}
-          showReleasesAs="line"
-          disableZoomNavigation
-          {...styleProps}
-        />
-      );
-    },
+    chartId: EVENT_GRAPH_WIDGET_ID,
     alignInMiddle: true,
     legendSelected: legendSelected.Releases,
     desiredBuckets: eventSeries.length,
@@ -306,6 +313,8 @@ export function EventGraph({
       period: eventView.statsPeriod,
     },
   });
+
+  useReleasesDrawer();
 
   const handleConnectRef = useCallback(
     (e: ReactEchartsRef | null) => {
@@ -446,18 +455,22 @@ export function EventGraph({
   if (isLoadingStats || isPendingUniqueUsersCount) {
     return (
       <GraphWrapper {...styleProps}>
-        <SummaryContainer>
-          <GraphButton
-            isActive={visibleSeries === EventGraphSeries.EVENT}
-            disabled
-            label={t('Events')}
-          />
-          <GraphButton
-            isActive={visibleSeries === EventGraphSeries.USER}
-            disabled
-            label={t('Users')}
-          />
-        </SummaryContainer>
+        {showSummary ? (
+          <SummaryContainer>
+            <GraphButton
+              isActive={visibleSeries === EventGraphSeries.EVENT}
+              disabled
+              label={t('Events')}
+            />
+            <GraphButton
+              isActive={visibleSeries === EventGraphSeries.USER}
+              disabled
+              label={t('Users')}
+            />
+          </SummaryContainer>
+        ) : (
+          <div />
+        )}
         <LoadingChartContainer ref={chartContainerRef}>
           <Placeholder height="96px" testId="event-graph-loading" />
         </LoadingChartContainer>
@@ -560,19 +573,22 @@ function GraphButton({
   label,
   count,
   ...props
-}: {isActive: boolean; label: string; count?: string} & Partial<ButtonProps>) {
+}: {
+  isActive: boolean;
+  label: string;
+  count?: string;
+} & Partial<ButtonProps>) {
   return (
-    <Callout
+    <CalloutButton
       isActive={isActive}
       aria-label={`${t('Toggle graph series')} - ${label}`}
       {...props}
     >
-      <InteractionStateLayer hidden={isActive} />
       <Flex column>
         <Label isActive={isActive}>{label}</Label>
         <Count isActive={isActive}>{count ? formatAbbreviatedNumber(count) : '-'}</Count>
       </Flex>
-    </Callout>
+    </CalloutButton>
   );
 }
 
@@ -593,21 +609,27 @@ const SummaryContainer = styled('div')`
   }
 `;
 
-const Callout = styled(Button)<{isActive: boolean}>`
-  cursor: ${p => (p.isActive ? 'initial' : 'pointer')};
-  border: 1px solid ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
-  background: ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
-  padding: ${space(0.5)} ${space(2)};
-  box-shadow: none;
-  height: unset;
-  overflow: hidden;
-  &:disabled {
-    opacity: 1;
-  }
-  &:hover {
+const CalloutButton = withChonk(
+  styled(Button)<{isActive: boolean}>`
+    cursor: ${p => (p.isActive ? 'initial' : 'pointer')};
     border: 1px solid ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
-  }
-`;
+    background: ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
+    padding: ${space(0.5)} ${space(2)};
+    box-shadow: none;
+    height: unset;
+    overflow: hidden;
+    &:disabled {
+      opacity: 1;
+    }
+    &:hover {
+      border: 1px solid ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
+    }
+  `,
+  styled(Button)<never>`
+    height: unset;
+    padding: ${space(0.5)} ${space(1.5)};
+  `
+);
 
 const Label = styled('div')<{isActive: boolean}>`
   line-height: 1;

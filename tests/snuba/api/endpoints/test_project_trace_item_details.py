@@ -105,7 +105,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
                 "value": str(timestamp_nanos),
             },
             {"name": "message", "type": "str", "value": "foo"},
-            {"name": "severity_text", "type": "str", "value": "INFO"},
+            {"name": "severity", "type": "str", "value": "INFO"},
             {"name": "str_attr", "type": "str", "value": "1"},
             {"name": "trace", "type": "str", "value": self.trace_uuid},
         ]
@@ -186,7 +186,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
                     "value": str(timestamp_nanos),
                 },
                 {"name": "message", "type": "str", "value": "foo"},
-                {"name": "severity_text", "type": "str", "value": "INFO"},
+                {"name": "severity", "type": "str", "value": "INFO"},
                 {"name": "str_attr", "type": "str", "value": "1"},
                 {"name": "trace", "type": "str", "value": self.trace_uuid},
             ],
@@ -197,6 +197,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
     def test_simple_using_spans_item_type(self):
         span_1 = self.create_span(
             {"description": "foo", "sentry_tags": {"status": "success"}},
+            measurements={"code.lineno": {"value": 420}},
             start_ts=self.one_min_ago,
         )
         span_1["trace_id"] = self.trace_uuid
@@ -208,6 +209,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
         assert trace_details_response.status_code == 200, trace_details_response.content
         assert trace_details_response.data["attributes"] == [
             {"name": "is_segment", "type": "bool", "value": False},
+            {"name": "code.lineno", "type": "float", "value": 420.0},
             {"name": "is_transaction", "type": "float", "value": 0.0},
             {
                 "name": "received",
@@ -232,6 +234,8 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
             {"name": "parent_span", "type": "str", "value": span_1["parent_span_id"]},
             {"name": "profile.id", "type": "str", "value": span_1["profile_id"]},
             {"name": "raw_description", "type": "str", "value": "foo"},
+            {"name": "sdk.name", "type": "str", "value": "sentry.test.sdk"},
+            {"name": "sdk.version", "type": "str", "value": "1.0"},
             {"name": "span.status", "type": "str", "value": "success"},
             {"name": "trace", "type": "str", "value": self.trace_uuid},
             {"name": "transaction.span_id", "type": "str", "value": span_1["segment_id"]},

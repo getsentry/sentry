@@ -8,8 +8,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import type {ModuleName} from '../../types';
+import type {ModuleName} from 'sentry/views/insights/types';
 
 interface UseSamplesDrawerProps {
   Component: React.ReactNode;
@@ -25,7 +24,7 @@ export function useSamplesDrawer({
   onClose = undefined,
 }: UseSamplesDrawerProps): void {
   const organization = useOrganization();
-  const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
+  const {openDrawer, isDrawerOpen} = useDrawer();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -96,14 +95,11 @@ export function useSamplesDrawer({
   const shouldDrawerOpen = requiredParams.every(paramName =>
     Boolean(location.query[paramName])
   );
-
   useEffect(() => {
     if (shouldDrawerOpen) {
       openSamplesDrawer();
-    } else {
-      closeDrawer();
     }
-  }, [shouldDrawerOpen, openSamplesDrawer, closeDrawer]);
+  }, [shouldDrawerOpen, openSamplesDrawer]);
 }
 
 const FullHeightWrapper = styled('div')`

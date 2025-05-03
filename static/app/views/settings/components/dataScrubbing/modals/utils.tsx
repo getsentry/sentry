@@ -1,6 +1,6 @@
-import type {EventId} from '../types';
-import {EventIdStatus} from '../types';
-import {valueSuggestions} from '../utils';
+import type {EventId} from 'sentry/views/settings/components/dataScrubbing/types';
+import {EventIdStatus} from 'sentry/views/settings/components/dataScrubbing/types';
+import {valueSuggestions} from 'sentry/views/settings/components/dataScrubbing/utils';
 
 import {fetchFromStorage, saveToStorage} from './localStorage';
 

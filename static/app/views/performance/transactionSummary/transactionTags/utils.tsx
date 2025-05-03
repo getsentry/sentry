@@ -6,7 +6,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
-export function generateTagsRoute({
+function generateTagsRoute({
   organization,
   view,
 }: {
@@ -59,10 +59,10 @@ export function tagsRouteWithQuery({
 
 export function getTagSortForTagsPage(location: Location) {
   // Retrieves the tag from the same query param segment explorer uses, but removes columns that aren't supported.
-  let tagSort = decodeScalar(location.query?.tagSort) ?? '-frequency';
+  const tagSort = decodeScalar(location.query?.tagSort) ?? '-frequency';
 
-  if (['sumdelta'].find(denied => tagSort?.includes(denied))) {
-    tagSort = '-frequency';
+  if (tagSort.includes('sumdelta')) {
+    return '-frequency';
   }
 
   return tagSort;

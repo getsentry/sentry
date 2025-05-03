@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/core/alert';
 import {Button, LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import NotFound from 'sentry/components/errors/notFound';
 import EventCustomPerformanceMetrics, {
   EventDetailPageSource,
@@ -22,7 +23,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TagsTable} from 'sentry/components/tagsTable';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, EventTag, EventTransaction} from 'sentry/types/event';
@@ -45,12 +45,11 @@ import {appendTagCondition, decodeScalar} from 'sentry/utils/queryString';
 import type {WithRouteAnalyticsProps} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withRouteAnalytics from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
+import TraceDetailsRouting from 'sentry/views/performance/traceDetails/TraceDetailsRouting';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
-
-import TraceDetailsRouting from '../traceDetails/TraceDetailsRouting';
-import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
-import {getSelectedProjectPlatforms} from '../utils';
 
 import EventMetas from './eventMetas';
 import FinishSetupAlert from './finishSetupAlert';

@@ -7,11 +7,13 @@ import {t} from 'sentry/locale';
 import type {Hooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useNavContext} from 'sentry/views/nav/context';
 import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import {
   SidebarButton,
   SidebarItemUnreadIndicator,
 } from 'sentry/views/nav/primary/components';
+import {NavLayout} from 'sentry/views/nav/types';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import TrialStartedSidebarItem from 'getsentry/components/trialStartedSidebarItem';
@@ -45,6 +47,7 @@ function TryBusinessNavigationItem({
 
   const isNew = !subscription.isTrial && subscription.canTrial;
   const showIsNew = isNew && !tryBusinessSeen;
+  const {layout} = useNavContext();
 
   return (
     <StackedNavTrialStartedSidebarItem {...{organization, subscription}}>
@@ -57,7 +60,9 @@ function TryBusinessNavigationItem({
         analyticsKey="try-business"
       >
         <IconBusiness size="md" />
-        {showIsNew && <SidebarItemUnreadIndicator />}
+        {showIsNew && (
+          <SidebarItemUnreadIndicator isMobile={layout === NavLayout.MOBILE} />
+        )}
       </SidebarButton>
     </StackedNavTrialStartedSidebarItem>
   );
@@ -123,7 +128,7 @@ class TryBusinessSidebarItem extends Component<Props> {
       return null;
     }
 
-    if (prefersStackedNav()) {
+    if (prefersStackedNav(organization)) {
       return (
         <TryBusinessNavigationItem
           organization={organization}

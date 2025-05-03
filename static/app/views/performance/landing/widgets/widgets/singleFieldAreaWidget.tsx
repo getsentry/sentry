@@ -14,13 +14,22 @@ import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnh
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import DurationChart from 'sentry/views/performance/charts/chart';
-
-import {GenericPerformanceWidget} from '../components/performanceWidget';
-import {transformDiscoverToSingleValue} from '../transforms/transformDiscoverToSingleValue';
-import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
-import type {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
-import {eventsRequestQueryProps, getMEPQueryParams, QUERY_LIMIT_PARAM} from '../utils';
+import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
+import {transformDiscoverToSingleValue} from 'sentry/views/performance/landing/widgets/transforms/transformDiscoverToSingleValue';
+import {transformEventsRequestToArea} from 'sentry/views/performance/landing/widgets/transforms/transformEventsToArea';
+import type {
+  PerformanceWidgetProps,
+  QueryDefinition,
+  WidgetDataResult,
+} from 'sentry/views/performance/landing/widgets/types';
+import {
+  eventsRequestQueryProps,
+  getMEPQueryParams,
+  QUERY_LIMIT_PARAM,
+} from 'sentry/views/performance/landing/widgets/utils';
+import {EAP_QUERY_PARAMS} from 'sentry/views/performance/landing/widgets/widgets/settings';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
@@ -33,6 +42,14 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
   const globalSelection = props.eventView.getPageFilters();
   const {setPageError} = usePageAlert();
   const mepSetting = useMEPSettingContext();
+  const useEap = useInsightsEap();
+
+  const queryExtras = useEap
+    ? {
+        ...getMEPQueryParams(mepSetting),
+        ...EAP_QUERY_PARAMS,
+      }
+    : getMEPQueryParams(mepSetting);
 
   if (props.fields.length !== 1) {
     throw new Error(`Single field area can only accept a single field (${props.fields})`);
@@ -66,7 +83,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
               )}
               hideError
               onError={setPageError}
-              queryExtras={getMEPQueryParams(mepSetting)}
+              queryExtras={queryExtras}
             />
           )}
         </QueryBatchNode>
@@ -95,7 +112,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
                 queryBatching={queryBatching}
                 eventView={eventView}
                 location={location}
-                queryExtras={getMEPQueryParams(mepSetting)}
+                queryExtras={queryExtras}
               />
             )}
           </QueryBatchNode>
@@ -177,7 +194,7 @@ export const Subtitle = styled('span')`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-export const HighlightNumber = styled('div')<{color?: string}>`
+const HighlightNumber = styled('div')<{color?: string}>`
   color: ${p => p.color};
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;

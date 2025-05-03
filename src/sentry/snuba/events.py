@@ -632,6 +632,14 @@ class Columns(Enum):
         issue_platform_name="transaction_duration",
         alias="transaction.duration",
     )
+    # span.duration is here to help migrate the frontend to EAP
+    SPAN_DURATION = Column(
+        group_name=None,
+        event_name=None,
+        transaction_name="duration",
+        discover_name="duration",
+        alias="span.duration",
+    )
     TRANSACTION_STATUS = Column(
         group_name=None,
         event_name=None,
@@ -811,4 +819,38 @@ class Columns(Enum):
         discover_name=None,
         issue_platform_name=None,
         alias="num_processing_errors",
+    )
+
+    SYMBOLICATED_IN_APP = Column(
+        group_name="events.symbolicated_in_app",
+        event_name="symbolicated_in_app",
+        transaction_name=None,
+        discover_name="symbolicated_in_app",
+        issue_platform_name=None,
+        alias="symbolicated_in_app",
+    )
+
+    OTA_UPDATES_CHANNEL = Column(
+        group_name="events.contexts[ota_updates.channel]",
+        event_name="contexts[ota_updates.channel]",
+        transaction_name="contexts[ota_updates.channel]",
+        discover_name="contexts[ota_updates.channel]",
+        issue_platform_name="contexts[ota_updates.channel]",
+        alias="ota_updates.channel",
+    )
+
+    OTA_UPDATES_RUNTIME_VERSION = Column(
+        group_name="events.contexts[ota_updates.runtime_version]",
+        event_name="contexts[ota_updates.runtime_version]",
+        transaction_name="contexts[ota_updates.runtime_version]",
+        discover_name="contexts[ota_updates.runtime_version]",
+        alias="ota_updates.runtime_version",
+    )
+
+    OTA_UPDATES_UPDATE_ID = Column(
+        group_name="events.contexts[ota_updates.update_id]",
+        event_name="contexts[ota_updates.update_id]",
+        transaction_name="contexts[ota_updates.update_id]",
+        discover_name="contexts[ota_updates.update_id]",
+        alias="ota_updates.update_id",
     )

@@ -85,24 +85,35 @@ class Task(Generic[P, R]):
 
     def apply_async(
         self,
-        args: Any = None,
-        kwargs: Any = None,
+        args: Any | None = None,
+        kwargs: Any | None = None,
         headers: Mapping[str, Any] | None = None,
         expires: int | datetime.timedelta | None = None,
+        countdown: int | datetime.timedelta | None = None,
         **options: Any,
     ) -> None:
         """
         Schedule a task to run later with a set of arguments.
 
         The provided parameters will be JSON encoded and stored within
-        a `TaskActivation` protobuf that is appended to kafka
+        a `TaskActivation` protobuf that is appended to kafka.
         """
-        if settings.TASK_WORKER_ALWAYS_EAGER:
+        if args is None:
+            args = []
+        if kwargs is None:
+            kwargs = {}
+
+        # Generate an activation even if we're in immediate mode to
+        # catch serialization errors in tests.
+        activation = self.create_activation(
+            args=args, kwargs=kwargs, headers=headers, expires=expires, countdown=countdown
+        )
+        if settings.TASKWORKER_ALWAYS_EAGER:
             self._func(*args, **kwargs)
         else:
             # TODO(taskworker) promote parameters to headers
             self._namespace.send_task(
-                self.create_activation(args=args, kwargs=kwargs, headers=headers, expires=expires),
+                activation,
                 wait_for_delivery=self.wait_for_delivery,
             )
 
@@ -112,6 +123,7 @@ class Task(Generic[P, R]):
         kwargs: Mapping[Any, Any],
         headers: Mapping[str, Any] | None = None,
         expires: int | datetime.timedelta | None = None,
+        countdown: int | datetime.timedelta | None = None,
     ) -> TaskActivation:
         received_at = Timestamp()
         received_at.FromDatetime(timezone.now())
@@ -125,6 +137,9 @@ class Task(Generic[P, R]):
         if isinstance(expires, datetime.timedelta):
             expires = int(expires.total_seconds())
 
+        if isinstance(countdown, datetime.timedelta):
+            countdown = int(countdown.total_seconds())
+
         if not headers:
             headers = {}
 
@@ -133,6 +148,20 @@ class Task(Generic[P, R]):
             "baggage": sentry_sdk.get_baggage() or "",
             **headers,
         }
+        # Monitor config is patched in by the sentry_sdk
+        # however, taskworkers do not support the nested object,
+        # nor do they use it when creating checkins.
+        if "sentry-monitor-config" in headers:
+            del headers["sentry-monitor-config"]
+
+        for key, value in headers.items():
+            if value is None or isinstance(value, (str, bytes, int, bool, float)):
+                headers[key] = str(value)
+            else:
+                raise ValueError(
+                    "Only scalar header values are supported. "
+                    f"The `{key}` header value is of type {type(value)}"
+                )
 
         return TaskActivation(
             id=uuid4().hex,
@@ -144,6 +173,7 @@ class Task(Generic[P, R]):
             received_at=received_at,
             processing_deadline_duration=processing_deadline,
             expires=expires,
+            delay=countdown,
         )
 
     def _create_retry_state(self) -> RetryState:

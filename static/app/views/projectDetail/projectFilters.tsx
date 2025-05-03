@@ -9,8 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag} from 'sentry/types/group';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
-
-import type {TagValueLoader} from '../issueList/types';
+import type {TagValueLoader} from 'sentry/views/issueList/types';
 
 type Props = {
   onSearch: (q: string) => void;

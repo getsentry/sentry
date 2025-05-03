@@ -27,10 +27,9 @@ import GroupEventDetailsContent from 'sentry/views/issueDetails/groupEventDetail
 import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
 import GroupEventHeader from 'sentry/views/issueDetails/groupEventHeader';
 import GroupSidebar from 'sentry/views/issueDetails/groupSidebar';
+import ReprocessingProgress from 'sentry/views/issueDetails/reprocessingProgress';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
-
-import ReprocessingProgress from '../reprocessingProgress';
 import {
   getEventEnvironment,
   getGroupMostRecentActivity,
@@ -38,7 +37,7 @@ import {
   ReprocessingStatus,
   useEnvironmentsFromUrl,
   useHasStreamlinedUI,
-} from '../utils';
+} from 'sentry/views/issueDetails/utils';
 
 function GroupEventDetails() {
   const navigate = useNavigate();
@@ -93,9 +92,9 @@ function GroupEventDetails() {
       params.eventId &&
       !['latest', 'oldest'].includes(params.eventId)
     ) {
+      const environment = getEventEnvironment(prevEvent);
       const shouldRedirect =
-        environments.length > 0 &&
-        !environments.find(env => env === getEventEnvironment(prevEvent));
+        environments.length > 0 && (!environment || !environments.includes(environment));
 
       if (shouldRedirect) {
         navigate(

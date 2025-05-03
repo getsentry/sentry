@@ -6870,3 +6870,30 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             "count_scores(measurements.score.lcp)": 1,
             "count_scores(measurements.score.total)": 3,
         }
+
+    def test_remapping(self):
+        self.store_event(self.transaction_data, self.project.id)
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction.duration",
+                    "span.duration",
+                ],
+                "query": "has:span.duration",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert len(data) == 1
+
+        assert data[0]["transaction.duration"] == 3000
+        assert data[0]["span.duration"] == 3000
+
+        assert meta["fields"]["span.duration"] == "duration"
+        assert meta["fields"]["transaction.duration"] == "duration"
+        assert meta["units"]["span.duration"] == "millisecond"
+        assert meta["units"]["transaction.duration"] == "millisecond"

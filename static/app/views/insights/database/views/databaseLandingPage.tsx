@@ -14,8 +14,11 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
+import DatabaseLandingDurationChartWidget from 'sentry/views/insights/common/components/widgets/databaseLandingDurationChartWidget';
+import DatabaseLandingThroughputChartWidget from 'sentry/views/insights/common/components/widgets/databaseLandingThroughputChartWidget';
+import {useDatabaseLandingDurationQuery} from 'sentry/views/insights/common/components/widgets/hooks/useDatabaseLandingDurationQuery';
+import {useDatabaseLandingThroughputQuery} from 'sentry/views/insights/common/components/widgets/hooks/useDatabaseLandingThroughputQuery';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
@@ -32,12 +35,6 @@ import {
 } from 'sentry/views/insights/database/settings';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
-
-import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
-import {
-  getDurationChartTitle,
-  getThroughputChartTitle,
-} from '../../common/views/spans/types';
 
 export function DatabaseLandingPage() {
   const organization = useOrganization();
@@ -84,13 +81,6 @@ export function DatabaseLandingPage() {
     });
   };
 
-  const chartFilters = {
-    ...BASE_FILTERS,
-    'span.action': spanAction,
-    'span.domain': spanDomain,
-    'span.system': system,
-  };
-
   const tableFilters = {
     ...BASE_FILTERS,
     'span.action': spanAction,
@@ -121,31 +111,11 @@ export function DatabaseLandingPage() {
     'api.starfish.use-span-list'
   );
 
-  const {
-    isPending: isThroughputDataLoading,
-    data: throughputData,
-    error: throughputError,
-  } = useSpanMetricsSeries(
-    {
-      search: MutableSearch.fromQueryObject(chartFilters),
-      yAxis: ['epm()'],
-      transformAliasToInputFormat: true,
-    },
-    'api.starfish.span-landing-page-metrics-chart'
-  );
+  const {isPending: isThroughputDataLoading, data: throughputData} =
+    useDatabaseLandingThroughputQuery();
 
-  const {
-    isPending: isDurationDataLoading,
-    data: durationData,
-    error: durationError,
-  } = useSpanMetricsSeries(
-    {
-      search: MutableSearch.fromQueryObject(chartFilters),
-      yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
-      transformAliasToInputFormat: true,
-    },
-    'api.starfish.span-landing-page-metrics-chart'
-  );
+  const {isPending: isDurationDataLoading, data: durationData} =
+    useDatabaseLandingDurationQuery();
 
   const isCriticalDataLoading =
     isThroughputDataLoading || isDurationDataLoading || queryListResponse.isPending;
@@ -180,21 +150,11 @@ export function DatabaseLandingPage() {
               </ModuleLayout.Full>
               <ModulesOnboarding moduleName={ModuleName.DB}>
                 <ModuleLayout.Half>
-                  <InsightsLineChartWidget
-                    title={getThroughputChartTitle('db')}
-                    series={[throughputData['epm()']]}
-                    isLoading={isThroughputDataLoading}
-                    error={throughputError}
-                  />
+                  <DatabaseLandingThroughputChartWidget />
                 </ModuleLayout.Half>
 
                 <ModuleLayout.Half>
-                  <InsightsLineChartWidget
-                    title={getDurationChartTitle('db')}
-                    series={[durationData[`${selectedAggregate}(span.self_time)`]]}
-                    isLoading={isDurationDataLoading}
-                    error={durationError}
-                  />
+                  <DatabaseLandingDurationChartWidget />
                 </ModuleLayout.Half>
 
                 <ModuleLayout.Full>

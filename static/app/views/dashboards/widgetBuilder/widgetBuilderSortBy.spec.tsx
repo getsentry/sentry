@@ -20,8 +20,7 @@ import {
 import WidgetBuilder, {
   type WidgetBuilderProps,
 } from 'sentry/views/dashboards/widgetBuilder';
-
-import WidgetLegendSelectionState from '../widgetLegendSelectionState';
+import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 
 const defaultOrgFeatures = [
   'performance-view',
@@ -105,8 +104,9 @@ function renderTestComponent({
       widgetLegendState={widgetLegendState}
     />,
     {
-      router,
+      deprecatedRouterMocks: true,
       organization,
+      router,
     }
   );
 
@@ -241,7 +241,7 @@ describe('WidgetBuilder', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/spans/fields/`,
+      url: `/organizations/org-slug/trace-items/attributes/`,
       body: [],
     });
 
@@ -969,8 +969,8 @@ describe('WidgetBuilder', function () {
       await screen.findByText('Sort by a y-axis');
       await selectEvent.openMenu(screen.getAllByText('count(\u2026)')[1]!);
 
-      // 12 options in the dropdown
-      expect(screen.queryAllByTestId('menu-list-item-label')).toHaveLength(12);
+      // Check the number of options in the dropdown
+      expect(screen.queryAllByTestId('menu-list-item-label')).toHaveLength(13);
 
       // Appears once in the y-axis section, dropdown, and in the sort by field
       expect(await screen.findAllByText('count(\u2026)')).toHaveLength(3);

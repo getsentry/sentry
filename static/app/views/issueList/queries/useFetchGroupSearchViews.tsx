@@ -5,11 +5,23 @@ import type {
   GroupSearchViewCreatedBy,
 } from 'sentry/views/issueList/types';
 
+export type GroupSearchViewBackendSortOption =
+  | 'visited'
+  | '-visited'
+  | 'popularity'
+  | '-popularity'
+  | 'name'
+  | '-name'
+  | 'created'
+  | '-created';
+
 type FetchGroupSearchViewsParameters = {
   orgSlug: string;
   createdBy?: GroupSearchViewCreatedBy;
   cursor?: string;
   limit?: number;
+  query?: string;
+  sort?: GroupSearchViewBackendSortOption[];
 };
 
 export const makeFetchGroupSearchViewsKey = ({
@@ -17,6 +29,8 @@ export const makeFetchGroupSearchViewsKey = ({
   createdBy,
   limit,
   cursor,
+  sort,
+  query,
 }: FetchGroupSearchViewsParameters): ApiQueryKey =>
   [
     `/organizations/${orgSlug}/group-search-views/`,
@@ -25,6 +39,8 @@ export const makeFetchGroupSearchViewsKey = ({
         per_page: limit,
         createdBy,
         cursor,
+        sort,
+        query,
       },
     },
   ] as const;

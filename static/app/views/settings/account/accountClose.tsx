@@ -27,11 +27,6 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 const BYE_URL = '/';
 const leaveRedirect = () => (window.location.href = BYE_URL);
 
-const Important = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
-  font-size: 1.2em;
-`;
-
 function GoodbyeModalContent({Header, Body, Footer}: ModalRenderProps) {
   return (
     <div>
@@ -148,9 +143,7 @@ function AccountClose() {
 
       <Alert.Container>
         <Alert type="error" showIcon>
-          <Important>
-            {t('Closing your account is permanent and cannot be undone')}!
-          </Important>
+          {t('Closing your account is permanent and cannot be undone')}!
         </Alert>
       </Alert.Container>
 
@@ -158,7 +151,7 @@ function AccountClose() {
         <PanelHeader>{t('Delete the following organizations')}</PanelHeader>
         <PanelBody>
           <PanelAlert type="warning">
-            <strong>{t('ORGANIZATIONS WITH CHECKED BOXES WILL BE DELETED!')}</strong>
+            {t('Organizations with checked boxes will be deleted!')}
             <br />
             {t(
               'Ownership will remain with other organization owners if an organization is not deleted.'
