@@ -22,6 +22,7 @@ from rest_framework.response import Response
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesRequest,
     TraceItemAttributeValuesRequest,
+    TraceItemAttributeValuesResponse,
 )
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
@@ -292,7 +293,7 @@ def get_attribute_values(
             values_response = snuba_rpc.attribute_values_rpc(req)
         except Exception:
             logger.warning("Error with fetching attribute %s", field)
-            values_response = []
+            values_response = TraceItemAttributeValuesResponse(values=[])
 
         values[field["key"]] = [value for value in values_response.values]
 
