@@ -357,7 +357,10 @@ describe('AlertRulesList', () => {
       deprecatedRouterMocks: true,
     });
 
-    expect(await screen.findByLabelText('Create Alert')).toBeDisabled();
+    expect(await screen.findByLabelText('Create Alert')).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('searches by name', async () => {
