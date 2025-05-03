@@ -42,11 +42,7 @@ export function useTraceRootEvent({
   const treeIsLoading = tree.type === 'loading';
   const hasOnlyLogs = !!(tree.type === 'empty' && logs && logs.length > 0);
   const enabledBase =
-    !treeIsLoading &&
-    (tree.type === 'trace' || hasOnlyLogs) &&
-    !!rep &&
-    !!rep.event &&
-    !!traceId;
+    !treeIsLoading && (tree.type === 'trace' || hasOnlyLogs) && !!rep?.event && !!traceId;
   const isEAPEnabled =
     (organization.features.includes('trace-spans-format') &&
       storedTraceFormat === 'eap') ||
