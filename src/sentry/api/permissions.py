@@ -169,13 +169,9 @@ class SentryPermission(ScopedPermission):
 
         if self.is_not_2fa_compliant(request, organization):
             logger.info(
-                "access.not-2fa-compliant",
+                "access.not-2fa-compliant.dry-run",
                 extra=extra,
             )
-            if request.user.is_superuser and extract_id_from(organization) != SUPERUSER_ORG_ID:
-                raise SuperuserRequired()
-
-            raise TwoFactorRequired()
 
         if request.auth and request.user and request.user.is_authenticated:
             request.access = access.from_request_org_and_scopes(
@@ -222,6 +218,16 @@ class SentryPermission(ScopedPermission):
                     request=request,
                     after_login_redirect=after_login_redirect,
                 )
+
+            if self.is_not_2fa_compliant(request, organization):
+                logger.info(
+                    "access.not-2fa-compliant",
+                    extra=extra,
+                )
+                if request.user.is_superuser and extract_id_from(organization) != SUPERUSER_ORG_ID:
+                    raise SuperuserRequired()
+
+                raise TwoFactorRequired()
 
             if self.is_member_disabled_from_limit(request, org_context):
                 logger.info(
