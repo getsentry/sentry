@@ -110,7 +110,7 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
                     );
                   }}
                 >
-                  {t('Try New Navigation')} <Badge type="alpha">{t('Alpha')}</Badge>
+                  {t('Try New Navigation')} <Badge type="beta">{t('Beta')}</Badge>
                 </SidebarMenuItem>
               )}
               {organization?.features?.includes('chonk-ui') ? (

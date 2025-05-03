@@ -304,16 +304,13 @@ const PREVIEW_COMPONENTS: Partial<
   [IssueType.PERFORMANCE_CONSECUTIVE_HTTP]: ConsecutiveHTTPSpanEvidence,
   [IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD]: LargeHTTPPayloadSpanEvidence,
   [IssueType.PERFORMANCE_HTTP_OVERHEAD]: HTTPOverheadSpanEvidence,
-  [IssueType.PERFORMANCE_DURATION_REGRESSION]: RegressionEvidence,
   [IssueType.PERFORMANCE_ENDPOINT_REGRESSION]: RegressionEvidence,
   [IssueType.PROFILE_FILE_IO_MAIN_THREAD]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_JSON_DECODE_MAIN_THREAD]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_REGEX_MAIN_THREAD]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_FRAME_DROP]: MainThreadFunctionEvidence,
-  [IssueType.PROFILE_FRAME_DROP_EXPERIMENTAL]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_FUNCTION_REGRESSION]: RegressionEvidence,
-  [IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL]: RegressionEvidence,
 };
 
 export function SpanEvidenceKeyValueList({

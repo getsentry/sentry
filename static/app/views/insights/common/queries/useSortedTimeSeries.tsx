@@ -111,6 +111,9 @@ export const useSortedTimeSeries = <
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
       interval: eventView.interval,
       sampling: samplingMode,
+      // Timeseries requests do not support cursors, overwrite it to undefined so
+      // pagination does not cause extra requests
+      cursor: undefined,
     }),
     options: {
       enabled: enabled && pageFilters.isReady,

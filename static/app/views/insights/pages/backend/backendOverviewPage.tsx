@@ -77,7 +77,7 @@ function BackendOverviewPage() {
     return <LaravelOverviewPage />;
   }
   if (isNextJsPageEnabled) {
-    return <NextJsOverviewPage headerTitle={BACKEND_LANDING_TITLE} />;
+    return <NextJsOverviewPage performanceType="backend" />;
   }
   if (useEap) {
     return <EAPBackendOverviewPage />;
@@ -213,6 +213,7 @@ function EAPBackendOverviewPage() {
         'p50(span.duration)',
         'p95(span.duration)',
         'failure_rate()',
+        'count_unique(user)',
         'time_spent_percentage(span.duration)',
         'sum(span.duration)',
       ],

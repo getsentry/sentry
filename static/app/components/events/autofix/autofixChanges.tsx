@@ -35,6 +35,7 @@ import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type AutofixChangesProps = {
   groupId: string;
@@ -469,6 +470,7 @@ function CreatePRsButton({
   const api = useApi();
   const queryClient = useQueryClient();
   const [hasClicked, setHasClicked] = useState(false);
+  const orgSlug = useOrganization().slug;
 
   // Reset hasClicked state and notify parent when isBusy goes from true to false
   useEffect(() => {
@@ -480,19 +482,22 @@ function CreatePRsButton({
 
   const {mutate: createPr} = useMutation({
     mutationFn: ({change}: {change: AutofixCodebaseChange}) => {
-      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
-        method: 'POST',
-        data: {
-          run_id: runId,
-          payload: {
-            type: 'create_pr',
-            repo_external_id: change.repo_external_id,
+      return api.requestPromise(
+        `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
+        {
+          method: 'POST',
+          data: {
+            run_id: runId,
+            payload: {
+              type: 'create_pr',
+              repo_external_id: change.repo_external_id,
+            },
           },
-        },
-      });
+        }
+      );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
       setHasClicked(true);
     },
     onError: () => {
@@ -543,6 +548,7 @@ function CreateBranchButton({
   const api = useApi();
   const queryClient = useQueryClient();
   const [hasClicked, setHasClicked] = useState(false);
+  const orgSlug = useOrganization().slug;
 
   // Reset hasClicked state and notify parent when isBusy goes from true to false
   useEffect(() => {
@@ -554,19 +560,22 @@ function CreateBranchButton({
 
   const {mutate: createBranch} = useMutation({
     mutationFn: ({change}: {change: AutofixCodebaseChange}) => {
-      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
-        method: 'POST',
-        data: {
-          run_id: runId,
-          payload: {
-            type: 'create_branch',
-            repo_external_id: change.repo_external_id,
+      return api.requestPromise(
+        `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
+        {
+          method: 'POST',
+          data: {
+            run_id: runId,
+            payload: {
+              type: 'create_branch',
+              repo_external_id: change.repo_external_id,
+            },
           },
-        },
-      });
+        }
+      );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
     },
     onError: () => {
       addErrorMessage(t('Failed to push to branches.'));

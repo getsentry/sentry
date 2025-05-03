@@ -984,7 +984,7 @@ class GSBanner extends Component<Props, State> {
     let overquotaPrompt: React.ReactNode;
     let eventTypes: EventType[] = [];
 
-    if (prefersStackedNav()) {
+    if (prefersStackedNav(organization)) {
       // new nav uses sidebar quota alert (see quotaExceededNavItem.tsx)
       return null;
     }

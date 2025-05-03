@@ -1040,8 +1040,8 @@ CELERYBEAT_SCHEDULE_CONTROL = {
     },
     "reattempt-deletions-control": {
         "task": "sentry.deletions.tasks.reattempt_deletions_control",
-        # 03:00 PDT, 07:00 EDT, 10:00 UTC
-        "schedule": crontab(hour="10", minute="0"),
+        # Every other hour
+        "schedule": crontab(hour="*/2", minute="0"),
         "options": {"expires": 60 * 25, "queue": "cleanup.control"},
     },
     "schedule-hybrid-cloud-foreign-key-jobs-control": {
@@ -1174,8 +1174,8 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "reattempt-deletions": {
         "task": "sentry.deletions.tasks.reattempt_deletions",
-        # 03:00 PDT, 07:00 EDT, 10:00 UTC
-        "schedule": crontab(hour="10", minute="0"),
+        # Every other hour
+        "schedule": crontab(hour="*/2", minute="0"),
         "options": {"expires": 60 * 25},
     },
     "schedule-weekly-organization-reports-new": {
@@ -1406,6 +1406,11 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.deletions.tasks.hybrid_cloud",
     "sentry.deletions.tasks.scheduled",
     "sentry.demo_mode.tasks",
+    "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
+    "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
+    "sentry.dynamic_sampling.tasks.custom_rule_notifications",
+    "sentry.dynamic_sampling.tasks.recalibrate_orgs",
+    "sentry.dynamic_sampling.tasks.sliding_window_org",
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.incidents.tasks",
@@ -1453,6 +1458,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.auto_source_code_config",
     "sentry.tasks.autofix",
     "sentry.tasks.beacon",
+    "sentry.tasks.check_am2_compatibility",
     "sentry.tasks.check_new_issue_threshold_met",
     "sentry.tasks.clear_expired_resolutions",
     "sentry.tasks.clear_expired_rulesnoozes",
@@ -1465,14 +1471,15 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.delete_seer_grouping_records",
     "sentry.tasks.digests",
     "sentry.tasks.email",
-    "sentry.tasks.relay",
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
     "sentry.tasks.groupowner",
     "sentry.tasks.merge",
     "sentry.tasks.on_demand_metrics",
     "sentry.tasks.options",
     "sentry.tasks.ping",
+    "sentry.tasks.post_process",
     "sentry.tasks.process_buffer",
+    "sentry.tasks.relay",
     "sentry.tasks.release_registry",
     "sentry.tasks.repository",
     "sentry.tasks.reprocessing2",
@@ -1490,12 +1497,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.uptime.rdap.tasks",
     "sentry.uptime.subscriptions.tasks",
     "sentry.workflow_engine.processors.delayed_workflow",
-    "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
-    "sentry.dynamic_sampling.tasks.recalibrate_orgs",
-    "sentry.dynamic_sampling.tasks.custom_rule_notifications",
-    "sentry.dynamic_sampling.tasks.sliding_window_org",
-    "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
-    "sentry.tasks.check_am2_compatibility",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
@@ -1506,6 +1507,13 @@ TASKWORKER_SCHEDULES: ScheduleConfigMap = {
         "schedule": timedelta(minutes=5),
         "task": "options:sentry.tasks.options.sync_options",
     },
+}
+
+TASKWORKER_ENABLE_HIGH_THROUGHPUT_NAMESPACES = False
+TASKWORKER_HIGH_THROUGHPUT_NAMESPACES = {
+    "ingest.profiling",
+    "ingest.transactions",
+    "ingest.errors",
 }
 
 # Sentry logs to two major places: stdout, and its internal project.

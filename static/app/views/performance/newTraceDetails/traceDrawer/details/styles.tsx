@@ -52,8 +52,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {
-  SENTRY_SPAN_NUMBER_TAGS,
-  SENTRY_SPAN_STRING_TAGS,
+  SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS,
+  SENTRY_SEARCHABLE_SPAN_STRING_TAGS,
 } from 'sentry/views/explore/constants';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
@@ -811,7 +811,8 @@ function KeyValueAction({
   if (
     kind === TraceDrawerActionValueKind.SENTRY_TAG &&
     !(
-      SENTRY_SPAN_NUMBER_TAGS.includes(rowKey) || SENTRY_SPAN_STRING_TAGS.includes(rowKey)
+      SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS.includes(rowKey) ||
+      SENTRY_SEARCHABLE_SPAN_STRING_TAGS.includes(rowKey)
     )
   ) {
     return null;

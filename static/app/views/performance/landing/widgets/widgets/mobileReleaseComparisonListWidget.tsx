@@ -56,6 +56,7 @@ import {
   TOTAL_EXPANDABLE_ROWS_HEIGHT,
 } from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
+import {EAP_QUERY_PARAMS} from 'sentry/views/performance/landing/widgets/widgets/settings';
 import {Subtitle} from 'sentry/views/profiling/landing/styles';
 import {RightAlignedCell} from 'sentry/views/replays/deadRageClick/deadRageSelectorCards';
 
@@ -119,7 +120,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
     : DiscoverDatasets.SPANS_METRICS;
 
   const queryParams: Record<string, string> = useEap
-    ? {useRpc: '1', dataset: DiscoverDatasets.SPANS_EAP}
+    ? {...EAP_QUERY_PARAMS}
     : {dataset: DiscoverDatasets.SPANS_METRICS};
 
   const segmentOp = useEap ? 'span.op' : 'transaction.op';

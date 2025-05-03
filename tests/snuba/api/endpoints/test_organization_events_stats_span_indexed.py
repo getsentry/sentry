@@ -2017,3 +2017,32 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         )
 
         assert response.data["meta"]["dataScanned"] == "partial"
+
+    def test_request_without_sampling_mode_defaults_to_highest_accuracy(self):
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=3),
+                "interval": "1m",
+                "yAxis": "count()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+
+        assert response.data["meta"]["dataScanned"] == "full"
+
+    def test_request_to_highest_accuracy_mode(self):
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=3),
+                "interval": "1m",
+                "yAxis": "count()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "sampling": "HIGHEST_ACCURACY",
+            },
+        )
+
+        assert response.data["meta"]["dataScanned"] == "full"
