@@ -15,8 +15,8 @@ import ConfigStore from 'sentry/stores/configStore';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {
-  ApiQueryKey,
   setApiQueryData,
   useApiQuery,
   useMutation,
