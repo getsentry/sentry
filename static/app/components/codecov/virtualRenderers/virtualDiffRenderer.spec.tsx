@@ -300,8 +300,7 @@ describe('VirtualFileRenderer', () => {
             lineData={lineData}
             fileName="tsx"
             hashedPath="hashedPath"
-          />,
-          {enableRouterMocks: false}
+          />
         );
 
         const line = screen.getByText(2);
@@ -318,8 +317,7 @@ describe('VirtualFileRenderer', () => {
             lineData={lineData}
             fileName="tsx"
             hashedPath="hashedPath"
-          />,
-          {enableRouterMocks: false}
+          />
         );
 
         const line = screen.getByText(2);
@@ -337,8 +335,7 @@ describe('VirtualFileRenderer', () => {
             lineData={lineData}
             fileName="tsx"
             hashedPath="hashedPath"
-          />,
-          {enableRouterMocks: false}
+          />
         );
 
         const line = screen.getByText(1);
@@ -358,8 +355,7 @@ describe('VirtualFileRenderer', () => {
             lineData={lineData}
             fileName="tsx"
             hashedPath="hashedPath"
-          />,
-          {enableRouterMocks: false}
+          />
         );
 
         const line = screen.getByText(1);
@@ -376,8 +372,7 @@ describe('VirtualFileRenderer', () => {
             lineData={lineData}
             fileName="tsx"
             hashedPath="hashedPath"
-          />,
-          {enableRouterMocks: false}
+          />
         );
 
         const line = screen.getByText(1);
@@ -395,8 +390,7 @@ describe('VirtualFileRenderer', () => {
             lineData={lineData}
             fileName="tsx"
             hashedPath="hashedPath"
-          />,
-          {enableRouterMocks: false}
+          />
         );
 
         const line = screen.getByText(1);
@@ -419,7 +413,6 @@ describe('VirtualFileRenderer', () => {
             hashedPath="hashedPath"
           />,
           {
-            enableRouterMocks: false,
             initialRouterConfig: {
               location: {
                 pathname: '/#hashedPath-L4',
@@ -442,7 +435,6 @@ describe('VirtualFileRenderer', () => {
             hashedPath="hashedPath"
           />,
           {
-            enableRouterMocks: false,
             initialRouterConfig: {
               location: {
                 pathname: '/#hashedPath-RRandomNumber',

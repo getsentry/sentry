@@ -1,7 +1,7 @@
 import uuid
 from collections.abc import Mapping
 from dataclasses import asdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 from unittest import mock
 
@@ -21,6 +21,7 @@ from sentry.incidents.typings.metric_detector import (
     NotificationContext,
     OpenPeriodContext,
 )
+from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiod import GroupOpenPeriod
@@ -28,12 +29,17 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.types import BaseMetricAlertHandler
-from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.skips import requires_snuba
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
+
+pytestmark = [requires_snuba]
 
 
 class TestHandler(BaseMetricAlertHandler):
@@ -57,6 +63,27 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
     def create_models(self):
         self.project = self.create_project()
         self.detector = self.create_detector(project=self.project)
+
+        with self.tasks():
+            self.snuba_query = create_snuba_query(
+                query_type=SnubaQuery.Type.ERROR,
+                dataset=Dataset.Events,
+                query="hello",
+                aggregate="count()",
+                time_window=timedelta(minutes=1),
+                resolution=timedelta(minutes=1),
+                environment=self.environment,
+                event_types=[SnubaQueryEventType.EventType.ERROR],
+            )
+            self.query_subscription = create_snuba_subscription(
+                project=self.project,
+                subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+                snuba_query=self.snuba_query,
+            )
+        self.data_source = self.create_data_source(
+            organization=self.organization, source_id=self.query_subscription.id
+        )
+        self.create_data_source_detector(data_source=self.data_source, detector=self.detector)
         self.workflow = self.create_workflow(environment=self.environment)
 
         self.snuba_query = self.create_snuba_query()
@@ -230,6 +257,13 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
                 },
             ),
         )
+        self.group.priority = PriorityLevel.HIGH.value
+        self.group.save()
+        self.open_period, _ = GroupOpenPeriod.objects.get_or_create(
+            group=self.group,
+            project=self.project,
+            date_started=self.group_event.group.first_seen,
+        )
         self.event_data = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
         self.handler = TestHandler()
 
@@ -380,7 +414,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         )
         self.assert_metric_issue_context(
             metric_issue_context,
-            open_period_identifier=self.group_event.group.id,
+            open_period_identifier=self.open_period.id,
             snuba_query=self.snuba_query,
             new_status=IncidentStatus.CRITICAL,
             metric_value=123.45,

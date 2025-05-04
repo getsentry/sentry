@@ -1,3 +1,4 @@
+import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {EventFixture} from 'sentry-fixture/event';
 import {FrameFixture} from 'sentry-fixture/frame';
 import {GroupFixture} from 'sentry-fixture/group';
@@ -25,7 +26,6 @@ describe('SeerSection', () => {
   let mockGroup!: ReturnType<typeof GroupFixture>;
   const mockProject = ProjectFixture();
   const organization = OrganizationFixture({
-    genAIConsent: true,
     hideAiFeatures: false,
     features: ['gen-ai-features'],
   });
@@ -35,16 +35,19 @@ describe('SeerSection', () => {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/setup/`,
-      body: {
-        genAIConsent: {ok: true},
-        integration: {ok: true},
-        githubWriteIntegration: {ok: true},
-      },
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
+      body: AutofixSetupFixture({
+        setupAcknowledgement: {
+          orgHasAcknowledged: true,
+          userHasAcknowledged: true,
+        },
+        integration: {ok: true, reason: null},
+        githubWriteIntegration: {ok: true, repos: []},
+      }),
     });
 
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       body: {steps: []},
     });
   });
@@ -69,7 +72,6 @@ describe('SeerSection', () => {
   it('renders resources section when AI features are disabled', () => {
     const customOrganization = OrganizationFixture({
       hideAiFeatures: true,
-      genAIConsent: false,
       features: ['gen-ai-features'],
     });
 
@@ -99,45 +101,49 @@ describe('SeerSection', () => {
   });
 
   describe('Seer button text', () => {
-    it('shows "Set Up Autofix" when AI needs setup', async () => {
+    it('shows "Set Up Seer" with summary when Seer needs setup', async () => {
       const customOrganization = OrganizationFixture({
-        genAIConsent: false,
         hideAiFeatures: false,
         features: ['gen-ai-features'],
       });
 
       MockApiClient.addMockResponse({
-        url: `/issues/${mockGroup.id}/autofix/setup/`,
-        body: {
-          genAIConsent: {ok: false},
-          integration: {ok: false},
-          githubWriteIntegration: {ok: false},
-        },
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
+        body: AutofixSetupFixture({
+          setupAcknowledgement: {
+            orgHasAcknowledged: false,
+            userHasAcknowledged: false,
+          },
+          integration: {ok: false, reason: null},
+          githubWriteIntegration: {ok: false, repos: []},
+        }),
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
+        method: 'POST',
+        body: {whatsWrong: 'Test summary'},
       });
 
       render(<SeerSection event={mockEvent} group={mockGroup} project={mockProject} />, {
         organization: customOrganization,
       });
 
-      await waitFor(() => {
-        expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
-      });
-
-      expect(
-        screen.getByText('Explore potential root causes and solutions with Autofix.')
-      ).toBeInTheDocument();
-
-      expect(screen.getByRole('button', {name: 'Set Up Autofix'})).toBeInTheDocument();
+      expect(await screen.findByText('Test summary')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Set Up Seer'})).toBeInTheDocument();
     });
 
     it('shows "Find Root Cause" even when autofix needs setup', async () => {
       MockApiClient.addMockResponse({
-        url: `/issues/${mockGroup.id}/autofix/setup/`,
-        body: {
-          genAIConsent: {ok: true},
-          integration: {ok: false},
-          githubWriteIntegration: {ok: false},
-        },
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
+        body: AutofixSetupFixture({
+          setupAcknowledgement: {
+            orgHasAcknowledged: true,
+            userHasAcknowledged: true,
+          },
+          integration: {ok: false, reason: null},
+          githubWriteIntegration: {ok: false, repos: []},
+        }),
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
@@ -159,12 +165,15 @@ describe('SeerSection', () => {
     it('shows "Find Root Cause" when autofix is available', async () => {
       // Mock successful autofix setup but disable resources
       MockApiClient.addMockResponse({
-        url: `/issues/${mockGroup.id}/autofix/setup/`,
-        body: {
-          genAIConsent: {ok: true},
-          integration: {ok: true},
-          githubWriteIntegration: {ok: true},
-        },
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
+        body: AutofixSetupFixture({
+          setupAcknowledgement: {
+            orgHasAcknowledged: true,
+            userHasAcknowledged: true,
+          },
+          integration: {ok: true, reason: null},
+          githubWriteIntegration: {ok: true, repos: []},
+        }),
       });
 
       MockApiClient.addMockResponse({
@@ -194,12 +203,15 @@ describe('SeerSection', () => {
 
       // Mock config with autofix disabled
       MockApiClient.addMockResponse({
-        url: `/issues/${mockGroup.id}/autofix/setup/`,
-        body: {
-          genAIConsent: {ok: true},
-          integration: {ok: true},
-          githubWriteIntegration: {ok: true},
-        },
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
+        body: AutofixSetupFixture({
+          setupAcknowledgement: {
+            orgHasAcknowledged: true,
+            userHasAcknowledged: true,
+          },
+          integration: {ok: true, reason: null},
+          githubWriteIntegration: {ok: true, repos: []},
+        }),
       });
 
       render(

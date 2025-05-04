@@ -92,7 +92,10 @@ describe('Discover > QueryList', function () {
         pageLinks=""
         renderPrebuilt={false}
         location={location}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.getByText('No saved queries match that filter')).toBeInTheDocument();
@@ -108,7 +111,10 @@ describe('Discover > QueryList', function () {
         renderPrebuilt
         pageLinks=""
         location={location}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     await waitFor(() => {
@@ -151,7 +157,10 @@ describe('Discover > QueryList', function () {
         pageLinks=""
         location={location}
       />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await waitFor(() => {
@@ -210,7 +219,10 @@ describe('Discover > QueryList', function () {
         renderPrebuilt
         pageLinks=""
         location={location}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     await waitFor(() => {
@@ -246,7 +258,10 @@ describe('Discover > QueryList', function () {
         renderPrebuilt={false}
         location={location}
       />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     const card = screen.getAllByTestId(/card-*/).at(0)!;
@@ -276,7 +291,10 @@ describe('Discover > QueryList', function () {
         savedQueries={savedQueries}
         pageLinks=""
         location={location}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     const card = screen.getAllByTestId(/card-*/).at(1);
@@ -299,7 +317,10 @@ describe('Discover > QueryList', function () {
         renderPrebuilt={false}
         location={location}
       />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(screen.getAllByTestId(/card-*/).at(0)!);
@@ -320,7 +341,10 @@ describe('Discover > QueryList', function () {
         pageLinks=""
         location={location}
       />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     const card = screen.getAllByTestId(/card-*/).at(0)!;
@@ -353,7 +377,10 @@ describe('Discover > QueryList', function () {
         pageLinks=""
         renderPrebuilt={false}
         location={location}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     const card = screen.getAllByTestId(/card-*/).at(0)!;
@@ -383,7 +410,10 @@ describe('Discover > QueryList', function () {
         pageLinks=""
         renderPrebuilt={false}
         location={location}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     const card = screen.getAllByTestId(/card-*/).at(0)!;
@@ -422,7 +452,10 @@ describe('Discover > QueryList', function () {
         pageLinks=""
         renderPrebuilt={false}
         location={location}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     const chart = await screen.findByTestId('area-chart');
@@ -447,7 +480,10 @@ describe('Discover > QueryList', function () {
         renderPrebuilt={false}
         pageLinks=""
         location={location}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(screen.getByTestId('menu-trigger'));
@@ -481,17 +517,24 @@ describe('Discover > QueryList', function () {
           ]}
           pageLinks=""
           location={location}
-        />
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
 
       const contextMenu = await screen.findByTestId('menu-trigger');
       expect(contextMenu).toBeInTheDocument();
 
-      expect(screen.queryByTestId('add-to-dashboard')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Add to Dashboard'})
+      ).not.toBeInTheDocument();
 
       await userEvent.click(contextMenu);
 
-      const addToDashboardMenuItem = await screen.findByTestId('add-to-dashboard');
+      const addToDashboardMenuItem = await screen.findByRole('menuitemradio', {
+        name: 'Add to Dashboard',
+      });
 
       await userEvent.click(addToDashboardMenuItem);
 
@@ -547,17 +590,24 @@ describe('Discover > QueryList', function () {
           ]}
           pageLinks=""
           location={location}
-        />
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
 
       const contextMenu = await screen.findByTestId('menu-trigger');
       expect(contextMenu).toBeInTheDocument();
 
-      expect(screen.queryByTestId('add-to-dashboard')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Add to Dashboard'})
+      ).not.toBeInTheDocument();
 
       await userEvent.click(contextMenu);
 
-      const addToDashboardMenuItem = await screen.findByTestId('add-to-dashboard');
+      const addToDashboardMenuItem = await screen.findByRole('menuitemradio', {
+        name: 'Add to Dashboard',
+      });
 
       await userEvent.click(addToDashboardMenuItem);
 
@@ -615,17 +665,24 @@ describe('Discover > QueryList', function () {
         ]}
         pageLinks=""
         location={location}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     const contextMenu = await screen.findByTestId('menu-trigger');
     expect(contextMenu).toBeInTheDocument();
 
-    expect(screen.queryByTestId('add-to-dashboard')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Add to Dashboard'})
+    ).not.toBeInTheDocument();
 
     await userEvent.click(contextMenu);
 
-    const addToDashboardMenuItem = await screen.findByTestId('add-to-dashboard');
+    const addToDashboardMenuItem = await screen.findByRole('menuitemradio', {
+      name: 'Add to Dashboard',
+    });
 
     await userEvent.click(addToDashboardMenuItem);
 

@@ -499,6 +499,7 @@ class TestConvertStacktraceFramePathToSourcePath(TestCase):
                 frame=EventFrame(
                     filename="File.java",
                     module="sentry.module.File",
+                    abs_path="File.java",
                 ),
                 code_mapping=self.code_mapping_file,
                 platform="java",
@@ -532,6 +533,11 @@ class TestConvertStacktraceFramePathToSourcePath(TestCase):
                 "com.example.vu.android.empowerplant.MainFragment$3$1",
                 "MainFragment.java",
                 "src/com/example/vu/android/empowerplant/MainFragment.java",
+            ),
+            (
+                "com.example.foo.BarImpl$invoke$bazFetch$2",
+                "Bar.kt",  # Notice "Impl" is not included in the module above
+                "src/com/example/foo/Bar.kt",
             ),
         ]:
             assert (

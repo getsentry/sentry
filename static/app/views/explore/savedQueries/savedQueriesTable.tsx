@@ -9,7 +9,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Avatar from 'sentry/components/core/avatar';
-import {ExploreParams} from 'sentry/components/modals/explore/saveQueryModal';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
 import {t} from 'sentry/locale';
@@ -26,6 +25,7 @@ import {
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
+import {ExploreParams} from 'sentry/views/explore/savedQueries/exploreParams';
 import {getExploreUrlFromSavedQueryUrl} from 'sentry/views/explore/utils';
 
 type Props = {
@@ -192,7 +192,7 @@ export function SavedQueriesTable({
               <SavedEntityTable.CellProjects projects={query.projects} />
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell>
-              <SavedEntityTable.CellEnvironments environments={query.environment} />
+              <SavedEntityTable.CellEnvironments environments={query.environment ?? []} />
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell>
               <StyledExploreParams
@@ -202,7 +202,7 @@ export function SavedQueriesTable({
               />
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell>
-              <Avatar user={query.createdBy} tooltip={query.createdBy.name} hasTooltip />
+              <Avatar user={query.createdBy} tooltip={query.createdBy?.name} hasTooltip />
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell>
               <SavedEntityTable.CellTimeSince date={query.lastVisited} />

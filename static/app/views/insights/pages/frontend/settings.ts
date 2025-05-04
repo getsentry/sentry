@@ -8,6 +8,20 @@ export const FRONTEND_LANDING_SUB_PATH = 'frontend';
 export const FRONTEND_LANDING_TITLE = t('Frontend');
 export const FRONTEND_SIDEBAR_LABEL = t('Frontend');
 
+export const EAP_OVERVIEW_PAGE_ALLOWED_OPS = [
+  'pageload',
+  'navigation',
+  'ui.render',
+  'interaction',
+  'ui.interaction',
+  'ui.interaction.click',
+  'ui.interaction.hover',
+  'ui.interaction.drag',
+  'ui.interaction.press',
+  'ui.webvital.cls',
+  'ui.webvital.fcp',
+];
+
 export const OVERVIEW_PAGE_ALLOWED_OPS = [
   'pageload',
   'navigation',
@@ -31,6 +45,6 @@ export const FRONTEND_PLATFORMS: PlatformKey[] = frontend.filter(
 );
 
 export const DEFAULT_SORT: ValidSort = {
-  field: 'time_spent_percentage(span.duration)' satisfies EAPSpanProperty,
+  field: 'sum_if(span.duration,is_transaction,true)' satisfies EAPSpanProperty,
   kind: 'desc',
 };

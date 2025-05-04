@@ -242,13 +242,15 @@ class IssuesGroupList extends Component<Props, State> {
     return (
       <Fragment>
         <PanelContainer>
-          <SuperHeader disablePadding>
-            <SuperHeaderLabel hideDivider>{t('Recommended Issues')}</SuperHeaderLabel>
-            <LinkButton to={this.getIssuesUrl(queryParams)} size="xs">
-              All Issues
-            </LinkButton>
-          </SuperHeader>
-          <GroupListHeader withChart={!!withChart} withColumns={columns} />
+          <HeaderContainer>
+            <SuperHeader disablePadding>
+              <SuperHeaderLabel hideDivider>{t('Recommended Issues')}</SuperHeaderLabel>
+              <LinkButton to={this.getIssuesUrl(queryParams)} size="xs">
+                All Issues
+              </LinkButton>
+            </SuperHeader>
+            <GroupListHeader withChart={!!withChart} withColumns={columns} />
+          </HeaderContainer>
           <PanelBody>
             {loading
               ? [
@@ -302,13 +304,23 @@ const PanelContainer = styled(Panel)`
 `;
 
 const SuperHeaderLabel = styled(IssueStreamHeaderLabel)`
+  color: ${p => p.theme.headingColor};
+  font-size: 1rem;
+  line-height: 1.2;
   padding-left: ${space(1)};
   text-transform: capitalize;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const SuperHeader = styled(PanelHeader)`
-  background: ${p => p.theme.background};
+  background-color: ${p => p.theme.headerBackground};
   padding: ${space(1)};
+`;
+
+const HeaderContainer = styled('div')`
+  position: sticky;
+  top: 0;
+  z-index: ${p => p.theme.zIndex.header};
 `;
 
 export function IssuesWidget({query = ''}: {query?: string}) {

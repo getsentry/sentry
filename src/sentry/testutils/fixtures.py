@@ -681,6 +681,10 @@ class Fixtures:
         # TODO: this is only needed during the ACI migration
         return Factories.create_alert_rule_workflow(*args, **kwargs)
 
+    def create_incident_group_open_period(self, *args, **kwargs):
+        # TODO: this is only needed during the ACI migration
+        return Factories.create_incident_group_open_period(*args, **kwargs)
+
     def create_workflow_data_condition_group(self, *args, **kwargs):
         return Factories.create_workflow_data_condition_group(*args, **kwargs)
 
@@ -767,8 +771,6 @@ class Fixtures:
             project = self.project
         if env is None:
             env = self.environment
-        if uptime_status_update_date is None:
-            uptime_status_update_date = timezone.now()
 
         if uptime_subscription is None:
             uptime_subscription = self.create_uptime_subscription(
@@ -783,8 +785,6 @@ class Fixtures:
             mode,
             name,
             Actor.from_object(owner) if owner else None,
-            uptime_status,
-            uptime_status_update_date,
             id,
         )
         # TODO(epurkhiser): Dual create a detector as well, can be removed

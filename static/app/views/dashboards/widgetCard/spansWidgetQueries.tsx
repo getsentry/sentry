@@ -60,9 +60,9 @@ function SpansWidgetQueries(props: SpansWidgetQueriesProps) {
 
   const getConfidenceInformation = useCallback(
     (result: SeriesResult) => {
-      let seriesConfidence;
-      let seriesSampleCount;
-      let seriesIsSampled;
+      let seriesConfidence: Confidence | null;
+      let seriesSampleCount: number | undefined;
+      let seriesIsSampled: boolean | null;
 
       if (isEventsStats(result)) {
         seriesConfidence = determineSeriesConfidence(result);
@@ -100,7 +100,12 @@ function SpansWidgetQueries(props: SpansWidgetQueriesProps) {
     [props.widget.queries]
   );
 
-  if (organization.features.includes('visibility-explore-progressive-loading')) {
+  if (
+    organization.features.includes('visibility-explore-progressive-loading') &&
+    !organization.features.includes(
+      'visibility-explore-progressive-loading-normal-sampling-mode'
+    )
+  ) {
     return (
       <SpansWidgetQueriesProgressiveLoadingImpl
         {...props}
@@ -283,6 +288,13 @@ function SpansWidgetQueriesSingleRequestImpl({
         dashboardFilters={dashboardFilters}
         onDataFetched={onDataFetched}
         afterFetchSeriesData={afterFetchSeriesData}
+        samplingMode={
+          organization.features.includes(
+            'visibility-explore-progressive-loading-normal-sampling-mode'
+          )
+            ? SAMPLING_MODE.NORMAL
+            : undefined
+        }
       >
         {props =>
           children({

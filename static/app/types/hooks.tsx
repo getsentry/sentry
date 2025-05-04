@@ -180,6 +180,7 @@ type ComponentHooks = {
   'component:insights-upsell-page': () => React.ComponentType<InsightsUpsellHook>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
+  'component:org-stats-profiling-banner': () => React.ComponentType;
   'component:organization-header': () => React.ComponentType<OrganizationHeaderProps>;
   'component:organization-membership-settings': () => React.ComponentType<MembershipSettingsProps>;
   'component:partnership-agreement': React.ComponentType<PartnershipAgreementProps>;
@@ -227,28 +228,21 @@ export type FeatureDisabledHooks = {
   'feature-disabled:alert-wizard-performance': FeatureDisabledHook;
   'feature-disabled:alerts-page': FeatureDisabledHook;
   'feature-disabled:codecov-integration-setting': FeatureDisabledHook;
-  'feature-disabled:create-metrics-alert-tooltip': FeatureDisabledHook;
   'feature-disabled:custom-inbound-filters': FeatureDisabledHook;
   'feature-disabled:dashboards-edit': FeatureDisabledHook;
   'feature-disabled:dashboards-page': FeatureDisabledHook;
   'feature-disabled:dashboards-sidebar-item': FeatureDisabledHook;
   'feature-disabled:data-forwarding': FeatureDisabledHook;
   'feature-disabled:discard-groups': FeatureDisabledHook;
-  'feature-disabled:discover-page': FeatureDisabledHook;
   'feature-disabled:discover-saved-query-create': FeatureDisabledHook;
-  'feature-disabled:discover-sidebar-item': FeatureDisabledHook;
   'feature-disabled:discover2-page': FeatureDisabledHook;
   'feature-disabled:discover2-sidebar-item': FeatureDisabledHook;
-  'feature-disabled:events-page': FeatureDisabledHook;
-  'feature-disabled:events-sidebar-item': FeatureDisabledHook;
   'feature-disabled:grid-editable-actions': FeatureDisabledHook;
-  'feature-disabled:incidents-sidebar-item': FeatureDisabledHook;
   'feature-disabled:open-discover': FeatureDisabledHook;
   'feature-disabled:open-in-discover': FeatureDisabledHook;
   'feature-disabled:performance-new-project': FeatureDisabledHook;
   'feature-disabled:performance-page': FeatureDisabledHook;
   'feature-disabled:performance-quick-trace': FeatureDisabledHook;
-  'feature-disabled:performance-sidebar-item': FeatureDisabledHook;
   'feature-disabled:profiling-page': FeatureDisabledHook;
   'feature-disabled:profiling-sidebar-item': FeatureDisabledHook;
   'feature-disabled:project-performance-score-card': FeatureDisabledHook;
@@ -258,9 +252,6 @@ export type FeatureDisabledHooks = {
   'feature-disabled:relay': FeatureDisabledHook;
   'feature-disabled:replay-sidebar-item': FeatureDisabledHook;
   'feature-disabled:sso-basic': FeatureDisabledHook;
-  'feature-disabled:sso-saml2': FeatureDisabledHook;
-  'feature-disabled:starfish-view': FeatureDisabledHook;
-  'feature-disabled:trace-view-link': FeatureDisabledHook;
 };
 
 /**
@@ -281,7 +272,6 @@ type InterfaceChromeHooks = {
  * Onboarding experience hooks
  */
 type OnboardingHooks = {
-  'onboarding-wizard:skip-help': () => React.ComponentType;
   'onboarding:block-hide-sidebar': () => boolean;
   'onboarding:targeted-onboarding-header': (opts: {source: string}) => React.ReactNode;
 };

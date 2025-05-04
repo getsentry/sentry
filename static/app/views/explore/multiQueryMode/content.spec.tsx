@@ -44,7 +44,7 @@ describe('MultiQueryModeContent', function () {
     );
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/spans/fields/`,
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
       body: [{key: 'span.op', name: 'span.op'}],
     });
@@ -102,8 +102,7 @@ describe('MultiQueryModeContent', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </PageParamsProvider>
     );
 
     const section = await screen.findByTestId('section-visualize-0');
@@ -122,8 +121,7 @@ describe('MultiQueryModeContent', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </PageParamsProvider>
     );
 
     const section = await screen.findByTestId('section-visualize-0');
@@ -194,8 +192,7 @@ describe('MultiQueryModeContent', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </PageParamsProvider>
     );
 
     const section = await screen.findByTestId('section-visualize-0');
@@ -284,8 +281,7 @@ describe('MultiQueryModeContent', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </PageParamsProvider>
     );
 
     expect(await screen.findByRole('button', {name: 'Bar'})).toBeInTheDocument();
@@ -339,8 +335,7 @@ describe('MultiQueryModeContent', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </PageParamsProvider>
     );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Bar'}));
@@ -382,8 +377,7 @@ describe('MultiQueryModeContent', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </PageParamsProvider>
     );
 
     expect(queries).toEqual([
@@ -431,8 +425,7 @@ describe('MultiQueryModeContent', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </PageParamsProvider>
     );
 
     expect(queries).toEqual([
@@ -480,8 +473,7 @@ describe('MultiQueryModeContent', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </PageParamsProvider>
     );
 
     expect(queries).toEqual([
@@ -588,8 +580,7 @@ describe('MultiQueryModeContent', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </PageParamsProvider>
     );
 
     expect(queries).toEqual([
@@ -740,8 +731,7 @@ describe('MultiQueryModeContent', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </PageParamsProvider>
     );
 
     expect(queries).toEqual([
@@ -804,7 +794,11 @@ describe('MultiQueryModeContent', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     const section = screen.getByTestId('section-visualization-0');
@@ -825,7 +819,10 @@ describe('MultiQueryModeContent', function () {
   });
 
   it('renders a save query button', async function () {
-    render(<MultiQueryModeContent />, {organization});
+    render(<MultiQueryModeContent />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByLabelText('Save')).toBeInTheDocument();
     await userEvent.click(screen.getByLabelText('Save'));
     expect(await screen.findByText('A New Query')).toBeInTheDocument();
@@ -883,7 +880,11 @@ describe('MultiQueryModeContent', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
     // No good way to check for highlighted css, so we just check for the text
     expect(await screen.findByText('Save')).toBeInTheDocument();

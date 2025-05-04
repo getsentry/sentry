@@ -11,7 +11,6 @@ export interface LoadableChartWidgetProps {
    */
   height?: string | number;
 
-  // TODO(billy): This should be required when all chart widgets are converted
   /**
    * Unique ID for the widget
    *

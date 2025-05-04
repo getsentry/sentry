@@ -167,8 +167,6 @@ except in mobile */
   display: flex;
   position: relative;
 
-  height: ${p.theme.form.md.height};
-
   & button[aria-haspopup] {
     height: 100%;
     width: 100%;
@@ -177,6 +175,10 @@ except in mobile */
   /* Disabled InteractionStateLayer */
   & > div > button > span:first-child {
     display: none;
+  }
+
+  & > div > button:focus-visible {
+    z-index: 3;
   }
 
   & > div:first-child > button {
