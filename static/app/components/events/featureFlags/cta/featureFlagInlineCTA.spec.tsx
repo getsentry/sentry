@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import FeatureFlagInlineCTA from 'sentry/components/events/featureFlags/featureFlagInlineCTA';
+import FeatureFlagInlineCTA from 'sentry/components/events/featureFlags/cta/featureFlagInlineCTA';
 
 describe('featureFlagInlineCTA', () => {
   beforeEach(() => {
