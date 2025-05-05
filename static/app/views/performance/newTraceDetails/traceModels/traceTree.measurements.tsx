@@ -135,12 +135,12 @@ export function collectTraceMeasurements(
     const score = isEAPMeasurements(measurements)
       ? measurements[eapScoreRatioKey] === undefined
         ? undefined
-        : Math.round(measurements[eapScoreRatioKey]! * 100)
+        : Math.round(measurements[eapScoreRatioKey] * 100)
       : measurements[legacyScoreKey]?.value !== undefined &&
           measurements[legacyScoreWeightKey]?.value !== undefined
         ? Math.round(
-            (measurements[legacyScoreKey]!.value /
-              measurements[legacyScoreWeightKey]!.value) *
+            (measurements[legacyScoreKey].value /
+              measurements[legacyScoreWeightKey].value) *
               100
           )
         : undefined;
