@@ -126,6 +126,31 @@ def make_rust_exception_data(
     )
 
 
+def _can_use_hint(
+    variant_name: str,
+    frame_component: FrameGroupingComponent,
+    hint: str | None,
+) -> bool:
+    # Prevent clobbering an existing hint with no hint
+    if hint is None:
+        return False
+
+    frame_type = "in-app" if frame_component.in_app else "system"
+    hint_type = "contributes" if "ignored" in hint else "in-app"
+
+    # System frames can't contribute to the app variant, no matter what +/-group rules say, so we
+    # ignore the hint if it's about contributing since it's irrelevant
+    if variant_name == "app" and frame_type == "system" and hint_type == "contributes":
+        return False
+
+    # Similarly, we don't need hints about marking frames in or out of app in the system stacktrace
+    # because such changes don't actually have an effect there
+    if variant_name == "system" and hint_type == "in-app":
+        return False
+
+    return True
+
+
 def get_hint_for_frame(
     variant_name: str,
     frame: dict[str, Any],
