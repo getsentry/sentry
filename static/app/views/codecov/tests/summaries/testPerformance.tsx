@@ -25,7 +25,7 @@ function FlakyTestsTooltip() {
       </p>
       <p>
         <ToolTipTitle>What is it:</ToolTipTitle>
-        The total time it takes to run all your tests.
+        The total number of flaky tests in your test suite.
       </p>
     </Fragment>
   );
