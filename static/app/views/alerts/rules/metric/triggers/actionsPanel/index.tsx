@@ -561,7 +561,7 @@ const PerformActionsListItem = styled(StyledListItem)`
 
 const FooterAlert = styled(Alert)`
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
-
+  margin-top: -1px; /* remove double border on panel bottom */
   a {
     white-space: nowrap;
   }
