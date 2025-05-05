@@ -156,6 +156,7 @@ def get_hint_for_frame(
     frame: dict[str, Any],
     frame_component: FrameGroupingComponent,
     rust_frame: RustFrame,
+    desired_hint_type: Literal["in-app", "contributes"] | None = None,
 ) -> str | None:
     """
     Determine a hint to use for the frame, handling special-casing and precedence.
@@ -168,16 +169,28 @@ def get_hint_for_frame(
         None if rust_hint is None else "in-app" if rust_hint.startswith("marked") else "contributes"
     )
     incoming_hint = frame_component.hint
+    incoming_hint_type = (
+        None
+        if incoming_hint is None
+        else "contributes" if incoming_hint.startswith("ignored") else "in-app"
+    )
     use_rust_hint = True
 
-    if variant_name == "app":
-        default_hint = "non app frame" if not frame_component.in_app else frame_component.hint
+    # Ignore the incoming hint if it's not the kind we want
+    if desired_hint_type and incoming_hint_type != desired_hint_type:
+        incoming_hint = None
+
+    # TODO: We can switch this to `desired_hint_type == "in-app"` once we're only using split
+    # enhancements. For now, we need to also include the case where `desired_hint_type` is None. (At
+    # that point we can also change the type of the parameter to be a required string.)
+    if variant_name == "app" and desired_hint_type != "contributes":
+        default_in_app_hint = "non app frame" if not frame_component.in_app else None
         client_in_app_hint = (
             f"marked {"in-app" if client_in_app else "out of app"} by the client"
             if client_in_app is not None
             else None
         )
-        incoming_hint = client_in_app_hint or default_hint
+        incoming_hint = client_in_app_hint or default_in_app_hint or incoming_hint
 
     # Prevent clobbering an existing hint with no hint
     if rust_hint is None:
