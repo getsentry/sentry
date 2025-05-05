@@ -6,12 +6,18 @@ from sentry.integrations.example import ExampleIntegration
 from sentry.integrations.models import ExternalIssue, Integration
 from sentry.integrations.tasks import sync_status_outbound
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.shared_integrations.exceptions import IntegrationFormError
+from sentry.testutils.asserts import assert_count_of_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
 
 
 def raise_exception(_external_issue, _is_resolved, _group_proj_id):
     raise Exception("Something went wrong")
+
+
+def raise_integration_form_error(*args, **kwargs):
+    raise IntegrationFormError(field_errors={"foo": "Invalid foo provided"})
 
 
 @region_silo_test
@@ -103,3 +109,24 @@ class TestSyncStatusOutbound(TestCase):
         metric_exception = mock_record_event_args[0]
         assert isinstance(metric_exception, Exception)
         assert metric_exception.args[0] == "Something went wrong"
+
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch.object(ExampleIntegration, "sync_status_outbound")
+    def test_integration_form_error(self, mock_sync_status, mock_record):
+        mock_sync_status.side_effect = raise_integration_form_error
+        external_issue: ExternalIssue = self.create_integration_external_issue(
+            group=self.group, key="foo_integration", integration=self.example_integration
+        )
+
+        sync_status_outbound(self.group.id, external_issue_id=external_issue.id)
+
+        #  SLOs SYNC_STATUS_OUTBOUND (halt)
+        # breakpoint()
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
+        )
+
+        assert_halt_metric(mock_record=mock_record, error_msg=IntegrationFormError("bruh"))
