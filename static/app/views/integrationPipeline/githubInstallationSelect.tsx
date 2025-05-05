@@ -106,7 +106,7 @@ const StyledContainer = styled('div')`
   flex-direction: column;
   align-items: flex-start;
   padding: ${space(2)};
-  width: 25%;
+  max-width: 25%;
   margin: 0 auto;
   margin-top: 10%;
 `;
