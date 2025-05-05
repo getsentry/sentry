@@ -238,7 +238,10 @@ export type SpanMetricsResponse = {
       | `${Property}(${string},${string},${string})`]: number;
   } & {
     [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
+  } & {
+    [Property in SpanNumberFields as `avg_compare(${Property},${string},${string},${string})`]: number;
   };
+
 export type MetricsFilters = {
   [Property in SpanStringFields as `${Property}`]?: string | string[];
 };
