@@ -173,6 +173,8 @@ class IssuePlatformEventsDeletionTask(EventsBaseDeletionTask):
     """
 
     dataset = Dataset.IssuePlatform
+    # https://github.com/getsentry/snuba/blob/54feb15b7575142d4b3af7f50d2c2c865329f2db/snuba/datasets/configuration/issues/storages/search_issues.yaml#L139
+    max_rows_to_delete = 2000000
 
     def chunk(self) -> bool:
         """This method is called to delete chunks of data. It returns a boolean to say
@@ -204,18 +206,44 @@ class IssuePlatformEventsDeletionTask(EventsBaseDeletionTask):
     def delete_events_from_snuba(self) -> None:
         requests = []
         for project_id, group_ids in self.project_groups.items():
-            query = DeleteQuery(
-                self.dataset.value,
-                column_conditions={"project_id": [project_id], "group_id": list(group_ids)},
-            )
-            request = Request(
-                dataset=self.dataset.value,
-                app_id=self.referrer,
-                query=query,
-                tenant_ids=self.tenant_ids,
-            )
-            requests.append(request)
+            # Split group_ids into batches where the sum of times_seen is less than max_rows_to_delete
+            current_batch: list[int] = []
+            current_batch_rows = 0
+
+            # Get times_seen for each group
+            groups = Group.objects.filter(id__in=group_ids).values("id", "times_seen")
+            group_times_seen = {g["id"]: g["times_seen"] for g in groups}
+
+            for group_id in group_ids:
+                times_seen = group_times_seen.get(group_id, 0)
+
+                # If adding this group would exceed the limit, create a request with the current batch
+                if current_batch_rows + times_seen > self.max_rows_to_delete:
+                    requests.append(self.delete_request(project_id, current_batch))
+                    # We now start a new batch
+                    current_batch = [group_id]
+                    current_batch_rows = times_seen
+                else:
+                    current_batch.append(group_id)
+                    current_batch_rows += times_seen
+
+            # Add the final batch if it's not empty
+            if current_batch:
+                requests.append(self.delete_request(project_id, current_batch))
+
         bulk_snuba_queries(requests)
+
+    def delete_request(self, project_id: int, group_ids: Sequence[int]) -> Request:
+        query = DeleteQuery(
+            self.dataset.value,
+            column_conditions={"project_id": [project_id], "group_id": list(group_ids)},
+        )
+        return Request(
+            dataset=self.dataset.value,
+            app_id=self.referrer,
+            query=query,
+            tenant_ids=self.tenant_ids,
+        )
 
 
 class GroupDeletionTask(ModelDeletionTask[Group]):
