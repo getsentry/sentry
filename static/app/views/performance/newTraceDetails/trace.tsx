@@ -425,7 +425,7 @@ export function Trace({
         {trace.indicators.length > 0
           ? trace.indicators.map((indicator, i) => {
               const status =
-                indicator.score === undefined || isNaN(indicator.score)
+                indicator.score === undefined
                   ? 'None'
                   : STATUS_TEXT[scoreToStatus(indicator.score)];
               const vital = indicator.type as WebVitals;

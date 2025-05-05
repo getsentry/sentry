@@ -129,13 +129,21 @@ export function collectTraceMeasurements(
       vital_types.add('mobile');
     }
 
+    const eapScoreRatioKey = `measurements.score.ratio.${measurement}`;
+    const legacyScoreKey = `score.${measurement}`;
+    const legacyScoreWeightKey = `score.weight.${measurement}`;
     const score = isEAPMeasurements(measurements)
-      ? Math.round(measurements[`measurements.score.ratio.${measurement}`]! * 100)
-      : Math.round(
-          (measurements[`score.${measurement}`]?.value! /
-            measurements[`score.weight.${measurement}`]?.value!) *
-            100
-        );
+      ? measurements[eapScoreRatioKey] === undefined
+        ? undefined
+        : Math.round(measurements[eapScoreRatioKey]! * 100)
+      : measurements[legacyScoreKey]?.value !== undefined &&
+          measurements[legacyScoreWeightKey]?.value !== undefined
+        ? Math.round(
+            (measurements[legacyScoreKey]!.value /
+              measurements[legacyScoreWeightKey]!.value) *
+              100
+          )
+        : undefined;
 
     vitals.get(node)!.push({
       key: measurement,
