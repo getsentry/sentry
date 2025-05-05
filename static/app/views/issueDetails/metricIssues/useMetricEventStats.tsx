@@ -50,7 +50,6 @@ interface EventRequestQueryParams {
   topEvents?: number;
   // XXX: This is the literal string 'true', not a boolean
   useOnDemandMetrics?: 'true';
-  useRpc?: '1';
   withoutZerofill?: '1';
   yAxis?: string | string[];
 }
@@ -101,7 +100,6 @@ export function useMetricEventStats(
       environment: ruleEnvironment ? [ruleEnvironment] : undefined,
       query,
       yAxis: aggregate,
-      useRpc: dataset === Dataset.EVENTS_ANALYTICS_PLATFORM ? '1' : undefined,
       referrer,
       sampling: samplingMode,
       ...queryExtras,

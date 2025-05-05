@@ -223,7 +223,6 @@ function getEventsRequest(
     cursor,
     referrer,
     dataset: DiscoverDatasets.SPANS_EAP,
-    useRpc: '1',
     ...queryExtras,
   };
 
@@ -293,8 +292,6 @@ function getSeriesRequest(
     DiscoverDatasets.SPANS_EAP,
     referrer
   );
-
-  requestData.useRpc = true;
 
   // Filtering out all spans with op like 'ui.interaction*' which aren't
   // embedded under transactions. The trace view does not support rendering
