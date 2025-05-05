@@ -50,10 +50,8 @@ import CustomerPlatforms from 'admin/components/customers/customerPlatforms';
 import CustomerPolicies from 'admin/components/customers/customerPolicies';
 import CustomerProjects from 'admin/components/customers/customerProjects';
 import {CustomerStats} from 'admin/components/customers/customerStats';
-import {
-  CustomerStatsFilters,
-  DataType,
-} from 'admin/components/customers/customerStatsFilters';
+import type {DataType} from 'admin/components/customers/customerStatsFilters';
+import {CustomerStatsFilters} from 'admin/components/customers/customerStatsFilters';
 import OrganizationStatus from 'admin/components/customers/organizationStatus';
 import PendingChanges from 'admin/components/customers/pendingChanges';
 import deleteBillingMetricHistory from 'admin/components/deleteBillingMetricHistory';
@@ -166,11 +164,7 @@ export default function CustomerDetails() {
     return null;
   }
 
-  const activeDataType = Object.values(DataType).includes(
-    location.query.dataType as DataType
-  )
-    ? (location.query.dataType as DataType)
-    : DataType.ERRORS;
+  const activeDataType = (location.query.dataType as DataType) ?? 'error';
 
   const userPermissions = ConfigStore.get('user')?.permissions;
 

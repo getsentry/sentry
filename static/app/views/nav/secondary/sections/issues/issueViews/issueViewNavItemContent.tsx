@@ -263,6 +263,7 @@ const StyledSecondaryNavItem = styled(SecondaryNav.Item, {
 })<{hasIssueViewSharing: boolean}>`
   position: relative;
   padding-right: ${space(0.5)};
+  gap: 0;
 
   /* Hide the ellipsis menu if the item is not hovered */
   :not(:hover) {
