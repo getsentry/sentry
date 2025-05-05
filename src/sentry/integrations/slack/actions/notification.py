@@ -34,7 +34,6 @@ from sentry.integrations.slack.utils.channel import SlackChannelIdData, get_chan
 from sentry.integrations.slack.utils.threads import NotificationActionThreadUtils
 from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.issues.grouptype import GroupCategory
-from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.rule import Rule
@@ -306,14 +305,9 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
         open_period_start: datetime | None = None
         if event.group.issue_category == GroupCategory.UPTIME:
-            latest_open_period = get_latest_open_period(event.group)
-            if latest_open_period:
-                open_period_start = latest_open_period.date_started
-                new_notification_message_object.open_period_start = open_period_start
-            else:
-                # Fallback in case we haven't created an open period yet
-                open_period_start = open_period_start_for_group(event.group)
-                new_notification_message_object.open_period_start = open_period_start
+            # Fallback in case we haven't created an open period yet
+            open_period_start = open_period_start_for_group(event.group)
+            new_notification_message_object.open_period_start = open_period_start
         # Get thread timestamp using the provided method and args
         with MessagingInteractionEvent(
             MessagingInteractionType.GET_PARENT_NOTIFICATION, SlackMessagingSpec()
@@ -390,14 +384,8 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             event.group.issue_category == GroupCategory.UPTIME
             or event.group.issue_category == GroupCategory.METRIC_ALERT
         ):
-            latest_open_period = get_latest_open_period(event.group)
-            if latest_open_period:
-                open_period_start = latest_open_period.date_started
-                new_notification_message_object.open_period_start = open_period_start
-            else:
-                # Fallback in case we haven't created an open period yet
-                open_period_start = open_period_start_for_group(event.group)
-                new_notification_message_object.open_period_start = open_period_start
+            open_period_start = open_period_start_for_group(event.group)
+            new_notification_message_object.open_period_start = open_period_start
 
         thread_ts = None
         with MessagingInteractionEvent(
