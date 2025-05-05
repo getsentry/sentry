@@ -109,14 +109,6 @@ const getConfigurationSnippet = (params: Params) => `
   <meta-data android:name="io.sentry.session-replay.on-error-sample-rate" android:value="1.0" />
   <meta-data android:name="io.sentry.session-replay.session-sample-rate" android:value="0.1" />`
       : ''
-  }${
-    params.isReplaySelected
-      ? `
-
-  <!-- record session replays for 100% of errors and 10% of sessions -->
-  <meta-data android:name="io.sentry.session-replay.on-error-sample-rate" android:value="1.0" />
-  <meta-data android:name="io.sentry.session-replay.session-sample-rate" android:value="0.1" />`
-      : ''
   }
 </application>`;
 

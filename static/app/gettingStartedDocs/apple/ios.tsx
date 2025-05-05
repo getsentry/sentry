@@ -104,6 +104,8 @@ func application(_ application: UIApplication,
             : ''
         }
     }
+
+    return true
 }`;
 
 const getConfigurationSnippetSwiftUi = (params: Params) => `

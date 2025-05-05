@@ -293,7 +293,6 @@ export type ProductSelectionProps = {
   disabledProducts?: DisabledProducts;
   /**
    * Fired when the product selection changes
-   *
    */
   onChange?: (products: ProductSolution[]) => void;
   /**
