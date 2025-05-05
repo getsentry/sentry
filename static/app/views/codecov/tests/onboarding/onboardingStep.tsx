@@ -1,0 +1,27 @@
+import styled from '@emotion/styled';
+
+import {space} from 'sentry/styles/space';
+
+const Container = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  padding: ${space(2)} ${space(3)};
+`;
+
+const Header = styled('h5')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  color: ${p => p.theme.gray300};
+`;
+
+const Content = styled('div')`
+  /* flex-grow: 1; */
+`;
+
+export const OnboardingStep = {
+  Container,
+  Header,
+  Content,
+};
