@@ -75,7 +75,12 @@ export function GithubInstallationSelect({installation_info}: GithubInstallation
   return (
     <Fragment>
       <StyledContainer>
-        <StyledHeader>{t('Select a Github Installation')}</StyledHeader>
+        <StyledHeader>{t('Install on an Existing Github Organization')}</StyledHeader>
+        <p>
+          {t(
+            'Sentry found existing integrations on your GitHub organizations. Select from the dropdown if you want to install on an already connected GitHub organization.'
+          )}
+        </p>
         <StyledSelect
           onChange={handleSelect}
           options={selectOptions}
