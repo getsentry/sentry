@@ -1,5 +1,6 @@
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
+from datetime import datetime
 from typing import Any, ClassVar, DefaultDict
 
 from django.contrib.auth.models import AnonymousUser
@@ -92,9 +93,13 @@ class WorkflowEngineIncidentSerializer(Serializer):
 
         return results
 
-    def get_incident_status(self, priority: int | None) -> int:
+    def get_incident_status(self, priority: int | None, date_ended: datetime | None) -> int:
         if priority is None:
             raise ValueError("Priority is required to get an incident status")
+
+        if date_ended:
+            return IncidentStatus.CLOSED.value
+
         return self.priority_to_incident_status[priority]
 
     def get_open_period_activities(
@@ -104,10 +109,12 @@ class WorkflowEngineIncidentSerializer(Serializer):
         # this won't actually work until we start writing to the table for metric issues (or are we planning a backfill? I can't remember)
 
         open_period_activities = []
+        incident_activity_id = "-1"  # temp until I figure out how to store this
         incident_identifier = "-1"  # temp until we add a column
+
         # if we are here we have IncidentActivityType.CREATED and IncidentActivityType.DETECTED so fill those out
         created = {
-            "id": "-1",  # TODO add lookup table to get this info
+            "id": incident_activity_id,
             "incidentIdentifier": incident_identifier,
             "type": IncidentActivityType.CREATED,
             "value": None,
@@ -147,7 +154,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
                     break
 
             status_change = {
-                "id": "-1",
+                "id": incident_activity_id,
                 "incidentIdentifier": incident_identifier,
                 "type": IncidentActivityType.STATUS_CHANGE,
                 "value": activity_status_to_incident_status.get(priority),
@@ -160,12 +167,12 @@ class WorkflowEngineIncidentSerializer(Serializer):
 
         if open_period.resolution_activity:
             resolved = {
-                "id": "-1",
+                "id": incident_activity_id,
                 "incidentIdentifier": incident_identifier,
                 "type": IncidentActivityType.STATUS_CHANGE,
                 "value": IncidentStatus.CLOSED,
-                "previousValue": None,
-                "user": open_period.user,
+                "previousValue": None,  # TODO we should have this info
+                "user": open_period.user_id,
                 "comment": None,
                 "dateCreated": open_period.date_started,
             }
@@ -242,17 +249,18 @@ class WorkflowEngineIncidentSerializer(Serializer):
         date_closed = obj.date_ended.replace(second=0, microsecond=0) if obj.date_ended else None
         return {
             "id": str(incident_group_open_period.incident_id),
-            "identifier": str(
-                obj.id
-            ),  # TODO this isn't the same thing, it's Incident.identifier which we might want to add to IncidentGroupOpenPeriod
+            "identifier": str(obj.id),
+            # TODO this ^ isn't the same thing, it's Incident.identifier which we might want to add to IncidentGroupOpenPeriod
             "organizationId": str(obj.project.organization.id),
             "projects": attrs["projects"],
             "alertRule": attrs["alert_rule"],
             "activities": attrs["activities"] if "activities" in self.expand else None,
-            "status": self.get_incident_status(
-                obj.group.priority
-            ),  # TODO could be closed, need to handle
-            "statusMethod": IncidentStatusMethod.RULE_TRIGGERED.value,  # TODO manual isn't allowed. could be RULE_UPDATED if status is closed
+            "status": self.get_incident_status(obj.group.priority, obj.date_ended),
+            "statusMethod": (
+                IncidentStatusMethod.RULE_TRIGGERED.value
+                if not date_closed
+                else IncidentStatusMethod.RULE_UPDATED.value
+            ),
             "type": IncidentType.ALERT_TRIGGERED.value,  # IncidentType.Detected isn't used anymore
             "title": obj.group.title,
             "dateStarted": obj.date_started,
@@ -266,19 +274,14 @@ class WorkflowEngineDetailedIncidentSerializer(WorkflowEngineIncidentSerializer)
     def __init__(self, expand=None):
         if expand is None:
             expand = []
-        if "original_alert_rule" not in expand:
-            expand.append("original_alert_rule")
-            # this gets propogated to the detectorserializer but we don't use it since it's for snapshots, might just remove
         super().__init__(expand=expand)
 
     def serialize(self, obj, attrs, user, **kwargs) -> DetailedIncidentSerializerResponse:
         base_context = super().serialize(obj, attrs, user)
         # The query we should use to get accurate results in Discover.
-        context = DetailedIncidentSerializerResponse(
+        return DetailedIncidentSerializerResponse(
             **base_context, discoverQuery=self._build_discover_query(obj)
         )
-
-        return context
 
     def _build_discover_query(self, open_period: GroupOpenPeriod) -> str:
         detector = self.get_open_periods_to_detectors([open_period])[open_period]
