@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconMegaphone} from 'sentry/icons';
 import {IconInfo} from 'sentry/icons/iconInfo';
@@ -14,14 +15,23 @@ import {MarkedText} from 'sentry/utils/marked/markedText';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {TraceContextSectionKeys} from 'sentry/views/performance/newTraceDetails/traceHeader/scrollToSectionLinks';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+
+export interface SpanInsight {
+  explanation: string;
+  span_id: string;
+  span_op: string;
+}
 
 export interface TraceSummaryData {
+  anomalousSpans: SpanInsight[];
   keyObservations: string;
   performanceCharacteristics: string;
-  suggestedInvestigations: string;
+  suggestedInvestigations: SpanInsight[];
   summary: string;
   traceId: string;
 }
@@ -70,7 +80,7 @@ export function TraceSummarySection({traceSlug}: {traceSlug: string}) {
       type={TraceContextSectionKeys.SUMMARY}
       title={
         <TitleWrapper>
-          {t('Trace Summary')}
+          {t('Trace Insights')}
           <FeatureBadge type="alpha" />
         </TitleWrapper>
       }
@@ -91,6 +101,8 @@ const TitleWrapper = styled('div')`
 function TraceSummaryContent({traceSlug}: {traceSlug: string}) {
   const traceContent = useTraceSummary(traceSlug);
   const openFeedbackForm = useFeedbackForm();
+  const organization = useOrganization();
+  const location = useLocation();
 
   if (traceContent.isPending) {
     return <LoadingIndicator />;
@@ -122,6 +134,8 @@ function TraceSummaryContent({traceSlug}: {traceSlug: string}) {
       </ErrorContainer>
     );
   }
+
+  const investigations = traceContent.data?.suggestedInvestigations ?? [];
 
   return (
     <SummaryContainer>
@@ -155,7 +169,30 @@ function TraceSummaryContent({traceSlug}: {traceSlug: string}) {
         </StyledIcon>
         <SectionTitle>Suggested Investigations</SectionTitle>
       </SectionTitleWrapper>
-      <SectionContent text={traceContent.data?.suggestedInvestigations ?? ''} />
+
+      {investigations.length > 0 ? (
+        <ul style={{margin: 0, paddingLeft: 20}}>
+          {investigations.map((span, idx) => (
+            <li key={span.spanId || idx} style={{marginBottom: 8}}>
+              <Link
+                to={getTraceDetailsUrl({
+                  organization,
+                  traceSlug,
+                  location,
+                  spanId: span.spanId,
+                  dateSelection: {},
+                })}
+                style={{fontWeight: 600, marginRight: 6}}
+              >
+                {span.spanOp}
+              </Link>
+              - {span.explanation}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <SectionContent text={''} />
+      )}
 
       {openFeedbackForm && (
         <FeedbackButtonContainer>
