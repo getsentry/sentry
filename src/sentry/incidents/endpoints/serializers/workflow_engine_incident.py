@@ -250,7 +250,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
         date_closed = obj.date_ended.replace(second=0, microsecond=0) if obj.date_ended else None
         return {
             "id": str(incident_group_open_period.incident_id),
-            "identifier": str(obj.id),
+            "identifier": "-1",
             # TODO this ^ isn't the same thing, it's Incident.identifier which we need to add to IncidentGroupOpenPeriod
             "organizationId": str(obj.project.organization.id),
             "projects": attrs["projects"],
@@ -293,7 +293,7 @@ class WorkflowEngineDetailedIncidentSerializer(WorkflowEngineIncidentSerializer)
 
         try:
             query_subscription = QuerySubscription.objects.get(
-                id=data_source_detector.detector.data_source.source_id
+                id=data_source_detector.detector.data_sources.all()[0].source_id
             )
         except QuerySubscription.DoesNotExist:
             return ""
