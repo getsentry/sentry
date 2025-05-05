@@ -72,7 +72,6 @@ export const EventDrawerBody = styled(DrawerBody)`
   display: flex;
   gap: ${space(2)};
   flex-direction: column;
-  height: fit-content; /* makes drawer resize work better with flex */
   direction: rtl;
   * {
     direction: ltr;

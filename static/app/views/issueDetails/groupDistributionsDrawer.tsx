@@ -30,26 +30,24 @@ export function GroupDistributionsDrawer({group, includeFeatureFlagsTab}: Props)
   return (
     <AnalyticsArea name="distributions_drawer">
       <EventDrawerContainer>
-        <EventDrawerContainer>
-          <EventDrawerHeader>
-            <GroupDistributionCrumbs project={project} group={group} tab={tab} />
-          </EventDrawerHeader>
-          {tab === DrawerTab.TAGS ? (
-            <TagsDistributionDrawer
-              organization={organization}
-              group={group}
-              project={project}
-              setTab={setTab}
-              includeFeatureFlagsTab={includeFeatureFlagsTab}
-            />
-          ) : (
-            <FlagsDistributionDrawer
-              organization={organization}
-              group={group}
-              setTab={setTab}
-            />
-          )}
-        </EventDrawerContainer>
+        <EventDrawerHeader>
+          <GroupDistributionCrumbs project={project} group={group} tab={tab} />
+        </EventDrawerHeader>
+        {tab === DrawerTab.TAGS ? (
+          <TagsDistributionDrawer
+            organization={organization}
+            group={group}
+            project={project}
+            setTab={setTab}
+            includeFeatureFlagsTab={includeFeatureFlagsTab}
+          />
+        ) : (
+          <FlagsDistributionDrawer
+            organization={organization}
+            group={group}
+            setTab={setTab}
+          />
+        )}
       </EventDrawerContainer>
     </AnalyticsArea>
   );
