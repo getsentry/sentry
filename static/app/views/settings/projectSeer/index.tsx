@@ -22,11 +22,11 @@ interface ProjectSeerProps {
 
 const THRESHOLD_MAP = ['off', 'low', 'medium', 'high'];
 
-const autofixThresholdField: FieldObject = {
-  name: 'autofixAutorunThreshold',
-  label: t('Autorun Autofix Confidence Threshold'),
+const autofixAutomatingTuningField: FieldObject = {
+  name: 'autofixAutomationTuning',
+  label: t('Autofix Automation Tuning'),
   help: t(
-    'Set the minimum confidence level required for Autofix to automatically run on new issues.'
+    "Choose how proactively Autofix attempts automatic fixes. 'Low' targets only issues deemed most likely to be successfully fixed."
   ),
   type: 'range',
   min: 0,
@@ -55,12 +55,13 @@ const autofixThresholdField: FieldObject = {
   },
   saveOnBlur: true,
   showTickLabels: true,
+  saveMessage: t('Autofix automation tuning updated'),
 };
 
 const seerFormGroups: JsonFormObject[] = [
   {
     title: t('General'),
-    fields: [autofixThresholdField],
+    fields: [autofixAutomatingTuningField],
   },
 ];
 
@@ -88,8 +89,8 @@ function ProjectSeerGeneralForm({project}: ProjectSeerProps) {
       apiEndpoint={`/projects/${organization.slug}/${project.slug}/`}
       allowUndo
       initialData={{
-        autofixAutorunThreshold: THRESHOLD_MAP.indexOf(
-          project.autofixAutorunThreshold ?? 'off'
+        autofixAutomationTuning: THRESHOLD_MAP.indexOf(
+          project.autofixAutomationTuning ?? 'off'
         ),
       }}
       onSubmitSuccess={handleSubmitSuccess}

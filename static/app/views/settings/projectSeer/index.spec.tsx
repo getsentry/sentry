@@ -248,9 +248,9 @@ describe('ProjectSeer', function () {
   });
 
   it('can update the autofix autorun threshold slider', async function () {
-    const initialProject = {
+    const initialProject: Project = {
       ...project,
-      autofixAutorunThreshold: 'medium', // Start from medium
+      autofixAutomationTuning: 'medium', // Start from medium
     };
 
     MockApiClient.addMockResponse({
@@ -268,7 +268,7 @@ describe('ProjectSeer', function () {
     render(<ProjectSeer project={initialProject} />, {organization});
 
     const slider = await screen.findByRole('slider', {
-      name: /Autofix Autorun Confidence Threshold/i,
+      name: /Autofix Automation Tuning/i,
     });
 
     act(() => {
@@ -284,7 +284,7 @@ describe('ProjectSeer', function () {
     await waitFor(() => {
       expect(projectPutRequest).toHaveBeenCalledWith(
         expect.any(String),
-        expect.objectContaining({data: {autofixAutorunThreshold: 'high'}})
+        expect.objectContaining({data: {autofixAutomationTuning: 'high'}})
       );
     });
   });
