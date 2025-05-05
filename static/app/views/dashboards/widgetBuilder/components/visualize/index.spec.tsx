@@ -22,7 +22,7 @@ describe('Visualize', () => {
 
   beforeEach(() => {
     organization = OrganizationFixture({
-      features: ['dashboards-widget-builder-redesign', 'performance-view'],
+      features: ['performance-view'],
     });
 
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});

@@ -151,11 +151,7 @@ function AddToDashboardModal({
         ? `/organizations/${organization.slug}/dashboards/new/`
         : `/organizations/${organization.slug}/dashboard/${selectedDashboardId}/`;
 
-    const builderSuffix = organization.features.includes(
-      'dashboards-widget-builder-redesign'
-    )
-      ? 'widget-builder/widget/new/'
-      : 'widget/new/';
+    const builderSuffix = 'widget-builder/widget/new/';
 
     const pathname =
       page === 'builder' ? `${dashboardsPath}${builderSuffix}` : dashboardsPath;
