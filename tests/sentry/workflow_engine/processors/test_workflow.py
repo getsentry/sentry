@@ -154,7 +154,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
 
         process_workflows(self.event_data)
 
-        mock_filter.assert_called_with({workflow_filters: workflow}, self.event_data)
+        mock_filter.assert_called_with({workflow_filters: workflow.id}, self.event_data)
 
     def test_same_environment_only(self):
         env = self.create_environment(project=self.project)

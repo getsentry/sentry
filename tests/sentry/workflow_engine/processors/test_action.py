@@ -39,7 +39,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         status_2 = ActionGroupStatus.objects.create(action=action, group=self.group)
 
         triggered_actions = filter_recently_fired_workflow_actions(
-            {self.action_group: self.workflow}, self.event_data
+            {self.action_group: self.workflow.id}, self.event_data
         )
         assert triggered_actions == {(self.action, self.workflow.id)}
 
@@ -62,9 +62,9 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
 
         triggered_actions = filter_recently_fired_workflow_actions(
             {
-                self.action_group: self.workflow,
-                action_group_2: workflow,
-                action_group_3: workflow,
+                self.action_group: self.workflow.id,
+                action_group_2: workflow.id,
+                action_group_3: workflow.id,
             },
             self.event_data,
         )
