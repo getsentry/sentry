@@ -214,8 +214,8 @@ export function PagesTable({
           columnSortBy={[]}
           stickyHeader
           grid={{
-            renderHeadCell: renderHeadCell as any,
-            renderBodyCell: renderBodyCell as any,
+            renderHeadCell,
+            renderBodyCell,
           }}
         />
       </GridEditableContainer>
