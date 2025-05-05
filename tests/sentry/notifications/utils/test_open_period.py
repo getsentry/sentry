@@ -8,7 +8,6 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.types.activity import ActivityType
 
 
-@freeze_time("2025-01-01 00:00:00")
 class OpenPeriodTestCase(TestCase):
     def setUp(self):
         self.group = self.create_group()
@@ -72,8 +71,10 @@ class OpenPeriodTestCase(TestCase):
         assert start is not None
         assert start == second_activity.datetime
 
+    @freeze_time("2025-01-01 00:00:00")
     def test_uptime_group_returns_latest_open_period(self) -> None:
         """Test that an uptime group returns the latest open period"""
-        start = open_period_start_for_group(self.group)
+        group = self.create_group()
+        start = open_period_start_for_group(group)
         assert start is not None
         assert str(start) == "2025-01-01 00:00:00+00:00"
