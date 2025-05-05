@@ -410,9 +410,7 @@ class TestEvaluate(BaseDetectorHandlerTest):
                 event_data=event_data,
             )
         }
-        handler.commit_state_updates()
         assert handler.evaluate(DataPacket("1", {"dedupe": 3, "group_vals": {"val1": 6}})) == {}
-        handler.commit_state_updates()
         assert handler.evaluate(DataPacket("1", {"dedupe": 4, "group_vals": {"val1": 0}})) == {
             "val1": DetectorEvaluationResult(
                 group_key="val1",
@@ -471,7 +469,6 @@ class TestEvaluate(BaseDetectorHandlerTest):
             )
         }
         self.assert_updates(handler, "val1", 2, {}, True, DetectorPriorityLevel.HIGH)
-        handler.commit_state_updates()
         # This detector is already triggered, so no status change occurred. Should be no result
         assert handler.evaluate(DataPacket("1", {"dedupe": 3, "group_vals": {"val1": 200}})) == {}
 
@@ -505,7 +502,6 @@ class TestEvaluate(BaseDetectorHandlerTest):
             )
         }
         self.assert_updates(handler, "val1", 2, {}, True, DetectorPriorityLevel.HIGH)
-        handler.commit_state_updates()
         with mock.patch(
             "sentry.workflow_engine.handlers.detector.stateful.metrics"
         ) as mock_metrics:
