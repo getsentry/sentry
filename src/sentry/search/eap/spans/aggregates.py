@@ -402,6 +402,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
+                    "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -435,6 +436,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
+                    "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -466,6 +468,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
+                    "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -481,6 +484,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
+                    "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -496,6 +500,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
+                    "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -511,6 +516,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
+                    "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -526,6 +532,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
+                    "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -652,6 +659,7 @@ LOG_AGGREGATE_DEFINITIONS = {
                     "duration",
                     "number",
                     "integer",
+                    "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -667,6 +675,7 @@ LOG_AGGREGATE_DEFINITIONS = {
                     "duration",
                     "number",
                     "integer",
+                    "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -682,6 +691,7 @@ LOG_AGGREGATE_DEFINITIONS = {
                     "duration",
                     "number",
                     "integer",
+                    "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -697,6 +707,7 @@ LOG_AGGREGATE_DEFINITIONS = {
                     "duration",
                     "number",
                     "integer",
+                    "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -712,6 +723,7 @@ LOG_AGGREGATE_DEFINITIONS = {
                     "duration",
                     "number",
                     "integer",
+                    "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
