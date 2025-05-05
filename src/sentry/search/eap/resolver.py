@@ -6,6 +6,9 @@ from typing import Any, Literal, cast
 
 import sentry_sdk
 from parsimonious.exceptions import ParseError
+from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
+    AttributeConditionalAggregation,
+)
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     AggregationAndFilter,
     AggregationComparisonFilter,
@@ -586,8 +589,11 @@ class SearchResolver:
         self, term: event_search.AggregateFilter
     ) -> tuple[AggregationFilter, VirtualColumnDefinition | None]:
         resolved_column, context = self.resolve_column(term.key.name)
+        proto_definition = resolved_column.proto_definition
 
-        if not isinstance(resolved_column.proto_definition, AttributeAggregation):
+        if not isinstance(
+            proto_definition, (AttributeAggregation, AttributeConditionalAggregation)
+        ):
             raise ValueError(f"{term.key.name} is not valid search term")
 
         # TODO: Handle different units properly
@@ -598,10 +604,22 @@ class SearchResolver:
         else:
             raise InvalidSearchQuery(f"Unknown operator: {term.operator}")
 
+        if isinstance(proto_definition, AttributeConditionalAggregation):
+            return (
+                AggregationFilter(
+                    comparison_filter=AggregationComparisonFilter(
+                        conditional_aggregation=proto_definition,
+                        op=operator,
+                        val=value,
+                    ),
+                ),
+                context,
+            )
+
         return (
             AggregationFilter(
                 comparison_filter=AggregationComparisonFilter(
-                    aggregation=resolved_column.proto_definition,
+                    aggregation=proto_definition,
                     op=operator,
                     val=value,
                 ),
