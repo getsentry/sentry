@@ -5,11 +5,11 @@ import AnalyticsArea from 'sentry/components/analyticsArea';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import FeatureFlagInlineCTA from 'sentry/components/events/featureFlags/cta/featureFlagInlineCTA';
 import {
   CardContainer,
-  FeatureFlagDrawer,
-} from 'sentry/components/events/featureFlags/featureFlagDrawer';
-import FeatureFlagInlineCTA from 'sentry/components/events/featureFlags/featureFlagInlineCTA';
+  EventFeatureFlagDrawer,
+} from 'sentry/components/events/featureFlags/eventFeatureFlagDrawer';
 import FeatureFlagSettingsButton from 'sentry/components/events/featureFlags/featureFlagSettingsButton';
 import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
 import {
@@ -39,7 +39,7 @@ import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-export function EventFeatureFlagList(props: EventFeatureFlagListProps) {
+export function EventFeatureFlagSection(props: EventFeatureFlagSectionProps) {
   return (
     <AnalyticsArea name="event_feature_flag_list">
       <BaseEventFeatureFlagList {...props} />
@@ -47,13 +47,13 @@ export function EventFeatureFlagList(props: EventFeatureFlagListProps) {
   );
 }
 
-type EventFeatureFlagListProps = {
+type EventFeatureFlagSectionProps = {
   event: Event;
   group: Group;
   project: Project;
 };
 
-function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagListProps) {
+function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSectionProps) {
   const openForm = useFeedbackForm();
   const feedbackButton = openForm ? (
     <Button
@@ -183,7 +183,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagListP
       });
       openDrawer(
         () => (
-          <FeatureFlagDrawer
+          <EventFeatureFlagDrawer
             group={group}
             event={event}
             project={project}
