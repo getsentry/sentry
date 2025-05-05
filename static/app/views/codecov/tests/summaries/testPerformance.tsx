@@ -20,12 +20,8 @@ function FlakyTestsTooltip() {
   return (
     <Fragment>
       <p>
-        <ToolTipTitle>Impact:</ToolTipTitle>
-        The number of flaky tests in your test suite.
-      </p>
-      <p>
         <ToolTipTitle>What is it:</ToolTipTitle>
-        The total number of flaky tests in your test suite.
+        The number of tests that transition from fail to pass or pass to fail.
       </p>
     </Fragment>
   );
@@ -65,10 +61,6 @@ function CumulativeFailuresTooltip() {
 function SkippedTestsTooltip() {
   return (
     <Fragment>
-      <p>
-        <ToolTipTitle>Impact:</ToolTipTitle>
-        The number of skipped tests in your test suite.
-      </p>
       <p>
         <ToolTipTitle>What is it:</ToolTipTitle>
         The number of tests that were skipped.
