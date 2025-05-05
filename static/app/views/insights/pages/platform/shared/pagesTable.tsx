@@ -288,8 +288,8 @@ const BodyCell = memo(function PagesBodyCell({
           }}
           dataRow={dataRow as any}
           allowActions={[Actions.ADD]}
-          handleCellAction={(_action, value) => {
-            handleAddTransactionFilter(value as string);
+          handleCellAction={() => {
+            handleAddTransactionFilter(dataRow.page);
           }}
         >
           <CellLink to={target}>
