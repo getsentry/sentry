@@ -16,6 +16,9 @@ const outfile = path.join(workspaceRoot, 'config/chartcuterie/config.js');
 /**
  * Reads package.json, modifies the sideEffects property, and writes it back.
  * Returns the original content of package.json before modification.
+ *
+ * We don't need side effects because we're only interested in the config being exported.
+ * Allowing side effects would mean keeping more files in the bundle.
  */
 async function modifyPackageJsonSideEffects(): Promise<string> {
   const originalContent = await fs.readFile(packageJsonPath, 'utf-8');
