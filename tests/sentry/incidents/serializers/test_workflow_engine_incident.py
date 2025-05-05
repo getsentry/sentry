@@ -23,14 +23,14 @@ class TestDetectorSerializer(TestWorklowEngineSerializer):
         super().setUp()
         self.add_warning_trigger()
         self.add_incident_data()
-        self.expected_activities = None
+        self.incident_identifier = "-1"  # temp and wrong
         self.incident_expected = {
             "id": str(self.incident_group_open_period.incident_id),
-            "identifier": str(self.group_open_period.id),  # temp and wrong
+            "identifier": self.incident_identifier,
             "organizationId": str(self.group_open_period.project.organization_id),
             "projects": [self.project.slug],
             "alertRule": self.expected,
-            "activities": self.expected_activities,
+            "activities": None,
             "status": IncidentStatus.CRITICAL.value,
             "statusMethod": IncidentStatusMethod.RULE_TRIGGERED.value,
             "type": IncidentType.ALERT_TRIGGERED.value,
@@ -53,12 +53,11 @@ class TestDetectorSerializer(TestWorklowEngineSerializer):
 
     def test_activity(self) -> None:
         incident_activity_id = "-1"  # temp and wrong
-        incident_identifier = "-1"  # temp and wrong
 
         open_period_activities = []
         created = {
             "id": incident_activity_id,
-            "incidentIdentifier": incident_identifier,
+            "incidentIdentifier": self.incident_identifier,
             "type": IncidentActivityType.CREATED,
             "value": None,
             "previousValue": None,
@@ -73,7 +72,7 @@ class TestDetectorSerializer(TestWorklowEngineSerializer):
 
         updated_warning = {
             "id": incident_activity_id,
-            "incidentIdentifier": incident_identifier,
+            "incidentIdentifier": self.incident_identifier,
             "type": IncidentActivityType.STATUS_CHANGE,
             "value": IncidentStatus.WARNING,
             "previousValue": None,
@@ -105,7 +104,7 @@ class TestDetectorSerializer(TestWorklowEngineSerializer):
         )
         updated_critical = {
             "id": incident_activity_id,
-            "incidentIdentifier": incident_identifier,
+            "incidentIdentifier": self.incident_identifier,
             "type": IncidentActivityType.STATUS_CHANGE,
             "value": IncidentStatus.CRITICAL,
             "previousValue": IncidentStatus.WARNING,
@@ -142,7 +141,7 @@ class TestDetectorSerializer(TestWorklowEngineSerializer):
 
         resolved = {
             "id": incident_activity_id,
-            "incidentIdentifier": incident_identifier,
+            "incidentIdentifier": self.incident_identifier,
             "type": IncidentActivityType.STATUS_CHANGE,
             "value": IncidentStatus.CLOSED,
             "previousValue": IncidentStatus.CRITICAL,

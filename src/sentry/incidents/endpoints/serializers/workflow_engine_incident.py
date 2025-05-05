@@ -105,14 +105,14 @@ class WorkflowEngineIncidentSerializer(Serializer):
     def get_open_period_activities(
         self, open_period: GroupOpenPeriod
     ) -> list[IncidentActivitySerializerResponse]:
-        # an incident will be 1:1 with open periods, but there can be multiple open periods per metric issue
-        # this won't actually work until we start writing to the table for metric issues (or are we planning a backfill? I can't remember)
+        # XXX: an incident will be 1:1 with open periods, but there can be multiple open periods per metric issue
+        # XXX: this won't actually work until we start writing to the table for metric issues (or are we planning a backfill?)
 
         open_period_activities = []
-        incident_activity_id = "-1"  # temp until I figure out how to store this
+        incident_activity_id = "-1"  # temp until we add lookup table
         incident_identifier = "-1"  # temp until we add a column
 
-        # if we are here we have IncidentActivityType.CREATED and IncidentActivityType.DETECTED so fill those out
+        # if we are here we have both IncidentActivityType.CREATED and IncidentActivityType.DETECTED
         created = {
             "id": incident_activity_id,
             "incidentIdentifier": incident_identifier,
@@ -128,7 +128,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
         open_period_activities.append(created)
         open_period_activities.append(detected)
 
-        # look up Activity rows for other status changes (warning / critical)
+        # look up Activity rows for other status changes (warning, critical, and resolved)
         activity_status_to_incident_status = {
             "high": IncidentStatus.CRITICAL,
             "medium": IncidentStatus.WARNING,
@@ -251,7 +251,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
         return {
             "id": str(incident_group_open_period.incident_id),
             "identifier": str(obj.id),
-            # TODO this ^ isn't the same thing, it's Incident.identifier which we might want to add to IncidentGroupOpenPeriod
+            # TODO this ^ isn't the same thing, it's Incident.identifier which we need to add to IncidentGroupOpenPeriod
             "organizationId": str(obj.project.organization.id),
             "projects": attrs["projects"],
             "alertRule": attrs["alert_rule"],
