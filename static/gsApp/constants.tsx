@@ -165,4 +165,20 @@ export const BILLED_DATA_CATEGORY_INFO = {
     freeEventsMultiple: 1, // in hours
     feature: null,
   },
+  [DataCategoryExact.SEER_AUTOFIX]: {
+    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SEER_AUTOFIX],
+    canAllocate: false,
+    canProductTrial: true,
+    maxAdminGift: 0,
+    freeEventsMultiple: 0,
+    feature: 'track-seer-outcomes',
+  },
+  [DataCategoryExact.SEER_SCANNER]: {
+    ...DEFAULT_BILLED_DATA_CATEGORY_INFO[DataCategoryExact.SEER_SCANNER],
+    canAllocate: false,
+    canProductTrial: true,
+    maxAdminGift: 0,
+    freeEventsMultiple: 0,
+    feature: 'track-seer-outcomes',
+  },
 } as const satisfies Record<DataCategoryExact, BilledDataCategoryInfo>;
