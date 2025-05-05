@@ -101,7 +101,7 @@ export function SpanOperationTable({
     // Exclude this span because we can get TTID contributing spans instead
     '!span.description:"Initial Frame Render"',
     'has:span.description',
-    useEap ? 'span.op:ui.load' : 'transaction.op:ui.load',
+    'transaction.op:ui.load',
     `transaction:${transaction}`,
     useEap ? 'has:measurements.time_to_initial_display' : 'has:ttid',
     `${SpanMetricsField.APP_START_TYPE}:${
