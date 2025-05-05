@@ -13,7 +13,6 @@ import {
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
-import type {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import PlatformPicker, {
   type Category,
   type Platform,
@@ -153,10 +152,7 @@ export default function ProjectCreationModal({
       {step === 1 && (
         <Fragment>
           <Subtitle>{t('Set your alert frequency')}</Subtitle>
-          <IssueAlertOptions
-            platformLanguage={platform?.language as SupportedLanguages}
-            onChange={updatedData => setAlertRuleConfig(updatedData)}
-          />
+          <IssueAlertOptions onChange={updatedData => setAlertRuleConfig(updatedData)} />
           <Subtitle>{t('Name your project and assign it a team')}</Subtitle>
           <ProjectNameTeamSection>
             <div>
