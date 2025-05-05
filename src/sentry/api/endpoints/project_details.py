@@ -588,20 +588,15 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         serializer = serializer_cls(
             data=request.data, partial=True, context={"project": project, "request": request}
         )
-        # Use raise_exception=True for standard DRF error handling
-        try:
-            serializer.is_valid(raise_exception=True)
-        except serializers.ValidationError as e:
-            # logger.warning("Validation failed: %s", e.detail)
-            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
-
-        result = serializer.validated_data  # Now safe to access
+        result = serializer.validated_data
 
         if result.get("dynamicSamplingBiases") and not (has_dynamic_sampling(project.organization)):
             return Response(
                 {"detail": "dynamicSamplingBiases is not a valid field"},
                 status=403,
             )
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
 
         if not has_elevated_scopes:
             for key in ProjectAdminSerializer().fields.keys():
