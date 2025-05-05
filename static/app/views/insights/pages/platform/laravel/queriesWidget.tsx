@@ -74,7 +74,6 @@ export function QueriesWidget({query, releases}: {query?: string; releases?: Rel
           query: `span.group:[${queriesRequest.data?.map(item => `"${item['span.group']}"`).join(',')}]`,
           sort: '-avg(span.duration)',
           topEvents: 3,
-          useRpc: 1,
         },
       },
     ],
