@@ -173,18 +173,12 @@ export function NewTraceView({replay}: {replay: undefined | ReplayRecord}) {
       initialPreferences={preferences}
       preferencesStorageKey={REPLAY_TRACE_WATERFALL_PREFERENCES_KEY}
     >
-      <NewTraceViewImpl replay={replay} preferences={preferences} />
+      <NewTraceViewImpl replay={replay} />
     </TraceStateProvider>
   );
 }
 
-function NewTraceViewImpl({
-  replay,
-  preferences,
-}: {
-  preferences: TracePreferencesState;
-  replay: undefined | ReplayRecord;
-}) {
+function NewTraceViewImpl({replay}: {replay: undefined | ReplayRecord}) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const {eventView, indexComplete, indexError, replayTraces} = useReplayTraces({
@@ -255,7 +249,6 @@ function NewTraceViewImpl({
   return (
     <TraceViewWaterfallWrapper>
       <TraceWaterfall
-        preferences={preferences}
         traceSlug={firstTrace.traceSlug}
         trace={trace}
         tree={tree}

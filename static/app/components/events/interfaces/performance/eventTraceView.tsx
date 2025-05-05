@@ -58,16 +58,10 @@ const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
 interface EventTraceViewInnerProps {
   event: Event;
   organization: Organization;
-  preferences: TracePreferencesState;
   traceId: string;
 }
 
-function EventTraceViewInner({
-  event,
-  organization,
-  traceId,
-  preferences,
-}: EventTraceViewInnerProps) {
+function EventTraceViewInner({event, organization, traceId}: EventTraceViewInnerProps) {
   const timestamp = new Date(event.dateReceived).getTime() / 1e3;
 
   const trace = useTrace({
@@ -98,7 +92,6 @@ function EventTraceViewInner({
   return (
     <IssuesTraceContainer>
       <IssuesTraceWaterfall
-        preferences={preferences}
         tree={tree}
         trace={trace}
         traceSlug={traceId}
@@ -207,7 +200,6 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
             event={event}
             organization={organization}
             traceId={traceId}
-            preferences={preferences}
           />
         </TraceStateProvider>
       )}

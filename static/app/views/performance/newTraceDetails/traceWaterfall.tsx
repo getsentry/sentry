@@ -37,7 +37,6 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {useDividerResizeSync} from 'sentry/views/performance/newTraceDetails/useDividerResizeSync';
 import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/useTraceSpaceListeners';
 import type {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
@@ -95,7 +94,6 @@ const TRACE_TAB: TraceReducerState['tabs']['tabs'][0] = {
 export interface TraceWaterfallProps {
   meta: TraceMetaQueryResults;
   organization: Organization;
-  preferences: TracePreferencesState;
   replay: ReplayRecord | null;
   rootEventResults: TraceRootEventQueryResults;
   source: string;
@@ -710,7 +708,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   ]);
 
   const [height, setHeight] = useState(
-    clampHeight(props.preferences.drawer.sizes['trace grid height'])
+    clampHeight(traceState.preferences.drawer.sizes['trace grid height'])
   );
 
   const handleMouseDown = useCallback(

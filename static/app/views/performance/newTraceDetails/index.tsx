@@ -22,7 +22,6 @@ import {useTraceTree} from './traceApi/useTraceTree';
 import {
   DEFAULT_TRACE_VIEW_PREFERENCES,
   getInitialTracePreferences,
-  TracePreferencesState,
 } from './traceState/tracePreferences';
 import {TraceStateProvider} from './traceState/traceStateProvider';
 import {TraceMetaDataHeader} from './traceHeader';
@@ -63,19 +62,13 @@ export function TraceView() {
         initialPreferences={preferences}
         preferencesStorageKey={TRACE_VIEW_PREFERENCES_KEY}
       >
-        <TraceViewImpl traceSlug={traceSlug} preferences={preferences} />
+        <TraceViewImpl traceSlug={traceSlug} />
       </TraceStateProvider>
     </TraceViewLogsDataProvider>
   );
 }
 
-function TraceViewImpl({
-  traceSlug,
-  preferences,
-}: {
-  preferences: TracePreferencesState;
-  traceSlug: string;
-}) {
+function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   const organization = useOrganization();
   const queryParams = useTraceQueryParams();
   const traceEventView = useTraceEventView(traceSlug, queryParams);
@@ -117,7 +110,6 @@ function TraceViewImpl({
             />
             <TraceInnerLayout>
               <TraceWaterfall
-                preferences={preferences}
                 tree={tree}
                 trace={trace}
                 meta={meta}
