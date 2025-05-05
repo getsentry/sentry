@@ -75,6 +75,7 @@ class DetectorOccurrence:
 
 @dataclasses.dataclass(frozen=True)
 class DetectorEvaluationResult:
+    # TODO - Should group key live at this level?
     group_key: DetectorGroupKey
     # TODO: Are these actually necessary? We're going to produce the occurrence in the detector, so we probably don't
     # need to know the other results externally
@@ -84,22 +85,6 @@ class DetectorEvaluationResult:
     result: IssueOccurrence | StatusChangeMessage | None = None
     # Event data to supplement the `IssueOccurrence`, if passed.
     event_data: dict[str, Any] | None = None
-
-
-@dataclasses.dataclass(frozen=True)
-class DetectorStateData:
-    group_key: DetectorGroupKey
-    is_triggered: bool
-    status: DetectorPriorityLevel
-    # Stateful detectors always process data packets in order. Once we confirm that a data packet has been fully
-    # processed and all workflows have been done, this value will be used by the stateful detector to prevent
-    # reprocessing
-    dedupe_value: int
-    # Stateful detectors allow various counts to be tracked. We need to update these after we process workflows, so
-    # include the updates in the state.
-    # This dictionary is in the format {counter_name: counter_value, ...}
-    # If a counter value is `None` it means to unset the value
-    counter_updates: dict[str, int | None]
 
 
 class DetectorHandler(abc.ABC, Generic[PacketT]):

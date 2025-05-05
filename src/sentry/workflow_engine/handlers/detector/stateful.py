@@ -1,4 +1,5 @@
 import abc
+import dataclasses
 from datetime import UTC, datetime, timedelta
 from typing import Any, Generic, TypeVar
 from uuid import uuid4
@@ -17,7 +18,6 @@ from sentry.workflow_engine.handlers.detector.base import (
     DetectorEvaluationResult,
     DetectorHandler,
     DetectorOccurrence,
-    DetectorStateData,
 )
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
@@ -32,6 +32,22 @@ REDIS_TTL = int(timedelta(days=7).total_seconds())
 def get_redis_client() -> RetryingRedisCluster:
     cluster_key = settings.SENTRY_WORKFLOW_ENGINE_REDIS_CLUSTER
     return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
+
+
+@dataclasses.dataclass(frozen=True)
+class DetectorStateData:
+    group_key: DetectorGroupKey
+    is_triggered: bool
+    status: DetectorPriorityLevel
+    # Stateful detectors always process data packets in order. Once we confirm that a data packet has been fully
+    # processed and all workflows have been done, this value will be used by the stateful detector to prevent
+    # reprocessing
+    dedupe_value: int
+    # Stateful detectors allow various counts to be tracked. We need to update these after we process workflows, so
+    # include the updates in the state.
+    # This dictionary is in the format {counter_name: counter_value, ...}
+    # If a counter value is `None` it means to unset the value
+    counter_updates: dict[str, int | None]
 
 
 class StatefulGroupingDetectorHandler(
