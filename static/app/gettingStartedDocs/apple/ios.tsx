@@ -90,8 +90,8 @@ func application(_ application: UIApplication,
         // Configure the profiler to start profiling when there is an active root span
         // For more information, visit: https://docs.sentry.io/platforms/apple/profiling/
         options.configureProfiling = {
-          $0.lifecycle = .trace
-          $0.sessionSampleRate = 1.0
+            $0.lifecycle = .trace
+            $0.sessionSampleRate = 1.0
         }`
               : ''
         }${
@@ -143,8 +143,8 @@ struct SwiftUIApp: App {
             // Configure the profiler to start profiling when there is an active root span
             // For more information, visit: https://docs.sentry.io/platforms/apple/profiling/
             options.configureProfiling = {
-              $0.lifecycle = .trace
-              $0.sessionSampleRate = 1.0
+                $0.lifecycle = .trace
+                $0.sessionSampleRate = 1.0
             }`
                   : ''
             }${
