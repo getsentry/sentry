@@ -1,9 +1,6 @@
-from dataclasses import dataclass
-
 from django.db.models import Count
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
-from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -22,6 +19,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams, WorkflowParams
 from sentry.workflow_engine.endpoints.serializers import WorkflowSerializer
+from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.models import Workflow
 
@@ -50,31 +48,6 @@ class OrganizationWorkflowEndpoint(OrganizationEndpoint):
         return args, kwargs
 
 
-@dataclass(frozen=True)
-class _SortByParam:
-    """
-    A helper class for parsing the sortBy parameter from the request.
-    """
-
-    "The value we should pass to the QuerySet order_by method."
-    db_order_by: str
-    "The name of the database field we should use to sort the queryset."
-    db_field_name: str
-
-    @staticmethod
-    def parse(sort_by: str) -> "_SortByParam":
-        """
-        Parse the sortBy parameter from the request, raising a ValidationError if the
-        field is invalid.
-        """
-        order_prefix = "-" if sort_by.startswith("-") else ""
-        sort_field = sort_by[len(order_prefix) :]
-        if sort_field not in SORT_COL_MAP:
-            raise ValidationError({"sortBy": ["Invalid sort field"]})
-        db_field_name = SORT_COL_MAP[sort_field]
-        return _SortByParam(order_prefix + db_field_name, db_field_name)
-
-
 @region_silo_endpoint
 class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
     publish_status = {
@@ -101,7 +74,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         """
         Returns a list of workflows for a given org
         """
-        sort_by = _SortByParam.parse(request.GET.get("sortBy", "id"))
+        sort_by = SortByParam.parse(request.GET.get("sortBy", "id"), SORT_COL_MAP)
 
         queryset = Workflow.objects.filter(organization_id=organization.id)
 
