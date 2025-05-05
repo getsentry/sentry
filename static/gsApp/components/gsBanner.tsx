@@ -99,6 +99,8 @@ const ALERTS_OFF: Record<EventType, boolean> = {
   profileDuration: false,
   profileDurationUI: false,
   uptime: false,
+  seerAutofix: false,
+  seerScanner: false,
 };
 
 type SuspensionModalProps = ModalRenderProps & {
@@ -325,6 +327,8 @@ class GSBanner extends Component<Props, State> {
       profileDuration: true,
       profileDurationUI: true,
       uptime: true,
+      seerAutofix: true,
+      seerScanner: true,
     },
     overageWarningDismissed: {
       error: true,
@@ -336,6 +340,8 @@ class GSBanner extends Component<Props, State> {
       profileDuration: true,
       profileDurationUI: true,
       uptime: true,
+      seerAutofix: true,
+      seerScanner: true,
     },
     productTrialDismissed: {
       // TODO(data categories): Technically we only need the categories that can have product trials
@@ -348,6 +354,8 @@ class GSBanner extends Component<Props, State> {
       profileDuration: true,
       profileDurationUI: true,
       uptime: true,
+      seerAutofix: true,
+      seerScanner: true,
     },
   };
   async componentDidMount() {
@@ -742,6 +750,12 @@ class GSBanner extends Component<Props, State> {
             checkResults.profile_duration_ui_overage_alert!
           ),
           uptime: promptIsDismissedForBillingPeriod(checkResults.uptime_overage_alert!),
+          seerAutofix: promptIsDismissedForBillingPeriod(
+            checkResults.seer_autofix_overage_alert!
+          ),
+          seerScanner: promptIsDismissedForBillingPeriod(
+            checkResults.seer_scanner_overage_alert!
+          ),
         } satisfies Record<EventType, boolean>,
         overageWarningDismissed: {
           error: promptIsDismissedForBillingPeriod(checkResults.errors_warning_alert!),
@@ -763,6 +777,12 @@ class GSBanner extends Component<Props, State> {
             checkResults.profile_duration_ui_warning_alert!
           ),
           uptime: promptIsDismissedForBillingPeriod(checkResults.uptime_warning_alert!),
+          seerAutofix: promptIsDismissedForBillingPeriod(
+            checkResults.seer_autofix_warning_alert!
+          ),
+          seerScanner: promptIsDismissedForBillingPeriod(
+            checkResults.seer_scanner_warning_alert!
+          ),
         } satisfies Record<EventType, boolean>,
         // TODO(data categories): We don't need to check every EventType for product trials,
         // only the ones that are supported for product trials.
@@ -801,6 +821,14 @@ class GSBanner extends Component<Props, State> {
           ),
           uptime: trialPromptIsDismissed(
             checkResults.uptime_product_trial_alert!,
+            subscription
+          ),
+          seerAutofix: trialPromptIsDismissed(
+            checkResults.seer_autofix_product_trial_alert!,
+            subscription
+          ),
+          seerScanner: trialPromptIsDismissed(
+            checkResults.seer_scanner_product_trial_alert!,
             subscription
           ),
         } satisfies Record<EventType, boolean>,
@@ -844,6 +872,12 @@ class GSBanner extends Component<Props, State> {
       uptime:
         !this.state.overageAlertDismissed.uptime &&
         !!subscription.categories.uptime?.usageExceeded,
+      seerAutofix:
+        !this.state.overageAlertDismissed.seerAutofix &&
+        !!subscription.categories.seerAutofix?.usageExceeded,
+      seerScanner:
+        !this.state.overageAlertDismissed.seerScanner &&
+        !!subscription.categories.seerScanner?.usageExceeded,
     } satisfies Record<EventType, boolean>;
   }
 
@@ -884,6 +918,12 @@ class GSBanner extends Component<Props, State> {
       uptime:
         !this.state.overageWarningDismissed.uptime &&
         !!subscription.categories.uptime?.sentUsageWarning,
+      seerAutofix:
+        !this.state.overageWarningDismissed.seerAutofix &&
+        !!subscription.categories.seerAutofix?.sentUsageWarning,
+      seerScanner:
+        !this.state.overageWarningDismissed.seerScanner &&
+        !!subscription.categories.seerScanner?.sentUsageWarning,
     } satisfies Record<EventType, boolean>;
   }
 
@@ -950,6 +990,8 @@ class GSBanner extends Component<Props, State> {
         profileDuration: `profile_duration_${key}_alert`,
         profileDurationUI: `profile_duration_ui_${key}_alert`,
         uptime: `uptime_${key}_alert`,
+        seerAutofix: `seer_autofix_${key}_alert`,
+        seerScanner: `seer_scanner_${key}_alert`,
       };
 
       promptsUpdate(api, {
@@ -969,6 +1011,8 @@ class GSBanner extends Component<Props, State> {
       profileDuration: true,
       profileDurationUI: true,
       uptime: true,
+      seerAutofix: true,
+      seerScanner: true,
     };
     // Suppress all warnings and alerts
     this.setState({
@@ -1113,6 +1157,32 @@ class GSBanner extends Component<Props, State> {
               {getSingularCategoryName({
                 plan,
                 category: DataCategory.PROFILE_DURATION_UI,
+                capitalize: false,
+              })}
+            </ExternalLink>
+          ),
+          seerAutofix: (
+            <ExternalLink
+              key="seer-autofix"
+              href={getDocsLinkForEventType(DataCategoryExact.SEER_AUTOFIX)}
+              onClick={onClick}
+            >
+              {getSingularCategoryName({
+                plan,
+                category: DataCategory.SEER_AUTOFIX,
+                capitalize: false,
+              })}
+            </ExternalLink>
+          ),
+          seerScanner: (
+            <ExternalLink
+              key="seer-scanner"
+              href={getDocsLinkForEventType(DataCategoryExact.SEER_SCANNER)}
+              onClick={onClick}
+            >
+              {getSingularCategoryName({
+                plan,
+                category: DataCategory.SEER_SCANNER,
                 capitalize: false,
               })}
             </ExternalLink>
