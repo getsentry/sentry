@@ -10,6 +10,7 @@ import type {
   FieldDefinitionGetter,
   FocusOverride,
 } from 'sentry/components/searchQueryBuilder/types';
+import {TermOperatorNew} from 'sentry/components/searchQueryBuilder/types';
 import {
   isDateToken,
   makeTokenKey,
@@ -90,7 +91,7 @@ type UpdateFilterKeyAction = {
 };
 
 type UpdateFilterOpAction = {
-  op: TermOperator;
+  op: TermOperatorNew;
   token: TokenResult<Token.FILTER>;
   type: 'UPDATE_FILTER_OP';
 };
@@ -160,17 +161,61 @@ function deleteQueryTokens(
 function modifyFilterOperatorQuery(
   query: string,
   token: TokenResult<Token.FILTER>,
-  newOperator: TermOperator
+  newOperator: TermOperatorNew
 ): string {
   if (isDateToken(token)) {
     return modifyFilterOperatorDate(query, token, newOperator);
   }
 
-  const isNotEqual = newOperator === TermOperator.NOT_EQUAL;
-
   const newToken: TokenResult<Token.FILTER> = {...token};
-  newToken.operator = isNotEqual ? TermOperator.DEFAULT : newOperator;
+  const isNotEqual = newOperator === TermOperatorNew.NOT_EQUAL;
+
   newToken.negated = isNotEqual;
+  // if the operator is contains, update the token (output value) to be wrapped in stars
+  if (newOperator === TermOperatorNew.CONTAINS) {
+    newToken.operator = TermOperator.DEFAULT;
+    if (
+      newToken.value.type === Token.VALUE_TEXT &&
+      !newToken.value.value.startsWith('*') &&
+      !newToken.value.value.endsWith('*')
+    ) {
+      newToken.value.value = `*${newToken.value.value}*`;
+    } else if (newToken.value.type === Token.VALUE_TEXT_LIST) {
+      newToken.value.items.forEach(item => {
+        if (
+          item.value?.text &&
+          !item.value.text.startsWith('*') &&
+          !item.value.text.endsWith('*')
+        ) {
+          item.value.text = `*${item.value.text}*`;
+        }
+      });
+    }
+  } else {
+    if (newToken.value.type === Token.VALUE_TEXT) {
+      if (newToken.value.value.startsWith('*')) {
+        newToken.value.value = newToken.value.value.slice(1);
+      }
+
+      if (newToken.value.value.endsWith('*')) {
+        newToken.value.value = newToken.value.value.slice(0, -1);
+      }
+    } else if (newToken.value.type === Token.VALUE_TEXT_LIST) {
+      newToken.value.items.forEach(item => {
+        if (item.value?.text?.startsWith('*')) {
+          item.value.text = item.value.text.slice(1);
+        }
+
+        if (item.value?.text?.endsWith('*')) {
+          item.value.text = item.value.text.slice(0, -1);
+        }
+      });
+    }
+
+    newToken.operator = isNotEqual
+      ? TermOperator.DEFAULT
+      : (newOperator as unknown as TermOperator);
+  }
 
   return replaceQueryToken(query, token, stringifyToken(newToken));
 }
@@ -195,33 +240,33 @@ function modifyFilterOperator(
 function modifyFilterOperatorDate(
   query: string,
   token: TokenResult<Token.FILTER>,
-  newOperator: TermOperator
+  newOperator: TermOperatorNew
 ): string {
   switch (newOperator) {
-    case TermOperator.GREATER_THAN:
-    case TermOperator.LESS_THAN: {
+    case TermOperatorNew.GREATER_THAN:
+    case TermOperatorNew.LESS_THAN: {
       if (token.filter === FilterType.RELATIVE_DATE) {
-        token.value.sign = newOperator === TermOperator.GREATER_THAN ? '-' : '+';
+        token.value.sign = newOperator === TermOperatorNew.GREATER_THAN ? '-' : '+';
       } else if (
         token.filter === FilterType.SPECIFIC_DATE ||
         token.filter === FilterType.DATE
       ) {
-        token.operator = newOperator;
+        token.operator = newOperator as unknown as TermOperator;
       }
       return replaceQueryToken(query, token, stringifyToken(token));
     }
 
     // The "equal" and "or equal to" operators require a specific date
-    case TermOperator.EQUAL:
-    case TermOperator.GREATER_THAN_EQUAL:
-    case TermOperator.LESS_THAN_EQUAL:
+    case TermOperatorNew.EQUAL:
+    case TermOperatorNew.GREATER_THAN_EQUAL:
+    case TermOperatorNew.LESS_THAN_EQUAL:
       // If it's a relative date, modify the operator and generate an ISO timestamp
       if (token.filter === FilterType.RELATIVE_DATE) {
         const generatedIsoDateStr = token.value.parsed?.value ?? new Date().toISOString();
         const newTokenStr = `${token.key.text}:${newOperator}${generatedIsoDateStr}`;
         return replaceQueryToken(query, token, newTokenStr);
       }
-      token.operator = newOperator;
+      token.operator = newOperator as unknown as TermOperator;
       return replaceQueryToken(query, token, stringifyToken(token));
     default:
       return replaceQueryToken(query, token, newOperator);
