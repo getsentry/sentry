@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
@@ -6,10 +7,10 @@ import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 import {openModal} from 'sentry/actionCreators/modal';
 import * as OnboardingContext from 'sentry/components/onboarding/onboardingContext';
 import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
-import * as ProjectsHook from 'sentry/utils/useProjects';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {useConfigureSdk} from './useConfigureSdk';
@@ -80,21 +81,14 @@ describe('useConfigureSdk', () => {
   };
 
   beforeEach(() => {
+    ProjectsStore.loadInitialData([ProjectFixture()]);
+
     mockUseOnboardingContext.mockReturnValue({
       setSelectedPlatform: jest.fn(),
     });
+
     createProjectInstance = mockCreateProjectHook();
     mockUseCreateProject.mockReturnValue(createProjectInstance);
-    jest.spyOn(ProjectsHook, 'default').mockReturnValue({
-      projects: [],
-      initiallyLoaded: true,
-      onSearch: jest.fn(),
-      placeholders: [],
-      reloadProjects: jest.fn(),
-      fetching: false,
-      hasMore: false,
-      fetchError: null,
-    });
   });
 
   afterEach(() => {
