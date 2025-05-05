@@ -20,7 +20,6 @@ from sentry.workflow_engine.models import (
     ActionGroupStatus,
     DataCondition,
     DataConditionGroup,
-    Workflow,
     WorkflowDataConditionGroup,
     WorkflowFireHistory,
 )
@@ -88,7 +87,7 @@ def update_workflow_fire_histories(
 
 # TODO(cathy): only reinforce workflow frequency for certain issue types
 def filter_recently_fired_workflow_actions(
-    filtered_action_groups: dict[DataConditionGroup, Workflow], event_data: WorkflowEventData
+    filtered_action_groups: dict[DataConditionGroup, int], event_data: WorkflowEventData
 ) -> set[tuple[Action, int]]:
     # get the actions for any of the triggered data condition groups
     actions = (
@@ -128,8 +127,8 @@ def filter_recently_fired_workflow_actions(
     for action in filtered_actions:
         dcg_action = action.dataconditiongroupaction_set.first()
         if dcg_action:
-            workflow = filtered_action_groups[dcg_action.condition_group]
-            result_list.add((action, workflow.id))
+            workflow_id = filtered_action_groups[dcg_action.condition_group]
+            result_list.add((action, workflow_id))
         else:
             logger.error(
                 "Action %s has no associated DataConditionGroupAction",

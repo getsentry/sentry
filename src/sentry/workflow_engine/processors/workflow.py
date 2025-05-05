@@ -126,8 +126,8 @@ def evaluate_workflows_action_filters(
     event_data: WorkflowEventData,
 ) -> set[tuple[Action, int]]:
 
-    # This is a mapping of the DataConditionGroup to the Workflow
-    filtered_action_groups: dict[DataConditionGroup, Workflow] = {}
+    # This is a mapping of the DataConditionGroup to the workflow_id
+    filtered_action_groups: dict[DataConditionGroup, int] = {}
 
     # Gets the list of the workflow ids, and then get the workflow_data_condition_groups for those workflows
     workflow_ids_to_envs = {workflow.id: workflow.environment for workflow in workflows}
@@ -176,7 +176,7 @@ def evaluate_workflows_action_filters(
         else:
             if evaluation:
                 filtered_action_groups[workflow_data_condition_group.condition_group] = (
-                    workflow_data_condition_group.workflow
+                    workflow_data_condition_group.workflow.id
                 )
 
     return filter_recently_fired_workflow_actions(filtered_action_groups, event_data)

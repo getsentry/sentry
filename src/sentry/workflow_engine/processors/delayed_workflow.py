@@ -427,8 +427,8 @@ def fire_actions_for_groups(
             condition_group__in=action_filters
         ).select_related("workflow", "condition_group")
 
-        action_filters_map: dict[DataConditionGroup, Workflow] = {
-            wdcg.condition_group: wdcg.workflow for wdcg in wdcgs
+        action_filters_map: dict[DataConditionGroup, int] = {
+            wdcg.condition_group: wdcg.workflow.id for wdcg in wdcgs
         }
 
         action_filter_results = filter_recently_fired_workflow_actions(
