@@ -4,6 +4,7 @@ export enum Referrer {
   JOBS_CHART = 'api.performance.backend.overview.jobs-chart',
   QUERIES_CHART = 'api.performance.backend.overview.queries-chart',
   CACHE_CHART = 'api.performance.backend.overview.cache-chart',
+  WEB_VITALS_CHART = 'api.performance.backend.overview.web-vitals-chart',
   PATHS_TABLE = 'api.performance.backend.overview.paths-table',
   SLOW_SSR_CHART = 'api.performance.backend.overview.slow-ssr-chart',
 }
