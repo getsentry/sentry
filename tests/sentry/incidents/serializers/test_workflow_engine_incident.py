@@ -2,7 +2,12 @@ from sentry.api.serializers import serialize
 from sentry.incidents.endpoints.serializers.workflow_engine_incident import (
     WorkflowEngineIncidentSerializer,
 )
-from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod, IncidentType
+from sentry.incidents.models.incident import (
+    IncidentActivityType,
+    IncidentStatus,
+    IncidentStatusMethod,
+    IncidentType,
+)
 from tests.sentry.incidents.serializers.test_workflow_engine_base import TestWorklowEngineSerializer
 
 
@@ -38,3 +43,32 @@ class TestDetectorSerializer(TestWorklowEngineSerializer):
             self.group_open_period, self.user, WorkflowEngineIncidentSerializer()
         )
         assert serialized_incident == self.incident_expected
+
+    def test_activity(self) -> None:
+        open_period_activities = []
+        created = {
+            "id": "-1",  # temp and wrong
+            "incidentIdentifier": "-1",  # temp and wrong
+            "type": IncidentActivityType.CREATED,
+            "value": None,
+            "previousValue": None,
+            "user": None,
+            "comment": None,
+            "dateCreated": self.group_open_period.date_started,
+        }
+        detected = created.copy()
+        detected["type"] = IncidentActivityType.DETECTED
+        open_period_activities.append(created)
+        open_period_activities.append(detected)
+        self.incident_expected["activities"] = open_period_activities
+
+        serialized_incident = serialize(
+            self.group_open_period,
+            self.user,
+            WorkflowEngineIncidentSerializer(expand=["activities"]),
+        )
+        assert serialized_incident == self.incident_expected
+
+        # TODO add status changes
+
+        # TODOadd resolution activity
