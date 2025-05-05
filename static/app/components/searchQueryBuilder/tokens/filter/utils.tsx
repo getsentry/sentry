@@ -1,3 +1,4 @@
+import {type TermOperatorNew} from 'sentry/components/searchQueryBuilder/types';
 import {
   type AggregateFilter,
   allOperators,
