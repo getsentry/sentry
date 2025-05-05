@@ -74,6 +74,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);
   const trace = useTrace({traceSlug, timestamp: queryParams.timestamp});
   const tree = useTraceTree({traceSlug, trace, meta, replay: null});
+
   const rootEventResults = useTraceRootEvent({
     tree,
     logs: logsTableData?.logsData?.data,

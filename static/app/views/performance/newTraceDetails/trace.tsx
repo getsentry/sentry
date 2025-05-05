@@ -425,8 +425,8 @@ export function Trace({
         {trace.indicators.length > 0
           ? trace.indicators.map((indicator, i) => {
               const status =
-                indicator.score === undefined
-                  ? 'none'
+                indicator.score === undefined || isNaN(indicator.score)
+                  ? 'None'
                   : STATUS_TEXT[scoreToStatus(indicator.score)];
               const webvital = indicator.label.toLowerCase() as WebVitals;
 
@@ -948,6 +948,19 @@ const TraceStylingWrapper = styled('div')`
 
       &.dark {
         background-color: rgb(63 17 20);
+      }
+    }
+
+    &.None {
+      color: ${p => p.theme.subText};
+      border: 1px solid ${p => p.theme.border};
+
+      &.light {
+        background-color: rgb(245 245 245);
+      }
+
+      &.dark {
+        background-color: rgb(60 59 59);
       }
     }
 
