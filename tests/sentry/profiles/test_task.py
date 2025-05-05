@@ -25,7 +25,6 @@ from sentry.profiles.task import (
     _process_symbolicator_results_for_sample,
     _set_frames_platform,
     _symbolicate_profile,
-    encode_payload,
     process_profile_task,
 )
 from sentry.profiles.utils import Profile
@@ -968,59 +967,6 @@ def test_track_latest_sdk(
 
     with Feature("organizations:profiling-sdks"):
         process_profile_task(profile=profile)
-
-    assert (
-        ProjectSDK.objects.get(
-            project=project,
-            event_type=event_type.value,
-            sdk_name="sentry.python",
-            sdk_version="2.23.0",
-        )
-        is not None
-    )
-
-
-@patch("sentry.profiles.task._push_profile_to_vroom")
-@patch("sentry.profiles.task._symbolicate_profile")
-@patch("sentry.models.projectsdk.get_sdk_index")
-@pytest.mark.parametrize(
-    ["profile", "event_type"],
-    [
-        ("sample_v1_profile", EventType.PROFILE),
-        ("sample_v2_profile", EventType.PROFILE_CHUNK),
-    ],
-)
-@django_db_all
-def test_track_latest_sdk_with_payload(
-    get_sdk_index,
-    _symbolicate_profile,
-    _push_profile_to_vroom,
-    profile,
-    event_type,
-    organization,
-    project,
-    request,
-):
-    _push_profile_to_vroom.return_value = True
-    _symbolicate_profile.return_value = True
-    get_sdk_index.return_value = {
-        "sentry.python": {},
-    }
-
-    profile = request.getfixturevalue(profile)
-    profile["organization_id"] = organization.id
-    profile["project_id"] = project.id
-
-    kafka_payload = {
-        "organization_id": organization.id,
-        "project_id": project.id,
-        "received": "2024-01-02T03:04:05",
-        "payload": json.dumps(profile),
-    }
-    payload = encode_payload(kafka_payload)
-
-    with Feature("organizations:profiling-sdks"):
-        process_profile_task(payload=payload)
 
     assert (
         ProjectSDK.objects.get(
