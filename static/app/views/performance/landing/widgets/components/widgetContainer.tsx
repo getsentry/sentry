@@ -280,7 +280,7 @@ function WidgetInteractiveTitle({
           title: eventView.name,
           query: eventView.getQueryWithAdditionalConditions(),
           sort: eventView.sorts[0] ? encodeSort(eventView.sorts[0]) : undefined,
-          field: eventView.fields.map(field => field.field),
+          groupBy: eventView.fields.map(field => field.field),
         })
       );
     } else if (option.value === 'open_in_discover') {
