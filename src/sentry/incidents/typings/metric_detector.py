@@ -11,6 +11,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import Incident, IncidentStatus
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.notifications.models.notificationaction import ActionTarget
@@ -186,10 +187,10 @@ class MetricIssueContext:
     group: Group | None
 
     @classmethod
-    def _get_new_status(cls, group: Group, priority_level: int) -> IncidentStatus:
+    def _get_new_status(cls, group: Group, priority_level: PriorityLevel) -> IncidentStatus:
         if group.status == GroupStatus.RESOLVED:
             return IncidentStatus.CLOSED
-        elif priority_level == PriorityLevel.MEDIUM.value:
+        elif priority_level == PriorityLevel.MEDIUM:
             return IncidentStatus.WARNING
         else:
             return IncidentStatus.CRITICAL
@@ -197,9 +198,14 @@ class MetricIssueContext:
     @classmethod
     def _get_subscription(cls, evidence_data: MetricIssueEvidenceData) -> QuerySubscription:
         data_source_ids = evidence_data.data_source_ids
-        if len(data_source_ids) != 1:
-            raise ValueError("Only one data source is supported for alert context")
-        data_source = DataSource.objects.get(id=data_source_ids[0])
+        data_sources = DataSource.objects.filter(
+            id__in=data_source_ids, type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+        )
+
+        if len(data_sources) == 0:
+            raise ValueError("No data sources found for alert context")
+
+        data_source = data_sources.first()
 
         subscription = QuerySubscription.objects.get(id=data_source.source_id)
         return subscription
@@ -226,7 +232,7 @@ class MetricIssueContext:
             open_period_identifier=open_period.id,
             snuba_query=snuba_query,
             subscription=subscription,
-            new_status=cls._get_new_status(group, priority_level),
+            new_status=cls._get_new_status(group, PriorityLevel(priority_level)),
             metric_value=evidence_data.value,
             group=group,
             title=group.title,

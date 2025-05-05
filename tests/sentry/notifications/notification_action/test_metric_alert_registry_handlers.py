@@ -282,7 +282,9 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         assert group_event.occurrence is not None
         assert group_event.occurrence.priority is not None
         assert (
-            MetricIssueContext._get_new_status(group, group_event.occurrence.priority)
+            MetricIssueContext._get_new_status(
+                group, PriorityLevel(group_event.occurrence.priority)
+            )
             == IncidentStatus.CRITICAL
         )
 
@@ -297,7 +299,9 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         assert group_event.occurrence is not None
         assert group_event.occurrence.priority is not None
         assert (
-            MetricIssueContext._get_new_status(group, group_event.occurrence.priority)
+            MetricIssueContext._get_new_status(
+                group, PriorityLevel(group_event.occurrence.priority)
+            )
             == IncidentStatus.WARNING
         )
 
@@ -314,7 +318,9 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         # Set the group to resolved -> incident is closed
         group.status = GroupStatus.RESOLVED
         assert (
-            MetricIssueContext._get_new_status(group, group_event.occurrence.priority)
+            MetricIssueContext._get_new_status(
+                group, PriorityLevel(group_event.occurrence.priority)
+            )
             == IncidentStatus.CLOSED
         )
 
@@ -340,7 +346,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         assert self.group_event.occurrence is not None
         assert self.group_event.occurrence.priority is not None
         status = MetricIssueContext._get_new_status(
-            self.group_event.group, self.group_event.occurrence.priority
+            self.group_event.group, PriorityLevel(self.group_event.occurrence.priority)
         )
         assert status == IncidentStatus.CRITICAL
 
@@ -355,7 +361,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         assert group_event.occurrence is not None
         assert group_event.occurrence.priority is not None
         status = MetricIssueContext._get_new_status(
-            group_event.group, group_event.occurrence.priority
+            group_event.group, PriorityLevel(group_event.occurrence.priority)
         )
         assert status == IncidentStatus.WARNING
 
