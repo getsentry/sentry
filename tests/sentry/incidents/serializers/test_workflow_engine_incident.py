@@ -145,7 +145,7 @@ class TestDetectorSerializer(TestWorklowEngineSerializer):
             "incidentIdentifier": incident_identifier,
             "type": IncidentActivityType.STATUS_CHANGE,
             "value": IncidentStatus.CLOSED,
-            "previousValue": None,  # TODO we should have this info
+            "previousValue": IncidentStatus.CRITICAL,
             "user": self.group_open_period.user_id,
             "comment": None,
             "dateCreated": self.group_open_period.date_started,

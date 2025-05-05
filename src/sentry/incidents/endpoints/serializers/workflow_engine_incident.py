@@ -129,54 +129,55 @@ class WorkflowEngineIncidentSerializer(Serializer):
         open_period_activities.append(detected)
 
         # look up Activity rows for other status changes (warning / critical)
-        status_change_activities = Activity.objects.filter(
-            group=open_period.group, type=ActivityType.SET_PRIORITY.value
-        )
-
         activity_status_to_incident_status = {
             "high": IncidentStatus.CRITICAL,
             "medium": IncidentStatus.WARNING,
         }
+        status_change_activities = Activity.objects.filter(
+            group=open_period.group,
+            type__in=[ActivityType.SET_PRIORITY.value, ActivityType.SET_RESOLVED.value],
+        ).order_by("datetime")
+
+        previous_activity = None
+        previous_priority = None
+
         for activity in status_change_activities:
-            priority = activity.data.get("priority")
-            previous_priority = None
-            previous_activities = status_change_activities.filter(datetime__lt=activity.datetime)
+            current_activity = activity
+            current_priority = current_activity.data.get("priority")
 
-            for previous_activity in previous_activities:
-                previous_priority_data = previous_activity.data.get("priority")
-                if (
-                    previous_priority_data != priority
-                    and previous_priority_data in activity_status_to_incident_status.keys()
-                ):
-                    previous_priority = activity_status_to_incident_status.get(
-                        previous_priority_data
-                    )
-                    break
+            if previous_activity:
+                previous_priority = previous_activity.data.get("priority")
 
-            status_change = {
-                "id": incident_activity_id,
-                "incidentIdentifier": incident_identifier,
-                "type": IncidentActivityType.STATUS_CHANGE,
-                "value": activity_status_to_incident_status.get(priority),
-                "previousValue": previous_priority,
-                "user": None,
-                "comment": None,
-                "dateCreated": open_period.date_started,
-            }
-            open_period_activities.append(status_change)
+            if current_activity.type == ActivityType.SET_PRIORITY.value:
+                status_change = {
+                    "id": incident_activity_id,
+                    "incidentIdentifier": incident_identifier,
+                    "type": IncidentActivityType.STATUS_CHANGE,
+                    "value": activity_status_to_incident_status.get(current_priority),
+                    "previousValue": activity_status_to_incident_status.get(previous_priority),
+                    "user": None,
+                    "comment": None,
+                    "dateCreated": open_period.date_started,
+                }
+                open_period_activities.append(status_change)
 
-        if open_period.resolution_activity:
-            resolved = {
-                "id": incident_activity_id,
-                "incidentIdentifier": incident_identifier,
-                "type": IncidentActivityType.STATUS_CHANGE,
-                "value": IncidentStatus.CLOSED,
-                "previousValue": None,  # TODO we should have this info
-                "user": open_period.user_id,
-                "comment": None,
-                "dateCreated": open_period.date_started,
-            }
-            open_period_activities.append(resolved)
+            elif (
+                current_activity.type == ActivityType.SET_RESOLVED.value
+                and open_period.resolution_activity
+            ):
+                resolved = {
+                    "id": incident_activity_id,
+                    "incidentIdentifier": incident_identifier,
+                    "type": IncidentActivityType.STATUS_CHANGE,
+                    "value": IncidentStatus.CLOSED,
+                    "previousValue": activity_status_to_incident_status.get(previous_priority),
+                    "user": open_period.user_id,
+                    "comment": None,
+                    "dateCreated": open_period.date_started,
+                }
+                open_period_activities.append(resolved)
+
+            previous_activity = current_activity
 
         return open_period_activities
 
