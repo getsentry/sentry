@@ -420,7 +420,7 @@ def fire_actions_for_groups(
                 action_filters.add(dcg)
 
         # process action filters
-        action_filter_results: list[tuple[Action, Workflow]] = []
+        action_filter_results: set[tuple[Action, int]] = set()
 
         # query WorkflowDataConditionGroup to link DataConditionGroup (from action_filters) to Workflow
         wdcgs = WorkflowDataConditionGroup.objects.filter(
@@ -444,8 +444,7 @@ def fire_actions_for_groups(
         # evaluate action filters for the triggered workflows
         workflow_trigger_action_results = evaluate_workflows_action_filters(workflows, event_data)
 
-        # Combine results
-        all_actions_with_workflows = action_filter_results + workflow_trigger_action_results
+        all_actions_with_workflows = action_filter_results.union(workflow_trigger_action_results)
 
         # temporary fetching of organization, so not passing in as parameter
         organization = group.project.organization
@@ -459,9 +458,9 @@ def fire_actions_for_groups(
         logger.info(
             "workflow_engine.delayed_workflow.triggered_actions",
             extra={
-                "workflow_ids": [workflow.id for _, workflow in all_actions_with_workflows],
+                "workflow_ids": [workflow_id for _, workflow_id in all_actions_with_workflows],
                 "actions_with_workflows": [
-                    (action.id, workflow.id) for action, workflow in all_actions_with_workflows
+                    (action.id, workflow_id) for action, workflow_id in all_actions_with_workflows
                 ],
                 "event_data": event_data,
             },
@@ -471,9 +470,8 @@ def fire_actions_for_groups(
             "organizations:workflow-engine-trigger-actions",
             organization,
         ):
-            for action, workflow in all_actions_with_workflows:
-                # Add workflow_id to event_data for action trigger context
-                action_event_data = replace(event_data, workflow_id=workflow.id)
+            for action, workflow_id in all_actions_with_workflows:
+                action_event_data = replace(event_data, workflow_id=workflow_id)
                 action.trigger(action_event_data, detector)
 
 

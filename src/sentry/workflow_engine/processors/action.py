@@ -89,7 +89,7 @@ def update_workflow_fire_histories(
 # TODO(cathy): only reinforce workflow frequency for certain issue types
 def filter_recently_fired_workflow_actions(
     filtered_action_groups: dict[DataConditionGroup, Workflow], event_data: WorkflowEventData
-) -> list[tuple[Action, Workflow]]:
+) -> set[tuple[Action, int]]:
     # get the actions for any of the triggered data condition groups
     actions = (
         Action.objects.filter(
@@ -124,12 +124,12 @@ def filter_recently_fired_workflow_actions(
     actions_without_statuses_ids = {action.id for action in actions_without_statuses}
     filtered_actions = actions.filter(id__in=actions_to_include | actions_without_statuses_ids)
 
-    result_list: list[tuple[Action, Workflow]] = []
+    result_list: set[tuple[Action, int]] = set()
     for action in filtered_actions:
         dcg_action = action.dataconditiongroupaction_set.first()
         if dcg_action:
             workflow = filtered_action_groups[dcg_action.condition_group]
-            result_list.append((action, workflow))
+            result_list.add((action, workflow.id))
         else:
             logger.error(
                 "Action %s has no associated DataConditionGroupAction",

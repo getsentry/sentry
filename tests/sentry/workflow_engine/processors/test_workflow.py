@@ -102,7 +102,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
             "workflow_engine.process_workflows.triggered_actions (batch)",
             extra={
                 "workflow_ids": [self.error_workflow.id],
-                "action_ids": [self.action.id],
+                "actions_with_workflows": [(self.action.id, self.error_workflow.id)],
                 "detector_type": self.error_detector.type,
             },
         )
@@ -154,7 +154,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
 
         process_workflows(self.event_data)
 
-        mock_filter.assert_called_with({workflow_filters}, self.event_data)
+        mock_filter.assert_called_with({workflow_filters: workflow}, self.event_data)
 
     def test_same_environment_only(self):
         env = self.create_environment(project=self.project)
@@ -532,7 +532,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
 
     def test_basic__no_filter(self):
         triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.event_data)
-        assert set(triggered_actions) == {self.action}
+        assert triggered_actions == {(self.action, self.workflow.id)}
 
     def test_basic__with_filter__passes(self):
         self.create_data_condition(
@@ -543,7 +543,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         )
 
         triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.event_data)
-        assert set(triggered_actions) == {self.action}
+        assert triggered_actions == {(self.action, self.workflow.id)}
 
     def test_basic__with_filter__filtered(self):
         # Add a filter to the action's group
@@ -634,7 +634,7 @@ class TestWorkflowFireHistory(BaseWorkflowTest):
         triggered_actions = evaluate_workflows_action_filters(
             {self.workflow, workflow}, self.event_data
         )
-        assert set(triggered_actions) == {self.action}
+        assert triggered_actions == {(self.action, self.workflow.id)}
 
         assert (
             WorkflowFireHistory.objects.filter(

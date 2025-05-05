@@ -124,7 +124,7 @@ def evaluate_workflow_triggers(
 def evaluate_workflows_action_filters(
     workflows: set[Workflow],
     event_data: WorkflowEventData,
-) -> list[tuple[Action, Workflow]]:
+) -> set[tuple[Action, int]]:
 
     # This is a mapping of the DataConditionGroup to the Workflow
     filtered_action_groups: dict[DataConditionGroup, Workflow] = {}
@@ -148,11 +148,17 @@ def evaluate_workflows_action_filters(
             action_condition.workflowdataconditiongroup_set.first()
         )
 
-        # Populate the workflow_env in the event_data for the action_condition evaluation
-        if workflow_data_condition_group:
-            workflow_event_data = replace(
-                workflow_event_data, workflow_env=workflow_data_condition_group.workflow.environment
+        if not workflow_data_condition_group:
+            logger.error(
+                "WorkflowDataConditionGroup not found for action_condition",
+                extra={"action_condition_id": action_condition.id},
             )
+            continue
+
+        # Populate the workflow_env in the event_data for the action_condition evaluation
+        workflow_event_data = replace(
+            workflow_event_data, workflow_env=workflow_data_condition_group.workflow.environment
+        )
 
         (evaluation, result), remaining_conditions = process_data_condition_group(
             action_condition.id, workflow_event_data
@@ -161,19 +167,17 @@ def evaluate_workflows_action_filters(
         if remaining_conditions:
             # If there are remaining conditions for the action filter to evaluate,
             # then return the list of conditions to enqueue
-            if workflow_data_condition_group:
-                enqueue_workflow(
-                    workflow_data_condition_group.workflow,
-                    remaining_conditions,
-                    event_data.event,
-                    WorkflowDataConditionGroupType.ACTION_FILTER,
-                )
+            enqueue_workflow(
+                workflow_data_condition_group.workflow,
+                remaining_conditions,
+                event_data.event,
+                WorkflowDataConditionGroupType.ACTION_FILTER,
+            )
         else:
             if evaluation:
-                if workflow_data_condition_group:
-                    filtered_action_groups[workflow_data_condition_group.condition_group] = (
-                        workflow_data_condition_group.workflow
-                    )
+                filtered_action_groups[workflow_data_condition_group.condition_group] = (
+                    workflow_data_condition_group.workflow
+                )
 
     return filter_recently_fired_workflow_actions(filtered_action_groups, event_data)
 
@@ -277,7 +281,7 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
             extra={
                 "workflow_ids": [workflow.id for workflow in triggered_workflows],
                 "actions_with_workflows": [
-                    (action.id, workflow.id) for action, workflow in actions_with_workflows
+                    (action.id, workflow_id) for action, workflow_id in actions_with_workflows
                 ],
                 "detector_type": detector.type,
             },
@@ -288,8 +292,8 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
             "organizations:workflow-engine-trigger-actions",
             organization,
         ):
-            for action, workflow in actions_with_workflows:
-                action_event_data = replace(event_data, workflow_id=workflow.id)
+            for action, workflow_id in actions_with_workflows:
+                action_event_data = replace(event_data, workflow_id=workflow_id)
                 action.trigger(action_event_data, detector)
 
         metrics.incr(
@@ -302,7 +306,7 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
             extra={
                 "workflow_ids": [workflow.id for workflow in triggered_workflows],
                 "actions_with_workflows": [
-                    (action.id, workflow.id) for action, workflow in actions_with_workflows
+                    (action.id, workflow_id) for action, workflow_id in actions_with_workflows
                 ],
                 "detector_type": detector.type,
             },

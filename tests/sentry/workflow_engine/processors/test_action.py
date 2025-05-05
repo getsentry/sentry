@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.workflow_engine.models import Action, DataConditionGroup, WorkflowFireHistory
+from sentry.workflow_engine.models import Action, WorkflowFireHistory
 from sentry.workflow_engine.models.action_group_status import ActionGroupStatus
 from sentry.workflow_engine.processors.action import (
     filter_recently_fired_workflow_actions,
@@ -39,9 +39,9 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         status_2 = ActionGroupStatus.objects.create(action=action, group=self.group)
 
         triggered_actions = filter_recently_fired_workflow_actions(
-            set(DataConditionGroup.objects.all()), self.event_data
+            {self.action_group: self.workflow}, self.event_data
         )
-        assert set(triggered_actions) == {self.action}
+        assert triggered_actions == {(self.action, self.workflow.id)}
 
         for status in [status_1, status_2]:
             status.refresh_from_db()
@@ -53,17 +53,25 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
 
         workflow = self.create_workflow(organization=self.organization, config={"frequency": 1440})
         self.create_detector_workflow(detector=self.detector, workflow=workflow)
-        _, action_2 = self.create_workflow_action(workflow=workflow)
+        action_group_2, action_2 = self.create_workflow_action(workflow=workflow)
         status_2 = ActionGroupStatus.objects.create(action=action_2, group=self.group)
 
-        _, action_3 = self.create_workflow_action(workflow=workflow)
+        action_group_3, action_3 = self.create_workflow_action(workflow=workflow)
         status_3 = ActionGroupStatus.objects.create(action=action_3, group=self.group)
         status_3.update(date_updated=timezone.now() - timedelta(days=2))
 
         triggered_actions = filter_recently_fired_workflow_actions(
-            set(DataConditionGroup.objects.all()), self.event_data
+            {
+                self.action_group: self.workflow,
+                action_group_2: workflow,
+                action_group_3: workflow,
+            },
+            self.event_data,
         )
-        assert set(triggered_actions) == {self.action, action_3}
+        assert triggered_actions == {
+            (self.action, self.workflow.id),
+            (action_3, workflow.id),
+        }
 
         for status in [status_1, status_2, status_3]:
             status.refresh_from_db()
