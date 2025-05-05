@@ -313,7 +313,7 @@ def test_track_outcome_late(setup):
             project_id=2,
             key_id=3,
             outcome=Outcome.ACCEPTED,
-            timestamp=mock_date + timedelta(days=1, microseconds=1),
+            timestamp=mock_date - timedelta(days=1, microseconds=1),
         )
 
         mock_metrics_incr.assert_has_calls(

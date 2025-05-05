@@ -123,7 +123,7 @@ def track_outcome(
         ),
     )
 
-    if timestamp.replace(tzinfo=now.tzinfo) - now > LATE_OUTCOME_THRESHOLD:
+    if now - timestamp.replace(tzinfo=now.tzinfo) > LATE_OUTCOME_THRESHOLD:
         metrics.incr(
             "events.outcomes.late",
             skip_internal=True,
