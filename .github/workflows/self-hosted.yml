@@ -19,8 +19,18 @@ env:
 
 jobs:
   self-hosted:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+    runs-on: |-
+      ${{fromJson('{
+        "amd64": "ubuntu-latest",
+        "arm64": "ubuntu-24.04-arm"
+      }')[matrix.arch] }}
     timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -62,10 +72,8 @@ jobs:
           python3 -m tools.fast_editable --path .
           python3 -m sentry.build.main
 
-      - run: docker login --username '${{ github.actor }}' --password-stdin ghcr.io <<< "$GHCR_TOKEN"
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        if: github.event_name != 'pull_request'
+      - run: docker login --username '${{ github.actor }}' --password '${{ github.token }}' ghcr.io
+        if: github.ref_name == 'master' && github.event_name != 'pull_request'
 
       - run: docker buildx create --driver docker-container --use
 
@@ -81,10 +89,78 @@ jobs:
 
           docker buildx build \
             --pull \
-            --cache-from ghcr.io/getsentry/sentry-self-hosted:latest \
             --cache-to type=inline \
-            --tag ghcr.io/getsentry/sentry-self-hosted:${{ github.sha }} \
+            --tag ghcr.io/getsentry/sentry-self-hosted:${{ matrix.arch }}-${{ github.sha }} \
             --file self-hosted/Dockerfile \
             --build-arg SOURCE_COMMIT=${{ github.sha }} \
+            --build-arg TARGETARCH=${{ matrix.arch }} \
+            --platform linux/${{ matrix.arch }} \
             "${args[@]}" \
             .
+
+      - run: docker push ghcr.io/getsentry/sentry-self-hosted:${{ matrix.arch }}-${{ github.sha }}
+        if: github.ref_name == 'master' && github.event_name != 'pull_request'
+
+  assemble:
+    needs: self-hosted
+    if: github.ref_name == 'master' && github.event_name != 'pull_request'
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Docker Login
+        run: docker login --username '${{ github.actor }}' --password '${{ github.token }}' ghcr.io
+
+      - name: Assemble Sha Image
+        run: |
+          docker buildx imagetools create -t "ghcr.io/getsentry/sentry-self-hosted:${{ github.sha }}" \
+            "ghcr.io/getsentry/sentry-self-hosted:arm64-${{ github.sha }}" \
+            "ghcr.io/getsentry/sentry-self-hosted:amd64-${{ github.sha }}"
+
+      - name: Assemble Latest Image
+        run: |
+          docker buildx imagetools create -t "ghcr.io/getsentry/sentry-self-hosted:latest" \
+            "ghcr.io/getsentry/sentry-self-hosted:arm64-${{ github.sha }}" \
+            "ghcr.io/getsentry/sentry-self-hosted:amd64-${{ github.sha }}"
+
+  publish-sentry:
+    needs: assemble
+    runs-on: ubuntu-24.04
+    if: ${{ (github.ref_name == 'master') }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - name: Pull the test image
+        id: image_pull
+        env:
+          IMAGE_URL: ghcr.io/getsentry/sentry-self-hosted:${{ github.sha }}
+        run: docker pull "$IMAGE_URL"
+      - name: Get short SHA for docker tag
+        id: short_sha
+        shell: bash
+        run: |
+          SHORT_SHA=$(git rev-parse --short "$GITHUB_SHA")
+          if [[ -z "$SHORT_SHA" ]]; then
+            echo "Short SHA empty? Re-running rev-parse."
+            git rev-parse --short "$GITHUB_SHA"
+          else
+            echo "sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+          fi
+      - name: Push built docker image
+        shell: bash
+        env:
+          SHORT_SHA: ${{ steps.short_sha.outputs.sha }}
+          IMAGE_URL: ghcr.io/getsentry/sentry-self-hosted:${{ github.sha }}
+        run: |
+          # only login if the password is set
+          if [[ "${{ secrets.DOCKER_HUB_RW_TOKEN }}" ]]; then echo "${{ secrets.DOCKER_HUB_RW_TOKEN }}" | docker login --username=sentrybuilder --password-stdin; fi
+          # We push 3 tags to Dockerhub:
+          # first, the full sha of the commit
+          docker tag ${IMAGE_URL} getsentry/sentry:${GITHUB_SHA}
+          docker push getsentry/sentry:${GITHUB_SHA}
+          # second, the short sha of the commit
+          docker tag ${IMAGE_URL} getsentry/sentry:${SHORT_SHA}
+          docker push getsentry/sentry:${SHORT_SHA}
+          # finally, nightly
+          docker tag ${IMAGE_URL} getsentry/sentry:nightly
+          docker push getsentry/sentry:nightly
