@@ -198,14 +198,12 @@ class MetricIssueContext:
     @classmethod
     def _get_subscription(cls, evidence_data: MetricIssueEvidenceData) -> QuerySubscription:
         data_source_ids = evidence_data.data_source_ids
-        data_sources = DataSource.objects.filter(
+        data_source = DataSource.objects.filter(
             id__in=data_source_ids, type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-        )
+        ).first()
 
-        if len(data_sources) == 0:
+        if data_source is None:
             raise ValueError("No data sources found for alert context")
-
-        data_source = data_sources.first()
 
         subscription = QuerySubscription.objects.get(id=data_source.source_id)
         return subscription
