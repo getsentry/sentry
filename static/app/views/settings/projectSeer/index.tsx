@@ -20,13 +20,13 @@ interface ProjectSeerProps {
   project: Project;
 }
 
-const THRESHOLD_MAP = ['off', 'low', 'medium', 'high'];
+const THRESHOLD_MAP = ['off', 'low', 'medium', 'high'] as const;
 
 const autofixAutomatingTuningField: FieldObject = {
   name: 'autofixAutomationTuning',
-  label: t('Autofix Automation Tuning'),
+  label: t('Automatically Fix Issues with Seer'),
   help: t(
-    "Select the proactivity level for Autofix. 'Low' focuses only on high-confidence fixes, while higher settings attempt to fix more issues with potentially lower success rates."
+    "Set how frequently Seer runs root cause analysis and fixes on issues. A 'Low' setting means Seer runs only on the most actionable issues, while a High setting enables Seer to be more eager."
   ),
   type: 'range',
   min: 0,
