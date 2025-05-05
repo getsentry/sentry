@@ -1,7 +1,8 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {Polarity} from 'sentry/components/percentChange';
-import {Tooltip} from 'sentry/components/tooltip';
 import {defined} from 'sentry/utils';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -9,25 +10,26 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 import {DifferenceToPreviousPeriodValue} from 'sentry/views/dashboards/widgets/bigNumberWidget/differenceToPreviousPeriodValue';
+import {NON_FINITE_NUMBER_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
-  Meta,
-  TableData,
+  TabularRow,
+  TabularValueType,
+  TabularValueUnit,
   Thresholds,
 } from 'sentry/views/dashboards/widgets/common/types';
-
-import {NON_FINITE_NUMBER_MESSAGE} from '../common/settings';
 
 import {DEEMPHASIS_COLOR_NAME, LOADING_PLACEHOLDER} from './settings';
 import {ThresholdsIndicator} from './thresholdsIndicator';
 
-export interface BigNumberWidgetVisualizationProps {
+interface BigNumberWidgetVisualizationProps {
   field: string;
   value: number | string;
   maximumValue?: number;
-  meta?: Meta;
   preferredPolarity?: Polarity;
   previousPeriodValue?: number | string;
   thresholds?: Thresholds;
+  type?: TabularValueType;
+  unit?: TabularValueUnit;
 }
 
 export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualizationProps) {
@@ -37,8 +39,11 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
     previousPeriodValue,
     maximumValue = Number.MAX_VALUE,
     preferredPolarity,
-    meta,
+    type,
+    unit,
   } = props;
+
+  const theme = useTheme();
 
   if ((typeof value === 'number' && !Number.isFinite(value)) || Number.isNaN(value)) {
     throw new Error(NON_FINITE_NUMBER_MESSAGE);
@@ -46,9 +51,6 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
 
   const location = useLocation();
   const organization = useOrganization();
-
-  const unit = meta?.unit;
-  const type = meta?.type;
 
   // Create old-school renderer meta, so we can pass it to field renderers
   const rendererMeta: MetaType = {
@@ -63,9 +65,7 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
     };
   }
 
-  const fieldRenderer = meta
-    ? getFieldRenderer(field, rendererMeta, false)
-    : (renderableValue: any) => renderableValue.toString();
+  const fieldRenderer = getFieldRenderer(field, rendererMeta, false);
 
   const baggage = {
     location,
@@ -82,7 +82,7 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
             {
               [field]: value,
             },
-            baggage
+            {...baggage, theme}
           )}
         </NumberAndDifferenceContainer>
       </Wrapper>
@@ -125,7 +125,7 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
               {
                 [field]: clampedValue,
               },
-              baggage
+              {...baggage, theme}
             )}
           </Tooltip>
         </NumberContainerOverride>
@@ -140,8 +140,8 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
               previousPeriodValue={previousPeriodValue}
               field={field}
               preferredPolarity={preferredPolarity}
-              renderer={(previousDatum: TableData[number]) =>
-                fieldRenderer(previousDatum, baggage)
+              renderer={(previousDatum: TabularRow) =>
+                fieldRenderer(previousDatum, {...baggage, theme})
               }
             />
           )}

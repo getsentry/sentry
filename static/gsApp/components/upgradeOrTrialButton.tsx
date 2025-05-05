@@ -20,7 +20,7 @@ type ChildRenderProps = {
 
 type ChildRenderFunction = (options: ChildRenderProps) => React.ReactNode;
 
-type Props = {
+interface Props extends Omit<ButtonProps, 'to' | 'onClick' | 'busy' | 'children'> {
   api: Client;
   organization: Organization;
   source: string;
@@ -37,7 +37,7 @@ type Props = {
    * Default button priority to use when the button will start a trial
    */
   upgradePriority?: ButtonProps['priority'];
-} & Omit<React.ComponentProps<typeof Button>, 'to' | 'onClick' | 'busy' | 'children'>;
+}
 
 /**
  * This button has the following modes:

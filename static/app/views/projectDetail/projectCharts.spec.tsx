@@ -32,7 +32,6 @@ function renderProjectCharts(
       hasTransactions
       location={router.location}
       organization={organization}
-      router={router}
       visibleCharts={['chart1', 'chart2']}
       project={project}
     />
@@ -87,7 +86,7 @@ describe('ProjectDetail > ProjectCharts', () => {
       screen.getByRole('button', {name: 'Display Crash Free Sessions'})
     );
 
-    expect(screen.getByText('ANR Rate')).toBeInTheDocument();
+    expect(screen.getByText('App Hang Rate')).toBeInTheDocument();
     expect(screen.queryByText('Foreground ANR Rate')).not.toBeInTheDocument();
   });
 
@@ -98,7 +97,7 @@ describe('ProjectDetail > ProjectCharts', () => {
       screen.getByRole('button', {name: 'Display Crash Free Sessions'})
     );
 
-    expect(screen.getByText('ANR Rate')).toBeInTheDocument();
+    expect(screen.getByText('App Hang Rate')).toBeInTheDocument();
     expect(screen.queryByText('Foreground ANR Rate')).not.toBeInTheDocument();
   });
 
@@ -109,7 +108,7 @@ describe('ProjectDetail > ProjectCharts', () => {
       screen.getByRole('button', {name: 'Display Crash Free Sessions'})
     );
 
-    expect(screen.queryByText('ANR Rate')).not.toBeInTheDocument();
+    expect(screen.queryByText('App Hang Rate')).not.toBeInTheDocument();
     expect(screen.queryByText('Foreground ANR Rate')).not.toBeInTheDocument();
   });
 

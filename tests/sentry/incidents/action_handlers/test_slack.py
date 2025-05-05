@@ -10,7 +10,7 @@ from sentry.constants import ObjectStatus
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
-from sentry.incidents.typings.metric_detector import AlertContext
+from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.integrations.messaging.spec import MessagingActionHandler
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.integrations.slack.spec import SlackMessagingSpec
@@ -19,6 +19,7 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.utils import json
 from tests.sentry.integrations.slack.utils.test_mock_slack_response import mock_slack_response
 
@@ -26,6 +27,7 @@ from . import FireTest
 
 
 @freeze_time()
+@apply_feature_flag_on_cls("organizations:metric-alert-thread-flag")
 class SlackActionHandlerTest(FireTest):
     @pytest.fixture(autouse=True)
     def mock_chat_postEphemeral(self):
@@ -98,12 +100,13 @@ class SlackActionHandlerTest(FireTest):
     def _assert_blocks(self, mock_post, incident, metric_value, chart_url):
         slack_body = SlackIncidentsMessageBuilder(
             alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
-            open_period_identifier=incident.identifier,
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident,
+                IncidentStatus(incident.status),
+                metric_value,
+            ),
             organization=incident.organization,
-            snuba_query=incident.alert_rule.snuba_query,
-            new_status=IncidentStatus(incident.status),
             date_started=incident.date_started,
-            metric_value=metric_value,
             chart_url=chart_url,
         ).build()
         assert isinstance(slack_body, dict)
@@ -325,3 +328,92 @@ class SlackActionHandlerTest(FireTest):
             external_id=str(self.action.target_identifier),
             notification_uuid="",
         )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
+    def test_update_metric_alert_in_thread(self, mock_post, mock_api_call, mock_record_event):
+        """
+        Tests that subsequent alerts for the same incident are posted as replies
+        in a thread, and that critical alerts broadcast to the channel.
+        """
+        # Mocking Slack responses
+        initial_ts = "12345.67890"
+        update_ts = "98765.43210"
+        mock_post.side_effect = [
+            SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="...",
+                req_args={},
+                data={"ok": True, "ts": initial_ts, "channel": self.channel_id},
+                headers={},
+                status_code=200,
+            ),
+            SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="...",
+                req_args={},
+                data={"ok": True, "ts": update_ts, "channel": self.channel_id},
+                headers={},
+                status_code=200,
+            ),
+        ]
+        mock_api_call.return_value = {
+            "body": orjson.dumps({"ok": True}).decode(),
+            "headers": {},
+            "status": 200,
+        }
+
+        # 1. Fire initial warning alert
+        incident = self.create_incident(
+            alert_rule=self.alert_rule, status=IncidentStatus.WARNING.value
+        )
+        metric_value = 1000
+        with self.tasks():
+            self.handler.fire(
+                action=self.action,
+                incident=incident,
+                project=self.project,
+                metric_value=metric_value,
+                new_status=IncidentStatus.WARNING,
+            )
+
+        # Assert initial post
+        assert mock_post.call_count == 1
+        first_call_args, first_call_kwargs = mock_post.call_args
+        assert first_call_kwargs.get("thread_ts") is None
+        assert first_call_kwargs.get("reply_broadcast") is False
+        assert NotificationMessage.objects.filter(incident=incident).count() == 1
+        parent_message = NotificationMessage.objects.get(incident=incident)
+        assert parent_message.message_identifier == initial_ts
+        assert parent_message.parent_notification_message_id is None
+
+        # 2. Update incident status to critical and fire again
+        update_incident_status(
+            incident, IncidentStatus.CRITICAL, status_method=IncidentStatusMethod.MANUAL
+        )
+        metric_value_update = 2000
+        with self.tasks():
+            self.handler.fire(
+                action=self.action,
+                incident=incident,
+                project=self.project,
+                metric_value=metric_value_update,
+                new_status=IncidentStatus.CRITICAL,
+            )
+
+        # Assert update post is in thread and broadcast
+        assert mock_post.call_count == 2
+        second_call_args, second_call_kwargs = mock_post.call_args
+        assert second_call_kwargs.get("thread_ts") == initial_ts
+        assert second_call_kwargs.get("reply_broadcast") is True
+
+        # Assert new notification message is saved correctly
+        assert NotificationMessage.objects.filter(incident=incident).count() == 2
+        update_message = NotificationMessage.objects.exclude(id=parent_message.id).get(
+            incident=incident
+        )
+        assert update_message.message_identifier == update_ts
+        assert update_message.parent_notification_message_id == parent_message.id

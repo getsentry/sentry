@@ -18,7 +18,7 @@ type Props = {
   /**
    * Map of fieldName -> errorMessage
    */
-  error?: {[fieldName: string]: string};
+  error?: Record<string, string>;
 
   hideControl?: boolean;
 };

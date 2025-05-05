@@ -7,6 +7,7 @@ import type {Event} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 
+// https://github.com/getsentry/relay/blob/25.3.0/relay-event-schema/src/protocol/contexts/app.rs
 enum AppContextKeys {
   ID = 'app_id',
   START_TIME = 'app_start_time',
@@ -17,8 +18,11 @@ enum AppContextKeys {
   VERSION = 'app_version',
   BUILD = 'app_build',
   IN_FOREGROUND = 'in_foreground',
-  MEMORY = 'app_memory',
+  APP_MEMORY = 'app_memory',
   VIEW_NAMES = 'view_names',
+  // XXX: From https://github.com/getsentry/sentry/issues/87238, not in the schema yet.
+  FREE_MEMORY = 'free_memory',
+  ARCHITECTURE = 'app_arch',
 }
 
 export interface AppContext {
@@ -33,8 +37,10 @@ export interface AppContext {
   [AppContextKeys.TYPE]?: string;
   [AppContextKeys.DEVICE_HASH]?: string;
   [AppContextKeys.IN_FOREGROUND]?: boolean;
-  [AppContextKeys.MEMORY]?: number;
+  [AppContextKeys.APP_MEMORY]?: number;
   [AppContextKeys.VIEW_NAMES]?: string[];
+  [AppContextKeys.FREE_MEMORY]?: number;
+  [AppContextKeys.ARCHITECTURE]?: string;
 }
 
 // https://github.com/getsentry/relay/blob/24.10.0/relay-event-schema/src/protocol/contexts/app.rs#L37
@@ -113,7 +119,7 @@ export function getAppContextData({
           subject: t('In Foreground'),
           value: data.in_foreground,
         };
-      case AppContextKeys.MEMORY:
+      case AppContextKeys.APP_MEMORY:
         return {
           key: ctxKey,
           subject: t('Memory Usage'),
@@ -124,6 +130,18 @@ export function getAppContextData({
           key: ctxKey,
           subject: t('View Names'),
           value: data.view_names,
+        };
+      case AppContextKeys.FREE_MEMORY:
+        return {
+          key: ctxKey,
+          subject: t('Free Memory'),
+          value: data.free_memory ? formatMemory(data.free_memory) : undefined,
+        };
+      case AppContextKeys.ARCHITECTURE:
+        return {
+          key: ctxKey,
+          subject: t('Architecture'),
+          value: data.app_arch,
         };
       default:
         return {

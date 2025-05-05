@@ -20,7 +20,7 @@ export function isActiveSuperuser() {
   const {organization} = OrganizationStore.getState();
 
   if (organization) {
-    return organization.access.includes('org:superuser');
+    return organization.access?.includes('org:superuser');
   }
 
   const {isSuperuser} = ConfigStore.get('user') || {};

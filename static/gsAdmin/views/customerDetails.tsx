@@ -24,7 +24,7 @@ import CancelSubscriptionAction from 'admin/components/cancelSubscriptionAction'
 import triggerChangeBalanceModal from 'admin/components/changeBalanceAction';
 import triggerChangeDatesModal from 'admin/components/changeDatesAction';
 import triggerGoogleDomainModal from 'admin/components/changeGoogleDomainAction';
-import ChangePlanAction from 'admin/components/changePlanAction';
+import triggerChangePlanAction from 'admin/components/changePlanAction';
 import CloseAccountInfo from 'admin/components/closeAccountInfo';
 import CustomerCharges from 'admin/components/customers/customerCharges';
 import CustomerHistory from 'admin/components/customers/customerHistory';
@@ -43,26 +43,30 @@ import {
 } from 'admin/components/customers/customerStatsFilters';
 import OrganizationStatus from 'admin/components/customers/organizationStatus';
 import PendingChanges from 'admin/components/customers/pendingChanges';
+import deleteBillingMetricHistory from 'admin/components/deleteBillingMetricHistory';
 import type {ActionItem, BadgeItem} from 'admin/components/detailsPage';
 import DetailsPage from 'admin/components/detailsPage';
 import ForkCustomerAction from 'admin/components/forkCustomer';
 import triggerEndPeriodEarlyModal from 'admin/components/nextBillingPeriodAction';
 import triggerProvisionSubscription from 'admin/components/provisionSubscriptionAction';
+import refundVercelRequest from 'admin/components/refundVercelRequestModal';
 import SelectableContainer from 'admin/components/selectableContainer';
 import SendWeeklyEmailAction from 'admin/components/sendWeeklyEmailAction';
 import SponsorshipAction from 'admin/components/sponsorshipAction';
 import SuspendAccountAction from 'admin/components/suspendAccountAction';
-import testVercelApiEndpoint from 'admin/components/testVCApiEndpoints';
 import toggleSpendAllocationModal from 'admin/components/toggleSpendAllocationModal';
 import TrialSubscriptionAction from 'admin/components/trialSubscriptionAction';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
-import type {Subscription} from 'getsentry/types';
+import type {BillingConfig, Subscription} from 'getsentry/types';
 import {
   hasActiveVCFeature,
   isBizPlanFamily,
   isUnlimitedReserved,
 } from 'getsentry/utils/billing';
-import {getPlanCategoryName, GIFT_CATEGORIES} from 'getsentry/utils/dataCategory';
+import {
+  getCategoryInfoFromPlural,
+  getPlanCategoryName,
+} from 'getsentry/utils/dataCategory';
 
 const DEFAULT_ERROR_MESSAGE = 'Unable to update the customer account';
 
@@ -70,6 +74,7 @@ type Props = DeprecatedAsyncComponent['props'] &
   RouteComponentProps<{orgId: string}, unknown>;
 
 type State = DeprecatedAsyncComponent['state'] & {
+  billingConfig: BillingConfig | null;
   data: Subscription | null;
   organization: Organization | null;
 };
@@ -93,6 +98,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
         `/organizations/${this.props.params.orgId}/`,
         {query: {detailed: 0, include_feature_flags: 1}},
       ],
+      ['billingConfig', `/customers/${this.props.params.orgId}/billing-config/?tier=all`],
     ];
   }
 
@@ -123,36 +129,48 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
   get giftCategories() {
     const {data} = this.state;
 
-    if (data === null) {
+    if (!data?.planDetails) {
       return {};
     }
-    // Can only gift for checkout categories
+    // We display all categories that are in either checkoutCategories or onDemandCategories,
+    // then disable the button if the category cannot be gifted to on this particular subscription (ie. unlimited quota).
+    // Categories that are not giftable in any state for the subscription are excluded (ie. plan does not include category).
     return Object.fromEntries(
-      GIFT_CATEGORIES.map(category => {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        const reserved = data.categories?.[category]?.reserved;
-        const isUnlimited = isUnlimitedReserved(reserved);
-        const isReservedBudgetQuota = reserved === RESERVED_BUDGET_QUOTA;
-        return [
-          category,
-          {
-            disabled:
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              !data.categories?.[category] ||
-              !data.planDetails.checkoutCategories.includes(category) ||
-              isUnlimited ||
+      data.planDetails.categories
+        .filter(
+          category =>
+            data.planDetails.checkoutCategories.includes(category) ||
+            data.planDetails.onDemandCategories.includes(category)
+        )
+        .map(category => {
+          const reserved = data.categories?.[category]?.reserved;
+          const isUnlimited = isUnlimitedReserved(reserved);
+          const isReservedBudgetQuota = reserved === RESERVED_BUDGET_QUOTA;
+
+          // Check why categories are disabled
+          const categoryNotExists = !data.categories?.[category];
+          const categoryInfo = getCategoryInfoFromPlural(category);
+
+          const isGiftable =
+            categoryInfo?.maxAdminGift && categoryInfo.freeEventsMultiple;
+
+          return [
+            category,
+            {
+              disabled:
+                categoryNotExists || isUnlimited || isReservedBudgetQuota || !isGiftable,
+              displayName: getPlanCategoryName({
+                plan: data.planDetails,
+                category,
+                capitalize: false,
+                hadCustomDynamicSampling: isReservedBudgetQuota,
+              }),
+              isUnlimited,
               isReservedBudgetQuota,
-            displayName: getPlanCategoryName({
-              plan: data.planDetails,
-              category,
-              capitalize: false,
-              hadCustomDynamicSampling: isReservedBudgetQuota,
-            }),
-            isUnlimited,
-            isReservedBudgetQuota,
-          },
-        ];
-      })
+              categoryInfo,
+            },
+          ];
+        })
     );
   }
 
@@ -257,7 +275,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
   };
 
   renderBody() {
-    const {data, organization} = this.state;
+    const {data, organization, billingConfig} = this.state;
     const {orgId} = this.props.params;
     const regionMap = ConfigStore.get('regions').reduce(
       (acc: any, region: any) => {
@@ -354,6 +372,9 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
 
     const orgFeatures = organization?.features ?? [];
     const hasAdminTestFeatures = orgFeatures.includes('add-billing-metric-usage-admin');
+    const hasAdminDeleteBillingMetricHistory = orgFeatures.includes(
+      'delete-billing-metric-history-admin'
+    );
 
     const activeDataType = this.activeDataType;
     return (
@@ -513,7 +534,6 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
                   <TrialSubscriptionAction
                     subscription={data}
                     startEnterpriseTrial
-                    canUseTrialOverride={hasAdminTestFeatures}
                     {...deps}
                   />
                 ),
@@ -564,25 +584,18 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
               disabled:
                 // Enabling admin to modify NT for partnership support
                 data.partner?.partnership.id !== 'NT' &&
-                (data.partner?.isActive ||
-                  !data.paymentSource ||
-                  !data.paymentSource.last4),
+                (data.partner?.isActive || !data.paymentSource?.last4),
               disabledReason: data.partner?.isActive
                 ? 'This account is managed by a third-party.'
                 : 'No payment method on file.',
-              confirmModalOpts: {
-                disableConfirmButton: true,
-                priority: 'danger',
-                confirmText: 'Change Plan',
-                renderModalSpecificContent: deps => (
-                  <ChangePlanAction
-                    orgId={orgId}
-                    {...deps}
-                    partnerPlanId={data.partner?.isActive ? data.planDetails.id : null}
-                  />
-                ),
-              },
-              onAction: params => this.onChangePlan({...params}),
+              skipConfirmModal: true,
+              onAction: () =>
+                triggerChangePlanAction({
+                  orgId,
+                  subscription: data,
+                  partnerPlanId: data.partner?.isActive ? data.planDetails.id : null,
+                  onSuccess: () => this.reloadData(),
+                }),
             },
             {
               key: 'checkAM2',
@@ -641,7 +654,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
                 triggerProvisionSubscription({
                   orgId,
                   subscription: data,
-                  canProvisionDsPlan: hasAdminTestFeatures,
+                  billingConfig,
                   onSuccess: () => this.reloadData(),
                 }),
             },
@@ -698,7 +711,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
             ...Object.entries(this.giftCategories).map<ActionItem>(
               ([
                 dataCategory,
-                {displayName, disabled, isUnlimited, isReservedBudgetQuota},
+                {displayName, disabled, isUnlimited, isReservedBudgetQuota, categoryInfo},
               ]) => ({
                 key: `gift-${dataCategory}`,
                 name: `Gift ${displayName}`,
@@ -712,6 +725,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
                 confirmModalOpts: {
                   renderModalSpecificContent: deps => (
                     <AddGiftEventsAction
+                      billedCategoryInfo={categoryInfo}
                       dataCategory={dataCategory as DataCategory}
                       subscription={data}
                       {...deps}
@@ -748,13 +762,25 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
                 }),
             },
             {
-              key: 'testVercelApi',
-              name: 'Test Vercel API',
-              help: 'Send API requests to Vercel',
+              key: 'deleteBillingMetricHistory',
+              name: 'Delete Billing Metric History',
+              help: 'Delete billing metric history for a specific data category.',
+              skipConfirmModal: true,
+              visible: hasAdminDeleteBillingMetricHistory,
+              onAction: () =>
+                deleteBillingMetricHistory({
+                  onSuccess: () => this.reloadData(),
+                  organization,
+                }),
+            },
+            {
+              key: 'refundVercel',
+              name: 'Vercel Refund',
+              help: 'Send request to Vercel to initiate a refund for a given invoice.',
               skipConfirmModal: true,
               visible: data.isSelfServePartner && hasActiveVCFeature(organization),
               onAction: () =>
-                testVercelApiEndpoint({
+                refundVercelRequest({
                   onSuccess: () => this.reloadData(),
                   subscription: data,
                 }),
@@ -768,9 +794,9 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
             {
               visible: !!data.pendingChanges,
               content: (
-                <OrganizationContext.Provider value={organization}>
+                <OrganizationContext value={organization}>
                   <PendingChanges subscription={data} />
-                </OrganizationContext.Provider>
+                </OrganizationContext>
               ),
             },
             {

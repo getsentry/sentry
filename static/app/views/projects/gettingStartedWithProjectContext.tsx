@@ -11,7 +11,7 @@ type GettingStartedWithProject = Pick<Project, 'name' | 'id'> & {
   teamSlug?: Project['team']['slug'];
 };
 
-export type ProjectsContextProps = {
+type ProjectsContextProps = {
   setProject: (project: GettingStartedWithProject) => void;
   project?: GettingStartedWithProject;
 };
@@ -44,13 +44,13 @@ export function GettingStartedWithProjectContextProvider({
   );
 
   return (
-    <GettingStartedWithProjectContext.Provider
+    <GettingStartedWithProjectContext
       value={{
         project: sessionStorage.project,
         setProject: handleSetProject,
       }}
     >
       {children}
-    </GettingStartedWithProjectContext.Provider>
+    </GettingStartedWithProjectContext>
   );
 }

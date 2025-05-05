@@ -35,9 +35,11 @@ import {
   type WidgetQuery,
   type WidgetType,
 } from 'sentry/views/dashboards/types';
+import {
+  BuildStep,
+  SubHeading,
+} from 'sentry/views/dashboards/widgetBuilder/buildSteps/buildStep';
 import {getDiscoverDatasetFromWidgetType} from 'sentry/views/dashboards/widgetBuilder/utils';
-
-import {BuildStep, SubHeading} from '../buildStep';
 
 interface Props {
   canAddSearchConditions: boolean;

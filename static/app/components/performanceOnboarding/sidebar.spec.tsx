@@ -40,7 +40,11 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
   };
 
   const renderSidebar = (props: any) =>
-    render(getElement(), {organization: props.organization, router});
+    render(getElement(), {
+      organization: props.organization,
+      router,
+      deprecatedRouterMocks: true,
+    });
 
   beforeEach(function () {
     jest.resetAllMocks();
@@ -75,12 +79,18 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
       },
     });
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sdks/`,
+      method: 'GET',
+    });
+
     const statusPageData: StatuspageIncident[] = [];
-    jest
-      .spyOn(incidentsHook, 'useServiceIncidents')
-      .mockImplementation(
-        () => ({data: statusPageData}) as UseQueryResult<StatuspageIncident[]>
-      );
+    jest.spyOn(incidentsHook, 'useServiceIncidents').mockImplementation(
+      () =>
+        ({
+          data: statusPageData,
+        }) as UseQueryResult<StatuspageIncident[]>
+    );
   });
 
   afterEach(() => {
@@ -177,7 +187,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     await userEvent.click(screen.getByText('Set up Tracing'));
     expect(window.open).not.toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledWith(
-      '/organizations/org-slug/performance/?project=2#performance-sidequest'
+      '/organizations/org-slug/insights/frontend/?project=2#performance-sidequest'
     );
   });
 
@@ -208,7 +218,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     await userEvent.click(screen.getByText('Set up Tracing'));
     expect(window.open).not.toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledWith(
-      '/organizations/org-slug/performance/?project=2#performance-sidequest'
+      '/organizations/org-slug/insights/frontend/?project=2#performance-sidequest'
     );
   });
 

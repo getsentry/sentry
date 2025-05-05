@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypedDict, TypeVar
 
@@ -9,8 +10,11 @@ if TYPE_CHECKING:
     from sentry.deletions.base import ModelRelation
     from sentry.eventstore.models import GroupEvent
     from sentry.eventstream.base import GroupState
+    from sentry.models.environment import Environment
     from sentry.snuba.models import SnubaQueryEventType
-    from sentry.workflow_engine.models import Action, Detector, Workflow
+    from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
+    from sentry.workflow_engine.handlers.detector import DetectorHandler
+    from sentry.workflow_engine.models import Action, Detector
     from sentry.workflow_engine.models.data_condition import Condition
 
 T = TypeVar("T")
@@ -32,52 +36,66 @@ DataConditionResult = DetectorPriorityLevel | int | float | bool | None
 ProcessedDataConditionResult = tuple[bool, list[DataConditionResult]]
 
 
-class EventJob(TypedDict):
+@dataclass(frozen=True)
+class WorkflowEventData:
     event: GroupEvent
-
-
-class WorkflowJob(EventJob, total=False):
-    group_state: GroupState
-    is_reprocessed: bool
-    has_reappeared: bool
-    has_alert: bool
-    has_escalated: bool
-    workflow: Workflow
+    group_state: GroupState | None = None
+    has_reappeared: bool | None = None
+    has_escalated: bool | None = None
+    workflow_id: int | None = None
+    workflow_env: Environment | None = None
 
 
 class ActionHandler:
     config_schema: ClassVar[dict[str, Any]]
     data_schema: ClassVar[dict[str, Any]]
 
+    class Group(StrEnum):
+        NOTIFICATION = "notification"
+        TICKET_CREATION = "ticket_creation"
+        OTHER = "other"
+
+    group: ClassVar[Group]
+
     @staticmethod
-    def execute(job: WorkflowJob, action: Action, detector: Detector) -> None:
+    def execute(event_data: WorkflowEventData, action: Action, detector: Detector) -> None:
         raise NotImplementedError
 
 
 class DataSourceTypeHandler(Generic[T]):
     @staticmethod
     def bulk_get_query_object(data_sources) -> dict[int, T | None]:
+        """
+        Bulk fetch related data-source models reutrning a dict of the
+        `DataSource.id -> T`.
+        """
         raise NotImplementedError
 
     @staticmethod
     def related_model(instance) -> list[ModelRelation]:
+        """
+        A list of deletion ModelRelations. The model relation query should map
+        the source_id field within the related model to the
+        `instance.source_id`.
+        """
         raise NotImplementedError
 
 
 class DataConditionHandler(Generic[T]):
-    class Type(StrEnum):
+    class Group(StrEnum):
         DETECTOR_TRIGGER = "detector_trigger"
         WORKFLOW_TRIGGER = "workflow_trigger"
         ACTION_FILTER = "action_filter"
 
-    class FilterGroup(StrEnum):
+    class Subgroup(StrEnum):
         ISSUE_ATTRIBUTES = "issue_attributes"
         FREQUENCY = "frequency"
         EVENT_ATTRIBUTES = "event_attributes"
 
-    type: ClassVar[Type]
-    filter_group: ClassVar[FilterGroup]
+    group: ClassVar[Group]
+    subgroup: ClassVar[Subgroup]
     comparison_json_schema: ClassVar[dict[str, Any]] = {}
+    condition_result_schema: ClassVar[dict[str, Any]] = {}
 
     @staticmethod
     def evaluate_value(value: T, comparison: Any) -> DataConditionResult:
@@ -102,3 +120,10 @@ class SnubaQueryDataSourceType(TypedDict):
     resolution: float
     environment: str
     event_types: list[SnubaQueryEventType]
+
+
+@dataclass(frozen=True)
+class DetectorSettings:
+    handler: type[DetectorHandler] | None = None
+    validator: type[BaseDetectorTypeValidator] | None = None
+    config_schema: dict[str, Any] = field(default_factory=dict)

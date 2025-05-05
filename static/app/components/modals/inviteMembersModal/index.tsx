@@ -88,7 +88,7 @@ function InviteMembersModal({
           isOverMemberLimit: isOverMemberLimit,
         }) => {
           return (
-            <InviteMembersContext.Provider
+            <InviteMembersContext
               value={{
                 willInvite,
                 invites,
@@ -121,7 +121,7 @@ function InviteMembersModal({
               <Footer>
                 <InviteMembersFooter canSend={canSend} />
               </Footer>
-            </InviteMembersContext.Provider>
+            </InviteMembersContext>
           );
         }}
       </InviteModalHook>

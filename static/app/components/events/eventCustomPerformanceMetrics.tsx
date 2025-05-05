@@ -1,7 +1,9 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Panel from 'sentry/components/panels/panel';
 import {IconEllipsis} from 'sentry/icons';
@@ -18,8 +20,6 @@ import {
 } from 'sentry/utils/discover/fieldRenderers';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
-
-import {Tooltip} from '../tooltip';
 
 export enum EventDetailPageSource {
   PERFORMANCE = 'performance',
@@ -106,7 +106,7 @@ export function getFieldTypeFromUnit(unit: any) {
   return 'number';
 }
 
-export function EventCustomPerformanceMetric({
+function EventCustomPerformanceMetric({
   event,
   name,
   location,
@@ -114,6 +114,7 @@ export function EventCustomPerformanceMetric({
   source,
   isHomepage,
 }: EventCustomPerformanceMetricProps) {
+  const theme = useTheme();
   const {value, unit} = event.measurements?.[name] ?? {};
   if (value === null) {
     return null;
@@ -125,7 +126,7 @@ export function EventCustomPerformanceMetric({
     ? FIELD_FORMATTERS[fieldType].renderFunc(
         name,
         {[name]: renderValue},
-        {location, organization, unit}
+        {location, organization, unit, theme}
       )
     : renderValue;
 
@@ -210,6 +211,7 @@ export function TraceEventCustomPerformanceMetric({
   source,
   isHomepage,
 }: EventCustomPerformanceMetricProps) {
+  const theme = useTheme();
   const {value, unit} = event.measurements?.[name] ?? {};
   if (value === null) {
     return null;
@@ -221,7 +223,7 @@ export function TraceEventCustomPerformanceMetric({
     ? FIELD_FORMATTERS[fieldType].renderFunc(
         name,
         {[name]: renderValue},
-        {location, organization, unit}
+        {location, organization, unit, theme}
       )
     : renderValue;
 

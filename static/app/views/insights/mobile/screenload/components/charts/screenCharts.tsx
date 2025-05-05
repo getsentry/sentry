@@ -1,12 +1,11 @@
 import {Fragment, useEffect, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import {Alert} from 'sentry/components/core/alert';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
@@ -53,10 +52,10 @@ type Props = {
 };
 
 export function ScreenCharts({yAxes, additionalFilters}: Props) {
+  const theme = useTheme();
   const pageFilter = usePageFilters();
   const location = useLocation();
   const {isProjectCrossPlatform, selectedPlatform: platform} = useCrossPlatformProject();
-
   const yAxisCols = yAxes.map(val => YAXIS_COLUMNS[val]);
 
   const {
@@ -119,11 +118,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
     Sentry.captureException(new Error('Screen summary missing releases'));
   }, [primaryRelease, isReleasesLoading]);
 
-  const transformedReleaseSeries: {
-    [yAxisName: string]: {
-      [releaseVersion: string]: Series;
-    };
-  } = {};
+  const transformedReleaseSeries: Record<string, Record<string, Series>> = {};
   yAxes.forEach(val => {
     transformedReleaseSeries[YAXIS_COLUMNS[val]] = {};
   });
@@ -144,7 +139,8 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
               } as SeriesDataUnit;
             }) ?? [];
 
-          const color = isPrimary ? CHART_PALETTE[3][0] : CHART_PALETTE[3][1];
+          const colors = theme.chart.getColorPalette(3);
+          const color = isPrimary ? colors[0] : colors[1];
           transformedReleaseSeries[yAxis]![release] = {
             seriesName: formatVersion(label, true),
             color,
@@ -191,6 +187,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
     primaryRelease,
     secondaryRelease,
     data: deviceClassEvents,
+    theme,
   });
 
   function renderCharts() {
@@ -391,10 +388,6 @@ const StyledRow = styled('div')`
 
 const ChartsContainerItem = styled('div')`
   flex: 1;
-`;
-
-export const Spacer = styled('div')`
-  margin-top: ${space(3)};
 `;
 
 const Container = styled('div')`

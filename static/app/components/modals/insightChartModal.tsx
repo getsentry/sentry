@@ -21,9 +21,9 @@ export default function InsightChartModal({Header, title, children}: Props) {
           <h3>{title}</h3>
         </Header>
 
-        <ChartRenderingContext.Provider value={{height: 300, isFullscreen: true}}>
+        <ChartRenderingContext value={{height: 300, isFullscreen: true}}>
           {children}
-        </ChartRenderingContext.Provider>
+        </ChartRenderingContext>
       </Container>
     </Fragment>
   );

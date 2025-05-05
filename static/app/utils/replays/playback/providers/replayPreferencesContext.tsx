@@ -34,9 +34,7 @@ export function ReplayPreferencesContextProvider({
     [prefsStrategy]
   );
 
-  return (
-    <StateContext.Provider value={[state, setPrefs]}>{children}</StateContext.Provider>
-  );
+  return <StateContext value={[state, setPrefs]}>{children}</StateContext>;
 }
 
 export function useReplayPrefs() {

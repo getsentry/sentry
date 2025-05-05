@@ -1,6 +1,5 @@
 import {
   createContext,
-  forwardRef,
   useContext,
   useLayoutEffect,
   useMemo,
@@ -44,7 +43,7 @@ interface InputContext {
    */
   trailingWidth?: number;
 }
-export const InputGroupContext = createContext<InputContext>({inputProps: {}});
+const InputGroupContext = createContext<InputContext>({inputProps: {}});
 
 /**
  * Wrapper for input group. To be used alongisde `Input`, `InputGroup.LeadingItems`,
@@ -73,55 +72,65 @@ export function InputGroup({children, ...props}: React.HTMLAttributes<HTMLDivEle
   );
 
   return (
-    <InputGroupContext.Provider value={contextValue}>
+    <InputGroupContext value={contextValue}>
       <InputGroupWrap disabled={inputProps.disabled} {...props}>
         {children}
       </InputGroupWrap>
-    </InputGroupContext.Provider>
+    </InputGroupContext>
   );
 }
 
-const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({size, disabled, ...props}, ref) => {
-    const {leadingWidth, trailingWidth, setInputProps} = useContext(InputGroupContext);
+function Input({
+  ref,
+  size,
+  disabled,
+  ...props
+}: InputProps & {
+  ref?: React.Ref<HTMLInputElement>;
+}) {
+  const {leadingWidth, trailingWidth, setInputProps} = useContext(InputGroupContext);
 
-    useLayoutEffect(() => {
-      setInputProps?.({size, disabled});
-    }, [size, disabled, setInputProps]);
+  useLayoutEffect(() => {
+    setInputProps?.({size, disabled});
+  }, [size, disabled, setInputProps]);
 
-    return (
-      <StyledInput
-        ref={ref}
-        leadingWidth={leadingWidth}
-        trailingWidth={trailingWidth}
-        size={size}
-        disabled={disabled}
-        {...props}
-      />
-    );
-  }
-);
+  return (
+    <StyledInput
+      ref={ref}
+      leadingWidth={leadingWidth}
+      trailingWidth={trailingWidth}
+      size={size}
+      disabled={disabled}
+      {...props}
+    />
+  );
+}
 
-const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
-  ({size, disabled, ...props}, ref) => {
-    const {leadingWidth, trailingWidth, setInputProps} = useContext(InputGroupContext);
+function TextArea({
+  ref,
+  size,
+  disabled,
+  ...props
+}: TextAreaProps & {
+  ref?: React.Ref<HTMLTextAreaElement>;
+}) {
+  const {leadingWidth, trailingWidth, setInputProps} = useContext(InputGroupContext);
 
-    useLayoutEffect(() => {
-      setInputProps?.({size, disabled});
-    }, [size, disabled, setInputProps]);
+  useLayoutEffect(() => {
+    setInputProps?.({size, disabled});
+  }, [size, disabled, setInputProps]);
 
-    return (
-      <StyledTextArea
-        ref={ref}
-        leadingWidth={leadingWidth}
-        trailingWidth={trailingWidth}
-        size={size}
-        disabled={disabled}
-        {...props}
-      />
-    );
-  }
-);
+  return (
+    <StyledTextArea
+      ref={ref}
+      leadingWidth={leadingWidth}
+      trailingWidth={trailingWidth}
+      size={size}
+      disabled={disabled}
+      {...props}
+    />
+  );
+}
 
 interface InputItemsProps extends React.HTMLAttributes<HTMLDivElement> {
   /**
@@ -210,7 +219,7 @@ InputGroup.TrailingItems = TrailingItems;
 
 export type {InputProps, TextAreaProps};
 
-export const InputGroupWrap = styled('div')<{disabled?: boolean}>`
+const InputGroupWrap = styled('div')<{disabled?: boolean}>`
   position: relative;
   ${p => p.disabled && `color: ${p.theme.disabled};`};
 `;

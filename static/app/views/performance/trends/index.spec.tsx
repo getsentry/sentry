@@ -14,6 +14,7 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -34,12 +35,6 @@ jest.mock('sentry/utils/useLocation');
 
 const mockUseLocation = jest.mocked(useLocation);
 
-jest.mock('moment-timezone', () => {
-  const moment = jest.requireActual('moment-timezone');
-  moment.now = jest.fn().mockReturnValue(1601251200000);
-  return moment;
-});
-
 async function getTrendDropdown() {
   const dropdown = await screen.findByRole('button', {name: /Percentile.+/});
   expect(dropdown).toBeInTheDocument();
@@ -53,7 +48,7 @@ async function getParameterDropdown() {
 }
 
 async function waitForMockCall(mock: any) {
-  await waitFor(() => {
+  await waitFor(function () {
     expect(mock).toHaveBeenCalled();
   });
 }
@@ -165,6 +160,7 @@ function initializeTrendsData(
 describe('Performance > Trends', function () {
   let trendsStatsMock: jest.Mock;
   beforeEach(function () {
+    setMockDate(1601251200000);
     mockUseLocation.mockReturnValue({
       pathname: '/organizations/org-slug/performance/trends/',
       action: 'PUSH',
@@ -274,6 +270,7 @@ describe('Performance > Trends', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
     act(() => ProjectsStore.reset());
+    resetMockDate();
   });
 
   it('renders basic UI elements', async function () {
@@ -284,6 +281,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -300,6 +298,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -316,6 +315,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -327,7 +327,7 @@ describe('Performance > Trends', function () {
 
     expect(summaryLink.closest('a')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/summary/?display=trend&project=1&query=tpm%28%29%3A%3E0.01%20transaction.duration%3A%3E0%20transaction.duration%3A%3C15min%20count_percentage%28%29%3A%3E0.25%20count_percentage%28%29%3A%3C4%20trend_percentage%28%29%3A%3E0%25%20confidence%28%29%3A%3E6&referrer=performance-transaction-summary&statsPeriod=14d&transaction=%2Forganizations%2F%3AorgId%2Fperformance%2F&trendFunction=p95&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
+      '/organizations/org-slug/insights/summary/?display=trend&project=1&query=tpm%28%29%3A%3E0.01%20transaction.duration%3A%3E0%20transaction.duration%3A%3C15min%20count_percentage%28%29%3A%3E0.25%20count_percentage%28%29%3A%3C4%20trend_percentage%28%29%3A%3E0%25%20confidence%28%29%3A%3E6&referrer=performance-transaction-summary&statsPeriod=14d&transaction=%2Forganizations%2F%3AorgId%2Fperformance%2F&trendFunction=p95&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
     );
   });
 
@@ -340,6 +340,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -376,6 +377,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -404,6 +406,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -440,6 +443,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -476,6 +480,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -508,6 +513,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -524,6 +530,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -540,6 +547,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -556,6 +564,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -586,6 +595,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -641,6 +651,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -713,6 +724,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -742,6 +754,7 @@ describe('Performance > Trends', function () {
       {
         router: data.router,
         organization: data.organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -751,7 +764,7 @@ describe('Performance > Trends', function () {
 
     expect(byTransactionLink.closest('a')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/?query=device.family%3AMac'
+      '/organizations/org-slug/insights/backend/?query=device.family%3AMac'
     );
   });
 });

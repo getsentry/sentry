@@ -1,15 +1,12 @@
 import {Fragment} from 'react';
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
 import {Button, LinkButton} from 'sentry/components/core/button';
-import type {DropdownOption} from 'sentry/components/discover/transactionsList';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/investigationRule';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  type GridColumnHeader,
-} from 'sentry/components/gridEditable';
+import GridEditable from 'sentry/components/gridEditable';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -27,82 +24,22 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {type EAPSpanResponse, ModuleName} from 'sentry/views/insights/types';
+import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {
+  SERVICE_ENTRY_SPANS_COLUMN_ORDER,
+  type ServiceEntrySpansColumn,
+  type ServiceEntrySpansRow,
+} from 'sentry/views/performance/otlp/types';
+import {useServiceEntrySpansQuery} from 'sentry/views/performance/otlp/useServiceEntrySpansQuery';
+import {
+  getOTelTransactionsListSort,
+  SERVICE_ENTRY_SPANS_CURSOR,
+} from 'sentry/views/performance/otlp/utils';
 import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
-
-// TODO: When supported, also add span operation breakdown as a field
-type Row = Pick<
-  EAPSpanResponse,
-  | 'span_id'
-  | 'user.display'
-  | 'user.id'
-  | 'user.email'
-  | 'user.username'
-  | 'user.ip'
-  | 'span.duration'
-  | 'trace'
-  | 'timestamp'
-  | 'replayId'
-  | 'profile.id'
-  | 'profiler.id'
-  | 'thread.id'
-  | 'precise.start_ts'
-  | 'precise.finish_ts'
->;
-
-type Column = GridColumnHeader<
-  | 'span_id'
-  | 'user.display'
-  | 'span.duration'
-  | 'trace'
-  | 'timestamp'
-  | 'replayId'
-  | 'profile.id'
->;
-
-const COLUMN_ORDER: Column[] = [
-  {
-    key: 'trace',
-    name: t('Trace ID'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'span_id',
-    name: t('Span ID'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'user.display',
-    name: t('User'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'span.duration',
-    name: t('Total Duration'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'timestamp',
-    name: t('Timestamp'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'replayId',
-    name: t('Replay'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'profile.id',
-    name: t('Profile'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-];
 
 const LIMIT = 5;
 const PAGINATION_CURSOR_SIZE = 'xs';
-const CURSOR_NAME = 'serviceEntrySpansCursor';
 
 type Props = {
   eventView: EventView;
@@ -121,17 +58,19 @@ export function ServiceEntrySpansTable({
   supportsInvestigationRule,
   showViewSampledEventsButton,
 }: Props) {
+  const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects();
   const navigate = useNavigate();
 
   const projectSlug = projects.find(p => p.id === `${eventView.project}`)?.slug;
-  const cursor = decodeScalar(location.query?.[CURSOR_NAME]);
-  const {selected, options} = getOTelTransactionsListSort(location);
+  const cursor = decodeScalar(location.query?.[SERVICE_ENTRY_SPANS_CURSOR]);
+  const spanCategory = decodeScalar(location.query?.[SpanIndexedField.SPAN_CATEGORY]);
+  const {selected, options} = getOTelTransactionsListSort(location, spanCategory);
 
   const p95 = totalValues?.['p95()'] ?? 0;
-  const eventViewQuery = new MutableSearch(eventView.query);
+  const eventViewQuery = new MutableSearch('');
   if (selected.value === TransactionFilterOptions.SLOW && p95) {
     eventViewQuery.addFilterValue('span.duration', `<=${p95.toFixed(0)}`);
   }
@@ -142,32 +81,13 @@ export function ServiceEntrySpansTable({
     pageLinks,
     meta,
     error,
-  } = useEAPSpans(
-    {
-      search: eventViewQuery.formatString(),
-      fields: [
-        'span_id',
-        'user.id',
-        'user.email',
-        'user.username',
-        'user.ip',
-        'span.duration',
-        'trace',
-        'timestamp',
-        'replayId',
-        'profile.id',
-        'profiler.id',
-        'thread.id',
-        'precise.start_ts',
-        'precise.finish_ts',
-      ],
-      sorts: [selected.sort],
-      limit: LIMIT,
-      cursor,
-    },
-    'api.performance.service-entry-spans-table',
-    true
-  );
+  } = useServiceEntrySpansQuery({
+    query: eventViewQuery.formatString(),
+    sort: selected.sort,
+    transactionName,
+    p95,
+    limit: LIMIT,
+  });
 
   const consolidatedData = tableData?.map(row => {
     const user =
@@ -181,7 +101,7 @@ export function ServiceEntrySpansTable({
   const handleCursor: CursorHandler = (_cursor, pathname, query) => {
     navigate({
       pathname,
-      query: {...query, [CURSOR_NAME]: _cursor},
+      query: {...query, [SERVICE_ENTRY_SPANS_CURSOR]: _cursor},
     });
   };
 
@@ -243,7 +163,7 @@ export function ServiceEntrySpansTable({
         isLoading={isLoading}
         error={error}
         data={consolidatedData}
-        columnOrder={COLUMN_ORDER}
+        columnOrder={SERVICE_ENTRY_SPANS_COLUMN_ORDER}
         columnSortBy={[]}
         grid={{
           renderHeadCell: column =>
@@ -251,7 +171,7 @@ export function ServiceEntrySpansTable({
               column,
             }),
           renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, projectSlug, location, organization),
+            renderBodyCell(column, row, meta, projectSlug, location, organization, theme),
         }}
       />
     </Fragment>
@@ -259,12 +179,13 @@ export function ServiceEntrySpansTable({
 }
 
 function renderBodyCell(
-  column: Column,
-  row: Row,
+  column: ServiceEntrySpansColumn,
+  row: ServiceEntrySpansRow,
   meta: EventsMetaType | undefined,
   projectSlug: string | undefined,
   location: Location,
-  organization: Organization
+  organization: Organization,
+  theme: Theme
 ) {
   if (column.key === 'span_id') {
     return (
@@ -328,6 +249,7 @@ function renderBodyCell(
   const rendered = renderer(row, {
     location,
     organization,
+    theme,
     unit: meta.units?.[column.key],
   });
 
@@ -362,46 +284,6 @@ function CustomPagination({
       size={PAGINATION_CURSOR_SIZE}
     />
   );
-}
-
-// TODO: The span ops breakdown filter will not work here due to OTLP changes.
-// this may need to be adjusted in the future to handle the new breakdown filter that will replace it.
-function getOTelFilterOptions(): DropdownOption[] {
-  return [
-    {
-      sort: {kind: 'asc', field: 'span.duration'},
-      value: TransactionFilterOptions.FASTEST,
-      label: t('Fastest Transactions'),
-    },
-    {
-      sort: {kind: 'desc', field: 'span.duration'},
-      value: TransactionFilterOptions.SLOW,
-      label: t('Slow Transactions (p95)'),
-    },
-    {
-      sort: {kind: 'desc', field: 'span.duration'},
-      value: TransactionFilterOptions.OUTLIER,
-      label: t('Outlier Transactions (p100)'),
-    },
-    {
-      sort: {kind: 'desc', field: 'timestamp'},
-      value: TransactionFilterOptions.RECENT,
-      label: t('Recent Transactions'),
-    },
-  ];
-}
-
-function getOTelTransactionsListSort(location: Location): {
-  options: DropdownOption[];
-  selected: DropdownOption;
-} {
-  const sortOptions = getOTelFilterOptions();
-  const urlParam = decodeScalar(
-    location.query.showTransactions,
-    TransactionFilterOptions.SLOW
-  );
-  const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0]!;
-  return {selected: selectedSort, options: sortOptions};
 }
 
 const Header = styled('div')`

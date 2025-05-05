@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 
 import {
   type AutofixData,
@@ -16,6 +16,7 @@ import {
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export type AutofixResponse = {
   autofix: AutofixData | null;
@@ -23,8 +24,8 @@ export type AutofixResponse = {
 
 const POLL_INTERVAL = 500;
 
-export const makeAutofixQueryKey = (groupId: string): ApiQueryKey => [
-  `/issues/${groupId}/autofix/`,
+export const makeAutofixQueryKey = (orgSlug: string, groupId: string): ApiQueryKey => [
+  `/organizations/${orgSlug}/issues/${groupId}/autofix/`,
 ];
 
 const makeInitialAutofixData = (): AutofixResponse => ({
@@ -48,8 +49,11 @@ const makeInitialAutofixData = (): AutofixResponse => ({
         ],
       },
     ],
-    created_at: new Date().toISOString(),
-    repositories: [],
+    last_triggered_at: new Date().toISOString(),
+    request: {
+      repos: [],
+    },
+    codebases: {},
   },
 });
 
@@ -89,6 +93,13 @@ const isPolling = (
     return true;
   }
 
+  if (
+    autofixData.status === AutofixStatus.PROCESSING ||
+    autofixData?.steps.some(step => step.status === AutofixStatus.PROCESSING)
+  ) {
+    return true;
+  }
+
   // Check if there's any active comment thread that hasn't been completed
   const hasActiveCommentThread = autofixData.steps.some(
     step =>
@@ -125,12 +136,35 @@ const isPolling = (
   );
 };
 
+export const useAutofixRepos = (groupId: string) => {
+  const {data} = useAutofixData({groupId});
+
+  return useMemo(() => {
+    const repos = data?.request?.repos ?? [];
+    const codebases = data?.codebases ?? {};
+
+    return {
+      repos: repos.map(repo => ({
+        ...repo,
+        is_readable: codebases[repo.external_id]?.is_readable,
+        is_writeable: codebases[repo.external_id]?.is_writeable,
+      })),
+      codebases,
+    };
+  }, [data]);
+};
+
 export const useAutofixData = ({groupId}: {groupId: string}) => {
-  const {data, isPending} = useApiQuery<AutofixResponse>(makeAutofixQueryKey(groupId), {
-    staleTime: Infinity,
-    enabled: false,
-    notifyOnChangeProps: ['data'],
-  });
+  const orgSlug = useOrganization().slug;
+
+  const {data, isPending} = useApiQuery<AutofixResponse>(
+    makeAutofixQueryKey(orgSlug, groupId),
+    {
+      staleTime: Infinity,
+      enabled: false,
+      notifyOnChangeProps: ['data'],
+    }
+  );
 
   return {data: data?.autofix ?? null, isPending};
 };
@@ -145,27 +179,31 @@ export const useAiAutofix = (
 ) => {
   const api = useApi();
   const queryClient = useQueryClient();
+  const orgSlug = useOrganization().slug;
 
   const [isReset, setIsReset] = useState<boolean>(false);
   const [currentRunId, setCurrentRunId] = useState<string | null>(null);
   const [waitingForNextRun, setWaitingForNextRun] = useState<boolean>(false);
 
-  const {data: apiData} = useApiQuery<AutofixResponse>(makeAutofixQueryKey(group.id), {
-    staleTime: 0,
-    retry: false,
-    refetchInterval: query => {
-      if (
-        isPolling(
-          query.state.data?.[0]?.autofix || null,
-          !!currentRunId || waitingForNextRun,
-          options.isSidebar
-        )
-      ) {
-        return options.pollInterval ?? POLL_INTERVAL;
-      }
-      return false;
-    },
-  } as UseApiQueryOptions<AutofixResponse, RequestError>);
+  const {data: apiData} = useApiQuery<AutofixResponse>(
+    makeAutofixQueryKey(orgSlug, group.id),
+    {
+      staleTime: 0,
+      retry: false,
+      refetchInterval: query => {
+        if (
+          isPolling(
+            query.state.data?.[0]?.autofix || null,
+            !!currentRunId || waitingForNextRun,
+            options.isSidebar
+          )
+        ) {
+          return options.pollInterval ?? POLL_INTERVAL;
+        }
+        return false;
+      },
+    } as UseApiQueryOptions<AutofixResponse, RequestError>
+  );
 
   const triggerAutofix = useCallback(
     async (instruction: string) => {
@@ -174,30 +212,33 @@ export const useAiAutofix = (
       setWaitingForNextRun(true);
       setApiQueryData<AutofixResponse>(
         queryClient,
-        makeAutofixQueryKey(group.id),
+        makeAutofixQueryKey(orgSlug, group.id),
         makeInitialAutofixData()
       );
 
       try {
-        const response = await api.requestPromise(`/issues/${group.id}/autofix/`, {
-          method: 'POST',
-          data: {
-            event_id: event.id,
-            instruction,
-          },
-        });
+        const response = await api.requestPromise(
+          `/organizations/${orgSlug}/issues/${group.id}/autofix/`,
+          {
+            method: 'POST',
+            data: {
+              event_id: event.id,
+              instruction,
+            },
+          }
+        );
         setCurrentRunId(response.run_id ?? null);
-        queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(group.id)});
+        queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, group.id)});
       } catch (e) {
         setWaitingForNextRun(false);
         setApiQueryData<AutofixResponse>(
           queryClient,
-          makeAutofixQueryKey(group.id),
+          makeAutofixQueryKey(orgSlug, group.id),
           makeErrorAutofixData(e?.responseJSON?.detail ?? 'An error occurred')
         );
       }
     },
-    [queryClient, group.id, api, event.id]
+    [queryClient, group.id, api, event.id, orgSlug]
   );
 
   const reset = useCallback(() => {

@@ -14,9 +14,9 @@ import type {
 import PermissionDenied from 'sentry/views/permissionDenied';
 import RouteError from 'sentry/views/routeError';
 
-export interface AsyncComponentProps extends Partial<RouteComponentProps> {}
+interface AsyncComponentProps extends Partial<RouteComponentProps> {}
 
-export interface AsyncComponentState {
+interface AsyncComponentState {
   [key: string]: any;
   error: boolean;
   errors: Record<string, ResponseMeta>;
@@ -334,7 +334,7 @@ class DeprecatedAsyncComponent<
     // If all error responses have status code === 0, then show error message but don't
     // log it to sentry
     const shouldLogSentry =
-      !!Object.values(errors).find(resp => resp?.status !== 0) || disableLog;
+      Object.values(errors).some(resp => resp?.status !== 0) || disableLog;
 
     if (unauthorizedErrors) {
       return (

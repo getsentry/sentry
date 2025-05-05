@@ -88,10 +88,10 @@ class GroupingInput:
         grouping_config = get_default_grouping_config_dict(config_name)
 
         # Add in any extra grouping configuration from the input data
-        grouping_config["enhancements"] = Enhancements.from_config_string(
+        grouping_config["enhancements"] = Enhancements.from_rules_text(
             self.data.get("_grouping", {}).get("enhancements", ""),
-            bases=Enhancements.loads(grouping_config["enhancements"]).bases,
-        ).dumps()
+            bases=Enhancements.from_base64_string(grouping_config["enhancements"]).bases,
+        ).base64_string
         fingerprinting_config = FingerprintingRules.from_json(
             {"rules": self.data.get("_fingerprinting_rules", [])},
             bases=CONFIGURATIONS[config_name].fingerprinting_bases,

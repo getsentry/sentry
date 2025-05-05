@@ -17,7 +17,10 @@ def build_typed_list(type: Any):
     a typed list using this workaround. build_basic_type will dynamically check the type
     and pass a warning if it can't recognize it, failing any build command in the process as well.
     """
-    return build_array_type(build_basic_type(type))
+    basic_type = build_basic_type(type)
+    if basic_type is None:
+        raise ValueError("'None' type lists are not supported.")
+    return build_array_type(schema=basic_type)
 
 
 class GlobalParams:
@@ -274,16 +277,6 @@ class ReleaseParams:
     )
 
 
-class SCIMParams:
-    TEAM_ID = OpenApiParameter(
-        name="team_id",
-        location="path",
-        required=True,
-        type=int,
-        description="The ID of the team you'd like to query / update.",
-    )
-
-
 class IssueParams:
     KEY = OpenApiParameter(
         name="key",
@@ -317,6 +310,105 @@ class IssueParams:
         enum=["id", "date", "age", "count"],
     )
 
+    GROUP_STATS_PERIOD = OpenApiParameter(
+        name="groupStatsPeriod",
+        description="The timeline on which stats for the groups should be presented.",
+        enum=["", "24h", "14d", "auto"],
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        required=False,
+    )
+
+    SHORT_ID_LOOKUP = OpenApiParameter(
+        name="shortIdLookup",
+        description="If this is set to `1` then the query will be parsed for issue short IDs. These may ignore other filters (e.g. projects), which is why it is an opt-in.",
+        enum=["1", "0"],
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        required=False,
+    )
+
+    DEFAULT_QUERY = OpenApiParameter(
+        name="query",
+        description="An optional search query for filtering issues. A default query will apply if no view/query is set. For all results use this parameter with an empty string.",
+        default="is:unresolved issue.priority:[high,medium]",
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        required=False,
+    )
+
+    VIEW_ID = OpenApiParameter(
+        name="viewId",
+        description="The ID of the view to use. If no query is present, the view's query and filters will be applied.",
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        required=False,
+    )
+
+    VIEW_SORT = OpenApiParameter(
+        name="sort",
+        description="The sort order of the view. Options include 'Last Seen' (`date`), 'First Seen' (`new`), 'Trends' (`trends`), 'Events' (`freq`), 'Users' (`user`), and 'Date Added' (`inbox`).",
+        default="date",
+        enum=["date", "new", "trends", "freq", "user", "inbox"],
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        required=False,
+    )
+
+    LIMIT = OpenApiParameter(
+        name="limit",
+        description="The maximum number of issues to affect. The maximum is 100.",
+        default=100,
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.INT,
+        required=False,
+    )
+
+    GROUP_INDEX_EXPAND = OpenApiParameter(
+        name="expand",
+        description="Additional data to include in the response.",
+        enum=[
+            "inbox",
+            "owners",
+            "sessions",
+            "pluginActions",
+            "pluginIssues",
+            "integrationIssues",
+            "sentryAppIssues",
+            "latestEventHasAttachments",
+        ],
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        required=False,
+        many=True,
+    )
+
+    GROUP_INDEX_COLLAPSE = OpenApiParameter(
+        name="collapse",
+        description="Fields to remove from the response to improve query performance.",
+        enum=["stats", "lifetime", "base", "unhandled", "filtered"],
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        required=False,
+        many=True,
+    )
+    MUTATE_ISSUE_ID_LIST = OpenApiParameter(
+        name="id",
+        description="The list of issue IDs to mutate. It is optional for status updates, in which an implicit `update all` is assumed.",
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.INT,
+        required=False,
+        many=True,
+    )
+    DELETE_ISSUE_ID_LIST = OpenApiParameter(
+        name="id",
+        description="The list of issue IDs to be removed. If not provided, it will attempt to remove the first 1000 issues.",
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.INT,
+        required=False,
+        many=True,
+    )
+
 
 class DetectorParams:
     DETECTOR_ID = OpenApiParameter(
@@ -335,6 +427,16 @@ class WorkflowParams:
         required=True,
         type=int,
         description="The ID of the workflow you'd like to query.",
+    )
+
+
+class DetectorWorkflowParams:
+    DETECTOR_WORKFLOW_ID = OpenApiParameter(
+        name="detector_workflow_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the DetectorWorkflow you'd like to query.",
     )
 
 

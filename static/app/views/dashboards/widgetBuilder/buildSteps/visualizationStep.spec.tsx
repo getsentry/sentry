@@ -16,9 +16,8 @@ import {
 } from 'sentry/views/dashboards/types';
 import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
 import {VisualizationStep} from 'sentry/views/dashboards/widgetBuilder/buildSteps/visualizationStep';
-
-import {DashboardsMEPProvider} from '../../widgetCard/dashboardsMEPContext';
-import WidgetLegendSelectionState from '../../widgetLegendSelectionState';
+import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
+import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 
 jest.unmock('lodash/debounce');
 
@@ -149,6 +148,7 @@ describe('VisualizationStep', function () {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -198,10 +198,13 @@ describe('VisualizationStep', function () {
       />,
       {
         router,
+
         organization: {
           ...organization,
           features: [...organization.features, 'dynamic-sampling', 'mep-rollout-flag'],
         },
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -242,6 +245,7 @@ describe('VisualizationStep', function () {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -289,6 +293,7 @@ describe('VisualizationStep', function () {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -332,7 +337,10 @@ describe('VisualizationStep', function () {
           />
         </DashboardsMEPProvider>
       </MEPSettingProvider>,
-      {organization}
+      {
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await waitFor(() =>

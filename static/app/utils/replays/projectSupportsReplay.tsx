@@ -1,4 +1,8 @@
-import {backend, replayPlatforms} from 'sentry/data/platformCategories';
+import {
+  backend,
+  replayBackendPlatforms,
+  replayPlatforms,
+} from 'sentry/data/platformCategories';
 import type {Organization} from 'sentry/types/organization';
 import type {MinimalProject} from 'sentry/types/project';
 
@@ -20,7 +24,7 @@ export function projectCanLinkToReplay(
   _organization: Organization,
   project: undefined | MinimalProject
 ) {
-  if (!project || !project.platform) {
+  if (!project?.platform) {
     return false;
   }
   const supportedPlatforms = replayPlatforms;
@@ -31,10 +35,13 @@ export function projectCanLinkToReplay(
 }
 
 export function projectCanUpsellReplay(project: undefined | MinimalProject) {
-  if (!project || !project.platform) {
+  if (!project?.platform) {
     return false;
   }
-  return replayPlatforms.includes(project.platform);
+  return (
+    replayPlatforms.includes(project.platform) &&
+    !replayBackendPlatforms.includes(project.platform)
+  );
 }
 
 export default projectSupportsReplay;

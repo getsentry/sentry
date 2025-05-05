@@ -8,9 +8,9 @@ import type {InputProps} from 'sentry/components/core/input';
 import {Input} from 'sentry/components/core/input';
 import type {ControlProps} from 'sentry/components/core/select';
 import {Select} from 'sentry/components/core/select';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {SingleValueProps} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {pulse} from 'sentry/styles/animations';
@@ -576,7 +576,8 @@ class _QueryField extends Component<Props> {
     if (shouldRenderTag === false) {
       return null;
     }
-    let text, tagType;
+    let text: string;
+    let tagType: 'success' | 'highlight' | 'warning' | undefined = undefined;
     switch (kind) {
       case FieldValueKind.FUNCTION:
         text = 'f(x)';
@@ -606,7 +607,6 @@ class _QueryField extends Component<Props> {
       default:
         text = kind;
     }
-    // @ts-expect-error TS(2322): Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
     return <Tag type={tagType}>{text}</Tag>;
   }
 
@@ -666,7 +666,6 @@ class _QueryField extends Component<Props> {
             name="arithmetic"
             key="parameter:text"
             type="text"
-            required
             value={fieldValue.field}
             onUpdate={this.handleEquationChange}
             options={otherColumns}
@@ -813,7 +812,6 @@ export class BufferedInput extends Component<BufferedInputProps, InputState> {
     return (
       <StyledInput
         {...props}
-        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
         ref={this.input}
         className="form-control"
         value={this.state.value}

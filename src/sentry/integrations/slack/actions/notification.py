@@ -18,10 +18,7 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionType,
 )
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.repository import (
-    get_default_issue_alert_repository,
-    get_default_notification_action_repository,
-)
+from sentry.integrations.repository import get_default_issue_alert_repository
 from sentry.integrations.repository.base import NotificationMessageValidationError
 from sentry.integrations.repository.issue_alert import NewIssueAlertNotificationMessage
 from sentry.integrations.repository.notification_action import (
@@ -30,17 +27,11 @@ from sentry.integrations.repository.notification_action import (
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.slack.actions.form import SlackNotifyServiceForm
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
-from sentry.integrations.slack.message_builder.notifications.rule_save_edit import (
-    SlackRuleSaveEditMessageBuilder,
-)
-from sentry.integrations.slack.metrics import (
-    SLACK_ISSUE_ALERT_FAILURE_DATADOG_METRIC,
-    SLACK_ISSUE_ALERT_SUCCESS_DATADOG_METRIC,
-    record_lifecycle_termination_level,
-)
+from sentry.integrations.slack.metrics import record_lifecycle_termination_level
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.channel import SlackChannelIdData, get_channel_id
+from sentry.integrations.slack.utils.threads import NotificationActionThreadUtils
 from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.options.organization_option import OrganizationOption
@@ -133,9 +124,9 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             )
             ts = response.get("ts")
             message_identifier = str(ts) if ts is not None else None
-            if message_identifier is not None:
+            if message_identifier is None:
                 sentry_sdk.capture_message(
-                    f"Slack message sent with ts: {message_identifier}",
+                    "Received no thread_ts from Slack",
                     level="info",
                 )
 
@@ -175,25 +166,6 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 "Validation error for new issue alert notification message",
                 exc_info=err,
                 extra=extra,
-            )
-        except Exception:
-            # if there's an error trying to save a notification message, don't let that error block this flow
-            # we already log at the repository layer, no need to log again here
-            pass
-
-    @classmethod
-    def _save_notification_action_message(
-        cls,
-        data: NewNotificationActionNotificationMessage,
-    ) -> None:
-        """Save a notification action message to the repository."""
-        try:
-            action_repository = get_default_notification_action_repository()
-            action_repository.create_notification_message(data=data)
-        except NotificationMessageValidationError as err:
-            extra = data.__dict__ if data else None
-            _default_logger.info(
-                "Validation error for new notification action message", exc_info=err, extra=extra
             )
         except Exception:
             # if there's an error trying to save a notification message, don't let that error block this flow
@@ -251,48 +223,6 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         )
         # To reply to a thread, use the specific key in the payload as referenced by the docs
         # https://api.slack.com/methods/chat.postMessage#arg_thread_ts
-        return parent_notification_message.message_identifier
-
-    @classmethod
-    def _get_notification_action_thread_ts(
-        cls,
-        organization: Organization,
-        lifecycle: EventLifecycle,
-        action: Action,
-        event: GroupEvent,
-        open_period_start: datetime | None,
-        new_notification_message_object: NewNotificationActionNotificationMessage,
-    ) -> str | None:
-        """Find the thread in which to post a notification action notification as a reply.
-
-        Return None to post the notification as a top-level message.
-        """
-        if not (
-            OrganizationOption.objects.get_value(
-                organization=organization,
-                key="sentry:issue_alerts_thread_flag",
-                default=ISSUE_ALERTS_THREAD_DEFAULT,
-            )
-        ):
-            return None
-
-        try:
-            action_repository = get_default_notification_action_repository()
-            parent_notification_message = action_repository.get_parent_notification_message(
-                action=action,
-                group=event.group,
-                open_period_start=open_period_start,
-            )
-        except Exception as e:
-            lifecycle.record_halt(e)
-            return None
-
-        if parent_notification_message is None:
-            return None
-
-        new_notification_message_object.parent_notification_message_id = (
-            parent_notification_message.id
-        )
         return parent_notification_message.message_identifier
 
     def _send_notification(
@@ -457,17 +387,26 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             open_period_start = open_period_start_for_group(event.group)
             new_notification_message_object.open_period_start = open_period_start
 
+        thread_ts = None
         with MessagingInteractionEvent(
             MessagingInteractionType.GET_PARENT_NOTIFICATION, SlackMessagingSpec()
         ).capture() as lifecycle:
-            thread_ts = SlackNotifyServiceAction._get_notification_action_thread_ts(
-                lifecycle=lifecycle,
-                event=event,
-                new_notification_message_object=new_notification_message_object,
-                organization=self.project.organization,
-                action=action,
-                open_period_start=open_period_start,
+            parent_notification_message = (
+                NotificationActionThreadUtils._get_notification_action_for_notification_action(
+                    lifecycle=lifecycle,
+                    action=action,
+                    group=event.group,
+                    organization=self.project.organization,
+                    open_period_start=open_period_start,
+                    thread_option_default=ISSUE_ALERTS_THREAD_DEFAULT,
+                )
             )
+
+            if parent_notification_message is not None:
+                new_notification_message_object.parent_notification_message_id = (
+                    parent_notification_message.id
+                )
+                thread_ts = parent_notification_message.message_identifier
 
         self._send_notification(
             event=event,
@@ -477,7 +416,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             channel=channel,
             notification_uuid=notification_uuid,
             notification_message_object=new_notification_message_object,
-            save_notification_method=SlackNotifyServiceAction._save_notification_action_message,
+            save_notification_method=NotificationActionThreadUtils._save_notification_action_message,
             thread_ts=thread_ts,
         )
         self.record_notification_sent(event, channel, rule, notification_uuid)
@@ -518,59 +457,18 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
         key = f"slack:{integration.id}:{channel}"
 
-        metrics.incr("notifications.sent", instance="slack.notification", skip_internal=False)
-        if features.has(
-            "organizations:workflow-engine-notification-action", self.project.organization
-        ):
+        metrics.incr(
+            "notifications.sent",
+            instance="slack.notification",
+            tags={
+                "issue_type": event.group.issue_type.slug,
+            },
+            skip_internal=False,
+        )
+        if features.has("organizations:workflow-engine-trigger-actions", self.project.organization):
             yield self.future(send_notification_noa, key=key)
         else:
             yield self.future(send_notification, key=key)
-
-    def send_confirmation_notification(
-        self, rule: Rule, new: bool, changed: dict[str, Any] | None = None
-    ):
-        integration = self.get_integration()
-        if not integration:
-            # Integration removed, rule still active.
-            return
-
-        channel = self.get_option("channel_id")
-        blocks = SlackRuleSaveEditMessageBuilder(rule=rule, new=new, changed=changed).build()
-        json_blocks = orjson.dumps(blocks.get("blocks")).decode()
-        client = SlackSdkClient(integration_id=integration.id)
-
-        try:
-            client.chat_postMessage(
-                blocks=json_blocks,
-                text=blocks.get("text"),
-                channel=channel,
-                unfurl_links=False,
-                unfurl_media=False,
-            )
-            metrics.incr(
-                SLACK_ISSUE_ALERT_SUCCESS_DATADOG_METRIC,
-                sample_rate=1.0,
-                tags={"action": "send_confirmation"},
-            )
-        except SlackApiError as e:
-            log_params = {
-                "error": str(e),
-                "project_id": rule.project.id,
-                "channel_name": self.get_option("channel"),
-            }
-            self.logger.info(
-                "slack.issue_alert.confirmation.fail",
-                extra=log_params,
-            )
-            metrics.incr(
-                SLACK_ISSUE_ALERT_FAILURE_DATADOG_METRIC,
-                sample_rate=1.0,
-                tags={
-                    "action": "send_confirmation",
-                    "ok": e.response.get("ok", False),
-                    "status": e.response.status_code,
-                },
-            )
 
     def render_label(self) -> str:
         tags = self.get_tags_list()

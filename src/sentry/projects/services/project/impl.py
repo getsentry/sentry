@@ -132,7 +132,7 @@ class DatabaseBackedProjectService(ProjectService):
 
             set_default_symbol_sources(project)
 
-            project_created.send(
+            project_created.send_robust(
                 project=project,
                 default_rules=True,
                 sender=self.create_project_for_organization,

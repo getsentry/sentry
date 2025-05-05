@@ -5,7 +5,7 @@ import type {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import GenericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
+import {GenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 
 /**
  * An individual row in a Segment explorer result
@@ -49,7 +49,7 @@ type FacetQuery = LocationQuery &
     tagKey?: string;
   };
 
-export function getRequestFunction(_props: QueryProps) {
+function getRequestFunction(_props: QueryProps) {
   const {aggregateColumn} = _props;
   function getTagExplorerRequestPayload(props: DiscoverQueryProps) {
     const {eventView} = props;

@@ -19,9 +19,9 @@ export function useWebVitalsSort({
   const filteredSortableFields = sortableFields;
 
   const sort =
-    decodeSorts(location.query[sortName]).filter(s =>
+    decodeSorts(location.query[sortName]).find(s =>
       filteredSortableFields.includes(s.field)
-    )[0] ?? defaultSort;
+    ) ?? defaultSort;
 
   return sort;
 }

@@ -10,8 +10,7 @@ and the producer needs to be flushed to avoid loosing data.
 import atexit
 import logging
 
-from arroyo.backends.abstract import Producer
-from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
+from arroyo.backends.kafka import KafkaProducer, build_kafka_configuration
 from usageaccountant import UsageAccumulator, UsageUnit
 
 from sentry.conf.types.kafka_definition import Topic
@@ -23,29 +22,7 @@ logger = logging.getLogger(__name__)
 _accountant_backend: UsageAccumulator | None = None
 
 
-def init_backend(producer: Producer[KafkaPayload]) -> None:
-    """
-    This method should be used externally only in tests to fit a
-    mock producer.
-    """
-    global _accountant_backend
-
-    assert _accountant_backend is None, "Accountant already initialized once."
-    _accountant_backend = UsageAccumulator(producer=producer)
-    atexit.register(_shutdown)
-
-
-def reset_backend() -> None:
-    """
-    This method should be used externally only in tests to reset
-    the accountant backend.
-    """
-    global _accountant_backend
-    _accountant_backend = None
-
-
 def _shutdown() -> None:
-    global _accountant_backend
     if _accountant_backend is not None:
         _accountant_backend.flush()
         _accountant_backend.close()

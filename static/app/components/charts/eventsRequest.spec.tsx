@@ -28,6 +28,7 @@ describe('EventsRequest', function () {
     query: '',
     children: () => null,
     partial: false,
+    includeAllArgs: false,
     includeTransformedData: true,
   };
 

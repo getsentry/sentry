@@ -5,6 +5,7 @@ import type {
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {DataUnit} from 'sentry/utils/discover/fields';
 import {
@@ -12,25 +13,27 @@ import {
   useGenericDiscoverQuery,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {determineSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
-import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
-import {FALLBACK_SERIES_NAME} from 'sentry/views/explore/settings';
-import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
-import type {SpanFunctions, SpanIndexedField} from 'sentry/views/insights/types';
-
 import {
   isEventsStats,
   isMultiSeriesEventsStats,
-} from '../../../dashboards/utils/isEventsStats';
-import {getRetryDelay, shouldRetryHandler} from '../utils/retryHandlers';
+} from 'sentry/views/dashboards/utils/isEventsStats';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {FALLBACK_SERIES_NAME} from 'sentry/views/explore/settings';
+import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
+import {
+  getRetryDelay,
+  shouldRetryHandler,
+} from 'sentry/views/insights/common/utils/retryHandlers';
+import type {SpanFunctions, SpanIndexedField} from 'sentry/views/insights/types';
 
-type SeriesMap = {
-  [seriesName: string]: TimeSeries[];
-};
+type SeriesMap = Record<string, TimeSeries[]>;
 
 interface Options<Fields> {
   enabled?: boolean;
@@ -39,6 +42,7 @@ interface Options<Fields> {
   orderby?: string | string[];
   overriddenRoute?: string;
   referrer?: string;
+  samplingMode?: SamplingMode;
   search?: MutableSearch;
   topEvents?: number;
   yAxis?: Fields;
@@ -62,6 +66,7 @@ export const useSortedTimeSeries = <
     orderby,
     overriddenRoute,
     enabled,
+    samplingMode,
   } = options;
 
   const pageFilters = usePageFilters();
@@ -80,6 +85,15 @@ export const useSortedTimeSeries = <
     eventView.interval = interval;
   }
 
+  const usesRelativeDateRange =
+    !defined(eventView.start) &&
+    !defined(eventView.end) &&
+    defined(eventView.statsPeriod);
+
+  const intervalInMilliseconds = eventView.interval
+    ? intervalToMilliseconds(eventView.interval)
+    : undefined;
+
   const result = useGenericDiscoverQuery<
     MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
     DiscoverQueryProps
@@ -96,13 +110,22 @@ export const useSortedTimeSeries = <
       partial: 1,
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
       interval: eventView.interval,
+      sampling: samplingMode,
+      // Timeseries requests do not support cursors, overwrite it to undefined so
+      // pagination does not cause extra requests
+      cursor: undefined,
     }),
     options: {
       enabled: enabled && pageFilters.isReady,
       refetchOnWindowFocus: false,
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
-      staleTime: Infinity,
+      staleTime:
+        usesRelativeDateRange &&
+        defined(intervalInMilliseconds) &&
+        intervalInMilliseconds !== 0
+          ? intervalInMilliseconds
+          : Infinity,
     },
     referrer,
   });
@@ -215,17 +238,18 @@ export function convertEventsStatsToTimeSeriesData(
 
   const serie: TimeSeries = {
     field: label,
-    data: seriesData.data.map(([timestamp, countsForTimestamp]) => ({
-      timestamp: new Date(timestamp * 1000).toISOString(),
+    values: seriesData.data.map(([timestamp, countsForTimestamp]) => ({
+      timestamp: timestamp * 1000,
       value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
     })),
     meta: {
-      type: seriesData.meta?.fields?.[seriesName]!,
-      unit: seriesData.meta?.units?.[seriesName] as DataUnit,
+      valueType: seriesData.meta?.fields?.[seriesName]!,
+      valueUnit: seriesData.meta?.units?.[seriesName] as DataUnit,
     },
     confidence: determineSeriesConfidence(seriesData),
     sampleCount: seriesData.meta?.accuracy?.sampleCount,
     samplingRate: seriesData.meta?.accuracy?.samplingRate,
+    dataScanned: seriesData.meta?.dataScanned,
   };
 
   return [seriesData.order ?? 0, serie];

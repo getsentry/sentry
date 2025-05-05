@@ -1,26 +1,29 @@
 from collections.abc import MutableMapping
 from typing import Any, TypedDict
 
-from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers import Serializer, register
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.savedsearch import SORT_LITERALS
+from sentry.users.api.serializers.user import UserSerializerResponse
+from sentry.users.services.user.service import user_service
 
 
 class GroupSearchViewSerializerResponse(TypedDict):
     id: str
+    createdBy: UserSerializerResponse
     name: str
     query: str
     querySort: SORT_LITERALS
-    position: int
     projects: list[int]
-    isAllProjects: bool
     environments: list[str]
     timeFilters: dict
     lastVisited: str | None
     dateCreated: str
     dateUpdated: str
+    starred: bool
+    stars: int
 
 
 @register(GroupSearchView)
@@ -39,65 +42,55 @@ class GroupSearchViewSerializer(Serializer):
             user_id=user.id,
             group_search_view_id__in=[item.id for item in item_list],
         )
+        user_starred_view_ids = set(
+            GroupSearchViewStarred.objects.filter(
+                organization=self.organization,
+                user_id=user.id,
+            ).values_list("group_search_view_id", flat=True)
+        )
         last_visited_map = {lv.group_search_view_id: lv for lv in last_visited_views}
+
+        serialized_users = {
+            user["id"]: user
+            for user in user_service.serialize_many(
+                filter={"user_ids": [view.user_id for view in item_list if view.user_id]},
+                as_user=user,
+            )
+        }
 
         for item in item_list:
             last_visited = last_visited_map.get(item.id, None)
+            attrs[item] = {}
             if last_visited:
-                attrs[item] = {}
                 attrs[item]["last_visited"] = last_visited.last_visited
-
+            attrs[item]["starred"] = item.id in user_starred_view_ids
+            attrs[item]["stars"] = getattr(item, "popularity", 0)
+            attrs[item]["created_by"] = serialized_users.get(str(item.user_id))
         return attrs
 
     def serialize(self, obj, attrs, user, **kwargs) -> GroupSearchViewSerializerResponse:
         if self.has_global_views is False:
-            is_all_projects = False
-
             projects = list(obj.projects.values_list("id", flat=True))
             num_projects = len(projects)
             if num_projects != 1:
                 projects = [projects[0] if num_projects > 1 else self.default_project]
-
         else:
-            is_all_projects = obj.is_all_projects
-            projects = list(obj.projects.values_list("id", flat=True))
+            projects = (
+                [-1] if obj.is_all_projects else list(obj.projects.values_list("id", flat=True))
+            )
 
         return {
             "id": str(obj.id),
+            "createdBy": attrs.get("created_by"),
             "name": obj.name,
             "query": obj.query,
             "querySort": obj.query_sort,
-            "position": obj.position,
             "projects": projects,
-            "isAllProjects": is_all_projects,
             "environments": obj.environments,
             "timeFilters": obj.time_filters,
-            "lastVisited": attrs["last_visited"] if attrs else None,
+            "lastVisited": attrs.get("last_visited", None),
+            "starred": attrs.get("starred", False),
+            "stars": attrs.get("stars", 0),
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
-        }
-
-
-@register(GroupSearchViewStarred)
-class GroupSearchViewStarredSerializer(Serializer):
-    def __init__(self, *args, **kwargs):
-        self.has_global_views = kwargs.pop("has_global_views", None)
-        self.default_project = kwargs.pop("default_project", None)
-        self.organization = kwargs.pop("organization", None)
-        super().__init__(*args, **kwargs)
-
-    def serialize(self, obj, attrs, user, **kwargs) -> GroupSearchViewSerializerResponse:
-        serialized_view: GroupSearchViewSerializerResponse = serialize(
-            obj.group_search_view,
-            user,
-            serializer=GroupSearchViewSerializer(
-                has_global_views=self.has_global_views,
-                default_project=self.default_project,
-                organization=self.organization,
-            ),
-        )
-
-        return {
-            **serialized_view,
-            "position": obj.position,
         }

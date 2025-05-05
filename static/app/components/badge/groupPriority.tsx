@@ -6,16 +6,15 @@ import bannerStar from 'sentry-images/spot/banner-star.svg';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
-import {Chevron} from 'sentry/components/chevron';
-import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
+import {Tag} from 'sentry/components/core/badge/tag';
 import {Button, LinkButton} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Placeholder from 'sentry/components/placeholder';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconClose} from 'sentry/icons';
+import {IconChevron, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Activity} from 'sentry/types/group';
@@ -36,7 +35,6 @@ type GroupPriorityBadgeProps = {
   priority: PriorityLevel;
   children?: React.ReactNode;
   showLabel?: boolean;
-  variant?: 'default' | 'signal';
 };
 
 const PRIORITY_KEY_TO_LABEL: Record<PriorityLevel, string> = {
@@ -46,18 +44,6 @@ const PRIORITY_KEY_TO_LABEL: Record<PriorityLevel, string> = {
 };
 
 const PRIORITY_OPTIONS = [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW];
-
-function getTagTypeForPriority(priority: string): TagProps['type'] {
-  switch (priority) {
-    case PriorityLevel.HIGH:
-      return 'error';
-    case PriorityLevel.MEDIUM:
-      return 'warning';
-    case PriorityLevel.LOW:
-    default:
-      return 'default';
-  }
-}
 
 function useLastEditedBy({
   groupId,
@@ -88,20 +74,13 @@ function useLastEditedBy({
 
 export function makeGroupPriorityDropdownOptions({
   onChange,
-  hasIssueStreamTableLayout,
 }: {
-  hasIssueStreamTableLayout: boolean;
   onChange: (value: PriorityLevel) => void;
 }) {
   return PRIORITY_OPTIONS.map(priority => ({
     textValue: PRIORITY_KEY_TO_LABEL[priority],
     key: priority,
-    label: (
-      <GroupPriorityBadge
-        variant={hasIssueStreamTableLayout ? 'signal' : 'default'}
-        priority={priority}
-      />
-    ),
+    label: <GroupPriorityBadge showLabel priority={priority} />,
     onAction: () => onChange(priority),
   }));
 }
@@ -109,7 +88,6 @@ export function makeGroupPriorityDropdownOptions({
 export function GroupPriorityBadge({
   priority,
   showLabel = true,
-  variant = 'default',
   children,
 }: GroupPriorityBadgeProps) {
   const bars =
@@ -117,10 +95,7 @@ export function GroupPriorityBadge({
   const label = PRIORITY_KEY_TO_LABEL[priority] ?? t('Unknown');
 
   return (
-    <StyledTag
-      type={variant === 'signal' ? 'default' : getTagTypeForPriority(priority)}
-      icon={variant === 'signal' && <IconCellSignal bars={bars} />}
-    >
+    <StyledTag type="default" icon={<IconCellSignal bars={bars} />}>
       {showLabel ? label : <VisuallyHidden>{label}</VisuallyHidden>}
       {children}
     </StyledTag>
@@ -209,14 +184,9 @@ export function GroupPriorityDropdown({
   onChange,
   lastEditedBy,
 }: GroupPriorityDropdownProps) {
-  const organization = useOrganization();
-  const hasIssueStreamTableLayout = organization.features.includes(
-    'issue-stream-table-layout'
-  );
-
   const options: MenuItemProps[] = useMemo(
-    () => makeGroupPriorityDropdownOptions({onChange, hasIssueStreamTableLayout}),
-    [onChange, hasIssueStreamTableLayout]
+    () => makeGroupPriorityDropdownOptions({onChange}),
+    [onChange]
   );
 
   return (
@@ -234,12 +204,8 @@ export function GroupPriorityDropdown({
           aria-label={t('Modify issue priority')}
           size="zero"
         >
-          <GroupPriorityBadge
-            showLabel={!hasIssueStreamTableLayout}
-            variant={hasIssueStreamTableLayout ? 'signal' : 'default'}
-            priority={value}
-          >
-            <Chevron light direction={isOpen ? 'up' : 'down'} size="small" />
+          <GroupPriorityBadge showLabel={false} priority={value}>
+            <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" color="subText" />
           </GroupPriorityBadge>
         </DropdownButton>
       )}
@@ -274,6 +240,15 @@ const DropdownButton = styled(Button)`
   height: unset;
   border-radius: 20px;
   box-shadow: none;
+
+  ${p =>
+    // Chonk tags have a smaller border radius, so we need make sure it matches.
+    p.theme.isChonk &&
+    `
+      > span > div {
+        border-radius: 20px;
+      }
+    `}
 `;
 
 const StyledTag = styled(Tag)`

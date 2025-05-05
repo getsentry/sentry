@@ -31,12 +31,12 @@ describe('latencyChart', () => {
           fields: {
             'avg(span.duration)': 'duration',
             'avg(messaging.message.receive.latency)': 'duration',
-            'spm()': 'rate',
+            'epm()': 'rate',
           },
           units: {
             'avg(span.duration)': 'millisecond',
             'avg(messaging.message.receive.latency)': 'millisecond',
-            'spm()': '1/second',
+            'epm()': '1/second',
           },
         },
       },
@@ -44,7 +44,11 @@ describe('latencyChart', () => {
   });
   it('renders', async () => {
     render(
-      <LatencyChart destination="events" referrer={Referrer.QUEUES_SUMMARY_CHARTS} />,
+      <LatencyChart
+        id="latency-chart-test"
+        destination="events"
+        referrer={Referrer.QUEUES_SUMMARY_CHARTS}
+      />,
       {organization}
     );
     screen.getByText('Average Duration');
@@ -55,7 +59,7 @@ describe('latencyChart', () => {
           yAxis: [
             'avg(span.duration)',
             'avg(messaging.message.receive.latency)',
-            'spm()',
+            'epm()',
           ],
           query: 'span.op:queue.process messaging.destination.name:events',
         }),

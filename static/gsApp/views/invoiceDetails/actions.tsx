@@ -83,6 +83,10 @@ function InvoiceDetailsActions({organization, invoice, reloadInvoice}: Props) {
     }
   }, [invoice, organization, reloadInvoice, location.query.referrer]);
 
+  const isSelfServePartner =
+    'isSelfServePartner' in invoice.customer && invoice.customer.isSelfServePartner;
+  const showPayNowButton = !invoice.isPaid && !invoice.isClosed && !isSelfServePartner;
+
   return (
     <Fragment>
       <ActionContainer className="no-print">
@@ -95,7 +99,7 @@ function InvoiceDetailsActions({organization, invoice, reloadInvoice}: Props) {
               </StyledButton>
             </Fragment>
           )}
-          {!invoice.isPaid && !invoice.isClosed && (
+          {showPayNowButton && (
             <StyledButton
               priority="primary"
               onClick={handlePayNow}

@@ -42,5 +42,3 @@ export function Level({level, searchTerm = ''}: Props) {
       );
   }
 }
-
-export default Level;

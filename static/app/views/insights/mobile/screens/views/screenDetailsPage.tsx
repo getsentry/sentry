@@ -38,7 +38,7 @@ type Tab = {
   featureBadge?: FeatureBadgeProps['type'];
 };
 
-export function ScreenDetailsPage() {
+function ScreenDetailsPage() {
   const navigate = useNavigate();
   const location = useLocation<Query>();
   const organization = useOrganization();

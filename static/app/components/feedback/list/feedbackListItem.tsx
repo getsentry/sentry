@@ -1,17 +1,16 @@
 import type {CSSProperties} from 'react';
-import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import {Checkbox} from 'sentry/components/core/checkbox';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import IssueTrackingSignals from 'sentry/components/feedback/list/issueTrackingSignals';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconChat, IconCircleFill, IconFatal, IconImage, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -29,6 +28,7 @@ interface Props {
   feedbackItem: FeedbackIssueListItem;
   isSelected: 'all-selected' | boolean;
   onSelect: (isSelected: boolean) => void;
+  ref?: React.Ref<HTMLDivElement>;
   style?: CSSProperties;
 }
 
@@ -40,10 +40,7 @@ function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssueListI
   return feedbackId === feedbackItem.id;
 }
 
-const FeedbackListItem = forwardRef<HTMLDivElement, Props>(function FeedbackListItem(
-  {feedbackItem, isSelected, onSelect, style},
-  ref
-) {
+function FeedbackListItem({feedbackItem, isSelected, onSelect, style, ref}: Props) {
   const organization = useOrganization();
   const isOpen = useIsSelectedFeedback({feedbackItem});
   const {feedbackHasReplay} = useReplayCountForFeedbacks();
@@ -168,7 +165,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(function FeedbackList
       </LinkedFeedbackCard>
     </CardSpacing>
   );
-});
+}
 
 export default FeedbackListItem;
 
@@ -248,7 +245,7 @@ const ContactRow = styled(TextOverflow)`
 
 const ShortId = styled(TextOverflow)`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const StyledTimeSince = styled(TimeSince)`

@@ -23,7 +23,7 @@ import type {AggregateFunction} from 'sentry/components/arithmeticBuilder/types'
 import type {
   SelectOptionWithKey,
   SelectSectionWithKey,
-} from 'sentry/components/compactSelect/types';
+} from 'sentry/components/core/compactSelect/types';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
 import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
@@ -165,7 +165,7 @@ function InternalInput({
           if (input.endsWith('(')) {
             const pos = input.lastIndexOf(' ');
             const maybeFunc = input.substring(pos + 1, input.length - 1);
-            if (aggregateFunctions.find(func => func.name === maybeFunc)) {
+            if (aggregateFunctions.some(func => func.name === maybeFunc)) {
               dispatch({
                 type: 'REPLACE_TOKEN',
                 token,

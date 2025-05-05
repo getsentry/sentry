@@ -1,20 +1,24 @@
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {useTheme} from '@emotion/react';
+
 import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
+import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
+import {renameDiscoverSeries} from 'sentry/views/insights/common/utils/renameDiscoverSeries';
 import {useProcessQueuesTimeSeriesQuery} from 'sentry/views/insights/queues/queries/useProcessQueuesTimeSeriesQuery';
 import {usePublishQueuesTimeSeriesQuery} from 'sentry/views/insights/queues/queries/usePublishQueuesTimeSeriesQuery';
 import type {Referrer} from 'sentry/views/insights/queues/referrers';
-
-import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
-import {renameDiscoverSeries} from '../../common/utils/renameDiscoverSeries';
-import {FIELD_ALIASES} from '../settings';
+import {FIELD_ALIASES} from 'sentry/views/insights/queues/settings';
 
 interface Props {
+  id: string;
   referrer: Referrer;
   destination?: string;
   error?: Error | null;
+  pageFilters?: PageFilters;
 }
 
-export function ThroughputChart({error, destination, referrer}: Props) {
+export function ThroughputChart({id, error, destination, pageFilters, referrer}: Props) {
+  const theme = useTheme();
   const {
     data: publishData,
     error: publishError,
@@ -22,6 +26,7 @@ export function ThroughputChart({error, destination, referrer}: Props) {
   } = usePublishQueuesTimeSeriesQuery({
     destination,
     referrer,
+    pageFilters,
   });
 
   const {
@@ -31,25 +36,28 @@ export function ThroughputChart({error, destination, referrer}: Props) {
   } = useProcessQueuesTimeSeriesQuery({
     destination,
     referrer,
+    pageFilters,
   });
 
+  const colors = theme.chart.getColorPalette(2);
   return (
     <InsightsLineChartWidget
+      id={id}
       title={t('Published vs Processed')}
       series={[
         renameDiscoverSeries(
           {
-            ...publishData['spm()'],
-            color: CHART_PALETTE[2][1],
+            ...publishData['epm()'],
+            color: colors[1],
           },
-          'spm() span.op:queue.publish'
+          'epm() span.op:queue.publish'
         ),
         renameDiscoverSeries(
           {
-            ...processData['spm()'],
-            color: CHART_PALETTE[2][2],
+            ...processData['epm()'],
+            color: colors[2],
           },
-          'spm() span.op:queue.process'
+          'epm() span.op:queue.process'
         ),
       ]}
       aliases={FIELD_ALIASES}

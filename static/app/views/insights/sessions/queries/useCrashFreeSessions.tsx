@@ -1,23 +1,17 @@
+import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
+import type {PageFilters} from 'sentry/types/core';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {percent} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
+import {getSessionsInterval} from 'sentry/utils/sessions';
 import useOrganization from 'sentry/utils/useOrganization';
-import useSessionAdoptionRate from 'sentry/views/insights/sessions/queries/useSessionProjectTotal';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useSessionProjectTotal from 'sentry/views/insights/sessions/queries/useSessionProjectTotal';
 import {getSessionStatusSeries} from 'sentry/views/insights/sessions/utils/sessions';
 
-export default function useCrashFreeSessions() {
-  const location = useLocation();
+export default function useCrashFreeSessions({pageFilters}: {pageFilters?: PageFilters}) {
   const organization = useOrganization();
-
-  const locationWithoutWidth = {
-    ...location,
-    query: {
-      ...location.query,
-      width: undefined,
-      cursor: undefined,
-    },
-  };
+  const {selection: defaultPageFilters} = usePageFilters();
 
   const {
     data: sessionData,
@@ -28,7 +22,10 @@ export default function useCrashFreeSessions() {
       `/organizations/${organization.slug}/sessions/`,
       {
         query: {
-          ...locationWithoutWidth.query,
+          ...pageFiltersToQueryParams(pageFilters || defaultPageFilters),
+          interval: getSessionsInterval(
+            pageFilters ? pageFilters.datetime : defaultPageFilters.datetime
+          ),
           field: ['sum(session)'],
           groupBy: ['session.status', 'release'],
         },
@@ -37,11 +34,35 @@ export default function useCrashFreeSessions() {
     {staleTime: 0}
   );
 
-  const projectTotal = useSessionAdoptionRate();
+  const projectTotal = useSessionProjectTotal({pageFilters});
 
   if (isPending || !sessionData) {
     return {
       series: [],
+      isPending,
+      error,
+    };
+  }
+
+  // No data to report, just map the intervals to a value of 0
+  if (!sessionData.groups.length) {
+    return {
+      series: [
+        {
+          seriesName: 'crash_free_session_rate',
+          data: sessionData.intervals.map(interval => ({
+            name: interval,
+            value: 0,
+          })),
+          meta: {
+            fields: {
+              [`crash_free_session_rate`]: 'percentage' as const,
+              time: 'date' as const,
+            },
+            units: {},
+          },
+        },
+      ],
       isPending,
       error,
     };
@@ -77,7 +98,7 @@ export default function useCrashFreeSessions() {
     }
   });
 
-  // Get top 5 releases
+  // Get top 5 releases based on highest adoption rate (most sessions out of the project total)
   const topReleases = Array.from(releaseAdoptionMap.entries())
     .sort(([, a], [, b]) => b - a)
     .slice(0, 5)

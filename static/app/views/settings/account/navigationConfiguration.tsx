@@ -1,7 +1,7 @@
-import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import type {Organization} from 'sentry/types/organization';
+import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
@@ -12,7 +12,7 @@ type ConfigParams = {
 };
 
 function getConfiguration({organization}: ConfigParams): NavigationSection[] {
-  if (organization && prefersStackedNav()) {
+  if (organization && prefersStackedNav(organization)) {
     return getUserOrgNavigationConfiguration({organization});
   }
 

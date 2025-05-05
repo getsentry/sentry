@@ -1,117 +1,90 @@
-import {useCallback, useState} from 'react';
-import styled from '@emotion/styled';
+import {useEffect} from 'react';
+import {logger} from '@sentry/core';
 
+import type {ChartId} from 'sentry/components/charts/chartWidgetLoader';
 import {
   EventDrawerBody,
   EventDrawerContainer,
-  EventDrawerHeader,
-  EventNavigator,
-  Header,
-  NavigationCrumbs,
 } from 'sentry/components/events/eventDrawer';
-import {PlatformList} from 'sentry/components/platformList';
-import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import LoadingError from 'sentry/components/loadingError';
+import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {getDateFromTimestamp} from 'sentry/utils/dates';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {ReleasesDrawerDetails} from 'sentry/views/releases/drawer/releasesDrawerDetails';
 import {ReleasesDrawerList} from 'sentry/views/releases/drawer/releasesDrawerList';
-import {useReleaseDetails} from 'sentry/views/releases/utils/useReleaseDetails';
 
-type Without<T, U> = {[P in Exclude<keyof T, keyof U>]?: never};
-type XOR<T, Tcopy> =
-  T extends Record<PropertyKey, unknown> ? Without<Exclude<Tcopy, T>, T> & T : T;
-
-type ReleasesDrawerListProps = Omit<
-  React.ComponentProps<typeof ReleasesDrawerList>,
-  'onSelectRelease'
->;
-type ListProps = ReleasesDrawerListProps;
-type DetailsProps = {release: string};
-type ReleasesDrawerProps = XOR<ListProps, DetailsProps>;
+import {RELEASES_DRAWER_FIELD_MAP} from './utils';
 
 /**
  * The container for the Releases Drawer. Handles displaying either the
  * releases list or details.
  */
-export function ReleasesDrawer({
-  release,
-  releases,
-  ...releasesDrawerListProps
-}: ReleasesDrawerProps) {
-  const [selectedRelease, setSelectedRelease] = useState<{
-    projectId: string;
-    release: string;
-  } | null>(null);
-  const releaseOrSelected = release || selectedRelease?.release;
-  const releaseDetailsQuery = useReleaseDetails(
-    {release: releaseOrSelected!},
-    {enabled: !!releaseOrSelected}
-  );
-  const crumbs = [
-    {
-      // This is just temporary until we move to URL based nav for this drawer
-      label: (
-        <div
-          style={{cursor: selectedRelease?.release ? 'pointer' : 'default'}}
-          onClick={() => {
-            if (selectedRelease?.release) {
-              setSelectedRelease(null);
-            }
-          }}
-        >
-          {t('Releases')}
-        </div>
-      ),
-    },
-    ...(releaseOrSelected ? [{label: formatVersion(releaseOrSelected)}] : []),
-  ];
-  const title =
-    releaseOrSelected && releaseDetailsQuery.data ? (
-      <ReleaseWithPlatform>
-        <PlatformList
-          platforms={releaseDetailsQuery.data.projects.map(({platform}) => platform)}
-        />
-        {formatVersion(releaseOrSelected)}
-      </ReleaseWithPlatform>
-    ) : (
-      tn('%s Release', '%s Releases', releases.length ?? 0)
-    );
+export function ReleasesDrawer() {
+  const {rd, rdChart, rdEnd, rdEnv, rdStart, rdProject, rdRelease, rdReleaseProjectId} =
+    useLocationQuery({
+      fields: RELEASES_DRAWER_FIELD_MAP,
+    });
+  const start = getDateFromTimestamp(rdStart);
+  const end = getDateFromTimestamp(rdEnd);
+  const defaultPageFilters = usePageFilters();
+  const organization = useOrganization();
+  const pageFilters = {
+    projects: Array.isArray(rdProject)
+      ? rdProject.map(Number)
+      : defaultPageFilters.selection.projects,
+    environments: Array.isArray(rdEnv)
+      ? rdEnv
+      : defaultPageFilters.selection.environments,
+    datetime:
+      start && end
+        ? {
+            start,
+            end,
+            period: null,
+            utc: null,
+          }
+        : defaultPageFilters.selection.datetime,
+  };
 
-  const handleSelectRelease = useCallback(
-    (nextSelectedRelease: string, projectId: string) => {
-      setSelectedRelease({release: nextSelectedRelease, projectId});
-    },
-    []
-  );
+  useEffect(() => {
+    if (rd === 'show' && organization) {
+      trackAnalytics('releases.drawer_opened', {
+        release: Boolean(rdRelease),
+        organization: organization.id,
+      });
+    }
+  }, [organization, rd, rdProject, rdRelease]);
+
+  useEffect(() => {
+    if (rd === 'show' && !rdRelease && !rdStart && !rdEnd) {
+      logger.error('Release: Invalid URL parameters for drawer');
+    }
+  }, [rd, rdRelease, rdStart, rdEnd]);
+
+  if (rd !== 'show') {
+    return null;
+  }
+
+  if (rdRelease) {
+    return <ReleasesDrawerDetails release={rdRelease} projectId={rdReleaseProjectId} />;
+  }
+
+  if (start && end) {
+    return <ReleasesDrawerList chart={rdChart as ChartId} pageFilters={pageFilters} />;
+  }
 
   return (
     <EventDrawerContainer>
-      <EventDrawerHeader>
-        <NavigationCrumbs crumbs={crumbs} />
-      </EventDrawerHeader>
-      <EventNavigator>
-        <Header>{title}</Header>
-      </EventNavigator>
       <EventDrawerBody>
-        {releaseOrSelected ? (
-          <ReleasesDrawerDetails
-            projectId={selectedRelease?.projectId}
-            release={releaseOrSelected}
-          />
-        ) : (
-          <ReleasesDrawerList
-            releases={releases}
-            {...releasesDrawerListProps}
-            onSelectRelease={handleSelectRelease}
-          />
-        )}
+        <LoadingError
+          message={t(
+            'There was a problem loading the releases drawer due to invalid URL parameters.'
+          )}
+        />
       </EventDrawerBody>
     </EventDrawerContainer>
   );
 }
-
-const ReleaseWithPlatform = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;

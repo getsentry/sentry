@@ -1,10 +1,9 @@
 import React, {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {decodeList} from 'sentry/utils/queryString';
@@ -33,7 +32,7 @@ import {
 
 const WEB_VITALS_COUNT = 5;
 
-export function WebVitalsLandingPage() {
+function WebVitalsLandingPage() {
   const location = useLocation();
 
   const [state, setState] = useState<{webVital: WebVitals | null}>({
@@ -55,7 +54,7 @@ export function WebVitalsLandingPage() {
   const projectScore =
     isProjectScoresLoading || isPending
       ? undefined
-      : getWebVitalScoresFromTableDataRow(projectScores?.data?.[0]);
+      : getWebVitalScoresFromTableDataRow(projectScores?.[0]);
 
   const {openVitalsDrawer} = useWebVitalsDrawer({
     Component: <WebVitalsDetailPanel webVital={state.webVital} />,
@@ -95,8 +94,6 @@ export function WebVitalsLandingPage() {
                     projectScore={projectScore}
                     isProjectScoreLoading={isPending || isProjectScoresLoading}
                     webVital={state.webVital}
-                    browserTypes={browserTypes}
-                    subregions={subregions}
                   />
                 </PerformanceScoreChartContainer>
                 <WebVitalMetersContainer>
@@ -201,27 +198,12 @@ const LoadingBox = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
 `;
 
-export const AlertContent = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr max-content;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
-export const DismissButton = styled(Button)`
-  color: ${p => p.theme.alert.info.color};
-  pointer-events: all;
-  &:hover {
-    opacity: 0.5;
-  }
-`;
-
-export const PagesTooltip = styled('span')`
+const PagesTooltip = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   text-decoration: underline dotted ${p => p.theme.gray300};
 `;
 
-export const PagesTooltipContainer = styled('div')`
+const PagesTooltipContainer = styled('div')`
   display: flex;
 `;

@@ -26,8 +26,9 @@ import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {getAggregateAlias, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
-export type TimeSeriesData = {
+type TimeSeriesData = {
   allTimeseriesData?: EventsStatsData;
   comparisonTimeseriesData?: Series[];
   originalPreviousTimeseriesData?: EventsStatsData | null;
@@ -65,6 +66,7 @@ export type RenderProps = LoadingStatus &
   };
 
 type DefaultProps = {
+  includeAllArgs: false;
   /**
    * Include data for previous period
    */
@@ -199,6 +201,10 @@ type EventsRequestPartialProps = {
    */
   sampleRate?: number;
   /**
+   * The type of sampling mode used for EAP dataset requests
+   */
+  sampling?: SamplingMode;
+  /**
    * Should loading be shown.
    */
   showLoading?: boolean;
@@ -277,6 +283,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
     comparisonDelta: undefined,
     limit: 15,
     query: '',
+    includeAllArgs: false,
     includePrevious: true,
     includeTransformedData: true,
   };
@@ -334,7 +341,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
     } else {
       try {
         api.clear();
-        timeseriesData = await doEventsRequest(api, props);
+        timeseriesData = await doEventsRequest<false>(api, props);
       } catch (resp) {
         if (resp?.responseJSON?.detail) {
           errorMessage = resp.responseJSON.detail;

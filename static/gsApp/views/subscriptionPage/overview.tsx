@@ -2,17 +2,15 @@ import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import type {Client} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {openCodecovModal} from 'getsentry/actionCreators/modal';
 import withSubscription from 'getsentry/components/withSubscription';
@@ -46,9 +44,7 @@ import UsageTotals from './usageTotals';
 import {trackSubscriptionView} from './utils';
 
 type Props = {
-  api: Client;
   location: Location;
-  organization: Organization;
   promotionData: PromotionData;
   subscription: Subscription;
 };
@@ -56,7 +52,11 @@ type Props = {
 /**
  * Subscription overview page.
  */
-function Overview({api, location, subscription, organization, promotionData}: Props) {
+function Overview({location, subscription, promotionData}: Props) {
+  const api = useApi();
+  const organization = useOrganization();
+  const navigate = useNavigate();
+
   const displayMode = ['cost', 'usage'].includes(location.query.displayMode as string)
     ? (location.query.displayMode as 'cost' | 'usage')
     : 'usage';
@@ -97,6 +97,7 @@ function Overview({api, location, subscription, organization, promotionData}: Pr
           promotionData,
           organization,
           promptFeature: 'performance_reserved_txns_discount_v1',
+          navigate,
         });
         return;
       }
@@ -120,6 +121,7 @@ function Overview({api, location, subscription, organization, promotionData}: Pr
           promotionData,
           organization,
           promptFeature: 'performance_reserved_txns_discount',
+          navigate,
         });
         return;
       }
@@ -149,7 +151,7 @@ function Overview({api, location, subscription, organization, promotionData}: Pr
         window.location.pathname + window.location.search
       );
     }
-  }, [organization, location.query, subscription, promotionData, api]);
+  }, [organization, location.query, subscription, promotionData, api, navigate]);
 
   useEffect(
     () => void trackSubscriptionView(organization, subscription, 'overview'),
@@ -207,7 +209,7 @@ function Overview({api, location, subscription, organization, promotionData}: Pr
         {sortCategories(subscription.categories).map(categoryHistory => {
           const category = categoryHistory.category;
           // Stored spans are combined into the accepted spans category's table
-          if (category === DATA_CATEGORY_INFO.spanIndexed.plural) {
+          if (category === DataCategory.SPANS_INDEXED) {
             return null;
           }
 
@@ -242,7 +244,8 @@ function Overview({api, location, subscription, organization, promotionData}: Pr
 
           const showEventBreakdown =
             organization.features.includes('profiling-billing') &&
-            subscription.planTier === PlanTier.AM2;
+            subscription.planTier === PlanTier.AM2 &&
+            category === DataCategory.TRANSACTIONS;
 
           return (
             <UsageTotals
@@ -366,7 +369,7 @@ function Overview({api, location, subscription, organization, promotionData}: Pr
   );
 }
 
-export default withApi(withOrganization(withSubscription(withPromotions(Overview))));
+export default withSubscription(withPromotions(Overview));
 
 const TotalsWrapper = styled('div')`
   margin-bottom: ${space(3)};

@@ -15,9 +15,8 @@ import useConsoleFilters from 'sentry/views/replays/detail/console/useConsoleFil
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
+import useVirtualizedInspector from 'sentry/views/replays/detail/useVirtualizedInspector';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
-
-import useVirtualizedInspector from '../useVirtualizedInspector';
 
 // Ensure this object is created once as it is an input to
 // `useVirtualizedList`'s memoization

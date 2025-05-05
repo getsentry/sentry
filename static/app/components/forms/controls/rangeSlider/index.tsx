@@ -1,9 +1,9 @@
-import {forwardRef as reactForwardRef, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Input} from 'sentry/components/core/input';
 import {Slider} from 'sentry/components/core/slider';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -42,8 +42,6 @@ type SliderProps = {
    */
   formatLabel?: (value: number | '') => React.ReactNode;
 
-  forwardRef?: React.Ref<HTMLDivElement>;
-
   /**
    * HTML id of the range input
    */
@@ -75,6 +73,7 @@ type SliderProps = {
    * Placeholder for custom input
    */
   placeholder?: string;
+  ref?: React.Ref<HTMLDivElement>;
   /**
    * Show input control for custom values
    */
@@ -98,7 +97,7 @@ function RangeSlider({
   className,
   onBlur,
   onChange,
-  forwardRef,
+  ref,
   disabledReason,
   showLabel = true,
   ...props
@@ -128,18 +127,17 @@ function RangeSlider({
     setSliderValue(value);
   }
 
-  function getActualValue(newSliderValue: SliderProps['value']): SliderProps['value'] {
+  function getActualValue(newSliderValue: number): number {
     if (!allowedValues) {
       return newSliderValue;
     }
 
     // If `allowedValues` is defined, then `sliderValue` represents index to `allowedValues`
-    // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
-    return allowedValues[newSliderValue];
+    return allowedValues[newSliderValue]!;
   }
 
   function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
-    const newSliderValue = parseFloat(e.target.value);
+    const newSliderValue = e.currentTarget.valueAsNumber;
     setSliderValue(newSliderValue);
     onChange?.(getActualValue(newSliderValue), e);
   }
@@ -186,7 +184,7 @@ function RangeSlider({
   const labelText = formatLabel?.(actualValue) ?? displayValue;
 
   return (
-    <div className={className} ref={forwardRef}>
+    <div className={className} ref={ref}>
       {!showCustomInput && showLabel && <SliderLabel>{labelText}</SliderLabel>}
       <Tooltip title={disabledReason} disabled={!disabled} skipWrapper isHoverable>
         <SliderAndInputWrapper showCustomInput={showCustomInput}>
@@ -197,13 +195,14 @@ function RangeSlider({
             max={max}
             step={step}
             disabled={disabled}
-            onChange={handleInput}
+            onChange={(_, e) => handleInput(e)}
             onInput={handleInput}
             onMouseUp={handleBlur}
             onKeyUp={handleBlur}
             value={sliderValue}
             aria-valuetext={labelText}
             aria-label={props['aria-label']}
+            formatLabel={showLabel ? undefined : () => null}
           />
           {showCustomInput && (
             <StyledInput
@@ -212,6 +211,8 @@ function RangeSlider({
               value={sliderValue}
               onChange={handleCustomInputChange}
               onBlur={handleInput}
+              // Do not forward required to avoid default browser behavior
+              required={undefined}
             />
           )}
         </SliderAndInputWrapper>
@@ -228,13 +229,4 @@ const StyledInput = styled(Input)<{hasLabel: boolean}>`
   margin-top: ${p => space(p.hasLabel ? 2 : 1)};
 `;
 
-const RangeSliderContainer = reactForwardRef(function RangeSliderContainer(
-  props: SliderProps,
-  ref: React.Ref<any>
-) {
-  return <RangeSlider {...props} forwardRef={ref} />;
-});
-
-export default RangeSliderContainer;
-
-export type {SliderProps};
+export default RangeSlider;

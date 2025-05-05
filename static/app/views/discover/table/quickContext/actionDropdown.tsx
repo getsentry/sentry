@@ -14,8 +14,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-
-import {addToFilter, excludeFromFilter} from '../cellAction';
+import {addToFilter, excludeFromFilter} from 'sentry/views/discover/table/cellAction';
 
 export enum ContextValueType {
   STRING = 'string',

@@ -1,4 +1,4 @@
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -49,6 +49,8 @@ export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: 
     // Exclude root level spans because they're comprised of nested operations
     '!span.description:"Cold Start"',
     '!span.description:"Warm Start"',
+    '!span.description:"Cold App Start"',
+    '!span.description:"Warm App Start"',
     // Exclude this span because we can get TTID contributing spans instead
     '!span.description:"Initial Frame Render"',
     'has:span.description',

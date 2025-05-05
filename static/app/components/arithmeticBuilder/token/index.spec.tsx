@@ -38,7 +38,7 @@ function Tokens(props: TokensProp) {
   );
 
   return (
-    <ArithmeticBuilderContext.Provider
+    <ArithmeticBuilderContext
       value={{
         dispatch: wrappedDispatch,
         focusOverride: state.focusOverride,
@@ -47,7 +47,7 @@ function Tokens(props: TokensProp) {
       }}
     >
       <TokenGrid tokens={state.expression.tokens} />
-    </ArithmeticBuilderContext.Provider>
+    </ArithmeticBuilderContext>
   );
 }
 

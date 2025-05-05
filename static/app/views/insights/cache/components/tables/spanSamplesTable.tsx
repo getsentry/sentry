@@ -1,4 +1,5 @@
 import type {ComponentProps} from 'react';
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -21,7 +22,7 @@ import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHe
 
 type DataRowKeys =
   | SpanIndexedField.PROJECT
-  | SpanIndexedField.TRANSACTION_ID
+  | SpanIndexedField.TRANSACTION_SPAN_ID
   | SpanIndexedField.TRACE
   | SpanIndexedField.TIMESTAMP
   | SpanIndexedField.SPAN_ID
@@ -36,7 +37,7 @@ type ColumnKeys =
   | SpanIndexedField.CACHE_ITEM_SIZE
   | 'transaction.duration';
 
-export type DataRow = Pick<SpanIndexedResponse, DataRowKeys> & {
+type DataRow = Pick<SpanIndexedResponse, DataRowKeys> & {
   'transaction.duration': number;
 };
 
@@ -91,7 +92,7 @@ export function SpanSamplesTable({
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
-
+  const theme = useTheme();
   return (
     <GridEditable
       aria-label={t('Span Samples')}
@@ -107,7 +108,7 @@ export function SpanSamplesTable({
             location,
           }),
         renderBodyCell: (column, row) =>
-          renderBodyCell(column, row, meta, location, organization),
+          renderBodyCell(column, row, meta, location, organization, theme),
       }}
       highlightedRowKey={data.findIndex(row => row.span_id === highlightedSpanId)}
       onRowMouseOver={onSampleMouseOver}
@@ -121,7 +122,8 @@ function renderBodyCell(
   row: DataRow,
   meta: EventsMetaType | undefined,
   location: Location,
-  organization: Organization
+  organization: Organization,
+  theme: Theme
 ) {
   if (column.key === SpanIndexedField.SPAN_ID) {
     return (
@@ -130,7 +132,7 @@ function renderBodyCell(
         projectSlug={row.project}
         traceId={row.trace}
         timestamp={row.timestamp}
-        transactionId={row[SpanIndexedField.TRANSACTION_ID]}
+        transactionSpanId={row[SpanIndexedField.TRANSACTION_SPAN_ID]}
         spanId={row[SpanIndexedField.SPAN_ID]}
         source={TraceViewSources.CACHES_MODULE}
         location={location}
@@ -158,6 +160,7 @@ function renderBodyCell(
     location,
     organization,
     unit: meta.units?.[column.key],
+    theme,
   });
 }
 

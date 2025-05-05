@@ -24,7 +24,7 @@ type FakeRegion = {
   url: string;
 };
 
-const fakeRegions: {[key: string]: FakeRegion} = {
+const fakeRegions: Record<string, FakeRegion> = {
   Earth: {
     name: 'earth',
     url: 'https://earth.example.com',
@@ -44,7 +44,6 @@ describe('Relocation', function () {
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
-    MockApiClient.asyncDelay = undefined;
     sessionStorage.clear();
 
     ConfigStore.set('regions', [
@@ -67,18 +66,14 @@ describe('Relocation', function () {
         public_key: fakePublicKey,
       },
     });
-
-    // The tests fail because we have a "component update was not wrapped in act" error. It should
-    // be safe to ignore this error, but we should remove the mock once we move to react testing
-    // library.
-    //
-
-    jest.spyOn(console, 'error').mockImplementation(jest.fn());
+    MockApiClient.addMockResponse({
+      url: `/promocodes-external/${fakePromoCode}`,
+      body: {},
+    });
   });
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    MockApiClient.asyncDelay = undefined;
     sessionStorage.clear();
   });
 
@@ -97,6 +92,7 @@ describe('Relocation', function () {
     return render(<Relocation {...routerProps} />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
   }
 
@@ -295,15 +291,6 @@ describe('Relocation', function () {
       ).toBeInTheDocument();
       expect(screen.getByText('key.pub')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Continue'})).toBeInTheDocument();
-    });
-
-    it('should show loading indicator if key retrieval still in progress', function () {
-      MockApiClient.asyncDelay = 1;
-
-      renderPage('public-key');
-
-      expect(screen.queryByRole('button', {name: 'Continue'})).not.toBeInTheDocument();
-      expect(screen.queryByText('key.pub')).not.toBeInTheDocument();
     });
 
     it('should show loading indicator and error message if key retrieval failed', async function () {

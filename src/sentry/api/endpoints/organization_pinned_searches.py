@@ -7,7 +7,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPinnedSearchPermission
 from sentry.api.serializers import serialize
-from sentry.models.groupsearchview import GroupSearchView
+from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibility
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.savedsearch import SavedSearch, SortOptions, Visibility
 from sentry.models.search_common import SearchType
@@ -56,23 +56,30 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
         )
 
         # This entire endpoint will be removed once custom views are GA'd
-        default_view, created = GroupSearchView.objects.create_or_update(
-            organization=organization,
-            user_id=request.user.id,
-            position=0,
-            values={
-                "name": "Default Search",
-                "query": result["query"],
-                "query_sort": result["sort"],
-            },
-        )
-        default_view_id = default_view.id if created else default_view
-        GroupSearchViewStarred.objects.create_or_update(
-            organization=organization,
-            user_id=request.user.id,
-            group_search_view_id=default_view_id,
-            values={"position": 0},
-        )
+        first_starred_view = GroupSearchViewStarred.objects.filter(
+            organization=organization, user_id=request.user.id, position=0
+        ).first()
+
+        if first_starred_view:
+            default_view = first_starred_view.group_search_view
+            default_view.query = result["query"]
+            default_view.query_sort = result["sort"]
+            default_view.save()
+        else:
+            new_default_view = GroupSearchView.objects.create(
+                organization=organization,
+                user_id=request.user.id,
+                name="Default Search",
+                query=result["query"],
+                query_sort=result["sort"],
+                visibility=GroupSearchViewVisibility.ORGANIZATION,
+            )
+            GroupSearchViewStarred.objects.create(
+                organization=organization,
+                user_id=request.user.id,
+                group_search_view_id=new_default_view.id,
+                position=0,
+            )
 
         pinned_search = SavedSearch.objects.get(
             organization=organization,

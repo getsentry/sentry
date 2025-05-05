@@ -78,7 +78,7 @@ from sentry.organizations.services.organization_actions.impl import (
 from sentry.projects.services.project import RpcProjectFlags
 from sentry.sentry_apps.services.app import app_service
 from sentry.silo.safety import unguarded_write
-from sentry.tasks.auth import email_unlink_notifications
+from sentry.tasks.auth.auth import email_unlink_notifications
 from sentry.types.region import find_regions_for_orgs
 from sentry.users.services.user import RpcUser
 from sentry.utils.audit import create_org_delete_log
@@ -318,14 +318,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def _query_organizations(
         self, user_id: int, scope: str | None, only_visible: bool
     ) -> list[Organization]:
-        from django.conf import settings
-
-        if settings.SENTRY_PUBLIC and scope is None:
-            if only_visible:
-                return list(Organization.objects.filter(status=OrganizationStatus.ACTIVE))
-            else:
-                return list(Organization.objects.filter())
-
         qs = OrganizationMember.objects.filter(user_id=user_id)
 
         qs = qs.select_related("organization")

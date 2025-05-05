@@ -82,6 +82,9 @@ import {
   MODULE_FEATURES as MOBILE_UI_MODULE_FEATURES,
   MODULE_TITLE as MOBILE_UI_MODULE_TITLE,
 } from 'sentry/views/insights/mobile/ui/settings';
+import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
+import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
+import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {
   DATA_TYPE as QUEUE_DATA_TYPE,
   DATA_TYPE_PLURAL as QUEUE_DATA_TYPE_PLURAL,
@@ -92,7 +95,8 @@ import {
 import {
   DATA_TYPE as SESSIONS_DATA_TYPE,
   DATA_TYPE_PLURAL as SESSIONS_DATA_TYPE_PLURAL,
-  MODULE_DOC_LINK as SESSIONS_MODULE_DOC_LINK,
+  FRONTEND_MODULE_DOC_LINK as FRONTEND_SESSIONS_MODULE_DOC_LINK,
+  MOBILE_MODULE_DOC_LINK as MOBILE_SESSIONS_MODULE_DOC_LINK,
   MODULE_TITLE as SESSIONS_MODULE_TITLE,
   MODULE_VISIBLE_FEATURES as SESSIONS_MODULE_VISIBLE_FEATURES,
 } from 'sentry/views/insights/sessions/settings';
@@ -171,7 +175,10 @@ export const MODULE_DATA_TYPES_PLURAL: Record<ModuleName, string> = {
   [ModuleName.OTHER]: '',
 };
 
-export const MODULE_PRODUCT_DOC_LINKS: Record<ModuleName, string> = {
+// Use if the doc link differs by domain view
+type DocLinkMap = Partial<Record<DomainView, string>>;
+
+export const MODULE_PRODUCT_DOC_LINKS: Record<ModuleName, string | DocLinkMap> = {
   [ModuleName.DB]: DB_MODULE_DOC_LINK,
   [ModuleName.HTTP]: HTTP_MODULE_DOC_LINK,
   [ModuleName.CACHE]: CACHE_MODULE_DOC_LINK,
@@ -186,7 +193,10 @@ export const MODULE_PRODUCT_DOC_LINKS: Record<ModuleName, string> = {
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_MODULE_DOC_LINK,
   [ModuleName.UPTIME]: UPTIME_MODULE_DOC_LINK,
   [ModuleName.CRONS]: CRONS_MODULE_DOC_LINK,
-  [ModuleName.SESSIONS]: SESSIONS_MODULE_DOC_LINK,
+  [ModuleName.SESSIONS]: {
+    [MOBILE_LANDING_SUB_PATH]: MOBILE_SESSIONS_MODULE_DOC_LINK,
+    [FRONTEND_LANDING_SUB_PATH]: FRONTEND_SESSIONS_MODULE_DOC_LINK,
+  },
   [ModuleName.OTHER]: '',
 };
 
@@ -238,9 +248,9 @@ export const MODULE_FEATURE_VISIBLE_MAP: Record<ModuleName, string[]> = {
 /**
  * Modules that are considered "new", e.g. used to show a badge on the tab.
  */
-export const MODULES_CONSIDERED_BETA: Set<ModuleName> = new Set([ModuleName.SESSIONS]);
 export const MODULES_CONSIDERED_NEW: Set<ModuleName> = new Set([
   ModuleName.MOBILE_VITALS,
+  ModuleName.SESSIONS,
 ]);
 
 export const INGESTION_DELAY = 90;

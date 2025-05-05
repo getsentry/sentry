@@ -117,8 +117,6 @@ export function GlobalFeedbackForm({children}: {children: ReactNode}) {
   const openForm = useOpenForm();
 
   return (
-    <GlobalFeedbackFormContext.Provider value={openForm}>
-      {children}
-    </GlobalFeedbackFormContext.Provider>
+    <GlobalFeedbackFormContext value={openForm}>{children}</GlobalFeedbackFormContext>
   );
 }

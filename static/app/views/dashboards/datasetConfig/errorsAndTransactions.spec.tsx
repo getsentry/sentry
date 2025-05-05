@@ -1,4 +1,5 @@
 import {ProjectFixture} from 'sentry-fixture/project';
+import {ThemeFixture} from 'sentry-fixture/theme';
 import {UserFixture} from 'sentry-fixture/user';
 import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
@@ -12,6 +13,8 @@ import {
   getCustomEventsFieldRenderer,
   transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
+
+const theme = ThemeFixture();
 
 describe('transformEventsResponseToTable', function () {
   it('unsplats table meta field types', function () {
@@ -74,13 +77,17 @@ describe('getCustomFieldRenderer', function () {
         {
           organization,
           location: router.location,
+          theme,
           eventView: new EventView({
             ...baseEventViewOptions,
             fields: [{field: 'trace'}],
           }),
         }
       ) as React.ReactElement<any, any>,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
     await userEvent.click(await screen.findByText('abcd'));
     expect(router.push).toHaveBeenCalledWith({
@@ -102,6 +109,7 @@ describe('getCustomFieldRenderer', function () {
         {
           organization,
           location: router.location,
+          theme,
           eventView: new EventView({
             ...baseEventViewOptions,
             fields: [{field: 'id'}],
@@ -109,7 +117,10 @@ describe('getCustomFieldRenderer', function () {
           }),
         }
       ) as React.ReactElement<any, any>,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(await screen.findByText('defg'));
@@ -144,6 +155,7 @@ describe('getCustomFieldRenderer', function () {
         {
           organization,
           location: router.location,
+          theme,
           eventView: new EventView({
             ...baseEventViewOptions,
             fields: [{field: 'id'}],
@@ -151,7 +163,10 @@ describe('getCustomFieldRenderer', function () {
           }),
         }
       ) as React.ReactElement<any, any>,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(await screen.findByText('<< unparameterized >>'));

@@ -5,15 +5,12 @@ import styled from '@emotion/styled';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
-import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {MiniAggregateWaterfall} from 'sentry/views/insights/browser/webVitals/components/miniAggregateWaterfall';
@@ -46,29 +43,17 @@ export function PageOverviewSidebar({
   const theme = useTheme();
   const pageFilters = usePageFilters();
   const {period, start, end, utc} = pageFilters.selection.datetime;
-  const shouldDoublePeriod = shouldFetchPreviousPeriod({
-    includePrevious: true,
-    period,
-    start,
-    end,
-  });
-  const doubledPeriod = getPeriod({period, start, end}, {shouldDoublePeriod});
-  const doubledDatetime: PageFilters['datetime'] = {
-    period: doubledPeriod.statsPeriod ?? null,
-    start: doubledPeriod.start ?? null,
-    end: doubledPeriod.end ?? null,
-    utc,
-  };
 
   const {data, isLoading: isLoading} = useProjectRawWebVitalsValuesTimeseriesQuery({
     transaction,
-    datetime: doubledDatetime,
     browserTypes,
     subregions,
   });
 
+  const shouldDoublePeriod = false;
+
   const {countDiff, currentSeries, currentCount, initialCount} = processSeriesData(
-    data?.count,
+    data['count()'].data,
     isLoading,
     pageFilters.selection.datetime,
     shouldDoublePeriod
@@ -87,7 +72,7 @@ export function PageOverviewSidebar({
     currentCount: currentInpCount,
     initialCount: initialInpCount,
   } = processSeriesData(
-    data.countInp,
+    data['count_scores(measurements.score.inp)'].data,
     isLoading,
     pageFilters.selection.datetime,
     shouldDoublePeriod
@@ -119,7 +104,7 @@ export function PageOverviewSidebar({
     return undefined;
   };
 
-  const ringSegmentColors = getChartColorPalette(3);
+  const ringSegmentColors = theme.chart.getColorPalette(3);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
   return (

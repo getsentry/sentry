@@ -20,7 +20,7 @@ describe('AutofixDiff', function () {
     groupId: '1',
     runId: '1',
     editable: true,
-  };
+  } satisfies React.ComponentProps<typeof AutofixDiff>;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -91,17 +91,21 @@ describe('AutofixDiff', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Edit changes'}));
 
-    expect(screen.getByText('Editing')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {
+        name: 'Editing src/sentry/processing/backpressure/memory.py',
+      })
+    ).toBeInTheDocument();
     expect(
       screen.getAllByText('src/sentry/processing/backpressure/memory.py')
     ).toHaveLength(2); // one in the header of the diff and one in the popup
 
-    const textarea = screen.getByRole('textbox');
-    await userEvent.clear(textarea);
-    await userEvent.type(textarea, 'New content');
+    const textarea = screen.getAllByRole('textbox')[0];
+    await userEvent.clear(textarea!);
+    await userEvent.type(textarea!, 'New content');
 
     MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/update/',
+      url: '/organizations/org-slug/issues/1/autofix/update/',
       method: 'POST',
     });
 
@@ -119,7 +123,7 @@ describe('AutofixDiff', function () {
     render(<AutofixDiff {...defaultProps} />);
 
     MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/update/',
+      url: '/organizations/org-slug/issues/1/autofix/update/',
       method: 'POST',
     });
 
@@ -136,12 +140,12 @@ describe('AutofixDiff', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Edit changes'}));
 
-    const textarea = screen.getByRole('textbox');
-    await userEvent.clear(textarea);
-    await userEvent.type(textarea, 'New content');
+    const textarea = screen.getAllByRole('textbox')[0];
+    await userEvent.clear(textarea!);
+    await userEvent.type(textarea!, 'New content');
 
     MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/update/',
+      url: '/organizations/org-slug/issues/1/autofix/update/',
       method: 'POST',
       statusCode: 500,
     });

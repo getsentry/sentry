@@ -7,23 +7,17 @@ import {
   type Action,
   ActionCell,
 } from 'sentry/components/workflowEngine/gridCell/actionCell';
-import {
-  ConnectionCell,
-  type Item,
-} from 'sentry/components/workflowEngine/gridCell/connectionCell';
+import {ConnectionCell} from 'sentry/components/workflowEngine/gridCell/connectionCell';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
-import {tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {AvatarProject} from 'sentry/types/project';
 
 export type Automation = {
   actions: Action[];
   id: string;
   link: string;
-  monitors: Item[];
+  monitorIds: string[];
   name: string;
-  project: AvatarProject;
   details?: string[];
   disabled?: boolean;
   lastTriggered?: Date;
@@ -39,9 +33,8 @@ export function AutomationListRow({
   id,
   lastTriggered,
   link,
-  monitors,
+  monitorIds,
   name,
-  project,
   details,
   handleSelect,
   selected,
@@ -60,7 +53,6 @@ export function AutomationListRow({
         <CellWrapper>
           <StyledTitleCell
             name={name}
-            project={project}
             link={link}
             details={details}
             disabled={disabled}
@@ -74,11 +66,7 @@ export function AutomationListRow({
         <ActionCell actions={actions} disabled={disabled} />
       </CellWrapper>
       <CellWrapper className="connected-monitors">
-        <ConnectionCell
-          items={monitors}
-          renderText={count => tn('%s monitor', '%s monitors', count)}
-          disabled={disabled}
-        />
+        <ConnectionCell ids={monitorIds} type="detector" disabled={disabled} />
       </CellWrapper>
     </RowWrapper>
   );

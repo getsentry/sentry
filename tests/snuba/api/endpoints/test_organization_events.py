@@ -6025,6 +6025,40 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             key=lambda row: row["id"],
         )
 
+    def test_debug_param(self):
+        self.user = self.create_user("user@example.com", is_superuser=False)
+
+        query = {
+            "field": ["spans.http"],
+            "project": [self.project.id],
+            "query": "event.type:transaction",
+            "dataset": "discover",
+            "debug": True,
+        }
+        response = self.do_request(
+            query,
+            {
+                "organizations:discover-basic": True,
+            },
+        )
+        assert response.status_code == 200, response.content
+        # Debug should be ignored without superuser
+        assert "query" not in response.data["meta"]
+
+        self.user = self.create_user("superuser@example.com", is_superuser=True)
+        self.create_team(organization=self.organization, members=[self.user])
+
+        response = self.do_request(
+            query,
+            {
+                "organizations:discover-basic": True,
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert "query" in response.data["meta"]
+        # We should get the snql query back in the query key
+        assert "MATCH" in response.data["meta"]["query"]
+
 
 class OrganizationEventsProfilesDatasetEndpointTest(OrganizationEventsEndpointTestBase):
     @mock.patch("sentry.search.events.builder.base.raw_snql_query")
@@ -6836,3 +6870,30 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             "count_scores(measurements.score.lcp)": 1,
             "count_scores(measurements.score.total)": 3,
         }
+
+    def test_remapping(self):
+        self.store_event(self.transaction_data, self.project.id)
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction.duration",
+                    "span.duration",
+                ],
+                "query": "has:span.duration",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert len(data) == 1
+
+        assert data[0]["transaction.duration"] == 3000
+        assert data[0]["span.duration"] == 3000
+
+        assert meta["fields"]["span.duration"] == "duration"
+        assert meta["fields"]["transaction.duration"] == "duration"
+        assert meta["units"]["span.duration"] == "millisecond"
+        assert meta["units"]["transaction.duration"] == "millisecond"

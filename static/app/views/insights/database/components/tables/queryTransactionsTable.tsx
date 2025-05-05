@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {type Theme, useTheme} from '@emotion/react';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
@@ -30,14 +31,14 @@ type Row = Pick<
   SpanMetricsResponse,
   | 'transaction'
   | 'transaction.method'
-  | 'spm()'
+  | 'epm()'
   | 'avg(span.self_time)'
   | 'sum(span.self_time)'
   | 'time_spent_percentage()'
 >;
 
 type Column = GridColumnHeader<
-  'transaction' | 'spm()' | 'avg(span.self_time)' | 'time_spent_percentage()'
+  'transaction' | 'epm()' | 'avg(span.self_time)' | 'time_spent_percentage()'
 >;
 
 const COLUMN_ORDER: Column[] = [
@@ -47,7 +48,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'spm()',
+    key: 'epm()',
     name: getThroughputTitle('db'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -63,19 +64,9 @@ const COLUMN_ORDER: Column[] = [
   },
 ];
 
-const SORTABLE_FIELDS = [
-  'avg(span.self_time)',
-  'spm()',
-  'time_spent_percentage()',
-] as const;
-
 type ValidSort = Sort & {
-  field: (typeof SORTABLE_FIELDS)[number];
+  field: 'avg(span.self_time)' | 'epm()' | 'time_spent_percentage()';
 };
-
-export function isAValidSort(sort: Sort): sort is ValidSort {
-  return (SORTABLE_FIELDS as unknown as string[]).includes(sort.field);
-}
 
 interface Props {
   data: Row[];
@@ -96,6 +87,7 @@ export function QueryTransactionsTable({
   sort,
   span,
 }: Props) {
+  const theme = useTheme();
   const moduleURL = useModuleURL('db');
   const navigate = useNavigate();
   const location = useLocation();
@@ -131,7 +123,16 @@ export function QueryTransactionsTable({
               sortParameterName: QueryParameterNames.TRANSACTIONS_SORT,
             }),
           renderBodyCell: (column, row) =>
-            renderBodyCell(moduleURL, column, row, meta, span, location, organization),
+            renderBodyCell(
+              moduleURL,
+              column,
+              row,
+              meta,
+              span,
+              location,
+              organization,
+              theme
+            ),
         }}
       />
 
@@ -147,7 +148,8 @@ function renderBodyCell(
   meta: EventsMetaType | undefined,
   span: Pick<SpanMetricsResponse, SpanMetricsField.SPAN_GROUP | SpanMetricsField.SPAN_OP>,
   location: Location,
-  organization: Organization
+  organization: Organization,
+  theme: Theme
 ) {
   if (column.key === 'transaction') {
     const label =
@@ -157,7 +159,7 @@ function renderBodyCell(
 
     const pathname = `${moduleURL}/spans/span/${encodeURIComponent(span[SpanMetricsField.SPAN_GROUP])}`;
 
-    const query: {[key: string]: string | undefined} = {
+    const query: Record<string, string | undefined> = {
       ...location.query,
       transaction: row.transaction,
       transactionMethod: row['transaction.method'],
@@ -181,6 +183,7 @@ function renderBodyCell(
       location,
       organization,
       unit: meta.units?.[column.key],
+      theme,
     }
   );
 

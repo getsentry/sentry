@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -12,12 +12,15 @@ import {useProjectRawWebVitalsQuery} from 'sentry/views/insights/browser/webVita
 import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
-
-import {GenericPerformanceWidget} from '../components/performanceWidget';
-import {Subtitle, WidgetEmptyStateWarning} from '../components/selectableList';
-import type {PerformanceWidgetProps} from '../types';
+import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
+import {
+  Subtitle,
+  WidgetEmptyStateWarning,
+} from 'sentry/views/performance/landing/widgets/components/selectableList';
+import type {PerformanceWidgetProps} from 'sentry/views/performance/landing/widgets/types';
 
 export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
+  const theme = useTheme();
   const location = useLocation();
   const {InteractiveTitle} = props;
   const {data: projectData, isPending} = useProjectRawWebVitalsQuery();
@@ -27,8 +30,8 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
   const projectScore =
     isProjectScoresLoading || isPending
       ? undefined
-      : getWebVitalScoresFromTableDataRow(projectScores?.data?.[0]);
-  const ringSegmentColors = getChartColorPalette(3);
+      : getWebVitalScoresFromTableDataRow(projectScores?.[0]);
+  const ringSegmentColors = theme.chart.getColorPalette(3);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
   const moduleURL = useModuleURL('vital');
@@ -59,7 +62,7 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
                 {provided.children({
                   data,
                   isLoading: loading,
-                  hasData: !loading && (data?.data?.[0]?.['count()'] as number) > 0,
+                  hasData: !loading && (data?.[0]?.['count()'] as number) > 0,
                 })}
               </Fragment>
             );

@@ -8,6 +8,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
@@ -20,6 +21,10 @@ export function ReplayBadge({group, project}: {group: Group; project: Project}) 
   });
   const replaysCount = getReplayCountForIssue(group.id, group.issueCategory) ?? 0;
 
+  useRouteAnalyticsParams({
+    group_has_replay: replaysCount > 0,
+  });
+
   if (!issueTypeConfig.pages.replays.enabled || replaysCount <= 0) {
     return null;
   }
@@ -30,7 +35,6 @@ export function ReplayBadge({group, project}: {group: Group; project: Project}) 
       <ReplayButton
         type="button"
         priority="link"
-        size="zero"
         icon={<IconPlay size="xs" />}
         to={{
           pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`,
@@ -47,7 +51,7 @@ export function ReplayBadge({group, project}: {group: Group; project: Project}) 
 }
 
 const ReplayButton = styled(LinkButton)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   text-decoration: underline;
   text-decoration-style: dotted;
 `;

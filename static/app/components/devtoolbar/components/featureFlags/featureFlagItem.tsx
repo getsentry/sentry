@@ -5,14 +5,13 @@ import {Switch} from 'sentry/components/core/switch';
 import AnalyticsProvider, {
   AnalyticsContext,
 } from 'sentry/components/devtoolbar/components/analyticsProvider';
+import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';
+import {inlineLinkCss} from 'sentry/components/devtoolbar/styles/link';
+import {verticalPaddingCss} from 'sentry/components/devtoolbar/styles/panel';
+import {smallCss} from 'sentry/components/devtoolbar/styles/typography';
+import type {FlagValue} from 'sentry/components/devtoolbar/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Cell} from 'sentry/components/replays/virtualizedGrid/bodyCell';
-
-import useConfiguration from '../../hooks/useConfiguration';
-import {inlineLinkCss} from '../../styles/link';
-import {verticalPaddingCss} from '../../styles/panel';
-import {smallCss} from '../../styles/typography';
-import type {FlagValue} from '../../types';
 
 import {useFeatureFlagsContext} from './featureFlagsContext';
 

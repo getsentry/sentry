@@ -14,11 +14,10 @@ import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
+import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceShape} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
-
-import {traceAnalytics} from '../traceAnalytics';
-import type {TraceTree} from '../traceModels/traceTree';
-import {TraceShape} from '../traceModels/traceTree';
 
 import {TraceWarningComponents} from './styles';
 import {usePerformanceSubscriptionDetails} from './usePerformanceSubscriptionDetails';
@@ -161,9 +160,7 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
 
   const title = tct("You've exceeded your [billingType]", {
     billingType: subscription?.onDemandBudgets?.enabled
-      ? ['am1', 'am2'].includes(subscription.planTier)
-        ? t('on-demand budget')
-        : t('pay-as-you-go budget')
+      ? subscription.planDetails.budgetTerm
       : t('quota'),
   });
 

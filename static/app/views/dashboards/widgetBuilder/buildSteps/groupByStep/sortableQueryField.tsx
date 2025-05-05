@@ -35,7 +35,7 @@ export function SortableQueryField({dragId, ...props}: SortableItemProps) {
 
   return (
     <QueryField
-      forwardRef={setNodeRef}
+      ref={setNodeRef}
       listeners={listeners}
       attributes={attributes}
       isDragging={isDragging}

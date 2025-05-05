@@ -45,15 +45,15 @@ describe('AddToDashboardButton', () => {
         // For Add + Stay on Page
         widget: {
           title: 'Custom Widget',
-          displayType: DisplayType.LINE,
+          displayType: DisplayType.BAR,
           interval: undefined,
           limit: undefined,
           widgetType: WidgetType.SPANS,
           queries: [
             {
-              aggregates: ['avg(span.duration)'],
+              aggregates: ['count(span.duration)'],
               columns: [],
-              fields: ['avg(span.duration)'],
+              fields: ['count(span.duration)'],
               conditions: '',
               orderby: '-timestamp',
               name: '',
@@ -74,8 +74,8 @@ describe('AddToDashboardButton', () => {
           ],
           defaultTitle: 'Custom Widget',
           defaultWidgetQuery:
-            'name=&aggregates=avg(span.duration)&columns=&fields=avg(span.duration)&conditions=&orderby=-timestamp',
-          displayType: DisplayType.LINE,
+            'name=&aggregates=count(span.duration)&columns=&fields=count(span.duration)&conditions=&orderby=-timestamp',
+          displayType: DisplayType.BAR,
           field: [
             'id',
             'span.op',
@@ -108,8 +108,7 @@ describe('AddToDashboardButton', () => {
       render(
         <PageParamsProvider>
           <TestPage visualizeIndex={1} />
-        </PageParamsProvider>,
-        {disableRouterMocks: true}
+        </PageParamsProvider>
       );
 
       act(() =>
@@ -182,8 +181,7 @@ describe('AddToDashboardButton', () => {
     render(
       <PageParamsProvider>
         <TestPage visualizeIndex={1} />
-      </PageParamsProvider>,
-      {disableRouterMocks: true}
+      </PageParamsProvider>
     );
 
     act(() =>
@@ -255,8 +253,7 @@ describe('AddToDashboardButton', () => {
     render(
       <PageParamsProvider>
         <TestPage visualizeIndex={0} />
-      </PageParamsProvider>,
-      {disableRouterMocks: true}
+      </PageParamsProvider>
     );
 
     act(() => setMode(Mode.AGGREGATE));
@@ -268,17 +265,17 @@ describe('AddToDashboardButton', () => {
         // For Add + Stay on Page
         widget: {
           title: 'Custom Widget',
-          displayType: DisplayType.LINE,
+          displayType: DisplayType.BAR,
           interval: undefined,
           limit: undefined,
           widgetType: WidgetType.SPANS,
           queries: [
             {
-              aggregates: ['avg(span.duration)'],
+              aggregates: ['count(span.duration)'],
               columns: [],
-              fields: ['avg(span.duration)'],
+              fields: ['count(span.duration)'],
               conditions: '',
-              orderby: '-avg(span.duration)',
+              orderby: '-count(span.duration)',
               name: '',
             },
           ],
@@ -287,12 +284,12 @@ describe('AddToDashboardButton', () => {
         // For Open in Widget Builder
         widgetAsQueryParams: expect.objectContaining({
           dataset: WidgetType.SPANS,
-          defaultTableColumns: ['span.op', 'avg(span.duration)'],
+          defaultTableColumns: ['count(span.duration)'],
           defaultTitle: 'Custom Widget',
           defaultWidgetQuery:
-            'name=&aggregates=avg(span.duration)&columns=&fields=avg(span.duration)&conditions=&orderby=-avg(span.duration)',
-          displayType: DisplayType.LINE,
-          field: ['span.op', 'avg(span.duration)'],
+            'name=&aggregates=count(span.duration)&columns=&fields=count(span.duration)&conditions=&orderby=-count(span.duration)',
+          displayType: DisplayType.BAR,
+          field: ['count(span.duration)'],
         }),
       })
     );
@@ -302,8 +299,7 @@ describe('AddToDashboardButton', () => {
     render(
       <PageParamsProvider>
         <TestPage visualizeIndex={0} />
-      </PageParamsProvider>,
-      {disableRouterMocks: true}
+      </PageParamsProvider>
     );
 
     act(() => setMode(Mode.AGGREGATE));
@@ -352,7 +348,6 @@ describe('AddToDashboardButton', () => {
         widgetAsQueryParams: expect.objectContaining({
           dataset: WidgetType.SPANS,
           defaultTableColumns: [
-            'span.op',
             'avg(span.duration)',
             'max(span.duration)',
             'min(span.duration)',
@@ -361,12 +356,7 @@ describe('AddToDashboardButton', () => {
           defaultWidgetQuery:
             'name=&aggregates=avg(span.duration)%2Cmax(span.duration)%2Cmin(span.duration)&columns=&fields=avg(span.duration)%2Cmax(span.duration)%2Cmin(span.duration)&conditions=&orderby=-avg(span.duration)',
           displayType: DisplayType.LINE,
-          field: [
-            'span.op',
-            'avg(span.duration)',
-            'max(span.duration)',
-            'min(span.duration)',
-          ],
+          field: ['avg(span.duration)', 'max(span.duration)', 'min(span.duration)'],
         }),
       })
     );

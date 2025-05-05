@@ -1,5 +1,3 @@
-import {forwardRef} from 'react';
-
 import {IconGraphArea} from './iconGraphArea';
 import {IconGraphBar} from './iconGraphBar';
 import {IconGraphCircle} from './iconGraphCircle';
@@ -11,20 +9,20 @@ interface Props extends SVGIconProps {
   type?: 'line' | 'circle' | 'bar' | 'area' | 'scatter';
 }
 
-const IconGraph = forwardRef<SVGSVGElement, Props>(({type = 'line', ...props}, ref) => {
+function IconGraph({type = 'line', ...props}: Props) {
   switch (type) {
     case 'circle':
-      return <IconGraphCircle {...props} ref={ref} />;
+      return <IconGraphCircle {...props} />;
     case 'bar':
-      return <IconGraphBar {...props} ref={ref} />;
+      return <IconGraphBar {...props} />;
     case 'area':
-      return <IconGraphArea {...props} ref={ref} />;
+      return <IconGraphArea {...props} />;
     case 'scatter':
-      return <IconGraphScatter {...props} ref={ref} />;
+      return <IconGraphScatter {...props} />;
     default:
-      return <IconGraphLine {...props} ref={ref} />;
+      return <IconGraphLine {...props} />;
   }
-});
+}
 
 IconGraph.displayName = 'IconGraph';
 

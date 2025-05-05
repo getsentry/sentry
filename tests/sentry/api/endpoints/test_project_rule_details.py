@@ -1,22 +1,16 @@
 from __future__ import annotations
 
-import uuid
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import patch
 
-import orjson
 import responses
 from rest_framework import status
 from slack_sdk.web.slack_response import SlackResponse
 
 from sentry.constants import ObjectStatus
-from sentry.integrations.slack.message_builder.notifications.rule_save_edit import (
-    SlackRuleSaveEditMessageBuilder,
-)
 from sentry.integrations.slack.utils.channel import strip_channel_name
-from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
@@ -1081,229 +1075,6 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["environment"] is None
         assert_rule_from_payload(self.rule, payload)
 
-    @with_feature("organizations:rule-create-edit-confirm-notification")
-    @patch(
-        "sentry.integrations.slack.actions.notification.SlackNotifyServiceAction.send_confirmation_notification"
-    )
-    def test_update_channel_slack_sdk(self, mock_send_confirmation_notification):
-        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
-        actions = [
-            {
-                "channel_id": "old_channel_id",
-                "workspace": str(self.slack_integration.id),
-                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                "channel": "#old_channel_name",
-            }
-        ]
-        self.rule.update(data={"conditions": conditions, "actions": actions})
-
-        actions[0]["channel"] = "#new_channel_name"
-        actions[0]["channel_id"] = "new_channel_id"
-        channels = {
-            "ok": "true",
-            "channels": [
-                {"name": "old_channel_name", "id": "old_channel_id"},
-                {"name": "new_channel_name", "id": "new_channel_id"},
-            ],
-        }
-
-        with self.mock_conversations_list(channels["channels"]):
-            with self.mock_conversations_info(channels["channels"][1]):
-                payload = {
-                    "name": "#new_channel_name",
-                    "actionMatch": "any",
-                    "filterMatch": "any",
-                    "actions": actions,
-                    "conditions": conditions,
-                    "frequency": 30,
-                }
-                self.get_success_response(
-                    self.organization.slug,
-                    self.project.slug,
-                    self.rule.id,
-                    status_code=200,
-                    **payload,
-                )
-                assert mock_send_confirmation_notification.call_count == 1
-                assert_rule_from_payload(self.rule, payload)
-
-    @responses.activate
-    @with_feature("organizations:rule-create-edit-confirm-notification")
-    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
-    @patch(
-        "slack_sdk.web.client.WebClient._perform_urllib_http_request",
-        return_value={
-            "body": orjson.dumps({"ok": True}).decode(),
-            "headers": {},
-            "status": 200,
-        },
-    )
-    def test_slack_confirmation_notification_contents_remove_environment(
-        self, mock_api_call, mock_post
-    ):
-        actions = [
-            {
-                "channel_id": "old_channel_id",
-                "workspace": str(self.slack_integration.id),
-                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                "channel": "old_channel_name",
-                "uuid": str(uuid.uuid4()),
-                "tags": "",
-            }
-        ]
-        self.rule.update(
-            data={"actions": actions, "filter_match": "all", "action_match": "any"},
-            label="my rule",
-            environment_id=self.environment.id,
-        )
-
-        channels = {
-            "ok": "true",
-            "channels": [
-                {"name": "old_channel_name", "id": "old_channel_id"},
-            ],
-        }
-
-        with self.mock_conversations_list(channels):
-            with self.mock_conversations_info(channels["channels"][0]):
-
-                blocks = SlackRuleSaveEditMessageBuilder(rule=self.rule, new=False).build()
-                payload = {
-                    "text": blocks.get("text"),
-                    "blocks": orjson.dumps(blocks.get("blocks")).decode(),
-                    "channel": "new_channel_id",
-                    "unfurl_links": False,
-                    "unfurl_media": False,
-                }
-                # Pass none environment to payload
-                payload = {
-                    "name": self.rule.label,
-                    "actionMatch": "any",
-                    "filterMatch": "all",
-                    "actions": actions,
-                    "environment": None,
-                }
-                response = self.get_success_response(
-                    self.organization.slug,
-                    self.project.slug,
-                    self.rule.id,
-                    status_code=200,
-                    **payload,
-                )
-                rule_id = response.data["id"]
-                rule_label = response.data["name"]
-                assert response.data["actions"][0]["channel_id"] == "old_channel_id"
-                sent_blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
-                message = "*Alert rule updated*\n\n"
-                message += f"<http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> in the <http://testserver/organizations/{self.organization.slug}/projects/{self.project.slug}/|*{self.project.slug}*> project was recently updated."
-                assert sent_blocks[0]["text"]["text"] == message
-
-                changes = "Changes\n"
-                changes += f"• Removed '{self.environment.name}' environment\n"
-                assert sent_blocks[1]["text"]["text"] == changes
-                assert (
-                    sent_blocks[2]["elements"][0]["text"]
-                    == "<http://testserver/settings/account/notifications/alerts/|*Notification Settings*>"
-                )
-
-    @responses.activate
-    @with_feature("organizations:rule-create-edit-confirm-notification")
-    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
-    @patch(
-        "slack_sdk.web.client.WebClient._perform_urllib_http_request",
-        return_value={
-            "body": orjson.dumps({"ok": True}).decode(),
-            "headers": {},
-            "status": 200,
-        },
-    )
-    def test_slack_confirmation_notification_contents_sdk(self, mock_api_call, mock_post):
-        conditions = [
-            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
-        ]
-        filters = [
-            {
-                "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
-                "value": GroupCategory.PERFORMANCE.value,
-            }
-        ]
-        actions = [
-            {
-                "channel_id": "old_channel_id",
-                "workspace": str(self.slack_integration.id),
-                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                "channel": "#old_channel_name",
-            }
-        ]
-        self.rule.update(
-            data={"conditions": conditions, "filters": filters, "actions": actions, "frequency": 5},
-            label="my rule",
-        )
-
-        actions[0]["channel"] = "#new_channel_name"
-        actions[0]["channel_id"] = "new_channel_id"
-        channels = {
-            "ok": "true",
-            "channels": [
-                {"name": "old_channel_name", "id": "old_channel_id"},
-                {"name": "new_channel_name", "id": "new_channel_id"},
-            ],
-        }
-
-        with self.mock_conversations_list(channels["channels"]):
-            with self.mock_conversations_info(channels["channels"][1]):
-                blocks = SlackRuleSaveEditMessageBuilder(rule=self.rule, new=False).build()
-                payload = {
-                    "text": blocks.get("text"),
-                    "blocks": orjson.dumps(blocks.get("blocks")).decode(),
-                    "channel": "new_channel_id",
-                    "unfurl_links": False,
-                    "unfurl_media": False,
-                }
-                staging_env = self.create_environment(
-                    self.project, name="staging", organization=self.organization
-                )
-                payload = {
-                    "name": "new rule",
-                    "actionMatch": "any",
-                    "filterMatch": "any",
-                    "actions": actions,
-                    "conditions": conditions,
-                    "frequency": 180,
-                    "filters": filters,
-                    "environment": staging_env.name,
-                    "owner": f"user:{self.user.id}",
-                }
-                response = self.get_success_response(
-                    self.organization.slug,
-                    self.project.slug,
-                    self.rule.id,
-                    status_code=200,
-                    **payload,
-                )
-                rule_id = response.data["id"]
-                rule_label = response.data["name"]
-                assert response.data["actions"][0]["channel_id"] == "new_channel_id"
-                sent_blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
-                message = "*Alert rule updated*\n\n"
-                message += f"<http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> in the <http://testserver/organizations/{self.organization.slug}/projects/{self.project.slug}/|*{self.project.slug}*> project was recently updated."
-                assert sent_blocks[0]["text"]["text"] == message
-
-                changes = "Changes\n"
-                changes += "• Added condition 'The issue's category is equal to Performance'\n"
-                changes += "• Changed action from 'Send a notification to the Awesome Team Slack workspace to #old_channel_name' to 'Send a notification to the Awesome Team Slack workspace to #new_channel_name'\n"
-                changes += "• Changed frequency from '5 minutes' to '3 hours'\n"
-                changes += f"• Added '{staging_env.name}' environment\n"
-                changes += "• Changed rule name from 'my rule' to 'new rule'\n"
-                changes += "• Changed trigger from 'None' to 'any'\n"
-                changes += "• Changed filter from 'None' to 'any'\n"
-                changes += f"• Changed owner from 'Unassigned' to '{self.user.email}'\n"
-                assert sent_blocks[1]["text"]["text"] == changes
-                assert (
-                    sent_blocks[2]["elements"][0]["text"]
-                    == "<http://testserver/settings/account/notifications/alerts/|*Notification Settings*>"
-                )
-
     def test_update_channel_slack_workspace_fail_sdk(self):
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
         actions = [
@@ -1686,7 +1457,7 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
         IssueAlertMigrator(rule, user_id=self.user.id).run()
 
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(rule=rule)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id)
         workflow = alert_rule_workflow.workflow
         when_dcg = workflow.when_condition_group
         assert when_dcg
@@ -1696,7 +1467,7 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             self.organization.slug, rule.project.slug, rule.id, status_code=202
         )
 
-        assert not AlertRuleWorkflow.objects.filter(rule=rule).exists()
+        assert not AlertRuleWorkflow.objects.filter(rule_id=rule.id).exists()
         assert not Workflow.objects.filter(id=workflow.id).exists()
         assert not DataConditionGroup.objects.filter(id=when_dcg.id).exists()
         assert not DataConditionGroup.objects.filter(id=if_dcg.id).exists()
@@ -1735,4 +1506,4 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             self.organization.slug, rule.project.slug, rule.id, status_code=202
         )
 
-        assert not AlertRuleWorkflow.objects.filter(rule=rule).exists()
+        assert not AlertRuleWorkflow.objects.filter(rule_id=rule.id).exists()

@@ -80,5 +80,3 @@ export function EncryptBackup(props: StepProps) {
     </Wrapper>
   );
 }
-
-export default EncryptBackup;

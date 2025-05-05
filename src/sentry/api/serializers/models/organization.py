@@ -36,6 +36,7 @@ from sentry.constants import (
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
+    GITLAB_COMMENT_BOT_DEFAULT,
     HIDE_AI_FEATURES_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
@@ -46,13 +47,9 @@ from sentry.constants import (
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     RESERVED_ORGANIZATION_SLUGS,
     ROLLBACK_ENABLED_DEFAULT,
-    SAFE_FIELDS_DEFAULT,
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
-    SENSITIVE_FIELDS_DEFAULT,
-    STREAMLINE_UI_ONLY,
     TARGET_SAMPLE_RATE_DEFAULT,
-    UPTIME_AUTODETECTION,
     ObjectStatus,
 )
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
@@ -506,7 +503,6 @@ class OnboardingTasksSerializer(Serializer):
 class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResponse, total=False):
     role: Any  # TODO: replace with enum/literal
     orgRole: str
-    uptimeAutodetection: bool
     targetSampleRate: float
     samplingMode: str
     effectiveSampleRate: float
@@ -546,6 +542,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     githubPRBot: bool
     githubOpenPRBot: bool
     githubNudgeInvite: bool
+    gitlabPRBot: bool
     aggregatedDataConsent: bool
     genAIConsent: bool
     isDynamicallySampled: bool
@@ -572,9 +569,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
     ) -> DetailedOrganizationSerializerResponse:
         # TODO: rectify access argument overriding parent if we want to remove above type ignore
 
-        from sentry import experiments
-
-        experiment_assignments = experiments.all(org=obj, actor=user)
         include_feature_flags = kwargs.get("include_feature_flags", True)
 
         base = super().serialize(
@@ -607,7 +601,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         context: DetailedOrganizationSerializerResponse = {
             **base,
-            "experiments": experiment_assignments,
+            # TODO(epurkhiser): This can be removed once we confirm the
+            # frontend does not use it
+            "experiments": {},
             "quota": {
                 "maxRate": max_rate[0],
                 "maxRateInterval": max_rate[1],
@@ -647,9 +643,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             "dataScrubberDefaults": bool(
                 obj.get_option("sentry:require_scrub_defaults", REQUIRE_SCRUB_DEFAULTS_DEFAULT)
             ),
-            "sensitiveFields": obj.get_option("sentry:sensitive_fields", SENSITIVE_FIELDS_DEFAULT)
-            or [],
-            "safeFields": obj.get_option("sentry:safe_fields", SAFE_FIELDS_DEFAULT) or [],
+            "sensitiveFields": obj.get_option("sentry:sensitive_fields", None) or [],
+            "safeFields": obj.get_option("sentry:safe_fields", None) or [],
             "storeCrashReports": convert_crashreport_count(
                 obj.get_option("sentry:store_crash_reports")
             ),
@@ -686,6 +681,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             "githubNudgeInvite": bool(
                 obj.get_option("sentry:github_nudge_invite", GITHUB_COMMENT_BOT_DEFAULT)
             ),
+            "gitlabPRBot": bool(obj.get_option("sentry:gitlab_pr_bot", GITLAB_COMMENT_BOT_DEFAULT)),
             "genAIConsent": bool(
                 obj.get_option("sentry:gen_ai_consent_v2024_11_14", DATA_CONSENT_DEFAULT)
             ),
@@ -701,7 +697,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             "rollbackEnabled": bool(
                 obj.get_option("sentry:rollback_enabled", ROLLBACK_ENABLED_DEFAULT)
             ),
-            "streamlineOnly": obj.get_option("sentry:streamline_ui_only", STREAMLINE_UI_ONLY),
+            "streamlineOnly": obj.get_option("sentry:streamline_ui_only", None),
             "trustedRelays": [
                 # serialize trusted relays info into their external form
                 _relay_internal_to_external(raw)
@@ -713,11 +709,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             ).count(),
             "isDynamicallySampled": is_dynamically_sampled,
         }
-
-        if features.has("organizations:uptime-settings", obj):
-            context["uptimeAutodetection"] = bool(
-                obj.get_option("sentry:uptime_autodetection", UPTIME_AUTODETECTION)
-            )
 
         if has_custom_dynamic_sampling(obj, actor=user):
             context["targetSampleRate"] = float(
@@ -731,9 +722,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             context["role"] = access.role  # Deprecated
             context["orgRole"] = access.role
 
-        org_volume = get_organization_volume(obj.id, timedelta(hours=24))
-        if org_volume is not None and org_volume.indexed is not None and org_volume.total > 0:
-            context["effectiveSampleRate"] = org_volume.indexed / org_volume.total
+        if features.has("organizations:dynamic-sampling", obj):
+            org_volume = get_organization_volume(obj.id, timedelta(hours=24))
+            if org_volume is not None and org_volume.indexed is not None and org_volume.total > 0:
+                context["effectiveSampleRate"] = org_volume.indexed / org_volume.total
 
         if sample_rate is not None:
             context["planSampleRate"] = sample_rate

@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import pick from 'lodash/pick';
 
 import {updateDashboardVisit} from 'sentry/actionCreators/dashboards';
@@ -13,7 +14,7 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import useApi from 'sentry/utils/useApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import DashboardDetail from './detail';
 import OrgDashboards from './orgDashboards';
@@ -37,13 +38,14 @@ type Props = RouteComponentProps<{
   widgetId?: number | string;
 }> & {
   children: React.ReactNode;
-  organization: Organization;
 };
 
 function ViewEditDashboard(props: Props) {
   const api = useApi();
+  const theme = useTheme();
+  const organization = useOrganization();
 
-  const {organization, params, location} = props;
+  const {params, location} = props;
   const dashboardId = params.dashboardId;
   const orgSlug = organization.slug;
   const [newWidget, setNewWidget] = useState<Widget | undefined>();
@@ -78,6 +80,9 @@ function ViewEditDashboard(props: Props) {
             <ErrorBoundary>
               <DashboardDetail
                 {...props}
+                key={dashboard.id}
+                theme={theme}
+                organization={organization}
                 initialState={dashboardInitialState}
                 dashboard={dashboard}
                 dashboards={dashboards}
@@ -95,7 +100,7 @@ function ViewEditDashboard(props: Props) {
   );
 }
 
-export default withOrganization(ViewEditDashboard);
+export default ViewEditDashboard;
 
 type FeatureProps = {
   children: React.ReactNode;

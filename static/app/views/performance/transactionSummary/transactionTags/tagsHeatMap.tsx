@@ -38,11 +38,11 @@ import type {
 } from 'sentry/utils/performance/segmentExplorer/tagKeyHistogramQuery';
 import TagTransactionsQuery from 'sentry/utils/performance/segmentExplorer/tagTransactionsQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import Tab from 'sentry/views/performance/transactionSummary/tabs';
+import {eventsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
-
-import {TraceViewSources} from '../../newTraceDetails/traceHeader/breadcrumbs';
-import Tab from '../tabs';
-import {eventsRouteWithQuery} from '../transactionEvents/utils';
 
 import {parseHistogramBucketInfo, trackTagPageInteraction} from './utils';
 
@@ -111,6 +111,7 @@ function TagsHeatMap(
     aggregateColumn,
   } = props;
 
+  const {view} = useDomainViewFilters();
   const chartRef = useRef<ReactEchartsRef>(null);
   const [chartElement, setChartElement] = useState<VirtualReference | undefined>();
   const [overlayElement, setOverlayElement] = useState<HTMLElement | null>(null);
@@ -333,7 +334,7 @@ function TagsHeatMap(
                 if (isTransactionsLoading) {
                   return (
                     <LoadingContainer>
-                      <LoadingIndicator size={40} hideMessage />
+                      <LoadingIndicator size={40} />
                     </LoadingContainer>
                   );
                 }
@@ -367,6 +368,7 @@ function TagsHeatMap(
                         organization,
                         transactionName,
                         source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+                        view,
                       });
 
                       return (

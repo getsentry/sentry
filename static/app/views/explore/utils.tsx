@@ -6,14 +6,24 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {dedupeArray} from 'sentry/utils/dedupeArray';
+import {encodeSort} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {newExploreTarget} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {
+  BaseVisualize,
+  Visualize,
+} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
+import type {ChartType} from 'sentry/views/insights/common/components/chart';
+import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
-
-import type {TimeSeries} from '../dashboards/widgets/common/types';
 
 export function getExploreUrl({
   organization,
@@ -25,19 +35,23 @@ export function getExploreUrl({
   groupBy,
   sort,
   field,
+  id,
+  title,
 }: {
-  interval: string;
   organization: Organization;
-  selection: PageFilters;
-  visualize: Array<Omit<Visualize, 'label'>>;
+  visualize: BaseVisualize[];
   field?: string[];
   groupBy?: string[];
+  id?: number;
+  interval?: string;
   mode?: Mode;
   query?: string;
+  selection?: PageFilters;
   sort?: string;
+  title?: string;
 }) {
-  const {start, end, period: statsPeriod, utc} = selection.datetime;
-  const {environments, projects} = selection;
+  const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
+  const {environments, projects} = selection ?? {};
   const queryParams = {
     dataset: DiscoverDatasets.SPANS_EAP_RPC,
     project: projects,
@@ -53,6 +67,8 @@ export function getExploreUrl({
     sort,
     field,
     utc,
+    id,
+    title,
   };
 
   return (
@@ -61,6 +77,105 @@ export function getExploreUrl({
       path: '/',
     }) + `?${qs.stringify(queryParams, {skipNull: true})}`
   );
+}
+
+export function getExploreUrlFromSavedQueryUrl({
+  savedQuery,
+  organization,
+}: {
+  organization: Organization;
+  savedQuery: SavedQuery;
+}) {
+  if (savedQuery.query.length > 1) {
+    return getExploreMultiQueryUrl({
+      organization,
+      ...savedQuery,
+      queries: savedQuery.query.map(q => ({
+        ...q,
+        chartType: q.visualize[0]?.chartType as ChartType, // Multi Query View only supports a single visualize per query
+        yAxes: q.visualize[0]?.yAxes ?? [],
+        groupBys: q.groupby,
+        sortBys: decodeSorts(q.orderby),
+      })),
+      title: savedQuery.name,
+      selection: {
+        datetime: {
+          end: savedQuery.end ?? null,
+          period: savedQuery.range ?? null,
+          start: savedQuery.start ?? null,
+          utc: null,
+        },
+        environments: savedQuery.environment ?? [],
+        projects: savedQuery.projects,
+      },
+    });
+  }
+  return getExploreUrl({
+    organization,
+    ...savedQuery,
+    ...savedQuery.query[0],
+    groupBy:
+      (savedQuery.query[0].groupby?.length ?? 0) === 0
+        ? ['']
+        : savedQuery.query[0].groupby,
+    query: savedQuery.query[0].query,
+    title: savedQuery.name,
+    mode: savedQuery.query[0].mode,
+    field: savedQuery.query[0].fields,
+    selection: {
+      datetime: {
+        end: savedQuery.end ?? null,
+        period: savedQuery.range ?? null,
+        start: savedQuery.start ?? null,
+        utc: null,
+      },
+      environments: savedQuery.environment ?? [],
+      projects: savedQuery.projects,
+    },
+  });
+}
+
+function getExploreMultiQueryUrl({
+  organization,
+  selection,
+  interval,
+  queries,
+  title,
+  id,
+}: {
+  interval: string;
+  organization: Organization;
+  queries: ReadableExploreQueryParts[];
+  selection: PageFilters;
+  id?: number;
+  title?: string;
+}) {
+  const {start, end, period: statsPeriod, utc} = selection.datetime;
+  const {environments, projects} = selection;
+  const queryParams = {
+    dataset: DiscoverDatasets.SPANS_EAP_RPC,
+    project: projects,
+    environment: environments,
+    statsPeriod,
+    start,
+    end,
+    interval,
+    queries: queries.map(({chartType, fields, groupBys, query, sortBys, yAxes}) =>
+      JSON.stringify({
+        chartType,
+        fields,
+        groupBys,
+        query,
+        sortBys: sortBys[0] ? encodeSort(sortBys[0]) : undefined, // Explore only handles a single sort by
+        yAxes,
+      })
+    ),
+    title,
+    id,
+    utc,
+  };
+
+  return `/organizations/${organization.slug}/explore/traces/compare/?${qs.stringify(queryParams, {skipNull: true})}`;
 }
 
 export function combineConfidenceForSeries(
@@ -125,14 +240,16 @@ export function viewSamplesTarget(
   });
 }
 
-export type MaxPickableDays = 7 | 14 | 30;
-export type DefaultPeriod = '7d' | '14d' | '30d';
+type MaxPickableDays = 7 | 14 | 30;
+type DefaultPeriod = '24h' | '7d' | '14d' | '30d';
 
-export function limitMaxPickableDays(organization: Organization): {
+export interface PickableDays {
   defaultPeriod: DefaultPeriod;
   maxPickableDays: MaxPickableDays;
   relativeOptions: Record<string, React.ReactNode>;
-} {
+}
+
+export function limitMaxPickableDays(organization: Organization): PickableDays {
   const defaultPeriods: Record<MaxPickableDays, DefaultPeriod> = {
     7: '7d',
     14: '14d',
@@ -168,9 +285,39 @@ export function limitMaxPickableDays(organization: Organization): {
   };
 }
 
-export function showConfidence(isSampled: boolean | null | undefined) {
-  if (defined(isSampled) && isSampled === false) {
-    return false;
+export function getDefaultExploreRoute(organization: Organization) {
+  if (organization.features.includes('performance-trace-explorer')) {
+    return 'traces';
   }
-  return true;
+
+  if (organization.features.includes('ourlogs-enabled')) {
+    return 'logs';
+  }
+
+  if (organization.features.includes('discover-basic')) {
+    return 'discover';
+  }
+
+  if (organization.features.includes('performance-profiling')) {
+    return 'profiling';
+  }
+
+  if (organization.features.includes('session-replay-ui')) {
+    return 'replays';
+  }
+
+  return 'releases';
+}
+
+export function computeVisualizeSampleTotals(
+  visualizes: Visualize[],
+  data: ReturnType<typeof useSortedTimeSeries>['data'],
+  isTopN: boolean
+) {
+  return visualizes.map(visualize => {
+    const dedupedYAxes = dedupeArray(visualize.yAxes);
+    const series = dedupedYAxes.flatMap(yAxis => data[yAxis]).filter(defined);
+    const {sampleCount} = determineSeriesSampleCountAndIsSampled(series, isTopN);
+    return sampleCount;
+  });
 }

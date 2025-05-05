@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 
-import ButtonBar from 'sentry/components/buttonBar';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {IconAdd, IconCopy, IconSubtract} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -53,6 +53,25 @@ import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
         </FoldSection>
         <CodeSnippet language="jsx">
           {`<FoldSection title="Prevent Collapse Section" sectionKey={SectionKey.MY_SECTION} preventCollapse>
+  <p>Lorem ipsum...</p>
+</FoldSection>`}
+        </CodeSnippet>
+      </Fragment>
+    );
+  });
+
+  story('Disabling persistence of collapsed state', () => {
+    return (
+      <Fragment>
+        <FoldSection
+          title="Disable Persistence Section"
+          sectionKey={SectionKey.HIGHLIGHTS}
+          disableCollapsePersistence
+        >
+          <Lorem />
+        </FoldSection>
+        <CodeSnippet language="jsx">
+          {`<FoldSection title="Disable Persistence Section" sectionKey={SectionKey.MY_SECTION} disableCollapsePersistence>
   <p>Lorem ipsum...</p>
 </FoldSection>`}
         </CodeSnippet>

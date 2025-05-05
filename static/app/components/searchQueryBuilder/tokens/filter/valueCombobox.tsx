@@ -4,14 +4,15 @@ import {isMac} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {KeyboardEvent} from '@react-types/shared';
 
-import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
-import {getItemsWithKeys} from 'sentry/components/compactSelect/utils';
 import {Checkbox} from 'sentry/components/core/checkbox';
+import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
+import {getItemsWithKeys} from 'sentry/components/core/compactSelect/utils';
 import {
   ItemType,
   type SearchGroup,
   type SearchItem,
 } from 'sentry/components/deprecatedSmartSearchBar/types';
+import {DeviceName} from 'sentry/components/deviceName';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {
   type CustomComboboxMenu,
@@ -54,7 +55,7 @@ import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
-import {type FieldDefinition, FieldValueType} from 'sentry/utils/fields';
+import {type FieldDefinition, FieldKey, FieldValueType} from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -328,7 +329,11 @@ function useFilterSuggestions({
   );
 
   const queryParams = useMemo(
-    () => [key ? key : {key: keyName, name: keyName}, filterValue] as const,
+    () =>
+      [
+        key ? {key: key.key, name: key.name} : {key: keyName, name: keyName},
+        filterValue,
+      ] as const,
     [filterValue, key, keyName]
   );
 
@@ -373,10 +378,26 @@ function useFilterSuggestions({
   );
 
   const suggestionGroups: SuggestionSection[] = useMemo(() => {
-    return shouldFetchValues
-      ? [{sectionText: '', suggestions: data?.map(value => ({value})) ?? []}]
-      : (predefinedValues ?? []);
-  }, [data, predefinedValues, shouldFetchValues]);
+    if (!shouldFetchValues) {
+      return predefinedValues ?? [];
+    }
+
+    const suggestions = data?.map(value => {
+      return {
+        value,
+        description:
+          // When the key is device, we can help users by displaying the readable name
+          key?.key === FieldKey.DEVICE ? (
+            <DeviceName value={value}>
+              {/* Prevent the same value from being displayed twice */}
+              {name => (name === value ? null : name)}
+            </DeviceName>
+          ) : undefined,
+      };
+    });
+
+    return [{sectionText: '', suggestions: suggestions ?? []}];
+  }, [data, predefinedValues, shouldFetchValues, key?.key]);
 
   // Grouped sections for rendering purposes
   const suggestionSectionItems = useMemo<SuggestionSectionItem[]>(() => {

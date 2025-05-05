@@ -2,18 +2,17 @@ import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {GroupPriorityBadge} from 'sentry/components/badge/groupPriority';
-import {Chevron} from 'sentry/components/chevron';
-import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
 import {Flex} from 'sentry/components/container/flex';
+import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {IconArrow} from 'sentry/icons';
+import {IconArrow, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PriorityLevel} from 'sentry/types/group';
 
-export interface PriorityControlGridProps {
+interface PriorityControlGridProps {
   name: string;
   onPriorityChange?: (value: PriorityLevel) => void;
   onThresholdChange?: (level: PriorityLevel, threshold: number) => void;
@@ -21,7 +20,7 @@ export interface PriorityControlGridProps {
   thresholds?: PriorityThresholds;
 }
 
-export interface PriorityThresholds {
+interface PriorityThresholds {
   high?: number;
   medium?: number;
 }
@@ -84,13 +83,7 @@ export default function PriorityControl({
               data-test-id="priority-control-medium"
             />
           }
-          right={
-            <GroupPriorityBadge
-              showLabel
-              variant="signal"
-              priority={PriorityLevel.MEDIUM}
-            />
-          }
+          right={<GroupPriorityBadge showLabel priority={PriorityLevel.MEDIUM} />}
         />
       )}
       {priorityIsConfigurable(priority, PriorityLevel.HIGH) && (
@@ -110,13 +103,7 @@ export default function PriorityControl({
               data-test-id="priority-control-high"
             />
           }
-          right={
-            <GroupPriorityBadge
-              showLabel
-              variant="signal"
-              priority={PriorityLevel.HIGH}
-            />
-          }
+          right={<GroupPriorityBadge showLabel priority={PriorityLevel.HIGH} />}
         />
       )}
     </Grid>
@@ -176,15 +163,15 @@ function PrioritySelect({
       trigger={(props, isOpen) => {
         return (
           <EmptyButton {...props}>
-            <GroupPriorityBadge showLabel variant="signal" priority={value}>
+            <GroupPriorityBadge showLabel priority={value}>
               <InteractionStateLayer isPressed={isOpen} />
-              <Chevron light direction={isOpen ? 'up' : 'down'} size="small" />
+              <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />
             </GroupPriorityBadge>
           </EmptyButton>
         );
       }}
       options={priorities.map(priority => ({
-        label: <GroupPriorityBadge showLabel variant="signal" priority={priority} />,
+        label: <GroupPriorityBadge showLabel priority={priority} />,
         value: priority,
         textValue: priority,
       }))}

@@ -20,6 +20,7 @@ from sentry.models.files.file import File
 from sentry.models.files.utils import get_storage
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.utils import metrics
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 logger = logging.getLogger()
 
@@ -145,6 +146,7 @@ class FilestoreBlob(Blob):
                 size=len(value),
             )
         except IntegrityError:
+            incr_rollback_metrics(ReplayRecordingSegment)
             logger.warning(
                 "Recording-segment has already been processed.",
                 extra={

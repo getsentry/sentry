@@ -636,10 +636,10 @@ def test_apply_new_stack_trace_rules(
         "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",
         return_value={
             "id": DEFAULT_GROUPING_CONFIG,
-            "enhancements": Enhancements.from_config_string(
+            "enhancements": Enhancements.from_rules_text(
                 "function:c -group",
                 bases=[],
-            ).dumps(),
+            ).base64_string,
         },
     ):
         # Reprocess

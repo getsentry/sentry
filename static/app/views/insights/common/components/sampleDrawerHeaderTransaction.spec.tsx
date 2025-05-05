@@ -15,7 +15,7 @@ describe('SampleDrawerHeaderTransaction', () => {
     expect($link).toHaveAccessibleName('/issues');
     expect($link).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/summary?project=project-slug&transaction=%2Fissues'
+      '/organizations/org-slug/insights/summary?project=project-slug&transaction=%2Fissues'
     );
   });
 

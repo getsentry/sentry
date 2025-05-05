@@ -40,7 +40,7 @@ class MetricField:
     op: MetricOperationType | None
     metric_mri: str
     params: dict[str, None | str | int | float | Sequence[tuple[str | int, ...]]] | None = None
-    alias: str | None = None
+    alias: str = ""
 
     def __post_init__(self) -> None:
         # Validate that it is a valid MRI format
@@ -87,7 +87,7 @@ class MetricActionByField:
 
 @dataclass(frozen=True)
 class MetricGroupByField(MetricActionByField):
-    alias: str | None = None
+    alias: str = ""
 
     def __post_init__(self) -> None:
         if not self.alias:

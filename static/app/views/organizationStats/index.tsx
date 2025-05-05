@@ -6,7 +6,7 @@ import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -24,6 +24,7 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {
+  type DataCategory,
   DataCategoryExact,
   type DataCategoryInfo,
   type PageFilters,
@@ -37,13 +38,17 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import HeaderTabs from 'sentry/views/organizationStats/header';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 
 import type {ChartDataTransform} from './usageChart';
 import {CHART_OPTIONS_DATACATEGORY} from './usageChart';
 import UsageStatsOrg from './usageStatsOrg';
-import UsageStatsProjects from './usageStatsProjects';
+import {UsageStatsProjects} from './usageStatsProjects';
 
 const HookHeader = HookOrDefault({hookName: 'component:org-stats-banner'});
+const HookOrgStatsProfilingBanner = HookOrDefault({
+  hookName: 'component:org-stats-profiling-banner',
+});
 
 export const PAGE_QUERY_PARAMS = [
   // From DatePageFilter
@@ -196,7 +201,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
         ...nextLocation,
         pathname: makeProjectsPathname({
           path: `/${project.slug}/`,
-          orgSlug: organization.slug,
+          organization,
         }),
       },
       issueList: {
@@ -216,7 +221,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
     nextState: {
       clientDiscard?: boolean;
       cursor?: string;
-      dataCategory?: DataCategoryInfo['plural'];
+      dataCategory?: DataCategory;
       query?: string;
       sort?: string;
       transform?: ChartDataTransform;
@@ -250,11 +255,17 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
 
     const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
+    const hasProfiling = organization.features.includes('continuous-profiling');
+    const hasProfilingStats = organization.features.includes(
+      'continuous-profiling-stats'
+    );
+
+    // TODO(data categories): move features to DATA_CATEGORY_INFO so we don't need to manually check each one
     const options = CHART_OPTIONS_DATACATEGORY.filter(opt => {
       if (isSelfHostedErrorsOnly) {
         return opt.value === DATA_CATEGORY_INFO.error.plural;
       }
-      if (opt.value === DATA_CATEGORY_INFO.replay.plural) {
+      if (DATA_CATEGORY_INFO.replay.plural === opt.value) {
         return organization.features.includes('session-replay');
       }
       if (DATA_CATEGORY_INFO.span.plural === opt.value) {
@@ -264,18 +275,29 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
         return !organization.features.includes('spans-usage-tracking');
       }
       if (
+        DATA_CATEGORY_INFO.logItem.plural === opt.value ||
+        DATA_CATEGORY_INFO.logByte.plural === opt.value
+      ) {
+        return organization.features.includes('ourlogs-stats');
+      }
+      if (
         DATA_CATEGORY_INFO.profileDuration.plural === opt.value ||
         DATA_CATEGORY_INFO.profileDurationUI.plural === opt.value
       ) {
-        return (
-          organization.features.includes('continuous-profiling-stats') ||
-          organization.features.includes('continuous-profiling')
-        );
+        return hasProfiling || hasProfilingStats;
       }
       if (DATA_CATEGORY_INFO.profile.plural === opt.value) {
-        return !organization.features.includes('continuous-profiling-stats');
+        return !hasProfilingStats;
       }
       return true;
+    }).map(opt => {
+      if (
+        (hasProfiling || hasProfilingStats) &&
+        DATA_CATEGORY_INFO.profile.plural === opt.value
+      ) {
+        return {...opt, label: `${opt.label} (legacy)`};
+      }
+      return opt;
     });
 
     return (
@@ -286,7 +308,9 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
             triggerProps={{prefix: t('Category')}}
             value={this.dataCategory}
             options={options}
-            onChange={opt => this.setStateOnUrl({dataCategory: String(opt.value)})}
+            onChange={opt =>
+              this.setStateOnUrl({dataCategory: opt.value as DataCategory})
+            }
           />
           <DatePageFilter />
         </PageFilterBar>
@@ -319,9 +343,33 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
     );
   }
 
+  renderEstimationDisclaimer() {
+    if (
+      this.dataCategory === DATA_CATEGORY_INFO.profileDuration.plural ||
+      this.dataCategory === DATA_CATEGORY_INFO.profileDurationUI.plural
+    ) {
+      return (
+        <EstimationText data-test-id="estimation-text">
+          {tct(
+            '*This is an estimation, and may not be 100% accurate. [estimateLink: How we calculate estimated usage]',
+            {
+              estimateLink: (
+                <ExternalLink
+                  href={getDocsLinkForEventType(DataCategoryExact.PROFILE_DURATION)} // TODO(continuous profiling): update link when docs are ready
+                />
+              ),
+            }
+          )}
+        </EstimationText>
+      );
+    }
+    return null;
+  }
+
   render() {
     const {organization} = this.props;
     const hasTeamInsights = organization.features.includes('team-insights');
+    const showProfilingBanner = this.dataCategory === 'profiles';
 
     return (
       <SentryDocumentTitle title={t('Usage Stats')} orgSlug={organization.slug}>
@@ -349,13 +397,16 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
             <Body>
               <Layout.Main fullWidth>
                 <HookHeader organization={organization} />
-                {this.renderProjectPageControl()}
+                <ControlsWrapper>
+                  {this.renderProjectPageControl()}
+                  {this.renderEstimationDisclaimer()}
+                </ControlsWrapper>
+                {showProfilingBanner && <HookOrgStatsProfilingBanner />}
                 <div>
                   <ErrorBoundary mini>{this.renderUsageStatsOrg()}</ErrorBoundary>
                 </div>
                 <ErrorBoundary mini>
                   <UsageStatsProjects
-                    organization={organization}
                     dataCategory={this.dataCategoryInfo}
                     dataCategoryName={this.dataCategoryInfo.titleName}
                     isSingleProject={this.isSingleProject}
@@ -425,12 +476,26 @@ const HeadingSubtitle = styled('p')`
   margin-bottom: 0;
 `;
 
+const ControlsWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  margin-bottom: ${space(2)};
+  justify-content: space-between;
+`;
+
 const PageControl = styled('div')`
   display: grid;
-  width: 100%;
-  margin-bottom: ${space(2)};
+
+  margin-bottom: 0;
   grid-template-columns: minmax(0, max-content);
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: minmax(0, 1fr);
   }
+`;
+
+const EstimationText = styled('div')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
+  line-height: ${p => p.theme.text.lineHeightBody};
 `;

@@ -1,8 +1,10 @@
 import {Fragment, useCallback, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';
 import TransactionsList from 'sentry/components/discover/transactionsList';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -12,7 +14,6 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -34,25 +35,27 @@ import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import withProjects from 'sentry/utils/withProjects';
+import Tags from 'sentry/views/discover/results/tags';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
 import {updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
-import Tags from 'sentry/views/discover/tags';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 import {ServiceEntrySpansTable} from 'sentry/views/performance/otlp/serviceEntrySpansTable';
-import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
-import {
-  PERCENTILE as VITAL_PERCENTILE,
-  VITAL_GROUPS,
-} from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
-
-import {isSummaryViewFrontend, isSummaryViewFrontendPageLoad} from '../../utils';
 import Filter, {
   decodeFilterFromLocation,
   filterToField,
   filterToSearchConditions,
   SpanOperationBreakdownFilter,
-} from '../filter';
+} from 'sentry/views/performance/transactionSummary/filter';
+import {SpanCategoryFilter} from 'sentry/views/performance/transactionSummary/spanCategoryFilter';
+import {EAPChartsWidget} from 'sentry/views/performance/transactionSummary/transactionOverview/eapChartsWidget';
+import {EAPSidebarCharts} from 'sentry/views/performance/transactionSummary/transactionOverview/eapSidebarCharts';
+import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
+import {
+  makeVitalGroups,
+  PERCENTILE as VITAL_PERCENTILE,
+} from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
 import {
   generateProfileLink,
   generateReplayLink,
@@ -61,7 +64,11 @@ import {
   normalizeSearchConditions,
   SidebarSpacer,
   TransactionFilterOptions,
-} from '../utils';
+} from 'sentry/views/performance/transactionSummary/utils';
+import {
+  isSummaryViewFrontend,
+  isSummaryViewFrontendPageLoad,
+} from 'sentry/views/performance/utils';
 
 import TransactionSummaryCharts from './charts';
 import {PerformanceAtScaleContextProvider} from './performanceAtScaleContext';
@@ -86,6 +93,8 @@ type Props = {
   transactionName: string;
 };
 
+export const SERVICE_ENTRY_SPANS_CURSOR_NAME = 'serviceEntrySpansCursor';
+
 function OTelSummaryContentInner({
   eventView,
   location,
@@ -93,14 +102,13 @@ function OTelSummaryContentInner({
   spanOperationBreakdownFilter,
   organization,
   projects,
-  isLoading,
-  error,
   projectId,
   transactionName,
-  onChangeFilter,
 }: Props) {
+  const theme = useTheme();
   const navigate = useNavigate();
   const domainViewFilters = useDomainViewFilters();
+  const spanCategory = decodeScalar(location.query?.[SpanIndexedField.SPAN_CATEGORY]);
 
   const handleSearch = useCallback(
     (query: string) => {
@@ -120,40 +128,29 @@ function OTelSummaryContentInner({
     [location, navigate]
   );
 
-  function generateTagUrl(key: string, value: string) {
-    const query = generateQueryWithTag(location.query, {key: formatTagKey(key), value});
-
-    return {
-      ...location,
-      query,
-    };
-  }
-
   function handleTransactionsListSortChange(value: string) {
     const target = {
       pathname: location.pathname,
-      query: {...location.query, showTransactions: value, transactionCursor: undefined},
+      query: {
+        ...location.query,
+        showTransactions: value,
+        [SERVICE_ENTRY_SPANS_CURSOR_NAME]: undefined,
+      },
     };
 
     navigate(target);
   }
 
-  const hasPerformanceChartInterpolation = organization.features.includes(
-    'performance-chart-interpolation'
-  );
-
   const query = useMemo(() => {
     return decodeScalar(location.query.query, '');
   }, [location]);
-
-  const totalCount = totalValues === null ? null : totalValues['count()']!;
 
   // NOTE: This is not a robust check for whether or not a transaction is a front end
   // transaction, however it will suffice for now.
   const hasWebVitals =
     isSummaryViewFrontendPageLoad(eventView, projects) ||
     (totalValues !== null &&
-      VITAL_GROUPS.some(group =>
+      makeVitalGroups(theme).some(group =>
         group.vitals.some(vital => {
           const functionName = `percentile(${vital},${VITAL_PERCENTILE})`;
           const field = functionName;
@@ -220,6 +217,13 @@ function OTelSummaryContentInner({
     transactionsListEventView = eventView.clone();
   }
 
+  if (spanCategory) {
+    eventView = eventView.clone();
+    eventView.query =
+      `${eventView.query} ${SpanIndexedField.SPAN_CATEGORY}:${spanCategory}`.trim();
+    transactionsListEventView = eventView.clone();
+  }
+
   transactionsListEventView.fields = fields;
 
   const hasNewSpansUIFlag =
@@ -245,27 +249,18 @@ function OTelSummaryContentInner({
     <Fragment>
       <Layout.Main>
         <FilterActions>
-          <Filter
-            organization={organization}
-            currentFilter={spanOperationBreakdownFilter}
-            onChangeFilter={onChangeFilter}
-          />
+          <SpanCategoryFilter serviceEntrySpanName={transactionName} />
           <PageFilterBar condensed>
             <EnvironmentPageFilter />
             <DatePageFilter />
           </PageFilterBar>
           <StyledSearchBarWrapper>{renderSearchBar()}</StyledSearchBarWrapper>
         </FilterActions>
+        <EAPChartsWidgetContainer>
+          <EAPChartsWidget transactionName={transactionName} query={query} />
+        </EAPChartsWidgetContainer>
+
         <PerformanceAtScaleContextProvider>
-          <TransactionSummaryCharts
-            organization={organization}
-            location={location}
-            eventView={eventView}
-            totalValue={totalCount}
-            currentFilter={spanOperationBreakdownFilter}
-            withoutZerofill={hasPerformanceChartInterpolation}
-            project={project}
-          />
           <ServiceEntrySpansTable
             eventView={transactionsListEventView}
             handleDropdownChange={handleTransactionsListSortChange}
@@ -316,16 +311,6 @@ function OTelSummaryContentInner({
         />
       </Layout.Main>
       <Layout.Side>
-        <UserStats
-          organization={organization}
-          location={location}
-          isLoading={isLoading}
-          hasWebVitals={hasWebVitals}
-          error={error}
-          totals={totalValues}
-          transactionName={transactionName}
-          eventView={eventView}
-        />
         {!isFrontendView && (
           <StatusBreakdown
             eventView={eventView}
@@ -334,22 +319,8 @@ function OTelSummaryContentInner({
           />
         )}
         <SidebarSpacer />
-        <SidebarCharts
-          organization={organization}
-          isLoading={isLoading}
-          error={error}
-          totals={totalValues}
-          eventView={eventView}
-          transactionName={transactionName}
-        />
+        <EAPSidebarCharts transactionName={transactionName} hasWebVitals={hasWebVitals} />
         <SidebarSpacer />
-        <Tags
-          generateUrl={generateTagUrl}
-          totalValues={totalCount}
-          eventView={eventView}
-          organization={organization}
-          location={location}
-        />
       </Layout.Side>
     </Fragment>
   );
@@ -368,6 +339,7 @@ function SummaryContent({
   transactionName,
   onChangeFilter,
 }: Props) {
+  const theme = useTheme();
   const routes = useRoutes();
   const navigate = useNavigate();
   const mepDataContext = useMEPDataContext();
@@ -479,7 +451,7 @@ function SummaryContent({
   const hasWebVitals =
     isSummaryViewFrontendPageLoad(eventView, projects) ||
     (totalValues !== null &&
-      VITAL_GROUPS.some(group =>
+      makeVitalGroups(theme).some(group =>
         group.vitals.some(vital => {
           const functionName = `percentile(${vital},${VITAL_PERCENTILE})`;
           const field = functionName;
@@ -866,6 +838,11 @@ const StyledSearchBarWrapper = styled('div')`
 
 const StyledIconWarning = styled(IconWarning)`
   display: block;
+`;
+
+const EAPChartsWidgetContainer = styled('div')`
+  height: 300px;
+  margin-bottom: ${space(2)};
 `;
 
 export default withProjects(SummaryContent);

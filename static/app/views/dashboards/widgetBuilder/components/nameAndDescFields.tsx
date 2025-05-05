@@ -33,7 +33,7 @@ function WidgetBuilderNameAndDescription({
   return (
     <Fragment>
       <SectionHeader title={t('Widget Name & Description')} />
-      <StyledInput
+      <StyledTextField
         name={t('Widget Name')}
         size="md"
         placeholder={t('Name')}
@@ -101,7 +101,7 @@ function WidgetBuilderNameAndDescription({
 
 export default WidgetBuilderNameAndDescription;
 
-const StyledInput = styled(TextField)`
+const StyledTextField = styled(TextField)`
   margin-bottom: ${space(1)};
   padding: 0;
   border: none;

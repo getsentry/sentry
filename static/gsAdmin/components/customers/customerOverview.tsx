@@ -6,8 +6,8 @@ import moment from 'moment-timezone';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ResponseMeta} from 'sentry/api';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Tooltip} from 'sentry/components/tooltip';
 import {tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
@@ -23,7 +23,7 @@ import DetailLabel from 'admin/components/detailLabel';
 import DetailList from 'admin/components/detailList';
 import DetailsContainer from 'admin/components/detailsContainer';
 import {getLogQuery} from 'admin/utils';
-import {PRODUCT_TRIAL_CATEGORIES, UNLIMITED} from 'getsentry/constants';
+import {BILLED_DATA_CATEGORY_INFO, UNLIMITED} from 'getsentry/constants';
 import type {
   Plan,
   ReservedBudget,
@@ -213,9 +213,9 @@ function ReservedData({customer}: ReservedDataProps) {
               </DetailLabel>
               {customer.onDemandInvoicedManual && (
                 <DetailLabel title={`Pay-as-you-go Cost-Per-Event ${categoryName}`}>
-                  {typeof categoryHistory.onDemandCpe === 'number'
+                  {typeof categoryHistory.paygCpe === 'number'
                     ? displayPriceWithCents({
-                        cents: categoryHistory.onDemandCpe,
+                        cents: categoryHistory.paygCpe,
                         minimumFractionDigits: 8,
                         maximumFractionDigits: 8,
                       })
@@ -267,7 +267,7 @@ function ReservedBudgetData({customer, reservedBudget}: ReservedBudgetProps) {
 
   const budgetName = getReservedBudgetDisplayName({
     plan: customer.planDetails,
-    categories,
+    categories: categories as DataCategory[],
     hadCustomDynamicSampling: shouldUseDsNames,
     shouldTitleCase: true,
   });
@@ -325,12 +325,13 @@ function OnDemandSummary({customer}: OnDemandSummaryProps) {
             return (
               <Fragment key={`test-ondemand-${category}`}>
                 <small>
-                  {`${getPlanCategoryName({plan: customer.planDetails, category})}: `}
+                  {`${getPlanCategoryName({
+                    plan: customer.planDetails,
+                    category,
+                  })}: `}
                   {`${displayPriceWithCents({
-                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     cents: onDemandBudgets.usedSpends[category] ?? 0,
                   })} / ${displayPriceWithCents({
-                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                     cents: onDemandBudgets.budgets[category] ?? 0,
                   })}`}
                 </small>
@@ -446,16 +447,18 @@ function CustomerOverview({customer, onAction, organization}: Props) {
   const region = regionMap[organization.links.regionUrl] ?? '??';
 
   const productTrialCategories = customer.canSelfServe
-    ? PRODUCT_TRIAL_CATEGORIES.filter(category =>
-        customer.planDetails.categories.includes(category)
+    ? Object.values(BILLED_DATA_CATEGORY_INFO).filter(
+        categoryInfo =>
+          categoryInfo.canProductTrial &&
+          customer.planDetails.categories.includes(categoryInfo.plural)
       )
     : [];
 
-  function updateProductTrialStatus(action: string, category: DataCategory) {
-    const key = action + upperFirst(category);
+  function updateCustomerStatus(action: string, type: string) {
     const data = {
-      [key]: true,
+      [action]: true,
     };
+
     api.request(`/customers/${organization.id}/`, {
       method: 'PUT',
       data,
@@ -463,9 +466,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
         addSuccessMessage(`${resp.message}`);
       },
       error: (resp: ResponseMeta) => {
-        addErrorMessage(
-          `Error updating product trial status: ${resp.responseJSON?.message}`
-        );
+        addErrorMessage(`Error updating ${type} status: ${resp.responseJSON?.message}`);
       },
     });
   }
@@ -581,7 +582,22 @@ function CustomerOverview({customer, onAction, organization}: Props) {
             {customer.partner ? (
               <Fragment>
                 {customer.partner.partnership.displayName}{' '}
-                {`(${customer.partner.isActive ? 'active' : 'migrated'})`}
+                {customer.partner.isActive ? (
+                  <Fragment>
+                    (active)
+                    <br />
+                    <Button
+                      priority="link"
+                      onClick={() =>
+                        updateCustomerStatus('deactivatePartnerAccount', 'partner')
+                      }
+                    >
+                      Deactivate Partner
+                    </Button>
+                  </Fragment>
+                ) : (
+                  <Fragment>(migrated)</Fragment>
+                )}
                 <br />
                 <small>ID: {customer.partner.externalId}</small>
                 {customer.partner.partnership.id === 'HK' && (
@@ -638,43 +654,82 @@ function CustomerOverview({customer, onAction, organization}: Props) {
         {productTrialCategories.length > 0 && (
           <Fragment>
             <h6>Product Trials</h6>
-            <DetailList>
-              {productTrialCategories.map(category => {
-                const categoryName = titleCase(
-                  getPlanCategoryName({plan: customer.planDetails, category})
-                );
+            <ProductTrialsDetailListContainer>
+              {productTrialCategories.map(categoryInfo => {
+                const categoryName = getPlanCategoryName({
+                  plan: customer.planDetails,
+                  category: categoryInfo.plural,
+                  title: true,
+                });
+                const upperCategory = upperFirst(categoryInfo.plural);
+
                 return (
-                  <DetailLabel key={category} title={categoryName}>
-                    <Button
-                      priority="link"
-                      onClick={() => updateProductTrialStatus('allowTrial', category)}
-                    >
-                      {tct('Allow [categoryName] Trial', {categoryName})}
-                    </Button>
-                    {' |'}
-                    <Button
-                      priority="link"
-                      onClick={() => updateProductTrialStatus('startTrial', category)}
-                    >
-                      {tct('Start [categoryName] Trial', {categoryName})}
-                    </Button>
-                    {' | '}
-                    <Button
-                      priority="link"
-                      onClick={() => updateProductTrialStatus('stopTrial', category)}
-                    >
-                      {tct('Stop [categoryName] Trial', {categoryName})}
-                    </Button>
+                  <DetailLabel key={categoryInfo.plural} title={categoryName}>
+                    <TrialActions>
+                      <Button
+                        size="xs"
+                        onClick={() =>
+                          updateCustomerStatus(
+                            `allowTrial${upperCategory}`,
+                            'product trial'
+                          )
+                        }
+                      >
+                        {tct('Allow Trial', {categoryName})}
+                      </Button>
+                      <Button
+                        size="xs"
+                        onClick={() =>
+                          updateCustomerStatus(
+                            `startTrial${upperCategory}`,
+                            'product trial'
+                          )
+                        }
+                      >
+                        {tct('Start Trial', {categoryName})}
+                      </Button>
+                      <Button
+                        size="xs"
+                        onClick={() =>
+                          updateCustomerStatus(
+                            `stopTrial${upperCategory}`,
+                            'product trial'
+                          )
+                        }
+                      >
+                        {tct('Stop Trial', {categoryName})}
+                      </Button>
+                    </TrialActions>
                   </DetailLabel>
                 );
               })}
-            </DetailList>
+            </ProductTrialsDetailListContainer>
           </Fragment>
         )}
       </div>
     </DetailsContainer>
   );
 }
+
+const TrialActions = styled('div')`
+  display: flex;
+  gap: 8px;
+  align-items: center;
+`;
+
+const ProductTrialsDetailListContainer = styled(DetailList)`
+  dt {
+    justify-self: end;
+    display: flex;
+    align-items: center;
+    min-height: 38px;
+  }
+  dd {
+    display: flex;
+    align-items: center;
+    min-height: 38px;
+  }
+`;
 
 type ThresholdLabelProps = {
   children: React.ReactNode;

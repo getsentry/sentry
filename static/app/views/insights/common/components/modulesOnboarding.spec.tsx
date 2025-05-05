@@ -1,17 +1,15 @@
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
-import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {ModuleName} from 'sentry/views/insights/types';
 
 import {ModulesOnboarding} from './modulesOnboarding';
 
-jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
 
 describe('ModulesOnboarding', () => {
   afterEach(() => {
@@ -23,35 +21,9 @@ describe('ModulesOnboarding', () => {
     project.firstTransactionEvent = true;
     project.hasInsightsCaches = true;
 
-    jest.mocked(useProjects).mockReturnValue({
-      projects: [project],
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
-      placeholders: [],
-      fetching: false,
-      hasMore: null,
-      fetchError: null,
-      initiallyLoaded: false,
-    });
+    ProjectsStore.loadInitialData([project]);
 
-    jest.mocked(useOnboardingProject).mockReturnValue(undefined);
-
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [2],
-      },
-    });
+    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
     render(
       <ModulesOnboarding moduleName={ModuleName.CACHE}>
@@ -64,33 +36,28 @@ describe('ModulesOnboarding', () => {
 
   it('renders onboarding content correctly', async () => {
     const project = ProjectFixture();
-    jest.mocked(useProjects).mockReturnValue({
-      projects: [project],
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
-      placeholders: [],
-      fetching: false,
-      hasMore: null,
-      fetchError: null,
-      initiallyLoaded: false,
+    project.firstTransactionEvent = true;
+    ProjectsStore.loadInitialData([project]);
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [project],
     });
 
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
+    jest.mocked(usePageFilters).mockReturnValue(
+      PageFilterStateFixture({
+        selection: {
+          datetime: {
+            period: '10d',
+            start: null,
+            end: null,
+            utc: false,
+          },
+          environments: [],
+          projects: [Number(project.id)],
         },
-        environments: [],
-        projects: [2],
-      },
-    });
+      })
+    );
 
     render(
       <ModulesOnboarding moduleName={ModuleName.CACHE}>
@@ -103,34 +70,23 @@ describe('ModulesOnboarding', () => {
 
   it('renders performance onboarding if onboardingProject', async () => {
     const project = ProjectFixture();
-    jest.mocked(useOnboardingProject).mockReturnValue(project);
-    jest.mocked(useProjects).mockReturnValue({
-      projects: [project],
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
-      placeholders: [],
-      fetching: false,
-      hasMore: null,
-      fetchError: null,
-      initiallyLoaded: false,
-    });
+    project.hasInsightsCaches = true;
+    ProjectsStore.loadInitialData([project]);
 
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
+    jest.mocked(usePageFilters).mockReturnValue(
+      PageFilterStateFixture({
+        selection: {
+          datetime: {
+            period: '10d',
+            start: null,
+            end: null,
+            utc: false,
+          },
+          environments: [],
+          projects: [Number(project.id)],
         },
-        environments: [],
-        projects: [2],
-      },
-    });
+      })
+    );
 
     render(
       <ModulesOnboarding moduleName={ModuleName.CACHE}>

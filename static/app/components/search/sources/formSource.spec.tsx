@@ -1,9 +1,9 @@
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import * as ActionCreators from 'sentry/actionCreators/formSearch';
-import FormSource from 'sentry/components/search/sources/formSource';
-import type {FormSearchField} from 'sentry/stores/formSearchStore';
-import FormSearchStore from 'sentry/stores/formSearchStore';
+import FormSource, {
+  type FormSearchField,
+  setSearchMap,
+} from 'sentry/components/search/sources/formSource';
 
 describe('FormSource', function () {
   const searchMap: FormSearchField[] = [
@@ -32,13 +32,7 @@ describe('FormSource', function () {
   ];
 
   beforeEach(function () {
-    jest.spyOn(ActionCreators, 'loadSearchMap').mockImplementation(() => {});
-
-    FormSearchStore.loadSearchMap(searchMap);
-  });
-
-  afterEach(function () {
-    jest.mocked(ActionCreators.loadSearchMap).mockRestore();
+    setSearchMap(searchMap);
   });
 
   it('can find a form field', async function () {
@@ -63,6 +57,7 @@ describe('FormSource', function () {
                 resultType: 'field',
                 sourceType: 'field',
                 to: {pathname: '/route/', hash: '#test-field'},
+                resolvedTs: expect.anything(),
               },
             }),
           ],

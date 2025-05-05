@@ -11,7 +11,7 @@ from django.conf import settings
 from django.db import router, transaction
 
 from sentry import eventstream
-from sentry.constants import LOG_LEVELS_MAP
+from sentry.constants import LOG_LEVELS_MAP, MAX_CULPRIT_LENGTH
 from sentry.event_manager import (
     GroupInfo,
     _get_or_create_group_environment,
@@ -24,11 +24,15 @@ from sentry.event_manager import (
 from sentry.eventstore.models import Event, GroupEvent, augment_message_with_occurrence
 from sentry.issues.grouptype import FeedbackGroup, should_create_group
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
+from sentry.issues.priority import PriorityChangeReason, update_priority
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphash import GroupHash
+from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.models.release import Release
 from sentry.ratelimits.sliding_windows import RedisSlidingWindowRateLimiter, RequestedQuota
+from sentry.types.group import PriorityLevel
 from sentry.utils import json, metrics, redis
+from sentry.utils.strings import truncatechars
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 issue_rate_limiter = RedisSlidingWindowRateLimiter(
@@ -74,7 +78,11 @@ def process_occurrence_data(data: dict[str, Any]) -> None:
         return
 
     # Hash fingerprints to make sure they're a consistent length
-    data["fingerprint"] = [md5(part.encode("utf-8")).hexdigest() for part in data["fingerprint"]]
+    data["fingerprint"] = hash_fingerprint(data["fingerprint"])
+
+
+def hash_fingerprint(fingerprint: list[str]) -> list[str]:
+    return [md5(part.encode("utf-8")).hexdigest() for part in fingerprint]
 
 
 class IssueArgs(TypedDict):
@@ -95,24 +103,22 @@ class IssueArgs(TypedDict):
 def _create_issue_kwargs(
     occurrence: IssueOccurrence, event: Event, release: Release | None
 ) -> IssueArgs:
+    priority = occurrence.priority or occurrence.type.default_priority
+
     kwargs: IssueArgs = {
         "platform": event.platform,
         # TODO: Figure out what message should be. Or maybe we just implement a platform event and
         # define it in `search_message` there.
         "message": event.search_message,
         "level": LOG_LEVELS_MAP.get(occurrence.level),
-        "culprit": occurrence.culprit,
+        "culprit": truncatechars(occurrence.culprit, MAX_CULPRIT_LENGTH),
         "last_seen": event.datetime,
         "first_seen": event.datetime,
         "active_at": event.datetime,
         "type": occurrence.type.type_id,
         "first_release": release,
         "data": materialize_metadata(occurrence, event),
-        "priority": (
-            occurrence.initial_issue_priority
-            if occurrence.initial_issue_priority is not None
-            else occurrence.type.default_priority
-        ),
+        "priority": priority,
     }
     kwargs["data"]["last_received"] = json.datetime_to_str(event.datetime)
     return kwargs
@@ -140,7 +146,7 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
     event_metadata.update(event.get_event_metadata())
     event_metadata["title"] = occurrence.issue_title
     event_metadata["value"] = occurrence.subtitle
-    event_metadata["initial_priority"] = occurrence.initial_issue_priority
+    event_metadata["initial_priority"] = occurrence.priority
 
     if occurrence.type == FeedbackGroup:
         # TODO: Should feedbacks be their own event type, so above call to event.get_event_medata
@@ -172,20 +178,24 @@ def save_issue_from_occurrence(
     # until after we have created a `Group`.
     issue_kwargs["message"] = augment_message_with_occurrence(issue_kwargs["message"], occurrence)
 
-    # TODO: For now we will assume a single fingerprint. We can expand later if necessary.
-    # Note that additional fingerprints won't be used to generated additional issues, they'll be
-    # used to map the occurrence to a specific issue.
-    new_grouphash = occurrence.fingerprint[0]
-    existing_grouphash = (
-        GroupHash.objects.filter(project=project, hash=new_grouphash)
-        .select_related("group")
-        .first()
-    )
+    existing_grouphashes = {
+        gh.hash: gh
+        for gh in GroupHash.objects.filter(
+            project=project, hash__in=occurrence.fingerprint
+        ).select_related("group")
+    }
+    primary_grouphash = None
+    for fingerprint_hash in occurrence.fingerprint:
+        if fingerprint_hash in existing_grouphashes:
+            primary_grouphash = existing_grouphashes[fingerprint_hash]
+            break
 
-    if not existing_grouphash:
+    if not primary_grouphash:
+        primary_hash = occurrence.fingerprint[0]
+
         cluster_key = settings.SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS.get("cluster", "default")
         client = redis.redis_clusters.get(cluster_key)
-        if not should_create_group(occurrence.type, client, new_grouphash, project):
+        if not should_create_group(occurrence.type, client, primary_hash, project):
             metrics.incr("issues.issue.dropped.noise_reduction")
             return None
 
@@ -213,7 +223,15 @@ def save_issue_from_occurrence(
             ) as metric_tags,
             transaction.atomic(router.db_for_write(GroupHash)),
         ):
-            group, is_new = save_grouphash_and_group(project, event, new_grouphash, **issue_kwargs)
+            group, is_new, primary_grouphash = save_grouphash_and_group(
+                project, event, primary_hash, **issue_kwargs
+            )
+            open_period = get_latest_open_period(group)
+            if open_period is not None:
+                highest_seen_priority = group.priority
+                open_period.update(
+                    data={**open_period.data, "highest_seen_priority": highest_seen_priority}
+                )
             is_regression = False
             span.set_tag("save_issue_from_occurrence.outcome", "new_group")
             metric_tags["save_issue_from_occurrence.outcome"] = "new_group"
@@ -248,10 +266,10 @@ def save_issue_from_occurrence(
             except Exception:
                 logger.exception("Failed process assignment for occurrence")
 
-    elif existing_grouphash.group is None:
+    elif primary_grouphash.group is None:
         return None
     else:
-        group = existing_grouphash.group
+        group = primary_grouphash.group
         if group.issue_category.value != occurrence.type.category:
             logger.error(
                 "save_issue_from_occurrence.category_mismatch",
@@ -267,6 +285,47 @@ def save_issue_from_occurrence(
         group_event.occurrence = occurrence
         is_regression = _process_existing_aggregate(group, group_event, issue_kwargs, release)
         group_info = GroupInfo(group=group, is_new=False, is_regression=is_regression)
+        if (
+            issue_kwargs["priority"]
+            and group.priority != issue_kwargs["priority"]
+            and group.priority_locked_at is None
+        ):
+            update_priority(
+                group=group,
+                priority=PriorityLevel(issue_kwargs["priority"]),
+                sender="save_issue_from_occurrence",
+                reason=PriorityChangeReason.ISSUE_PLATFORM,
+                project=project,
+            )
+
+            open_period = get_latest_open_period(group)
+            if open_period is not None:
+                highest_seen_priority = open_period.data.get("highest_seen_priority", None)
+                if highest_seen_priority is None:
+                    highest_seen_priority = group.priority
+                elif group.priority is not None:
+                    # XXX: we know this is not None, because we just set the group's priority
+                    highest_seen_priority = max(highest_seen_priority, group.priority)
+                open_period.update(
+                    data={**open_period.data, "highest_seen_priority": highest_seen_priority}
+                )
+
+    additional_hashes = [f for f in occurrence.fingerprint if f != primary_grouphash.hash]
+    for fingerprint_hash in additional_hashes:
+        # Attempt to create the additional grouphash links. They shouldn't be linked to other groups, but guard against
+        # that
+        group_hash, created = GroupHash.objects.get_or_create(
+            project=project, hash=fingerprint_hash, defaults={"group": group_info.group}
+        )
+        if not created:
+            logger.warning(
+                "Failed to create additional grouphash for group, grouphash associated with existing group",
+                extra={
+                    "new_group_id": group_info.group.id,
+                    "hash": fingerprint_hash,
+                    "existing_group_id": group_hash.group_id,
+                },
+            )
 
     return group_info
 

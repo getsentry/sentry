@@ -28,11 +28,6 @@ export function CanvasSupportNotice() {
     projectId: [projectId ?? '-1'],
   });
 
-  // No need for notice if they are not feature flagged into the replayer
-  if (!organization.features.includes('session-replay-enable-canvas-replayer')) {
-    return null;
-  }
-
   // User has dismissed this alert already, do not show
   if (isDismissed || isFetching) {
     return null;

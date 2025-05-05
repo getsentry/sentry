@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {
   render,
@@ -19,22 +20,20 @@ describe('HTTPSamplesPanel', () => {
 
   let eventsRequestMock: jest.Mock;
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects: [],
       },
-      environments: [],
-      projects: [],
-    },
-  });
+    })
+  );
 
   jest.mocked(useLocation).mockReturnValue({
     pathname: '',
@@ -67,8 +66,8 @@ describe('HTTPSamplesPanel', () => {
         data: [
           {
             'project.id': 1,
-            'transaction.id': '',
-            'spm()': 22.18,
+            'transaction.span_id': '',
+            'epm()': 22.18,
             'http_response_rate(3)': 0.01,
             'http_response_rate(4)': 0.025,
             'http_response_rate(5)': 0.015,
@@ -78,7 +77,7 @@ describe('HTTPSamplesPanel', () => {
         ],
         meta: {
           fields: {
-            'spm()': 'rate',
+            'epm()': 'rate',
             'avg(span.self_time)': 'duration',
             'http_response_rate(3)': 'percentage',
             'http_response_rate(4)': 'percentage',
@@ -91,6 +90,11 @@ describe('HTTPSamplesPanel', () => {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/stats/`,
       body: [],
     });
   });
@@ -135,12 +139,28 @@ describe('HTTPSamplesPanel', () => {
               [1699907700, [{count: 7810.2}]],
               [1699908000, [{count: 1216.8}]],
             ],
+            meta: {
+              fields: {
+                count: 'integer',
+              },
+              units: {
+                count: null,
+              },
+            },
           },
           '304': {
             data: [
               [1699907700, [{count: 2701.5}]],
               [1699908000, [{count: 78.12}]],
             ],
+            meta: {
+              fields: {
+                count: 'integer',
+              },
+              units: {
+                count: null,
+              },
+            },
           },
         },
       });
@@ -163,7 +183,7 @@ describe('HTTPSamplesPanel', () => {
               project: 'javascript',
               timestamp: '2024-03-25T20:31:36+00:00',
               'span.status_code': '200',
-              'transaction.id': '11c910c9c10b3ec4ecf8f209b8c6ce48',
+              'transaction.span_id': '11c910c9c10b3ec4ecf8f209b8c6ce48',
               'span.self_time': 320.300102,
             },
           ],
@@ -199,7 +219,7 @@ describe('HTTPSamplesPanel', () => {
             dataset: 'spansMetrics',
             environment: [],
             field: [
-              'spm()',
+              'epm()',
               'avg(span.self_time)',
               'sum(span.self_time)',
               'http_response_rate(3)',
@@ -257,7 +277,7 @@ describe('HTTPSamplesPanel', () => {
             field: [
               'project',
               'trace',
-              'transaction.id',
+              'transaction.span_id',
               'span_id',
               'timestamp',
               'span.description',
@@ -359,10 +379,14 @@ describe('HTTPSamplesPanel', () => {
               project: 'javascript',
               timestamp: '2024-03-25T20:31:36+00:00',
               'span.status_code': '200',
-              'transaction.id': '11c910c9c10b3ec4ecf8f209b8c6ce48',
+              'transaction.span_id': '11c910c9c10b3ec4ecf8f209b8c6ce48',
               'span.self_time': 320.300102,
             },
           ],
+          meta: {
+            fields: {},
+            units: {},
+          },
         },
       });
 
@@ -417,10 +441,11 @@ describe('HTTPSamplesPanel', () => {
               'span.module:http span.op:http.client span.domain:"\\*.sentry.dev" transaction:/api/0/users',
             project: [],
             additionalFields: [
+              'id',
               'trace',
-              'transaction.id',
               'span.description',
               'span.status_code',
+              'transaction.span_id',
             ],
             lowerBound: 0,
             firstBound: expect.closeTo(333.3333),
@@ -482,7 +507,7 @@ describe('HTTPSamplesPanel', () => {
 
       expect(screen.getByRole('link', {name: 'b1bf1acde131623a'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/performance/javascript:11c910c9c10b3ec4ecf8f209b8c6ce48/?domain=%2A.sentry.dev&panel=duration&statsPeriod=10d&transactionMethod=GET#span-b1bf1acde131623a'
+        '/organizations/org-slug/insights/backend/javascript:11c910c9c10b3ec4ecf8f209b8c6ce48/?domain=%2A.sentry.dev&panel=duration&statsPeriod=10d&transactionMethod=GET#span-b1bf1acde131623a'
       );
 
       expect(screen.getByRole('cell', {name: '200'})).toBeInTheDocument();

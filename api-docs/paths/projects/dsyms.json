@@ -158,7 +158,7 @@
     },
     "security": [
       {
-        "auth_token": ["project:write"]
+        "auth_token": ["project:admin", "project:releases"]
       }
     ]
   }

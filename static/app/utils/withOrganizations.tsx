@@ -42,7 +42,7 @@ function withOrganizations<P extends InjectedOrganizationsProps>(
           }
           organizations={organizations ?? this.state.organizations}
           // TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261
-          {...(props as Omit<P, 'organizationsLoading' | 'organizations'> as any)}
+          {...(props as any)}
         />
       );
     }

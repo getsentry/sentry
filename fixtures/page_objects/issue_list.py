@@ -17,7 +17,9 @@ class IssueListPage(BasePage):
         self.browser.wait_until('[data-test-id="event-issue-header"]', timeout=20)
 
     def select_issue(self, position):
-        self.browser.click(f'[data-test-id="group"]:nth-child({position})')
+        # Must hover over the row to show the checkbox
+        self.browser.move_to(f'[data-test-id="group"]:nth-child({position})')
+        self.browser.click(f'[data-test-id="group"]:nth-child({position}) input[type="checkbox"]')
 
     def navigate_to_issue(self, position):
         self.browser.click(f'[data-test-id="group"]:nth-child({position}) a')

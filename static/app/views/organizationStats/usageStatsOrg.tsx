@@ -24,7 +24,7 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DataCategoryInfo, IntervalPeriod} from 'sentry/types/core';
+import type {DataCategory, DataCategoryInfo, IntervalPeriod} from 'sentry/types/core';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -47,16 +47,16 @@ import UsageChart, {
   SeriesTypes,
 } from './usageChart';
 import UsageStatsPerMin from './usageStatsPerMin';
-import {isDisplayUtc} from './utils';
+import {isContinuousProfiling, isDisplayUtc} from './utils';
 
 export interface UsageStatsOrganizationProps extends WithRouterProps {
-  dataCategory: DataCategoryInfo['plural'];
+  dataCategory: DataCategory;
   dataCategoryApiName: DataCategoryInfo['apiName'];
   dataCategoryName: string;
   dataDatetime: DateTimeObject;
   handleChangeState: (state: {
     clientDiscard?: boolean;
-    dataCategory?: DataCategoryInfo['plural'];
+    dataCategory?: DataCategory;
     pagePeriod?: string | null;
     transform?: ChartDataTransform;
   }) => void;
@@ -149,6 +149,12 @@ class UsageStatsOrganization<
     ) {
       groupBy.push('category');
       category.push('span_indexed');
+    }
+    if (['profile_duration', 'profile_duration_ui'].includes(dataCategoryApiName)) {
+      groupBy.push('category');
+      category.push(
+        dataCategoryApiName === 'profile_duration' ? 'profile_chunk' : 'profile_chunk_ui'
+      );
     }
 
     return {
@@ -247,7 +253,7 @@ class UsageStatsOrganization<
 
     // If interval is a day or more, use UTC to format date. Otherwise, the date
     // may shift ahead/behind when converting to the user's local time.
-    let FORMAT_DATETIME;
+    let FORMAT_DATETIME: string;
     if (intervalHours >= 24) {
       // Daily format doesn't have time, so no change needed
       FORMAT_DATETIME = FORMAT_DATETIME_DAILY;
@@ -369,7 +375,7 @@ class UsageStatsOrganization<
     } = this.props;
     const {total, accepted, accepted_stored, invalid, rateLimited, filtered} =
       this.chartData.cardStats;
-    const dataCategoryNameLower = dataCategoryName.toLowerCase();
+    const shouldShowEstimate = isContinuousProfiling(dataCategory);
 
     const navigateToInboundFilterSettings = (event: ReactMouseEvent) => {
       event.preventDefault();
@@ -389,7 +395,7 @@ class UsageStatsOrganization<
         help: tct(
           'Accepted [dataCategory] were successfully processed by Sentry. For more information, read our [docsLink:docs].',
           {
-            dataCategory: dataCategoryNameLower,
+            dataCategory: dataCategoryName,
             docsLink: (
               <ExternalLink
                 href="https://docs.sentry.io/product/stats/#accepted"
@@ -416,7 +422,7 @@ class UsageStatsOrganization<
         help: tct(
           'Filtered [dataCategory] were blocked due to your [filterSettings: inbound data filter] rules. For more information, read our [docsLink:docs].',
           {
-            dataCategory: dataCategoryNameLower,
+            dataCategory: dataCategoryName,
             filterSettings: (
               <a href="#" onClick={event => navigateToInboundFilterSettings(event)} />
             ),
@@ -429,13 +435,14 @@ class UsageStatsOrganization<
           }
         ),
         score: filtered,
+        isEstimate: shouldShowEstimate,
       },
       rateLimited: {
         title: tct('Rate Limited [dataCategory]', {dataCategory: dataCategoryName}),
         help: tct(
           'Rate Limited [dataCategory] were discarded due to rate limits or quota. For more information, read our [docsLink:docs].',
           {
-            dataCategory: dataCategoryNameLower,
+            dataCategory: dataCategoryName,
             docsLink: (
               <ExternalLink
                 href="https://docs.sentry.io/product/stats/#rate-limited"
@@ -445,13 +452,14 @@ class UsageStatsOrganization<
           }
         ),
         score: rateLimited,
+        isEstimate: shouldShowEstimate,
       },
       invalid: {
         title: tct('Invalid [dataCategory]', {dataCategory: dataCategoryName}),
         help: tct(
           'Invalid [dataCategory] were sent by the SDK and were discarded because the data did not meet the basic schema requirements. For more information, read our [docsLink:docs].',
           {
-            dataCategory: dataCategoryNameLower,
+            dataCategory: dataCategoryName,
             docsLink: (
               <ExternalLink
                 href="https://docs.sentry.io/product/stats/#invalid"
@@ -461,6 +469,7 @@ class UsageStatsOrganization<
           }
         ),
         score: invalid,
+        isEstimate: shouldShowEstimate,
       },
     };
     return cardMetadata;
@@ -478,6 +487,7 @@ class UsageStatsOrganization<
         score={loading ? undefined : card.score}
         help={card.help}
         trend={card.trend}
+        isEstimate={card.isEstimate}
         isTooltipHoverable
       />
     ));

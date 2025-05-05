@@ -152,12 +152,12 @@ const PercentileHeaderBodyWrapper = styled('div')`
   gap: ${space(3)};
 `;
 
-export const SpanLabelContainer = styled('div')`
+const SpanLabelContainer = styled('div')`
   ${p => p.theme.overflowEllipsis};
 `;
 
 const EmptyValueContainer = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const emptyValue = <EmptyValueContainer>{t('(unnamed span)')}</EmptyValueContainer>;

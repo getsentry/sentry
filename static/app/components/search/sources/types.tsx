@@ -5,6 +5,11 @@ import type {Fuse} from 'sentry/utils/fuzzySearch';
  */
 export type ResultItem = {
   /**
+   * The timestamp of when the result was determined. Used for sorting so that
+   * we do not re-order already resolved results.
+   */
+  resolvedTs: number;
+  /**
    * The type of result eg. settings, help-docs
    */
   resultType:
@@ -50,11 +55,11 @@ export type ResultItem = {
    */
   action?: (item: ResultItem, autocompleteState: any) => void;
   configUrl?: string;
+
   /**
    * The description text to display
    */
   description?: React.ReactNode;
-
   disabled?: boolean;
   empty?: boolean;
   extra?: any;

@@ -17,7 +17,7 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.plugins.base.response import DeferredResponse
-from sentry.tasks.auth import email_missing_links_control
+from sentry.tasks.auth.auth import email_missing_links_control
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import ControlSiloOrganizationView, control_silo_view
 

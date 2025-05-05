@@ -21,7 +21,10 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
         location={router.location}
         project={ProjectFixture()}
       />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.getByRole('heading', {name: 'Quick Links'})).toBeInTheDocument();
@@ -41,13 +44,13 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
 
     await userEvent.click(keyTransactions);
     expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/performance/',
+      pathname: '/organizations/org-slug/insights/backend/',
       query: {project: '2'},
     });
 
     await userEvent.click(mostChangedTransactions);
     expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/performance/trends/',
+      pathname: '/organizations/org-slug/insights/backend/trends/',
       query: {
         cursor: undefined,
         project: '2',
@@ -63,7 +66,10 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
         location={router.location}
         project={ProjectFixture()}
       />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     const keyTransactions = screen.getByText('View Transactions');

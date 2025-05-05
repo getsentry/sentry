@@ -12,7 +12,6 @@ from django.conf import settings
 from django.db import migrations, models
 
 import bitfield.models
-import sentry.db.mixin
 import sentry.db.models.fields.array
 import sentry.db.models.fields.bounded
 import sentry.db.models.fields.citext
@@ -39,6 +38,7 @@ import sentry.users.models.authenticator
 import sentry.users.models.user
 import sentry.utils.security.hash
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -53,8 +53,6 @@ class Migration(CheckedMigration):
     #   have ops run this and not block the deploy. Note that while adding an index is a schema
     #   change, it's completely safe to run the operation after the code has deployed.
     is_post_deployment = False
-
-    allow_run_sql = True
 
     replaces = [
         ("sentry", "0001_squashed_0200_release_indices"),
@@ -1381,7 +1379,7 @@ class Migration(CheckedMigration):
             options={
                 "db_table": "sentry_project",
             },
-            bases=(models.Model, sentry.db.mixin.PendingDeletionMixin),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name="ProjectAvatar",
@@ -2228,7 +2226,7 @@ class Migration(CheckedMigration):
                     ("organization_id", "provider", "external_id"),
                 },
             },
-            bases=(models.Model, sentry.db.mixin.PendingDeletionMixin),
+            bases=(models.Model,),
         ),
         migrations.AddField(
             model_name="release",
@@ -4600,7 +4598,7 @@ class Migration(CheckedMigration):
                 "unique_together": {("user", "application")},
             },
         ),
-        migrations.RunSQL(
+        SafeRunSQL(
             sql="\n        create or replace function sentry_increment_project_counter(\n                project bigint, delta int) returns int as $$\n            declare\n            new_val int;\n            begin\n            loop\n                update sentry_projectcounter set value = value + delta\n                where project_id = project\n                returning value into new_val;\n                if found then\n                return new_val;\n                end if;\n                begin\n                insert into sentry_projectcounter(project_id, value)\n                    values (project, delta)\n                    returning value into new_val;\n                return new_val;\n                exception when unique_violation then\n                end;\n            end loop;\n            end\n            $$ language plpgsql;\n        ",
             hints={"tables": ["sentry_projectcounter"]},
         ),
@@ -5748,7 +5746,7 @@ class Migration(CheckedMigration):
                 "unique_together": {("provider", "organization_id")},
             },
         ),
-        migrations.RunSQL(
+        SafeRunSQL(
             sql="ALTER TABLE sentry_timeseriessnapshot ALTER COLUMN values SET DATA TYPE float[] USING values::float[]",
             hints={"tables": ["sentry_timeseriessnapshot"]},
         ),
@@ -6040,15 +6038,16 @@ class Migration(CheckedMigration):
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                    ALTER TABLE "sentry_projectdsymfile" ADD COLUMN "checksum" varchar(40) NULL;\n                    ',
                     reverse_sql='\n                        ALTER TABLE "sentry_projectdsymfile" DROP COLUMN "checksum";\n                        ',
                     hints={"tables": ["sentry_projectdsymfile"]},
                 ),
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                    CREATE INDEX CONCURRENTLY "sentry_projectdsymfile_checksum_8fb028a8_idx" ON "sentry_projectdsymfile" ("checksum");\n                    ',
                     reverse_sql='\n                        DROP INDEX CONCURRENTLY "sentry_projectdsymfile_checksum_8fb028a8_idx";\n                        ',
                     hints={"tables": ["sentry_projectdsymfile"]},
+                    use_statement_timeout=False,
                 ),
             ],
             state_operations=[
@@ -6097,7 +6096,7 @@ class Migration(CheckedMigration):
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                    ALTER TABLE "sentry_release" ADD COLUMN "status" integer NULL;\n                    ',
                     reverse_sql='\n                    ALTER TABLE "sentry_release" DROP COLUMN "status";\n                    ',
                     hints={"tables": ["sentry_release"]},
@@ -6106,20 +6105,22 @@ class Migration(CheckedMigration):
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                    ALTER TABLE "sentry_groupinbox" ADD COLUMN "organization_id" bigint NULL;\n                    ALTER TABLE "sentry_groupinbox" ADD COLUMN "project_id" bigint NULL;\n                    ',
                     reverse_sql='\n                        ALTER TABLE "sentry_groupinbox" DROP COLUMN "organization_id";\n                        ALTER TABLE "sentry_groupinbox" DROP COLUMN "project_id";\n                        ',
                     hints={"tables": ["sentry_groupinbox"]},
                 ),
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                    CREATE INDEX CONCURRENTLY "sentry_groupinbox_organization_id_7b67769a" ON "sentry_groupinbox" ("organization_id");\n                    ',
                     reverse_sql='\n                        DROP INDEX CONCURRENTLY "sentry_groupinbox_organization_id_7b67769a";\n                        ',
                     hints={"tables": ["sentry_groupinbox"]},
+                    use_statement_timeout=False,
                 ),
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                    CREATE INDEX CONCURRENTLY "sentry_groupinbox_project_id_ef8f034d" ON "sentry_groupinbox" ("project_id");\n                    ',
                     reverse_sql='\n                        DROP INDEX CONCURRENTLY "sentry_groupinbox_project_id_ef8f034d";\n                        ',
                     hints={"tables": ["sentry_groupinbox"]},
+                    use_statement_timeout=False,
                 ),
             ],
             state_operations=[
@@ -6302,7 +6303,7 @@ class Migration(CheckedMigration):
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                        ALTER TABLE "sentry_dashboard" DROP COLUMN "status";\n                        ',
                     reverse_sql='\n                        ALTER TABLE "sentry_dashboard" ADD COLUMN "status" int NOT NULL;\n                        ',
                     hints={"tables": ["sentry_dashboard"]},
@@ -6363,10 +6364,11 @@ class Migration(CheckedMigration):
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql="\n                    CREATE INDEX CONCURRENTLY IF NOT EXISTS sentry_groupinbox_date_added_f113c11b\n                    ON sentry_groupinbox (date_added);\n                    ",
                     reverse_sql="\n                    DROP INDEX CONCURRENTLY IF EXISTS sentry_groupinbox_date_added_f113c11b;\n                    ",
                     hints={"tables": ["sentry_groupinbox"]},
+                    use_statement_timeout=False,
                 ),
             ],
             state_operations=[
@@ -6587,15 +6589,16 @@ class Migration(CheckedMigration):
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='ALTER TABLE sentry_team ADD COLUMN "actor_id" bigint NULL;',
                     reverse_sql='ALTER TABLE sentry_team DROP COLUMN "actor_id";',
                     hints={"tables": ["sentry_team"]},
                 ),
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql="CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS sentry_team_actor_idx ON sentry_team (actor_id);",
                     reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_team_actor_idx;",
                     hints={"tables": ["sentry_team"]},
+                    use_statement_timeout=False,
                 ),
             ],
             state_operations=[
@@ -6735,12 +6738,12 @@ class Migration(CheckedMigration):
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                    ALTER TABLE "sentry_externalactor" ALTER COLUMN "integration_id" SET DEFAULT 1;\n                    UPDATE "sentry_externalactor" SET "integration_id" = 1 where "integration_id" is NULL;\n                    ',
                     reverse_sql='\n                    ALTER TABLE "sentry_externalactor" ALTER COLUMN "integration_id" DROP DEFAULT;\n                    ',
                     hints={"tables": ["sentry_externalactor"]},
                 ),
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                    ALTER TABLE "sentry_externalactor" ALTER COLUMN "integration_id" SET NOT NULL;\n                    ALTER TABLE "sentry_externalactor" ALTER COLUMN "integration_id" DROP DEFAULT;\n                    ',
                     reverse_sql='\n                    ALTER TABLE "sentry_externalactor" ALTER COLUMN "integration_id" DROP NOT NULL;\n                    ',
                     hints={"tables": ["sentry_externalactor"]},
@@ -7022,10 +7025,11 @@ class Migration(CheckedMigration):
                 fields=["organization", "status"], name="sentry_rele_organiz_6975e7_idx"
             ),
         ),
-        migrations.RunSQL(
+        SafeRunSQL(
             sql='\n            CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_organization_slug_upper_idx"\n            ON "sentry_organization" (UPPER(("slug"::text)));\n            ',
             reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_organization_slug_upper_idx",
             hints={"tables": ["sentry_organization"]},
+            use_statement_timeout=False,
         ),
         migrations.AlterField(
             model_name="organization",
@@ -7066,35 +7070,37 @@ class Migration(CheckedMigration):
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                    ALTER TABLE "sentry_release_project" ADD COLUMN "adopted" timestamp with time zone NULL;\n                    ',
                     reverse_sql='\n                    ALTER TABLE "sentry_release_project" DROP COLUMN "adopted";\n                    ',
                     hints={"tables": ["sentry_release_project"]},
                 ),
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                    ALTER TABLE "sentry_release_project" ADD COLUMN "unadopted" timestamp with time zone NULL;\n                    ',
                     reverse_sql='\n                    ALTER TABLE "sentry_release_project" DROP COLUMN "unadopted";\n                    ',
                     hints={"tables": ["sentry_release_project"]},
                 ),
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                    ALTER TABLE "sentry_releaseprojectenvironment" ADD COLUMN "adopted" timestamp with time zone NULL;\n                    ',
                     reverse_sql='\n                    ALTER TABLE "sentry_releaseprojectenvironment" DROP COLUMN "adopted";\n                    ',
                     hints={"tables": ["sentry_releaseprojectenvironment"]},
                 ),
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                    ALTER TABLE "sentry_releaseprojectenvironment" ADD COLUMN "unadopted" timestamp with time zone NULL;\n                    ',
                     reverse_sql='\n                    ALTER TABLE "sentry_releaseprojectenvironment" DROP COLUMN "unadopted";\n                    ',
                     hints={"tables": ["sentry_releaseprojectenvironment"]},
                 ),
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_release_project_proj_id_adopted_4ce765fa" ON "sentry_release_project" ("project_id", "adopted");\n                    ',
                     reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_project_proj_id_adopted_4ce765fa",
                     hints={"tables": ["sentry_release_project"]},
+                    use_statement_timeout=False,
                 ),
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_release_project_proj_id_unadopted_8h5g84ee" ON "sentry_release_project" ("project_id", "unadopted");\n                    ',
                     reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_project_proj_id_unadopted_8h5g84ee",
                     hints={"tables": ["sentry_release_project"]},
+                    use_statement_timeout=False,
                 ),
             ],
             state_operations=[
@@ -7562,7 +7568,7 @@ class Migration(CheckedMigration):
                 name="sentry_audi_organiz_588b1e_idx",
             ),
         ),
-        migrations.RunSQL(
+        SafeRunSQL(
             sql='\n                DROP TABLE IF EXISTS "jira_ac_tenant";\n                ',
             reverse_sql="CREATE TABLE jira_ac_tenant (fake_col int)",
             hints={"tables": ["jira_ac_tenant"]},
@@ -7676,7 +7682,7 @@ class Migration(CheckedMigration):
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql="ALTER TABLE sentry_scheduleddeletion ALTER COLUMN aborted DROP NOT NULL",
                     reverse_sql="ALTER TABLE sentry_scheduleddeletion ALTER COLUMN aborted SET NOT NULL",
                     hints={"tables": ["sentry_scheduleddeletion"]},
@@ -7691,7 +7697,7 @@ class Migration(CheckedMigration):
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql="ALTER TABLE sentry_scheduleddeletion DROP COLUMN aborted",
                     reverse_sql="ALTER TABLE sentry_scheduleddeletion ADD COLUMN aborted BOOLEAN",
                     hints={"tables": ["sentry_scheduleddeletion"]},
@@ -8091,7 +8097,7 @@ class Migration(CheckedMigration):
             name="key",
             field=models.CharField(max_length=256),
         ),
-        migrations.RunSQL(
+        SafeRunSQL(
             sql="\n            ALTER SEQUENCE sentry_stringindexer_id_seq START WITH 65536;\n            ALTER SEQUENCE sentry_stringindexer_id_seq RESTART;\n            ",
             reverse_sql="\n            ALTER SEQUENCE sentry_stringindexer_id_seq START WITH 1;\n            ALTER SEQUENCE sentry_stringindexer_id_seq RESTART;\n            ",
             hints={"tables": ["sentry_stringindexer"]},
@@ -8145,7 +8151,7 @@ class Migration(CheckedMigration):
                 fields=("string", "organization_id"), name="perf_unique_org_string"
             ),
         ),
-        migrations.RunSQL(
+        SafeRunSQL(
             sql="\n            ALTER SEQUENCE sentry_perfstringindexer_id_seq START WITH 65536;\n            ALTER SEQUENCE sentry_perfstringindexer_id_seq RESTART;\n            ",
             reverse_sql="\n            ALTER SEQUENCE sentry_perfstringindexer_id_seq START WITH 1;\n            ALTER SEQUENCE sentry_perfstringindexer_id_seq RESTART;\n             ",
             hints={"tables": ["sentry_perfstringindexer"]},
@@ -8297,17 +8303,17 @@ class Migration(CheckedMigration):
                 "db_table": "sentry_authprovider_default_teams",
             },
         ),
-        migrations.RunSQL(
+        SafeRunSQL(
             sql="ALTER TABLE sentry_dashboardproject ALTER COLUMN id TYPE bigint",
             reverse_sql="ALTER TABLE sentry_dashboardproject ALTER COLUMN id TYPE int",
             hints={"tables": ["sentry_dashboardproject"]},
         ),
-        migrations.RunSQL(
+        SafeRunSQL(
             sql="ALTER TABLE sentry_dashboardproject ALTER COLUMN id TYPE bigint",
             reverse_sql="ALTER TABLE sentry_dashboardproject ALTER COLUMN dashboard_id TYPE int",
             hints={"tables": ["sentry_dashboardproject"]},
         ),
-        migrations.RunSQL(
+        SafeRunSQL(
             sql="ALTER TABLE sentry_dashboardproject ALTER COLUMN id TYPE bigint",
             reverse_sql="ALTER TABLE sentry_dashboardproject ALTER COLUMN project_id TYPE int",
             hints={"tables": ["sentry_dashboardproject"]},
@@ -8463,29 +8469,29 @@ class Migration(CheckedMigration):
             name="project_id",
             field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
         ),
-        migrations.RunSQL(
+        SafeRunSQL(
             sql="ALTER TABLE sentry_externalissue ALTER COLUMN organization_id TYPE bigint",
             reverse_sql="ALTER TABLE sentry_externalissue ALTER COLUMN organization_id TYPE int",
             hints={"tables": ["sentry_externalissue"]},
         ),
-        migrations.RunSQL(
+        SafeRunSQL(
             sql="ALTER TABLE sentry_externalissue ALTER COLUMN integration_id TYPE bigint",
             reverse_sql="ALTER TABLE sentry_externalissue ALTER COLUMN integration_id TYPE int",
             hints={"tables": ["sentry_externalissue"]},
         ),
-        migrations.RunSQL(
+        SafeRunSQL(
             sql="ALTER TABLE sentry_dashboardproject ALTER COLUMN project_id TYPE bigint",
             reverse_sql="ALTER TABLE sentry_dashboardproject ALTER COLUMN project_id TYPE int",
             hints={"tables": ["sentry_dashboardproject"]},
         ),
-        migrations.RunSQL(
+        SafeRunSQL(
             sql="ALTER TABLE sentry_dashboardproject ALTER COLUMN dashboard_id TYPE bigint",
             reverse_sql="ALTER TABLE sentry_dashboardproject ALTER COLUMN dashboard_id TYPE int",
             hints={"tables": ["sentry_dashboardproject"]},
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                    ALTER TABLE "sentry_groupedmessage" ADD COLUMN "type" integer NOT NULL DEFAULT 1;\n                    ',
                     reverse_sql='\n                    ALTER TABLE "sentry_groupedmessage" DROP COLUMN "type";\n                    ',
                     hints={"tables": ["sentry_groupedmessage"]},
@@ -8529,7 +8535,7 @@ class Migration(CheckedMigration):
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                    ALTER TABLE "sentry_projectownership" ADD COLUMN "suspect_committer_auto_assignment" BOOLEAN NOT NULL DEFAULT false;\n                    ',
                     reverse_sql='\n                    ALTER TABLE "sentry_projectownership" DROP COLUMN "suspect_committer_auto_assignment";\n                    ',
                     hints={"tables": ["sentry_projectownership"]},
@@ -8588,7 +8594,7 @@ class Migration(CheckedMigration):
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                    ALTER TABLE "sentry_appconnectbuild" ADD COLUMN "app_id_str" varchar(256) NOT NULL DEFAULT \'0\';\n                    ',
                     reverse_sql='\n                    ALTER TABLE "sentry_appconnectbuild" DROP COLUMN "app_id_str";\n                    ',
                     hints={"tables": ["sentry_appconnectbuild"]},
@@ -8644,7 +8650,7 @@ class Migration(CheckedMigration):
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                    ALTER TABLE "sentry_appconnectbuild" DROP COLUMN "app_id";\n                    ',
                     reverse_sql='\n                    ALTER TABLE "sentry_appconnectbuild" ADD COLUMN "app_id" int NULL;\n                    ',
                     hints={"tables": ["sentry_appconnectbuild"]},
@@ -8653,7 +8659,7 @@ class Migration(CheckedMigration):
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                    ALTER TABLE "sentry_repositoryprojectpathconfig" ADD COLUMN "automatically_generated" BOOLEAN NOT NULL DEFAULT false;\n                    ',
                     reverse_sql='\n                    ALTER TABLE "sentry_repositoryprojectpathconfig" DROP COLUMN "automatically_generated";\n                    ',
                     hints={"tables": ["sentry_repositoryprojectpathconfig"]},
@@ -8737,7 +8743,7 @@ class Migration(CheckedMigration):
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                    ALTER TABLE "sentry_team" ADD COLUMN "idp_provisioned" BOOLEAN NOT NULL DEFAULT false;\n                    ',
                     reverse_sql='\n                    ALTER TABLE "sentry_team" DROP COLUMN "idp_provisioned";\n                    ',
                     hints={"tables": ["sentry_team"]},
@@ -9327,12 +9333,12 @@ class Migration(CheckedMigration):
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                    ALTER TABLE "auth_user" ADD COLUMN "avatar_type" smallint NOT NULL DEFAULT 0;\n                    ',
                     reverse_sql='\n                    ALTER TABLE "auth_user" DROP COLUMN "avatar_type";\n                    ',
                     hints={"tables": ["auth_user"]},
                 ),
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                    ALTER TABLE "auth_user" ADD COLUMN "avatar_url" varchar(120) DEFAULT NULL;\n                    ',
                     reverse_sql='\n                    ALTER TABLE "auth_user" DROP COLUMN "avatar_url";\n                    ',
                     hints={"tables": ["auth_user"]},
@@ -9353,7 +9359,7 @@ class Migration(CheckedMigration):
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                    ALTER TABLE "sentry_groupsnooze" ADD COLUMN "until_escalating" BOOLEAN NOT NULL DEFAULT false;\n                    ',
                     reverse_sql='\n                    ALTER TABLE "sentry_groupsnooze" DROP COLUMN "until_escalating";\n                    ',
                     hints={"tables": ["sentry_groupsnooze"]},
@@ -9382,7 +9388,7 @@ class Migration(CheckedMigration):
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                    ALTER TABLE "sentry_debugidartifactbundle" DROP COLUMN "date_last_accessed";\n                    ',
                     reverse_sql='\n                    ALTER TABLE "sentry_debugidartifactbundle" ADD COLUMN "date_last_accessed" timestamp with time zone NULL;\n                    ',
                     hints={"tables": ["sentry_debugidartifactbundle"]},
@@ -9391,7 +9397,7 @@ class Migration(CheckedMigration):
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql="\n                    ALTER TABLE sentry_perfstringindexer ADD COLUMN use_case_id varchar(120) NOT NULL DEFAULT 'performance';\n                    ",
                     reverse_sql="\n                    ALTER TABLE sentry_perfstringindexer DROP COLUMN use_case_id;\n                    ",
                     hints={"tables": ["sentry_perfstringindexer"]},
@@ -9600,7 +9606,7 @@ class Migration(CheckedMigration):
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                    ALTER TABLE "sentry_rulesnooze" ADD COLUMN "date_added" timestamp NOT NULL;\n                    ',
                     reverse_sql='\n                    ALTER TABLE "sentry_rulesnooze" DROP COLUMN "date_added";\n                    ',
                     hints={"tables": ["sentry_rulesnooze"]},
@@ -9678,74 +9684,83 @@ class Migration(CheckedMigration):
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                    ALTER TABLE "sentry_groupsnooze" DROP COLUMN "until_escalating";\n                    ',
                     reverse_sql='\n                    ALTER TABLE "sentry_groupsnooze" ADD COLUMN "until_escalating" BOOLEAN DEFAULT false\n                    ',
                     hints={"tables": ["sentry_groupsnooze"]},
                 ),
             ],
         ),
-        migrations.RunSQL(
+        SafeRunSQL(
             sql='ALTER TABLE "sentry_actor" DROP CONSTRAINT IF EXISTS "sentry_actor_team_id_6ca8eba5_fk_sentry_team_id";',
             reverse_sql="",
             hints={"tables": ["sentry_actor"]},
+            use_statement_timeout=False,
         ),
-        migrations.RunSQL(
+        SafeRunSQL(
             sql='ALTER TABLE "sentry_actor" DROP CONSTRAINT IF EXISTS "sentry_actor_team_id_6ca8eba5_uniq";',
             reverse_sql="",
             hints={"tables": ["sentry_actor"]},
+            use_statement_timeout=False,
         ),
-        migrations.RunSQL(
+        SafeRunSQL(
             sql='DROP INDEX CONCURRENTLY IF EXISTS "sentry_actor_team_id_6ca8eba5";',
             reverse_sql="",
             hints={"tables": ["sentry_actor"]},
+            use_statement_timeout=False,
         ),
-        migrations.RunSQL(
+        SafeRunSQL(
             sql='DROP INDEX CONCURRENTLY IF EXISTS "sentry_actor_team_id_6ca8eba5_uniq";',
             reverse_sql="",
             hints={"tables": ["sentry_actor"]},
+            use_statement_timeout=False,
         ),
-        migrations.RunSQL(
+        SafeRunSQL(
             sql='CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS "sentry_actor_team_id_6ca8eba5_uniq" ON "sentry_actor" ("team_id");',
             reverse_sql="",
             hints={"tables": ["sentry_actor"]},
+            use_statement_timeout=False,
         ),
-        migrations.RunSQL(
+        SafeRunSQL(
             sql='ALTER TABLE "sentry_actor" ADD CONSTRAINT "sentry_actor_team_id_6ca8eba5_fk_sentry_team_id" FOREIGN KEY ("team_id") REFERENCES "sentry_team" ("id") DEFERRABLE INITIALLY DEFERRED NOT VALID;',
             reverse_sql="",
             hints={"tables": ["sentry_actor"]},
+            use_statement_timeout=False,
         ),
-        migrations.RunSQL(
+        SafeRunSQL(
             sql='ALTER TABLE "sentry_actor" VALIDATE CONSTRAINT "sentry_actor_team_id_6ca8eba5_fk_sentry_team_id";',
             reverse_sql="",
             hints={"tables": ["sentry_actor"]},
         ),
-        migrations.RunSQL(
+        SafeRunSQL(
             sql='ALTER TABLE "sentry_actor" DROP CONSTRAINT IF EXISTS "sentry_actor_user_id_c832ff63_uniq";',
             reverse_sql="",
             hints={"tables": ["sentry_actor"]},
         ),
-        migrations.RunSQL(
+        SafeRunSQL(
             sql='DROP INDEX CONCURRENTLY IF EXISTS "sentry_actor_user_id_c832ff63";',
             reverse_sql="",
             hints={"tables": ["sentry_actor"]},
+            use_statement_timeout=False,
         ),
-        migrations.RunSQL(
+        SafeRunSQL(
             sql='DROP INDEX CONCURRENTLY IF EXISTS "sentry_actor_user_id_c832ff63_uniq";',
             reverse_sql="",
             hints={"tables": ["sentry_actor"]},
+            use_statement_timeout=False,
         ),
-        migrations.RunSQL(
+        SafeRunSQL(
             sql='CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS "sentry_actor_user_id_c832ff63_uniq" ON "sentry_actor" ("user_id");',
             reverse_sql="",
             hints={"tables": ["sentry_actor"]},
+            use_statement_timeout=False,
         ),
-        migrations.RunSQL(
+        SafeRunSQL(
             sql="SELECT 1",
             reverse_sql='\nALTER TABLE "sentry_actor" ADD CONSTRAINT "sentry_actor_team_id_6ca8eba5_uniq" UNIQUE USING INDEX "sentry_actor_team_id_6ca8eba5_uniq";\n            ',
             hints={"tables": ["sentry_actor"]},
         ),
-        migrations.RunSQL(
+        SafeRunSQL(
             sql="SELECT 1",
             reverse_sql='\nALTER TABLE "sentry_actor" ADD CONSTRAINT "sentry_actor_user_id_c832ff63_uniq" UNIQUE USING INDEX "sentry_actor_user_id_c832ff63_uniq";\n            ',
             hints={"tables": ["sentry_actor"]},
@@ -9795,7 +9810,7 @@ class Migration(CheckedMigration):
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                    ALTER TABLE "sentry_rule" ADD COLUMN "source" integer NOT NULL DEFAULT 0;\n                    ',
                     reverse_sql='\n                    ALTER TABLE "sentry_rule" DROP COLUMN "source";\n                    ',
                     hints={"tables": ["sentry_rule"]},
@@ -9809,7 +9824,7 @@ class Migration(CheckedMigration):
                 ),
             ],
         ),
-        migrations.RunSQL(
+        SafeRunSQL(
             sql="ALTER TABLE IF EXISTS sentry_notificationsetting DROP CONSTRAINT IF EXISTS sentry_notifications_target_id_f3923c98_fk_sentry_ac",
             reverse_sql="ALTER TABLE IF EXISTS sentry_notificationsetting ADD CONSTRAINT sentry_notifications_target_id_f3923c98_fk_sentry_ac FOREIGN KEY (target_id) REFERENCES sentry_actor (id) DEFERRABLE INITIALLY DEFERRED",
             hints={"tables": ["sentry_notificationsetting"]},
@@ -9869,12 +9884,12 @@ class Migration(CheckedMigration):
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                    ALTER TABLE "sentry_option" ADD COLUMN "last_updated_by" VARCHAR(16) NOT NULL DEFAULT \'unknown\';\n                    ',
                     reverse_sql='\n                    ALTER TABLE "sentry_option" DROP COLUMN "last_updated_by";\n                    ',
                     hints={"tables": ["sentry_option"]},
                 ),
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                    ALTER TABLE "sentry_controloption" ADD COLUMN "last_updated_by" VARCHAR(16) NOT NULL DEFAULT \'unknown\';\n                    ',
                     reverse_sql='\n                    ALTER TABLE "sentry_controloption" DROP COLUMN "last_updated_by";\n                    ',
                     hints={"tables": ["sentry_controloption"]},
@@ -10014,7 +10029,7 @@ class Migration(CheckedMigration):
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                    ALTER TABLE "sentry_organizationmember" ADD COLUMN "user_is_active" BOOLEAN NOT NULL DEFAULT TRUE;\n                    ',
                     reverse_sql='\n                    ALTER TABLE "sentry_organizationmember" DROP COLUMN "user_is_active";\n                    ',
                     hints={"tables": ["sentry_organizationmember"]},
@@ -10095,7 +10110,7 @@ class Migration(CheckedMigration):
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql='\n                    ALTER TABLE "sentry_organizationmember" ADD COLUMN "user_email" VARCHAR(75) NULL;\n                    ',
                     reverse_sql='\n                    ALTER TABLE "sentry_organizationmember" DROP COLUMN "user_email";\n                    ',
                     hints={"tables": ["sentry_organizationmember"]},

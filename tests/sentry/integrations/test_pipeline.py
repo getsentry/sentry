@@ -45,6 +45,11 @@ def naive_build_integration(data):
 )
 class FinishPipelineTestCase(IntegrationTestCase):
     provider = ExampleIntegrationProvider
+    regions = (
+        Region("na", 0, "North America", RegionCategory.MULTI_TENANT),
+        Region("eu", 5, "Europe", RegionCategory.MULTI_TENANT),
+    )
+    external_id = "dummy_id-123"
 
     @pytest.fixture(autouse=True)
     def _register_example_plugin(self) -> Generator[None]:
@@ -52,18 +57,14 @@ class FinishPipelineTestCase(IntegrationTestCase):
         yield
         plugins.unregister(ExamplePlugin)
 
-    def setUp(self):
-        super().setUp()
-        self.external_id = "dummy_id-123"
-        self.provider.needs_default_identity = False
-        self.provider.is_region_restricted = False
-        self.regions = [
-            Region("na", 0, "North America", RegionCategory.MULTI_TENANT),
-            Region("eu", 5, "Europe", RegionCategory.MULTI_TENANT),
-        ]
-
-    def tearDown(self):
-        super().tearDown()
+    @pytest.fixture(autouse=True)
+    def _modify_provider(self):
+        with patch.multiple(
+            self.provider,
+            needs_default_identity=False,
+            is_region_restricted=False,
+        ):
+            yield
 
     def _setup_region_restriction(self):
         self.provider.is_region_restricted = True
@@ -611,13 +612,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
 )
 class GitlabFinishPipelineTest(IntegrationTestCase):
     provider = GitlabIntegrationProvider
-
-    def setUp(self):
-        super().setUp()
-        self.external_id = "dummy_id-123"
-
-    def tearDown(self):
-        super().tearDown()
+    external_id = "dummy_id-123"
 
     def test_different_user_same_external_id(self, *args):
         new_user = self.create_user()

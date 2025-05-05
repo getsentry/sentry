@@ -1,4 +1,4 @@
-import {CheckInStatus, CheckIn, ScheduleType} from 'sentry/views/monitors/types';
+import {CheckInStatus, CheckIn, ScheduleType} from 'sentry/views/insights/crons/types';
 
 export function CheckInFixture(params: Partial<CheckIn> = {}): CheckIn {
   return {

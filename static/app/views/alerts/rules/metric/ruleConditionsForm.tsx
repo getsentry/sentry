@@ -61,6 +61,7 @@ import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import withTags from 'sentry/utils/withTags';
 import WizardField from 'sentry/views/alerts/rules/metric/wizardField';
+import {getProjectOptions} from 'sentry/views/alerts/rules/utils';
 import {
   convertDatasetEventTypesToSource,
   DATA_SOURCE_LABELS,
@@ -69,12 +70,10 @@ import {
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {getSupportedAndOmittedTags} from 'sentry/views/alerts/wizard/options';
 import {
-  SpanTagsContext,
   SpanTagsProvider,
+  useSpanTags,
 } from 'sentry/views/explore/contexts/spanTagsContext';
 import {hasEAPAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
-
-import {getProjectOptions} from '../utils';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
 import {DEFAULT_AGGREGATE, DEFAULT_TRANSACTION_AGGREGATE} from './constants';
@@ -306,12 +305,12 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
   get selectControlStyles() {
     return {
-      control: (provided: {[x: string]: string | number | boolean}) => ({
+      control: (provided: Record<string, string | number | boolean>) => ({
         ...provided,
         minWidth: 200,
         maxWidth: 300,
       }),
-      container: (provided: {[x: string]: string | number | boolean}) => ({
+      container: (provided: Record<string, string | number | boolean>) => ({
         ...provided,
         margin: `${space(0.5)}`,
       }),
@@ -454,8 +453,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   ?.split(':')[1];
                 if (
                   ownerId &&
-                  nextSelectedProject.teams.find(({id}) => id === ownerId) ===
-                    undefined &&
+                  !nextSelectedProject.teams.some(({id}) => id === ownerId) &&
                   nextSelectedProject.teams.length
                 ) {
                   model.setValue('owner', `team:${nextSelectedProject.teams[0]!.id}`);
@@ -632,22 +630,14 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 >
                   {({onChange, onBlur, initialData, value}: any) => {
                     return alertType === 'eap_metrics' ? (
-                      <SpanTagsContext.Consumer>
-                        {tags => (
-                          <EAPSpanSearchQueryBuilder
-                            numberTags={tags?.number ?? {}}
-                            stringTags={tags?.string ?? {}}
-                            initialQuery={value ?? ''}
-                            searchSource="alerts"
-                            onSearch={(query, {parsedQuery}) => {
-                              onFilterSearch(query, parsedQuery);
-                              onChange(query, {});
-                            }}
-                            supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
-                            projects={[parseInt(project.id, 10)]}
-                          />
-                        )}
-                      </SpanTagsContext.Consumer>
+                      <EAPSpanSearchQueryBuilderWithContext
+                        initialQuery={value ?? ''}
+                        onSearch={(query, {parsedQuery}) => {
+                          onFilterSearch(query, parsedQuery);
+                          onChange(query, {});
+                        }}
+                        project={project}
+                      />
                     ) : (
                       <SearchContainer>
                         <SearchQueryBuilder
@@ -761,6 +751,32 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       </Fragment>
     );
   }
+}
+
+interface EAPSpanSearchQueryBuilderWithContextProps {
+  initialQuery: string;
+  onSearch: (query: string, isQueryValid: any) => void;
+  project: Project;
+}
+
+function EAPSpanSearchQueryBuilderWithContext({
+  initialQuery,
+  onSearch,
+  project,
+}: EAPSpanSearchQueryBuilderWithContextProps) {
+  const {tags: numberTags} = useSpanTags('number');
+  const {tags: stringTags} = useSpanTags('string');
+  return (
+    <EAPSpanSearchQueryBuilder
+      numberTags={numberTags}
+      stringTags={stringTags}
+      initialQuery={initialQuery}
+      searchSource="alerts"
+      onSearch={onSearch}
+      supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
+      projects={[parseInt(project.id, 10)]}
+    />
+  );
 }
 
 const StyledListTitle = styled('div')`

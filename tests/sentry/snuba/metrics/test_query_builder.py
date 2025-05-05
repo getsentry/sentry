@@ -70,6 +70,7 @@ from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from sentry.snuba.metrics.query import MetricConditionField, MetricField, MetricGroupByField
 from sentry.snuba.metrics.query_builder import QUERY_PROJECT_LIMIT, QueryDefinition
+from sentry.snuba.metrics.utils import MetricEntity
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -967,7 +968,7 @@ def test_translate_results_derived_metrics(_1, _2):
         }
     )
     query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
-    fields_in_entities = {
+    fields_in_entities: dict[MetricEntity, list[tuple[str | None, str, str]]] = {
         "metrics_counters": [
             (
                 None,
@@ -1088,7 +1089,7 @@ def test_translate_results_missing_slots(_1, _2):
         }
     )
     query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
-    fields_in_entities = {
+    fields_in_entities: dict[MetricEntity, list[tuple[str | None, str, str]]] = {
         "metrics_counters": [
             ("sum", SessionMRI.RAW_SESSION.value, "sum(sentry.sessions.session)"),
         ],

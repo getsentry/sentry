@@ -7,7 +7,7 @@ import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
+import {TopResultsIndicator} from 'sentry/views/discover/table/topResultsIndicator';
 import {COLD_START_COLOR, WARM_START_COLOR} from 'sentry/views/insights/colors';
 import {
   PRIMARY_RELEASE_ALIAS,

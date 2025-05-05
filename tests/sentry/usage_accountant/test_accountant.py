@@ -6,9 +6,10 @@ from arroyo.backends.local.storages.memory import MemoryMessageStorage
 from arroyo.types import BrokerValue, Partition, Topic
 from usageaccountant import UsageUnit
 
-from sentry.options import set
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.helpers.usage_accountant import usage_accountant_backend
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.usage_accountant import accountant, record
+from sentry.usage_accountant import record
 from sentry.utils.json import loads
 
 
@@ -42,15 +43,13 @@ def test_accountant(mock_time: mock.Mock) -> None:
     broker.create_topic(topic, 1)
     producer = broker.get_producer()
 
-    set("shared_resources_accounting_enabled", ["resource_1"])
-
-    accountant.init_backend(producer)
-
-    mock_time.return_value = 1594839910.1
-    record("resource_1", "feature_1", 100, UsageUnit.BYTES)
-    record("resource_1", "feature_2", 100, UsageUnit.BYTES)
-
-    accountant._shutdown()
+    with (
+        override_options({"shared_resources_accounting_enabled": ["resource_1"]}),
+        usage_accountant_backend(producer),
+    ):
+        mock_time.return_value = 1594839910.1
+        record("resource_1", "feature_1", 100, UsageUnit.BYTES)
+        record("resource_1", "feature_2", 100, UsageUnit.BYTES)
 
     msg1 = broker.consume(Partition(topic, 0), 0)
     assert_msg(

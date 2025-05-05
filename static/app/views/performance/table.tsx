@@ -1,27 +1,29 @@
 import {Component, type ReactNode, useEffect} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {GridColumn} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
-import type {MetaType} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
+import type {MetaType} from 'sentry/utils/discover/eventView';
 import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
@@ -71,6 +73,7 @@ type Props = {
   organization: Organization;
   projects: Project[];
   setError: (msg: string | undefined) => void;
+  theme: Theme;
   withStaticFilters: boolean;
   columnTitles?: ColumnTitle[];
   domainViewFilters?: DomainViewFilters;
@@ -85,8 +88,8 @@ type State = {
 };
 
 function getProjectFirstEventGroup(project: Project): '14d' | '30d' | '>30d' {
-  const fourteen_days_ago = new Date(+new Date() - 12096e5);
-  const thirty_days_ago = new Date(+new Date() - 25920e5);
+  const fourteen_days_ago = new Date(Date.now() - 12096e5);
+  const thirty_days_ago = new Date(Date.now() - 25920e5);
   const firstEventDate = new Date(project?.firstEvent ?? '');
   if (firstEventDate > fourteen_days_ago) {
     return '14d';
@@ -267,6 +270,7 @@ class _Table extends Component<Props, State> {
     const rendered = fieldRenderer(dataRow, {
       organization,
       location,
+      theme: this.props.theme,
       unit: tableMeta.units?.[column.key],
     });
 
@@ -597,10 +601,13 @@ class _Table extends Component<Props, State> {
 
     return (
       <div data-test-id="performance-table">
-        <GuideAnchor
-          target="performance_table"
-          position="top-start"
-          wrapperComponent={TableWrapper}
+        <DemoTourElement
+          id={DemoTourStep.PERFORMANCE_TABLE}
+          title={t('See slow transactions')}
+          description={t(
+            `Trace slow-loading pages back to their API calls, as well as, related errors and users impacted across projects.
+            Select a transaction to see more details.`
+          )}
         >
           <MEPConsumer>
             {value => {
@@ -653,7 +660,7 @@ class _Table extends Component<Props, State> {
               );
             }}
           </MEPConsumer>
-        </GuideAnchor>
+        </DemoTourElement>
       </div>
     );
   }
@@ -684,10 +691,6 @@ const UnparameterizedTooltipWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-`;
-
-const TableWrapper = styled('span')`
-  display: block;
 `;
 
 export default Table;

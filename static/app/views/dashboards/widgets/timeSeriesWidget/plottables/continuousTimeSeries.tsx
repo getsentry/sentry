@@ -1,10 +1,15 @@
 import type {SeriesOption} from 'echarts';
 
-import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
+import {isAPlottableTimeSeriesValueType} from 'sentry/views/dashboards/widgets/common/typePredicates';
+import type {
+  TimeSeries,
+  TimeSeriesValueUnit,
+} from 'sentry/views/dashboards/widgets/common/types';
+import {formatSeriesName} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatSeriesName';
+import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
 
-import type {TimeSeries} from '../../common/types';
-import {formatSeriesName} from '../formatters/formatSeriesName';
+import type {PlottableTimeSeriesValueType} from './plottable';
 
 export type ContinuousTimeSeriesConfig = {
   /**
@@ -19,6 +24,10 @@ export type ContinuousTimeSeriesConfig = {
    * Data delay, in seconds. Data older than N seconds will be visually deemphasized.
    */
   delay?: number;
+  /**
+   * Callback for ECharts' `onHighlight`. Called with the data point that corresponds to the highlighted point in the chart
+   */
+  onHighlight?: (datum: Readonly<TimeSeries['values'][number]>) => void;
 };
 
 export type ContinuousTimeSeriesPlottingOptions = {
@@ -29,7 +38,7 @@ export type ContinuousTimeSeriesPlottingOptions = {
   /**
    * Final plottable unit. This might be different from the original unit of the data, because we scale all time series to a single common unit.
    */
-  unit: DataUnit;
+  unit: TimeSeriesValueUnit;
   /**
    * If the chart has multiple Y axes (e.g., plotting durations and rates on the same chart), whether this value should be plotted on the left or right axis.
    */
@@ -44,13 +53,17 @@ export abstract class ContinuousTimeSeries<
 > {
   // Ideally both the `timeSeries` and `config` would be protected properties.
   timeSeries: Readonly<TimeSeries>;
-  #timestamps: readonly string[];
+  #timestamps: readonly number[];
   config?: Readonly<TConfig>;
 
   constructor(timeSeries: TimeSeries, config?: TConfig) {
     this.timeSeries = timeSeries;
-    this.#timestamps = timeSeries.data.map(datum => datum.timestamp).toSorted();
+    this.#timestamps = timeSeries.values.map(datum => datum.timestamp).toSorted();
     this.config = config;
+  }
+
+  get name(): string {
+    return this.timeSeries.field;
   }
 
   get label(): string {
@@ -58,27 +71,28 @@ export abstract class ContinuousTimeSeries<
   }
 
   get isEmpty(): boolean {
-    return this.timeSeries.data.every(datum => datum.value === null);
+    return this.timeSeries.values.every(datum => datum.value === null);
   }
 
   get needsColor(): boolean {
     return !this.config?.color;
   }
 
-  get dataType(): AggregationOutputType {
-    // TODO: Remove the `as` cast. `TimeSeries` meta should use `AggregationOutputType` instead of `string`
-    return this.timeSeries.meta.type as AggregationOutputType;
+  get dataType(): PlottableTimeSeriesValueType {
+    return isAPlottableTimeSeriesValueType(this.timeSeries.meta.valueType)
+      ? this.timeSeries.meta.valueType
+      : FALLBACK_TYPE;
   }
 
-  get dataUnit(): DataUnit {
-    return this.timeSeries.meta.unit;
+  get dataUnit(): TimeSeriesValueUnit {
+    return this.timeSeries.meta.valueUnit;
   }
 
-  get start(): string | null {
+  get start(): number | null {
     return this.#timestamps.at(0) ?? null;
   }
 
-  get end(): string | null {
+  get end(): number | null {
     return this.#timestamps.at(-1) ?? null;
   }
 
@@ -89,7 +103,7 @@ export abstract class ContinuousTimeSeries<
   constrainTimeSeries(boundaryStart: Date | null, boundaryEnd: Date | null) {
     return {
       ...this.timeSeries,
-      data: this.timeSeries.data.filter(dataItem => {
+      data: this.timeSeries.values.filter(dataItem => {
         const ts = new Date(dataItem.timestamp);
         return (
           (!boundaryStart || ts >= boundaryStart) && (!boundaryEnd || ts <= boundaryEnd)
@@ -98,7 +112,7 @@ export abstract class ContinuousTimeSeries<
     };
   }
 
-  scaleToUnit(destinationUnit: DataUnit): TimeSeries {
+  scaleToUnit(destinationUnit: TimeSeriesValueUnit): TimeSeries {
     return scaleTimeSeriesData(this.timeSeries, destinationUnit);
   }
 

@@ -12,9 +12,9 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import MonitorForm from 'sentry/views/monitors/components/monitorForm';
-import type {Monitor} from 'sentry/views/monitors/types';
-import {makeMonitorDetailsQueryKey} from 'sentry/views/monitors/utils';
+import MonitorForm from 'sentry/views/insights/crons/components/monitorForm';
+import type {Monitor} from 'sentry/views/insights/crons/types';
+import {makeMonitorDetailsQueryKey} from 'sentry/views/insights/crons/utils';
 
 type Props = {
   onChangeTitle: (data: string) => void;

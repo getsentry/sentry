@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {type Theme, useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import GridEditable, {
@@ -29,8 +30,8 @@ import {
   type SpanMetricsResponse,
 } from 'sentry/views/insights/types';
 
-const {CACHE_MISS_RATE, SPM, TIME_SPENT_PERCENTAGE} = SpanFunction;
-const {TRANSACTION_DURATION} = MetricsFields;
+const {CACHE_MISS_RATE, EPM, TIME_SPENT_PERCENTAGE} = SpanFunction;
+const {TRANSACTION_DURATION, SPAN_DURATION} = MetricsFields;
 const {CACHE_ITEM_SIZE} = SpanMetricsField;
 
 type Row = Pick<
@@ -38,21 +39,21 @@ type Row = Pick<
   | 'project'
   | 'project.id'
   | 'transaction'
-  | 'spm()'
+  | 'epm()'
   | 'cache_miss_rate()'
   | 'sum(span.self_time)'
   | 'time_spent_percentage()'
   | 'avg(cache.item_size)'
 > &
-  Pick<MetricsResponse, 'avg(transaction.duration)'>;
+  Pick<MetricsResponse, 'avg(span.duration)'>;
 
 type Column = GridColumnHeader<
   | 'transaction'
-  | 'spm()'
+  | 'epm()'
   | 'cache_miss_rate()'
   | 'time_spent_percentage()'
   | 'project'
-  | 'avg(transaction.duration)'
+  | 'avg(span.duration)'
   | 'avg(cache.item_size)'
 >;
 
@@ -73,12 +74,12 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `${SPM}()`,
+    key: `${EPM}()`,
     name: `${t('Requests')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `avg(${TRANSACTION_DURATION})`,
+    key: `avg(${SPAN_DURATION})`,
     name: DataTitles[`avg(${TRANSACTION_DURATION})`],
     width: COL_WIDTH_UNDEFINED,
   },
@@ -95,7 +96,7 @@ const COLUMN_ORDER: Column[] = [
 ];
 
 const SORTABLE_FIELDS = [
-  `${SPM}()`,
+  `${EPM}()`,
   `${CACHE_MISS_RATE}()`,
   `${TIME_SPENT_PERCENTAGE}()`,
   `avg(${CACHE_ITEM_SIZE})`,
@@ -129,7 +130,7 @@ export function TransactionsTable({
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
-
+  const theme = useTheme();
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
     navigate({
       pathname,
@@ -160,7 +161,7 @@ export function TransactionsTable({
               sortParameterName: QueryParameterNames.TRANSACTIONS_SORT,
             }),
           renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, location, organization),
+            renderBodyCell(column, row, meta, location, organization, theme),
         }}
       />
 
@@ -184,7 +185,8 @@ function renderBodyCell(
   row: Row,
   meta: EventsMetaType | undefined,
   location: Location,
-  organization: Organization
+  organization: Organization,
+  theme: Theme
 ) {
   if (column.key === 'transaction') {
     return (
@@ -207,5 +209,6 @@ function renderBodyCell(
     location,
     organization,
     unit: meta.units?.[column.key],
+    theme,
   });
 }

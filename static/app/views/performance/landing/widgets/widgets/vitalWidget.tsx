@@ -23,6 +23,33 @@ import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
+import {excludeTransaction} from 'sentry/views/performance/landing/utils';
+import {VitalBar} from 'sentry/views/performance/landing/vitalsCards';
+import {Accordion} from 'sentry/views/performance/landing/widgets/components/accordion';
+import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
+import SelectableList, {
+  GrowLink,
+  ListClose,
+  RightAlignedCell,
+  Subtitle,
+  WidgetEmptyStateWarning,
+} from 'sentry/views/performance/landing/widgets/components/selectableList';
+import {transformDiscoverToList} from 'sentry/views/performance/landing/widgets/transforms/transformDiscoverToList';
+import {transformEventsRequestToVitals} from 'sentry/views/performance/landing/widgets/transforms/transformEventsToVitals';
+import type {
+  GenericPerformanceWidgetProps,
+  PerformanceWidgetProps,
+  QueryDefinition,
+  WidgetDataResult,
+} from 'sentry/views/performance/landing/widgets/types';
+import {
+  eventsRequestQueryProps,
+  getMEPQueryParams,
+  QUERY_LIMIT_PARAM,
+  TOTAL_EXPANDABLE_ROWS_HEIGHT,
+} from 'sentry/views/performance/landing/widgets/utils';
+import type {ChartDefinition} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
+import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {
   DisplayModes,
   transactionSummaryRouteWithQuery,
@@ -33,34 +60,6 @@ import {
 } from 'sentry/views/performance/utils';
 import {vitalDetailRouteWithQuery} from 'sentry/views/performance/vitalDetail/utils';
 import {VitalChartInner} from 'sentry/views/performance/vitalDetail/vitalChart';
-
-import {excludeTransaction} from '../../utils';
-import {VitalBar} from '../../vitalsCards';
-import {Accordion} from '../components/accordion';
-import {GenericPerformanceWidget} from '../components/performanceWidget';
-import SelectableList, {
-  GrowLink,
-  ListClose,
-  RightAlignedCell,
-  Subtitle,
-  WidgetEmptyStateWarning,
-} from '../components/selectableList';
-import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
-import {transformEventsRequestToVitals} from '../transforms/transformEventsToVitals';
-import type {
-  GenericPerformanceWidgetProps,
-  PerformanceWidgetProps,
-  QueryDefinition,
-  WidgetDataResult,
-} from '../types';
-import {
-  eventsRequestQueryProps,
-  getMEPQueryParams,
-  QUERY_LIMIT_PARAM,
-  TOTAL_EXPANDABLE_ROWS_HEIGHT,
-} from '../utils';
-import type {ChartDefinition} from '../widgetDefinitions';
-import {PerformanceWidgetSetting} from '../widgetDefinitions';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToVitals>;
@@ -84,7 +83,7 @@ function getVitalFields(baseField: string) {
   return vitalFields;
 }
 
-export function transformFieldsWithStops(props: {
+function transformFieldsWithStops(props: {
   field: string;
   fields: string[];
   vitalStops: ChartDefinition['vitalStops'];
@@ -202,6 +201,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
           return (
             <EventsRequest
               {...requestProps}
+              includeAllArgs={false}
               limit={1}
               currentSeriesNames={[sortField!]}
               includePrevious={false}
@@ -229,7 +229,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
     ),
   };
 
-  const settingToVital: {[x: string]: WebVital} = {
+  const settingToVital: Record<string, WebVital> = {
     [PerformanceWidgetSetting.WORST_LCP_VITALS]: WebVital.LCP,
     [PerformanceWidgetSetting.WORST_FCP_VITALS]: WebVital.FCP,
     [PerformanceWidgetSetting.WORST_FID_VITALS]: WebVital.FID,
@@ -462,7 +462,7 @@ function getVitalDataForListItem(
   return vitalData;
 }
 
-export const VitalBarCell = styled(RightAlignedCell)`
+const VitalBarCell = styled(RightAlignedCell)`
   width: 120px;
   margin-left: ${space(1)};
   margin-right: ${space(1)};

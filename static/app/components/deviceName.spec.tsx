@@ -2,8 +2,6 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DeviceName} from 'sentry/components/deviceName';
 
-jest.mock('ios-device-list');
-
 describe('DeviceName', () => {
   it('renders device name if module is loaded', async () => {
     render(<DeviceName value="iPhone8,2" />);

@@ -140,8 +140,16 @@ class RulePreviewSerializer(RuleSetSerializer):
     endpoint = serializers.DateTimeField(required=False, allow_null=True)
 
 
-class RuleActionSerializer(serializers.Serializer):
+class DummyRuleSerializer(serializers.Serializer):
+    name = serializers.CharField(
+        max_length=256, required=False, allow_null=True, allow_blank=True, default="Test Alert"
+    )
     actions = serializers.ListField(child=RuleNodeField(type="action/event"), required=False)
+
+    def validate_name(self, name):
+        if name == "" or name is None:
+            return "Test Alert"
+        return name
 
     def validate(self, attrs):
         return validate_actions(attrs)

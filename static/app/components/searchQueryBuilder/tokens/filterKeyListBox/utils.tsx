@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {getEscapedKey} from 'sentry/components/compactSelect/utils';
+import {getEscapedKey} from 'sentry/components/core/compactSelect/utils';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
 import type {
@@ -40,7 +40,7 @@ export function createRecentFilterOptionKey(filter: string) {
   return getEscapedKey(`${RECENT_FILTER_KEY_PREFIX}${filter}`);
 }
 
-export function createRecentQueryOptionKey(filter: string) {
+function createRecentQueryOptionKey(filter: string) {
   return getEscapedKey(`${RECENT_QUERY_KEY_PREFIX}${filter}`);
 }
 

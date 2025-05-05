@@ -63,6 +63,7 @@ function PickProjectToContinue({
         onFinish={to => {
           navigating = true;
           router.replace(to);
+          modalProps.closeModal();
         }}
         projectSlugs={projects.map(p => p.slug)}
         allowAllProjectsSelection={allowAllProjectsSelection}

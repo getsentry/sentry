@@ -1,13 +1,13 @@
 import {Fragment, useMemo, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {GridResizer} from 'sentry/components/gridEditable/styles';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
-import {Tooltip} from 'sentry/components/tooltip';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
@@ -20,6 +20,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
+import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
 import {
   Table,
   TableBody,
@@ -39,6 +40,7 @@ import {
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
+import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
 import {TOP_EVENTS_LIMIT, useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {viewSamplesTarget} from 'sentry/views/explore/utils';
 
@@ -46,9 +48,14 @@ import {FieldRenderer} from './fieldRenderer';
 
 interface AggregatesTableProps {
   aggregatesTableResult: AggregatesTableResult;
+  isProgressivelyLoading: boolean;
 }
 
-export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
+export function AggregatesTable({
+  aggregatesTableResult,
+  isProgressivelyLoading,
+}: AggregatesTableProps) {
+  const theme = useTheme();
   const location = useLocation();
   const {projects} = useProjects();
 
@@ -76,7 +83,12 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
 
   const numberOfRowsNeedingColor = Math.min(result.data?.length ?? 0, TOP_EVENTS_LIMIT);
 
-  const palette = getChartColorPalette(numberOfRowsNeedingColor - 2)!; // -2 because getColorPalette artificially adds 1, I'm not sure why
+  const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 2); // -2 because getColorPalette artificially adds 1, I'm not sure why
+
+  const paginationAnalyticsEvent = usePaginationAnalytics(
+    'aggregates',
+    result.data?.length ?? 0
+  );
 
   return (
     <Fragment>
@@ -84,7 +96,11 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
         <TableHead>
           <TableRow>
             <TableHeadCell isFirst={false}>
-              <TableHeadCellContent />
+              <TableHeadCellContent>
+                <LoadingIndicatorWrapper>
+                  {getProgressiveLoadingIndicator(isProgressivelyLoading, 'table')}
+                </LoadingIndicatorWrapper>
+              </TableHeadCellContent>
             </TableHeadCell>
             {fields.map((field, i) => {
               // Hide column names before alignment is determined
@@ -197,7 +213,10 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
           )}
         </TableBody>
       </Table>
-      <Pagination pageLinks={result.pageLinks} />
+      <Pagination
+        pageLinks={result.pageLinks}
+        paginationAnalyticsEvent={paginationAnalyticsEvent}
+      />
     </Fragment>
   );
 }
@@ -214,4 +233,14 @@ const TopResultsIndicator = styled('div')<{color: string}>`
 
 const StyledLink = styled(Link)`
   display: flex;
+`;
+
+// Positions the loading indicator in the center of the cell that
+// corresponds to the stack column. Prevents layout shift when the
+// loading indicator is removed.
+const LoadingIndicatorWrapper = styled('div')`
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
 `;

@@ -13,7 +13,7 @@ export function ShortIdQueryResultFixture(params = {}): ShortIdResponse {
     organizationSlug: 'org-slug',
     projectSlug: 'project-slug',
     groupId: group.id,
-    shortId: 'test-1',
+    shortId: group.shortId,
     group,
     ...params,
   };

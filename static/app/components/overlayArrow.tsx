@@ -1,29 +1,27 @@
-import {forwardRef, useMemo} from 'react';
+import {useId} from 'react';
 import type {PopperProps} from 'react-popper';
 import styled from '@emotion/styled';
 
-import domId from 'sentry/utils/domId';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 
-interface OverlayArrowProps extends React.ComponentPropsWithRef<'div'> {
+export interface OverlayArrowProps extends React.ComponentPropsWithRef<'div'> {
   background?: ColorOrAlias;
   border?: ColorOrAlias;
   placement?: PopperProps<any>['placement'];
+  ref?: React.Ref<HTMLDivElement>;
   size?: number;
   strokeWidth?: number;
 }
 
-function BaseOverlayArrow(
-  {
-    size = 16,
-    strokeWidth = 1,
-    placement,
-    background = 'backgroundElevated',
-    border = 'translucentBorder',
-    ...props
-  }: OverlayArrowProps,
-  ref: React.Ref<HTMLDivElement>
-) {
+export function OverlayArrow({
+  size = 16,
+  strokeWidth = 1,
+  placement,
+  background = 'backgroundElevated',
+  border = 'translucentBorder',
+  ref,
+  ...props
+}: OverlayArrowProps) {
   /**
    * SVG height
    */
@@ -42,8 +40,8 @@ function BaseOverlayArrow(
     `C ${w * 0.55} ${s / 2} ${w * 0.75} ${h - s / 2} ${w} ${h - s / 2}`,
   ].join('');
 
-  const strokeMaskId = useMemo(() => domId('stroke-mask'), []);
-  const fillMaskId = useMemo(() => domId('fill-mask'), []);
+  const strokeMaskId = useId();
+  const fillMaskId = useId();
 
   return (
     <Wrap ref={ref} placement={placement} size={size} {...props}>
@@ -76,8 +74,6 @@ function BaseOverlayArrow(
   );
 }
 
-const OverlayArrow = forwardRef(BaseOverlayArrow);
-
 const Wrap = styled('div')<{size: number; placement?: PopperProps<any>['placement']}>`
   position: relative;
   display: flex;
@@ -109,6 +105,3 @@ const SVG = styled('svg')<{background: ColorOrAlias; border: ColorOrAlias}>`
     fill: ${p => p.theme[p.background]};
   }
 `;
-
-export type {OverlayArrowProps};
-export {OverlayArrow};

@@ -43,9 +43,9 @@ class ProjectKeyTest(TestCase):
 
     def test_get_dsn_with_public_endpoint_setting(self):
         key = ProjectKey(project_id=self.project.id, public_key="public", secret_key="secret")
-        with self.settings(SENTRY_PUBLIC_ENDPOINT="http://public_endpoint.com"):
+        with self.settings(SENTRY_ENDPOINT="http://endpoint.com"):
             self.assertEqual(
-                key.get_dsn(public=True), f"http://public@public_endpoint.com/{self.project.id}"
+                key.get_dsn(public=True), f"http://public@endpoint.com/{self.project.id}"
             )
 
     def test_get_dsn_with_endpoint_setting(self):

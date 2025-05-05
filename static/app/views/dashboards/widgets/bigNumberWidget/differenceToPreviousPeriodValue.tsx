@@ -13,13 +13,12 @@ import {
   DEEMPHASIS_COLOR_NAME,
   LOADING_PLACEHOLDER,
 } from 'sentry/views/dashboards/widgets/bigNumberWidget/settings';
-import type {TableData} from 'sentry/views/dashboards/widgets/common/types';
-
-import {DEFAULT_FIELD} from '../common/settings';
+import {DEFAULT_FIELD} from 'sentry/views/dashboards/widgets/common/settings';
+import type {TabularRow} from 'sentry/views/dashboards/widgets/common/types';
 
 interface DifferenceToPreviousPeriodValueProps {
   previousPeriodValue: number;
-  renderer: (datum: TableData[number]) => React.ReactNode;
+  renderer: (datum: TabularRow) => React.ReactNode;
   value: number;
   field?: string;
   preferredPolarity?: Polarity;

@@ -16,11 +16,10 @@ import type {Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/types';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
-
-import type {DashboardFilters, Widget} from '../types';
-import {WidgetType} from '../types';
-import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
+import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 
 import WidgetCardChart from './chart';
 import {IssueWidgetCard} from './issueWidgetCard';
@@ -40,6 +39,7 @@ type Props = {
   legendOptions?: LegendComponentOption;
   minTableColumnWidth?: string;
   noPadding?: boolean;
+  onDataFetchStart?: () => void;
   onDataFetched?: (results: {
     pageLinks?: string;
     tableResults?: TableDataWithTitle[];
@@ -82,6 +82,7 @@ export function WidgetCardChartContainer({
   widgetLegendState,
   showConfidenceWarning,
   minTableColumnWidth,
+  onDataFetchStart,
 }: Props) {
   const location = useLocation();
 
@@ -101,6 +102,7 @@ export function WidgetCardChartContainer({
       selection={selection}
       onDataFetched={onDataFetched}
       onWidgetSplitDecision={onWidgetSplitDecision}
+      onDataFetchStart={onDataFetchStart}
       tableItemLimit={tableItemLimit}
     >
       {({
@@ -170,8 +172,8 @@ export function WidgetCardChartContainer({
               showConfidenceWarning={showConfidenceWarning}
               confidence={confidence}
               sampleCount={sampleCount}
-              isSampled={isSampled}
               minTableColumnWidth={minTableColumnWidth}
+              isSampled={isSampled}
             />
           </Fragment>
         );
@@ -179,8 +181,6 @@ export function WidgetCardChartContainer({
     </WidgetCardDataLoader>
   );
 }
-
-export default WidgetCardChartContainer;
 
 const StyledTransparentLoadingMask = styled((props: any) => (
   <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />
@@ -190,7 +190,7 @@ const StyledTransparentLoadingMask = styled((props: any) => (
   align-items: center;
 `;
 
-export function LoadingScreen({loading}: {loading: boolean}) {
+function LoadingScreen({loading}: {loading: boolean}) {
   if (!loading) {
     return null;
   }

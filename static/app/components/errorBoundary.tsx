@@ -6,7 +6,6 @@ import {Alert} from 'sentry/components/core/alert';
 import DetailedError from 'sentry/components/errors/detailedError';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
 type DefaultProps = {
@@ -47,18 +46,6 @@ class ErrorBoundary extends Component<Props, State> {
     error: null,
   };
 
-  componentDidMount() {
-    this._isMounted = true;
-    // Listen for route changes so we can clear error
-    this.unlistenBrowserHistory = browserHistory.listen(() => {
-      // Prevent race between component unmount and browserHistory change
-      // Setting state on a component that is being unmounted throws an error
-      if (this._isMounted) {
-        this.setState({error: null});
-      }
-    });
-  }
-
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     const {errorTag} = this.props;
 
@@ -68,27 +55,20 @@ class ErrorBoundary extends Component<Props, State> {
         Object.keys(errorTag).forEach(tag => scope.setTag(tag, errorTag[tag]));
       }
 
-      // Based on https://github.com/getsentry/sentry-javascript/blob/6f4ad562c469f546f1098136b65583309d03487b/packages/react/src/errorboundary.tsx#L75-L85
-      const errorBoundaryError = new Error(error.message);
-      errorBoundaryError.name = `React ErrorBoundary ${errorBoundaryError.name}`;
-      errorBoundaryError.stack = errorInfo.componentStack!;
-
-      error.cause = errorBoundaryError;
-
-      scope.setExtra('errorInfo', errorInfo);
-      Sentry.captureException(error);
+      try {
+        // Based on https://github.com/getsentry/sentry-javascript/blob/6f4ad562c469f546f1098136b65583309d03487b/packages/react/src/errorboundary.tsx#L75-L85
+        const errorBoundaryError = new Error(error.message);
+        errorBoundaryError.name = `React ErrorBoundary ${errorBoundaryError.name}`;
+        errorBoundaryError.stack = errorInfo.componentStack!;
+        error.cause = errorBoundaryError;
+      } catch {
+        // Some browsers won't let you write to Error instance
+        scope.setExtra('errorInfo', errorInfo);
+      } finally {
+        Sentry.captureException(error);
+      }
     });
   }
-
-  componentWillUnmount() {
-    this._isMounted = false;
-    if (this.unlistenBrowserHistory) {
-      this.unlistenBrowserHistory();
-    }
-  }
-
-  private unlistenBrowserHistory?: ReturnType<typeof browserHistory.listen>;
-  private _isMounted = false;
 
   render() {
     const {error} = this.state;

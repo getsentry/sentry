@@ -52,7 +52,7 @@ export default function useCopyToClipboard({
   successMessage = t('Copied to clipboard'),
   text,
 }: Opts) {
-  const timeoutRef = useRef<undefined | ReturnType<typeof setTimeout>>();
+  const timeoutRef = useRef<undefined | ReturnType<typeof setTimeout>>(undefined);
   const [state, setState] = useState<'ready' | 'copied' | 'error'>('ready');
 
   const handleOnClick = useCallback(() => {

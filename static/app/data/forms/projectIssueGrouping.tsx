@@ -9,7 +9,7 @@ import {space} from 'sentry/styles/space';
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/projects/:projectId/issue-grouping/';
 
-export const fields: Record<string, Field> = {
+export const fields = {
   fingerprintingRules: {
     name: 'fingerprintingRules',
     type: 'string',
@@ -97,7 +97,33 @@ stack.function:mylibrary_* +app`}
     validate: () => [],
     visible: true,
   },
-};
+  derivedGroupingEnhancements: {
+    name: 'derivedGroupingEnhancements',
+    type: 'string',
+    label: 'Derived Grouping Enhancements (super user only)',
+    hideLabel: true,
+    placeholder: '',
+    multiline: true,
+    monospace: true,
+    autosize: true,
+    inline: false,
+    maxRows: 20,
+    saveOnBlur: false,
+    saveMessageAlertType: 'info',
+    saveMessage: '',
+    formatMessageValue: false,
+    help: () => (
+      <RuleDescription>
+        These rules are automatically derived for some languages for customers that have
+        the GitHub integration and the language has been marked to derive in-app rules.
+        These rules are not editable but they can be negated by adding their own rules in
+        the Stack Trace Rules section.
+      </RuleDescription>
+    ),
+    validate: () => [],
+    visible: true,
+  },
+} satisfies Record<string, Field>;
 
 const RuleDescription = styled('div')`
   margin-bottom: ${space(1)};

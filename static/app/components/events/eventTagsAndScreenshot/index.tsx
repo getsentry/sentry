@@ -6,7 +6,7 @@ import {SCREENSHOT_NAMES} from 'sentry/components/events/eventTagsAndScreenshot/
 import {DataSection} from 'sentry/components/events/styles';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import EventTagsDataSection from './tags';
+import {EventTagsDataSection} from './tags';
 
 type Props = React.ComponentProps<typeof EventTagsDataSection> & {
   isShare?: boolean;

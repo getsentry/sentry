@@ -1,18 +1,12 @@
-import {useCallback, useMemo} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
-import DropdownButton from 'sentry/components/dropdownButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
@@ -95,7 +89,7 @@ function AddWidget({onAddWidget, onAddWidgetFromNewWidgetBuilder}: Props) {
                 'aria-label': t('Add Widget'),
                 size: 'md',
                 showChevron: false,
-                icon: <IconAdd isCircled size="lg" color="inactive" />,
+                icon: <IconAdd isCircled size="lg" color="subText" />,
                 borderless: true,
               }}
             />
@@ -104,7 +98,7 @@ function AddWidget({onAddWidget, onAddWidgetFromNewWidgetBuilder}: Props) {
           <InnerWrapper onClick={() => onAddWidget(defaultDataset)}>
             <AddButton
               data-test-id="widget-add"
-              icon={<IconAdd size="lg" isCircled color="inactive" />}
+              icon={<IconAdd size="lg" isCircled color="subText" />}
               aria-label={t('Add widget')}
             />
           </InnerWrapper>
@@ -127,84 +121,6 @@ const AddButton = styled(Button)`
 
 export default AddWidget;
 
-export function AddWidgetButton({onAddWidget, ...buttonProps}: Props & ButtonProps) {
-  const organization = useOrganization();
-
-  const handleAction = useCallback(
-    (dataset: DataSet) => {
-      trackAnalytics('dashboards_views.widget_library.opened', {
-        organization,
-      });
-      onAddWidget(dataset);
-    },
-    [organization, onAddWidget]
-  );
-
-  const items = useMemo(() => {
-    const menuItems: MenuItemProps[] = [];
-
-    if (organization.features.includes('performance-discover-dataset-selector')) {
-      menuItems.push({
-        key: DataSet.ERRORS,
-        label: t('Errors'),
-        onAction: () => handleAction(DataSet.ERRORS),
-      });
-      menuItems.push({
-        key: DataSet.TRANSACTIONS,
-        label: t('Transactions'),
-        onAction: () => handleAction(DataSet.TRANSACTIONS),
-      });
-    } else {
-      menuItems.push({
-        key: DataSet.EVENTS,
-        label: t('Errors and Transactions'),
-        onAction: () => handleAction(DataSet.EVENTS),
-      });
-    }
-
-    menuItems.push({
-      key: DataSet.ISSUES,
-      label: t('Issues'),
-      details: t('States, Assignment, Time, etc.'),
-      onAction: () => handleAction(DataSet.ISSUES),
-    });
-
-    menuItems.push({
-      key: DataSet.RELEASES,
-      label: t('Releases'),
-      details: t('Sessions, Crash rates, etc.'),
-      onAction: () => handleAction(DataSet.RELEASES),
-    });
-
-    return menuItems;
-  }, [handleAction, organization]);
-
-  return (
-    <DropdownMenu
-      items={items}
-      trigger={triggerProps => (
-        <DropdownButton
-          {...triggerProps}
-          {...buttonProps}
-          data-test-id="widget-add"
-          size="sm"
-          icon={<IconAdd isCircled />}
-        >
-          {t('Add Widget')}
-        </DropdownButton>
-      )}
-      menuTitle={
-        <MenuTitle>
-          {t('Dataset')}
-          <ExternalLink href="https://docs.sentry.io/product/dashboards/widget-builder/#choose-your-dataset">
-            {t('Learn more')}
-          </ExternalLink>
-        </MenuTitle>
-      }
-    />
-  );
-}
-
 const InnerWrapper = styled('div')<{onClick?: () => void}>`
   width: 100%;
   height: 110px;
@@ -214,13 +130,4 @@ const InnerWrapper = styled('div')<{onClick?: () => void}>`
   align-items: center;
   justify-content: center;
   cursor: ${p => (p.onClick ? 'pointer' : '')};
-`;
-
-const MenuTitle = styled('span')`
-  display: flex;
-  gap: ${space(1)};
-
-  & > a {
-    font-weight: ${p => p.theme.fontWeightNormal};
-  }
 `;

@@ -8,8 +8,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type RequestError from 'sentry/utils/requestError/requestError';
-
-import useApi from '../useApi';
+import useApi from 'sentry/utils/useApi';
 
 function fetchReleases(
   api: Client,
@@ -88,9 +87,9 @@ function ReleasesProvider({
   }, [skipLoad, api, organization.slug, JSON.stringify(selection), searchTerm]);
 
   return (
-    <ReleasesContext.Provider value={{releases, loading, onSearch: handleSearch}}>
+    <ReleasesContext value={{releases, loading, onSearch: handleSearch}}>
       {children}
-    </ReleasesContext.Provider>
+    </ReleasesContext>
   );
 }
 
@@ -118,6 +117,4 @@ function useReleases() {
   return releasesContext;
 }
 
-const ReleasesConsumer = ReleasesContext.Consumer;
-
-export {ReleasesContext, ReleasesConsumer, ReleasesProvider, useReleases};
+export {ReleasesContext, ReleasesProvider, useReleases};

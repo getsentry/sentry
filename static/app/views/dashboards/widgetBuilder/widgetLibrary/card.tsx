@@ -45,7 +45,7 @@ const Heading = styled('div')`
 `;
 
 const SubHeading = styled('small')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const IconWrapper = styled('div')<{backgroundColor: string}>`

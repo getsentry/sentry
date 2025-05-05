@@ -9,6 +9,7 @@ from sentry.exceptions import HookValidationError
 from sentry.models.activity import Activity
 from sentry.models.release import Release
 from sentry.types.activity import ActivityType
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 
 class ReleaseHook:
@@ -34,6 +35,7 @@ class ReleaseHook:
                     organization_id=project.organization_id, version=version
                 )
         except IntegrityError:
+            incr_rollback_metrics(Release)
             release = Release.objects.get(organization_id=project.organization_id, version=version)
         release.add_project(project)
 
@@ -53,6 +55,7 @@ class ReleaseHook:
                     version=version, organization_id=self.project.organization_id, **values
                 )
         except IntegrityError:
+            incr_rollback_metrics(Release)
             release = Release.objects.get(
                 version=version, organization_id=self.project.organization_id
             )

@@ -9,29 +9,19 @@ import CreateAlertButton, {
   CreateAlertFromViewButton,
 } from 'sentry/components/createAlertButton';
 import GuideStore from 'sentry/stores/guideStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
-import useProjects from 'sentry/utils/useProjects';
-import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/data';
+import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/results/data';
 
 const onClickMock = jest.fn();
 
-jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/actionCreators/navigation');
 
 describe('CreateAlertFromViewButton', () => {
   const organization = OrganizationFixture();
 
   beforeEach(() => {
-    jest.mocked(useProjects).mockReturnValue({
-      projects: [],
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
-      placeholders: [],
-      fetching: false,
-      hasMore: null,
-      fetchError: null,
-      initiallyLoaded: false,
-    });
+    ProjectsStore.loadInitialData([]);
   });
 
   afterEach(() => {
@@ -50,7 +40,10 @@ describe('CreateAlertFromViewButton', () => {
         eventView={eventView}
         projects={[ProjectFixture()]}
         onClick={onClickMock}
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
     await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
     expect(onClickMock).toHaveBeenCalledTimes(1);
@@ -70,16 +63,7 @@ describe('CreateAlertFromViewButton', () => {
         access: [],
       },
     ];
-    jest.mocked(useProjects).mockReturnValue({
-      projects,
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
-      placeholders: [],
-      fetching: false,
-      hasMore: null,
-      fetchError: null,
-      initiallyLoaded: false,
-    });
+    ProjectsStore.loadInitialData(projects);
 
     render(
       <CreateAlertFromViewButton
@@ -90,6 +74,7 @@ describe('CreateAlertFromViewButton', () => {
       />,
       {
         organization: noAccessOrg,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -106,16 +91,7 @@ describe('CreateAlertFromViewButton', () => {
         access: [],
       },
     ];
-    jest.mocked(useProjects).mockReturnValue({
-      projects,
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
-      placeholders: [],
-      fetching: false,
-      hasMore: null,
-      fetchError: null,
-      initiallyLoaded: false,
-    });
+    ProjectsStore.loadInitialData(projects);
 
     render(
       <CreateAlertFromViewButton
@@ -126,6 +102,7 @@ describe('CreateAlertFromViewButton', () => {
       />,
       {
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -154,17 +131,7 @@ describe('CreateAlertFromViewButton', () => {
         access: ['alerts:read' as const],
       },
     ];
-
-    jest.mocked(useProjects).mockReturnValue({
-      projects,
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
-      placeholders: [],
-      fetching: false,
-      hasMore: null,
-      fetchError: null,
-      initiallyLoaded: false,
-    });
+    ProjectsStore.loadInitialData(projects);
 
     render(
       <CreateAlertFromViewButton
@@ -175,6 +142,7 @@ describe('CreateAlertFromViewButton', () => {
       />,
       {
         organization: noAccessOrg,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -195,6 +163,7 @@ describe('CreateAlertFromViewButton', () => {
       />,
       {
         organization: noAccessOrg,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -215,6 +184,7 @@ describe('CreateAlertFromViewButton', () => {
       />,
       {
         organization: adminAccessOrg,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -224,6 +194,7 @@ describe('CreateAlertFromViewButton', () => {
   it('redirects to alert wizard with no project', async () => {
     render(<CreateAlertButton aria-label="Create Alert" organization={organization} />, {
       organization,
+      deprecatedRouterMocks: true,
     });
     await userEvent.click(screen.getByRole('button'));
     expect(navigateTo).toHaveBeenCalledWith(
@@ -245,6 +216,7 @@ describe('CreateAlertFromViewButton', () => {
       />,
       {
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -258,16 +230,7 @@ describe('CreateAlertFromViewButton', () => {
     const router = RouterFixture();
 
     const projects = [ProjectFixture()];
-    jest.mocked(useProjects).mockReturnValue({
-      projects,
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
-      placeholders: [],
-      fetching: false,
-      hasMore: null,
-      fetchError: null,
-      initiallyLoaded: false,
-    });
+    ProjectsStore.loadInitialData(projects);
 
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,
@@ -281,7 +244,10 @@ describe('CreateAlertFromViewButton', () => {
         projects={projects}
         onClick={onClickMock}
       />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
     await userEvent.click(screen.getByRole('button'));
     expect(router.push).toHaveBeenCalledWith({

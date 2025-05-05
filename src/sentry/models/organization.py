@@ -43,7 +43,6 @@ from sentry.utils.snowflake import generate_snowflake_id, save_with_snowflake_id
 if TYPE_CHECKING:
     from sentry.models.options.organization_option import OrganizationOptionManager
 
-SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 NON_MEMBER_SCOPES = frozenset(["org:write", "project:write", "team:write"])
 ORGANIZATION_NAME_MAX_LENGTH = 64
 
@@ -112,12 +111,6 @@ class OrganizationManager(BaseManager["Organization"]):
         if not user.is_authenticated:
             return []
 
-        if settings.SENTRY_PUBLIC and scope is None:
-            if only_visible:
-                return list(self.filter(status=OrganizationStatus.ACTIVE))
-            else:
-                return list(self.filter())
-
         qs = OrganizationMember.objects.filter(user_id=user.id).select_related("organization")
         if only_visible:
             qs = qs.filter(organization__status=OrganizationStatus.ACTIVE)
@@ -162,7 +155,7 @@ class Organization(ReplicatedRegionModel):
     )
     date_added = models.DateTimeField(default=timezone.now)
     default_role = models.CharField(max_length=32, default=str(roles.get_default().id))
-    is_test = models.BooleanField(default=False)
+    is_test = models.BooleanField(default=False, db_default=False)
 
     class flags(TypedClassBitField):
         # WARNING: Only add flags to the bottom of this list
@@ -248,7 +241,7 @@ class Organization(ReplicatedRegionModel):
                 slugify_target = slugify_target.lower().replace("_", "-").strip("-")
                 slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
 
-        if SENTRY_USE_SNOWFLAKE:
+        if settings.SENTRY_USE_SNOWFLAKE:
             save_with_snowflake_id(
                 instance=self,
                 snowflake_redis_key=self.snowflake_redis_key,
@@ -321,6 +314,7 @@ class Organization(ReplicatedRegionModel):
 
     def get_default_owner(self) -> RpcUser:
         if not hasattr(self, "_default_owner"):
+            # TODO: Investigate how an org can have no owners
             self._default_owner = self.get_owners()[0]
         return self._default_owner
 
@@ -439,7 +433,7 @@ class Organization(ReplicatedRegionModel):
         )
 
     def handle_2fa_required(self, request):
-        from sentry.tasks.auth import remove_2fa_non_compliant_members
+        from sentry.tasks.auth.auth import remove_2fa_non_compliant_members
 
         self._handle_requirement_change(request, remove_2fa_non_compliant_members)
 

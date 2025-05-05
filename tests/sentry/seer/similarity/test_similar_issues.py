@@ -1,13 +1,16 @@
+from datetime import timedelta
 from typing import Any
 from unittest import mock
-from unittest.mock import MagicMock
+from unittest.mock import ANY, MagicMock
 
+from django.utils import timezone
 from urllib3.exceptions import MaxRetryError, TimeoutError
 from urllib3.response import HTTPResponse
 
 from sentry import options
 from sentry.conf.server import SEER_SIMILAR_ISSUES_URL
 from sentry.models.grouphash import GroupHash
+from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.seer.similarity.similar_issues import (
     get_similarity_data_from_seer,
     seer_grouping_connection_pool,
@@ -296,7 +299,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
 
     @mock.patch("sentry.seer.similarity.similar_issues.delete_seer_grouping_records_by_hash")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
-    def test_calls_seer_deletion_task_if_parent_group_not_found(
+    def test_calls_seer_deletion_task_if_parent_hash_not_found(
         self,
         mock_seer_similarity_request: MagicMock,
         mock_seer_deletion_request: MagicMock,
@@ -316,3 +319,180 @@ class GetSimilarityDataFromSeerTest(TestCase):
         get_similarity_data_from_seer(self.request_params)
 
         mock_seer_deletion_request.delay.assert_called_with(self.project.id, ["not a real hash"])
+
+    @mock.patch("sentry.seer.similarity.similar_issues.delete_seer_grouping_records_by_hash")
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
+    def test_conditionally_calls_seer_deletion_task_if_parent_hash_missing_group_id(
+        self,
+        mock_seer_similarity_request: MagicMock,
+        mock_seer_deletion_request: MagicMock,
+    ):
+        existing_grouphash = GroupHash.objects.create(hash="dogs are great", project=self.project)
+        assert existing_grouphash.group_id is None
+
+        # Set the grouphash creation date to yesterday
+        GroupHashMetadata.objects.get_or_create(
+            grouphash=existing_grouphash, date_added=timezone.now() - timedelta(days=1)
+        )
+
+        mock_seer_similarity_request.return_value = self._make_response(
+            {
+                "responses": [
+                    {
+                        "parent_hash": "dogs are great",
+                        "should_group": True,
+                        "stacktrace_distance": 0.01,
+                    }
+                ]
+            }
+        )
+
+        get_similarity_data_from_seer(self.request_params)
+
+        assert mock_seer_deletion_request.delay.call_count == 1
+        mock_seer_deletion_request.delay.assert_called_with(self.project.id, ["dogs are great"])
+
+        # Now do it all over again, but with a hash that's just been created
+
+        newly_created_grouphash = GroupHash.objects.create(
+            hash="adopt, don't shop", project=self.project
+        )
+        assert newly_created_grouphash.group_id is None
+
+        # Set the grouphash creation date to today
+        GroupHashMetadata.objects.get_or_create(
+            grouphash=newly_created_grouphash, date_added=timezone.now()
+        )
+
+        mock_seer_similarity_request.return_value = self._make_response(
+            {
+                "responses": [
+                    {
+                        "parent_hash": "adopt, don't shop",
+                        "should_group": True,
+                        "stacktrace_distance": 0.01,
+                    }
+                ]
+            }
+        )
+
+        get_similarity_data_from_seer(self.request_params)
+
+        # Call count is still 1, because we don't call the deletion task if the group is missing
+        # because of a race condition
+        assert mock_seer_deletion_request.delay.call_count == 1
+
+        # Finally, do it with a grouphash missing metadata, to simulate one which was created before
+        # grouphash metadata was a thing
+
+        very_old_grouphash = GroupHash.objects.create(hash="maisey", project=self.project)
+        assert very_old_grouphash.group_id is None
+        assert very_old_grouphash.metadata is None
+
+        mock_seer_similarity_request.return_value = self._make_response(
+            {
+                "responses": [
+                    {
+                        "parent_hash": "maisey",
+                        "should_group": True,
+                        "stacktrace_distance": 0.01,
+                    }
+                ]
+            }
+        )
+
+        get_similarity_data_from_seer(self.request_params)
+
+        # Call count has increased to 2, because we know the grouphash is old by its lack of metadata
+        assert mock_seer_deletion_request.delay.call_count == 2
+
+    @mock.patch("src.sentry.seer.similarity.types.GroupHash.objects.filter")
+    @mock.patch("sentry.seer.similarity.similar_issues.logger")
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
+    def test_retry_if_parent_hash_not_found_retry_success(
+        self,
+        mock_seer_similarity_request: MagicMock,
+        mock_logger: MagicMock,
+        mock_grouphash_objects_filter: MagicMock,
+    ):
+        existing_grouphash_no_group = GroupHash.objects.create(
+            hash="dogs are great", project=self.project
+        )
+        GroupHashMetadata.objects.create(grouphash=existing_grouphash_no_group)
+        assert existing_grouphash_no_group.group_id is None
+        existing_grouphash_with_group = GroupHash.objects.create(
+            hash="adopt, don't shop", project=self.project, group=self.group
+        )
+
+        mock_seer_similarity_request.return_value = self._make_response(
+            {
+                "responses": [
+                    {
+                        "parent_hash": "dogs are great",
+                        "should_group": True,
+                        "stacktrace_distance": 0.01,
+                    }
+                ]
+            }
+        )
+
+        # Make it so that the first time we look for the parent grouphash, it doesn't have a group,
+        # but the second time we look for it, it does
+        mock_queryset = MagicMock()
+        mock_grouphash_objects_filter.return_value = mock_queryset
+        mock_queryset.exclude.return_value = mock_queryset
+        mock_queryset.first.side_effect = [
+            existing_grouphash_no_group,
+            existing_grouphash_with_group,
+        ]
+
+        results = get_similarity_data_from_seer(self.request_params)
+
+        mock_logger.warning.assert_any_call(
+            "get_similarity_data_from_seer.parent_hash_missing_group", extra=ANY
+        )
+        mock_logger.info.assert_any_call(
+            "get_similarity_data_from_seer.parent_hash_missing_group.retry_success", extra=ANY
+        )
+        assert results == [
+            SeerSimilarIssueData(
+                parent_group_id=self.group.id,
+                parent_hash="dogs are great",
+                should_group=True,
+                stacktrace_distance=0.01,
+            )
+        ]
+
+    @mock.patch("sentry.seer.similarity.similar_issues.logger")
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
+    def test_retry_if_parent_hash_not_found_retry_failure(
+        self,
+        mock_seer_similarity_request: MagicMock,
+        mock_logger: MagicMock,
+        # mock_grouphash_objects_filter: MagicMock,
+    ):
+        existing_grouphash = GroupHash.objects.create(hash="dogs are great", project=self.project)
+        GroupHashMetadata.objects.create(grouphash=existing_grouphash)
+        assert existing_grouphash.group_id is None
+
+        mock_seer_similarity_request.return_value = self._make_response(
+            {
+                "responses": [
+                    {
+                        "parent_hash": "dogs are great",
+                        "should_group": True,
+                        "stacktrace_distance": 0.01,
+                    }
+                ]
+            }
+        )
+
+        results = get_similarity_data_from_seer(self.request_params)
+
+        mock_logger.warning.assert_any_call(
+            "get_similarity_data_from_seer.parent_hash_missing_group", extra=ANY
+        )
+        mock_logger.info.assert_any_call(
+            "get_similarity_data_from_seer.parent_hash_missing_group.retry_failure", extra=ANY
+        )
+        assert results == []

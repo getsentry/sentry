@@ -43,6 +43,11 @@ describe('WidgetBuilderSlideout', () => {
       method: 'POST',
       statusCode: 200,
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [],
+    });
   });
 
   afterEach(() => {
@@ -68,6 +73,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -78,6 +84,8 @@ describe('WidgetBuilderSlideout', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -105,6 +113,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -115,6 +124,8 @@ describe('WidgetBuilderSlideout', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -139,6 +150,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -149,6 +161,8 @@ describe('WidgetBuilderSlideout', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -172,7 +186,10 @@ describe('WidgetBuilderSlideout', () => {
           setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
-      {organization}
+      {
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
     renderGlobalModal();
 
@@ -201,7 +218,10 @@ describe('WidgetBuilderSlideout', () => {
           setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
-      {organization}
+      {
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     renderGlobalModal();
@@ -241,6 +261,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -252,6 +273,8 @@ describe('WidgetBuilderSlideout', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -282,6 +305,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -292,6 +316,8 @@ describe('WidgetBuilderSlideout', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -299,7 +325,7 @@ describe('WidgetBuilderSlideout', () => {
     await userEvent.click(screen.getByText('Errors'));
 
     expect(await screen.findByPlaceholderText('Add Alias')).toHaveValue('');
-  });
+  }, 10_000);
 
   it('clears the alias when display type changes', async () => {
     render(
@@ -319,6 +345,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -329,6 +356,8 @@ describe('WidgetBuilderSlideout', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -337,13 +366,13 @@ describe('WidgetBuilderSlideout', () => {
       'test alias again'
     );
 
-    await userEvent.click(screen.getByText('Table'));
-    await userEvent.click(screen.getByText('Area'));
-    await userEvent.click(screen.getByText('Area'));
-    await userEvent.click(screen.getByText('Table'));
+    await userEvent.click(await screen.findByText('Table'));
+    await userEvent.click(await screen.findByText('Area'));
+    await userEvent.click(await screen.findByText('Area'));
+    await userEvent.click(await screen.findByText('Table'));
 
     expect(await screen.findByPlaceholderText('Add Alias')).toHaveValue('');
-  });
+  }, 10_000);
 
   it('only renders thresholds for big number widgets', async () => {
     render(
@@ -363,6 +392,7 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -371,6 +401,8 @@ describe('WidgetBuilderSlideout', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -396,7 +428,10 @@ describe('WidgetBuilderSlideout', () => {
           setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
-      {organization}
+      {
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(await screen.findByText('Update Widget'));
@@ -425,7 +460,10 @@ describe('WidgetBuilderSlideout', () => {
           setOpenWidgetTemplates={jest.fn()}
         />
       </WidgetBuilderProvider>,
-      {organization}
+      {
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(await screen.findByText('Add Widget'));

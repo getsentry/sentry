@@ -5,8 +5,8 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button, LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -15,6 +15,7 @@ import {safeURL} from 'sentry/utils/url/safeURL';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import type {Policy, Subscription} from 'getsentry/types';
+import {PolicyStatus} from 'getsentry/views/legalAndCompliance/policyStatus';
 import {PanelItemPolicy} from 'getsentry/views/legalAndCompliance/styles';
 
 type PolicyRowProps = {
@@ -172,7 +173,6 @@ export function PolicyRow({
       {modalCss: modalCss(theme)}
     );
   };
-
   const getPolicySubstatus = () => {
     const {consent, updatedAt, version} = policy;
     if (consent && showConsentText) {
@@ -198,7 +198,8 @@ export function PolicyRow({
         </PolicyTitle>
         <PolicySubtext>{getPolicySubstatus()}</PolicySubtext>
       </div>
-      <div>
+      <PolicyStatusRow>
+        <PolicyStatus policy={policy} />
         {policy.url &&
           policyUrl &&
           (policy.consent?.acceptedVersion === policy.version ? (
@@ -207,7 +208,8 @@ export function PolicyRow({
             </LinkButton>
           ) : policy.hasSignature &&
             policy.slug !== 'privacy' &&
-            policy.slug !== 'terms' ? (
+            policy.slug !== 'terms' &&
+            hasBillingAccess ? (
             <Button
               size="sm"
               priority="primary"
@@ -218,9 +220,7 @@ export function PolicyRow({
                   ? t("Superusers can't consent to policies")
                   : hasBillingAccess
                     ? undefined
-                    : t(
-                        "You don't have access to manage billing and subscription details."
-                      )
+                    : t("You don't have access to accept policies.")
               }
             >
               {t('Review and Accept')}
@@ -230,7 +230,7 @@ export function PolicyRow({
               {t('Review')}
             </LinkButton>
           ))}
-      </div>
+      </PolicyStatusRow>
     </PanelItemPolicy>
   );
 }
@@ -272,4 +272,9 @@ const modalCss = (theme: Theme) => css`
     width: 80%;
     max-width: 1200px;
   }
+`;
+export const PolicyStatusRow = styled('div')`
+  display: flex;
+  align-items: center;
+  height: 100%;
 `;

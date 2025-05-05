@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {IconTable} from 'sentry/icons/iconTable';
 import {t} from 'sentry/locale';
@@ -12,6 +13,7 @@ import {
   useExploreFields,
   useExploreMode,
   useSetExploreFields,
+  useSetExploreMode,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
@@ -26,41 +28,22 @@ import {TracesTable} from 'sentry/views/explore/tables/tracesTable/index';
 
 interface BaseExploreTablesProps {
   confidences: Confidence[];
+  isProgressivelyLoading: boolean;
   samplesTab: Tab;
   setSamplesTab: (tab: Tab) => void;
 }
 
 interface ExploreTablesProps extends BaseExploreTablesProps {
   aggregatesTableResult: AggregatesTableResult;
+  isProgressivelyLoading: boolean;
   spansTableResult: SpansTableResult;
   tracesTableResult: TracesTableResult;
 }
 
 export function ExploreTables(props: ExploreTablesProps) {
   const mode = useExploreMode();
+  const setMode = useSetExploreMode();
 
-  return (
-    <Fragment>
-      {mode === Mode.AGGREGATE && <ExploreAggregatesTable {...props} />}
-      {mode === Mode.SAMPLES && <ExploreSamplesTable {...props} />}
-    </Fragment>
-  );
-}
-
-interface AggregatesExploreTablesProps extends BaseExploreTablesProps {
-  aggregatesTableResult: AggregatesTableResult;
-}
-
-function ExploreAggregatesTable(props: AggregatesExploreTablesProps) {
-  return <AggregatesTable {...props} />;
-}
-
-interface SamplesExploreTablesProps extends BaseExploreTablesProps {
-  spansTableResult: SpansTableResult;
-  tracesTableResult: TracesTableResult;
-}
-
-function ExploreSamplesTable(props: SamplesExploreTablesProps) {
   const fields = useExploreFields();
   const setFields = useSetExploreFields();
 
@@ -82,25 +65,53 @@ function ExploreSamplesTable(props: SamplesExploreTablesProps) {
     );
   }, [fields, setFields, stringTags, numberTags]);
 
+  // HACK: This is pretty gross but to not break anything in the
+  // short term, we avoid introducing/removing any fields on the
+  // query. So we continue using the existing `mode` value and
+  // coalesce it with the `tab` value` to create a single tab.
+  const tab = mode === Mode.AGGREGATE ? mode : props.samplesTab;
+  const setTab = useCallback(
+    (option: Tab | Mode) => {
+      if (option === Mode.AGGREGATE) {
+        setMode(Mode.AGGREGATE);
+      } else if (option === Tab.SPAN || option === Tab.TRACE) {
+        props.setSamplesTab(option);
+      }
+    },
+    [setMode, props]
+  );
+
   return (
     <Fragment>
       <SamplesTableHeader>
-        <Tabs value={props.samplesTab} onChange={props.setSamplesTab}>
-          <TabList hideBorder>
+        <Tabs value={tab} onChange={setTab}>
+          <TabList hideBorder variant="floating">
             <TabList.Item key={Tab.SPAN}>{t('Span Samples')}</TabList.Item>
             <TabList.Item key={Tab.TRACE}>{t('Trace Samples')}</TabList.Item>
+            <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
           </TabList>
         </Tabs>
-        <Button
-          disabled={props.samplesTab !== Tab.SPAN}
-          onClick={openColumnEditor}
-          icon={<IconTable />}
-        >
-          {t('Edit Table')}
-        </Button>
+        {tab === Tab.SPAN ? (
+          <Button onClick={openColumnEditor} icon={<IconTable />} size="sm">
+            {t('Edit Table')}
+          </Button>
+        ) : (
+          <Tooltip
+            title={
+              tab === Tab.TRACE
+                ? t('Editing columns is available for span samples only')
+                : t('Use the Group By and Visualize controls to change table columns')
+            }
+          >
+            <Button disabled onClick={openColumnEditor} icon={<IconTable />} size="sm">
+              {t('Edit Table')}
+            </Button>
+          </Tooltip>
+        )}
       </SamplesTableHeader>
-      {props.samplesTab === Tab.SPAN && <SpansTable {...props} />}
-      {props.samplesTab === Tab.TRACE && <TracesTable {...props} />}
+      {tab === Tab.SPAN && <SpansTable {...props} />}
+      {tab === Tab.TRACE && <TracesTable {...props} />}
+      {tab === Mode.AGGREGATE && <AggregatesTable {...props} />}
     </Fragment>
   );
 }
@@ -109,5 +120,5 @@ const SamplesTableHeader = styled('div')`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(1)};
 `;

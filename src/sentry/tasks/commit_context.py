@@ -5,7 +5,6 @@ from collections.abc import Mapping, Sequence
 from datetime import timedelta
 from typing import Any
 
-from celery import Task
 from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone as django_timezone
 from sentry_sdk import set_tag
@@ -28,6 +27,9 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.groupowner import process_suspect_commits
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import issues_tasks
+from sentry.taskworker.retry import NoRetriesRemainingError, Retry, retry_task
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.sdk import set_current_event_project
@@ -37,8 +39,6 @@ DEBOUNCE_PR_COMMENT_LOCK_KEY = lambda pullrequest_id: f"queue_comment_task:{pull
 PR_COMMENT_TASK_TTL = timedelta(minutes=5).total_seconds()
 PR_COMMENT_WINDOW = 14  # days
 
-# TODO: replace this with isinstance(installation, CommitContextIntegration)
-PR_COMMENT_SUPPORTED_PROVIDERS = {"github"}
 
 logger = logging.getLogger(__name__)
 
@@ -52,10 +52,16 @@ logger = logging.getLogger(__name__)
     retry_backoff_max=60 * 60 * 3,  # 3 hours
     retry_jitter=False,
     silo_mode=SiloMode.REGION,
-    bind=True,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        processing_deadline_duration=60,
+        retry=Retry(
+            times=5,
+            on=(ApiError,),
+        ),
+    ),
 )
 def process_commit_context(
-    self: Task,
     event_id: str,
     event_platform: str,
     event_frames: Sequence[Mapping[str, Any]],
@@ -143,10 +149,10 @@ def process_commit_context(
             except ApiError:
                 logger.info(
                     "process_commit_context_all_frames.retry",
-                    extra={**basic_logging_details, "retry_count": self.request.retries},
+                    extra=basic_logging_details,
                 )
                 metrics.incr("tasks.process_commit_context_all_frames.retry")
-                self.retry()
+                retry_task()
 
             if not blame or not installation:
                 # Fall back to the release logic if we can't find a commit for any of the frames
@@ -183,12 +189,7 @@ def process_commit_context(
                 },  # Updates date of an existing owner, since we just matched them with this new event
             )
 
-            if (
-                installation
-                and isinstance(installation, CommitContextIntegration)
-                and installation.integration_name
-                in PR_COMMENT_SUPPORTED_PROVIDERS  # TODO: remove this check
-            ):
+            if installation and isinstance(installation, CommitContextIntegration):
                 installation.queue_comment_task_if_needed(project, commit, group_owner, group_id)
 
             ProjectOwnership.handle_auto_assignment(
@@ -237,7 +238,7 @@ def process_commit_context(
             )
     except UnableToAcquireLock:
         pass
-    except MaxRetriesExceededError:
+    except (MaxRetriesExceededError, NoRetriesRemainingError):
         metrics.incr("tasks.process_commit_context.max_retries_exceeded")
         logger.info(
             "process_commit_context.max_retries_exceeded",

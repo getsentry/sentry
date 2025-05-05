@@ -3,17 +3,15 @@ import {Fragment} from 'react';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import ServiceHookSettingsForm from 'sentry/views/settings/project/serviceHookSettingsForm';
 
-type Props = RouteComponentProps<{projectId: string}> & {
-  organization: Organization;
-};
+interface Props extends RouteComponentProps<{projectId: string}> {}
 
-function ProjectCreateServiceHook({organization, params}: Props) {
+function ProjectCreateServiceHook({params}: Props) {
   const {projectId} = params;
+  const organization = useOrganization();
   const title = t('Create Service Hook');
 
   return (
@@ -30,4 +28,4 @@ function ProjectCreateServiceHook({organization, params}: Props) {
   );
 }
 
-export default withOrganization(ProjectCreateServiceHook);
+export default ProjectCreateServiceHook;

@@ -1,6 +1,7 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -82,6 +83,7 @@ describe('OrgDashboards', () => {
         {({dashboard, dashboards}) => {
           return dashboard ? (
             <DashboardDetail
+              theme={ThemeFixture()}
               api={api}
               initialState={DashboardState.VIEW}
               dashboard={dashboard}
@@ -93,7 +95,7 @@ describe('OrgDashboards', () => {
           );
         }}
       </OrgDashboards>,
-      {router, organization}
+      {router, organization, deprecatedRouterMocks: true}
     );
 
     await waitFor(() =>
@@ -145,6 +147,7 @@ describe('OrgDashboards', () => {
         {({dashboard, dashboards}) => {
           return dashboard ? (
             <DashboardDetail
+              theme={ThemeFixture()}
               api={api}
               initialState={DashboardState.VIEW}
               dashboard={dashboard}
@@ -156,7 +159,7 @@ describe('OrgDashboards', () => {
           );
         }}
       </OrgDashboards>,
-      {router, organization}
+      {router, organization, deprecatedRouterMocks: true}
     );
 
     await waitFor(() =>
@@ -217,6 +220,7 @@ describe('OrgDashboards', () => {
         {({dashboard, dashboards}) => {
           return dashboard ? (
             <DashboardDetail
+              theme={ThemeFixture()}
               api={api}
               initialState={DashboardState.VIEW}
               dashboard={dashboard}
@@ -228,7 +232,7 @@ describe('OrgDashboards', () => {
           );
         }}
       </OrgDashboards>,
-      {router, organization}
+      {router, organization, deprecatedRouterMocks: true}
     );
 
     // The first call is done by the page filters
@@ -246,6 +250,7 @@ describe('OrgDashboards', () => {
         {({dashboard, dashboards}) => {
           return dashboard ? (
             <DashboardDetail
+              theme={ThemeFixture()}
               api={api}
               initialState={DashboardState.VIEW}
               dashboard={dashboard}
@@ -257,7 +262,7 @@ describe('OrgDashboards', () => {
           );
         }}
       </OrgDashboards>,
-      {router, organization}
+      {router, organization, deprecatedRouterMocks: true}
     );
 
     expect(router.replace).not.toHaveBeenCalled();
@@ -292,6 +297,7 @@ describe('OrgDashboards', () => {
         {({dashboard, dashboards}) => {
           return dashboard ? (
             <DashboardDetail
+              theme={ThemeFixture()}
               api={api}
               initialState={DashboardState.VIEW}
               dashboard={dashboard}
@@ -303,7 +309,7 @@ describe('OrgDashboards', () => {
           );
         }}
       </OrgDashboards>,
-      {router, organization}
+      {router, organization, deprecatedRouterMocks: true}
     );
 
     await waitFor(() => expect(router.replace).toHaveBeenCalledTimes(1));
@@ -313,6 +319,7 @@ describe('OrgDashboards', () => {
         {({dashboard, dashboards}) => {
           return dashboard ? (
             <DashboardDetail
+              theme={ThemeFixture()}
               api={api}
               initialState={DashboardState.VIEW}
               dashboard={dashboard}

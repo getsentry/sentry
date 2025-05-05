@@ -1,22 +1,18 @@
+import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
+import type {PageFilters} from 'sentry/types/core';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
+import {getSessionsInterval} from 'sentry/utils/sessions';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
-export default function useReleaseSessionPercentage() {
-  const location = useLocation();
+export default function useReleaseSessionPercentage({
+  pageFilters,
+}: {
+  pageFilters?: PageFilters;
+}) {
   const organization = useOrganization();
-
-  const locationWithoutWidth = {
-    ...location,
-    query: {
-      ...location.query,
-      width_health_table: undefined,
-      width_adoption_table: undefined,
-      cursor_health_table: undefined,
-      cursor_adoption_table: undefined,
-    },
-  };
+  const {selection: defaultPageFilters} = usePageFilters();
 
   const {
     data: sessionData,
@@ -27,7 +23,10 @@ export default function useReleaseSessionPercentage() {
       `/organizations/${organization.slug}/sessions/`,
       {
         query: {
-          ...locationWithoutWidth.query,
+          ...pageFiltersToQueryParams(pageFilters || defaultPageFilters),
+          interval: getSessionsInterval(
+            pageFilters ? pageFilters.datetime : defaultPageFilters.datetime
+          ),
           field: ['sum(session)'],
           groupBy: ['release'],
           per_page: 5,
@@ -40,6 +39,30 @@ export default function useReleaseSessionPercentage() {
   if (isPending || !sessionData) {
     return {
       series: [],
+      isPending,
+      error,
+    };
+  }
+
+  // No data to report, just map the intervals to a value of 0
+  if (!sessionData.groups.length) {
+    return {
+      series: [
+        {
+          seriesName: 'session_percent',
+          data: sessionData.intervals.map(interval => ({
+            name: interval,
+            value: 0,
+          })),
+          meta: {
+            fields: {
+              [`session_percent`]: 'percentage' as const,
+              time: 'date' as const,
+            },
+            units: {},
+          },
+        },
+      ],
       isPending,
       error,
     };
@@ -101,5 +124,10 @@ export default function useReleaseSessionPercentage() {
     };
   });
 
-  return {series, releases: Array.from(releaseGroupMap.keys()), isPending, error};
+  return {
+    series,
+    releases: Array.from(releaseGroupMap.keys()),
+    isPending,
+    error,
+  };
 }

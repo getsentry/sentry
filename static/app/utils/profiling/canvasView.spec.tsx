@@ -1,4 +1,5 @@
 import {mat3, vec2} from 'gl-matrix';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {
   makeCanvasMock,
@@ -11,9 +12,8 @@ import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {makeLightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {Rect} from 'sentry/utils/profiling/speedscope';
-import {lightTheme} from 'sentry/utils/theme';
 
-const theme = makeLightFlamegraphTheme(lightTheme);
+const theme = makeLightFlamegraphTheme(ThemeFixture());
 
 const makeCanvasAndView = (
   canvas: HTMLCanvasElement,

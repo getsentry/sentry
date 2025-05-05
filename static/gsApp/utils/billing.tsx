@@ -19,12 +19,14 @@ import {
 import type {
   BillingConfig,
   BillingMetricHistory,
+  BillingStatTotal,
   EventBucket,
   Plan,
   ProductTrial,
   Subscription,
 } from 'getsentry/types';
 import {PlanName, PlanTier} from 'getsentry/types';
+import {isContinuousProfiling} from 'getsentry/utils/dataCategory';
 import titleCase from 'getsentry/utils/titleCase';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
@@ -37,6 +39,25 @@ function isNum(val: unknown): val is number {
 // TODO(brendan): remove condition for 0 once -1 is the value we use to represent unlimited reserved quota
 export function isUnlimitedReserved(value: number | null | undefined): boolean {
   return value === UNLIMITED_RESERVED;
+}
+
+export function addBillingStatTotals(
+  a: BillingStatTotal,
+  b: BillingStatTotal[]
+): BillingStatTotal {
+  return b.reduce(
+    (acc, curr) => ({
+      accepted: acc.accepted + (curr?.accepted ?? 0),
+      dropped: acc.dropped + (curr?.dropped ?? 0),
+      droppedOther: acc.droppedOther + (curr?.droppedOther ?? 0),
+      droppedOverQuota: acc.droppedOverQuota + (curr?.droppedOverQuota ?? 0),
+      droppedSpikeProtection:
+        acc.droppedSpikeProtection + (curr?.droppedSpikeProtection ?? 0),
+      filtered: acc.filtered + (curr?.filtered ?? 0),
+      projected: acc.projected + (curr?.projected ?? 0),
+    }),
+    a
+  );
 }
 
 export const getSlot = (
@@ -113,7 +134,7 @@ type FormatOptions = {
  */
 export function formatReservedWithUnits(
   reservedQuantity: ReservedSku,
-  dataCategory: string,
+  dataCategory: DataCategory,
   options: FormatOptions = {
     isAbbreviated: false,
     useUnitScaling: false,
@@ -148,7 +169,7 @@ export function formatReservedWithUnits(
  */
 export function formatUsageWithUnits(
   usageQuantity = 0,
-  dataCategory: string,
+  dataCategory: DataCategory,
   options: FormatOptions = {isAbbreviated: false, useUnitScaling: false}
 ) {
   if (dataCategory === DataCategory.ATTACHMENTS) {
@@ -161,7 +182,7 @@ export function formatUsageWithUnits(
       ? `${displayNumber(usageGb)} GB`
       : `${usageGb.toLocaleString(undefined, {maximumFractionDigits: 2})} GB`;
   }
-  if (dataCategory === DataCategory.PROFILE_DURATION) {
+  if (isContinuousProfiling(dataCategory)) {
     const usageProfileHours = usageQuantity / MILLISECONDS_IN_HOUR;
     if (usageProfileHours === 0) {
       return '0';
@@ -295,7 +316,7 @@ export function isAmPlan(planId?: string) {
   return typeof planId === 'string' && planId.startsWith('am');
 }
 
-function isAm2Plan(planId?: string) {
+export function isAm2Plan(planId?: string) {
   return typeof planId === 'string' && planId.startsWith('am2');
 }
 
@@ -322,6 +343,31 @@ export function hasJustStartedPlanTrial(subscription: Subscription) {
   return subscription.isTrial && subscription.isTrialStarted;
 }
 
+export const displayBudgetName = (
+  plan?: Plan | null,
+  options: {
+    pluralOndemand?: boolean;
+    title?: boolean;
+    withBudget?: boolean;
+  } = {}
+) => {
+  const budgetTerm = plan?.budgetTerm ?? 'on-demand';
+  const text = `${budgetTerm}${options.withBudget ? ' budget' : ''}`;
+  if (options.title) {
+    if (budgetTerm === 'on-demand') {
+      if (options.withBudget) {
+        if (options.pluralOndemand) {
+          return 'On-Demand Budgets';
+        }
+        return 'On-Demand Budget';
+      }
+      return 'On-Demand';
+    }
+    return titleCase(text);
+  }
+  return text;
+};
+
 export const displayPlanName = (plan?: Plan | null) => {
   return isAmEnterprisePlan(plan?.id) ? 'Enterprise' : (plan?.name ?? '[unavailable]');
 };
@@ -338,6 +384,14 @@ export const getAmPlanTier = (plan: string) => {
   }
   return null;
 };
+
+export const isNewPayingCustomer = (
+  subscription: Subscription,
+  organization: Organization
+) =>
+  subscription.isFree ||
+  isTrialPlan(subscription.plan) ||
+  hasPartnerMigrationFeature(organization);
 
 /**
  * Promotion utility functions that are based off of formData which has the plan as a string

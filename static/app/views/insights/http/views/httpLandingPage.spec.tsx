@@ -1,20 +1,18 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
-import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {HTTPLandingPage} from 'sentry/views/insights/http/views/httpLandingPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useProjects');
-jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
-import {useReleaseStats} from 'sentry/utils/useReleaseStats';
-
 jest.mock('sentry/utils/useReleaseStats');
 
 describe('HTTPLandingPage', function () {
@@ -28,55 +26,22 @@ describe('HTTPLandingPage', function () {
 
   let spanListRequestMock!: jest.Mock;
   let regionFilterRequestMock!: jest.Mock;
-
-  jest.mocked(useOnboardingProject).mockReturnValue(undefined);
-
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects: [],
       },
-      environments: [],
-      projects: [],
-    },
-  });
+    })
+  );
 
-  jest.mocked(useLocation).mockReturnValue({
-    pathname: '/insights/backend/http/',
-    search: '',
-    query: {statsPeriod: '10d', 'span.domain': 'git', project: '1'},
-    hash: '',
-    state: undefined,
-    action: 'PUSH',
-    key: '',
-  });
-
-  jest.mocked(useProjects).mockReturnValue({
-    projects: [
-      ProjectFixture({
-        id: '1',
-        name: 'Backend',
-        slug: 'backend',
-        firstTransactionEvent: true,
-        platform: 'javascript',
-        hasInsightsHttp: true,
-      }),
-    ],
-    onSearch: jest.fn(),
-    reloadProjects: jest.fn(),
-    placeholders: [],
-    fetching: false,
-    hasMore: null,
-    fetchError: null,
-    initiallyLoaded: false,
-  });
+  const useLocationMock = jest.mocked(useLocation);
 
   jest.mocked(useReleaseStats).mockReturnValue({
     isLoading: false,
@@ -88,6 +53,27 @@ describe('HTTPLandingPage', function () {
 
   beforeEach(function () {
     jest.clearAllMocks();
+
+    useLocationMock.mockReturnValue({
+      pathname: '/insights/backend/http/',
+      search: '',
+      query: {statsPeriod: '10d', 'span.domain': 'git', project: '1'},
+      hash: '',
+      state: undefined,
+      action: 'PUSH',
+      key: '',
+    });
+
+    ProjectsStore.loadInitialData([
+      ProjectFixture({
+        id: '1',
+        name: 'Backend',
+        slug: 'backend',
+        firstTransactionEvent: true,
+        platform: 'javascript',
+        hasInsightsHttp: true,
+      }),
+    ]);
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
@@ -144,7 +130,7 @@ describe('HTTPLandingPage', function () {
             project: 'backend',
             'project.id': 1,
             'sum(span.self_time)': 815833579.659315,
-            'spm()': 40767.0,
+            'epm()': 40767.0,
             'time_spent_percentage()': 0.33634048399458855,
             'http_response_rate(3)': 0.00035567983908553485,
             'http_response_rate(4)': 0.3931893443226139,
@@ -156,7 +142,7 @@ describe('HTTPLandingPage', function () {
             project: 'frontend',
             'project.id': 2,
             'sum(span.self_time)': 473552338.9970339,
-            'spm()': 29912.133333333335,
+            'epm()': 29912.133333333335,
             'time_spent_percentage()': 0.19522955032268177,
             'http_response_rate(3)': 0.0,
             'http_response_rate(4)': 0.0012324987407562593,
@@ -170,7 +156,7 @@ describe('HTTPLandingPage', function () {
             'span.domain': 'array',
             'sum(span.self_time)': 'duration',
             'http_response_rate(3)': 'percentage',
-            'spm()': 'rate',
+            'epm()': 'rate',
             'time_spent_percentage()': 'percentage',
             'http_response_rate(4)': 'percentage',
             'http_response_rate(5)': 'percentage',
@@ -195,10 +181,10 @@ describe('HTTPLandingPage', function () {
         ],
         meta: {
           fields: {
-            'spm()': 'rate',
+            'epm()': 'rate',
           },
           units: {
-            'spm()': '1/second',
+            'epm()': '1/second',
           },
         },
       },
@@ -275,6 +261,8 @@ describe('HTTPLandingPage', function () {
   it('fetches module data', async function () {
     render(<HTTPLandingPage />, {organization});
 
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+
     expect(throughputRequestMock).toHaveBeenNthCalledWith(
       1,
       `/organizations/${organization.slug}/events-stats/`,
@@ -295,7 +283,7 @@ describe('HTTPLandingPage', function () {
           referrer: 'api.performance.http.landing-throughput-chart',
           statsPeriod: '10d',
           topEvents: undefined,
-          yAxis: 'spm()',
+          yAxis: 'epm()',
           transformAliasToInputFormat: '1',
         },
       })
@@ -386,7 +374,7 @@ describe('HTTPLandingPage', function () {
             'project',
             'project.id',
             'span.domain',
-            'spm()',
+            'epm()',
             'http_response_rate(3)',
             'http_response_rate(4)',
             'http_response_rate(5)',
@@ -403,8 +391,6 @@ describe('HTTPLandingPage', function () {
         },
       })
     );
-
-    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
   });
 
   it('renders a list of domains', async function () {
@@ -447,5 +433,55 @@ describe('HTTPLandingPage', function () {
     expect(screen.getByRole('cell', {name: '0.38%'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '333.54ms'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '1.35wk'})).toBeInTheDocument();
+  });
+
+  it('sorts with query params', async function () {
+    useLocationMock.mockReturnValue({
+      pathname: '/insights/backend/http/',
+      search: '',
+      query: {
+        statsPeriod: '10d',
+        'span.domain': 'git',
+        project: '1',
+        [QueryParameterNames.DOMAINS_SORT]: '-avg(span.self_time)',
+      },
+      hash: '',
+      state: undefined,
+      action: 'PUSH',
+      key: '',
+    });
+
+    render(<HTTPLandingPage />, {organization});
+
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+
+    expect(spanListRequestMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          dataset: 'spansMetrics',
+          environment: [],
+          field: [
+            'project',
+            'project.id',
+            'span.domain',
+            'epm()',
+            'http_response_rate(3)',
+            'http_response_rate(4)',
+            'http_response_rate(5)',
+            'avg(span.self_time)',
+            'sum(span.self_time)',
+            'time_spent_percentage()',
+          ],
+          per_page: 10,
+          project: [],
+          query: 'span.module:http span.op:http.client span.domain:*git*',
+          referrer: 'api.performance.http.landing-domains-list',
+          sort: '-avg(span.self_time)',
+          statsPeriod: '10d',
+        },
+      })
+    );
   });
 });

@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from django.db import IntegrityError, models, router, transaction
+from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -51,26 +51,16 @@ class GroupRelease(Model):
 
         instance = cache.get(cache_key)
         if instance is None:
-            try:
-                with transaction.atomic(router.db_for_write(cls)):
-                    instance, created = (
-                        cls.objects.create(
-                            release_id=release.id,
-                            group_id=group.id,
-                            environment=environment.name,
-                            project_id=group.project_id,
-                            first_seen=datetime,
-                            last_seen=datetime,
-                        ),
-                        True,
-                    )
-            except IntegrityError:
-                instance, created = (
-                    cls.objects.get(
-                        release_id=release.id, group_id=group.id, environment=environment.name
-                    ),
-                    False,
-                )
+            instance, created = cls.objects.get_or_create(
+                release_id=release.id,
+                group_id=group.id,
+                environment=environment.name,
+                defaults={
+                    "first_seen": datetime,
+                    "last_seen": datetime,
+                    "project_id": group.project_id,
+                },
+            )
         else:
             created = False
 

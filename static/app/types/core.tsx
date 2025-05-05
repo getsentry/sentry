@@ -67,23 +67,29 @@ export type Choice = [
 export type Choices = Choice[];
 
 /**
- * These are very similar to the plural types of DATA_CATEGORY_INFO.
- * DATA_CATEGORY_INFO and DataCategoryExact have additional categories
- * that are used in stats but not other places like billing.
+ * These are used in billing, stats, and other places to consistently refer to categories.
+ *
+ * These should always be in plural camelCase form.
  */
 export enum DataCategory {
   ERRORS = 'errors',
   TRANSACTIONS = 'transactions',
+  TRANSACTIONS_PROCESSED = 'transactionsProcessed',
+  TRANSACTIONS_INDEXED = 'transactionsIndexed',
   ATTACHMENTS = 'attachments',
   PROFILES = 'profiles',
   REPLAYS = 'replays',
+  MONITOR = 'monitors',
   MONITOR_SEATS = 'monitorSeats',
   PROFILE_DURATION = 'profileDuration',
   PROFILE_DURATION_UI = 'profileDurationUI',
   SPANS = 'spans',
   SPANS_INDEXED = 'spansIndexed',
   PROFILE_CHUNKS = 'profileChunks',
+  PROFILE_CHUNKS_UI = 'profileChunksUI',
   UPTIME = 'uptime',
+  LOG_ITEM = 'logItems',
+  LOG_BYTE = 'logBytes',
 }
 
 /**
@@ -107,6 +113,9 @@ export enum DataCategoryExact {
   SPAN = 'span',
   SPAN_INDEXED = 'spanIndexed',
   UPTIME = 'uptime',
+
+  LOG_ITEM = 'logItem',
+  LOG_BYTE = 'logByte',
 }
 
 export interface DataCategoryInfo {
@@ -114,13 +123,13 @@ export interface DataCategoryInfo {
   displayName: string;
   isBilledCategory: boolean;
   name: DataCategoryExact;
-  plural: string;
+  plural: DataCategory;
   productName: string;
   titleName: string;
   uid: number;
+  docsUrl?: string;
+  snakeCasePlural?: string;
 }
-
-export type EventType = 'error' | 'transaction' | 'attachment';
 
 export enum Outcome {
   ACCEPTED = 'accepted',

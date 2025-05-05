@@ -1,17 +1,17 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import QueuesLandingPage from 'sentry/views/insights/queues/views/queuesLandingPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/utils/useReleaseStats');
 
 describe('queuesLandingPage', () => {
@@ -22,22 +22,7 @@ describe('queuesLandingPage', () => {
   project.firstTransactionEvent = true;
   project.hasInsightsQueues = true;
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
-      },
-      environments: [],
-      projects: [],
-    },
-  });
+  jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
   jest.mocked(useLocation).mockReturnValue({
     pathname: '',
@@ -47,17 +32,6 @@ describe('queuesLandingPage', () => {
     state: undefined,
     action: 'PUSH',
     key: '',
-  });
-
-  jest.mocked(useProjects).mockReturnValue({
-    projects: [project],
-    onSearch: jest.fn(),
-    reloadProjects: jest.fn(),
-    placeholders: [],
-    fetching: false,
-    hasMore: null,
-    fetchError: null,
-    initiallyLoaded: false,
   });
 
   jest.mocked(useReleaseStats).mockReturnValue({
@@ -72,6 +46,7 @@ describe('queuesLandingPage', () => {
   let eventsStatsMock: jest.Mock;
 
   beforeEach(() => {
+    ProjectsStore.loadInitialData([project]);
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
@@ -86,7 +61,7 @@ describe('queuesLandingPage', () => {
   });
 
   it('renders', async () => {
-    render(<QueuesLandingPage />, {organization});
+    render(<QueuesLandingPage />, {organization, deprecatedRouterMocks: true});
     await screen.findByRole('table', {name: 'Queues'});
     screen.getByPlaceholderText('Search for more destinations');
     screen.getByText('Average Duration');

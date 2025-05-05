@@ -33,6 +33,22 @@ function getTextColor({
   }
 }
 
+/**
+ * Returns the appropriate vertical padding based on the size prop. To be used
+ * as top/bottom padding/margin in InnerWrap
+ */
+const getVerticalPadding = (size: FormSize) => {
+  switch (size) {
+    case 'xs':
+      return space(0.5);
+    case 'sm':
+      return space(0.75);
+    case 'md':
+    default:
+      return space(1);
+  }
+};
+
 export const ChonkInnerWrap = chonkStyled('div', {
   shouldForwardProp: prop =>
     typeof prop === 'string' &&
@@ -47,14 +63,20 @@ export const ChonkInnerWrap = chonkStyled('div', {
     display: flex;
     position: relative;
     padding: 0 ${space(1)} 0 ${space(1.5)};
+    padding-top: ${p => getVerticalPadding(p.size)};
+    padding-bottom: ${p => getVerticalPadding(p.size)};
     border-radius: ${p => p.theme.borderRadius};
     box-sizing: border-box;
 
     font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};
 
     &,
-    &:hover {
+    &:hover,
+    &:focus,
+    &:focus-visible {
       color: ${getTextColor};
+      box-shadow: none;
+      outline: none;
     }
     ${p => p.disabled && `cursor: default;`}
 
@@ -79,48 +101,51 @@ export const ChonkInnerWrap = chonkStyled('div', {
     `}
   `;
 
-/**
- * Returns the appropriate vertical padding based on the size prop. To be used
- * as top/bottom padding/margin in ContentWrap and LeadingItems.
- */
-const getVerticalPadding = (size: FormSize) => {
-  switch (size) {
-    case 'xs':
-      return space(0.5);
-    case 'sm':
-      return space(0.75);
-    case 'md':
-    default:
-      return space(1);
-  }
-};
-
 export const ChonkContentWrap = chonkStyled('div')<{
   isFocused: boolean;
-  showDivider: boolean;
   size: FormSize;
 }>`
     position: relative;
     width: 100%;
-    height: ${p => p.theme.form[p.size ?? 'md'].height};
     min-width: 0;
     display: flex;
     gap: ${space(1)};
     justify-content: space-between;
-    padding: ${p => getVerticalPadding(p.size)} 0;
-
-    ${p =>
-      p.showDivider &&
-      !p.isFocused &&
-      `
-      li:not(:last-child) &::after {
-        content: '';
-        position: absolute;
-        left: 0;
-        bottom: 0;
-        width: 100%;
-        height: 1px;
-        box-shadow:  0 1px 0 0 ${p.theme.innerBorder};
-      }
-    `}
+    padding: 0;
   `;
+
+export const ChonkLeadingItems = chonkStyled('div')<{
+  disabled: boolean;
+  size: FormSize;
+}>`
+  display: flex;
+  gap: ${space(1)};
+  margin-right: ${space(1)};
+  flex-shrink: 0;
+  align-items: center;
+
+  ${p => p.disabled && `opacity: 0.5;`}
+`;
+
+export const ChonkLabel = chonkStyled('div')`
+  margin-bottom: 0;
+  line-height: 1.4;
+  white-space: nowrap;
+
+  ${p => p.theme.overflowEllipsis}
+`;
+
+export const ChonkLabelWrap = chonkStyled('div')`
+  padding-right: ${space(1)};
+  width: 100%;
+  min-width: 0;
+`;
+
+export const ChonkDetails = chonkStyled('div')<{disabled: boolean; priority: Priority}>`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
+  line-height: 1.4;
+  margin-bottom: 0;
+
+  ${p => p.priority !== 'default' && `color: ${getTextColor(p)};`}
+`;

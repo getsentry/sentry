@@ -5,19 +5,20 @@ from datetime import timedelta
 from uuid import uuid4
 
 from django.utils import timezone
-from sentry_kafka_schemas.schema_types.uptime_configs_v1 import CheckConfig
 
-from sentry.snuba.models import QuerySubscription
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import uptime_tasks
+from sentry.taskworker.retry import Retry
 from sentry.uptime.config_producer import produce_config, produce_config_removal
 from sentry.uptime.models import (
-    ProjectUptimeSubscription,
-    ProjectUptimeSubscriptionMode,
     UptimeRegionScheduleMode,
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
+    get_detector,
 )
+from sentry.uptime.types import CheckConfig, ProjectUptimeSubscriptionMode
 from sentry.utils import metrics
 from sentry.utils.query import RangeQuerySetWrapper
 
@@ -33,6 +34,12 @@ BROKEN_MONITOR_AGE_LIMIT = timedelta(days=7)
     queue="uptime",
     default_retry_delay=5,
     max_retries=5,
+    taskworker_config=TaskworkerConfig(
+        namespace=uptime_tasks,
+        retry=Retry(
+            times=5,
+        ),
+    ),
 )
 def create_remote_uptime_subscription(uptime_subscription_id, **kwargs):
     try:
@@ -49,7 +56,7 @@ def create_remote_uptime_subscription(uptime_subscription_id, **kwargs):
     for region in subscription.regions.all():
         send_uptime_subscription_config(region, subscription)
     subscription.update(
-        status=QuerySubscription.Status.ACTIVE.value,
+        status=UptimeSubscription.Status.ACTIVE.value,
         subscription_id=subscription.subscription_id,
     )
 
@@ -59,6 +66,12 @@ def create_remote_uptime_subscription(uptime_subscription_id, **kwargs):
     queue="uptime",
     default_retry_delay=5,
     max_retries=5,
+    taskworker_config=TaskworkerConfig(
+        namespace=uptime_tasks,
+        retry=Retry(
+            times=5,
+        ),
+    ),
 )
 def update_remote_uptime_subscription(uptime_subscription_id, **kwargs):
     """
@@ -76,7 +89,7 @@ def update_remote_uptime_subscription(uptime_subscription_id, **kwargs):
     for region in subscription.regions.all():
         send_uptime_subscription_config(region, subscription)
     subscription.update(
-        status=QuerySubscription.Status.ACTIVE.value,
+        status=UptimeSubscription.Status.ACTIVE.value,
         subscription_id=subscription.subscription_id,
     )
 
@@ -86,6 +99,12 @@ def update_remote_uptime_subscription(uptime_subscription_id, **kwargs):
     queue="uptime",
     default_retry_delay=5,
     max_retries=5,
+    taskworker_config=TaskworkerConfig(
+        namespace=uptime_tasks,
+        retry=Retry(
+            times=5,
+        ),
+    ),
 )
 def delete_remote_uptime_subscription(uptime_subscription_id, **kwargs):
     try:
@@ -104,7 +123,7 @@ def delete_remote_uptime_subscription(uptime_subscription_id, **kwargs):
     region_slugs = [s.region_slug for s in subscription.regions.all()]
 
     subscription_id = subscription.subscription_id
-    if subscription.status == QuerySubscription.Status.DELETING.value:
+    if subscription.status == UptimeSubscription.Status.DELETING.value:
         subscription.delete()
     else:
         subscription.update(subscription_id=None)
@@ -157,6 +176,9 @@ def send_uptime_config_deletion(destination_region_slug: str, subscription_id: s
 @instrumented_task(
     name="sentry.uptime.tasks.subscription_checker",
     queue="uptime",
+    taskworker_config=TaskworkerConfig(
+        namespace=uptime_tasks,
+    ),
 )
 def subscription_checker(**kwargs):
     """
@@ -192,17 +214,19 @@ def broken_monitor_checker(**kwargs):
     """
     This checks for auto created uptime monitors that have been broken for a long time and disables them.
     """
-    from sentry.uptime.subscriptions.subscriptions import disable_project_uptime_subscription
+    from sentry.uptime.subscriptions.subscriptions import disable_uptime_detector
 
     count = 0
-    for uptime_monitor in RangeQuerySetWrapper(
-        ProjectUptimeSubscription.objects.filter(
+    for uptime_subscription in RangeQuerySetWrapper(
+        UptimeSubscription.objects.filter(
             uptime_status=UptimeStatus.FAILED,
             uptime_status_update_date__lt=timezone.now() - BROKEN_MONITOR_AGE_LIMIT,
-            mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
         )
     ):
-        disable_project_uptime_subscription(uptime_monitor)
-        count += 1
+        detector = get_detector(uptime_subscription)
+        assert detector
+        if detector.config["mode"] == ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE:
+            disable_uptime_detector(detector)
+            count += 1
 
     metrics.incr("uptime.subscriptions.disable_broken", amount=count, sample_rate=1.0)

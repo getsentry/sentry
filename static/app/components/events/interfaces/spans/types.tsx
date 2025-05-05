@@ -39,6 +39,7 @@ export type RawSpanType = {
   description?: string;
   exclusive_time?: number;
   hash?: string;
+  links?: SpanLink[];
   op?: string;
   origin?: string;
   parent_span_id?: string;
@@ -50,7 +51,7 @@ export type RawSpanType = {
     'avg(span.self_time)'?: number;
   };
   status?: string;
-  tags?: {[key: string]: string};
+  tags?: Record<string, string>;
 };
 
 export type AggregateSpanType = RawSpanType & {
@@ -105,14 +106,14 @@ export type FetchEmbeddedChildrenState =
   | 'loading_embedded_transactions'
   | 'error_fetching_embedded_transactions';
 
-export type SpanGroupProps = {
+type SpanGroupProps = {
   isNestedSpanGroupExpanded: boolean;
   spanNestedGrouping: EnhancedSpan[] | undefined;
   toggleNestedSpanGroup: (() => void) | undefined;
   toggleSiblingSpanGroup: ((span: SpanType) => void) | undefined;
 };
 
-export type SpanSiblingGroupProps = {
+type SpanSiblingGroupProps = {
   isLastSibling: boolean;
   occurrence: number;
   spanSiblingGrouping: EnhancedSpan[] | undefined;
@@ -173,7 +174,7 @@ export type EnhancedProcessedSpanType =
     } & SpanSiblingGroupProps);
 
 // map span_id to children whose parent_span_id is equal to span_id
-export type SpanChildrenLookupType = {[span_id: string]: SpanType[]};
+export type SpanChildrenLookupType = Record<string, SpanType[]>;
 
 export type ParsedTraceType = {
   childSpans: SpanChildrenLookupType;
@@ -199,6 +200,16 @@ export enum TickAlignment {
   CENTER = 2,
 }
 
+type AttributeValue = string | number | boolean | string[] | number[] | boolean[];
+
+export type SpanLink = {
+  span_id: string;
+  trace_id: string;
+  attributes?: Record<string, AttributeValue> & {'sentry.link.type'?: AttributeValue};
+  parent_span_id?: string;
+  sampled?: boolean;
+};
+
 export type TraceContextType = {
   client_sample_rate?: number;
   count?: number;
@@ -207,6 +218,7 @@ export type TraceContextType = {
   exclusive_time?: number;
   frequency?: number;
   hash?: string;
+  links?: SpanLink[];
   op?: string;
   parent_span_id?: string;
   span_id?: string;
@@ -214,6 +226,10 @@ export type TraceContextType = {
   total?: number;
   trace_id?: string;
   type?: 'trace';
+};
+
+export type TraceContextSpanProxy = Omit<TraceContextType, 'span_id'> & {
+  span_id: string; // TODO: Remove this temporary type.
 };
 
 type SpanTreeDepth = number;

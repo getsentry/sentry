@@ -10,7 +10,6 @@ import ActionsPanel from 'sentry/views/alerts/rules/metric/triggers/actionsPanel
 import AnomalyDetectionFormField from 'sentry/views/alerts/rules/metric/triggers/anomalyAlertsForm';
 import DynamicAlertsFeedbackButton from 'sentry/views/alerts/rules/metric/triggers/dynamicAlertsFeedbackButton';
 import TriggerForm from 'sentry/views/alerts/rules/metric/triggers/form';
-
 import {
   type Action,
   AlertRuleComparisonType,
@@ -19,7 +18,7 @@ import {
   type MetricActionTemplate,
   type Trigger,
   type UnsavedMetricRule,
-} from '../types';
+} from 'sentry/views/alerts/rules/metric/types';
 
 type Props = {
   aggregate: UnsavedMetricRule['aggregate'];
@@ -27,7 +26,7 @@ type Props = {
   comparisonType: AlertRuleComparisonType;
   currentProject: string;
   disabled: boolean;
-  errors: Map<number, {[fieldName: string]: string}>;
+  errors: Map<number, Record<string, string>>;
   onChange: (
     triggers: Trigger[],
     triggerIndex?: number,

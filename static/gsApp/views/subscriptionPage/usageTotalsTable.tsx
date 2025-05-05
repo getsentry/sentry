@@ -1,25 +1,29 @@
 import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import capitalize from 'lodash/capitalize';
 
 import {Button} from 'sentry/components/core/button';
+import type {TooltipProps} from 'sentry/components/core/tooltip';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
-import type {Tooltip} from 'sentry/components/tooltip';
 import {IconStack} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {DataCategory} from 'sentry/types/core';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import type {BillingStatTotal, Subscription} from 'getsentry/types';
 import {formatUsageWithUnits} from 'getsentry/utils/billing';
-import {getPlanCategoryName, SINGULAR_DATA_CATEGORY} from 'getsentry/utils/dataCategory';
-import titleCase from 'getsentry/utils/titleCase';
+import {
+  getCategoryInfoFromPlural,
+  getPlanCategoryName,
+  isContinuousProfiling,
+} from 'getsentry/utils/dataCategory';
 import {StripedTable} from 'getsentry/views/subscriptionPage/styles';
 import {displayPercentage} from 'getsentry/views/subscriptionPage/usageTotals';
 
 type RowProps = {
-  category: string;
+  category: DataCategory;
   /**
    * Name of outcome reason (e.g. Over Quota, Spike Protection, etc.)
    */
@@ -40,7 +44,7 @@ type RowProps = {
   /**
    * Adds an info tooltip to `name`
    */
-  tooltipTitle?: React.ComponentProps<typeof Tooltip>['title'];
+  tooltipTitle?: TooltipProps['title'];
 };
 
 function OutcomeRow({
@@ -88,7 +92,7 @@ function OutcomeRow({
 }
 
 type OutcomeSectionProps = {
-  category: string;
+  category: DataCategory;
   children: React.ReactNode;
   name: string;
   quantity: number;
@@ -133,7 +137,7 @@ function OutcomeSection({
 }
 
 type Props = {
-  category: string;
+  category: DataCategory;
   subscription: Subscription;
   totals: BillingStatTotal;
   isEventBreakdown?: boolean;
@@ -142,25 +146,30 @@ type Props = {
 function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Props) {
   function OutcomeTable({children}: {children: React.ReactNode}) {
     const categoryName = isEventBreakdown
-      ? titleCase(category)
-      : titleCase(
-          getPlanCategoryName({
-            plan: subscription.planDetails,
-            category,
-            hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
-          })
-        );
+      ? toTitleCase(category, {allowInnerUpperCase: true})
+      : getPlanCategoryName({
+          plan: subscription.planDetails,
+          category,
+          hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+          title: true,
+        });
+
+    const testId = isEventBreakdown
+      ? `event-table-${category}`
+      : `category-table-${category}`;
 
     return (
-      <StyledTable>
+      <StyledTable data-test-id={testId}>
         <thead>
           <tr>
             <th>
               <TextOverflow>
                 {isEventBreakdown
                   ? tct('[singularName] Events', {
-                      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                      singularName: capitalize(SINGULAR_DATA_CATEGORY[category]),
+                      singularName: toTitleCase(
+                        getCategoryInfoFromPlural(category)?.displayName ?? category,
+                        {allowInnerUpperCase: true}
+                      ),
                     })
                   : categoryName}
               </TextOverflow>
@@ -177,6 +186,9 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
       </StyledTable>
     );
   }
+  const totalDropped = isContinuousProfiling(category)
+    ? t('Total Dropped (estimated)')
+    : t('Total Dropped');
 
   return (
     <UsageTableWrapper>
@@ -189,7 +201,7 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
         />
         <OutcomeSection
           isEventBreakdown={isEventBreakdown}
-          name={t('Total Dropped')}
+          name={totalDropped}
           quantity={totals.dropped}
           category={category}
           totals={totals}

@@ -3,7 +3,7 @@ from __future__ import annotations
 import itertools
 from collections.abc import Callable, Sequence
 from datetime import timedelta
-from typing import Any
+from typing import Any, cast
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
@@ -31,9 +31,10 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
+from sentry.search.eap.constants import SAMPLING_MODE_MAP
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
 from sentry.search.events.fields import get_function_alias
-from sentry.search.events.types import SnubaParams
+from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba import discover
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.utils import DATASET_LABELS, DATASET_OPTIONS, get_dataset
@@ -91,8 +92,10 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             strip_equation(field) for field in request.GET.getlist("field")[:] if is_equation(field)
         ]
 
-    def get_field_list(self, organization: Organization, request: Request) -> list[str]:
-        return [field for field in request.GET.getlist("field")[:] if not is_equation(field)]
+    def get_field_list(
+        self, organization: Organization, request: Request, param_name: str = "field"
+    ) -> list[str]:
+        return [field for field in request.GET.getlist(param_name)[:] if not is_equation(field)]
 
     def get_teams(self, request: Request, organization: Organization) -> list[Team]:
         if not request.user:
@@ -131,6 +134,13 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 )
 
             filter_params = self.get_filter_params(request, organization)
+            query = request.GET.get("query", "")
+            sampling_mode = request.GET.get("sampling", None)
+            if sampling_mode is not None:
+                if sampling_mode.upper() not in SAMPLING_MODE_MAP:
+                    raise InvalidSearchQuery(f"sampling mode: {sampling_mode} is not supported")
+                sampling_mode = cast(SAMPLING_MODES, sampling_mode.upper())
+
             if quantize_date_params:
                 filter_params = self.quantize_date_params(request, filter_params)
             params = SnubaParams(
@@ -143,6 +153,8 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 ),
                 teams=self.get_teams(request, organization),
                 organization=organization,
+                query_string=query,
+                sampling_mode=sampling_mode,
             )
 
             if check_global_views:
@@ -297,24 +309,25 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         units: dict[str, str | None] = {}
         meta: dict[str, str] = result_meta.copy()
         for key, value in result_meta.items():
-            if value in SIZE_UNITS:
-                units[key] = value
-                meta[key] = "size"
-            elif value in DURATION_UNITS:
-                units[key] = value
-                meta[key] = "duration"
-            elif value == "rate":
-                if key in ["eps()", "sps()", "tps()"]:
-                    units[key] = "1/second"
-                elif key in ["epm()", "spm()", "tpm()"]:
-                    units[key] = "1/minute"
-                else:
-                    units[key] = None
-            elif value == "duration":
-                units[key] = "millisecond"
-            else:
-                units[key] = None
+            units[key], meta[key] = self.get_unit_and_type(key, value)
         return meta, units
+
+    def get_unit_and_type(self, field, field_type):
+        if field_type in SIZE_UNITS:
+            return field_type, "size"
+        elif field_type in DURATION_UNITS:
+            return field_type, "duration"
+        elif field_type == "rate":
+            if field in ["eps()", "sps()", "tps()"]:
+                return "1/second", field_type
+            elif field in ["epm()", "spm()", "tpm()"]:
+                return "1/minute", field_type
+            else:
+                return None, field_type
+        elif field_type == "duration":
+            return "millisecond", field_type
+        else:
+            return None, field_type
 
     def handle_results_with_meta(
         self,
@@ -334,6 +347,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 isMetricsData = meta.pop("isMetricsData", False)
                 isMetricsExtractedData = meta.pop("isMetricsExtractedData", False)
                 discoverSplitDecision = meta.pop("discoverSplitDecision", None)
+                full_scan = meta.pop("full_scan", None)
+                query = meta.pop("query", None)
                 fields, units = self.handle_unit_meta(fields_meta)
                 meta = {
                     "fields": fields,
@@ -348,6 +363,16 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
                 if discoverSplitDecision is not None:
                     meta["discoverSplitDecision"] = discoverSplitDecision
+
+                if full_scan is not None:
+                    meta["dataScanned"] = "full" if full_scan else "partial"
+                else:
+                    # If this key isn't in meta there wasn't any sampling and we can assume all the data was scanned
+                    meta["dataScanned"] = "full"
+
+                # Only appears in meta when debug is passed to the endpoint
+                if query:
+                    meta["query"] = query
             else:
                 meta = fields_meta
 
@@ -418,6 +443,39 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 if readable_value:
                     result["readable"] = readable_value
 
+    def get_rollup(
+        self, request: Request, snuba_params: SnubaParams, top_events: int, use_rpc: bool
+    ) -> int:
+        """TODO: we should eventually rely on `SnubaParams.granularity_secs` instead"""
+        try:
+            rollup = get_rollup_from_request(
+                request,
+                snuba_params.date_range,
+                default_interval=None,
+                error=InvalidSearchQuery(),
+                top_events=top_events,
+                allow_interval_over_range=not use_rpc,
+            )
+        # If the user sends an invalid interval, use the default instead
+        except InvalidSearchQuery:
+            sentry_sdk.set_tag("user.invalid_interval", request.GET.get("interval"))
+            date_range = snuba_params.date_range
+            stats_period = parse_stats_period(get_interval_from_range(date_range, False))
+            rollup = int(stats_period.total_seconds()) if stats_period is not None else 3600
+        return rollup
+
+    def validate_comparison_delta(
+        self,
+        comparison_delta: timedelta | None,
+        snuba_params: SnubaParams,
+        organization: Organization,
+    ) -> None:
+        if comparison_delta is not None:
+            retention = quotas.backend.get_event_retention(organization=organization)
+            comparison_start = snuba_params.start_date - comparison_delta
+            if retention and comparison_start < timezone.now() - timedelta(days=retention):
+                raise ValidationError("Comparison period is outside your retention window")
+
     def get_event_stats_data(
         self,
         request: Request,
@@ -458,26 +516,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     except NoProjects:
                         return {"data": []}
 
-                try:
-                    rollup = get_rollup_from_request(
-                        request,
-                        snuba_params.date_range,
-                        default_interval=None,
-                        error=InvalidSearchQuery(),
-                        top_events=top_events,
-                        allow_interval_over_range=not use_rpc,
-                    )
-                # If the user sends an invalid interval, use the default instead
-                except InvalidSearchQuery:
-                    sentry_sdk.set_tag("user.invalid_interval", request.GET.get("interval"))
-                    date_range = snuba_params.date_range
-                    stats_period = parse_stats_period(get_interval_from_range(date_range, False))
-                    rollup = int(stats_period.total_seconds()) if stats_period is not None else 3600
-                if comparison_delta is not None:
-                    retention = quotas.backend.get_event_retention(organization=organization)
-                    comparison_start = snuba_params.start_date - comparison_delta
-                    if retention and comparison_start < timezone.now() - timedelta(days=retention):
-                        raise ValidationError("Comparison period is outside your retention window")
+                rollup = self.get_rollup(request, snuba_params, top_events, use_rpc)
+                snuba_params.granularity_secs = rollup
+                self.validate_comparison_delta(comparison_delta, snuba_params, organization)
 
                 query_columns = get_query_columns(columns, rollup)
             with sentry_sdk.start_span(op="discover.endpoint", name="base.stats_query"):
@@ -627,8 +668,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             )
             if is_equation(query_column):
                 equations += 1
-            self.update_meta_with_accuracy(meta, event_result, query_column)
-            result[columns[index]]["meta"] = meta
+            column_meta = meta.copy()
+            self.update_meta_with_accuracy(column_meta, event_result, query_column)
+            result[columns[index]]["meta"] = column_meta
         # Set order if multi-axis + top events
         if "order" in event_result.data:
             result["order"] = event_result.data["order"]
@@ -662,7 +704,12 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 row_value = row.get(column, None)
                 if row_value == 0 and null_zero:
                     row_value = None
-                serialized_values.append({"timestamp": timestamp, "value": row_value})
+                serialized_values.append(
+                    {
+                        "timestamp": timestamp,
+                        "value": row_value,
+                    }
+                )
         return serialized_values
 
 

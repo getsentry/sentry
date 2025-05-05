@@ -2,10 +2,16 @@ import logging
 from typing import Any
 
 from jsonschema import Draft7Validator
+from requests import RequestException
 from requests.exceptions import ConnectionError, Timeout
 from requests.models import Response
 
 from sentry.http import safe_urlopen
+from sentry.sentry_apps.metrics import (
+    SentryAppEventType,
+    SentryAppInteractionEvent,
+    SentryAppInteractionType,
+)
 from sentry.sentry_apps.models.sentry_app import SentryApp, track_response_code
 from sentry.sentry_apps.services.app.model import RpcSentryApp
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
@@ -61,43 +67,53 @@ def send_and_save_sentry_app_request(
 
     kwargs ends up being the arguments passed into safe_urlopen
     """
-    buffer = SentryAppWebhookRequestsBuffer(sentry_app)
-    slug = sentry_app.slug_for_metrics
 
-    try:
-        resp = safe_urlopen(url=url, **kwargs)
-    except (Timeout, ConnectionError) as e:
-        error_type = e.__class__.__name__.lower()
-        logger.info(
-            "send_and_save_sentry_app_request.timeout",
-            extra={
-                "error_type": error_type,
-                "organization_id": org_id,
-                "integration_slug": sentry_app.slug,
-                "url": url,
-            },
-        )
-        track_response_code(error_type, slug, event)
+    with SentryAppInteractionEvent(
+        operation_type=SentryAppInteractionType.EXTERNAL_REQUEST,
+        event_type=SentryAppEventType(event),
+    ).capture() as lifecycle:
+        buffer = SentryAppWebhookRequestsBuffer(sentry_app)
+        slug = sentry_app.slug_for_metrics
+
+        try:
+            resp = safe_urlopen(url=url, **kwargs)
+        except (Timeout, ConnectionError) as e:
+            error_type = e.__class__.__name__.lower()
+            lifecycle.add_extras(
+                {
+                    "reason": "send_and_save_sentry_app_request.timeout",
+                    "error_type": error_type,
+                    "organization_id": org_id,
+                    "integration_slug": sentry_app.slug,
+                    "url": url,
+                },
+            )
+            track_response_code(error_type, slug, event)
+            buffer.add_request(
+                response_code=TIMEOUT_STATUS_CODE,
+                org_id=org_id,
+                event=event,
+                url=url,
+                headers=kwargs.get("headers"),
+            )
+            lifecycle.record_halt(e)
+            # Re-raise the exception because some of these tasks might retry on the exception
+            raise
+
+        track_response_code(resp.status_code, slug, event)
         buffer.add_request(
-            response_code=TIMEOUT_STATUS_CODE,
+            response_code=resp.status_code,
             org_id=org_id,
             event=event,
             url=url,
+            error_id=resp.headers.get("Sentry-Hook-Error"),
+            project_id=resp.headers.get("Sentry-Hook-Project"),
+            response=resp,
             headers=kwargs.get("headers"),
         )
-        # Re-raise the exception because some of these tasks might retry on the exception
-        raise
-
-    track_response_code(resp.status_code, slug, event)
-    buffer.add_request(
-        response_code=resp.status_code,
-        org_id=org_id,
-        event=event,
-        url=url,
-        error_id=resp.headers.get("Sentry-Hook-Error"),
-        project_id=resp.headers.get("Sentry-Hook-Project"),
-        response=resp,
-        headers=kwargs.get("headers"),
-    )
-    resp.raise_for_status()
-    return resp
+        try:
+            resp.raise_for_status()
+        except RequestException as e:
+            lifecycle.record_halt(e)
+            raise
+        return resp

@@ -188,7 +188,7 @@ def _sync_gcloud_workstation_cmd(
 
     def capture_stderr(pipe: TextIO) -> None:
         for line in iter(pipe.readline, ""):
-            nonlocal stderr, proc, silence_stderr
+            nonlocal stderr
             stderr += line
             if not silence_stderr:
                 sys.stdout.write(line)

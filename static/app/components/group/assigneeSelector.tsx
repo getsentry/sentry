@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
@@ -22,6 +23,7 @@ interface AssigneeSelectorProps {
   additionalMenuFooterItems?: React.ReactNode;
   memberList?: User[];
   owners?: Array<Omit<SuggestedAssignee, 'assignee'>>;
+  showLabel?: boolean;
 }
 
 export type OnAssignCallback = (
@@ -78,7 +80,10 @@ export function AssigneeSelector({
   handleAssigneeChange,
   owners,
   additionalMenuFooterItems,
+  showLabel = false,
 }: AssigneeSelectorProps) {
+  const theme = useTheme();
+
   return (
     <AssigneeSelectorDropdown
       group={group}
@@ -92,8 +97,8 @@ export function AssigneeSelector({
       trigger={(props, isOpen) => (
         <StyledDropdownButton
           {...props}
-          borderless
           aria-label={t('Modify issue assignee')}
+          borderless={!theme.isChonk}
           size="zero"
         >
           <AssigneeBadge
@@ -105,6 +110,7 @@ export function AssigneeSelector({
               })?.type
             }
             loading={assigneeLoading}
+            showLabel={showLabel}
             chevronDirection={isOpen ? 'up' : 'down'}
           />
         </StyledDropdownButton>
@@ -121,4 +127,13 @@ const StyledDropdownButton = styled(Button)`
   height: unset;
   border-radius: 20px;
   box-shadow: none;
+
+  ${p =>
+    // Chonk tags have a smaller border radius, so we need make sure it matches.
+    p.theme.isChonk &&
+    `
+      > span > div {
+        border-radius: 20px;
+      }
+    `}
 `;

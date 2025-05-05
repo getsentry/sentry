@@ -71,6 +71,10 @@ describe('ContractSelect', function () {
     expect(screen.getByText('Annual Contract')).toBeInTheDocument();
     expect(screen.getByDisplayValue('monthly')).toBeInTheDocument();
     expect(screen.getByDisplayValue('annual')).toBeInTheDocument();
+
+    // does not show event price tags
+    expect(screen.queryByText(/\ error/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/\ span/)).not.toBeInTheDocument();
   });
 
   it('renders with correct default prices', async function () {

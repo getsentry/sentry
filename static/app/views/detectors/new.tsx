@@ -1,5 +1,5 @@
 import {Flex} from 'sentry/components/container/flex';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button';
 import {
   StickyFooter,
   StickyFooterLabel,
@@ -7,6 +7,7 @@ import {
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DetectorTypeForm} from 'sentry/views/detectors/components/detectorTypeForm';
 import NewDetectorLayout from 'sentry/views/detectors/layouts/new';
 
 export default function DetectorNew() {
@@ -14,11 +15,14 @@ export default function DetectorNew() {
 
   return (
     <NewDetectorLayout>
+      <DetectorTypeForm />
       <StickyFooter>
         <StickyFooterLabel>{t('Step 1 of 2')}</StickyFooterLabel>
         <Flex gap={space(1)}>
-          <Button priority="default">{t('Cancel')}</Button>
-          <LinkButton priority="primary" to="/monitors/new/settings">
+          <LinkButton priority="default" to="/issues/monitors">
+            {t('Cancel')}
+          </LinkButton>
+          <LinkButton priority="primary" to="settings">
             {t('Next')}
           </LinkButton>
         </Flex>

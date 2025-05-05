@@ -6,7 +6,6 @@ import {motion} from 'framer-motion';
 import Text from 'sentry/components/text';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
-
 /**
  * The default wrapper for the detail text.
  *

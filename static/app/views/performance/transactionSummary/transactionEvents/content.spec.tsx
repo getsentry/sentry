@@ -65,7 +65,7 @@ describe('Performance Transaction Events Content', function () {
       ...SPAN_OP_BREAKDOWN_FIELDS,
     ];
     mockUseLocation.mockReturnValue(
-      LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
+      LocationFixture({pathname: '/organizations/org-slug/insights/summary'})
     );
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -193,7 +193,7 @@ describe('Performance Transaction Events Content', function () {
 
   it('basic rendering', async function () {
     render(
-      <OrganizationContext.Provider value={initialData.organization}>
+      <OrganizationContext value={initialData.organization}>
         <EventsPageContent
           eventView={eventView}
           organization={initialData.organization}
@@ -207,8 +207,7 @@ describe('Performance Transaction Events Content', function () {
           projectId="123"
           projects={[]}
         />
-      </OrganizationContext.Provider>,
-      {router: initialData.router}
+      </OrganizationContext>
     );
 
     expect(await screen.findByTestId('events-table')).toBeInTheDocument();
@@ -233,7 +232,7 @@ describe('Performance Transaction Events Content', function () {
 
   it('rendering with webvital selected', async function () {
     render(
-      <OrganizationContext.Provider value={initialData.organization}>
+      <OrganizationContext value={initialData.organization}>
         <EventsPageContent
           eventView={eventView}
           organization={initialData.organization}
@@ -248,8 +247,7 @@ describe('Performance Transaction Events Content', function () {
           projectId="123"
           projects={[]}
         />
-      </OrganizationContext.Provider>,
-      {router: initialData.router}
+      </OrganizationContext>
     );
 
     expect(await screen.findByTestId('events-table')).toBeInTheDocument();
@@ -279,7 +277,7 @@ describe('Performance Transaction Events Content', function () {
       initialData.router.location
     );
     render(
-      <OrganizationContext.Provider value={initialData.organization}>
+      <OrganizationContext value={initialData.organization}>
         <EventsPageContent
           eventView={_eventView}
           organization={initialData.organization}
@@ -294,8 +292,7 @@ describe('Performance Transaction Events Content', function () {
           projectId="1"
           projects={[ProjectFixture({id: '1', platform: 'python'})]}
         />
-      </OrganizationContext.Provider>,
-      {router: initialData.router}
+      </OrganizationContext>
     );
 
     expect(await screen.findByTestId('events-table')).toBeInTheDocument();

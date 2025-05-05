@@ -71,6 +71,12 @@ const FILTER_KEYS: TagCollection = {
     name: 'timesSeen',
     kind: FieldKind.FIELD,
   },
+  [FieldKey.DEVICE]: {
+    key: 'device',
+    name: 'Device',
+    kind: FieldKind.FIELD,
+    predefined: false,
+  },
   custom_tag_name: {
     key: 'custom_tag_name',
     name: 'Custom_Tag_Name',
@@ -370,6 +376,15 @@ describe('SearchQueryBuilder', function () {
         'aria-selected',
         'true'
       );
+    });
+
+    it('can add a new filter key by clicking an option in the menu', async function () {
+      render(<SearchQueryBuilder {...defaultProps} />);
+
+      await userEvent.click(getLastInput());
+      await userEvent.click(screen.getByRole('option', {name: 'age'}));
+
+      expect(await screen.findByRole('row', {name: 'age:-24h'})).toBeInTheDocument();
     });
 
     describe('recent filter keys', function () {
@@ -1144,7 +1159,7 @@ describe('SearchQueryBuilder', function () {
       const opButton = await screen.findByRole('button', {
         name: 'Edit operator for filter: browser.name',
       });
-      await act(() => opButton.focus());
+      act(() => opButton.focus());
 
       // Pressing backspace once should focus the token
       await userEvent.keyboard('{backspace}');
@@ -2698,6 +2713,30 @@ describe('SearchQueryBuilder', function () {
 
         expect(await screen.findByText('is on or after')).toBeInTheDocument();
         expect(screen.getByText('Oct 17, 2:00 PM UTC')).toBeInTheDocument();
+      });
+    });
+
+    describe('device', function () {
+      it('displays the readable name', async function () {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            getTagValues={() => Promise.resolve(['iPhone14,5', 'iPhone15,4'])}
+            initialQuery="device:"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: device'})
+        );
+        await screen.findByRole('option', {name: 'iPhone14,5'});
+
+        expect(await screen.findByText('iPhone 13')).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('option', {name: 'iPhone14,5'}));
+
+        expect(
+          screen.getByRole('row', {name: 'device:"iPhone14,5"'})
+        ).toBeInTheDocument();
       });
     });
 

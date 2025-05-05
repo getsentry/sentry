@@ -37,6 +37,7 @@ import {
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getJavascriptProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {updateDynamicSdkLoaderOptions} from './jsLoader/updateDynamicSdkLoaderOptions';
@@ -254,7 +255,12 @@ const getDynamicParts = (params: Params): string[] => {
 const getSdkSetupSnippet = (params: Params) => {
   const config = buildSdkConfig({
     params,
-    staticParts: [`dsn: "${params.dsn.public}"`],
+    staticParts: [
+      `dsn: "${params.dsn.public}"`,
+      `// Setting this option to true will send default PII data to Sentry.
+      // For example, automatic IP address collection on events
+      sendDefaultPii: true`,
+    ],
     getIntegrations,
     getDynamicParts,
   });
@@ -287,6 +293,12 @@ const getInstallConfig = () => [
         language: 'bash',
         code: 'yarn add @sentry/browser',
       },
+      {
+        label: 'pnpm',
+        value: 'pnpm',
+        language: 'bash',
+        code: 'pnpm add @sentry/browser',
+      },
     ],
   },
 ];
@@ -314,7 +326,7 @@ const getVerifyConfig = () => [
 
 const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
-    tct('In this quick guide you’ll use our [strong: Loader Script] to set up:', {
+    tct("In this quick guide you'll use our [strong: Loader Script] to set up:", {
       strong: <strong />,
     }),
   install: params => [
@@ -448,14 +460,17 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
 
 const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
-    tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
-      strong: <strong />,
-    }),
+    tct(
+      "In this quick guide you'll use [strong:npm], [strong:yarn], or [strong:pnpm] to set up:",
+      {
+        strong: <strong />,
+      }
+    ),
   install: () => [
     {
       type: StepType.INSTALL,
       description: t(
-        'Sentry captures data by using an SDK within your application’s runtime.'
+        "Sentry captures data by using an SDK within your application's runtime."
       ),
       configurations: getInstallConfig(),
     },
@@ -718,6 +733,9 @@ Sentry.init({
   tracesSampleRate: 1.0,
   // Set \`tracePropagationTargets\` to control for which URLs distributed tracing should be enabled
   tracePropagationTargets: ["localhost", /^https:\/\/yourserver\.io\/api/],
+  // Setting this option to true will send default PII data to Sentry.
+  // For example, automatic IP address collection on events
+  sendDefaultPii: true,
 });
 `,
           additionalInfo: tct(
@@ -752,6 +770,9 @@ Sentry.init({
   dsn: "${params.dsn.public}",
   integrations: [Sentry.browserTracingIntegration()],
   tracePropagationTargets: ["https://myproject.org", /^\/api\//],
+  // Setting this option to true will send default PII data to Sentry.
+  // For example, automatic IP address collection on events
+  sendDefaultPii: true,
 });
 `,
         },
@@ -774,10 +795,10 @@ Sentry.init({
   nextSteps: () => [],
 };
 
-const profilingOnboarding: OnboardingConfig<PlatformOptions> = {
-  ...onboarding,
-  introduction: params => <MaybeBrowserProfilingBetaWarning {...params} />,
-};
+const profilingOnboarding = getJavascriptProfilingOnboarding({
+  getInstallConfig,
+  docsLink: 'https://docs.sentry.io/platforms/javascript/profiling/browser-profiling/',
+});
 
 export const featureFlagOnboarding: OnboardingConfig = {
   install: () => [],
@@ -785,7 +806,7 @@ export const featureFlagOnboarding: OnboardingConfig = {
     const {integrationName, makeConfigureCode, makeVerifyCode, packageName} =
       FEATURE_FLAG_CONFIGURATION_MAP[
         featureFlagOptions.integration as keyof typeof FEATURE_FLAG_CONFIGURATION_MAP
-      ]!;
+      ];
 
     const installConfig = [
       {
@@ -802,6 +823,12 @@ export const featureFlagOnboarding: OnboardingConfig = {
             value: 'yarn',
             language: 'bash',
             code: `yarn add @sentry/browser ${packageName}`,
+          },
+          {
+            label: 'pnpm',
+            value: 'pnpm',
+            language: 'bash',
+            code: `pnpm add @sentry/browser ${packageName}`,
           },
         ],
       },
@@ -853,7 +880,6 @@ const docs: Docs<PlatformOptions> = {
   replayOnboarding,
   replayOnboardingJsLoader,
   performanceOnboarding,
-
   crashReportOnboarding,
   platformOptions,
   profilingOnboarding,

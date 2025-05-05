@@ -16,10 +16,10 @@ export default function AnalyticsProvider({
 }) {
   const {eventKey, eventName} = useContext(AnalyticsContext);
   return (
-    <AnalyticsContext.Provider
+    <AnalyticsContext
       value={{eventName: eventName + ' ' + nameVal, eventKey: eventKey + '.' + keyVal}}
     >
       {children}
-    </AnalyticsContext.Provider>
+    </AnalyticsContext>
   );
 }

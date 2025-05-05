@@ -1,5 +1,5 @@
 import type BasePlugin from 'sentry/plugins/basePlugin';
-import DefaultIssuePlugin from 'sentry/plugins/defaultIssuePlugin';
+import {DefaultIssuePlugin} from 'sentry/plugins/defaultIssuePlugin';
 
 import IssueActions from './components/issueActions';
 import Settings from './components/settings';

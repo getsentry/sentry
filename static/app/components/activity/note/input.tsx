@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useId, useState} from 'react';
 import type {MentionsInputProps} from 'react-mentions';
 import {Mention, MentionsInput} from 'react-mentions';
 import type {Theme} from '@emotion/react';
@@ -12,8 +12,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import textStyles from 'sentry/styles/text';
 import type {NoteType} from 'sentry/types/alerts';
-import domId from 'sentry/utils/domId';
-import marked from 'sentry/utils/marked';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useTeams} from 'sentry/utils/useTeams';
 
@@ -149,7 +148,7 @@ function NoteInput({
     [canSubmit, submitForm]
   );
 
-  const errorId = useMemo(() => domId('note-error-'), []);
+  const errorId = useId();
   const errorMessage =
     (errorJSON &&
       (typeof errorJSON.detail === 'string'
@@ -189,15 +188,13 @@ function NoteInput({
                 data={suggestTeams}
                 onAdd={handleAddTeam}
                 markup="**[sentry.strip:team]__display__**"
+                displayTransform={(_id, display) => display}
                 appendSpaceOnAdd
               />
             </MentionsInput>
           </TabPanels.Item>
           <TabPanels.Item key="preview">
-            <NotePreview
-              minHeight={minHeight}
-              dangerouslySetInnerHTML={{__html: marked(cleanMarkdown)}}
-            />
+            <NotePreview minHeight={minHeight} text={cleanMarkdown} />
           </TabPanels.Item>
         </NoteInputPanel>
       </Tabs>
@@ -341,6 +338,8 @@ const MarkdownIndicator = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
-const NotePreview = styled('div')<{minHeight: Props['minHeight']}>`
+const NotePreview = styled(MarkedText, {
+  shouldForwardProp: prop => prop !== 'minHeight',
+})<{minHeight: Props['minHeight']}>`
   ${p => getNotePreviewCss(p)};
 `;

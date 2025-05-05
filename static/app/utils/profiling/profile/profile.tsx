@@ -1,7 +1,6 @@
+import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
+import {Frame} from 'sentry/utils/profiling/frame';
 import type {ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
-
-import {CallTreeNode} from '../callTreeNode';
-import {Frame} from '../frame';
 
 interface ProfileStats {
   discardedSamplesCount: number;
@@ -46,8 +45,10 @@ export class Profile {
     negativeSamplesCount: 0,
   };
 
-  callTreeNodeProfileIdMap: Map<CallTreeNode, Profiling.ProfileReference[] | string[]> =
-    new Map();
+  callTreeNodeProfileIdMap: Map<
+    CallTreeNode,
+    Set<Profiling.ProfileReference> | Set<string>
+  > = new Map();
 
   constructor({
     duration,

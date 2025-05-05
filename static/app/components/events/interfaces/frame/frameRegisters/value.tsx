@@ -1,26 +1,20 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/core/button';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Meta} from 'sentry/types/group';
-
-const REGISTER_VIEWS = [t('Hexadecimal'), t('Numeric')];
 
 type Props = {
   value: string | number;
   meta?: Meta;
 };
 
-type State = {
-  view: number;
-};
-
 export function FrameRegisterValue({meta, value}: Props) {
-  const [state, setState] = useState<State>({view: 0});
+  const [isHexadecimal, setIsHexadecimal] = useState(true);
 
   function formatValue() {
     try {
@@ -29,40 +23,34 @@ export function FrameRegisterValue({meta, value}: Props) {
         return value;
       }
 
-      switch (state.view) {
-        case 1:
-          return `${parsed}`;
-        case 0:
-        default:
-          return `0x${parsed.toString(16).padStart(16, '0')}`;
-      }
+      return isHexadecimal ? `0x${parsed.toString(16).padStart(16, '0')}` : `${parsed}`;
     } catch {
       return value;
     }
   }
 
+  const toggleFormat = () => {
+    setIsHexadecimal(!isHexadecimal);
+  };
+
+  const formatLabel = isHexadecimal ? t('Hexadecimal') : t('Numeric');
+
   return (
     <InlinePre>
       <AnnotatedText value={formatValue()} meta={meta} />
-      <StyledTooltip
-        title={REGISTER_VIEWS[state.view]}
-        containerDisplayMode="inline-flex"
-      >
-        <Toggle
-          onClick={() => {
-            setState({view: (state.view + 1) % REGISTER_VIEWS.length});
-          }}
-          size="xs"
+      <div>
+        <ToggleButton
+          size="zero"
+          borderless
+          icon={<IconSliders size="xs" />}
+          onClick={toggleFormat}
+          title={formatLabel}
           aria-label={t('Toggle register value format')}
         />
-      </StyledTooltip>
+      </div>
     </InlinePre>
   );
 }
-
-const StyledTooltip = styled(Tooltip)`
-  align-items: center;
-`;
 
 const InlinePre = styled('pre')`
   margin: 0;
@@ -75,9 +63,8 @@ const InlinePre = styled('pre')`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const Toggle = styled(IconSliders)`
+const ToggleButton = styled(Button)`
   opacity: 0.33;
-  cursor: pointer;
 
   &:hover {
     opacity: 1;

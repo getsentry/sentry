@@ -109,6 +109,7 @@ class WebHooksPlugin(notify.NotificationPlugin):
             "culprit": group.culprit,
             "message": event.message,
             "url": group.get_absolute_url(params={"referrer": "webhooks_plugin"}),
+            # TODO(ecosystem): We need to eventually change the key on this
             "triggering_rules": triggering_rules,
         }
         data["event"] = dict(event.data or {})

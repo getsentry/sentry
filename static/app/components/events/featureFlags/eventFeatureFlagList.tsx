@@ -1,8 +1,9 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import ButtonBar from 'sentry/components/buttonBar';
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {
   CardContainer,
@@ -13,12 +14,14 @@ import FeatureFlagSettingsButton from 'sentry/components/events/featureFlags/fea
 import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
 import {
   FlagControlOptions,
+  ORDER_BY_OPTIONS,
   OrderBy,
+  SORT_BY_OPTIONS,
   SortBy,
   sortedFlags,
 } from 'sentry/components/events/featureFlags/utils';
 import useDrawer from 'sentry/components/globalDrawer';
-import KeyValueData from 'sentry/components/keyValueData';
+import {KeyValueData} from 'sentry/components/keyValueData';
 import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import {IconMegaphone, IconSearch} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -31,20 +34,26 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import useLegacyEventSuspectFlags from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useLegacyEventSuspectFlags';
+import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useOrganizationFlagLog';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
-import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/useOrganizationFlagLog';
-import useSuspectFlags from 'sentry/views/issueDetails/streamline/hooks/useSuspectFlags';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-export function EventFeatureFlagList({
-  event,
-  group,
-  project,
-}: {
+export function EventFeatureFlagList(props: EventFeatureFlagListProps) {
+  return (
+    <AnalyticsArea name="event_feature_flag_list">
+      <BaseEventFeatureFlagList {...props} />
+    </AnalyticsArea>
+  );
+}
+
+type EventFeatureFlagListProps = {
   event: Event;
   group: Group;
   project: Project;
-}) {
+};
+
+function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagListProps) {
   const openForm = useFeedbackForm();
   const feedbackButton = openForm ? (
     <Button
@@ -114,7 +123,7 @@ export function EventFeatureFlagList({
     suspectFlags,
     isError: isSuspectError,
     isPending: isSuspectPending,
-  } = useSuspectFlags({
+  } = useLegacyEventSuspectFlags({
     organization,
     firstSeen: group.firstSeen,
     rawFlagData,
@@ -126,8 +135,6 @@ export function EventFeatureFlagList({
       ? new Set()
       : new Set(suspectFlags.map(f => f.flag));
   }, [isSuspectError, isSuspectPending, suspectFlags]);
-
-  const hasFlagContext = Boolean(event.contexts?.flags?.values);
 
   const eventFlags: Array<Required<FeatureFlag>> = useMemo(() => {
     // At runtime there's no type guarantees on the event flags. So we have to
@@ -188,6 +195,7 @@ export function EventFeatureFlagList({
         ),
         {
           ariaLabel: t('Feature flags drawer'),
+          drawerKey: 'feature-flags-drawer',
           // We prevent a click on the 'View All' button from closing the drawer so that
           // we don't reopen it immediately, and instead let the button handle this itself.
           shouldCloseOnInteractOutside: element => {
@@ -218,12 +226,17 @@ export function EventFeatureFlagList({
     return null;
   }
 
-  // contexts.flags is not set and project has not ingested flags
-  if (!hasFlagContext && !project.hasFlags) {
+  // If the project has never ingested flags, either show a CTA or hide the section entirely.
+  if (!hasFlags && !project.hasFlags) {
     const showCTA =
       featureFlagOnboardingPlatforms.includes(project.platform ?? 'other') &&
       organization.features.includes('feature-flag-cta');
-    return showCTA ? <FeatureFlagInlineCTA projectId={event.projectID} /> : null;
+    return showCTA ? (
+      <FeatureFlagInlineCTA
+        projectId={event.projectID}
+        projectPlatform={project.platform}
+      />
+    ) : null;
   }
 
   const actions = (
@@ -240,10 +253,24 @@ export function EventFeatureFlagList({
             onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
           />
           <FeatureFlagSort
+            sortByOptions={SORT_BY_OPTIONS}
+            orderByOptions={ORDER_BY_OPTIONS}
             orderBy={orderBy}
+            setOrderBy={value => {
+              setOrderBy(value);
+              trackAnalytics('flags.sort_flags', {
+                organization,
+                sortMethod: value as string,
+              });
+            }}
+            setSortBy={value => {
+              setSortBy(value);
+              trackAnalytics('flags.sort_flags', {
+                organization,
+                sortMethod: value as string,
+              });
+            }}
             sortBy={sortBy}
-            setSortBy={setSortBy}
-            setOrderBy={setOrderBy}
           />
         </Fragment>
       )}

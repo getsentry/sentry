@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Self
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models
-from django.db.models.signals import post_delete, post_save, pre_delete
+from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 from django.utils.translation import gettext_lazy
 
@@ -28,6 +28,7 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.incidents.models.incident import Incident, IncidentStatus, IncidentTrigger
 from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.notifications.models.notificationaction import (
@@ -38,8 +39,6 @@ from sentry.notifications.models.notificationaction import (
 from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer
 from sentry.snuba.models import QuerySubscription
 from sentry.types.actor import Actor
-from sentry.users.services.user import RpcUser
-from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
@@ -153,23 +152,6 @@ class AlertRuleManager(BaseManager["AlertRule"]):
                     },
                 )
 
-    @classmethod
-    def dual_delete_alert_rule(cls, instance: AlertRule, **kwargs: Any) -> None:
-        from sentry.workflow_engine.migration_helpers.alert_rule import (
-            dual_delete_migrated_alert_rule,
-        )
-
-        try:
-            dual_delete_migrated_alert_rule(instance)
-        except Exception as e:
-            logger.exception(
-                "Error when dual deleting alert rule",
-                extra={
-                    "rule_id": instance.id,
-                    "error": str(e),
-                },
-            )
-
 
 @region_silo_model
 class AlertRuleProjects(Model):
@@ -221,7 +203,9 @@ class AlertRule(Model):
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
     name = models.TextField()
-    status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
+    status = models.SmallIntegerField(
+        default=AlertRuleStatus.PENDING.value, db_default=AlertRuleStatus.PENDING.value
+    )
     threshold_type = models.SmallIntegerField(null=True)
     resolve_threshold = models.FloatField(null=True)
     # How many times an alert value must exceed the threshold to fire/resolve the alert
@@ -231,10 +215,14 @@ class AlertRule(Model):
     comparison_delta = models.IntegerField(choices=ComparisonDeltaChoices.choices, null=True)
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
-    monitor_type = models.IntegerField(default=AlertRuleMonitorTypeInt.CONTINUOUS)
+    monitor_type = models.IntegerField(
+        default=AlertRuleMonitorTypeInt.CONTINUOUS, db_default=AlertRuleMonitorTypeInt.CONTINUOUS
+    )
     description = models.CharField(max_length=1000, null=True)
     detection_type = models.CharField(
-        default=AlertRuleDetectionType.STATIC, choices=AlertRuleDetectionType.choices
+        default=AlertRuleDetectionType.STATIC,
+        db_default=AlertRuleDetectionType.STATIC,
+        choices=AlertRuleDetectionType.choices,
     )
     sensitivity = models.CharField(choices=AlertRuleSensitivity.choices, null=True)
     seasonality = models.CharField(choices=AlertRuleSeasonality.choices, null=True)
@@ -460,7 +448,9 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         dict[str, Any] | list[dict[str, Any]] | None,
     ] = JSONField(null=True)
     status = BoundedPositiveIntegerField(
-        default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
+        default=ObjectStatus.ACTIVE,
+        db_default=ObjectStatus.ACTIVE,
+        choices=ObjectStatus.as_choices(),
     )
 
     class Meta:
@@ -468,17 +458,25 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         db_table = "sentry_alertruletriggeraction"
 
     @property
-    def target(self) -> RpcUser | Team | str | None:
+    def target(self) -> OrganizationMember | Team | str | None:
         if self.target_identifier is None:
             return None
 
         if self.target_type == self.TargetType.USER.value:
-            return user_service.get_user(user_id=int(self.target_identifier))
+            try:
+                return OrganizationMember.objects.get(
+                    user_id=int(self.target_identifier),
+                    organization=self.alert_rule_trigger.alert_rule.organization_id,
+                )
+            except OrganizationMember.DoesNotExist:
+                pass
+
         elif self.target_type == self.TargetType.TEAM.value:
             try:
                 return Team.objects.get(id=int(self.target_identifier))
             except Team.DoesNotExist:
                 pass
+
         elif self.target_type == self.TargetType.SPECIFIC.value:
             # TODO: This is only for email. We should have a way of validating that it's
             # ok to contact this email.
@@ -623,8 +621,6 @@ class AlertRuleActivity(Model):
         app_label = "sentry"
         db_table = "sentry_alertruleactivity"
 
-
-pre_delete.connect(AlertRuleManager.dual_delete_alert_rule, sender=AlertRule)
 
 post_delete.connect(AlertRuleManager.clear_subscription_cache, sender=QuerySubscription)
 post_delete.connect(AlertRuleManager.delete_data_in_seer, sender=AlertRule)

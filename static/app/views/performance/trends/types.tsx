@@ -72,14 +72,12 @@ export enum TrendParameterLabel {
   SPANS_RESOURCE = 'Spans (resource)',
 }
 
-export type TrendStat = {
+type TrendStat = {
   data: EventsStatsData;
   order: number;
 };
 
-export type TrendsStats = {
-  [transaction: string]: TrendStat;
-};
+export type TrendsStats = Record<string, TrendStat>;
 
 export type TrendsTransaction = {
   aggregate_range_1: number;

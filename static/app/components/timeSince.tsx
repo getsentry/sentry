@@ -2,8 +2,8 @@ import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import isNumber from 'lodash/isNumber';
 import moment from 'moment-timezone';
 
-import type {TooltipProps} from 'sentry/components/tooltip';
-import {Tooltip} from 'sentry/components/tooltip';
+import type {TooltipProps} from 'sentry/components/core/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -121,7 +121,7 @@ function TimeSince({
   ...props
 }: Props) {
   const user = useUser();
-  const tickerRef = useRef<number | undefined>();
+  const tickerRef = useRef<number | undefined>(undefined);
 
   const computeRelativeDate = useCallback(
     () => getRelativeDate(date, suffix, prefix, unitStyle),

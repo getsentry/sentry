@@ -10,13 +10,15 @@ import sentry_sdk
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.integrations.base import IntegrationInstallation
+from sentry.integrations.gitlab.constants import GITLAB_CLOUD_BASE_URL
 from sentry.integrations.services.repository import RpcRepository
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
 )
+from sentry.integrations.types import ExternalProviderEnum
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import ApiError, ApiRetryError, IntegrationError
 from sentry.users.models.identity import Identity
 
 
@@ -131,6 +133,17 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
                     return None
             except IdentityNotValid:
                 return None
+            except ApiRetryError as e:
+                # Ignore retry errors for GitLab
+                # TODO(ecosystem): Remove this once we have a better way to handle this
+                if (
+                    self.integration_name == ExternalProviderEnum.GITLAB.value
+                    and client.base_url != GITLAB_CLOUD_BASE_URL
+                ):
+                    lifecycle.record_halt(e)
+                    return None
+                else:
+                    raise
             except ApiError as e:
                 if e.code in (404, 400):
                     lifecycle.record_halt(e)
@@ -224,6 +237,8 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
 
 
 class RepositoryClient(ABC):
+    base_url: str
+
     @abstractmethod
     def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         """Check if the file exists. Currently used for stacktrace linking and CODEOWNERS."""

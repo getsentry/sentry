@@ -36,11 +36,10 @@ import {useParams} from 'sentry/utils/useParams';
 import useRouter from 'sentry/utils/useRouter';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
+import type {ReleaseBounds} from 'sentry/views/releases/utils';
+import {getReleaseBounds, searchReleaseVersion} from 'sentry/views/releases/utils';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 import {useReleaseMeta} from 'sentry/views/releases/utils/useReleaseMeta';
-
-import type {ReleaseBounds} from '../utils';
-import {getReleaseBounds, searchReleaseVersion} from '../utils';
 
 import ReleaseHeader from './header/releaseHeader';
 
@@ -229,7 +228,7 @@ class ReleasesDetail extends DeprecatedAsyncView<Props, State> {
             releaseMeta={releaseMeta}
             refetchData={this.fetchData}
           />
-          <ReleaseContext.Provider
+          <ReleaseContext
             value={{
               release,
               project,
@@ -242,7 +241,7 @@ class ReleasesDetail extends DeprecatedAsyncView<Props, State> {
             }}
           >
             {this.props.children}
-          </ReleaseContext.Provider>
+          </ReleaseContext>
         </NoProjectMessage>
       </Layout.Page>
     );
@@ -319,9 +318,10 @@ function ReleasesDetailContainer(props: ReleasesDetailContainerProps) {
         }))}
         router={router}
         nextPath={{
-          pathname: `/organizations/${organization.slug}/releases/${encodeURIComponent(
-            release!
-          )}/`,
+          pathname: makeReleasesPathname({
+            path: `/${encodeURIComponent(release)}/`,
+            organization,
+          }),
         }}
         noProjectRedirectPath={makeReleasesPathname({
           organization,
@@ -348,5 +348,5 @@ function ReleasesDetailContainer(props: ReleasesDetailContainerProps) {
     </PageFiltersContainer>
   );
 }
-export {ReleaseContext, ReleasesDetailContainer};
+export {ReleaseContext};
 export default ReleasesDetailContainer;

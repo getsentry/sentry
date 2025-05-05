@@ -10,7 +10,7 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconAdd, IconArrow, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import PluginIcon from 'sentry/plugins/components/pluginIcon';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
 import type {
   ExternalActorMapping,
@@ -26,16 +26,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import IntegrationExternalMappingForm from './integrationExternalMappingForm';
 
-type CodeOwnersAssociationMappings = {
-  [projectSlug: string]: {
-    associations: {
-      [externalName: string]: string;
-    };
-    errors: {
-      [errorKey: string]: string;
-    };
-  };
-};
+type CodeOwnersAssociationMappings = Record<
+  string,
+  {
+    associations: Record<string, string>;
+    errors: Record<string, string>;
+  }
+>;
 
 type Props = Pick<
   IntegrationExternalMappingForm['props'],

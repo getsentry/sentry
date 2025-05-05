@@ -6,7 +6,7 @@ import clamp from 'sentry/utils/number/clamp';
 import type {DragManagerChildrenProps} from './dragManager';
 import type {ParsedTraceType} from './types';
 
-export type CursorGuideManagerChildrenProps = {
+type CursorGuideManagerChildrenProps = {
   displayCursorGuide: (mousePageX: number) => void;
   hideCursorGuide: () => void;
   mouseLeft: number | undefined;
@@ -110,9 +110,9 @@ export class Provider extends Component<PropType, StateType> {
     };
 
     return (
-      <CursorGuideManagerContext.Provider value={childrenProps}>
+      <CursorGuideManagerContext value={childrenProps}>
         {this.props.children}
-      </CursorGuideManagerContext.Provider>
+      </CursorGuideManagerContext>
     );
   }
 }

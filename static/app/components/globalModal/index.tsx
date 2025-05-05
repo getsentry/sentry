@@ -7,8 +7,8 @@ import {createFocusTrap} from 'focus-trap';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {closeModal as actionCloseModal} from 'sentry/actionCreators/modal';
+import {TooltipContext} from 'sentry/components/core/tooltip';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
-import {TooltipContext} from 'sentry/components/tooltip';
 import {ROOT_ELEMENT} from 'sentry/constants';
 import ModalStore from 'sentry/stores/modalStore';
 import {space} from 'sentry/styles/space';
@@ -141,7 +141,7 @@ function GlobalModal({onClose}: Props) {
   );
 
   const portal = getModalPortal();
-  const focusTrap = useRef<FocusTrap>();
+  const focusTrap = useRef<FocusTrap | null>(null);
   // SentryApp might be missing on tests
   if (window.SentryApp) {
     window.SentryApp.modalFocusTrap = focusTrap;
@@ -224,7 +224,7 @@ function GlobalModal({onClose}: Props) {
         style={{pointerEvents: visible ? 'auto' : 'none'}}
         onClick={backdrop ? clickClose : undefined}
       >
-        <TooltipContext.Provider
+        <TooltipContext
           value={{
             // To ensure tooltips within the modal remain interactive (e.g., clickable or selectable),
             // they need to be rendered inside the modal's DOM node.
@@ -250,7 +250,7 @@ function GlobalModal({onClose}: Props) {
               </Modal>
             )}
           </AnimatePresence>
-        </TooltipContext.Provider>
+        </TooltipContext>
       </Container>
     </Fragment>,
     portal

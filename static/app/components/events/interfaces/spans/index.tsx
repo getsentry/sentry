@@ -2,14 +2,12 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Alert} from 'sentry/components/core/alert';
 import Panel from 'sentry/components/panels/panel';
 import SearchBar from 'sentry/components/searchBar';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
@@ -18,7 +16,7 @@ import type {
   TracePerformanceIssue,
 } from 'sentry/utils/performance/quickTrace/types';
 import {isTraceError} from 'sentry/utils/performance/quickTrace/utils';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import Filter from './filter';
 import TraceErrorList from './traceErrorList';
@@ -29,7 +27,6 @@ import WaterfallModel from './waterfallModel';
 
 type Props = {
   event: EventTransaction;
-  organization: Organization;
   affectedSpanIds?: string[];
 };
 
@@ -84,7 +81,8 @@ function TraceErrorAlerts({
   );
 }
 
-function SpansInterface({event, affectedSpanIds, organization}: Props) {
+function SpansInterface({event, affectedSpanIds}: Props) {
+  const organization = useOrganization();
   const parsedTrace = useMemo(() => parseTrace(event), [event]);
   const waterfallModel = useMemo(
     () => new WaterfallModel(event, affectedSpanIds),
@@ -153,9 +151,6 @@ function SpansInterface({event, affectedSpanIds, organization}: Props) {
                     );
                   }}
                 </Observer>
-                <GuideAnchorWrapper>
-                  <GuideAnchor target="span_tree" position="bottom" />
-                </GuideAnchorWrapper>
               </Panel>
             </Fragment>
           );
@@ -164,12 +159,6 @@ function SpansInterface({event, affectedSpanIds, organization}: Props) {
     </Container>
   );
 }
-
-const GuideAnchorWrapper = styled('div')`
-  height: 0;
-  width: 0;
-  margin-left: 50%;
-`;
 
 const Container = styled('div')<{hasErrors: boolean}>`
   ${p =>
@@ -203,4 +192,4 @@ const ErrorLabel = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-export const Spans = withOrganization(SpansInterface);
+export const Spans = SpansInterface;

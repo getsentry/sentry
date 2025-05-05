@@ -1,18 +1,36 @@
 import {useMemo} from 'react';
 
-import type {SelectOption} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {defined} from 'sentry/utils';
 import {
   type ParsedFunction,
   parseFunction,
   prettifyTagKey,
 } from 'sentry/utils/discover/fields';
+import {AggregationKey} from 'sentry/utils/fields';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
-type Props = {yAxes: string[]};
+interface Props {
+  /**
+   * All the aggregates that are in use. The arguments will be extracted
+   * and injected as options if they are compatible.
+   */
+  yAxes: string[];
+  /**
+   * The current aggregate in use. Used to determine what the argument
+   * types will be compatible.
+   */
+  yAxis?: string;
+}
 
-export function useVisualizeFields({yAxes}: Props) {
+export function useVisualizeFields({yAxis, yAxes}: Props) {
+  const {tags: stringTags} = useSpanTags('string');
   const {tags: numberTags} = useSpanTags('number');
+
+  const parsedYAxis = useMemo(() => (yAxis ? parseFunction(yAxis) : undefined), [yAxis]);
+
+  const tags =
+    parsedYAxis?.name === AggregationKey.COUNT_UNIQUE ? stringTags : numberTags;
 
   const parsedYAxes: ParsedFunction[] = useMemo(() => {
     return yAxes.map(parseFunction).filter(defined);
@@ -24,7 +42,7 @@ export function useVisualizeFields({yAxes}: Props) {
         return entry.arguments;
       })
       .filter(option => {
-        return !numberTags.hasOwnProperty(option);
+        return !tags.hasOwnProperty(option);
       });
 
     const options = [
@@ -33,7 +51,7 @@ export function useVisualizeFields({yAxes}: Props) {
         value: option,
         textValue: option,
       })),
-      ...Object.values(numberTags).map(tag => {
+      ...Object.values(tags).map(tag => {
         return {label: tag.name, value: tag.key, textValue: tag.name};
       }),
     ];
@@ -51,7 +69,7 @@ export function useVisualizeFields({yAxes}: Props) {
     });
 
     return options;
-  }, [numberTags, parsedYAxes]);
+  }, [tags, parsedYAxes]);
 
   return fieldOptions;
 }

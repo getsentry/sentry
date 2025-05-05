@@ -6,9 +6,8 @@ import {IconFire, IconStats, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import AddEventsCTA from 'getsentry/components/addEventsCTA';
@@ -31,12 +30,13 @@ import {ButtonWrapper, SubscriptionBody} from './styles';
 type ProjectedOverages = string[];
 
 type Props = {
-  organization: Organization;
   subscription: Subscription;
   usage: CustomerUsage;
 };
 
-function UsageAlert({organization, subscription, usage}: Props) {
+function UsageAlert({subscription, usage}: Props) {
+  const organization = useOrganization();
+
   function getActionSentence() {
     switch (getBestActionToIncreaseEventLimits(organization, subscription)) {
       case UsageAction.START_TRIAL:
@@ -55,7 +55,7 @@ function UsageAlert({organization, subscription, usage}: Props) {
     }
   }
 
-  function formatProjected(projected: number, category: string): string {
+  function formatProjected(projected: number, category: DataCategory): string {
     const displayName = getPlanCategoryName({
       plan: subscription.planDetails,
       category,
@@ -94,7 +94,7 @@ function UsageAlert({organization, subscription, usage}: Props) {
           projectedWithReservedUnit > (currentHistory.prepaid ?? 0);
 
         if (hasOverage) {
-          acc.push(formatProjected(projected, category));
+          acc.push(formatProjected(projected, category as DataCategory));
         }
         return acc;
       },
@@ -172,7 +172,7 @@ function UsageAlert({organization, subscription, usage}: Props) {
           acc.push(
             getPlanCategoryName({
               plan: subscription.planDetails,
-              category,
+              category: category as DataCategory,
               capitalize: false,
               hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
             })
@@ -282,7 +282,7 @@ function UsageAlert({organization, subscription, usage}: Props) {
   );
 }
 
-export default withOrganization(UsageAlert);
+export default UsageAlert;
 
 const UsageInfo = styled('div')`
   display: grid;

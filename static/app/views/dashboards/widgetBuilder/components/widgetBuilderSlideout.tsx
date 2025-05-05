@@ -254,7 +254,7 @@ function WidgetBuilderSlideout({
 export default WidgetBuilderSlideout;
 
 const CloseButton = styled(Button)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   height: fit-content;
   &:hover {
     color: ${p => p.theme.gray400};

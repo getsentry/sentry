@@ -17,20 +17,16 @@ import type {
 } from 'sentry/utils/discover/fields';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
-import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
-import type {FieldValue} from 'sentry/views/discover/table/types';
-import {FieldValueKind} from 'sentry/views/discover/table/types';
-
-import type {Widget, WidgetQuery} from '../types';
-import {DisplayType} from '../types';
-import {getWidgetInterval} from '../utils';
-import {transformSessionsResponseToSeries} from '../utils/transformSessionsResponseToSeries';
+import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/types';
+import {getWidgetInterval} from 'sentry/views/dashboards/utils';
+import {transformSessionsResponseToSeries} from 'sentry/views/dashboards/utils/transformSessionsResponseToSeries';
 import {
   changeObjectValuesToTypes,
   getDerivedMetrics,
   mapDerivedMetricsToFields,
-} from '../utils/transformSessionsResponseToTable';
-import {ReleaseSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/releaseSearchBar';
+} from 'sentry/views/dashboards/utils/transformSessionsResponseToTable';
+import {ReleaseSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/releaseSearchBar';
 import {
   DerivedStatusFields,
   DISABLED_SORT,
@@ -39,11 +35,14 @@ import {
   SESSIONS_FIELDS,
   SESSIONS_TAGS,
   TAG_SORT_DENY_LIST,
-} from '../widgetBuilder/releaseWidget/fields';
+} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import {
   requiresCustomReleaseSorting,
   resolveDerivedStatusFields,
-} from '../widgetCard/releaseWidgetQueries';
+} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
+import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
+import type {FieldValue} from 'sentry/views/discover/table/types';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 import type {DatasetConfig} from './base';
 import {handleOrderByReset} from './base';
@@ -197,7 +196,7 @@ function getReleasesSeriesRequest(
   pageFilters: PageFilters
 ) {
   const query = widget.queries[queryIndex]!;
-  const {displayType, limit} = widget;
+  const {limit} = widget;
 
   const {datetime} = pageFilters;
   const {start, end, period} = datetime;
@@ -206,7 +205,7 @@ function getReleasesSeriesRequest(
 
   const includeTotals = query.columns.length > 0 ? 1 : 0;
   const interval = getWidgetInterval(
-    displayType,
+    widget,
     {start, end, period},
     '5m',
     // requesting medium fidelity for release sort because metrics api can't return 100 rows of high fidelity series data
@@ -392,13 +391,12 @@ function getReleasesRequest(
     query.orderby,
     useSessionAPI
   );
-  let requestData: any;
-  let requester: any;
+
   if (useSessionAPI) {
     const sessionAggregates = aggregates.filter(
       agg => !Object.values(DerivedStatusFields).includes(agg as DerivedStatusFields)
     );
-    requestData = {
+    return doSessionsRequest(api, {
       field: sessionAggregates,
       orgSlug: organization.slug,
       end,
@@ -411,47 +409,45 @@ function getReleasesRequest(
       query: query.conditions,
       start,
       statsPeriod: period,
-      includeAllArgs: true,
       cursor,
-    };
-    requester = doSessionsRequest;
-  } else {
-    requestData = {
-      field: aggregates.map(fieldsToDerivedMetrics),
-      orgSlug: organization.slug,
-      end,
-      environment: environments,
-      groupBy: columns.map(fieldsToDerivedMetrics),
-      limit: columns.length === 0 ? 1 : isCustomReleaseSorting ? 100 : limit,
-      orderBy: unsupportedOrderby
-        ? ''
-        : isDescending
-          ? `-${fieldsToDerivedMetrics(rawOrderby)}`
-          : fieldsToDerivedMetrics(rawOrderby),
-      interval,
-      project: projects,
-      query: query.conditions,
-      start,
-      statsPeriod: period,
-      includeAllArgs: true,
-      cursor,
-      includeSeries,
-      includeTotals,
-    };
-    requester = doReleaseHealthRequest;
+    });
+  }
 
-    if (
-      rawOrderby &&
-      !unsupportedOrderby &&
-      !aggregates.includes(rawOrderby) &&
-      !columns.includes(rawOrderby)
-    ) {
-      requestData.field = [...requestData.field, fieldsToDerivedMetrics(rawOrderby)];
-      if (!injectedFields.includes(rawOrderby)) {
-        injectedFields.push(rawOrderby);
-      }
+  const requestData = {
+    field: aggregates.map(fieldsToDerivedMetrics),
+  };
+
+  if (
+    rawOrderby &&
+    !unsupportedOrderby &&
+    !aggregates.includes(rawOrderby) &&
+    !columns.includes(rawOrderby)
+  ) {
+    requestData.field = [...requestData.field, fieldsToDerivedMetrics(rawOrderby)];
+    if (!injectedFields.includes(rawOrderby)) {
+      injectedFields.push(rawOrderby);
     }
   }
 
-  return requester(api, requestData);
+  return doReleaseHealthRequest(api, {
+    field: requestData.field,
+    orgSlug: organization.slug,
+    end,
+    environment: environments,
+    groupBy: columns.map(fieldsToDerivedMetrics),
+    limit: columns.length === 0 ? 1 : isCustomReleaseSorting ? 100 : limit,
+    orderBy: unsupportedOrderby
+      ? ''
+      : isDescending
+        ? `-${fieldsToDerivedMetrics(rawOrderby)}`
+        : fieldsToDerivedMetrics(rawOrderby),
+    interval,
+    project: projects,
+    query: query.conditions,
+    start,
+    statsPeriod: period,
+    cursor,
+    includeSeries,
+    includeTotals,
+  });
 }

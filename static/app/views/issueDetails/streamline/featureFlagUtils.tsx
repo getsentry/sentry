@@ -1,3 +1,7 @@
+import styled from '@emotion/styled';
+
+import {Tag} from 'sentry/components/core/badge/tag';
+
 export type RawFlag = {
   action: string;
   createdAt: string;
@@ -38,3 +42,20 @@ export function hydrateToFlagSeries(
   });
   return flagData;
 }
+
+export function getFlagActionLabel(action: string) {
+  const labelType =
+    action === 'created' ? 'info' : action === 'deleted' ? 'error' : undefined;
+
+  const capitalized = action.charAt(0).toUpperCase() + action.slice(1);
+
+  return (
+    <ActionLabel>
+      <Tag type={labelType}>{capitalized}</Tag>
+    </ActionLabel>
+  );
+}
+
+const ActionLabel = styled('div')`
+  align-self: flex-start;
+`;

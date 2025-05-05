@@ -16,9 +16,8 @@ import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhan
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
+import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
-
-import WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
 import {DashboardsMEPProvider} from './dashboardsMEPContext';
 
@@ -57,7 +56,11 @@ describe('Dashboards > IssueWidgetCard', function () {
     },
   };
 
-  const BasicProvidersWrapper = makeAllTheProviders({organization, router});
+  const BasicProvidersWrapper = makeAllTheProviders({
+    organization,
+    router,
+    deprecatedRouterMocks: true,
+  });
   function Wrapper({children}: {children: React.ReactNode}) {
     return (
       <BasicProvidersWrapper>
@@ -127,7 +130,10 @@ describe('Dashboards > IssueWidgetCard', function () {
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
       />,
-      {wrapper: Wrapper}
+      {
+        wrapper: Wrapper,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(await screen.findByText('Issues')).toBeInTheDocument();
@@ -159,13 +165,16 @@ describe('Dashboards > IssueWidgetCard', function () {
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
       />,
-      {wrapper: Wrapper}
+      {
+        wrapper: Wrapper,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
 
-    expect(screen.getByRole('link', {name: 'Open in Issues'})).toHaveAttribute(
+    expect(screen.getByRole('menuitemradio', {name: 'Open in Issues'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/?environment=prod&project=1&query=event.type%3Adefault&sort=freq&statsPeriod=14d'
     );
@@ -188,7 +197,10 @@ describe('Dashboards > IssueWidgetCard', function () {
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
       />,
-      {wrapper: Wrapper}
+      {
+        wrapper: Wrapper,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -214,7 +226,10 @@ describe('Dashboards > IssueWidgetCard', function () {
         widgetLimitReached
         widgetLegendState={widgetLegendState}
       />,
-      {wrapper: Wrapper}
+      {
+        wrapper: Wrapper,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -248,7 +263,10 @@ describe('Dashboards > IssueWidgetCard', function () {
         widgetLimitReached={false}
         widgetLegendState={widgetLegendState}
       />,
-      {wrapper: Wrapper}
+      {
+        wrapper: Wrapper,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(await screen.findByText('Lifetime Events')).toBeInTheDocument();

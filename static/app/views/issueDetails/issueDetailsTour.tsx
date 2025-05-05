@@ -13,7 +13,7 @@ export const enum IssueDetailsTour {
   NAVIGATION = 'issue-details-navigation',
   /** Workflow actions; resolution, archival, assignment, priority, etc. */
   WORKFLOWS = 'issue-details-workflows',
-  /** Activity log, issue tracking, solutions hub area */
+  /** Activity log, issue tracking, seer area */
   SIDEBAR = 'issue-details-sidebar',
 }
 

@@ -1,13 +1,6 @@
-import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import type {
-  TransactionSampleRowWithScore,
-  WebVitals,
-} from 'sentry/views/insights/browser/webVitals/types';
+import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import {
   DEFAULT_INDEXED_SORT,
   SORTABLE_INDEXED_FIELDS,
@@ -15,7 +8,15 @@ import {
 import {mapWebVitalToOrderBy} from 'sentry/views/insights/browser/webVitals/utils/mapWebVitalToOrderBy';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
-import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
+import {useDiscover, useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
+import {
+  type DiscoverProperty,
+  type DiscoverResponse,
+  type EAPSpanProperty,
+  SpanIndexedField,
+  type SubregionCode,
+} from 'sentry/views/insights/types';
 
 type Props = {
   transaction: string;
@@ -42,9 +43,7 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
   browserTypes,
   subregions,
 }: Props) => {
-  const organization = useOrganization();
-  const pageFilters = usePageFilters();
-  const location = useLocation();
+  const useEap = useInsightsEap();
 
   const filteredSortableFields = SORTABLE_INDEXED_FIELDS;
 
@@ -71,8 +70,45 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
     );
   }
 
-  const eventView = EventView.fromNewQueryWithPageFilters(
+  const eapResult = useEAPSpans(
     {
+      sorts: [sort],
+      search: mutableSearch.formatString(),
+      orderby:
+        (mapWebVitalToOrderBy(orderBy) ?? withProfiles) ? '-profile.id' : undefined,
+      limit: limit ?? 50,
+      enabled: enabled && useEap,
+      fields: [
+        'id',
+        'trace',
+        'user.display',
+        'transaction',
+        'span.duration',
+        'replayId',
+        'timestamp',
+        'profile.id',
+        'project',
+        'measurements.score.total',
+        // TODO: use ratio field
+        ...(webVital
+          ? ([
+              `measurements.score.${webVital}`,
+              `measurements.score.weight.${webVital}`,
+            ] as EAPSpanProperty[])
+          : []),
+      ],
+    },
+    'api.performance.browser.web-vitals.transaction'
+  );
+
+  const result = useDiscover<DiscoverProperty[], DiscoverResponse>(
+    {
+      sorts: [sort],
+      search: mutableSearch.formatString(),
+      limit: limit ?? 50,
+      enabled: enabled && !useEap,
+      orderby:
+        (mapWebVitalToOrderBy(orderBy) ?? withProfiles) ? '-profile.id' : undefined,
       fields: [
         'id',
         'trace',
@@ -89,80 +125,38 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
         'project',
         'measurements.score.total',
         ...(webVital
-          ? [`measurements.score.${webVital}`, `measurements.score.weight.${webVital}`]
+          ? ([
+              `measurements.score.${webVital}`,
+              `measurements.score.weight.${webVital}`,
+            ] as DiscoverProperty[])
           : []),
       ],
-      name: 'Web Vitals',
-      query: mutableSearch.formatString(),
-      orderby:
-        (mapWebVitalToOrderBy(orderBy) ?? withProfiles) ? '-profile.id' : undefined,
-      version: 2,
     },
-    pageFilters.selection
+    DiscoverDatasets.DISCOVER,
+    'api.performance.browser.web-vitals.transaction'
   );
 
-  eventView.sorts = [sort];
+  const finalResult = useEap ? eapResult : result;
 
-  const {
-    data,
-    isPending,
-    isLoading: _,
-    ...rest
-  } = useDiscoverQuery({
-    eventView,
-    limit: limit ?? 50,
-    location,
-    orgSlug: organization.slug,
-    options: {
-      enabled,
-      refetchOnWindowFocus: false,
-    },
-    referrer: 'api.performance.browser.web-vitals.transaction',
-  });
-
-  const toNumber = (item: string | number) =>
-    item ? parseFloat(item.toString()) : undefined;
-  const tableData: TransactionSampleRowWithScore[] =
-    !isPending && data?.data.length
-      ? (data.data.map(
-          row => ({
-            id: row.id?.toString(),
-            trace: row.trace?.toString(),
-            'user.display': row['user.display']?.toString(),
-            transaction: row.transaction?.toString(),
-            'measurements.lcp': toNumber(row['measurements.lcp']!),
-            'measurements.fcp': toNumber(row['measurements.fcp']!),
-            'measurements.cls': toNumber(row['measurements.cls']!),
-            'measurements.ttfb': toNumber(row['measurements.ttfb']!),
-            'transaction.duration': toNumber(row['transaction.duration']!),
-            replayId: row.replayId?.toString(),
-            'profile.id': row['profile.id']?.toString(),
-            projectSlug: row.project?.toString(),
-            timestamp: row.timestamp?.toString(),
-            totalScore: Math.round(
-              (toNumber(row['measurements.score.total']!) ?? 0) * 100
-            ),
-            ...(webVital
-              ? {
-                  [`${webVital}Score`]: Math.round(
-                    ((toNumber(row[`measurements.score.${webVital}`]!) ?? 0) /
-                      (toNumber(row[`measurements.score.weight.${webVital}`]!) ?? 0)) *
-                      100
-                  ),
-                  [`${webVital}Weight`]: Math.round(
-                    (toNumber(row[`measurements.score.weight.${webVital}`]!) ?? 0) * 100
-                  ),
-                }
-              : {}),
-          })
-          // TODO: Discover doesn't let us query more than 20 fields and we're hitting that limit.
-          // Clean up the types to account for this so we don't need to do this casting.
-        ) as unknown as TransactionSampleRowWithScore[])
-      : [];
+  const finalData = finalResult.data.map(row => ({
+    ...row,
+    'span.duration': useEap ? row['span.duration'] : row['transaction.duration'],
+    ...(webVital
+      ? {
+          [`${webVital}Score`]: Math.round(
+            (row[`measurements.score.${webVital}`] /
+              row[`measurements.score.weight.${webVital}`]) *
+              100
+          ),
+          [`${webVital}Weight`]: Math.round(
+            row[`measurements.score.weight.${webVital}`] * 100
+          ),
+        }
+      : {}),
+  }));
 
   return {
-    data: tableData,
-    isLoading: isPending,
-    ...rest,
+    ...result,
+    data: finalData,
   };
 };

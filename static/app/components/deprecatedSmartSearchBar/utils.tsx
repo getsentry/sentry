@@ -33,7 +33,7 @@ export function addSpace(query = '') {
 
 export function removeSpace(query = '') {
   if (query[query.length - 1] === ' ') {
-    return query.slice(0, query.length - 1);
+    return query.slice(0, -1);
   }
 
   return query;

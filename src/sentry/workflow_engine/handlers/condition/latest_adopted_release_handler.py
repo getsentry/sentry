@@ -4,7 +4,7 @@ from sentry.models.environment import Environment
 from sentry.models.release import follows_semver_versioning_scheme
 from sentry.rules.age import AgeComparisonType, ModelAgeType
 from sentry.rules.filters.latest_adopted_release_filter import (
-    get_first_last_release_for_env,
+    get_first_last_release_for_event,
     is_newer_release,
 )
 from sentry.search.utils import LatestReleaseOrders
@@ -13,13 +13,13 @@ from sentry.workflow_engine.handlers.condition.latest_release_handler import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
+from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 
 
 @condition_handler_registry.register(Condition.LATEST_ADOPTED_RELEASE)
-class LatestAdoptedReleaseConditionHandler(DataConditionHandler[WorkflowJob]):
-    type = DataConditionHandler.Type.ACTION_FILTER
-    filter_group = DataConditionHandler.FilterGroup.EVENT_ATTRIBUTES
+class LatestAdoptedReleaseConditionHandler(DataConditionHandler[WorkflowEventData]):
+    group = DataConditionHandler.Group.ACTION_FILTER
+    subgroup = DataConditionHandler.Subgroup.EVENT_ATTRIBUTES
 
     comparison_json_schema = {
         "type": "object",
@@ -33,12 +33,12 @@ class LatestAdoptedReleaseConditionHandler(DataConditionHandler[WorkflowJob]):
     }
 
     @staticmethod
-    def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
+    def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
         release_age_type = comparison["release_age_type"]
         age_comparison = comparison["age_comparison"]
         environment_name = comparison["environment"]
 
-        event = job["event"]
+        event = event_data.event
 
         if follows_semver_versioning_scheme(event.organization.id, event.project.id):
             order_type = LatestReleaseOrders.SEMVER
@@ -56,7 +56,7 @@ class LatestAdoptedReleaseConditionHandler(DataConditionHandler[WorkflowJob]):
         if not latest_project_release:
             return False
 
-        release = get_first_last_release_for_env(event, release_age_type, order_type)
+        release = get_first_last_release_for_event(event, release_age_type, order_type)
         if not release:
             return False
 

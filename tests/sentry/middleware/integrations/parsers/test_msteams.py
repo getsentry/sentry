@@ -4,6 +4,7 @@ import responses
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory
 from django.urls import reverse
+from rest_framework import status
 
 from sentry.integrations.msteams.utils import ACTION_TYPE
 from sentry.middleware.integrations.classifications import IntegrationClassification
@@ -73,7 +74,7 @@ class MsTeamsRequestParserTest(TestCase):
 
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
         assert response.content == b"passthrough"
         assert len(responses.calls) == 0
         assert_no_webhook_payloads()
@@ -88,13 +89,31 @@ class MsTeamsRequestParserTest(TestCase):
         parser = MsTeamsRequestParser(request=request, response_handler=self.get_response)
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 202
+        assert response.status_code == status.HTTP_202_ACCEPTED
         assert len(responses.calls) == 0
         assert_webhook_payloads_for_mailbox(
             request=request,
             mailbox_name=f"msteams:{self.integration.id}",
             region_names=["us"],
         )
+
+    def test_routing_events_no_org_integration(self):
+        integration = self.create_provider_integration(
+            provider="msteams",
+            external_id="blah",
+        )
+        request = self.factory.post(
+            self.path,
+            data=self.generate_card_response(integration.id),
+            HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
+            content_type="application/json",
+        )
+        parser = MsTeamsRequestParser(request=request, response_handler=self.get_response)
+        response = parser.get_response()
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert len(responses.calls) == 0
+        assert_no_webhook_payloads()
 
     @responses.activate
     def test_routing_control_paths(self):
@@ -119,7 +138,7 @@ class MsTeamsRequestParserTest(TestCase):
             parser = MsTeamsRequestParser(request=request, response_handler=self.get_response)
             response = parser.get_response()
             assert isinstance(response, HttpResponse)
-            assert response.status_code == 200
+            assert response.status_code == status.HTTP_200_OK
             assert response.content == b"passthrough"
             assert len(responses.calls) == 0
             assert_no_webhook_payloads()
@@ -175,7 +194,7 @@ class MsTeamsRequestParserTest(TestCase):
             parser = MsTeamsRequestParser(request=request, response_handler=self.get_response)
             response = parser.get_response()
             assert isinstance(response, HttpResponse)
-            assert response.status_code == 200
+            assert response.status_code == status.HTTP_200_OK
             assert response.content == b"passthrough"
             assert len(responses.calls) == 0
             assert_no_webhook_payloads()

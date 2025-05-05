@@ -1,9 +1,16 @@
-from dataclasses import dataclass
-from typing import Literal
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Literal, TypedDict
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import Reliability
 
 from sentry.search.events.types import EventsResponse
+
+
+@dataclass(frozen=True)
+class FieldsACL:
+    functions: set[str] = field(default_factory=set)
+    attributes: set[str] = field(default_factory=set)
 
 
 @dataclass(frozen=True)
@@ -15,6 +22,8 @@ class SearchResolverConfig:
     # TODO: do we need parser_config_overrides? it looks like its just for alerts
     # Whether to process the results from snuba
     process_results: bool = True
+    # If a field is private, it will only be available if it is in the `fields_acl`
+    fields_acl: FieldsACL = field(default_factory=lambda: FieldsACL())
 
 
 CONFIDENCES: dict[Reliability.ValueType, Literal["low", "high"]] = {
@@ -23,6 +32,18 @@ CONFIDENCES: dict[Reliability.ValueType, Literal["low", "high"]] = {
 }
 Confidence = Literal["low", "high"] | None
 ConfidenceData = list[dict[str, Confidence]]
+
+
+# These are the strings that are used in the API for convienence
+class SupportedTraceItemType(str, Enum):
+    LOGS = "logs"
+    SPANS = "spans"
+
+
+class TraceItemAttribute(TypedDict):
+    name: str
+    type: Literal["string", "number"]
+    value: str | int | float
 
 
 class EAPResponse(EventsResponse):

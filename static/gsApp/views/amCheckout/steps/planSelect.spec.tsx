@@ -177,7 +177,7 @@ describe('PlanSelect', function () {
     expect(screen.getByText(warningText)).toBeInTheDocument();
   });
 
-  it('renders with correct default prices', async function () {
+  it('renders with correct default prices and errors on-demand pricing', async function () {
     render(
       <AMCheckout
         {...RouteComponentPropsFixture()}
@@ -194,6 +194,41 @@ describe('PlanSelect', function () {
 
     expect(teamPlan).toHaveTextContent('$29/mo');
     expect(businessPlan).toHaveTextContent('$89/mo');
+
+    expect(teamPlan).toHaveTextContent('$0.000377 / error');
+    expect(teamPlan).not.toHaveTextContent(/\/ span/);
+    expect(businessPlan).toHaveTextContent('$0.001157 / error');
+    expect(businessPlan).not.toHaveTextContent(/\/ span/);
+  });
+
+  it('renders with correct default prices and errors and spans on-demand pricing', async function () {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-config/`,
+      method: 'GET',
+      body: BillingConfigFixture(PlanTier.AM3),
+    });
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        params={params}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        checkoutTier={PlanTier.AM3}
+      />,
+      {organization}
+    );
+
+    const teamPlan = await screen.findByLabelText('Team');
+    const businessPlan = screen.getByLabelText('Business');
+
+    expect(teamPlan).toHaveTextContent('$29/mo');
+    expect(businessPlan).toHaveTextContent('$89/mo');
+
+    // NOTE: prices on fixtures are not necessarily correct, just for testing
+    expect(teamPlan).toHaveTextContent('$0.000362 / error');
+    expect(teamPlan).toHaveTextContent('$0.000002 / span');
+    expect(businessPlan).toHaveTextContent('$0.001113 / error');
+    expect(businessPlan).toHaveTextContent('$0.000004 / span');
   });
 
   it('renders with default plan selected', async function () {

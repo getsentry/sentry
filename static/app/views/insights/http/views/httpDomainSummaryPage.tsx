@@ -7,13 +7,8 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
-import {
-  EMPTY_OPTION_VALUE,
-  escapeFilterValue,
-  MutableSearch,
-} from 'sentry/utils/tokenizeSearch';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
@@ -23,14 +18,16 @@ import {ModulePageProviders} from 'sentry/views/insights/common/components/modul
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
+import {useHttpDomainSummaryChartFilter} from 'sentry/views/insights/common/components/widgets/hooks/useHttpDomainSummaryChartFilter';
+import HttpDomainSummaryDurationChartWidget from 'sentry/views/insights/common/components/widgets/httpDomainSummaryDurationChartWidget';
+import HttpDomainSummaryResponseCodesChartWidget from 'sentry/views/insights/common/components/widgets/httpDomainSummaryResponseCodesChartWidget';
+import HttpDomainSummaryThroughputChartWidget from 'sentry/views/insights/common/components/widgets/httpDomainSummaryThroughputChartWidget';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {
   DataTitles,
-  getDurationChartTitle,
-  getThroughputChartTitle,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
 import {DomainStatusLink} from 'sentry/views/insights/http/components/domainStatusLink';
@@ -41,8 +38,6 @@ import {
 } from 'sentry/views/insights/http/components/tables/domainTransactionsTable';
 import {Referrer} from 'sentry/views/insights/http/referrers';
 import {
-  BASE_FILTERS,
-  FIELD_ALIASES,
   MODULE_DOC_LINK,
   NULL_DOMAIN_DESCRIPTION,
 } from 'sentry/views/insights/http/settings';
@@ -53,40 +48,29 @@ import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/se
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 
-import {InsightsLineChartWidget} from '../../common/components/insightsLineChartWidget';
-import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
-
-type Query = {
-  aggregate?: string;
-  domain?: string;
-};
-
 export function HTTPDomainSummaryPage() {
-  const location = useLocation<Query>();
   const {projects} = useProjects();
   const {view} = useDomainViewFilters();
-
-  // TODO: Fetch sort information using `useLocationQuery`
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
-
-  const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
+  const filters = useHttpDomainSummaryChartFilter();
 
   const {
     domain,
     project: projectId,
-    'user.geo.subregion': subregions,
+    [QueryParameterNames.TRANSACTIONS_CURSOR]: cursor,
+    [QueryParameterNames.TRANSACTIONS_SORT]: sortField,
   } = useLocationQuery({
     fields: {
       project: decodeScalar,
       domain: decodeScalar,
+      [QueryParameterNames.TRANSACTIONS_CURSOR]: decodeScalar,
+      [QueryParameterNames.TRANSACTIONS_SORT]: decodeScalar,
       [SpanMetricsField.USER_GEO_SUBREGION]: decodeList,
       transaction: decodeScalar,
     },
   });
+  const sort = decodeSorts(sortField).find(isAValidSort) ?? DEFAULT_SORT;
 
   useSamplesDrawer({
     Component: <HTTPSamplesPanel />,
@@ -95,24 +79,12 @@ export function HTTPDomainSummaryPage() {
   });
 
   const project = projects.find(p => projectId === p.id);
-  const filters: SpanMetricsQueryFilters = {
-    ...BASE_FILTERS,
-    'span.domain': domain === '' ? EMPTY_OPTION_VALUE : escapeFilterValue(domain),
-    ...(subregions.length > 0
-      ? {
-          [SpanMetricsField.USER_GEO_SUBREGION]: `[${subregions.join(',')}]`,
-        }
-      : {}),
-  };
-
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
 
   const {data: domainMetrics, isPending: areDomainMetricsLoading} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject(filters),
       fields: [
-        `${SpanFunction.SPM}()`,
+        `${SpanFunction.EPM}()`,
         `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
         `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
         'http_response_rate(3)',
@@ -122,45 +94,6 @@ export function HTTPDomainSummaryPage() {
       ],
     },
     Referrer.DOMAIN_SUMMARY_METRICS_RIBBON
-  );
-
-  const {
-    isPending: isThroughputDataLoading,
-    data: throughputData,
-    error: throughputError,
-  } = useSpanMetricsSeries(
-    {
-      search: MutableSearch.fromQueryObject(filters),
-      yAxis: ['spm()'],
-      transformAliasToInputFormat: true,
-    },
-    Referrer.DOMAIN_SUMMARY_THROUGHPUT_CHART
-  );
-
-  const {
-    isPending: isDurationDataLoading,
-    data: durationData,
-    error: durationError,
-  } = useSpanMetricsSeries(
-    {
-      search: MutableSearch.fromQueryObject(filters),
-      yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`],
-      transformAliasToInputFormat: true,
-    },
-    Referrer.DOMAIN_SUMMARY_DURATION_CHART
-  );
-
-  const {
-    isPending: isResponseCodeDataLoading,
-    data: responseCodeData,
-    error: responseCodeError,
-  } = useSpanMetricsSeries(
-    {
-      search: MutableSearch.fromQueryObject(filters),
-      yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
-      transformAliasToInputFormat: true,
-    },
-    Referrer.DOMAIN_SUMMARY_RESPONSE_CODE_CHART
   );
 
   const {
@@ -176,7 +109,7 @@ export function HTTPDomainSummaryPage() {
         'project.id',
         'transaction',
         'transaction.method',
-        'spm()',
+        'epm()',
         'http_response_rate(3)',
         'http_response_rate(4)',
         'http_response_rate(5)',
@@ -245,7 +178,7 @@ export function HTTPDomainSummaryPage() {
                   <ReadoutRibbon>
                     <MetricReadout
                       title={getThroughputTitle('http')}
-                      value={domainMetrics?.[0]?.[`${SpanFunction.SPM}()`]}
+                      value={domainMetrics?.[0]?.[`${SpanFunction.EPM}()`]}
                       unit={RateUnit.PER_MINUTE}
                       isLoading={areDomainMetricsLoading}
                     />
@@ -295,35 +228,15 @@ export function HTTPDomainSummaryPage() {
               </ModuleLayout.Full>
 
               <ModuleLayout.Third>
-                <InsightsLineChartWidget
-                  title={getThroughputChartTitle('http')}
-                  series={[throughputData['spm()']]}
-                  isLoading={isThroughputDataLoading}
-                  error={throughputError}
-                />
+                <HttpDomainSummaryThroughputChartWidget />
               </ModuleLayout.Third>
 
               <ModuleLayout.Third>
-                <InsightsLineChartWidget
-                  title={getDurationChartTitle('http')}
-                  series={[durationData[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]]}
-                  isLoading={isDurationDataLoading}
-                  error={durationError}
-                />
+                <HttpDomainSummaryDurationChartWidget />
               </ModuleLayout.Third>
 
               <ModuleLayout.Third>
-                <InsightsLineChartWidget
-                  title={DataTitles.unsuccessfulHTTPCodes}
-                  series={[
-                    responseCodeData[`http_response_rate(3)`],
-                    responseCodeData[`http_response_rate(4)`],
-                    responseCodeData[`http_response_rate(5)`],
-                  ]}
-                  aliases={FIELD_ALIASES}
-                  isLoading={isResponseCodeDataLoading}
-                  error={responseCodeError}
-                />
+                <HttpDomainSummaryResponseCodesChartWidget />
               </ModuleLayout.Third>
 
               <ModuleLayout.Full>

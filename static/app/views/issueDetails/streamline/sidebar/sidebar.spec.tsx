@@ -1,3 +1,4 @@
+import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {EventFixture} from 'sentry-fixture/event';
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {GroupFixture} from 'sentry-fixture/group';
@@ -21,9 +22,7 @@ describe('StreamlinedSidebar', function () {
   const activityContent = 'test-note';
   const issueTrackingKey = 'issue-key';
 
-  const organization = OrganizationFixture({
-    features: ['gen-ai-features'],
-  });
+  const organization = OrganizationFixture({features: ['gen-ai-features']});
   const project = ProjectFixture();
   const group = GroupFixture({
     activity: [
@@ -53,19 +52,20 @@ describe('StreamlinedSidebar', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/setup/',
-      body: {
-        genAIConsent: {ok: false},
-        integration: {ok: true},
-        githubWriteIntegration: {ok: true},
-      },
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
+      body: AutofixSetupFixture({
+        setupAcknowledgement: {
+          orgHasAcknowledged: false,
+          userHasAcknowledged: false,
+        },
+        integration: {ok: true, reason: null},
+        githubWriteIntegration: {ok: true, repos: []},
+      }),
     });
 
     MockApiClient.addMockResponse({
-      url: `/issues/${group.id}/autofix/`,
-      body: {
-        steps: [],
-      },
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+      body: {steps: []},
     });
 
     mockFirstLastRelease = MockApiClient.addMockResponse({
@@ -75,6 +75,11 @@ describe('StreamlinedSidebar', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/1/external-issues/`,
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/summarize/`,
+      method: 'POST',
+      body: {whatsWrong: 'Test summary'},
     });
 
     mockExternalIssues = MockApiClient.addMockResponse({
@@ -102,7 +107,7 @@ describe('StreamlinedSidebar', function () {
       organization,
     });
 
-    expect(await screen.findByText('Solutions Hub')).toBeInTheDocument();
+    expect(await screen.findByText('Seer')).toBeInTheDocument();
 
     expect(await screen.findByText('First seen')).toBeInTheDocument();
     expect(screen.getByText('Last seen')).toBeInTheDocument();

@@ -4,8 +4,11 @@ import * as Sentry from '@sentry/react';
 import {useFetchEventAttachments} from 'sentry/actionCreators/events';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
+import {
+  getPlatform,
+  getPlatformViewConfig,
+} from 'sentry/components/events/viewHierarchy/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -21,9 +24,10 @@ import {ViewHierarchy} from './viewHierarchy';
 type Props = {
   event: Event;
   project: Project;
+  disableCollapsePersistence?: boolean;
 };
 
-function EventViewHierarchyContent({event, project}: Props) {
+function EventViewHierarchyContent({event, project, disableCollapsePersistence}: Props) {
   const organization = useOrganization();
 
   const {data: attachments} = useFetchEventAttachments(
@@ -85,10 +89,23 @@ function EventViewHierarchyContent({event, project}: Props) {
     return <LoadingIndicator />;
   }
 
+  const platform = getPlatform({event, project});
+  const platformViewConfig = getPlatformViewConfig(platform);
+
   return (
-    <InterimSection title={t('View Hierarchy')} type={SectionKey.VIEW_HIERARCHY}>
+    <InterimSection
+      title={platformViewConfig.title}
+      type={SectionKey.VIEW_HIERARCHY}
+      disableCollapsePersistence={disableCollapsePersistence}
+    >
       <ErrorBoundary mini>
-        <ViewHierarchy viewHierarchy={hierarchy} project={project} />
+        <ViewHierarchy
+          viewHierarchy={hierarchy}
+          platform={platform}
+          emptyMessage={platformViewConfig.emptyMessage}
+          showWireframe={platformViewConfig.showWireframe}
+          nodeField={platformViewConfig.nodeField}
+        />
       </ErrorBoundary>
     </InterimSection>
   );

@@ -1,3 +1,5 @@
+import {ThemeFixture} from 'sentry-fixture/theme';
+
 import {TraceScheduler} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
 import {TraceView} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceView';
 import {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
@@ -10,7 +12,8 @@ describe('VirtualizedViewManger', () => {
         span_list: {width: 0.5},
       },
       new TraceScheduler(),
-      new TraceView()
+      new TraceView(),
+      ThemeFixture()
     );
 
     manager.view.setTraceSpace([10_000, 0, 1000, 1]);
@@ -26,7 +29,8 @@ describe('VirtualizedViewManger', () => {
         span_list: {width: 0.5},
       },
       new TraceScheduler(),
-      new TraceView()
+      new TraceView(),
+      ThemeFixture()
     );
 
     manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 500, 1]);
@@ -45,7 +49,8 @@ describe('VirtualizedViewManger', () => {
           span_list: {width: 1},
         },
         new TraceScheduler(),
-        new TraceView()
+        new TraceView(),
+        ThemeFixture()
       );
 
       manager.view.setTraceSpace([0, 0, 1000, 1]);
@@ -62,7 +67,8 @@ describe('VirtualizedViewManger', () => {
           span_list: {width: 1},
         },
         new TraceScheduler(),
-        new TraceView()
+        new TraceView(),
+        ThemeFixture()
       );
 
       manager.view.setTraceSpace([0, 0, 100, 1]);
@@ -78,7 +84,8 @@ describe('VirtualizedViewManger', () => {
           span_list: {width: 1},
         },
         new TraceScheduler(),
-        new TraceView()
+        new TraceView(),
+        ThemeFixture()
       );
 
       manager.view.setTraceSpace([0, 0, 1000, 1]);
@@ -96,7 +103,8 @@ describe('VirtualizedViewManger', () => {
           span_list: {width: 1},
         },
         new TraceScheduler(),
-        new TraceView()
+        new TraceView(),
+        ThemeFixture()
       );
 
       manager.view.setTraceSpace([0, 0, 1000, 1]);
@@ -115,7 +123,8 @@ describe('VirtualizedViewManger', () => {
             span_list: {width: 1},
           },
           new TraceScheduler(),
-          new TraceView()
+          new TraceView(),
+          ThemeFixture()
         );
 
         manager.view.setTraceSpace([100, 0, 100, 1]);
@@ -132,7 +141,8 @@ describe('VirtualizedViewManger', () => {
             span_list: {width: 1},
           },
           new TraceScheduler(),
-          new TraceView()
+          new TraceView(),
+          ThemeFixture()
         );
 
         manager.view.setTraceSpace([100, 0, 100, 1]);
@@ -153,7 +163,8 @@ describe('VirtualizedViewManger', () => {
           span_list: {width: 1},
         },
         new TraceScheduler(),
-        new TraceView()
+        new TraceView(),
+        ThemeFixture()
       );
 
       manager.view.setTraceSpace([0, 0, 1000, 1]);
@@ -169,7 +180,8 @@ describe('VirtualizedViewManger', () => {
           span_list: {width: 1},
         },
         new TraceScheduler(),
-        new TraceView()
+        new TraceView(),
+        ThemeFixture()
       );
 
       manager.view.setTraceSpace([50, 0, 1000, 1]);
@@ -187,7 +199,8 @@ describe('VirtualizedViewManger', () => {
           span_list: {width: 1},
         },
         new TraceScheduler(),
-        new TraceView()
+        new TraceView(),
+        ThemeFixture()
       );
 
       manager.view.setTraceSpace([100, 0, 1000, 1]);

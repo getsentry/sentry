@@ -25,8 +25,8 @@ const PAGE_FIELD_LIST = {
 };
 
 class Settings extends DefaultSettings<Props, State> {
-  constructor(props: Props, context: any) {
-    super(props, context);
+  constructor(props: Props) {
+    super(props);
 
     Object.assign(this.state, {
       page: 0,

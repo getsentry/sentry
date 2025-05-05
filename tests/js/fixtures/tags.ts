@@ -1,4 +1,5 @@
 import type {TagWithTopValues} from 'sentry/types/group';
+import { type GroupTag } from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
 export function TagsFixture(params: TagWithTopValues[] = []): TagWithTopValues[] {
   return [
@@ -103,6 +104,51 @@ export function TagsFixture(params: TagWithTopValues[] = []): TagWithTopValues[]
       name: 'User',
       key: 'user',
       totalValues: 18,
+    },
+    ...params,
+  ];
+}
+
+/**
+ * Feature flags share the same endpoints and response format as tags. Use this to mock API responses
+ * e.g. /tags/?useFlagBackend=1
+ */
+export function FeatureFlagTagsFixture(params: GroupTag[] = []): GroupTag[] {
+  return [
+    {
+      key: 'feature.organizations:my-feature',
+      name: 'Feature.Organizations:My-Feature',
+      totalValues: 11,
+      topValues: [
+        {
+          name: 'true',
+          value: 'true',
+          count: 7,
+          lastSeen: '2025-03-21T18:17:44Z',
+          firstSeen: '2025-03-20T16:05:25Z',
+        },
+        {
+          name: 'false',
+          value: 'false',
+          count: 4,
+          lastSeen: '2025-03-21T19:17:44Z',
+          firstSeen: '2025-03-15T16:00:00Z',
+        },
+      ],
+    },
+    {
+      key: 'my-rolled-out-feature',
+      name: 'My-Rolled-Out-Feature',
+      totalValues: 23,
+      topValues: [
+        {
+          name: 'true',
+          value: 'true',
+          count: 23,
+          lastSeen: '2025-03-21T18:17:44Z',
+          firstSeen: '2025-03-21T16:05:25Z',
+        },
+      ],
     },
     ...params,
   ];

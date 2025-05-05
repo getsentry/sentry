@@ -2,14 +2,14 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import {Radio} from 'sentry/components/core/radio';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
 import type {InputFieldProps, OnEvent} from 'sentry/components/forms/fields/inputField';
 import FormField from 'sentry/components/forms/formField';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 
-export interface SegmentedRadioFieldProps<Choices extends string = string>
+interface SegmentedRadioFieldProps<Choices extends string = string>
   extends Omit<InputFieldProps, 'type'> {
   choices?: RadioGroupProps<Choices>['choices'];
 }
@@ -105,7 +105,7 @@ const Container = styled('div')`
 const shouldForwardProp = (p: PropertyKey) =>
   typeof p === 'string' && !['disabled', 'animate'].includes(p) && isPropValid(p);
 
-export const RadioItem = styled('label', {shouldForwardProp})<{
+const RadioItem = styled('label', {shouldForwardProp})<{
   index: number;
   disabled?: boolean;
 }>`
@@ -117,7 +117,7 @@ export const RadioItem = styled('label', {shouldForwardProp})<{
   cursor: ${p => (p.disabled ? 'default' : 'pointer')};
   outline: none;
   font-weight: ${p => p.theme.fontWeightNormal};
-  border: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.border};
   margin: 0;
 
   &[aria-checked='true'] {
@@ -174,7 +174,7 @@ const RadioLineText = styled('div', {shouldForwardProp})<{disabled?: boolean}>`
 `;
 
 const Description = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeRelativeSmall};
   line-height: 1.4em;
 `;

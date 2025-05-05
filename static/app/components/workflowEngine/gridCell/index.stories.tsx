@@ -16,15 +16,24 @@ import {
   TitleCell,
   type TitleCellProps,
 } from 'sentry/components/workflowEngine/gridCell/titleCell';
-import {tn} from 'sentry/locale';
+import {
+  TypeCell,
+  type TypeCellProps,
+} from 'sentry/components/workflowEngine/gridCell/typeCell';
+import {
+  UserCell,
+  type UserCellProps,
+} from 'sentry/components/workflowEngine/gridCell/userCell';
 import storyBook from 'sentry/stories/storyBook';
 
 type ExampleAutomation = {
   action: Action[];
+  creator: UserCellProps['user'];
   linkedItems: ConnectionCellProps;
   openIssues: number;
   timeAgo: Date | null;
   title: TitleCellProps;
+  type: TypeCellProps['type'];
 };
 
 export default storyBook('Grid Cell Components', story => {
@@ -32,98 +41,67 @@ export default storyBook('Grid Cell Components', story => {
     {
       title: {
         name: 'Slack suggested assignees',
-        project: {slug: 'sentry', platform: 'python'},
-        link: '/monitors/1',
+        projectId: '1',
+        link: '/issues/monitors/1',
       },
       action: ['slack'],
       timeAgo: new Date(),
       linkedItems: {
-        items: [
-          {
-            name: 'my monitor',
-            project: {slug: 'ngrok-luver', platform: 'ruby'},
-            link: 'monitors/abc123',
-          },
-        ],
-        renderText: count => tn('%s monitor', '%s monitors', count),
+        ids: ['abc123'],
+        type: 'workflow',
       },
       openIssues: 3,
+      creator: '1',
+      type: 'trace',
     },
     {
       title: {
         name: 'Send Discord notification',
-        project: {
-          slug: 'javascript',
-          platform: 'javascript',
-        },
+        projectId: '1',
         details: ['transaction.duration', '2s warn, 2.5s critical threshold'],
-        link: '/monitors/2',
+        link: '/issues/monitors/2',
       },
       action: ['discord'],
       timeAgo: new Date(Date.now() - 2 * 60 * 60 * 1000),
       linkedItems: {
-        items: [
-          {
-            name: '/endpoint',
-            project: {slug: 'javascript', platform: 'javascript'},
-            description: 'transaction.duration',
-            link: 'monitors/def456',
-          },
-          {
-            name: '/checkout',
-            project: {slug: 'javascript', platform: 'javascript'},
-            description: 'transaction.duration',
-            link: 'monitors/ghi789',
-          },
-        ],
-        renderText: count => tn('%s monitor', '%s monitors', count),
+        ids: ['abc123', 'def456', 'ghi789'],
+        type: 'detector',
       },
       openIssues: 1,
+      creator: '1',
+      type: 'metric',
     },
     {
       title: {
         name: 'Email suggested assignees',
-        project: {slug: 'javascript', platform: 'javascript'},
+        projectId: '1',
         details: ['Every hour'],
-        link: '/monitors/3',
+        link: '/issues/monitors/3',
       },
       action: ['email'],
       timeAgo: new Date(Date.now() - 25 * 60 * 60 * 1000),
       linkedItems: {
-        items: [
-          {
-            name: 'test automation',
-            project: {slug: 'bruh', platform: 'android'},
-            description: 'transaction.duration',
-            link: 'automations/jkl012',
-          },
-          {
-            name: 'test python automation',
-            project: {slug: 'bruh.py', platform: 'python'},
-            link: 'automations/mno345',
-          },
-          {
-            name: 'test swift automation',
-            project: {slug: 'bruh.swift', platform: 'swift'},
-            link: 'automations/pqr678',
-          },
-        ],
-        renderText: count => tn('%s automation', '%s automations', count),
+        ids: ['abc123', 'def456'],
+        type: 'workflow',
       },
+      creator: 'sentry',
+      type: 'uptime',
       openIssues: 0,
     },
     {
       title: {
         name: 'Send notification',
-        project: {slug: 'android', platform: 'android'},
-        link: '/monitors/4',
+        projectId: '1',
+        link: '/issues/monitors/4',
         disabled: true,
       },
       action: ['slack', 'discord', 'email'],
+      creator: 'sentry',
+      type: 'errors',
       timeAgo: null,
       linkedItems: {
-        items: [],
-        renderText: count => tn('%s automation', '%s automations', count),
+        ids: [],
+        type: 'detector',
       },
       openIssues: 0,
     },
@@ -133,12 +111,20 @@ export default storyBook('Grid Cell Components', story => {
     {key: 'title', name: 'Name', width: 200},
   ];
 
+  const typeTable: Array<GridColumnOrder<keyof ExampleAutomation>> = [
+    {key: 'type', name: 'Type', width: 150},
+  ];
+
   const actionTable: Array<GridColumnOrder<keyof ExampleAutomation>> = [
     {key: 'action', name: 'Action', width: 200},
   ];
 
   const timeAgoTable: Array<GridColumnOrder<keyof ExampleAutomation>> = [
     {key: 'timeAgo', name: 'Last Triggered', width: 200},
+  ];
+
+  const userTable: Array<GridColumnOrder<keyof ExampleAutomation>> = [
+    {key: 'creator', name: 'User', width: 150},
   ];
 
   const linkedGroupsTable: Array<GridColumnOrder<keyof ExampleAutomation>> = [
@@ -161,22 +147,21 @@ export default storyBook('Grid Cell Components', story => {
           <TitleCell
             link={dataRow.title.link}
             name={dataRow.title.name}
-            project={dataRow.title.project}
+            projectId={dataRow.title.projectId}
             details={dataRow.title.details}
             disabled={dataRow.title.disabled}
           />
         );
       case 'action':
         return <ActionCell actions={dataRow.action} />;
+      case 'type':
+        return <TypeCell type={dataRow.type} />;
+      case 'creator':
+        return <UserCell user={dataRow.creator} />;
       case 'timeAgo':
         return <TimeAgoCell date={dataRow.timeAgo ?? undefined} />;
       case 'linkedItems':
-        return (
-          <ConnectionCell
-            items={dataRow.linkedItems.items}
-            renderText={dataRow.linkedItems.renderText}
-          />
-        );
+        return <ConnectionCell ids={dataRow.linkedItems.ids} type={'detector'} />;
       case 'openIssues':
         return <NumberCell number={dataRow.openIssues} />;
       default:
@@ -245,6 +230,34 @@ export default storyBook('Grid Cell Components', story => {
       <GridEditable
         data={data}
         columnOrder={openIssuesTable}
+        columnSortBy={[]}
+        grid={{
+          renderHeadCell,
+          renderBodyCell,
+        }}
+      />
+    </Fragment>
+  ));
+
+  story('TypeCell', () => (
+    <Fragment>
+      <GridEditable
+        data={data}
+        columnOrder={typeTable}
+        columnSortBy={[]}
+        grid={{
+          renderHeadCell,
+          renderBodyCell,
+        }}
+      />
+    </Fragment>
+  ));
+
+  story('UserCell', () => (
+    <Fragment>
+      <GridEditable
+        data={data}
+        columnOrder={userTable}
         columnSortBy={[]}
         grid={{
           renderHeadCell,

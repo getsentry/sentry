@@ -17,13 +17,15 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleSensitivity,
 )
 from sentry.incidents.models.incident import IncidentStatus
-from sentry.incidents.typings.metric_detector import AlertContext
+from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.integrations.messaging.message_builder import (
     build_attachment_text,
     build_attachment_title,
 )
+from sentry.integrations.messaging.types import LEVEL_TO_COLOR
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.integrations.slack.message_builder.issues import (
+    MAX_SUMMARY_HEADLINE_LENGTH,
     SlackIssuesMessageBuilder,
     build_actions,
     format_release_tag,
@@ -32,10 +34,10 @@ from sentry.integrations.slack.message_builder.issues import (
     get_tags,
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
-from sentry.integrations.slack.message_builder.types import LEVEL_TO_COLOR
 from sentry.integrations.time_utils import time_since
 from sentry.issues.grouptype import (
     FeedbackGroup,
+    GroupCategory,
     MonitorIncidentType,
     PerformanceP95EndpointRegressionGroupType,
     ProfileFileIOGroupType,
@@ -56,6 +58,7 @@ from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.actor import Actor
@@ -78,6 +81,8 @@ def build_test_message_blocks(
     initial_assignee: Team | User | None = None,
     notes: str | None = None,
     suspect_commit_text: str | None = None,
+    rule: IssueAlertRule | None = None,
+    legacy_rule_id: int | None = None,
 ) -> dict[str, Any]:
     project = group.project
 
@@ -92,13 +97,27 @@ def build_test_message_blocks(
         if link_to_event:
             title_link += f"/events/{event.event_id}"
     title_link += "/?referrer=slack"
+    if rule:
+        if legacy_rule_id:
+            title_link += f"&alert_rule_id={legacy_rule_id}&alert_type=issue"
+        else:
+            title_link += f"&alert_rule_id={rule.id}&alert_type=issue"
+
     title_text = f":red_circle: <{title_link}|*{formatted_title}*>"
+
+    if rule:
+        if legacy_rule_id:
+            block_id = f'{{"issue":{group.id},"rule":{legacy_rule_id}}}'
+        else:
+            block_id = f'{{"issue":{group.id},"rule":{rule.id}}}'
+    else:
+        block_id = f'{{"issue":{group.id}}}'
 
     blocks: list[dict[str, Any]] = [
         {
             "type": "section",
             "text": {"type": "mrkdwn", "text": title_text},
-            "block_id": f'{{"issue":{group.id}}}',
+            "block_id": block_id,
         },
     ]
     if group.culprit:
@@ -211,7 +230,13 @@ def build_test_message_blocks(
         }
         blocks.append(notes_section)
 
-    context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: BAR-{group.short_id}    Short ID: {group.qualified_short_id}"
+    if rule:
+        if legacy_rule_id:
+            context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: <http://testserver/organizations/{project.organization.slug}/alerts/rules/bar/{legacy_rule_id}/details/|{rule.label}>    Short ID: {group.qualified_short_id}"
+        else:
+            context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: <http://testserver/organizations/{project.organization.slug}/alerts/rules/bar/{rule.id}/details/|{rule.label}>    Short ID: {group.qualified_short_id}"
+    else:
+        context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: BAR-{group.short_id}    Short ID: {group.qualified_short_id}"
     context = {
         "type": "context",
         "elements": [{"type": "mrkdwn", "text": context_text}],
@@ -255,6 +280,96 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             teams={self.team},
             users={self.user},
             group=group,
+        )
+        # add extra tag to message
+        assert SlackIssuesMessageBuilder(
+            group, event.for_group(group), tags={"foo", "escape", "release"}
+        ).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            tags=more_tags,
+            event=event,
+        )
+
+        # add notes to message
+        assert SlackIssuesMessageBuilder(
+            group, event.for_group(group), notes=notes
+        ).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            notes=notes,
+            event=event,
+        )
+        # add extra tag and notes to message
+        assert SlackIssuesMessageBuilder(
+            group, event.for_group(group), tags={"foo", "escape", "release"}, notes=notes
+        ).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            tags=more_tags,
+            notes=notes,
+            event=event,
+        )
+
+        assert SlackIssuesMessageBuilder(
+            group, event.for_group(group)
+        ).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            event=event,
+        )
+
+        assert SlackIssuesMessageBuilder(
+            group, event.for_group(group), link_to_event=True
+        ).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            event=event,
+            link_to_event=True,
+        )
+
+        test_message = build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+        )
+
+        assert SlackIssuesMessageBuilder(group).build() == test_message
+
+    @with_feature("organizations:workflow-engine-trigger-actions")
+    def test_build_group_block_noa(self):
+        rule = self.create_project_rule(project=self.project, action_data=[{"legacy_rule_id": 123}])
+        release = self.create_release(project=self.project)
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "tags": {"escape": "`room`", "foo": "bar"},
+                "timestamp": before_now(minutes=1).isoformat(),
+                "logentry": {"formatted": "bar"},
+                "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
+                "release": release.version,
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        group = event.group
+        assert group
+        self.project.flags.has_releases = True
+        self.project.save(update_fields=["flags"])
+        more_tags = {"escape": "`room`", "foo": "bar", "release": release.version}
+        notes = "hey @colleen fix it"
+
+        assert SlackIssuesMessageBuilder(group, rules=[rule]).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            rule=rule,
+            legacy_rule_id=123,
         )
         # add extra tag to message
         assert SlackIssuesMessageBuilder(
@@ -386,7 +501,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         group = self.create_group(project=project2)
 
         SlackIssuesMessageBuilder(group).build()
-        assert mock_get_option_groups.called
 
         team_option_groups, member_option_groups = mock_get_option_groups(group)
         assert len(team_option_groups["options"]) == 2
@@ -807,11 +921,10 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         assert SlackIncidentsMessageBuilder(
             alert_context=AlertContext.from_alert_rule_incident(alert_rule),
-            open_period_identifier=incident.identifier,
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident, IncidentStatus.CRITICAL, 0
+            ),
             organization=self.organization,
-            snuba_query=alert_rule.snuba_query,
-            new_status=IncidentStatus.CRITICAL,
-            metric_value=0,
             date_started=incident.date_started,
         ).build() == {
             "blocks": [
@@ -826,6 +939,232 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             "color": LEVEL_TO_COLOR["fatal"],
             "text": f"<{link}|*{title}*>",
         }
+
+    @override_options({"alerts.issue_summary_timeout": 5})
+    @with_feature({"organizations:gen-ai-features", "projects:trigger-issue-summary-on-alerts"})
+    def test_build_group_block_with_ai_summary_with_feature_flag(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "IntegrationError",
+                "fingerprint": ["group-1"],
+                "exception": {
+                    "values": [
+                        {
+                            "type": "IntegrationError",
+                            "value": "Identity not found.",
+                        }
+                    ]
+                },
+                "level": "error",
+            },
+            project_id=self.project.id,
+        )
+        assert event.group
+        group = event.group
+        group.type = ErrorGroupType.type_id
+        group.save()
+        assert group.issue_category == GroupCategory.ERROR
+
+        self.project.flags.has_releases = True
+        self.project.save(update_fields=["flags"])
+
+        mock_summary = {
+            "headline": "Custom AI Title",
+            "whatsWrong": "This is what's wrong with the issue",
+            "trace": "This is trace information",
+            "possibleCause": "This is a possible cause",
+        }
+        patch_path = "sentry.integrations.utils.issue_summary_for_alerts.get_issue_summary"
+        serializer_path = "sentry.api.serializers.models.event.EventSerializer.serialize"
+        serializer_mock = Mock(return_value={})
+
+        with (
+            patch(patch_path) as mock_get_summary,
+            patch(serializer_path, serializer_mock),
+        ):
+            mock_get_summary.return_value = (mock_summary, 200)
+
+            blocks = SlackIssuesMessageBuilder(group).build()
+
+            mock_get_summary.assert_called_once_with(group, source="alert")
+
+            # Verify that the original title is \\ present
+            assert "IntegrationError" in blocks["blocks"][0]["text"]["text"]
+            assert "Identity not found" in blocks["blocks"][0]["text"]["text"]
+
+            # Verify that the AI content is used in the context block
+            content_block = blocks["blocks"][1]["elements"][0]["text"]
+            assert "This is a possible cause" in content_block
+
+    @override_options({"alerts.issue_summary_timeout": 5})
+    def test_build_group_block_with_ai_summary_without_feature_flag(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "IntegrationError",
+                "fingerprint": ["group-1"],
+                "exception": {
+                    "values": [
+                        {
+                            "type": "IntegrationError",
+                            "value": "Identity not found.",
+                        }
+                    ]
+                },
+                "level": "error",
+            },
+            project_id=self.project.id,
+        )
+        assert event.group
+        group = event.group
+        group.type = ErrorGroupType.type_id
+        group.save()
+        assert group.issue_category == GroupCategory.ERROR
+
+        self.project.flags.has_releases = True
+        self.project.save(update_fields=["flags"])
+
+        patch_path = "sentry.integrations.utils.issue_summary_for_alerts.get_issue_summary"
+
+        with patch(patch_path) as mock_get_summary:
+            mock_get_summary.assert_not_called()
+            blocks = SlackIssuesMessageBuilder(group).build()
+            assert "IntegrationError" in blocks["blocks"][0]["text"]["text"]
+
+    @override_options({"alerts.issue_summary_timeout": 5})
+    @with_feature({"organizations:gen-ai-features", "projects:trigger-issue-summary-on-alerts"})
+    def test_build_group_block_with_ai_summary_text_truncation(self):
+        # Test case for multi-line exception text
+        multiline_text = "First line of text\nSecond line of text\nThird line of text"
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "IntegrationError",
+                "fingerprint": ["group-1"],
+                "exception": {
+                    "values": [
+                        {
+                            "type": "IntegrationError",
+                            "value": multiline_text,
+                        }
+                    ]
+                },
+                "level": "error",
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        assert event1.group
+        group1 = event1.group
+        group1.type = ErrorGroupType.type_id
+        group1.save()
+
+        # Test case for long exception text (over 50 characters)
+        long_text = (
+            "This is a very long text that exceeds the 50 character limit and should be truncated"
+        )
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "IntegrationError",
+                "fingerprint": ["group-2"],
+                "exception": {
+                    "values": [
+                        {
+                            "type": "IntegrationError",
+                            "value": long_text,
+                        }
+                    ]
+                },
+                "level": "error",
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        assert event2.group
+        group2 = event2.group
+        group2.type = ErrorGroupType.type_id
+        group2.save()
+
+        self.project.flags.has_releases = True
+        self.project.save(update_fields=["flags"])
+
+        mock_summary = {
+            "headline": "Custom AI Title",
+            "whatsWrong": "Some issue description",
+            "trace": "This is trace information",
+            "possibleCause": "This is a possible cause",
+        }
+
+        patch_path = "sentry.integrations.utils.issue_summary_for_alerts.get_issue_summary"
+        serializer_path = "sentry.api.serializers.models.event.EventSerializer.serialize"
+        serializer_mock = Mock(return_value={})
+
+        # Test multi-line text truncation
+        with (
+            patch(patch_path) as mock_get_summary,
+            patch(serializer_path, serializer_mock),
+        ):
+            mock_get_summary.return_value = (mock_summary, 200)
+            blocks = SlackIssuesMessageBuilder(group1, event1.for_group(group1)).build()
+            title_text = blocks["blocks"][0]["text"]["text"]
+
+            assert "First line of text..." in title_text
+            assert "Second line" not in title_text
+
+        # Test long text truncation
+        with (
+            patch(patch_path) as mock_get_summary,
+            patch(serializer_path, serializer_mock),
+        ):
+            mock_get_summary.return_value = (mock_summary, 200)
+            blocks = SlackIssuesMessageBuilder(group2, event2.for_group(group2)).build()
+            title_text = blocks["blocks"][0]["text"]["text"]
+
+            expected_truncated = long_text[:MAX_SUMMARY_HEADLINE_LENGTH] + "..."
+            assert expected_truncated in title_text
+
+        # Test cases for other line breaks
+        line_break_test_cases = [
+            ("crlf", "CRLF Line1\r\nCRLF Line2", "CRLF Line1..."),
+            ("ls", "LS Line1\u2028LS Line2", "LS Line1..."),
+            ("ps", "PS Line1\u2029PS Line2", "PS Line1..."),
+            ("strip_before_ellipsis", "Space Line1  \r\nSpace Line2", "Space Line1..."),
+        ]
+
+        for name, text_with_break, expected_headline_part in line_break_test_cases:
+            event_lb = self.store_event(
+                data={
+                    "event_id": "c" * 32,
+                    "message": "IntegrationError",
+                    "fingerprint": [f"group-lb-{name}"],
+                    "exception": {
+                        "values": [
+                            {
+                                "type": "IntegrationError",
+                                "value": text_with_break,
+                            }
+                        ]
+                    },
+                    "level": "error",
+                    "timestamp": before_now(minutes=1).isoformat(),
+                },
+                project_id=self.project.id,
+            )
+            assert event_lb.group
+            group_lb = event_lb.group
+            group_lb.type = ErrorGroupType.type_id
+            group_lb.save()
+
+            with (
+                patch(patch_path) as mock_get_summary,
+                patch(serializer_path, serializer_mock),
+            ):
+                mock_get_summary.return_value = (mock_summary, 200)
+                blocks = SlackIssuesMessageBuilder(group_lb, event_lb.for_group(group_lb)).build()
+                title_block = blocks["blocks"][0]["text"]["text"]
+                assert f": {expected_headline_part}*>" in title_block, f"Failed for {name}"
 
 
 class BuildGroupAttachmentReplaysTest(TestCase):
@@ -879,12 +1218,11 @@ class BuildIncidentAttachmentTest(TestCase):
         )
         assert SlackIncidentsMessageBuilder(
             alert_context=AlertContext.from_alert_rule_incident(alert_rule),
-            open_period_identifier=incident.identifier,
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident, IncidentStatus.CLOSED, 0
+            ),
             organization=self.organization,
-            snuba_query=alert_rule.snuba_query,
             date_started=incident.date_started,
-            new_status=IncidentStatus.CLOSED,
-            metric_value=0,
         ).build() == {
             "blocks": [
                 {
@@ -924,11 +1262,10 @@ class BuildIncidentAttachmentTest(TestCase):
         # This should fail because it pulls status from `action` instead of `incident`
         assert SlackIncidentsMessageBuilder(
             alert_context=AlertContext.from_alert_rule_incident(alert_rule),
-            open_period_identifier=incident.identifier,
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident, IncidentStatus.CRITICAL, metric_value
+            ),
             organization=self.organization,
-            snuba_query=alert_rule.snuba_query,
-            new_status=IncidentStatus.CRITICAL,
-            metric_value=metric_value,
             date_started=incident.date_started,
         ).build() == {
             "blocks": [
@@ -965,11 +1302,10 @@ class BuildIncidentAttachmentTest(TestCase):
         )
         assert SlackIncidentsMessageBuilder(
             alert_context=AlertContext.from_alert_rule_incident(alert_rule),
-            open_period_identifier=incident.identifier,
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident, IncidentStatus.CLOSED, 0
+            ),
             organization=self.organization,
-            snuba_query=alert_rule.snuba_query,
-            new_status=IncidentStatus.CLOSED,
-            metric_value=0,
             date_started=incident.date_started,
             chart_url="chart-url",
         ).build() == {
@@ -1021,11 +1357,10 @@ class BuildIncidentAttachmentTest(TestCase):
         )
         assert SlackIncidentsMessageBuilder(
             alert_context=AlertContext.from_alert_rule_incident(alert_rule),
-            open_period_identifier=incident.identifier,
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident, IncidentStatus.CRITICAL, 0
+            ),
             organization=self.organization,
-            snuba_query=alert_rule.snuba_query,
-            new_status=IncidentStatus.CRITICAL,
-            metric_value=0,
             date_started=incident.date_started,
         ).build() == {
             "blocks": [

@@ -1,6 +1,5 @@
 import type {DO_NOT_USE_ChonkTheme, Theme} from '@emotion/react';
 
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {
   makeColorMapByApplicationFrame,
   makeColorMapByFrequency,
@@ -15,15 +14,11 @@ import type {FlamegraphColorCodings} from 'sentry/utils/profiling/flamegraph/fla
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import type {Frame} from 'sentry/utils/profiling/frame';
 import {hexToColorChannels} from 'sentry/utils/profiling/gl/utils';
-import {darkTheme, lightTheme} from 'sentry/utils/theme';
-
-import {makeColorBucketTheme} from '../speedscope';
+import {makeColorBucketTheme} from 'sentry/utils/profiling/speedscope';
 
 const MONOSPACE_FONT = `ui-monospace, Menlo, Monaco, 'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono',
 'Oxygen Mono', 'Ubuntu Monospace', 'Source Code Pro', 'Fira Mono', 'Droid Sans Mono',
 'Courier New', monospace`;
-
-const FRAME_FONT = lightTheme.text.familyMono;
 
 // Luma chroma settings
 export interface LCH {
@@ -185,17 +180,22 @@ const SIZES: FlamegraphTheme['SIZES'] = {
   CHART_PX_PADDING: 30,
 };
 
-const FONTS: FlamegraphTheme['FONTS'] = {
-  FONT: MONOSPACE_FONT,
-  FRAME_FONT,
-};
+function makeFlamegraphFonts(
+  theme: Theme | DO_NOT_USE_ChonkTheme
+): FlamegraphTheme['FONTS'] {
+  return {
+    FONT: MONOSPACE_FONT,
+    FRAME_FONT: theme.text.familyMono,
+  };
+}
 
 /** Legacy theme definitions */
-export function makeLightFlamegraphTheme(_theme: Theme): FlamegraphTheme {
+export function makeLightFlamegraphTheme(theme: Theme): FlamegraphTheme {
+  const chartColors = theme.chart.getColorPalette(12);
   return {
     LCH: LCH_LIGHT,
     SIZES,
-    FONTS,
+    FONTS: makeFlamegraphFonts(theme),
     COLORS: {
       BAR_LABEL_FONT_COLOR: '#000',
       BATTERY_CHART_COLORS: [[0.4, 0.56, 0.9, 0.65]],
@@ -210,17 +210,17 @@ export function makeLightFlamegraphTheme(_theme: Theme): FlamegraphTheme {
         'by frequency': makeColorMapByFrequency,
         'by system vs application frame': makeColorMapBySystemVsApplicationFrame,
       },
-      CPU_CHART_COLORS: CHART_PALETTE[12].map(c => hexToColorChannels(c, 0.8)),
+      CPU_CHART_COLORS: chartColors.map(c => hexToColorChannels(c, 0.8)),
       MEMORY_CHART_COLORS: [
-        hexToColorChannels(CHART_PALETTE[4][2], 0.8),
-        hexToColorChannels(CHART_PALETTE[4][3], 0.8),
+        hexToColorChannels(chartColors[2], 0.8),
+        hexToColorChannels(chartColors[3], 0.8),
       ],
       CHART_CURSOR_INDICATOR: 'rgba(31,35,58,.75)',
       CHART_LABEL_COLOR: 'rgba(31,35,58,.75)',
       CURSOR_CROSSHAIR: '#bbbbbb',
       DIFFERENTIAL_DECREASE: [0.309, 0.2558, 0.78],
       DIFFERENTIAL_INCREASE: [0.84, 0.3, 0.33],
-      FOCUSED_FRAME_BORDER_COLOR: lightTheme.focus,
+      FOCUSED_FRAME_BORDER_COLOR: theme.focus,
       FRAME_FALLBACK_COLOR: [0.5, 0.5, 0.6, 0.1],
       FRAME_APPLICATION_COLOR: [0.1, 0.1, 0.8, 0.2],
       FRAME_SYSTEM_COLOR: [0.7, 0.1, 0.1, 0.2],
@@ -239,7 +239,7 @@ export function makeLightFlamegraphTheme(_theme: Theme): FlamegraphTheme {
       UI_FRAME_COLOR_FROZEN: [0.96, 0.329, 0.349, 0.8],
       SEARCH_RESULT_FRAME_COLOR: 'vec4(0.99, 0.70, 0.35, 1.0)',
       SEARCH_RESULT_SPAN_COLOR: '#fdb359',
-      SELECTED_FRAME_BORDER_COLOR: lightTheme.blue400,
+      SELECTED_FRAME_BORDER_COLOR: theme.blue400,
       SPAN_FRAME_LINE_PATTERN: '#dedae3',
       SPAN_FRAME_LINE_PATTERN_BACKGROUND: '#f4f2f7',
       SPAN_FRAME_BORDER: 'rgba(200, 200, 200, 1)',
@@ -248,11 +248,12 @@ export function makeLightFlamegraphTheme(_theme: Theme): FlamegraphTheme {
   };
 }
 
-export function makeDarkFlamegraphTheme(_theme: Theme): FlamegraphTheme {
+export function makeDarkFlamegraphTheme(theme: Theme): FlamegraphTheme {
+  const chartColors = theme.chart.getColorPalette(12);
   return {
     LCH: LCH_DARK,
     SIZES,
-    FONTS,
+    FONTS: makeFlamegraphFonts(theme),
     COLORS: {
       BAR_LABEL_FONT_COLOR: 'rgb(255 255 255 / 80%)',
       BATTERY_CHART_COLORS: [[0.4, 0.56, 0.9, 0.5]],
@@ -267,17 +268,17 @@ export function makeDarkFlamegraphTheme(_theme: Theme): FlamegraphTheme {
         'by frequency': makeColorMapByFrequency,
         'by system vs application frame': makeColorMapBySystemVsApplicationFrame,
       },
-      CPU_CHART_COLORS: CHART_PALETTE[12].map(c => hexToColorChannels(c, 0.8)),
+      CPU_CHART_COLORS: chartColors.map(c => hexToColorChannels(c, 0.8)),
       MEMORY_CHART_COLORS: [
-        hexToColorChannels(CHART_PALETTE[4][2], 0.5),
-        hexToColorChannels(CHART_PALETTE[4][3], 0.5),
+        hexToColorChannels(chartColors[2], 0.5),
+        hexToColorChannels(chartColors[3], 0.5),
       ],
       CHART_CURSOR_INDICATOR: 'rgba(255, 255, 255, 0.5)',
       CHART_LABEL_COLOR: 'rgba(255, 255, 255, 0.5)',
       CURSOR_CROSSHAIR: '#828285',
       DIFFERENTIAL_DECREASE: [0.309, 0.2058, 0.98],
       DIFFERENTIAL_INCREASE: [0.98, 0.2058, 0.4381],
-      FOCUSED_FRAME_BORDER_COLOR: darkTheme.focus,
+      FOCUSED_FRAME_BORDER_COLOR: theme.focus,
       FRAME_FALLBACK_COLOR: [0.5, 0.5, 0.5, 0.4],
       FRAME_APPLICATION_COLOR: [0.1, 0.1, 0.5, 0.4],
       FRAME_SYSTEM_COLOR: [0.6, 0.15, 0.25, 0.3],
@@ -297,7 +298,7 @@ export function makeDarkFlamegraphTheme(_theme: Theme): FlamegraphTheme {
       SEARCH_RESULT_FRAME_COLOR: 'vec4(0.99, 0.70, 0.35, 0.7)',
       SPAN_FRAME_LINE_PATTERN: '#594b66',
       SPAN_FRAME_LINE_PATTERN_BACKGROUND: '#1a1724',
-      SELECTED_FRAME_BORDER_COLOR: lightTheme.blue400,
+      SELECTED_FRAME_BORDER_COLOR: theme.blue400,
       SEARCH_RESULT_SPAN_COLOR: '#b9834a',
       SPAN_FRAME_BORDER: '#57575b',
       STACK_TO_COLOR: makeStackToColor([1, 1, 1, 0.1]),
@@ -324,10 +325,12 @@ const SPAN_LCH_LIGHT_CHONK = {
 export const makeLightChonkFlamegraphTheme = (
   theme: DO_NOT_USE_ChonkTheme
 ): FlamegraphTheme => {
+  const chartColors = theme.chart.getColorPalette(12);
+
   return {
     LCH: LCH_LIGHT_CHONK,
     SIZES,
-    FONTS,
+    FONTS: makeFlamegraphFonts(theme),
     COLORS: {
       COLOR_BUCKET: makeColorBucketTheme(LCH_LIGHT_CHONK),
       SPAN_COLOR_BUCKET: makeColorBucketTheme(SPAN_LCH_LIGHT_CHONK, 140, 220),
@@ -342,7 +345,7 @@ export const makeLightChonkFlamegraphTheme = (
       },
 
       // Charts
-      CPU_CHART_COLORS: CHART_PALETTE[12].map(c => hexToColorChannels(c, 0.8)),
+      CPU_CHART_COLORS: chartColors.map(c => hexToColorChannels(c, 0.8)),
       MEMORY_CHART_COLORS: [
         hexToColorChannels(theme.colors.yellow400, 1),
         hexToColorChannels(theme.colors.red400, 1),
@@ -366,10 +369,10 @@ export const makeLightChonkFlamegraphTheme = (
       CURSOR_CROSSHAIR: theme.border,
 
       // Special states
-      FOCUSED_FRAME_BORDER_COLOR: lightTheme.focus,
+      FOCUSED_FRAME_BORDER_COLOR: theme.focus,
       HIGHLIGHTED_LABEL_COLOR: `rgba(240, 240, 0, 1)`,
       HOVERED_FRAME_BORDER_COLOR: theme.colors.gray400,
-      SELECTED_FRAME_BORDER_COLOR: lightTheme.blue400,
+      SELECTED_FRAME_BORDER_COLOR: theme.blue400,
 
       // Search results
       SEARCH_RESULT_FRAME_COLOR: 'vec4(0.99, 0.70, 0.35, 1.0)',
@@ -413,10 +416,11 @@ const SPANS_LCH_DARK_CHONK = {
 export const makeDarkChonkFlamegraphTheme = (
   theme: DO_NOT_USE_ChonkTheme
 ): FlamegraphTheme => {
+  const chartColors = theme.chart.getColorPalette(12);
   return {
     LCH: LCH_DARK_CHONK,
     SIZES,
-    FONTS,
+    FONTS: makeFlamegraphFonts(theme),
     COLORS: {
       COLOR_BUCKET: makeColorBucketTheme(LCH_DARK_CHONK),
       SPAN_COLOR_BUCKET: makeColorBucketTheme(SPANS_LCH_DARK_CHONK, 140, 220),
@@ -431,7 +435,7 @@ export const makeDarkChonkFlamegraphTheme = (
       },
 
       // Charts
-      CPU_CHART_COLORS: CHART_PALETTE[12].map(c => hexToColorChannels(c, 0.8)),
+      CPU_CHART_COLORS: chartColors.map(c => hexToColorChannels(c, 0.8)),
       MEMORY_CHART_COLORS: [
         hexToColorChannels(theme.colors.yellow400, 1),
         hexToColorChannels(theme.colors.red400, 1),
@@ -455,10 +459,10 @@ export const makeDarkChonkFlamegraphTheme = (
       CURSOR_CROSSHAIR: theme.border,
 
       // Special states
-      FOCUSED_FRAME_BORDER_COLOR: darkTheme.focus,
+      FOCUSED_FRAME_BORDER_COLOR: theme.focus,
       HIGHLIGHTED_LABEL_COLOR: theme.colors.yellow400,
       HOVERED_FRAME_BORDER_COLOR: theme.colors.gray400,
-      SELECTED_FRAME_BORDER_COLOR: lightTheme.blue400,
+      SELECTED_FRAME_BORDER_COLOR: theme.blue400,
 
       // Search results
       SEARCH_RESULT_FRAME_COLOR: 'vec4(0.99, 0.70, 0.35, 1.0)',

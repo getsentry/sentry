@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react';
 import {createPortal} from 'react-dom';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {motion} from 'framer-motion';
@@ -15,7 +16,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {SeerIcon} from 'sentry/components/ai/SeerIcon';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
+import {TextArea} from 'sentry/components/core/textarea';
 import {
   makeAutofixQueryKey,
   useAutofixData,
@@ -26,6 +27,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
+import useMedia from 'sentry/utils/useMedia';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
 import type {CommentThreadMessage} from './types';
@@ -37,6 +40,7 @@ interface Props {
   runId: string;
   selectedText: string;
   stepIndex: number;
+  blockName?: string;
   isAgentComment?: boolean;
 }
 
@@ -44,9 +48,12 @@ interface OptimisticMessage extends CommentThreadMessage {
   isLoading?: boolean;
 }
 
+const MIN_LEFT_MARGIN = 8;
+
 function useCommentThread({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
+  const orgSlug = useOrganization().slug;
 
   return useMutation({
     mutationFn: (params: {
@@ -57,24 +64,27 @@ function useCommentThread({groupId, runId}: {groupId: string; runId: string}) {
       step_index: number;
       thread_id: string;
     }) => {
-      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
-        method: 'POST',
-        data: {
-          run_id: runId,
-          payload: {
-            type: 'comment_thread',
-            message: params.message,
-            thread_id: params.thread_id,
-            selected_text: params.selected_text,
-            step_index: params.step_index,
-            retain_insight_card_index: params.retain_insight_card_index,
-            is_agent_comment: params.is_agent_comment,
+      return api.requestPromise(
+        `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
+        {
+          method: 'POST',
+          data: {
+            run_id: runId,
+            payload: {
+              type: 'comment_thread',
+              message: params.message,
+              thread_id: params.thread_id,
+              selected_text: params.selected_text,
+              step_index: params.step_index,
+              retain_insight_card_index: params.retain_insight_card_index,
+              is_agent_comment: params.is_agent_comment,
+            },
           },
-        },
-      });
+        }
+      );
     },
     onSuccess: _ => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when sending your comment.'));
@@ -85,6 +95,7 @@ function useCommentThread({groupId, runId}: {groupId: string; runId: string}) {
 function useCloseCommentThread({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
+  const orgSlug = useOrganization().slug;
 
   return useMutation({
     mutationFn: (params: {
@@ -92,21 +103,24 @@ function useCloseCommentThread({groupId, runId}: {groupId: string; runId: string
       step_index: number;
       thread_id: string;
     }) => {
-      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
-        method: 'POST',
-        data: {
-          run_id: runId,
-          payload: {
-            type: 'resolve_comment_thread',
-            thread_id: params.thread_id,
-            step_index: params.step_index,
-            is_agent_comment: params.is_agent_comment,
+      return api.requestPromise(
+        `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
+        {
+          method: 'POST',
+          data: {
+            run_id: runId,
+            payload: {
+              type: 'resolve_comment_thread',
+              thread_id: params.thread_id,
+              step_index: params.step_index,
+              is_agent_comment: params.is_agent_comment,
+            },
           },
-        },
-      });
+        }
+      );
     },
     onSuccess: _ => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when resolving the thread.'));
@@ -121,7 +135,9 @@ function AutofixHighlightPopupContent({
   stepIndex,
   retainInsightCardIndex,
   isAgentComment,
-}: Props) {
+  blockName,
+  isFocused,
+}: Props & {isFocused?: boolean}) {
   const {mutate: submitComment} = useCommentThread({groupId, runId});
   const {mutate: closeCommentThread} = useCloseCommentThread({groupId, runId});
 
@@ -253,9 +269,15 @@ function AutofixHighlightPopupContent({
   };
 
   return (
-    <Container onClick={handleContainerClick}>
+    <Container onClick={handleContainerClick} isFocused={isFocused}>
       <Header>
-        <SelectedText>{truncatedText && <span>"{truncatedText}"</span>}</SelectedText>
+        <SelectedText>
+          {blockName ? (
+            <span>{blockName}</span>
+          ) : (
+            truncatedText && <span>"{truncatedText}"</span>
+          )}
+        </SelectedText>
         {allMessages.length > 0 && (
           <ResolveButton
             size="zero"
@@ -296,11 +318,22 @@ function AutofixHighlightPopupContent({
       {commentThread?.is_completed !== true && (
         <InputWrapper onSubmit={handleSubmit}>
           <StyledInput
-            placeholder={t('Questions or comments?')}
+            placeholder={
+              isAgentComment ? t('Share your context...') : t('Questions? Instructions?')
+            }
             value={comment}
             onChange={e => setComment(e.target.value)}
+            maxLength={4096}
             size="sm"
             autoFocus
+            maxRows={5}
+            autosize
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSubmit(e);
+              }
+            }}
           />
           <StyledButton
             size="zero"
@@ -316,20 +349,32 @@ function AutofixHighlightPopupContent({
   );
 }
 
-function getOptimalPosition(referenceRect: DOMRect, popupRect: DOMRect) {
+function getOptimalPosition(
+  referenceRect: DOMRect,
+  popupRect: DOMRect,
+  drawerWidth?: number
+) {
   const viewportHeight = window.innerHeight;
   const viewportWidth = window.innerWidth;
 
-  // Fixed position from the right edge of the viewport
-  const left = viewportWidth / 2 - popupRect.width + 8;
+  const effectiveDrawerWidth = drawerWidth ?? viewportWidth * 0.5;
+
+  // Calculate initial position to the left of the drawer
+  let left = viewportWidth - effectiveDrawerWidth - popupRect.width - 8;
+
+  // Ensure the popup is not cut off on the left side
+  if (left < MIN_LEFT_MARGIN) {
+    left = MIN_LEFT_MARGIN;
+  }
+
   let top = referenceRect.top;
 
   // Ensure the popup stays within the viewport vertically
   if (top + popupRect.height > viewportHeight) {
     top = viewportHeight - popupRect.height;
   }
-  if (top < 0) {
-    top = 0;
+  if (top < 42) {
+    top = 42;
   }
 
   return {left, top};
@@ -345,7 +390,11 @@ function AutofixHighlightPopup(props: Props) {
     left: 0,
     top: 0,
   });
+  const [width, setWidth] = useState<number | undefined>(undefined);
   const [isFocused, setIsFocused] = useState(false);
+
+  const theme = useTheme();
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
 
   useLayoutEffect(() => {
     if (!referenceElement || !popupRef.current) {
@@ -353,11 +402,27 @@ function AutofixHighlightPopup(props: Props) {
     }
 
     const updatePosition = () => {
+      if (!referenceElement || !popupRef.current) {
+        return;
+      }
+
       const referenceRect = referenceElement.getBoundingClientRect();
-      const popupRect = popupRef.current!.getBoundingClientRect();
+      const popupRect = popupRef.current.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+
+      const drawerElement = document.querySelector('.drawer-panel');
+      const drawerWidth = drawerElement
+        ? drawerElement.getBoundingClientRect().width
+        : undefined;
+
+      // Calculate available width for the popup
+      const availableWidth = viewportWidth - (drawerWidth ?? viewportWidth * 0.5) - 16;
+      const defaultWidth = 300;
+      const newWidth = Math.min(defaultWidth, Math.max(200, availableWidth));
 
       startTransition(() => {
-        setPosition(getOptimalPosition(referenceRect, popupRect));
+        setPosition(getOptimalPosition(referenceRect, popupRect, drawerWidth));
+        setWidth(newWidth);
       });
     };
 
@@ -398,6 +463,10 @@ function AutofixHighlightPopup(props: Props) {
     setIsFocused(false);
   };
 
+  if (isSmallScreen) {
+    return null;
+  }
+
   return createPortal(
     <Wrapper
       ref={popupRef}
@@ -412,15 +481,16 @@ function AutofixHighlightPopup(props: Props) {
       style={{
         left: `${position.left}px`,
         top: `${position.top}px`,
+        width: width ? `${width}px` : '300px',
       }}
       isFocused={isFocused}
       onFocus={handleFocus}
       onBlur={handleBlur}
       tabIndex={-1}
     >
-      <Arrow />
-      <ScaleContainer>
-        <AutofixHighlightPopupContent {...props} />
+      <ScaleContainer isFocused={isFocused}>
+        <Arrow />
+        <AutofixHighlightPopupContent {...props} isFocused={isFocused} />
       </ScaleContainer>
     </Wrapper>,
     document.body
@@ -434,28 +504,34 @@ const Wrapper = styled(motion.div)<{isFocused?: boolean}>`
   align-items: flex-start;
   margin-right: ${space(1)};
   gap: ${space(1)};
-  width: 300px;
+  max-width: 300px;
+  min-width: 200px;
   position: fixed;
   will-change: transform;
 `;
 
-const ScaleContainer = styled(motion.div)`
+const ScaleContainer = styled(motion.div)<{isFocused?: boolean}>`
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  transform-origin: top left;
+  transform-origin: top right;
   padding-left: ${space(2)};
+  transform: scale(${p => (p.isFocused ? 1 : 0.9)});
+  transition: transform 200ms ease;
 `;
 
-const Container = styled(motion.div)`
+const Container = styled(motion.div, {
+  shouldForwardProp: prop => prop !== 'isFocused',
+})<{isFocused?: boolean}>`
   position: relative;
   width: 100%;
   border-radius: ${p => p.theme.borderRadius};
   background: ${p => p.theme.background};
   border: 1px dashed ${p => p.theme.border};
   overflow: hidden;
-  box-shadow: ${p => p.theme.dropShadowHeavy};
+  box-shadow: ${p => (p.isFocused ? p.theme.dropShadowHeavy : p.theme.dropShadowLight)};
+  transition: box-shadow 200ms ease;
 
   &:before {
     content: '';
@@ -479,12 +555,15 @@ const InputWrapper = styled('form')`
   position: relative;
 `;
 
-const StyledInput = styled(Input)`
+const StyledInput = styled(TextArea)`
   flex-grow: 1;
   background: ${p => p.theme.background}
     linear-gradient(to left, ${p => p.theme.background}, ${p => p.theme.pink400}20);
   border-color: ${p => p.theme.innerBorder};
   padding-right: ${space(4)};
+  padding-top: ${space(0.75)};
+  padding-bottom: ${space(0.75)};
+  resize: none;
 
   &:hover {
     border-color: ${p => p.theme.border};
@@ -536,6 +615,7 @@ const Arrow = styled('div')`
   top: 20px;
   right: -6px;
   transform: rotate(135deg);
+  z-index: 1;
 `;
 
 const MessagesContainer = styled('div')`
@@ -562,6 +642,7 @@ const MessageContent = styled('div')`
   color: ${p => p.theme.textColor};
   word-break: break-word;
   overflow-wrap: break-word;
+  white-space: pre-wrap;
 `;
 
 const CircularSeerIcon = styled('div')`

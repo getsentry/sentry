@@ -2,17 +2,19 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
+import type {Interpolation, Theme} from '@emotion/react';
 import type {AnimationProps} from 'framer-motion';
 import {AnimatePresence} from 'framer-motion';
 import type {Location} from 'history';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import DrawerComponents from 'sentry/components/globalDrawer/components';
+import {DrawerComponents} from 'sentry/components/globalDrawer/components';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
@@ -33,6 +35,14 @@ export interface DrawerOptions {
    */
   closeOnOutsideClick?: boolean;
   /**
+   * Custom CSS for the drawer
+   */
+  drawerCss?: Interpolation<Theme>;
+  /**
+   * Key to identify the drawer and enable persistence of the drawer width
+   */
+  drawerKey?: string;
+  /**
    * Custom width for the drawer
    */
   drawerWidth?: string;
@@ -49,6 +59,11 @@ export interface DrawerOptions {
    */
   onOpen?: () => void;
   /**
+   * If true (default), allows the drawer to be resized - requires `drawerKey`
+   * to be defined
+   */
+  resizable?: boolean;
+  /**
    * Function to determine whether the drawer should close when interacting with
    * other elements.
    */
@@ -56,7 +71,7 @@ export interface DrawerOptions {
   /**
    * If true (default), closes the drawer when the location changes
    */
-  shouldCloseOnLocationChange?: (newPathname: Location) => boolean;
+  shouldCloseOnLocationChange?: (nextLocation: Location) => boolean;
   //
   // Custom framer motion transition for the drawer
   //
@@ -84,12 +99,14 @@ interface DrawerContextType {
     renderer: DrawerConfig['renderer'],
     options: DrawerConfig['options']
   ) => void;
+  panelRef: React.RefObject<HTMLDivElement | null>;
 }
 
 const DrawerContext = createContext<DrawerContextType>({
   openDrawer: () => {},
   isDrawerOpen: false,
   closeDrawer: () => {},
+  panelRef: {current: null},
 });
 
 export function GlobalDrawer({children}: any) {
@@ -97,12 +114,16 @@ export function GlobalDrawer({children}: any) {
   const [currentDrawerConfig, overwriteDrawerConfig] = useState<
     DrawerConfig | undefined
   >();
+  // Used to avoid adding `currentDrawerConfig` as a dependency to the below
+  // `useLayoutEffect`. It's only used as a callback when `location` changes.
+  const currentDrawerConfigRef = useRef(currentDrawerConfig);
+
   // If no config is set, the global drawer is closed.
   const isDrawerOpen = !!currentDrawerConfig;
-  const openDrawer = useCallback<DrawerContextType['openDrawer']>(
-    (renderer, options) => overwriteDrawerConfig({renderer, options}),
-    []
-  );
+  const openDrawer = useCallback<DrawerContextType['openDrawer']>((renderer, options) => {
+    overwriteDrawerConfig({renderer, options});
+    options.onOpen?.();
+  }, []);
   const closeDrawer = useCallback<DrawerContextType['closeDrawer']>(
     () => overwriteDrawerConfig(undefined),
     []
@@ -113,24 +134,29 @@ export function GlobalDrawer({children}: any) {
     closeDrawer();
   }, [currentDrawerConfig, closeDrawer]);
 
+  useEffect(() => {
+    currentDrawerConfigRef.current = currentDrawerConfig;
+  }, [currentDrawerConfig]);
+
   // Close the drawer when the browser history changes.
   useLayoutEffect(
     () => {
-      // Defaults to closing the drawer when the location changes
-      if (currentDrawerConfig?.options.shouldCloseOnLocationChange?.(location) ?? true) {
+      if (
+        // No need to close drawer if it is not open
+        currentDrawerConfigRef.current !== undefined &&
+        // Otherwise, when the location changes, check callback or default to closing the drawer if it doesn't exist
+        (currentDrawerConfigRef.current.options?.shouldCloseOnLocationChange?.(
+          location
+        ) ??
+          true)
+      ) {
         // Call `closeDrawer` without invoking `onClose` callback, since those callbacks often update the URL
         closeDrawer();
       }
     },
-    // Ignoring changes to currentDrawerConfig?.options to prevent closing the drawer when it opens
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      location?.pathname,
-      location?.search,
-      location?.hash,
-      closeDrawer,
-      currentDrawerConfig?.options.shouldCloseOnLocationChange,
-    ]
+    // Ignoring changes to currentDrawerConfig and currentDrawerConfig?.options
+    // to prevent closing the drawer when it opens.
+    [closeDrawer, location]
   );
 
   // Close the drawer when clicking outside the panel and options allow it.
@@ -175,7 +201,7 @@ export function GlobalDrawer({children}: any) {
     : null;
 
   return (
-    <DrawerContext.Provider value={{closeDrawer, isDrawerOpen, openDrawer}}>
+    <DrawerContext value={{closeDrawer, isDrawerOpen, openDrawer, panelRef}}>
       <ErrorBoundary mini message={t('There was a problem rendering the drawer.')}>
         <AnimatePresence>
           {isDrawerOpen && (
@@ -186,6 +212,9 @@ export function GlobalDrawer({children}: any) {
               headerContent={currentDrawerConfig?.options?.headerContent ?? null}
               transitionProps={currentDrawerConfig?.options?.transitionProps}
               drawerWidth={currentDrawerConfig?.options?.drawerWidth}
+              drawerKey={currentDrawerConfig?.options?.drawerKey}
+              resizable={currentDrawerConfig?.options?.resizable}
+              drawerCss={currentDrawerConfig?.options?.drawerCss}
             >
               {renderedChild}
             </DrawerComponents.DrawerPanel>
@@ -193,7 +222,7 @@ export function GlobalDrawer({children}: any) {
         </AnimatePresence>
       </ErrorBoundary>
       {children}
-    </DrawerContext.Provider>
+    </DrawerContext>
   );
 }
 

@@ -1,36 +1,74 @@
 import type {AccuracyStats, Confidence} from 'sentry/types/organization';
 import type {DataUnit} from 'sentry/utils/discover/fields';
+import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 
-import type {ThresholdsConfig} from '../../widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
+type AttributeValueType =
+  | 'number'
+  | 'integer'
+  | 'date'
+  | 'boolean'
+  | 'duration'
+  | 'percentage'
+  | 'percent_change'
+  | 'string'
+  | 'size'
+  | 'rate'
+  | 'score'
+  | null;
 
-export type Meta = {
-  type: string | null; // TODO: This can probably be `AggregationOutputType`
-  unit: DataUnit | null;
+type AttributeValueUnit = DataUnit | null;
+
+type TimeSeriesValueType = AttributeValueType;
+export type TimeSeriesValueUnit = AttributeValueUnit;
+export type TimeSeriesMeta = {
+  valueType: TimeSeriesValueType;
+  valueUnit: TimeSeriesValueUnit;
   isOther?: boolean;
 };
 
-type TableRow = Record<string, number | string | undefined>;
-export type TableData = TableRow[];
-
 export type TimeSeriesItem = {
-  timestamp: string;
+  /**
+   * Milliseconds since Unix epoch
+   */
+  timestamp: number;
   value: number | null;
   delayed?: boolean;
 };
 
 export type TimeSeries = {
-  data: TimeSeriesItem[];
   field: string;
-  meta: Meta;
+  meta: TimeSeriesMeta;
+  values: TimeSeriesItem[];
   confidence?: Confidence;
+  dataScanned?: 'full' | 'partial';
   sampleCount?: AccuracyStats<number>;
   samplingRate?: AccuracyStats<number | null>;
 };
 
-export type ErrorProp = Error | string;
+export type TabularValueType = AttributeValueType;
+export type TabularValueUnit = AttributeValueUnit;
+type TabularMeta<TFields extends string = string> = {
+  fields: Record<TFields, TabularValueType>;
+  units: Record<TFields, TabularValueUnit>;
+};
+
+export type TabularRow<TFields extends string = string> = Record<
+  TFields,
+  number | string | string[] | null
+>;
+
+export type TabularData<TFields extends string = string> = {
+  data: Array<TabularRow<TFields>>;
+  meta: TabularMeta<TFields>;
+};
+
+type ErrorProp = Error | string;
+export interface ErrorPropWithResponseJSON extends Error {
+  responseJSON?: {detail: string};
+}
 
 export interface StateProps {
-  error?: ErrorProp;
+  error?: ErrorProp | ErrorPropWithResponseJSON;
   isLoading?: boolean;
   onRetry?: () => void;
 }
@@ -42,4 +80,4 @@ export type Release = {
   version: string;
 };
 
-export type LegendSelection = {[key: string]: boolean};
+export type LegendSelection = Record<string, boolean>;

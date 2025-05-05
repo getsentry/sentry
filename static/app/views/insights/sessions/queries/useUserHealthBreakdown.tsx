@@ -1,21 +1,21 @@
+import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
+import type {PageFilters} from 'sentry/types/core';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
+import {getSessionsInterval} from 'sentry/utils/sessions';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {getCountStatusSeries} from 'sentry/views/insights/sessions/utils/sessions';
 
-export default function useUserHealthBreakdown({type}: {type: 'count' | 'rate'}) {
-  const location = useLocation();
+export default function useUserHealthBreakdown({
+  type,
+  pageFilters,
+}: {
+  type: 'count' | 'rate';
+  pageFilters?: PageFilters;
+}) {
   const organization = useOrganization();
-
-  const locationWithoutWidth = {
-    ...location,
-    query: {
-      ...location.query,
-      width: undefined,
-      cursor: undefined,
-    },
-  };
+  const {selection: defaultPageFilters} = usePageFilters();
 
   const {
     data: userData,
@@ -26,7 +26,10 @@ export default function useUserHealthBreakdown({type}: {type: 'count' | 'rate'})
       `/organizations/${organization.slug}/sessions/`,
       {
         query: {
-          ...locationWithoutWidth.query,
+          ...pageFiltersToQueryParams(pageFilters || defaultPageFilters),
+          interval: getSessionsInterval(
+            pageFilters ? pageFilters.datetime : defaultPageFilters.datetime
+          ),
           field: ['count_unique(user)'],
           groupBy: ['session.status'],
         },
@@ -45,10 +48,10 @@ export default function useUserHealthBreakdown({type}: {type: 'count' | 'rate'})
 
   // Create a map of status to their data
   const statusData = {
-    healthy: getCountStatusSeries('healthy', userData.groups),
     crashed: getCountStatusSeries('crashed', userData.groups),
     errored: getCountStatusSeries('errored', userData.groups),
     abnormal: getCountStatusSeries('abnormal', userData.groups),
+    healthy: getCountStatusSeries('healthy', userData.groups),
   };
 
   const createDatapoints = (data: number[]) =>

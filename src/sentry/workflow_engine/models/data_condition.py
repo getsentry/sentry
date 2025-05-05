@@ -47,6 +47,8 @@ class Condition(StrEnum):
     REAPPEARED_EVENT = "reappeared_event"
     TAGGED_EVENT = "tagged_event"
     ISSUE_PRIORITY_EQUALS = "issue_priority_equals"
+    ISSUE_PRIORITY_GREATER_OR_EQUAL = "issue_priority_greater_or_equal"
+    ISSUE_PRIORITY_DEESCALATING = "issue_priority_deescalating"
     ISSUE_RESOLUTION_CHANGE = "issue_resolution_change"
 
     # Event frequency conditions
@@ -81,6 +83,17 @@ SLOW_CONDITIONS = [
     Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
     Condition.PERCENT_SESSIONS_COUNT,
 ] + PERCENT_CONDITIONS
+
+# Conditions that are not supported in the UI
+LEGACY_CONDITIONS = [
+    Condition.EVERY_EVENT,
+    Condition.EVENT_CREATED_BY_DETECTOR,
+    Condition.EVENT_SEEN_COUNT,
+    Condition.NEW_HIGH_PRIORITY_ISSUE,
+    Condition.EXISTING_HIGH_PRIORITY_ISSUE,
+    Condition.ISSUE_CATEGORY,
+    Condition.ISSUE_RESOLUTION_CHANGE,
+]
 
 
 T = TypeVar("T")

@@ -600,7 +600,8 @@ class RedisBuffer(Buffer):
         finally:
             client.delete(lock_key)
 
-    def process(self, key: str | None = None, batch_keys: list[str] | None = None) -> None:  # type: ignore[override]
+    def process(self, key: str | None = None, batch_keys: list[str] | None = None, **kwargs: Any) -> None:  # type: ignore[override]
+        # NOTE: This method has a totally different signature than the base class
         assert not (key is None and batch_keys is None)
         assert not (key is not None and batch_keys is not None)
 
@@ -611,7 +612,7 @@ class RedisBuffer(Buffer):
             for key in batch_keys:
                 self._process_single_incr(key)
 
-    def _process(
+    def _base_process(
         self,
         model: type[models.Model],
         columns: dict[str, int],
@@ -669,6 +670,6 @@ class RedisBuffer(Buffer):
                 elif k == "s":
                     signal_only = bool(int(v))  # Should be 1 if set
 
-            self._process(model, incr_values, filters, extra_values, signal_only)
+            self._base_process(model, incr_values, filters, extra_values, signal_only)
         finally:
             client.delete(lock_key)

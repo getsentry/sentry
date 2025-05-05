@@ -23,11 +23,11 @@ def test_with_user_ip():
 def test_with_user_auto_ip():
     inp = {"user": {"ip_address": "{{auto}}"}}
     out = validate_and_normalize(inp, client_ip="127.0.0.1")
-    assert out["user"]["ip_address"] == "127.0.0.1"
+    assert out["user"]["ip_address"] == "{{auto}}"
 
     inp = {"user": {"ip_address": "{{auto}}"}}
     out = validate_and_normalize(inp, client_ip="127.0.0.1")
-    assert out["user"]["ip_address"] == "127.0.0.1"
+    assert out["user"]["ip_address"] == "{{auto}}"
 
 
 @django_db_all
@@ -38,19 +38,19 @@ def test_without_ip_values():
         "request": {"url": "http://example.com/", "env": {}},
     }
     out = validate_and_normalize(inp, client_ip="127.0.0.1")
-    assert out["user"]["ip_address"] == "127.0.0.1"
+    assert "user" not in out
 
 
 def test_without_any_values():
     inp = {"platform": "javascript"}
     out = validate_and_normalize(inp, client_ip="127.0.0.1")
-    assert out["user"]["ip_address"] == "127.0.0.1"
+    assert "user" not in out
 
 
 def test_with_http_auto_ip():
     inp = {"request": {"url": "http://example.com/", "env": {"REMOTE_ADDR": "{{auto}}"}}}
     out = validate_and_normalize(inp, client_ip="127.0.0.1")
-    assert out["request"]["env"]["REMOTE_ADDR"] == "127.0.0.1"
+    assert out["request"]["env"]["REMOTE_ADDR"] == "{{auto}}"
 
 
 def test_with_all_auto_ip():
@@ -59,5 +59,5 @@ def test_with_all_auto_ip():
         "request": {"url": "http://example.com/", "env": {"REMOTE_ADDR": "{{auto}}"}},
     }
     out = validate_and_normalize(inp, client_ip="127.0.0.1")
-    assert out["request"]["env"]["REMOTE_ADDR"] == "127.0.0.1"
-    assert out["user"]["ip_address"] == "127.0.0.1"
+    assert out["request"]["env"]["REMOTE_ADDR"] == "{{auto}}"
+    assert out["user"]["ip_address"] == "{{auto}}"

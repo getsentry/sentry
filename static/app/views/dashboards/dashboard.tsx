@@ -5,6 +5,7 @@ import {Component} from 'react';
 import type {Layouts} from 'react-grid-layout';
 import {Responsive, WidthProvider} from 'react-grid-layout';
 import {forceCheck} from 'react-lazyload';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
@@ -26,7 +27,6 @@ import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DatasetSource} from 'sentry/utils/discover/types';
-import theme from 'sentry/utils/theme';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -68,8 +68,11 @@ const BOTTOM_MOBILE_VIEW_POSITION = {
   x: 0,
   y: Number.MAX_SAFE_INTEGER,
 };
-const MOBILE_BREAKPOINT = parseInt(theme.breakpoints.small, 10);
-const BREAKPOINTS = {[MOBILE]: 0, [DESKTOP]: MOBILE_BREAKPOINT};
+const MOBILE_BREAKPOINT = (theme: Theme) => parseInt(theme.breakpoints.small, 10);
+const BREAKPOINTS = (theme: Theme) => ({
+  [MOBILE]: 0,
+  [DESKTOP]: MOBILE_BREAKPOINT(theme),
+});
 const COLUMNS = {[MOBILE]: NUM_MOBILE_COLS, [DESKTOP]: NUM_DESKTOP_COLS};
 export const DASHBOARD_CHART_GROUP = 'dashboard-group';
 
@@ -87,6 +90,7 @@ type Props = {
   organization: Organization;
   router: InjectedRouter;
   selection: PageFilters;
+  theme: Theme;
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
   handleAddMetricWidget?: (layout?: Widget['layout']) => void;
@@ -581,7 +585,7 @@ class Dashboard extends Component<Props, State> {
 
     return (
       <GridLayout
-        breakpoints={BREAKPOINTS}
+        breakpoints={BREAKPOINTS(this.props.theme)}
         cols={COLUMNS}
         rowHeight={ROW_HEIGHT}
         margin={WIDGET_MARGINS}

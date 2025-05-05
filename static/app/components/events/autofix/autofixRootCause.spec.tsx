@@ -9,7 +9,7 @@ describe('AutofixRootCause', function () {
 
   beforeEach(function () {
     mockApi = MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/update/',
+      url: '/organizations/org-slug/issues/1/autofix/update/',
       method: 'POST',
       body: {success: true},
     });
@@ -25,8 +25,7 @@ describe('AutofixRootCause', function () {
     groupId: '1',
     rootCauseSelection: null,
     runId: '101',
-    repos: [],
-  };
+  } satisfies React.ComponentProps<typeof AutofixRootCause>;
 
   it('can view a relevant code snippet', async function () {
     render(<AutofixRootCause {...defaultProps} />);
@@ -115,7 +114,7 @@ describe('AutofixRootCause', function () {
     await waitFor(
       () => {
         expect(mockApi).toHaveBeenCalledWith(
-          '/issues/1/autofix/update/',
+          '/organizations/org-slug/issues/1/autofix/update/',
           expect.objectContaining({
             method: 'POST',
             data: {

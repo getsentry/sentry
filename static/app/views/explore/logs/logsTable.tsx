@@ -1,22 +1,20 @@
 import {Fragment, useRef} from 'react';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {GridResizer} from 'sentry/components/gridEditable/styles';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
-import {Tooltip} from 'sentry/components/tooltip';
-import {LOGS_PROPS_DOCS_URL} from 'sentry/constants';
 import {IconArrow, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {
   Table,
-  TableBody,
   TableHead,
   TableHeadCell,
   TableHeadCellContent,
-  TableRow,
   TableStatus,
   useTableStyles,
 } from 'sentry/views/explore/components/table';
@@ -29,22 +27,50 @@ import {
   useSetLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogRowContent} from 'sentry/views/explore/logs/logsTableRow';
+import {
+  FirstTableHeadCell,
+  LogTableBody,
+  LogTableRow,
+} from 'sentry/views/explore/logs/styles';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
 import {EmptyStateText} from 'sentry/views/traces/styles';
 
 import {getLogBodySearchTerms, getTableHeaderLabel, logsFieldAlignment} from './utils';
 
-export function LogsTable({tableData}: {tableData: UseExploreLogsTableResult}) {
+const LOGS_INSTRUCTIONS_URL = 'https://github.com/getsentry/sentry/discussions/86804';
+
+type LogsTableProps = {
+  tableData: UseExploreLogsTableResult;
+  allowPagination?: boolean;
+  numberAttributes?: TagCollection;
+  showHeader?: boolean;
+  stringAttributes?: TagCollection;
+};
+
+export function LogsTable({
+  tableData,
+  showHeader = true,
+  allowPagination = true,
+  stringAttributes,
+  numberAttributes,
+}: LogsTableProps) {
   const fields = useLogsFields();
   const search = useLogsSearch();
   const setCursor = useSetLogsCursor();
   const isTableEditingFrozen = useLogsIsTableEditingFrozen();
+  const hideTableBorder = !!isTableEditingFrozen;
+
   const {data, isError, isPending, pageLinks, meta} = tableData;
 
   const tableRef = useRef<HTMLTableElement>(null);
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef, {
     minimumColumnWidth: 50,
+    prefixColumnWidth: 'min-content',
+    staticColumnWidths: {
+      [OurLogKnownFieldKey.MESSAGE]: '1fr',
+    },
   });
 
   const isEmpty = !isPending && !isError && (data?.length ?? 0) === 0;
@@ -54,106 +80,116 @@ export function LogsTable({tableData}: {tableData: UseExploreLogsTableResult}) {
 
   return (
     <Fragment>
-      <Table ref={tableRef} styles={initialTableStyles}>
-        <TableHead>
-          <TableRow>
-            {fields.map((field, index) => {
-              const direction = sortBys.find(s => s.field === field)?.kind;
+      <Table
+        ref={tableRef}
+        styles={initialTableStyles}
+        data-test-id="logs-table"
+        hideBorder={hideTableBorder}
+      >
+        {showHeader ? (
+          <TableHead>
+            <LogTableRow>
+              <FirstTableHeadCell isFirst align="left">
+                <TableHeadCellContent isFrozen />
+              </FirstTableHeadCell>
+              {fields.map((field, index) => {
+                const direction = sortBys.find(s => s.field === field)?.kind;
 
-              const fieldType = meta?.fields?.[field];
-              const align = logsFieldAlignment(field, fieldType);
-              const headerLabel = getTableHeaderLabel(field);
+                const fieldType = meta?.fields?.[field];
+                const align = logsFieldAlignment(field, fieldType);
+                const headerLabel = getTableHeaderLabel(
+                  field,
+                  stringAttributes,
+                  numberAttributes
+                );
 
-              if (isPending) {
-                return <TableHeadCell key={index} isFirst={index === 0} />;
-              }
-              return (
-                <TableHeadCell
-                  align={index === 0 ? 'left' : align}
-                  key={index}
-                  isFirst={index === 0}
-                >
-                  <TableHeadCellContent
-                    onClick={
-                      isTableEditingFrozen ? undefined : () => setSortBys([{field}])
-                    }
-                    isFrozen={isTableEditingFrozen}
+                if (isPending) {
+                  return <TableHeadCell key={index} isFirst={index === 0} />;
+                }
+                return (
+                  <TableHeadCell
+                    align={index === 0 ? 'left' : align}
+                    key={index}
+                    isFirst={index === 0}
                   >
-                    <Tooltip showOnlyOnOverflow title={headerLabel}>
-                      {headerLabel}
-                    </Tooltip>
-                    {defined(direction) && (
-                      <IconArrow
-                        size="xs"
-                        direction={
-                          direction === 'desc'
-                            ? 'down'
-                            : direction === 'asc'
-                              ? 'up'
-                              : undefined
-                        }
+                    <TableHeadCellContent
+                      onClick={
+                        isTableEditingFrozen ? undefined : () => setSortBys([{field}])
+                      }
+                      isFrozen={isTableEditingFrozen}
+                    >
+                      <Tooltip showOnlyOnOverflow title={headerLabel}>
+                        {headerLabel}
+                      </Tooltip>
+                      {defined(direction) && (
+                        <IconArrow
+                          size="xs"
+                          direction={
+                            direction === 'desc'
+                              ? 'down'
+                              : direction === 'asc'
+                                ? 'up'
+                                : undefined
+                          }
+                        />
+                      )}
+                    </TableHeadCellContent>
+                    {index !== fields.length - 1 && (
+                      <GridResizer
+                        dataRows={!isError && !isPending && data ? data.length : 0}
+                        onMouseDown={e => onResizeMouseDown(e, index)}
                       />
                     )}
-                  </TableHeadCellContent>
-                  {index !== fields.length - 1 && (
-                    <GridResizer
-                      dataRows={!isError && !isPending && data ? data.length : 0}
-                      onMouseDown={e => onResizeMouseDown(e, index)}
-                    />
-                  )}
-                </TableHeadCell>
-              );
-            })}
-          </TableRow>
-        </TableHead>
-        <TableBody>
+                  </TableHeadCell>
+                );
+              })}
+            </LogTableRow>
+          </TableHead>
+        ) : null}
+        <LogTableBody showHeader={showHeader}>
           {isPending && (
-            <TableRow>
-              <TableStatus>
-                <LoadingIndicator />
-              </TableStatus>
-            </TableRow>
+            <TableStatus>
+              <LoadingIndicator />
+            </TableStatus>
           )}
           {isError && (
-            <TableRow>
-              <TableStatus>
-                <IconWarning color="gray300" size="lg" />
-              </TableStatus>
-            </TableRow>
+            <TableStatus>
+              <IconWarning color="gray300" size="lg" />
+            </TableStatus>
           )}
           {isEmpty && (
-            <TableRow>
-              <TableStatus>
-                <EmptyStateWarning withIcon>
-                  <EmptyStateText size="fontSizeExtraLarge">
-                    {t('No logs found')}
-                  </EmptyStateText>
-                  <EmptyStateText size="fontSizeMedium">
-                    {tct('Try adjusting your filters or refer to [docSearchProps].', {
-                      docSearchProps: (
-                        <ExternalLink href={LOGS_PROPS_DOCS_URL}>
-                          {t('docs for search properties')}
+            <TableStatus>
+              <EmptyStateWarning withIcon>
+                <EmptyStateText size="fontSizeExtraLarge">
+                  {t('No logs found')}
+                </EmptyStateText>
+                <EmptyStateText size="fontSizeMedium">
+                  {tct(
+                    'Try adjusting your filters or get started with sending logs by checking these [instructions]',
+                    {
+                      instructions: (
+                        <ExternalLink href={LOGS_INSTRUCTIONS_URL}>
+                          {t('instructions')}
                         </ExternalLink>
                       ),
-                    })}
-                  </EmptyStateText>
-                </EmptyStateWarning>
-              </TableStatus>
-            </TableRow>
+                    }
+                  )}
+                </EmptyStateText>
+              </EmptyStateWarning>
+            </TableStatus>
           )}
           {data?.map((row, index) => (
-            <TableRow key={index}>
-              <LogRowContent
-                dataRow={row}
-                meta={meta}
-                highlightTerms={highlightTerms}
-                sharedHoverTimeoutRef={sharedHoverTimeoutRef}
-              />
-            </TableRow>
+            <LogRowContent
+              dataRow={row}
+              meta={meta}
+              highlightTerms={highlightTerms}
+              sharedHoverTimeoutRef={sharedHoverTimeoutRef}
+              key={index}
+            />
           ))}
-        </TableBody>
+        </LogTableBody>
       </Table>
-      <Pagination pageLinks={pageLinks} onCursor={setCursor} />
+      {allowPagination ? <Pagination pageLinks={pageLinks} onCursor={setCursor} /> : null}
     </Fragment>
   );
 }

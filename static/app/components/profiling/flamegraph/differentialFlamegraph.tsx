@@ -140,7 +140,7 @@ export function DifferentialFlamegraph(props: DifferentialFlamegraphProps): Reac
     return [flamegraphCanvasRef, flamegraphOverlayCanvasRef];
   }, [flamegraphCanvasRef, flamegraphOverlayCanvasRef]);
 
-  const flamegraphCanvasBounds = useResizeCanvasObserver(
+  useResizeCanvasObserver(
     flamegraphCanvases,
     props.canvasPoolManager,
     flamegraphCanvas,
@@ -181,7 +181,6 @@ export function DifferentialFlamegraph(props: DifferentialFlamegraphProps): Reac
       disableGrid
       disableCallOrderSort
       disableColorCoding
-      canvasBounds={flamegraphCanvasBounds}
       canvasPoolManager={props.canvasPoolManager}
       flamegraph={props.differentialFlamegraph}
       flamegraphRenderer={flamegraphRenderer}

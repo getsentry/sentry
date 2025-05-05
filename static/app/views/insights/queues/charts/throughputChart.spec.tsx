@@ -31,7 +31,13 @@ describe('throughputChart', () => {
     });
   });
   it('renders', async () => {
-    render(<ThroughputChart referrer={Referrer.QUEUES_SUMMARY_CHARTS} />, {organization});
+    render(
+      <ThroughputChart
+        id="throughput-chart-test"
+        referrer={Referrer.QUEUES_SUMMARY_CHARTS}
+      />,
+      {organization}
+    );
     screen.getByText('Published vs Processed');
     expect(eventsStatsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
@@ -40,7 +46,7 @@ describe('throughputChart', () => {
           yAxis: [
             'avg(span.duration)',
             'avg(messaging.message.receive.latency)',
-            'spm()',
+            'epm()',
           ],
           query: 'span.op:queue.process',
         }),
@@ -50,7 +56,7 @@ describe('throughputChart', () => {
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
         query: expect.objectContaining({
-          yAxis: ['avg(span.duration)', 'spm()'],
+          yAxis: ['avg(span.duration)', 'epm()'],
           query: 'span.op:queue.publish',
         }),
       })

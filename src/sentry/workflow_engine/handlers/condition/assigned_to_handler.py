@@ -7,13 +7,13 @@ from sentry.notifications.types import AssigneeTargetType
 from sentry.utils.cache import cache
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
+from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 
 
 @condition_handler_registry.register(Condition.ASSIGNED_TO)
-class AssignedToConditionHandler(DataConditionHandler[WorkflowJob]):
-    type = DataConditionHandler.Type.ACTION_FILTER
-    filter_group = DataConditionHandler.FilterGroup.ISSUE_ATTRIBUTES
+class AssignedToConditionHandler(DataConditionHandler[WorkflowEventData]):
+    group = DataConditionHandler.Group.ACTION_FILTER
+    subgroup = DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES
 
     comparison_json_schema = {
         "type": "object",
@@ -21,8 +21,15 @@ class AssignedToConditionHandler(DataConditionHandler[WorkflowJob]):
             "target_type": {"type": "string", "enum": [*AssigneeTargetType]},
             "target_identifier": {"type": ["integer", "string"]},
         },
-        "required": ["target_type", "target_identifier"],
+        "required": ["target_type"],
         "additionalProperties": False,
+        "allOf": [
+            {
+                "if": {"properties": {"target_type": {"const": AssigneeTargetType.UNASSIGNED}}},
+                "then": {"required": ["target_type"]},
+                "else": {"required": ["target_type", "target_identifier"]},
+            }
+        ],
     }
 
     @staticmethod
@@ -35,8 +42,8 @@ class AssignedToConditionHandler(DataConditionHandler[WorkflowJob]):
         return assignee_list
 
     @staticmethod
-    def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
-        event = job["event"]
+    def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
+        event = event_data.event
         target_type = AssigneeTargetType(comparison.get("target_type"))
         assignees = AssignedToConditionHandler.get_assignees(event.group)
 

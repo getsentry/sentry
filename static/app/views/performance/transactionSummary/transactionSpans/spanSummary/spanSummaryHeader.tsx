@@ -101,12 +101,12 @@ const SectionSubtext = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-export const SpanLabelContainer = styled('div')`
+const SpanLabelContainer = styled('div')`
   ${p => p.theme.overflowEllipsis};
 `;
 
 const EmptyValueContainer = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const emptyValue = <EmptyValueContainer>{'\u2014'}</EmptyValueContainer>;

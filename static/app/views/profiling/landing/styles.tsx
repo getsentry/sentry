@@ -26,7 +26,7 @@ export const HeaderTitleLegend = styled(_HeaderTitleLegend)`
 `;
 
 export const Subtitle = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   display: inline-block;
 `;

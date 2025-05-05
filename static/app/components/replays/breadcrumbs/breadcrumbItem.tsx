@@ -1,19 +1,19 @@
 import type {CSSProperties, ReactNode} from 'react';
-import {forwardRef, isValidElement, useCallback} from 'react';
+import {isValidElement, useCallback} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Link from 'sentry/components/links/link';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
 import StructuredEventData from 'sentry/components/structuredEventData';
-import Timeline from 'sentry/components/timeline';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Timeline} from 'sentry/components/timeline';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
@@ -54,24 +54,23 @@ interface Props {
   className?: string;
   expandPaths?: string[];
   extraction?: Extraction;
+  ref?: React.Ref<HTMLDivElement>;
   style?: CSSProperties;
 }
 
-const BreadcrumbItem = forwardRef<HTMLDivElement, Props>(function BreadcrumbItem(
-  {
-    className,
-    extraction,
-    frame,
-    expandPaths,
-    onClick,
-    onInspectorExpanded,
-    onMouseEnter,
-    onMouseLeave,
-    startTimestampMs,
-    style,
-  },
-  ref
-) {
+function BreadcrumbItem({
+  className,
+  extraction,
+  frame,
+  expandPaths,
+  onClick,
+  onInspectorExpanded,
+  onMouseEnter,
+  onMouseLeave,
+  startTimestampMs,
+  style,
+  ref,
+}: Props) {
   const {color, description, title, icon} = getFrameDetails(frame);
   const {replay} = useReplayContext();
 
@@ -176,7 +175,7 @@ const BreadcrumbItem = forwardRef<HTMLDivElement, Props>(function BreadcrumbItem
       </ErrorBoundary>
     </StyledTimelineItem>
   );
-});
+}
 
 function WebVitalData({
   selectors,
@@ -195,7 +194,7 @@ function WebVitalData({
 }) {
   const webVitalData = {value: frame.data.value};
   if (isCLSFrame(frame) && frame.data.attributions && selectors) {
-    const layoutShifts: Array<{[x: string]: ReactNode[]}> = [];
+    const layoutShifts: Array<Record<string, ReactNode[]>> = [];
     for (const attr of frame.data.attributions) {
       const elements: ReactNode[] = [];
       if ('nodeIds' in attr && Array.isArray(attr.nodeIds)) {

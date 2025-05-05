@@ -16,11 +16,9 @@ describe('IndexedEventsSelectionAlert', () => {
   it('Shows warning if falling through to indexed events', async () => {
     render(
       <MEPSettingProvider forceTransactions>
-        <DashboardsMEPContext.Provider
-          value={{isMetricsData: false, setIsMetricsData: () => {}}}
-        >
+        <DashboardsMEPContext value={{isMetricsData: false, setIsMetricsData: () => {}}}>
           <IndexedEventsSelectionAlert widget={widget} />
-        </DashboardsMEPContext.Provider>
+        </DashboardsMEPContext>
       </MEPSettingProvider>
     );
 
@@ -30,11 +28,9 @@ describe('IndexedEventsSelectionAlert', () => {
   it('Does not show warning if using metrics successfully', () => {
     render(
       <MEPSettingProvider>
-        <DashboardsMEPContext.Provider
-          value={{isMetricsData: true, setIsMetricsData: () => {}}}
-        >
+        <DashboardsMEPContext value={{isMetricsData: true, setIsMetricsData: () => {}}}>
           <IndexedEventsSelectionAlert widget={widget} />
-        </DashboardsMEPContext.Provider>
+        </DashboardsMEPContext>
       </MEPSettingProvider>
     );
 

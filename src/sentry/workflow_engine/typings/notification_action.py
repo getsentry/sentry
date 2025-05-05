@@ -3,15 +3,32 @@ from __future__ import annotations
 import dataclasses
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from enum import StrEnum
+from enum import Enum, IntEnum, StrEnum
 from typing import Any, ClassVar, NotRequired, TypedDict
 
-from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
-from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
-from sentry.notifications.models.notificationaction import ActionTarget
-from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
-from sentry.utils.registry import Registry
-from sentry.workflow_engine.models.action import Action
+OPSGENIE_DEFAULT_PRIORITY = "P3"
+PAGERDUTY_DEFAULT_SEVERITY = "default"
+
+
+class ActionTarget(IntEnum):
+    SPECIFIC = 0
+    USER = 1
+    TEAM = 2
+    SENTRY_APP = 3
+    ISSUE_OWNERS = 4
+
+
+class ActionTargetType(Enum):
+    ISSUE_OWNERS = "IssueOwners"
+    TEAM = "Team"
+    MEMBER = "Member"
+
+
+class FallthroughChoiceType(Enum):
+    ALL_MEMBERS = "AllMembers"
+    ACTIVE_MEMBERS = "ActiveMembers"
+    NO_ONE = "NoOne"
+
 
 # Keep existing excluded keys constant
 EXCLUDED_ACTION_DATA_KEYS = ["uuid", "id"]
@@ -25,6 +42,27 @@ class SentryAppIdentifier(StrEnum):
     SENTRY_APP_INSTALLATION_UUID = "sentry_app_installation_uuid"
     SENTRY_APP_SLUG = "sentry_app_slug"
     SENTRY_APP_ID = "sentry_app_id"
+
+
+class ActionType(StrEnum):
+    SLACK = "slack"
+    MSTEAMS = "msteams"
+    DISCORD = "discord"
+
+    PAGERDUTY = "pagerduty"
+    OPSGENIE = "opsgenie"
+
+    GITHUB = "github"
+    GITHUB_ENTERPRISE = "github_enterprise"
+    JIRA = "jira"
+    JIRA_SERVER = "jira_server"
+    AZURE_DEVOPS = "azure_devops"
+
+    EMAIL = "email"
+    SENTRY_APP = "sentry_app"
+
+    PLUGIN = "plugin"
+    WEBHOOK = "webhook"
 
 
 @dataclass
@@ -74,66 +112,66 @@ class ActionFieldMapping(TypedDict):
     target_display_key: NotRequired[str]
 
 
-ACTION_FIELD_MAPPINGS: dict[Action.Type, ActionFieldMapping] = {
-    Action.Type.SLACK: ActionFieldMapping(
+ACTION_FIELD_MAPPINGS: dict[str, ActionFieldMapping] = {
+    ActionType.SLACK: ActionFieldMapping(
         id="sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
         integration_id_key="workspace",
         target_identifier_key="channel_id",
         target_display_key="channel",
     ),
-    Action.Type.DISCORD: ActionFieldMapping(
+    ActionType.DISCORD: ActionFieldMapping(
         id="sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
         integration_id_key="server",
         target_identifier_key="channel_id",
     ),
-    Action.Type.MSTEAMS: ActionFieldMapping(
+    ActionType.MSTEAMS: ActionFieldMapping(
         id="sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
         integration_id_key="team",
         target_identifier_key="channel_id",
         target_display_key="channel",
     ),
-    Action.Type.PAGERDUTY: ActionFieldMapping(
+    ActionType.PAGERDUTY: ActionFieldMapping(
         id="sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
         integration_id_key="account",
         target_identifier_key="service",
     ),
-    Action.Type.OPSGENIE: ActionFieldMapping(
+    ActionType.OPSGENIE: ActionFieldMapping(
         id="sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
         integration_id_key="account",
         target_identifier_key="team",
     ),
-    Action.Type.GITHUB: ActionFieldMapping(
+    ActionType.GITHUB: ActionFieldMapping(
         id="sentry.integrations.github.notify_action.GitHubCreateTicketAction",
         integration_id_key="integration",
     ),
-    Action.Type.GITHUB_ENTERPRISE: ActionFieldMapping(
+    ActionType.GITHUB_ENTERPRISE: ActionFieldMapping(
         id="sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
         integration_id_key="integration",
     ),
-    Action.Type.AZURE_DEVOPS: ActionFieldMapping(
+    ActionType.AZURE_DEVOPS: ActionFieldMapping(
         id="sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
         integration_id_key="integration",
     ),
-    Action.Type.JIRA: ActionFieldMapping(
+    ActionType.JIRA: ActionFieldMapping(
         id="sentry.integrations.jira.notify_action.JiraCreateTicketAction",
         integration_id_key="integration",
     ),
-    Action.Type.JIRA_SERVER: ActionFieldMapping(
+    ActionType.JIRA_SERVER: ActionFieldMapping(
         id="sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
         integration_id_key="integration",
     ),
-    Action.Type.EMAIL: ActionFieldMapping(
+    ActionType.EMAIL: ActionFieldMapping(
         id="sentry.mail.actions.NotifyEmailAction",
         target_identifier_key="targetIdentifier",
     ),
-    Action.Type.PLUGIN: ActionFieldMapping(
+    ActionType.PLUGIN: ActionFieldMapping(
         id="sentry.rules.actions.notify_event.NotifyEventAction",
     ),
-    Action.Type.WEBHOOK: ActionFieldMapping(
+    ActionType.WEBHOOK: ActionFieldMapping(
         id="sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
         target_identifier_key="service",
     ),
-    Action.Type.SENTRY_APP: ActionFieldMapping(
+    ActionType.SENTRY_APP: ActionFieldMapping(
         id="sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
         target_identifier_key="sentryAppInstallationUuid",
     ),
@@ -143,7 +181,7 @@ ACTION_FIELD_MAPPINGS: dict[Action.Type, ActionFieldMapping] = {
 class BaseActionTranslator(ABC):
     @property
     @abstractmethod
-    def action_type(self) -> Action.Type:
+    def action_type(self) -> ActionType:
         pass
 
     # Represents the mapping of a target field to a source field {target_field: FieldMapping}
@@ -165,7 +203,7 @@ class BaseActionTranslator(ABC):
 
     @property
     @abstractmethod
-    def target_type(self) -> ActionTarget | None:
+    def target_type(self) -> int | None:
         """Return the target type for this action"""
         pass
 
@@ -198,9 +236,9 @@ class BaseActionTranslator(ABC):
         base_config = {
             "target_identifier": self.target_identifier,
             "target_display": self.target_display,
-            "target_type": self.target_type.value if self.target_type is not None else None,
+            "target_type": self.target_type if self.target_type is not None else None,
         }
-        if self.action_type == Action.Type.SENTRY_APP:
+        if self.action_type == ActionType.SENTRY_APP:
             base_config["sentry_app_identifier"] = SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID
 
         return base_config
@@ -244,100 +282,87 @@ class BaseActionTranslator(ABC):
             return {k: v for k, v in self.action.items() if k not in excluded_keys}
 
 
-issue_alert_action_translator_registry = Registry[type[BaseActionTranslator]](
-    enable_reverse_lookup=False
-)
-
-
-@issue_alert_action_translator_registry.register(ACTION_FIELD_MAPPINGS[Action.Type.SLACK]["id"])
 class SlackActionTranslator(BaseActionTranslator):
     @property
-    def action_type(self) -> Action.Type:
-        return Action.Type.SLACK
+    def action_type(self) -> ActionType:
+        return ActionType.SLACK
 
     @property
     def required_fields(self) -> list[str]:
         return [
-            ACTION_FIELD_MAPPINGS[Action.Type.SLACK][
+            ACTION_FIELD_MAPPINGS[ActionType.SLACK][
                 ActionFieldMappingKeys.INTEGRATION_ID_KEY.value
             ],
-            ACTION_FIELD_MAPPINGS[Action.Type.SLACK][
+            ACTION_FIELD_MAPPINGS[ActionType.SLACK][
                 ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
             ],
-            ACTION_FIELD_MAPPINGS[Action.Type.SLACK][
+            ACTION_FIELD_MAPPINGS[ActionType.SLACK][
                 ActionFieldMappingKeys.TARGET_DISPLAY_KEY.value
             ],
         ]
 
     @property
-    def target_type(self) -> ActionTarget:
-        return ActionTarget.SPECIFIC
+    def target_type(self) -> int:
+        return ActionTarget.SPECIFIC.value
 
     @property
     def blob_type(self) -> type[DataBlob]:
         return SlackDataBlob
 
 
-@issue_alert_action_translator_registry.register(ACTION_FIELD_MAPPINGS[Action.Type.DISCORD]["id"])
 class DiscordActionTranslator(BaseActionTranslator):
     @property
-    def action_type(self) -> Action.Type:
-        return Action.Type.DISCORD
+    def action_type(self) -> ActionType:
+        return ActionType.DISCORD
 
     @property
     def required_fields(self) -> list[str]:
         return [
-            ACTION_FIELD_MAPPINGS[Action.Type.DISCORD][
+            ACTION_FIELD_MAPPINGS[ActionType.DISCORD][
                 ActionFieldMappingKeys.INTEGRATION_ID_KEY.value
             ],
-            ACTION_FIELD_MAPPINGS[Action.Type.DISCORD][
+            ACTION_FIELD_MAPPINGS[ActionType.DISCORD][
                 ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
             ],
         ]
 
     @property
-    def target_type(self) -> ActionTarget:
-        return ActionTarget.SPECIFIC
+    def target_type(self) -> int:
+        return ActionTarget.SPECIFIC.value
 
     @property
     def blob_type(self) -> type[DataBlob]:
         return DiscordDataBlob
 
 
-@issue_alert_action_translator_registry.register(ACTION_FIELD_MAPPINGS[Action.Type.MSTEAMS]["id"])
 class MSTeamsActionTranslator(BaseActionTranslator):
     @property
-    def action_type(self) -> Action.Type:
-        return Action.Type.MSTEAMS
+    def action_type(self) -> ActionType:
+        return ActionType.MSTEAMS
 
     @property
     def required_fields(self) -> list[str]:
         return [
-            ACTION_FIELD_MAPPINGS[Action.Type.MSTEAMS][
+            ACTION_FIELD_MAPPINGS[ActionType.MSTEAMS][
                 ActionFieldMappingKeys.INTEGRATION_ID_KEY.value
             ],
-            ACTION_FIELD_MAPPINGS[Action.Type.MSTEAMS][
+            ACTION_FIELD_MAPPINGS[ActionType.MSTEAMS][
                 ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
             ],
-            ACTION_FIELD_MAPPINGS[Action.Type.MSTEAMS][
+            ACTION_FIELD_MAPPINGS[ActionType.MSTEAMS][
                 ActionFieldMappingKeys.TARGET_DISPLAY_KEY.value
             ],
         ]
 
     @property
-    def target_type(self) -> ActionTarget:
-        return ActionTarget.SPECIFIC
-
-    @property
-    def blob_type(self) -> type[DataBlob]:
-        return OnCallDataBlob
+    def target_type(self) -> int:
+        return ActionTarget.SPECIFIC.value
 
 
-@issue_alert_action_translator_registry.register(ACTION_FIELD_MAPPINGS[Action.Type.PAGERDUTY]["id"])
 class PagerDutyActionTranslator(BaseActionTranslator):
     @property
-    def action_type(self) -> Action.Type:
-        return Action.Type.PAGERDUTY
+    def action_type(self) -> ActionType:
+        return ActionType.PAGERDUTY
 
     field_mappings = {
         "priority": FieldMapping(
@@ -348,28 +373,27 @@ class PagerDutyActionTranslator(BaseActionTranslator):
     @property
     def required_fields(self) -> list[str]:
         return [
-            ACTION_FIELD_MAPPINGS[Action.Type.PAGERDUTY][
+            ACTION_FIELD_MAPPINGS[ActionType.PAGERDUTY][
                 ActionFieldMappingKeys.INTEGRATION_ID_KEY.value
             ],
-            ACTION_FIELD_MAPPINGS[Action.Type.PAGERDUTY][
+            ACTION_FIELD_MAPPINGS[ActionType.PAGERDUTY][
                 ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
             ],
         ]
 
     @property
-    def target_type(self) -> ActionTarget:
-        return ActionTarget.SPECIFIC
+    def target_type(self) -> int:
+        return ActionTarget.SPECIFIC.value
 
     @property
     def blob_type(self) -> type[DataBlob]:
         return OnCallDataBlob
 
 
-@issue_alert_action_translator_registry.register(ACTION_FIELD_MAPPINGS[Action.Type.OPSGENIE]["id"])
 class OpsgenieActionTranslator(BaseActionTranslator):
     @property
-    def action_type(self) -> Action.Type:
-        return Action.Type.OPSGENIE
+    def action_type(self) -> ActionType:
+        return ActionType.OPSGENIE
 
     field_mappings = {
         "priority": FieldMapping(
@@ -380,17 +404,17 @@ class OpsgenieActionTranslator(BaseActionTranslator):
     @property
     def required_fields(self) -> list[str]:
         return [
-            ACTION_FIELD_MAPPINGS[Action.Type.OPSGENIE][
+            ACTION_FIELD_MAPPINGS[ActionType.OPSGENIE][
                 ActionFieldMappingKeys.INTEGRATION_ID_KEY.value
             ],
-            ACTION_FIELD_MAPPINGS[Action.Type.OPSGENIE][
+            ACTION_FIELD_MAPPINGS[ActionType.OPSGENIE][
                 ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
             ],
         ]
 
     @property
-    def target_type(self) -> ActionTarget:
-        return ActionTarget.SPECIFIC
+    def target_type(self) -> int:
+        return ActionTarget.SPECIFIC.value
 
     @property
     def blob_type(self) -> type[DataBlob]:
@@ -407,7 +431,7 @@ class TicketingActionDataBlobHelper(ABC):
         Returns tuple of (dynamic_form_fields, additional_fields)
         """
         excluded_keys = excluded_keys or []
-        dynamic_form_fields = data.get(TicketFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value, {})
+        dynamic_form_fields = data.get(TicketFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value, [])
 
         additional_fields = {
             k: v
@@ -432,8 +456,8 @@ class TicketActionTranslator(BaseActionTranslator, TicketingActionDataBlobHelper
         return self.action.get("integration")
 
     @property
-    def target_type(self) -> ActionTarget:
-        return ActionTarget.SPECIFIC
+    def target_type(self) -> int:
+        return ActionTarget.SPECIFIC.value
 
     @property
     def blob_type(self) -> type[DataBlob]:
@@ -443,80 +467,69 @@ class TicketActionTranslator(BaseActionTranslator, TicketingActionDataBlobHelper
         """
         Override to handle custom fields and additional fields that aren't part of the standard fields.
         """
-        data = super().get_sanitized_data()
-        if self.blob_type:
-            # Use helper to separate fields, excluding required fields
-            _, additional_fields = self.separate_fields(
-                self.action, excluded_keys=self.required_fields
-            )
-            data[TicketFieldMappingKeys.ADDITIONAL_FIELDS_KEY.value] = additional_fields
+        # Use helper to separate fields, excluding required fields
+        dynamic_form_fields, additional_fields = self.separate_fields(
+            self.action, excluded_keys=self.required_fields
+        )
+        data = {
+            TicketFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value: dynamic_form_fields,
+            TicketFieldMappingKeys.ADDITIONAL_FIELDS_KEY.value: additional_fields,
+        }
         return data
 
 
-@issue_alert_action_translator_registry.register(ACTION_FIELD_MAPPINGS[Action.Type.GITHUB]["id"])
 class GithubActionTranslator(TicketActionTranslator):
     @property
-    def action_type(self) -> Action.Type:
-        return Action.Type.GITHUB
+    def action_type(self) -> ActionType:
+        return ActionType.GITHUB
 
 
-@issue_alert_action_translator_registry.register(
-    ACTION_FIELD_MAPPINGS[Action.Type.GITHUB_ENTERPRISE]["id"]
-)
 class GithubEnterpriseActionTranslator(TicketActionTranslator):
     @property
-    def action_type(self) -> Action.Type:
-        return Action.Type.GITHUB_ENTERPRISE
+    def action_type(self) -> ActionType:
+        return ActionType.GITHUB_ENTERPRISE
 
 
-@issue_alert_action_translator_registry.register(
-    ACTION_FIELD_MAPPINGS[Action.Type.AZURE_DEVOPS]["id"]
-)
 class AzureDevopsActionTranslator(TicketActionTranslator):
     @property
-    def action_type(self) -> Action.Type:
-        return Action.Type.AZURE_DEVOPS
+    def action_type(self) -> ActionType:
+        return ActionType.AZURE_DEVOPS
 
 
-@issue_alert_action_translator_registry.register(ACTION_FIELD_MAPPINGS[Action.Type.JIRA]["id"])
 class JiraActionTranslatorBase(TicketActionTranslator):
     @property
-    def action_type(self) -> Action.Type:
-        return Action.Type.JIRA
+    def action_type(self) -> ActionType:
+        return ActionType.JIRA
 
 
-@issue_alert_action_translator_registry.register(
-    ACTION_FIELD_MAPPINGS[Action.Type.JIRA_SERVER]["id"]
-)
 class JiraServerActionTranslatorBase(TicketActionTranslator):
     @property
-    def action_type(self) -> Action.Type:
-        return Action.Type.JIRA_SERVER
+    def action_type(self) -> ActionType:
+        return ActionType.JIRA_SERVER
 
 
 class EmailActionHelper(ABC):
     target_type_mapping = {
-        ActionTarget.USER: ActionTargetType.MEMBER.value,
-        ActionTarget.TEAM: ActionTargetType.TEAM.value,
-        ActionTarget.ISSUE_OWNERS: ActionTargetType.ISSUE_OWNERS.value,
+        ActionTarget.USER.value: ActionTargetType.MEMBER.value,
+        ActionTarget.TEAM.value: ActionTargetType.TEAM.value,
+        ActionTarget.ISSUE_OWNERS.value: ActionTargetType.ISSUE_OWNERS.value,
     }
 
     reverse_target_type_mapping = {v: k for k, v in target_type_mapping.items()}
 
     @staticmethod
-    def get_target_type_object(target_type: str) -> ActionTarget:
+    def get_target_type_object(target_type: str) -> int:
         return EmailActionHelper.reverse_target_type_mapping[target_type]
 
     @staticmethod
-    def get_target_type_string(target_type: ActionTarget) -> str:
+    def get_target_type_string(target_type: int) -> str:
         return EmailActionHelper.target_type_mapping[target_type]
 
 
-@issue_alert_action_translator_registry.register(ACTION_FIELD_MAPPINGS[Action.Type.EMAIL]["id"])
 class EmailActionTranslator(BaseActionTranslator, EmailActionHelper):
     @property
-    def action_type(self) -> Action.Type:
-        return Action.Type.EMAIL
+    def action_type(self) -> ActionType:
+        return ActionType.EMAIL
 
     @property
     def required_fields(self) -> list[str]:
@@ -525,7 +538,7 @@ class EmailActionTranslator(BaseActionTranslator, EmailActionHelper):
         ]
 
     @property
-    def target_type(self) -> ActionTarget:
+    def target_type(self) -> int:
         # If the targetType is Member, then set the target_type to User,
         # if the targetType is Team, then set the target_type to Team,
         # otherwise return None (this would be for IssueOwners (suggested assignees))
@@ -541,7 +554,7 @@ class EmailActionTranslator(BaseActionTranslator, EmailActionHelper):
         if target_type in [ActionTargetType.MEMBER.value, ActionTargetType.TEAM.value]:
             return str(
                 self.action.get(
-                    ACTION_FIELD_MAPPINGS[Action.Type.EMAIL][
+                    ACTION_FIELD_MAPPINGS[ActionType.EMAIL][
                         ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
                     ]
                 )
@@ -574,11 +587,10 @@ class EmailActionTranslator(BaseActionTranslator, EmailActionHelper):
         return {}
 
 
-@issue_alert_action_translator_registry.register(ACTION_FIELD_MAPPINGS[Action.Type.PLUGIN]["id"])
 class PluginActionTranslator(BaseActionTranslator):
     @property
-    def action_type(self) -> Action.Type:
-        return Action.Type.PLUGIN
+    def action_type(self) -> ActionType:
+        return ActionType.PLUGIN
 
     @property
     def required_fields(self) -> list[str]:
@@ -593,44 +605,40 @@ class PluginActionTranslator(BaseActionTranslator):
         return None
 
 
-@issue_alert_action_translator_registry.register(ACTION_FIELD_MAPPINGS[Action.Type.WEBHOOK]["id"])
 class WebhookActionTranslator(BaseActionTranslator):
     @property
-    def action_type(self) -> Action.Type:
-        return Action.Type.WEBHOOK
+    def action_type(self) -> ActionType:
+        return ActionType.WEBHOOK
 
     @property
-    def target_type(self) -> ActionTarget | None:
+    def target_type(self) -> int | None:
         return None
 
     @property
     def required_fields(self) -> list[str]:
         return [
-            ACTION_FIELD_MAPPINGS[Action.Type.WEBHOOK][
+            ACTION_FIELD_MAPPINGS[ActionType.WEBHOOK][
                 ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
             ]
         ]
 
 
-@issue_alert_action_translator_registry.register(
-    ACTION_FIELD_MAPPINGS[Action.Type.SENTRY_APP]["id"]
-)
 class SentryAppActionTranslator(BaseActionTranslator):
     @property
-    def action_type(self) -> Action.Type:
-        return Action.Type.SENTRY_APP
+    def action_type(self) -> ActionType:
+        return ActionType.SENTRY_APP
 
     @property
     def required_fields(self) -> list[str]:
         return [
-            ACTION_FIELD_MAPPINGS[Action.Type.SENTRY_APP][
+            ACTION_FIELD_MAPPINGS[ActionType.SENTRY_APP][
                 ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
             ]
         ]
 
     @property
-    def target_type(self) -> ActionTarget | None:
-        return ActionTarget.SENTRY_APP
+    def target_type(self) -> int | None:
+        return ActionTarget.SENTRY_APP.value
 
     def get_sanitized_data(self) -> dict[str, Any]:
         data = SentryAppDataBlob()
@@ -701,12 +709,14 @@ class SentryAppFormConfigDataBlob(DataBlob):
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> SentryAppFormConfigDataBlob:
-        if not isinstance(data.get("name"), str) or not isinstance(data.get("value"), str):
+        if not isinstance(data.get("name"), str) or not isinstance(
+            data.get("value"), (str, type(None))
+        ):
             raise ValueError("Sentry app config must contain name and value keys")
         return cls(name=data["name"], value=data["value"], label=data.get("label"))
 
     name: str = ""
-    value: str = ""
+    value: str | None = ""
     label: str | None = None
 
 
@@ -732,3 +742,21 @@ class EmailDataBlob(DataBlob):
     """
 
     fallthroughType: str = ""
+
+
+issue_alert_action_translator_mapping: dict[str, type[BaseActionTranslator]] = {
+    ACTION_FIELD_MAPPINGS[ActionType.SLACK]["id"]: SlackActionTranslator,
+    ACTION_FIELD_MAPPINGS[ActionType.DISCORD]["id"]: DiscordActionTranslator,
+    ACTION_FIELD_MAPPINGS[ActionType.MSTEAMS]["id"]: MSTeamsActionTranslator,
+    ACTION_FIELD_MAPPINGS[ActionType.PAGERDUTY]["id"]: PagerDutyActionTranslator,
+    ACTION_FIELD_MAPPINGS[ActionType.OPSGENIE]["id"]: OpsgenieActionTranslator,
+    ACTION_FIELD_MAPPINGS[ActionType.GITHUB]["id"]: GithubActionTranslator,
+    ACTION_FIELD_MAPPINGS[ActionType.GITHUB_ENTERPRISE]["id"]: GithubEnterpriseActionTranslator,
+    ACTION_FIELD_MAPPINGS[ActionType.AZURE_DEVOPS]["id"]: AzureDevopsActionTranslator,
+    ACTION_FIELD_MAPPINGS[ActionType.JIRA]["id"]: JiraActionTranslatorBase,
+    ACTION_FIELD_MAPPINGS[ActionType.JIRA_SERVER]["id"]: JiraServerActionTranslatorBase,
+    ACTION_FIELD_MAPPINGS[ActionType.EMAIL]["id"]: EmailActionTranslator,
+    ACTION_FIELD_MAPPINGS[ActionType.PLUGIN]["id"]: PluginActionTranslator,
+    ACTION_FIELD_MAPPINGS[ActionType.WEBHOOK]["id"]: WebhookActionTranslator,
+    ACTION_FIELD_MAPPINGS[ActionType.SENTRY_APP]["id"]: SentryAppActionTranslator,
+}

@@ -14,7 +14,7 @@ from django.utils import timezone
 from urllib3.response import HTTPResponse
 
 from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
-from sentry.incidents.grouptype import MetricAlertFire
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     WARNING_TRIGGER_LABEL,
@@ -797,11 +797,12 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         from urllib3.exceptions import TimeoutError
 
         mock_seer_request.side_effect = TimeoutError
+        aggregation_value = 10
         result = get_anomaly_data_from_seer(
             alert_rule=processor.alert_rule,
             subscription=processor.subscription,
             last_update=processor.last_update.timestamp(),
-            aggregation_value=10,
+            aggregation_value=aggregation_value,
         )
         timeout_extra = {
             "subscription_id": self.sub.id,
@@ -809,6 +810,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             "organization_id": self.sub.project.organization.id,
             "project_id": self.sub.project_id,
             "alert_rule_id": rule.id,
+            "threshold_type": rule.threshold_type,
+            "sensitivity": rule.sensitivity,
+            "seasonality": rule.seasonality,
+            "aggregation_value": aggregation_value,
         }
         mock_logger.warning.assert_called_with(
             "Timeout error when hitting anomaly detection endpoint",
@@ -967,13 +972,14 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     def test_seer_call_bad_status(self, mock_logger, mock_seer_request):
         processor = SubscriptionProcessor(self.sub)
         mock_seer_request.return_value = HTTPResponse(status=403)
+        aggregation_value = 10
         result = get_anomaly_data_from_seer(
             alert_rule=self.dynamic_rule,
             subscription=processor.subscription,
             last_update=processor.last_update.timestamp(),
-            aggregation_value=10,
+            aggregation_value=aggregation_value,
         )
-        mock_logger.error.assert_called_with(
+        mock_logger.info.assert_called_with(
             "Error when hitting Seer detect anomalies endpoint",
             extra={
                 "subscription_id": self.sub.id,
@@ -981,6 +987,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 "organization_id": self.organization.id,
                 "project_id": self.project.id,
                 "alert_rule_id": self.rule.id,
+                "threshold_type": self.rule.threshold_type,
+                "sensitivity": self.rule.sensitivity,
+                "seasonality": self.rule.seasonality,
+                "aggregation_value": aggregation_value,
                 "response_data": None,
             },
         )
@@ -3750,7 +3760,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         occurrence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"]
         assert occurrence.type == MetricIssuePOC
         assert occurrence.issue_title == incident.title
-        assert occurrence.initial_issue_priority == PriorityLevel.HIGH
+        assert occurrence.priority == PriorityLevel.HIGH
         assert occurrence.evidence_data["metric_value"] == trigger.alert_threshold + 1
 
     @with_feature("organizations:metric-issue-poc")
@@ -3785,7 +3795,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert mock_produce_occurrence_to_kafka.call_count == 1
         occurrence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"]
         assert occurrence.type == MetricIssuePOC
-        assert occurrence.initial_issue_priority == PriorityLevel.HIGH
+        assert occurrence.priority == PriorityLevel.HIGH
         assert occurrence.evidence_data["metric_value"] == trigger.alert_threshold + 1
         mock_produce_occurrence_to_kafka.reset_mock()
 
@@ -3813,7 +3823,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert mock_produce_occurrence_to_kafka.call_count == 2
         occurrence = mock_produce_occurrence_to_kafka.call_args_list[0][1]["occurrence"]
         assert occurrence.type == MetricIssuePOC
-        assert occurrence.initial_issue_priority == PriorityLevel.MEDIUM
+        assert occurrence.priority == PriorityLevel.MEDIUM
         assert occurrence.evidence_data["metric_value"] == rule.resolve_threshold - 1
 
         status_change = mock_produce_occurrence_to_kafka.call_args_list[1][1]["status_change"]
@@ -3824,7 +3834,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     @mock.patch("sentry.incidents.subscription_processor.process_data_packets")
     def test_process_data_packets_called(self, mock_process_data_packets):
         rule = self.rule
-        detector = self.create_detector(name="hojicha", type=MetricAlertFire.slug)
+        detector = self.create_detector(name="hojicha", type=MetricIssue.slug)
         data_source = self.create_data_source(source_id=str(self.sub.id))
         data_source.detectors.set([detector])
         self.send_update(rule, 10)
@@ -3835,7 +3845,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
         data_packet_list = mock_process_data_packets.call_args_list[0][0][0]
         assert data_packet_list[0].source_id == str(self.sub.id)
-        assert data_packet_list[0].packet["values"] == {"data": [{"some_col_name": 10}]}
+        assert data_packet_list[0].packet["values"] == {"value": 10}
 
 
 class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetricsTestCase):

@@ -1,14 +1,15 @@
 import {Component, Fragment} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {LinkButton} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
-import ContextIcon from 'sentry/components/events/contexts/contextIcon';
+import {ContextIcon} from 'sentry/components/events/contexts/contextIcon';
 import {generateIconName} from 'sentry/components/events/contexts/utils';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import {backend} from 'sentry/data/platformCategories';
 import {IconCopy, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -25,7 +26,6 @@ import type {
 import {isTransaction} from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
-import theme from 'sentry/utils/theme';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
 
@@ -42,6 +42,7 @@ type Props = Pick<
   organization: OrganizationSummary;
   projectId: string;
   quickTrace: QuickTraceQueryChildrenProps | null;
+  theme: Theme;
 };
 
 type State = {
@@ -51,11 +52,12 @@ type State = {
 /**
  * This should match the breakpoint chosen for the `EventDetailHeader` below
  */
-const BREAKPOINT_MEDIA_QUERY = `(min-width: ${theme.breakpoints.large})`;
+const BREAKPOINT_MEDIA_QUERY = (theme: Theme) =>
+  `(min-width: ${theme.breakpoints.large})`;
 
 class EventMetas extends Component<Props, State> {
   state: State = {
-    isLargeScreen: window.matchMedia?.(BREAKPOINT_MEDIA_QUERY)?.matches,
+    isLargeScreen: window.matchMedia?.(BREAKPOINT_MEDIA_QUERY(this.props.theme))?.matches,
   };
 
   componentDidMount() {
@@ -70,7 +72,7 @@ class EventMetas extends Component<Props, State> {
     }
   }
 
-  mq = window.matchMedia?.(BREAKPOINT_MEDIA_QUERY);
+  mq = window.matchMedia?.(BREAKPOINT_MEDIA_QUERY(this.props.theme));
 
   handleMediaQueryChange = (changed: MediaQueryListEvent) => {
     this.setState({
@@ -95,7 +97,7 @@ class EventMetas extends Component<Props, State> {
     // to check for presence of both to show the replay link button here.
     const hasReplay =
       organization.features.includes('session-replay') &&
-      Boolean(event.entries.find(({type}) => type === 'breadcrumbs')) &&
+      event.entries.some(({type}) => type === 'breadcrumbs') &&
       Boolean(getReplayIdFromEvent(event));
 
     const type = isTransaction(event) ? 'transaction' : 'event';
@@ -260,7 +262,7 @@ type EventDetailHeaderProps = {
   type?: 'transaction' | 'event';
 };
 
-export function getEventDetailHeaderCols({
+function getEventDetailHeaderCols({
   hasReplay,
   isBackendProject,
   type,

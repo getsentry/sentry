@@ -1,7 +1,3 @@
-// XXX(epurkhiser): Ensure the LatestContextStore is initialized before we set
-// the active org. Otherwise we will trigger an action that does nothing
-import 'sentry/stores/latestContextStore';
-
 import {useLayoutEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
@@ -91,7 +87,7 @@ export function useBootstrapProjectsQuery(orgSlug: string | null) {
   return projectsQuery;
 }
 
-function getBootstrapOrganizationQueryOptions(orgSlug: string | null) {
+export function getBootstrapOrganizationQueryOptions(orgSlug: string | null) {
   return queryOptions({
     queryKey: ['bootstrap-organization', orgSlug],
     queryFn: orgSlug
@@ -140,7 +136,7 @@ function createTeamsObject(response: ApiResult): {
   return {teams, hasMore, cursor};
 }
 
-function getBoostrapTeamsQueryOptions(orgSlug: string | null) {
+export function getBoostrapTeamsQueryOptions(orgSlug: string | null) {
   return queryOptions({
     queryKey: ['bootstrap-teams', orgSlug],
     queryFn: orgSlug
@@ -176,7 +172,7 @@ function getBoostrapTeamsQueryOptions(orgSlug: string | null) {
   });
 }
 
-function getBootstrapProjectsQueryOptions(orgSlug: string | null) {
+export function getBootstrapProjectsQueryOptions(orgSlug: string | null) {
   return queryOptions({
     queryKey: ['bootstrap-projects', orgSlug],
     queryFn: orgSlug

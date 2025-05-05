@@ -3,9 +3,9 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock} from 'sentry/icons/iconClock';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {IconGraph} from 'sentry/icons/iconGraph';
@@ -13,6 +13,7 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -26,9 +27,11 @@ import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/charts';
-import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
+import {WidgetExtrapolationFooter} from 'sentry/views/explore/charts/widgetExtrapolationFooter';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useAddCompareQueryToDashboard} from 'sentry/views/explore/multiQueryMode/hooks/useAddCompareQueryToDashboard';
 import {DEFAULT_TOP_EVENTS} from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTimeseries';
 import {
@@ -36,21 +39,20 @@ import {
   useUpdateQueryAtIndex,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {INGESTION_DELAY} from 'sentry/views/explore/settings';
-import {combineConfidenceForSeries, showConfidence} from 'sentry/views/explore/utils';
+import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 const CHART_HEIGHT = 260;
-export interface MultiQueryChartProps {
+interface MultiQueryChartProps {
   canUsePreviousResults: boolean;
   index: number;
   mode: Mode;
   query: ReadableExploreQueryParts;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  samplingMode?: SamplingMode;
 }
-
-export const EXPLORE_CHART_GROUP = 'multi-query-charts_group';
 
 export function MultiQueryModeChart({
   index,
@@ -58,6 +60,7 @@ export function MultiQueryModeChart({
   mode,
   timeseriesResult,
   canUsePreviousResults,
+  samplingMode,
 }: MultiQueryChartProps) {
   const theme = useTheme();
 
@@ -130,18 +133,19 @@ export function MultiQueryModeChart({
   ]);
 
   const {data, error, loading} = getSeries();
-  const {sampleCount, isSampled} = determineSeriesSampleCountAndIsSampled(data, isTopN);
+  const {sampleCount, isSampled, dataScanned} = determineSeriesSampleCountAndIsSampled(
+    data,
+    isTopN
+  );
+
+  const chartType = queryParts.chartType || determineDefaultChartType(yAxes);
 
   const visualizationType =
-    queryParts.chartType === ChartType.LINE
-      ? 'line'
-      : queryParts.chartType === ChartType.AREA
-        ? 'area'
-        : 'bar';
+    chartType === ChartType.LINE ? 'line' : chartType === ChartType.AREA ? 'area' : 'bar';
 
   const chartInfo = {
     chartIcon: <IconGraph type={visualizationType} />,
-    chartType: queryParts.chartType,
+    chartType,
     yAxes,
     formattedYAxes,
     data,
@@ -168,6 +172,22 @@ export function MultiQueryModeChart({
         Title={Title}
         Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
         revealActions="always"
+        Footer={
+          organization.features.includes('visibility-explore-progressive-loading') &&
+          !organization.features.includes(
+            'visibility-explore-progressive-loading-normal-sampling-mode'
+          ) && (
+            <WidgetExtrapolationFooter
+              samplingMode={undefined}
+              sampleCount={0}
+              isSampled={null}
+              confidence={undefined}
+              topEvents={undefined}
+              dataScanned={undefined}
+              dataset={DiscoverDatasets.SPANS_EAP}
+            />
+          )
+        }
       />
     );
   }
@@ -319,13 +339,15 @@ export function MultiQueryModeChart({
         />
       }
       Footer={
-        showConfidence(isSampled) && (
-          <ConfidenceFooter
-            sampleCount={sampleCount}
-            confidence={confidence}
-            topEvents={isTopN ? numSeries : undefined}
-          />
-        )
+        <WidgetExtrapolationFooter
+          sampleCount={sampleCount}
+          isSampled={isSampled}
+          confidence={confidence}
+          topEvents={isTopN ? numSeries : undefined}
+          dataScanned={dataScanned}
+          samplingMode={samplingMode}
+          dataset={DiscoverDatasets.SPANS_EAP}
+        />
       }
     />
   );

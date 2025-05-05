@@ -2,12 +2,16 @@ import type React from 'react';
 import {createContext, useCallback, useContext, useMemo} from 'react';
 import type {Location} from 'history';
 
-import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {
+  defaultId,
+  getIdFromLocation,
+  updateLocationWithId,
+} from 'sentry/views/explore/contexts/pageParamsContext/id';
 
 import {
   defaultDataset,
@@ -43,6 +47,7 @@ interface ReadablePageParams {
   query: string;
   sortBys: Sort[];
   visualizes: Visualize[];
+  id?: string;
   title?: string;
 }
 
@@ -50,6 +55,7 @@ interface WritablePageParams {
   dataset?: DiscoverDatasets | null;
   fields?: string[] | null;
   groupBys?: string[] | null;
+  id?: string | null;
   mode?: Mode | null;
   query?: string | null;
   sortBys?: Sort[] | null;
@@ -75,6 +81,7 @@ function defaultPageParams(): ReadablePageParams {
   const query = defaultQuery();
   const visualizes = defaultVisualizes();
   const title = defaultTitle();
+  const id = defaultId();
   const sortBys = defaultSortBys(
     mode,
     fields,
@@ -89,6 +96,7 @@ function defaultPageParams(): ReadablePageParams {
     query,
     sortBys,
     title,
+    id,
     visualizes,
   };
 }
@@ -112,6 +120,7 @@ export function PageParamsProvider({children}: PageParamsProviderProps) {
     const visualizes = getVisualizesFromLocation(location, organization);
     const sortBys = getSortBysFromLocation(location, mode, fields, groupBys, visualizes);
     const title = getTitleFromLocation(location);
+    const id = getIdFromLocation(location);
 
     return {
       dataset,
@@ -121,13 +130,12 @@ export function PageParamsProvider({children}: PageParamsProviderProps) {
       query,
       sortBys,
       title,
+      id,
       visualizes,
     };
   }, [location, organization]);
 
-  return (
-    <PageParamsContext.Provider value={pageParams}>{children}</PageParamsContext.Provider>
-  );
+  return <PageParamsContext value={pageParams}>{children}</PageParamsContext>;
 }
 
 export function useExplorePageParams(): ReadablePageParams {
@@ -135,16 +143,7 @@ export function useExplorePageParams(): ReadablePageParams {
 }
 
 export function useExploreDataset(): DiscoverDatasets {
-  const organization = useOrganization();
-  const pageParams = useExplorePageParams();
-
-  if (defined(pageParams.dataset)) {
-    return pageParams.dataset;
-  }
-
-  return organization.features.includes('visibility-explore-rpc')
-    ? DiscoverDatasets.SPANS_EAP_RPC
-    : DiscoverDatasets.SPANS_EAP;
+  return DiscoverDatasets.SPANS_EAP_RPC;
 }
 
 export function useExploreFields(): string[] {
@@ -177,6 +176,11 @@ export function useExploreTitle(): string | undefined {
   return pageParams.title;
 }
 
+export function useExploreId(): string | undefined {
+  const pageParams = useExplorePageParams();
+  return pageParams.id;
+}
+
 export function useExploreVisualizes(): Visualize[] {
   const pageParams = useExplorePageParams();
   return pageParams.visualizes;
@@ -195,6 +199,7 @@ export function newExploreTarget(
   updateLocationWithSortBys(target, pageParams.sortBys);
   updateLocationWithVisualizes(target, pageParams.visualizes);
   updateLocationWithTitle(target, pageParams.title);
+  updateLocationWithId(target, pageParams.id);
   return target;
 }
 
@@ -211,16 +216,6 @@ export function useSetExplorePageParams() {
   );
 }
 
-export function useSetExploreDataset() {
-  const setPageParams = useSetExplorePageParams();
-  return useCallback(
-    (dataset: DiscoverDatasets) => {
-      setPageParams({dataset});
-    },
-    [setPageParams]
-  );
-}
-
 export function useSetExploreFields() {
   const setPageParams = useSetExplorePageParams();
   return useCallback(
@@ -234,8 +229,12 @@ export function useSetExploreFields() {
 export function useSetExploreGroupBys() {
   const setPageParams = useSetExplorePageParams();
   return useCallback(
-    (groupBys: string[]) => {
-      setPageParams({groupBys});
+    (groupBys: string[], mode?: Mode) => {
+      if (mode) {
+        setPageParams({groupBys, mode});
+      } else {
+        setPageParams({groupBys});
+      }
     },
     [setPageParams]
   );
@@ -303,5 +302,25 @@ export function useSetExploreVisualizes() {
       setPageParams(writablePageParams);
     },
     [pageParams, setPageParams]
+  );
+}
+
+export function useSetExploreTitle() {
+  const setPageParams = useSetExplorePageParams();
+  return useCallback(
+    (title: string) => {
+      setPageParams({title});
+    },
+    [setPageParams]
+  );
+}
+
+export function useSetExploreId() {
+  const setPageParams = useSetExplorePageParams();
+  return useCallback(
+    (id: string) => {
+      setPageParams({id});
+    },
+    [setPageParams]
   );
 }

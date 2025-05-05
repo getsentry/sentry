@@ -156,13 +156,6 @@ export type ReplayListRecord = Pick<
   | 'user'
 >;
 
-export type ReplaySegment = {
-  dateAdded: string;
-  projectId: string;
-  replayId: string;
-  segmentId: number;
-};
-
 /**
  * This is a result of a custom discover query
  */

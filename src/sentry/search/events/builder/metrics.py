@@ -262,9 +262,9 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         return bool(self._on_demand_metric_spec_map)
 
     @cached_property
-    def _on_demand_metric_spec_map(self) -> dict[str, OnDemandMetricSpec] | None:
+    def _on_demand_metric_spec_map(self) -> dict[str, OnDemandMetricSpec]:
         if not self.builder_config.on_demand_metrics_enabled:
-            return None
+            return {}
 
         spec_map = {}
         for col in self.selected_columns:
@@ -775,7 +775,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
             return self.resolve_metric_index(value)
 
     def default_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
-        name = search_filter.key.name
+        name = self.column_remapping.get(search_filter.key.name, search_filter.key.name)
         operator = search_filter.operator
         value = search_filter.value.value
 
@@ -1970,9 +1970,9 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
         return sorted(translated)
 
     @cached_property
-    def _on_demand_metric_spec_map(self) -> dict[str, OnDemandMetricSpec] | None:
+    def _on_demand_metric_spec_map(self) -> dict[str, OnDemandMetricSpec]:
         if not self.builder_config.on_demand_metrics_enabled:
-            return None
+            return {}
 
         return {
             col: self._get_on_demand_metric_spec(col)

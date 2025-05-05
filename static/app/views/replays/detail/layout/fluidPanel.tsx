@@ -1,12 +1,11 @@
-import type {LegacyRef, ReactChild} from 'react';
 import styled from '@emotion/styled';
 
 type Props = {
-  children: ReactChild;
-  bodyRef?: LegacyRef<HTMLDivElement> | undefined;
-  bottom?: ReactChild;
+  children: React.ReactNode;
+  bodyRef?: React.RefObject<HTMLDivElement | null>;
+  bottom?: React.ReactNode;
   className?: string;
-  title?: ReactChild;
+  title?: React.ReactNode;
 };
 
 function FluidPanel({className, children, bottom, title, bodyRef}: Props) {

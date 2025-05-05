@@ -33,6 +33,7 @@ from sentry.db.models.fields.text import CharField
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.organization import Organization
 from sentry.users.services.user.service import user_service
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 MAX_RETRIES = 2
 
@@ -282,6 +283,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 dashboard = serializer.save()
             return Response(serialize(dashboard, request.user), status=201)
         except IntegrityError:
+            incr_rollback_metrics(Dashboard)
             duplicate = request.data.get("duplicate", False)
 
             if not duplicate or retry >= MAX_RETRIES:

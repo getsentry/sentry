@@ -53,7 +53,9 @@ class CodeOwnersTest(TestCase):
         with self.tasks() and self.feature({"organizations:integrations-codeowners": True}):
             # new external team mapping
             self.external_team = self.create_external_team(integration=self.integration)
-            update_code_owners_schema(organization=self.organization, integration=self.integration)
+            update_code_owners_schema(
+                organization=self.organization.id, integration=self.integration.id
+            )
 
         code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
 
@@ -72,7 +74,9 @@ class CodeOwnersTest(TestCase):
         with self.tasks() and self.feature({"organizations:integrations-codeowners": True}):
             # delete external team mapping
             ExternalActor.objects.get(id=self.external_team.id).delete()
-            update_code_owners_schema(organization=self.organization, integration=self.integration)
+            update_code_owners_schema(
+                organization=self.organization.id, integration=self.integration.id
+            )
 
         code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
 

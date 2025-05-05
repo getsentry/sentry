@@ -21,14 +21,13 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 
+import PlanTable from 'getsentry/components/upgradeNowModal/planTable';
+import usePreviewData from 'getsentry/components/upgradeNowModal/usePreviewData';
+import useUpgradeNowParams from 'getsentry/components/upgradeNowModal/useUpgradeNowParams';
+import {redirectToManage} from 'getsentry/components/upgradeNowModal/utils';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription} from 'getsentry/types';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-
-import PlanTable from '../upgradeNowModal/planTable';
-import usePreviewData from '../upgradeNowModal/usePreviewData';
-import useUpgradeNowParams from '../upgradeNowModal/useUpgradeNowParams';
-import {redirectToManage} from '../upgradeNowModal/utils';
 
 type Props = ModalRenderProps &
   Omit<ComponentProps<typeof ActionButtons>, 'hasPriceChange'> & {
@@ -154,7 +153,7 @@ const UpsellContent = styled('div')`
 `;
 
 const Note = styled('p')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeExtraSmall};
 `;
 

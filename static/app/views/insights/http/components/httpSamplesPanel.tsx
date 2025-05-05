@@ -1,11 +1,12 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import keyBy from 'lodash/keyBy';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
 import {Button} from 'sentry/components/core/button';
-import {DrawerHeader} from 'sentry/components/globalDrawer/components';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -23,10 +24,15 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
+import {Samples} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/samples';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
+import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
+import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {
   useSpanMetrics,
@@ -34,14 +40,11 @@ import {
 } from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useSpanMetricsTopNSeries} from 'sentry/views/insights/common/queries/useSpanMetricsTopNSeries';
-import {AverageValueMarkLine} from 'sentry/views/insights/common/utils/averageValueMarkLine';
-import {findSampleFromDataPoint} from 'sentry/views/insights/common/utils/findDataPoint';
 import {
   DataTitles,
+  getDurationChartTitle,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
-import {DurationChartWithSamples} from 'sentry/views/insights/http/components/charts/durationChartWithSamples';
 import {ResponseCodeCountChart} from 'sentry/views/insights/http/components/charts/responseCodeCountChart';
 import {SpanSamplesTable} from 'sentry/views/insights/http/components/tables/spanSamplesTable';
 import {HTTP_RESPONSE_STATUS_CODES} from 'sentry/views/insights/http/data/definitions';
@@ -50,7 +53,6 @@ import {Referrer} from 'sentry/views/insights/http/referrers';
 import {BASE_FILTERS} from 'sentry/views/insights/http/settings';
 import decodePanel from 'sentry/views/insights/http/utils/queryParameterDecoders/panel';
 import decodeResponseCodeClass from 'sentry/views/insights/http/utils/queryParameterDecoders/responseCodeClass';
-import {useDebouncedState} from 'sentry/views/insights/http/utils/useDebouncedState';
 import {
   ModuleName,
   SpanFunction,
@@ -59,9 +61,6 @@ import {
   type SpanMetricsQueryFilters,
 } from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-
-import {SampleDrawerBody} from '../../common/components/sampleDrawerBody';
-import {SampleDrawerHeaderTransaction} from '../../common/components/sampleDrawerHeaderTransaction';
 
 export function HTTPSamplesPanel() {
   const navigate = useNavigate();
@@ -87,11 +86,8 @@ export function HTTPSamplesPanel() {
 
   const project = projects.find(p => query.project === p.id);
 
-  const [highlightedSpanId, setHighlightedSpanId] = useDebouncedState<string | undefined>(
-    undefined,
-    [],
-
-    SAMPLE_HOVER_DEBOUNCE
+  const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
+    undefined
   );
 
   // `detailKey` controls whether the panel is open. If all required properties are available, concat them to make a key, otherwise set to `undefined` and hide the panel
@@ -178,7 +174,7 @@ export function HTTPSamplesPanel() {
     {
       search: MutableSearch.fromQueryObject(ribbonFilters),
       fields: [
-        `${SpanFunction.SPM}()`,
+        `${SpanFunction.EPM}()`,
         `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
         `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
         'http_response_rate(3)',
@@ -200,6 +196,7 @@ export function HTTPSamplesPanel() {
       search,
       yAxis: [`avg(span.self_time)`],
       enabled: isPanelOpen && query.panel === 'duration',
+      transformAliasToInputFormat: true,
     },
     Referrer.SAMPLES_PANEL_DURATION_CHART
   );
@@ -226,15 +223,15 @@ export function HTTPSamplesPanel() {
   const durationAxisMax = computeAxisMax([durationData?.[`avg(span.self_time)`]]);
 
   const {
-    data: durationSamplesData,
+    data: spanSamplesData,
     isFetching: isDurationSamplesDataFetching,
     error: durationSamplesDataError,
     refetch: refetchDurationSpanSamples,
   } = useSpanSamples({
     search,
     fields: [
+      SpanIndexedField.ID,
       SpanIndexedField.TRACE,
-      SpanIndexedField.TRANSACTION_ID,
       SpanIndexedField.SPAN_DESCRIPTION,
       SpanIndexedField.RESPONSE_CODE,
     ],
@@ -243,6 +240,10 @@ export function HTTPSamplesPanel() {
     enabled: isPanelOpen && query.panel === 'duration' && durationAxisMax > 0,
     referrer: Referrer.SAMPLES_PANEL_DURATION_SAMPLES,
   });
+
+  const spanSamplesById = useMemo(() => {
+    return keyBy(spanSamplesData?.data ?? [], 'id');
+  }, [spanSamplesData]);
 
   const {
     data: responseCodeSamplesData,
@@ -255,7 +256,7 @@ export function HTTPSamplesPanel() {
       fields: [
         SpanIndexedField.PROJECT,
         SpanIndexedField.TRACE,
-        SpanIndexedField.TRANSACTION_ID,
+        SpanIndexedField.TRANSACTION_SPAN_ID,
         SpanIndexedField.SPAN_ID,
         SpanIndexedField.TIMESTAMP,
         SpanIndexedField.SPAN_DESCRIPTION,
@@ -266,12 +267,6 @@ export function HTTPSamplesPanel() {
       enabled: isPanelOpen && query.panel === 'status',
     },
     Referrer.SAMPLES_PANEL_RESPONSE_CODE_SAMPLES
-  );
-
-  const sampledSpanDataSeries = useSampleScatterPlotSeries(
-    durationSamplesData,
-    domainTransactionMetrics?.[0]?.['avg(span.self_time)'],
-    highlightedSpanId
   );
 
   const handleSearch = (newSpanSearchQuery: string) => {
@@ -290,15 +285,51 @@ export function HTTPSamplesPanel() {
     }
   };
 
+  const avg = domainTransactionMetrics?.[0]?.['avg(span.self_time)'] ?? 0;
+
+  const samplesPlottable = useMemo(() => {
+    if (!spanSamplesData) {
+      return undefined;
+    }
+
+    return new Samples(spanSamplesData as TabularData, {
+      attributeName: 'span.self_time',
+      baselineValue: avg,
+      baselineLabel: t('Average'),
+      onHighlight: sample => {
+        setHighlightedSpanId(sample.id);
+      },
+      onDownplay: () => {
+        setHighlightedSpanId(undefined);
+      },
+    });
+  }, [avg, spanSamplesData, setHighlightedSpanId]);
+
+  useEffect(() => {
+    if (highlightedSpanId && samplesPlottable) {
+      const spanSample = spanSamplesById[highlightedSpanId]!;
+      samplesPlottable.highlight(spanSample);
+    }
+
+    return () => {
+      if (!highlightedSpanId) {
+        return;
+      }
+
+      const spanSample = spanSamplesById[highlightedSpanId]!;
+      samplesPlottable?.downplay(spanSample);
+    };
+  }, [samplesPlottable, spanSamplesById, highlightedSpanId]);
+
   return (
     <PageAlertProvider>
-      <DrawerHeader>
+      <EventDrawerHeader>
         <SampleDrawerHeaderTransaction
           project={project}
           transaction={query.transaction}
           transactionMethod={query.transactionMethod}
         />
-      </DrawerHeader>
+      </EventDrawerHeader>
 
       <SampleDrawerBody>
         <ModuleLayout.Layout>
@@ -306,7 +337,7 @@ export function HTTPSamplesPanel() {
             <ReadoutRibbon>
               <MetricReadout
                 title={getThroughputTitle('http')}
-                value={domainTransactionMetrics?.[0]?.[`${SpanFunction.SPM}()`]}
+                value={domainTransactionMetrics?.[0]?.[`${SpanFunction.EPM}()`]}
                 unit={RateUnit.PER_MINUTE}
                 isLoading={areDomainTransactionMetricsFetching}
               />
@@ -385,34 +416,13 @@ export function HTTPSamplesPanel() {
           {query.panel === 'duration' && (
             <Fragment>
               <ModuleLayout.Full>
-                <DurationChartWithSamples
-                  series={[
-                    {
-                      ...durationData[`avg(span.self_time)`],
-                      markLine: AverageValueMarkLine(),
-                    },
-                  ]}
-                  scatterPlot={sampledSpanDataSeries}
-                  onHighlight={highlights => {
-                    const firstHighlight = highlights[0];
-
-                    if (!firstHighlight) {
-                      setHighlightedSpanId(undefined);
-                      return;
-                    }
-
-                    const sample = findSampleFromDataPoint<
-                      (typeof durationSamplesData)[0]
-                    >(
-                      firstHighlight.dataPoint,
-                      durationSamplesData,
-                      SpanIndexedField.SPAN_SELF_TIME
-                    );
-
-                    setHighlightedSpanId(sample?.span_id);
-                  }}
+                <InsightsLineChartWidget
+                  showLegend="never"
+                  title={getDurationChartTitle('http')}
                   isLoading={isDurationDataFetching}
                   error={durationError}
+                  series={[durationData[`avg(span.self_time)`]]}
+                  samples={samplesPlottable}
                 />
               </ModuleLayout.Full>
             </Fragment>
@@ -444,7 +454,7 @@ export function HTTPSamplesPanel() {
             <Fragment>
               <ModuleLayout.Full>
                 <SpanSamplesTable
-                  data={durationSamplesData}
+                  data={spanSamplesData?.data ?? []}
                   isLoading={isDurationDataFetching || isDurationSamplesDataFetching}
                   highlightedSpanId={highlightedSpanId}
                   onSampleMouseOver={sample => setHighlightedSpanId(sample.span_id)}
@@ -514,8 +524,6 @@ export function HTTPSamplesPanel() {
     </PageAlertProvider>
   );
 }
-
-const SAMPLE_HOVER_DEBOUNCE = 10;
 
 const SPAN_SAMPLE_LIMIT = 10;
 

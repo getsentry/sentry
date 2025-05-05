@@ -1,7 +1,6 @@
 from typing import Any
 
 from django.db import models
-from django.db.models import UniqueConstraint
 from django.utils.translation import gettext_lazy as _
 
 from sentry.backup.scopes import RelocationScope
@@ -14,6 +13,21 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.models.savedsearch import SortOptions
 
 DEFAULT_TIME_FILTER = {"period": "14d"}
+
+DEFAULT_VIEWS = [
+    {
+        "name": "Prioritized",
+        "query": "is:unresolved issue.priority:[high, medium]",
+        "querySort": SortOptions.DATE.value,
+        "position": 0,
+        "isAllProjects": False,
+        "environments": [],
+        "projects": [],
+        "timeFilters": DEFAULT_TIME_FILTER,
+        "dateCreated": None,
+        "dateUpdated": None,
+    }
+]
 
 
 @region_silo_model
@@ -31,14 +45,10 @@ class GroupSearchViewProject(DefaultFieldsModel):
 
 class GroupSearchViewVisibility:
     ORGANIZATION = "organization"
-    OWNER = "owner"
 
     @classmethod
     def as_choices(cls) -> list[tuple[str, Any]]:
-        return [
-            (cls.ORGANIZATION, _("Organization")),
-            (cls.OWNER, _("Only for me")),
-        ]
+        return [(cls.ORGANIZATION, _("Organization"))]
 
 
 @region_silo_model
@@ -54,7 +64,7 @@ class GroupSearchView(DefaultFieldsModelExisting):
 
     visibility = models.CharField(
         max_length=16,
-        db_default=GroupSearchViewVisibility.OWNER,
+        db_default=GroupSearchViewVisibility.ORGANIZATION,
         choices=GroupSearchViewVisibility.as_choices(),
     )
 
@@ -62,7 +72,6 @@ class GroupSearchView(DefaultFieldsModelExisting):
     query_sort = models.CharField(
         max_length=16, default=SortOptions.DATE, choices=SortOptions.as_choices()
     )
-    position = models.PositiveSmallIntegerField(null=True)
 
     # Projects = [] maps to "My Projects" (This is so when a project is deleted, it correctly defaults to "My Projects")
     projects = models.ManyToManyField("sentry.Project", through="sentry.GroupSearchViewProject")
@@ -77,15 +86,3 @@ class GroupSearchView(DefaultFieldsModelExisting):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_groupsearchview"
-        # Two views cannot occupy the same position in an organization user's list of views
-        constraints = [
-            UniqueConstraint(
-                fields=["user_id", "organization_id", "position"],
-                name="sentry_issueviews_unique_view_position_per_org_user",
-                deferrable=models.Deferrable.DEFERRED,
-            )
-        ]
-
-    @property
-    def is_default(self):
-        return self.position == 0

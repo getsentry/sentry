@@ -1,8 +1,8 @@
 import type {LocationDescriptor} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import type {TraceTree} from '../traceModels/traceTree';
-import {TraceTreeNode} from '../traceModels/traceTreeNode';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
 import {makeTraceContinuousProfilingLink} from './traceProfilingLink';
 
@@ -65,7 +65,7 @@ describe('traceProfilingLink', () => {
   });
 
   it('creates a window of time around end timestamp', () => {
-    const timestamp = new Date().getTime();
+    const timestamp = Date.now();
 
     const node = new TraceTreeNode(
       null,

@@ -4,7 +4,6 @@ import {ProjectFixture} from 'getsentry-test/fixtures/project';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
-  cleanup,
   render,
   renderGlobalModal,
   screen,
@@ -35,7 +34,6 @@ describe('project renders and toggles', () => {
     }),
   ];
   let organization: any,
-    router: any,
     mockGet: any,
     mockPost: any,
     mockDelete: any,
@@ -55,7 +53,6 @@ describe('project renders and toggles', () => {
       },
     });
     organization = newData.organization;
-    router = newData.router;
     SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}));
 
     mockGet = MockApiClient.addMockResponse({
@@ -120,9 +117,6 @@ describe('project renders and toggles', () => {
       statusCode: 200,
     });
   });
-  afterEach(() => {
-    cleanup();
-  });
 
   async function validateComponents(project: Project, isEnabled: boolean) {
     const toggle = await screen.findByTestId(`${project.slug}-spike-protection-toggle`);
@@ -144,7 +138,7 @@ describe('project renders and toggles', () => {
       statusCode: 200,
     });
 
-    render(<SpikeProtectionProjects />, {router});
+    render(<SpikeProtectionProjects />);
     expect(mockGetNoProjects).toHaveBeenCalled();
     expect(await screen.findByText('There are no items to display')).toBeInTheDocument();
   });
@@ -192,7 +186,7 @@ describe('project renders and toggles', () => {
 
   it('renders toggles', async () => {
     const project = projects[0]!;
-    render(<SpikeProtectionProjects />, {router});
+    render(<SpikeProtectionProjects />);
 
     expect(mockGet).toHaveBeenCalled();
     const {toggle} = await validateComponents(project, false);
@@ -254,7 +248,7 @@ describe('project renders and toggles', () => {
       statusCode: 200,
     });
 
-    render(<SpikeProtectionProjects />, {router});
+    render(<SpikeProtectionProjects />);
     await validateComponents(newProjects[0]!, false);
     await validateComponents(newProjects[1]!, true);
   });
@@ -262,7 +256,7 @@ describe('project renders and toggles', () => {
   it('responds to successful toggles', async () => {
     const project = projects[0]!;
 
-    render(<SpikeProtectionProjects />, {router});
+    render(<SpikeProtectionProjects />);
     expect(mockGet).toHaveBeenCalled();
 
     const {toggle} = await validateComponents(project, false);
@@ -287,7 +281,7 @@ describe('project renders and toggles', () => {
     });
     const project = projects[0]!;
 
-    render(<SpikeProtectionProjects />, {router});
+    render(<SpikeProtectionProjects />);
     expect(mockGet).toHaveBeenCalled();
 
     const {toggle} = await validateComponents(project, false);
@@ -315,7 +309,7 @@ describe('project renders and toggles', () => {
 
   it('response to successful toggle for all projects', async () => {
     renderGlobalModal();
-    render(<SpikeProtectionProjects />, {router});
+    render(<SpikeProtectionProjects />);
     await validateComponents(projects[0]!, false);
     await validateComponents(projects[1]!, true);
 
@@ -336,7 +330,7 @@ describe('project renders and toggles', () => {
 
   it('response to successful disable toggle for all projects', async () => {
     renderGlobalModal();
-    render(<SpikeProtectionProjects />, {router});
+    render(<SpikeProtectionProjects />);
     await validateComponents(projects[0]!, false);
     await validateComponents(projects[1]!, true);
 

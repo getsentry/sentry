@@ -2,11 +2,9 @@ import {cloneElement, Component} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {NAV_GROUP_LABELS} from 'sentry/components/nav/constants';
-import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
-import {SecondaryNav} from 'sentry/components/nav/secondary';
-import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {space} from 'sentry/styles/space';
+import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import SettingsNavigationGroup from 'sentry/views/settings/components/settingsNavigationGroup';
 import SettingsNavigationGroupDeprecated from 'sentry/views/settings/components/settingsNavigationGroupDeprecated';
 import type {NavigationProps, NavigationSection} from 'sentry/views/settings/types';
@@ -43,10 +41,8 @@ function SettingsSecondaryNavigation({
   const navWithHooks = navigationObjects.concat(hookConfigs);
 
   return (
-    <SecondaryNav group={PrimaryNavGroup.SETTINGS}>
-      <SecondaryNav.Header>
-        {NAV_GROUP_LABELS[PrimaryNavGroup.SETTINGS]}
-      </SecondaryNav.Header>
+    <SecondaryNav>
+      <SecondaryNav.Header />
       <SecondaryNav.Body>
         {navWithHooks.map(config => (
           <SettingsNavigationGroup key={config.name} {...otherProps} {...config} />
@@ -76,16 +72,24 @@ class SettingsNavigation extends Component<Props> {
   }
 
   render() {
-    const {navigationObjects, hooks, hookConfigs, stickyTop, ...otherProps} = this.props;
+    const {
+      navigationObjects,
+      hooks,
+      hookConfigs,
+      stickyTop,
+      organization,
+      ...otherProps
+    } = this.props;
     const navWithHooks = navigationObjects.concat(hookConfigs);
 
-    if (prefersStackedNav()) {
+    if (organization && prefersStackedNav(organization)) {
       return (
         <SettingsSecondaryNavigation
           navigationObjects={navigationObjects}
           hooks={hooks}
           hookConfigs={hookConfigs}
           stickyTop={stickyTop}
+          organization={organization}
           {...otherProps}
         />
       );
@@ -96,6 +100,7 @@ class SettingsNavigation extends Component<Props> {
         {navWithHooks.map(config => (
           <SettingsNavigationGroupDeprecated
             key={config.name}
+            organization={organization}
             {...otherProps}
             {...config}
           />

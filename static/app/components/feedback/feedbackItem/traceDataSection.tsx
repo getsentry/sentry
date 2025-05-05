@@ -56,10 +56,15 @@ export default function TraceDataSection({
     traceEvents.length,
   ]);
 
-  return organization.features.includes('user-feedback-trace-section') &&
-    !isError &&
-    traceEvents.length > 1 &&
-    !eventIsCrashReportDup(oneOtherIssueEvent, crashReportId) ? (
+  if (
+    isError ||
+    traceEvents.length <= 1 ||
+    eventIsCrashReportDup(oneOtherIssueEvent, crashReportId)
+  ) {
+    return null;
+  }
+
+  return (
     <Section icon={<IconSpan size="xs" />} title={t('Data From The Same Trace')}>
       {isLoading ? (
         <Placeholder height="114px" />
@@ -67,7 +72,7 @@ export default function TraceDataSection({
         <IssuesTraceDataSection event={eventData} />
       )}
     </Section>
-  ) : null;
+  );
 }
 
 function eventIsCrashReportDup(

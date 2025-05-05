@@ -1,11 +1,11 @@
 import {mat3, vec2} from 'gl-matrix';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {makeLightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {PositionIndicatorRenderer} from 'sentry/utils/profiling/renderers/positionIndicatorRenderer';
 import {Rect} from 'sentry/utils/profiling/speedscope';
-import {lightTheme} from 'sentry/utils/theme';
 
-const theme = makeLightFlamegraphTheme(lightTheme);
+const theme = makeLightFlamegraphTheme(ThemeFixture());
 
 describe('PositionIndicatorRenderer', () => {
   it('draws nothing if view is not zoomed', () => {

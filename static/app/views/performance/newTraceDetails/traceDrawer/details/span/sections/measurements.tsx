@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -17,11 +18,13 @@ import {
 } from 'sentry/utils/discover/fieldRenderers';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
+import {
+  type SectionCardKeyValueList,
+  TraceDrawerComponents,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {TraceDrawerActionValueKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
-
-import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
-import {TraceDrawerActionValueKind} from '../../utils';
 
 export function hasSpanMeasurements(span: TraceTree.Span) {
   return !!span.measurements && Object.keys(span.measurements).length > 0;
@@ -36,8 +39,8 @@ function Measurements({
   node: TraceTreeNode<TraceTree.Span>;
   organization: Organization;
 }) {
+  const theme = useTheme();
   const {measurements} = node.value;
-
   const measurementNames: string[] = useMemo(() => {
     return Object.keys(measurements ?? {})
       .filter(name => isCustomMeasurement(`measurements.${name}`))
@@ -58,7 +61,7 @@ function Measurements({
           ? FIELD_FORMATTERS[fieldType].renderFunc(
               name,
               {[name]: renderValue},
-              {location, organization, unit}
+              {location, organization, unit, theme}
             )
           : renderValue;
 
@@ -90,7 +93,7 @@ function Measurements({
       }
     }
     return result;
-  }, [measurements, measurementNames, location, organization, projectID]);
+  }, [measurements, measurementNames, location, organization, projectID, theme]);
 
   if (measurementNames.length < 1) {
     return null;

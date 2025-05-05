@@ -4,6 +4,7 @@ import django.db.models.functions.comparison
 from django.db import migrations, models
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -21,8 +22,6 @@ class Migration(CheckedMigration):
 
     is_post_deployment = False
 
-    allow_run_sql = True
-
     dependencies = [
         ("workflow_engine", "0009_detector_type"),
     ]
@@ -30,12 +29,16 @@ class Migration(CheckedMigration):
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
-                    """DROP INDEX CONCURRENTLY IF EXISTS "detector_state_unique_group_key";"""
+                SafeRunSQL(
+                    """DROP INDEX CONCURRENTLY IF EXISTS "detector_state_unique_group_key";""",
+                    hints={"tables": ["workflow_engine_detectorstate"]},
+                    use_statement_timeout=False,
                 ),
-                migrations.RunSQL(
+                SafeRunSQL(
                     """CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS "detector_state_unique_group_key"
-                    ON "workflow_engine_detectorstate" ("detector_id", (COALESCE("detector_group_key", '')))"""
+                    ON "workflow_engine_detectorstate" ("detector_id", (COALESCE("detector_group_key", '')))""",
+                    hints={"tables": ["workflow_engine_detectorstate"]},
+                    use_statement_timeout=False,
                 ),
             ],
             state_operations=[

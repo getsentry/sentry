@@ -34,7 +34,23 @@ VALID_LAYOUTS = (
     "slashsymbols",
 )
 
-VALID_FILE_TYPES = ("pe", "pdb", "mach_debug", "mach_code", "elf_debug", "elf_code", "breakpad")
+VALID_FILE_TYPES = (
+    "pe",
+    "pdb",
+    "portablepdb",
+    "mach_debug",
+    "mach_code",
+    "elf_debug",
+    "elf_code",
+    "wasm_debug",
+    "wasm_code",
+    "breakpad",
+    "sourcebundle",
+    "uuidmap",
+    "bcsymbolmap",
+    "il2cpp",
+    "proguard",
+)
 
 VALID_CASINGS = ("lowercase", "uppercase", "default")
 
@@ -48,11 +64,23 @@ LAYOUT_SCHEMA = {
     "additionalProperties": False,
 }
 
+FILTERS_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "filetypes": {"type": "array", "items": {"type": "string", "enum": list(VALID_FILE_TYPES)}},
+        "path_patterns": {"type": "array", "items": {"type": "string"}},
+        "requires_checksum": {"type": "boolean"},
+    },
+    "additionalProperties": False,
+}
+
 COMMON_SOURCE_PROPERTIES = {
     "id": {"type": "string", "minLength": 1},
     "name": {"type": "string"},
     "layout": LAYOUT_SCHEMA,
-    "filetypes": {"type": "array", "items": {"type": "string", "enum": list(VALID_FILE_TYPES)}},
+    "filters": FILTERS_SCHEMA,
+    "is_public": {"type": "boolean"},
+    "has_index": {"type": "boolean"},
 }
 
 APP_STORE_CONNECT_SCHEMA = {
@@ -82,14 +110,31 @@ APP_STORE_CONNECT_SCHEMA = {
     "additionalProperties": False,
 }
 
+# Abstract out commonalities between HTTP_SOURCE_SCHEMA
+# and BUILTIN_HTTP_SOURCE_SCHEMA
+HTTP_SOURCE_SCHEMA_INNER = {
+    "type": {"type": "string", "enum": ["http"]},
+    "url": {"type": "string"},
+    "username": {"type": "string"},
+    "password": {"type": "string"},
+    **COMMON_SOURCE_PROPERTIES,
+}
+
 HTTP_SOURCE_SCHEMA = {
     "type": "object",
+    "properties": HTTP_SOURCE_SCHEMA_INNER,
+    "required": ["type", "id", "url", "layout"],
+    "additionalProperties": False,
+}
+
+# Like HTTP_SOURCE_SCHEMA, but also allows a map of headers.
+# We don't want to expose that functionality via the API.
+BUILTIN_HTTP_SOURCE_SCHEMA = {
+    "type": "object",
     "properties": dict(
-        type={"type": "string", "enum": ["http"]},
-        url={"type": "string"},
-        username={"type": "string"},
-        password={"type": "string"},
-        **COMMON_SOURCE_PROPERTIES,
+        headers={"type": "object", "patternProperties": {".*": {"type": "string"}}},
+        accept_invalid_certs={"type": "boolean"},
+        **HTTP_SOURCE_SCHEMA_INNER,
     ),
     "required": ["type", "id", "url", "layout"],
     "additionalProperties": False,
@@ -127,6 +172,15 @@ GCS_SOURCE_SCHEMA = {
 SOURCE_SCHEMA = {
     "oneOf": [
         HTTP_SOURCE_SCHEMA,
+        S3_SOURCE_SCHEMA,
+        GCS_SOURCE_SCHEMA,
+        APP_STORE_CONNECT_SCHEMA,
+    ]
+}
+
+BUILTIN_SOURCE_SCHEMA = {
+    "oneOf": [
+        BUILTIN_HTTP_SOURCE_SCHEMA,
         S3_SOURCE_SCHEMA,
         GCS_SOURCE_SCHEMA,
         APP_STORE_CONNECT_SCHEMA,

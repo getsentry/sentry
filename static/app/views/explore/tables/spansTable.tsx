@@ -1,10 +1,10 @@
 import {Fragment, useMemo, useRef} from 'react';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {GridResizer} from 'sentry/components/gridEditable/styles';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
@@ -28,6 +28,7 @@ import {
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
+import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
 
 import {FieldRenderer} from './fieldRenderer';
 
@@ -60,6 +61,11 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
 
   const {tags: numberTags} = useSpanTags('number');
   const {tags: stringTags} = useSpanTags('string');
+
+  const paginationAnalyticsEvent = usePaginationAnalytics(
+    'samples',
+    result.data?.length ?? 0
+  );
 
   return (
     <Fragment>
@@ -154,7 +160,10 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
           )}
         </TableBody>
       </Table>
-      <Pagination pageLinks={result.pageLinks} />
+      <Pagination
+        pageLinks={result.pageLinks}
+        paginationAnalyticsEvent={paginationAnalyticsEvent}
+      />
     </Fragment>
   );
 }

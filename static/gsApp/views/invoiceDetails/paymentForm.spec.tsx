@@ -2,13 +2,7 @@ import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {InvoiceFixture} from 'getsentry-test/fixtures/invoice';
-import {
-  cleanup,
-  render,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ModalBody} from 'sentry/components/globalModal/components';
 
@@ -65,8 +59,6 @@ describe('InvoiceDetails > Payment Form', function () {
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     SubscriptionStore.set(organization.slug, {});
-    // This should happen automatically, but isn't.
-    cleanup();
   });
 
   const modalDummy = ({children}: {children?: ReactNode}) => <div>{children}</div>;
@@ -96,6 +88,11 @@ describe('InvoiceDetails > Payment Form', function () {
     expect(
       screen.getByRole('button', {name: 'Pay Now', hidden: true})
     ).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        /, you authorize Sentry to automatically charge you recurring subscription fees and applicable on-demand fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for on-demand fees. You may cancel your subscription at any time/
+      )
+    ).not.toBeInTheDocument();
   });
 
   it('renders an error when intent creation fails', async function () {

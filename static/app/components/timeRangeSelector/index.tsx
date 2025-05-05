@@ -1,9 +1,9 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
-import type {SelectOption, SingleSelectProps} from 'sentry/components/compactSelect';
-import {CompactSelect} from 'sentry/components/compactSelect';
 import {Button} from 'sentry/components/core/button';
+import type {SelectOption, SingleSelectProps} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import type {Item} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownButton from 'sentry/components/dropdownButton';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -296,8 +296,15 @@ export function TimeRangeSelector({
   );
 
   const arbitraryRelativePeriods = getArbitraryRelativePeriod(relative);
+
+  const restrictedDefaultPeriods = Object.fromEntries(
+    Object.entries(DEFAULT_RELATIVE_PERIODS).filter(
+      ([period]) => parsePeriodToHours(period) <= maxPickableDays * 24
+    )
+  );
+
   const defaultRelativePeriods = {
-    ...DEFAULT_RELATIVE_PERIODS,
+    ...restrictedDefaultPeriods,
     ...arbitraryRelativePeriods,
   };
   return (
@@ -331,7 +338,14 @@ export function TimeRangeSelector({
           options={getOptions(items)}
           hideOptions={showAbsoluteSelector}
           value={start && end ? ABSOLUTE_OPTION_VALUE : (relative ?? '')}
-          onChange={handleChange}
+          onChange={option => {
+            const item = items.find(i => i.value === option.value);
+            if (item?.onClick) {
+              item.onClick();
+            } else {
+              handleChange(option);
+            }
+          }}
           // Keep menu open when clicking on absolute range option
           closeOnSelect={opt => opt.value !== ABSOLUTE_OPTION_VALUE}
           onClose={() => {
@@ -344,10 +358,9 @@ export function TimeRangeSelector({
           trigger={
             trigger ??
             ((triggerProps, isOpen) => {
-              const relativeSummary =
-                items.findIndex(item => item.value === relative) > -1
-                  ? relative?.toUpperCase()
-                  : t('Invalid Period');
+              const relativeSummary = items.some(item => item.value === relative)
+                ? relative?.toUpperCase()
+                : t('Invalid Period');
               const defaultLabel =
                 start && end ? getAbsoluteSummary(start, end, utc) : relativeSummary;
 

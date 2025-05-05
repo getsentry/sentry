@@ -28,13 +28,12 @@ import {
   COLD_START_TYPE,
   StartTypeSelector,
 } from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
+import AppStartWidgets from 'sentry/views/insights/mobile/appStarts/components/widgets';
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
 import {MobileMetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
-
-import AppStartWidgets from '../components/widgets';
 
 type Query = {
   [SpanMetricsField.APP_START_TYPE]: string;
@@ -149,9 +148,9 @@ export function ScreenSummaryContentPage() {
             `transaction:${transactionName}`,
             `span.op:app.start.${appStartType}`,
             '(',
-            'span.description:"Cold Start"',
+            'span.description:["Cold Start","Cold App Start"]',
             'OR',
-            'span.description:"Warm Start"',
+            'span.description:["Warm Start","Warm App Start"]',
             ')',
           ]}
           fields={[

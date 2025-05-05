@@ -40,7 +40,7 @@ R = TypeVar("R")
 
 
 def ignore_unpublished_app_errors(
-    func: Callable[Concatenate[SentryApp | RpcSentryApp, P], R]
+    func: Callable[Concatenate[SentryApp | RpcSentryApp, P], R],
 ) -> Callable[Concatenate[SentryApp | RpcSentryApp, P], R | None]:
     def wrapper(
         sentry_app: SentryApp | RpcSentryApp, *args: P.args, **kwargs: P.kwargs
@@ -62,6 +62,7 @@ def check_broken(sentryapp: SentryApp | RpcSentryApp, org_id: str) -> None:
     redis_key = get_redis_key(sentryapp, org_id)
     buffer = IntegrationRequestBuffer(redis_key)
     if buffer.is_integration_broken():
+        # This is broken, this should be using the organization service
         org = Organization.objects.get(id=org_id)
         app_service.disable_sentryapp(id=sentryapp.id)
         notify_disable(org, sentryapp.name, redis_key, sentryapp.slug, sentryapp.webhook_url)
@@ -98,7 +99,14 @@ def record_timeout(
         return
     buffer = IntegrationRequestBuffer(redis_key)
     buffer.record_timeout()
-    check_broken(sentryapp, org_id)
+    # check_broken(sentryapp, org_id)
+    logger.info(
+        "sentryapp.should_disable",
+        extra={
+            "sentryapp_id": sentryapp.id,
+            "broken_range_day_counts": buffer._get_broken_range_from_buffer(),
+        },
+    )
 
 
 def record_response_for_disabling_integration(
@@ -115,7 +123,14 @@ def record_response_for_disabling_integration(
         return
     if is_response_error(response):
         buffer.record_error()
-        check_broken(sentryapp, org_id)
+        # check_broken(sentryapp, org_id)
+        logger.info(
+            "sentryapp.should_disable",
+            extra={
+                "sentryapp_id": sentryapp.id,
+                "broken_range_day_counts": buffer._get_broken_range_from_buffer(),
+            },
+        )
 
 
 @ignore_unpublished_app_errors
@@ -145,10 +160,19 @@ def send_and_save_webhook_request(
         operation_type=SentryAppInteractionType.SEND_WEBHOOK, event_type=event
     ).capture() as lifecycle:
         buffer = SentryAppWebhookRequestsBuffer(sentry_app)
-
         org_id = app_platform_event.install.organization_id
         slug = sentry_app.slug_for_metrics
         url = url or sentry_app.webhook_url
+        lifecycle.add_extras(
+            {
+                "org_id": org_id,
+                "sentry_app_slug": sentry_app.slug,
+                "url": url or "",
+                "event": event,
+                "installation_uuid": app_platform_event.install.uuid,
+            }
+        )
+
         assert url is not None
         try:
             response = safe_urlopen(

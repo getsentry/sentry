@@ -6,6 +6,7 @@ import type {Location} from 'history';
 import type {Client} from 'sentry/api';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {Radio} from 'sentry/components/core/radio';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Duration from 'sentry/components/duration';
@@ -18,7 +19,6 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -42,7 +42,7 @@ import {
 import getSelectedQueryKey from 'sentry/views/performance/trends/utils/getSelectedQueryKey';
 import {getSelectedTransaction} from 'sentry/views/performance/utils/getSelectedTransaction';
 
-import Chart from './chart';
+import {Chart} from './chart';
 import type {
   NormalizedTrendsTransaction,
   TrendFunctionField,
@@ -676,7 +676,7 @@ const ItemTransactionDurationChange = styled('div')`
 `;
 
 const DurationChange = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   margin: 0 ${space(1)};
 `;
 

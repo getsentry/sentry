@@ -1,6 +1,5 @@
 import uuid
 from datetime import datetime, timedelta, timezone
-from unittest import skip
 
 from sentry.testutils.cases import UptimeCheckSnubaTestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -166,7 +165,9 @@ class OrganizationUptimeCheckIndexEndpointTest(
             }
 
     def test_invalid_uptime_subscription_id(self):
-        """Test that the endpoint returns data for a simple uptime check."""
+        """
+        Test that an invalid uptime_subscription_id produces a 400 response.
+        """
         response = self.get_response(
             self.organization.slug,
             project=[self.project.id],
@@ -176,9 +177,13 @@ class OrganizationUptimeCheckIndexEndpointTest(
             resolution="1d",
         )
         assert response.status_code == 400
+        assert response.json() == "Invalid project uptime subscription ids provided"
 
     def test_no_uptime_subscription_id(self):
-        """Test that the endpoint returns data for a simple uptime check."""
+        """
+        Test that not sending any uptime_subscription_id produces a 400
+        response.
+        """
         response = self.get_response(
             self.organization.slug,
             project=[self.project.id],
@@ -188,23 +193,28 @@ class OrganizationUptimeCheckIndexEndpointTest(
             resolution="1d",
         )
         assert response.status_code == 400
+        assert response.json() == "No project uptime subscription ids provided"
 
-    @skip("vgrozdanic: This test is flaky and should be skipped")
     def test_too_many_periods(self):
-        """Test that the endpoint returns data for a simple uptime check."""
-
+        """
+        Test that requesting a high resolution across a large period of time
+        produces a 400 response.
+        """
         response = self.get_response(
             self.organization.slug,
             project=[self.project.id],
             projectUptimeSubscriptionId=[str(self.project_uptime_subscription.id)],
             since=(datetime.now(timezone.utc) - timedelta(days=90)).timestamp(),
             until=datetime.now(timezone.utc).timestamp(),
-            resolution="1h",
+            resolution="1m",
         )
         assert response.status_code == 400
+        assert response.json() == "error making request"
 
     def test_too_many_uptime_subscription_ids(self):
-        """Test that the endpoint returns data for a simple uptime check."""
+        """
+        Test that sending a large nubmer of subscription IDs produces a 400
+        """
 
         response = self.get_response(
             self.organization.slug,
@@ -215,6 +225,9 @@ class OrganizationUptimeCheckIndexEndpointTest(
             resolution="1h",
         )
         assert response.status_code == 400
+        assert (
+            response.json() == "Too many project uptime subscription ids provided. Maximum is 100"
+        )
 
 
 # TODO(jferg): remove after 90 days

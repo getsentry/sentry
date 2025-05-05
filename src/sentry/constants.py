@@ -89,7 +89,6 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "404",
         "500",
         "_admin",
-        "_experiment",
         "_static",
         "about",
         "accept",
@@ -628,41 +627,34 @@ class InsightModules(Enum):
 
 INSIGHT_MODULE_FILTERS = {
     InsightModules.HTTP: lambda spans: any(
-        [
-            span.get("sentry_tags", {}).get("category") == "http"
-            and span.get("op") == "http.client"
-            for span in spans
-        ]
+        span.get("sentry_tags", {}).get("category") == "http" and span.get("op") == "http.client"
+        for span in spans
     ),
     InsightModules.DB: lambda spans: any(
-        [
-            span.get("sentry_tags", {}).get("category") == "db" and "description" in span.keys()
-            for span in spans
-        ]
+        span.get("sentry_tags", {}).get("category") == "db" and "description" in span.keys()
+        for span in spans
     ),
     InsightModules.ASSETS: lambda spans: any(
-        [
-            span.get("op") in ["resource.script", "resource.css", "resource.font", "resource.img"]
-            for span in spans
-        ]
+        span.get("op") in ["resource.script", "resource.css", "resource.font", "resource.img"]
+        for span in spans
     ),
     InsightModules.APP_START: lambda spans: any(
-        [span.get("op").startswith("app.start.") for span in spans]
+        span.get("op").startswith("app.start.") for span in spans
     ),
     InsightModules.SCREEN_LOAD: lambda spans: any(
-        [span.get("sentry_tags", {}).get("transaction.op") == "ui.load" for span in spans]
+        span.get("sentry_tags", {}).get("transaction.op") == "ui.load" for span in spans
     ),
     InsightModules.VITAL: lambda spans: any(
-        [span.get("sentry_tags", {}).get("transaction.op") == "pageload" for span in spans]
+        span.get("sentry_tags", {}).get("transaction.op") == "pageload" for span in spans
     ),
     InsightModules.CACHE: lambda spans: any(
-        [span.get("op") in ["cache.get_item", "cache.get", "cache.put"] for span in spans]
+        span.get("op") in ["cache.get_item", "cache.get", "cache.put"] for span in spans
     ),
     InsightModules.QUEUE: lambda spans: any(
-        [span.get("op") in ["queue.process", "queue.publish"] for span in spans]
+        span.get("op") in ["queue.process", "queue.publish"] for span in spans
     ),
     InsightModules.LLM_MONITORING: lambda spans: any(
-        [span.get("op").startswith("ai.pipeline") for span in spans]
+        span.get("op").startswith("ai.pipeline") for span in spans
     ),
 }
 
@@ -698,17 +690,15 @@ PROJECT_RATE_LIMIT_DEFAULT = 100
 ACCOUNT_RATE_LIMIT_DEFAULT = 0
 REQUIRE_SCRUB_DATA_DEFAULT = False
 REQUIRE_SCRUB_DEFAULTS_DEFAULT = False
-SENSITIVE_FIELDS_DEFAULT = None
-SAFE_FIELDS_DEFAULT = None
 ATTACHMENTS_ROLE_DEFAULT = settings.SENTRY_DEFAULT_ROLE
 DEBUG_FILES_ROLE_DEFAULT = "admin"
 EVENTS_ADMIN_ROLE_DEFAULT = settings.SENTRY_DEFAULT_ROLE
 REQUIRE_SCRUB_IP_ADDRESS_DEFAULT = False
 SCRAPE_JAVASCRIPT_DEFAULT = True
-TRUSTED_RELAYS_DEFAULT = None
 JOIN_REQUESTS_DEFAULT = True
 HIDE_AI_FEATURES_DEFAULT = False
 GITHUB_COMMENT_BOT_DEFAULT = True
+GITLAB_COMMENT_BOT_DEFAULT = True
 ISSUE_ALERTS_THREAD_DEFAULT = True
 METRIC_ALERTS_THREAD_DEFAULT = True
 DATA_CONSENT_DEFAULT = False
@@ -716,7 +706,6 @@ UPTIME_AUTODETECTION = True
 TARGET_SAMPLE_RATE_DEFAULT = 1.0
 SAMPLING_MODE_DEFAULT = "organization"
 ROLLBACK_ENABLED_DEFAULT = True
-STREAMLINE_UI_ONLY = None
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True

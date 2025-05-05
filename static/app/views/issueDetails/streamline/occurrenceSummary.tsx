@@ -155,7 +155,7 @@ export function OccurrenceSummary({group, event, className}: OccurrenceSummaryPr
 
 const ItemTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 

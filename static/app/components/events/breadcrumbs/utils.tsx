@@ -1,14 +1,15 @@
 import {useCallback, useMemo} from 'react';
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {SelectOption, SelectSection} from 'sentry/components/compactSelect';
+import type {SelectOption, SelectSection} from 'sentry/components/core/compactSelect';
 import {BreadcrumbSort} from 'sentry/components/events/interfaces/breadcrumbs';
 import type {BreadcrumbMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {
   convertCrumbType,
   getVirtualCrumb,
 } from 'sentry/components/events/interfaces/breadcrumbs/utils';
-import type {ColorConfig} from 'sentry/components/timeline';
+import type {TimelineItemProps} from 'sentry/components/timeline';
 import {
   IconCode,
   IconCursorArrow,
@@ -34,6 +35,7 @@ import {
 } from 'sentry/types/breadcrumbs';
 import {EntryType, type Event} from 'sentry/types/event';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
 const BREADCRUMB_TITLE_PLACEHOLDER = t('Generic');
 const BREADCRUMB_SUMMARY_COUNT = 5;
@@ -54,8 +56,10 @@ export const BREADCRUMB_TIME_DISPLAY_OPTIONS = {
 };
 export const BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY = 'event-breadcrumb-time-display';
 
-const Color = styled('span')<{colorConfig: ColorConfig}>`
-  color: ${p => p.theme[p.colorConfig.icon]};
+const Color = styled('span')<{
+  colorConfig: NonNullable<TimelineItemProps['colorConfig']>;
+}>`
+  color: ${p => p.colorConfig.icon};
 `;
 
 /**
@@ -76,7 +80,7 @@ export function getSummaryBreadcrumbs(
   );
 }
 
-export function getBreadcrumbTypeOptions(crumbs: EnhancedCrumb[]) {
+function getBreadcrumbTypeOptions(crumbs: EnhancedCrumb[], theme: Theme) {
   const uniqueCrumbTypes = crumbs.reduce((crumbTypeSet, {breadcrumb: crumb}) => {
     crumbTypeSet.add(crumb.type);
     return crumbTypeSet;
@@ -88,7 +92,7 @@ export function getBreadcrumbTypeOptions(crumbs: EnhancedCrumb[]) {
       value: crumbFilter,
       label: crumbFilter,
       leadingItems: (
-        <Color colorConfig={getBreadcrumbColorConfig(crumbType)}>
+        <Color colorConfig={getBreadcrumbColorConfig(theme, crumbType)}>
           <BreadcrumbIcon type={crumbType} />
         </Color>
       ),
@@ -119,9 +123,10 @@ function getBreadcrumbLevelOptions(crumbs: EnhancedCrumb[]) {
 }
 
 export function useBreadcrumbFilters(crumbs: EnhancedCrumb[]) {
+  const theme = useTheme();
   const filterOptions = useMemo(() => {
     const options: Array<SelectSection<string>> = [];
-    const typeOptions = getBreadcrumbTypeOptions(crumbs);
+    const typeOptions = getBreadcrumbTypeOptions(crumbs, theme);
     if (typeOptions.length) {
       options.push({
         key: 'types',
@@ -139,7 +144,7 @@ export function useBreadcrumbFilters(crumbs: EnhancedCrumb[]) {
     }
 
     return options;
-  }, [crumbs]);
+  }, [crumbs, theme]);
 
   const applyFilters = useCallback(
     (crumbsToFilter: EnhancedCrumb[], options: Array<SelectOption<string>['value']>) => {
@@ -176,7 +181,7 @@ export interface EnhancedCrumb {
   colorConfig: ReturnType<typeof getBreadcrumbColorConfig>;
   filter: ReturnType<typeof getBreadcrumbFilter>;
   iconComponent: ReturnType<typeof BreadcrumbIcon>;
-  levelComponent: ReturnType<typeof BreadcrumbLevel>;
+  levelComponent: React.ReactNode;
   // Display props
   title: ReturnType<typeof getBreadcrumbTitle>;
   meta?: BreadcrumbMeta;
@@ -191,7 +196,7 @@ export interface EnhancedCrumb {
  *
  * Display props are also added to reduce repeated iterations.
  */
-export function getEnhancedBreadcrumbs(event: Event): EnhancedCrumb[] {
+export function getEnhancedBreadcrumbs(event: Event, theme: Theme): EnhancedCrumb[] {
   const breadcrumbEntryIndex =
     event.entries?.findIndex(entry => entry.type === EntryType.BREADCRUMBS) ?? -1;
   const breadcrumbs: any[] = event.entries?.[breadcrumbEntryIndex]?.data?.values ?? [];
@@ -224,7 +229,7 @@ export function getEnhancedBreadcrumbs(event: Event): EnhancedCrumb[] {
   return allCrumbs.map<EnhancedCrumb>(ec => ({
     ...ec,
     title: getBreadcrumbTitle(ec.breadcrumb),
-    colorConfig: getBreadcrumbColorConfig(ec.breadcrumb.type),
+    colorConfig: getBreadcrumbColorConfig(theme, ec.breadcrumb.type),
     filter: getBreadcrumbFilter(ec.breadcrumb.type),
     iconComponent: <BreadcrumbIcon type={ec.breadcrumb.type} />,
     levelComponent: (
@@ -233,7 +238,7 @@ export function getEnhancedBreadcrumbs(event: Event): EnhancedCrumb[] {
   }));
 }
 
-export function getBreadcrumbTitle(crumb: RawCrumb) {
+function getBreadcrumbTitle(crumb: RawCrumb) {
   if (crumb?.type === BreadcrumbType.DEFAULT) {
     return crumb?.category ?? BREADCRUMB_TITLE_PLACEHOLDER.toLocaleLowerCase();
   }
@@ -256,34 +261,45 @@ export function getBreadcrumbTitle(crumb: RawCrumb) {
   }
 }
 
-export function getBreadcrumbColorConfig(type?: BreadcrumbType): ColorConfig {
+function getBreadcrumbColorConfig(
+  theme: Theme,
+  type?: BreadcrumbType
+): NonNullable<TimelineItemProps['colorConfig']> {
   switch (type) {
     case BreadcrumbType.ERROR:
-      return {title: 'red400', icon: 'red400', iconBorder: 'red200'};
+      return {title: theme.red400, icon: theme.red400, iconBorder: theme.red200};
     case BreadcrumbType.WARNING:
-      return {title: 'yellow400', icon: 'yellow400', iconBorder: 'yellow200'};
+      return {title: theme.yellow400, icon: theme.yellow400, iconBorder: theme.yellow200};
     case BreadcrumbType.NAVIGATION:
     case BreadcrumbType.HTTP:
     case BreadcrumbType.QUERY:
     case BreadcrumbType.TRANSACTION:
-      return {title: 'green400', icon: 'green400', iconBorder: 'green200'};
+      return {title: theme.green400, icon: theme.green400, iconBorder: theme.green200};
     case BreadcrumbType.USER:
     case BreadcrumbType.UI:
-      return {title: 'purple400', icon: 'purple400', iconBorder: 'purple200'};
+      return {title: theme.purple400, icon: theme.purple400, iconBorder: theme.purple200};
     case BreadcrumbType.SYSTEM:
     case BreadcrumbType.SESSION:
     case BreadcrumbType.DEVICE:
     case BreadcrumbType.NETWORK:
-      return {title: 'pink400', icon: 'pink400', iconBorder: 'pink200'};
+    case BreadcrumbType.CONNECTIVITY:
+      return {title: theme.pink400, icon: theme.pink400, iconBorder: theme.pink200};
     case BreadcrumbType.INFO:
-      return {title: 'blue400', icon: 'blue300', iconBorder: 'blue200'};
+      return {title: theme.blue400, icon: theme.blue300, iconBorder: theme.blue200};
     case BreadcrumbType.DEBUG:
     default:
-      return {title: 'gray400', icon: 'gray300', iconBorder: 'gray200'};
+      if (isChonkTheme(theme)) {
+        return {
+          title: theme.colors.content.primary,
+          icon: theme.colors.content.muted,
+          iconBorder: theme.colors.content.muted,
+        };
+      }
+      return {title: theme.gray400, icon: theme.gray300, iconBorder: theme.gray200};
   }
 }
 
-export function getBreadcrumbFilter(type?: BreadcrumbType) {
+function getBreadcrumbFilter(type?: BreadcrumbType) {
   switch (type) {
     case BreadcrumbType.USER:
     case BreadcrumbType.UI:
@@ -312,12 +328,14 @@ export function getBreadcrumbFilter(type?: BreadcrumbType) {
       return t('Device');
     case BreadcrumbType.NETWORK:
       return t('Network');
+    case BreadcrumbType.CONNECTIVITY:
+      return t('Connectivity');
     default:
       return BREADCRUMB_TITLE_PLACEHOLDER;
   }
 }
 
-export function BreadcrumbIcon({type}: {type?: BreadcrumbType}) {
+function BreadcrumbIcon({type}: {type?: BreadcrumbType}) {
   switch (type) {
     case BreadcrumbType.USER:
       return <IconUser size="xs" />;
@@ -346,13 +364,14 @@ export function BreadcrumbIcon({type}: {type?: BreadcrumbType}) {
     case BreadcrumbType.DEVICE:
       return <IconMobile size="xs" />;
     case BreadcrumbType.NETWORK:
+    case BreadcrumbType.CONNECTIVITY:
       return <IconWifi size="xs" />;
     default:
       return <IconCode size="xs" />;
   }
 }
 
-export const BreadcrumbLevel = styled('div')<{level: BreadcrumbLevelType}>`
+const BreadcrumbLevel = styled('div')<{level: BreadcrumbLevelType}>`
   margin: 0 ${space(1)};
   font-weight: normal;
   font-size: ${p => p.theme.fontSizeSmall};
@@ -369,7 +388,7 @@ export const BreadcrumbLevel = styled('div')<{level: BreadcrumbLevelType}>`
       case BreadcrumbLevelType.DEBUG:
       case BreadcrumbLevelType.INFO:
       case BreadcrumbLevelType.LOG:
-        return p.theme.gray300;
+        return p.theme.subText;
     }
   }};
   display: ${p => (p.level === BreadcrumbLevelType.UNDEFINED ? 'none' : 'block')};

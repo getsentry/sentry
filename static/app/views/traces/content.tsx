@@ -17,7 +17,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeInteger} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {ExploreContent} from 'sentry/views/explore/content';
+import {ExploreContent} from 'sentry/views/explore/spans/content';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 
 import {usePageParams} from './hooks/usePageParams';
@@ -77,9 +77,8 @@ function Content() {
 
   const handleClearSearch = useCallback(
     (searchIndex: number) => {
-      const newQueries = [...queries];
       // TODO: do we need to return false when `newQueries[searchIndex] === undefined`?
-      delete newQueries[searchIndex];
+      const newQueries = queries.toSpliced(searchIndex, 1);
       browserHistory.push({
         ...location,
         query: {

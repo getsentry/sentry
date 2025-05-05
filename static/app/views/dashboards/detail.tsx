@@ -1,4 +1,6 @@
 import {cloneElement, Component, Fragment, isValidElement} from 'react';
+import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
@@ -66,11 +68,10 @@ import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetB
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
 import {DATA_SET_TO_WIDGET_TYPE} from 'sentry/views/dashboards/widgetBuilder/widgetBuilder';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
+import {generatePerformanceEventView} from 'sentry/views/performance/data';
+import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metricsDataSwitcherAlert';
-
-import {generatePerformanceEventView} from '../performance/data';
-import {MetricsDataSwitcher} from '../performance/landing/metricsDataSwitcher';
-import {DiscoverQueryPageSource} from '../performance/utils';
+import {DiscoverQueryPageSource} from 'sentry/views/performance/utils';
 
 import type {WidgetViewerContextProps} from './widgetViewer/widgetViewerContext';
 import {WidgetViewerContext} from './widgetViewer/widgetViewerContext';
@@ -125,6 +126,7 @@ type Props = RouteComponentProps<RouteParams> & {
   projects: Project[];
   route: PlainRoute;
   selection: PageFilters;
+  theme: Theme;
   children?: React.ReactNode;
   newWidget?: Widget;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
@@ -194,7 +196,7 @@ export function checkUserHasEditAccess(
   dashboardCreator?: User
 ): boolean {
   if (
-    hasEveryAccess(['org:write'], {organization}) || // Managers and Owners
+    hasEveryAccess(['org:admin'], {organization}) || // Owners
     !dashboardPermissions ||
     dashboardPermissions.isEditableByEveryone ||
     dashboardCreator?.id === currentUser.id
@@ -307,7 +309,6 @@ class DashboardDetail extends Component<Props, State> {
       seriesResultsType,
       confidence,
       sampleCount,
-      isSampled,
       modifiedDashboard,
     } = this.state;
     if (isWidgetViewerPath(location.pathname)) {
@@ -380,7 +381,6 @@ class DashboardDetail extends Component<Props, State> {
           },
           confidence,
           sampleCount,
-          isSampled,
         });
         trackAnalytics('dashboards_views.widget_viewer.open', {
           organization,
@@ -1104,6 +1104,7 @@ class DashboardDetail extends Component<Props, State> {
                         forceTransactions={metricsDataSide.forceTransactionsOnly}
                       >
                         <Dashboard
+                          theme={this.props.theme}
                           paramDashboardId={dashboardId}
                           dashboard={modifiedDashboard ?? dashboard}
                           organization={organization}
@@ -1342,9 +1343,10 @@ class DashboardDetail extends Component<Props, State> {
                                 }}
                               />
 
-                              <WidgetViewerContext.Provider value={{seriesData, setData}}>
+                              <WidgetViewerContext value={{seriesData, setData}}>
                                 <Fragment>
                                   <Dashboard
+                                    theme={this.props.theme}
                                     paramDashboardId={dashboardId}
                                     dashboard={modifiedDashboard ?? dashboard}
                                     organization={organization}
@@ -1383,7 +1385,7 @@ class DashboardDetail extends Component<Props, State> {
                                     onSave={this.handleSaveWidget}
                                   />
                                 </Fragment>
-                              </WidgetViewerContext.Provider>
+                              </WidgetViewerContext>
                             </MEPSettingProvider>
                           )}
                         </MetricsDataSwitcher>
@@ -1428,4 +1430,10 @@ const StyledPageHeader = styled('div')`
   }
 `;
 
-export default withPageFilters(withProjects(withApi(withOrganization(DashboardDetail))));
+function DashboardDetailWithTheme(props: Props) {
+  const theme = useTheme();
+  return <DashboardDetail {...props} theme={theme} />;
+}
+export default withPageFilters(
+  withProjects(withApi(withOrganization(DashboardDetailWithTheme)))
+);

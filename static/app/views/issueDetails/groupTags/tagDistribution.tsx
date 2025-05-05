@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 import Color from 'color';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DeviceName} from 'sentry/components/deviceName';
-import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -15,9 +15,12 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
   const totalVisible = visibleTagValues.reduce((sum, value) => sum + value.count, 0);
   const hasOther = totalVisible < tag.totalValues;
 
-  const otherPercentage = Math.floor(
-    percent(tag.totalValues - totalVisible, tag.totalValues)
-  );
+  const otherPercentage =
+    100 -
+    visibleTagValues.reduce(
+      (sum, value) => sum + Math.round(percent(value.count, tag.totalValues)),
+      0
+    );
   const otherDisplayPercentage =
     otherPercentage < 1 ? '<1%' : `${otherPercentage.toFixed(0)}%`;
 
@@ -25,12 +28,12 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
     <TagPanel>
       <TagHeader>
         <Tooltip title={tag.key} showOnlyOnOverflow skipWrapper>
-          <TagTitle>{tag.key}</TagTitle>
+          {tag.key}
         </Tooltip>
       </TagHeader>
       <TagValueContent>
         {visibleTagValues.map((tagValue, tagValueIdx) => {
-          const percentage = Math.floor(percent(tagValue.count, tag.totalValues));
+          const percentage = Math.round(percent(tagValue.count, tag.totalValues));
           const displayPercentage = percentage < 1 ? '<1%' : `${percentage.toFixed(0)}%`;
           return (
             <TagValueRow key={tagValueIdx}>
@@ -97,28 +100,23 @@ export function TagBar({
 }
 
 const TagPanel = styled('div')`
-  display: block;
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.5)};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
   padding: ${space(1)};
 `;
 
 const TagHeader = styled('h5')`
-  grid-area: header;
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: ${space(0.5)};
   color: ${p => p.theme.textColor};
-`;
-
-const TagTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightBold};
+  margin: 0;
   ${p => p.theme.overflowEllipsis}
 `;
 
-// The 40px is a buffer to prevent percentages from overflowing
-const progressBarWidth = '45px';
+const progressBarWidth = '45px'; // Prevent percentages from overflowing
 const TagValueContent = styled('div')`
   display: grid;
   grid-template-columns: 4fr auto ${progressBarWidth};
@@ -141,7 +139,6 @@ const TagValue = styled('div')`
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
-  margin-right: ${space(0.5)};
 `;
 
 const TagBarPlaceholder = styled('div')`

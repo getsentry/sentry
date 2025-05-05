@@ -9,10 +9,9 @@ import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pa
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import WidgetContainer from 'sentry/views/performance/landing/widgets/components/widgetContainer';
+import {QUERY_LIMIT_PARAM} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {ProjectPerformanceType} from 'sentry/views/performance/utils';
-
-import {QUERY_LIMIT_PARAM} from '../utils';
 
 const initializeData = (query = {}, rest: InitializeDataSettings = {}) => {
   const data = _initializeData({
@@ -27,7 +26,7 @@ const initializeData = (query = {}, rest: InitializeDataSettings = {}) => {
 
 function WrappedComponent({data, withStaticFilters = false, ...rest}: any) {
   return (
-    <OrganizationContext.Provider value={data.organization}>
+    <OrganizationContext value={data.organization}>
       <MetricsCardinalityProvider
         location={data.router.location}
         organization={data.organization}
@@ -53,7 +52,7 @@ function WrappedComponent({data, withStaticFilters = false, ...rest}: any) {
           </PerformanceDisplayProvider>
         </MEPSettingProvider>
       </MetricsCardinalityProvider>
-    </OrganizationContext.Provider>
+    </OrganizationContext>
   );
 }
 
@@ -182,7 +181,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           partial: '1',
           query: 'transaction.op:pageload',
           statsPeriod: '28d',
-          yAxis: 'tpm()',
+          yAxis: 'epm()',
         }),
       })
     );
@@ -318,7 +317,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           partial: '1',
           query: 'transaction.op:pageload',
           statsPeriod: '14d',
-          yAxis: 'tpm()',
+          yAxis: 'epm()',
         }),
       })
     );
@@ -885,14 +884,15 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'span.op',
             'span.group',
             'project.id',
-            'span.description',
+            'sentry.normalized_description',
             'sum(span.self_time)',
             'avg(span.self_time)',
             'time_spent_percentage()',
           ],
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
-          query: 'has:span.description span.module:db transaction.op:pageload',
+          query:
+            'has:sentry.normalized_description span.module:db transaction.op:pageload',
           sort: '-time_spent_percentage()',
           statsPeriod: '7d',
         }),
@@ -972,7 +972,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           dataset: 'spansMetrics',
           environment: ['prod'],
           field: [
-            'span.description',
+            'sentry.normalized_description',
             'span.op',
             'project.id',
             'span.group',
@@ -983,7 +983,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
           query:
-            '!span.description:browser-extension://* resource.render_blocking_status:blocking ( span.op:resource.script OR file_extension:css OR file_extension:[woff,woff2,ttf,otf,eot] OR file_extension:[jpg,jpeg,png,gif,svg,webp,apng,avif] OR span.op:resource.img ) transaction.op:pageload',
+            '!sentry.normalized_description:browser-extension://* resource.render_blocking_status:blocking ( span.op:resource.script OR file_extension:css OR file_extension:[woff,woff2,ttf,otf,eot] OR file_extension:[jpg,jpeg,png,gif,svg,webp,apng,avif] OR span.op:resource.img ) transaction.op:pageload',
           sort: '-time_spent_percentage()',
           statsPeriod: '7d',
         }),
@@ -1071,6 +1071,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Best Page Opportunities'
     );
+
     expect(eventsMock).toHaveBeenCalledTimes(2);
     expect(eventsMock).toHaveBeenNthCalledWith(
       2,
@@ -1095,6 +1096,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'count_scores(measurements.score.cls)',
             'count_scores(measurements.score.inp)',
             'count_scores(measurements.score.ttfb)',
+            'count_scores(measurements.score.total)',
             'total_opportunity_score()',
           ],
           query:

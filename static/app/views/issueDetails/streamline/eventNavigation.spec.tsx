@@ -73,7 +73,10 @@ describe('EventNavigation', () => {
         }),
       });
 
-      render(<IssueEventNavigation {...defaultProps} />, {router: allEventsRouter});
+      render(<IssueEventNavigation {...defaultProps} />, {
+        router: allEventsRouter,
+        deprecatedRouterMocks: true,
+      });
 
       const discoverButton = screen.getByLabelText('Open in Discover');
       expect(discoverButton).toBeInTheDocument();
@@ -93,7 +96,9 @@ describe('EventNavigation', () => {
 
   describe('counts', () => {
     it('renders default counts', async () => {
-      render(<IssueEventNavigation {...defaultProps} />);
+      render(<IssueEventNavigation {...defaultProps} />, {
+        deprecatedRouterMocks: true,
+      });
       await userEvent.click(screen.getByRole('button', {name: 'Select issue content'}));
 
       expect(
@@ -110,7 +115,9 @@ describe('EventNavigation', () => {
         body: [EventAttachmentFixture()],
       });
 
-      render(<IssueEventNavigation {...defaultProps} />);
+      render(<IssueEventNavigation {...defaultProps} />, {
+        deprecatedRouterMocks: true,
+      });
       await userEvent.click(screen.getByRole('button', {name: 'Select issue content'}));
 
       expect(
@@ -128,7 +135,9 @@ describe('EventNavigation', () => {
         },
       });
 
-      render(<IssueEventNavigation {...defaultProps} />);
+      render(<IssueEventNavigation {...defaultProps} />, {
+        deprecatedRouterMocks: true,
+      });
       await userEvent.click(screen.getByRole('button', {name: 'Select issue content'}));
 
       expect(

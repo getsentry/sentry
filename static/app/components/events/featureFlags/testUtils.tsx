@@ -23,7 +23,7 @@ export const MOCK_FLAGS: Array<Required<FeatureFlag>> = [
   },
 ];
 
-export const MOCK_FLAGS_MANY: Array<Required<FeatureFlag>> = [
+const MOCK_FLAGS_MANY: Array<Required<FeatureFlag>> = [
   {
     flag: 'mobile-replay-ui',
     result: false,
@@ -150,7 +150,7 @@ export const EMPTY_STATE_SECTION_PROPS = {
     id: 'abc123def456ghi789jkl',
     contexts: {flags: {values: []}},
   }),
-  project: ProjectFixture(),
+  project: ProjectFixture({hasFlags: true}),
   group: GroupFixture(),
 };
 

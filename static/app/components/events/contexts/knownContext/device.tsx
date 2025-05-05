@@ -264,6 +264,15 @@ export function getDeviceContextData({
           ) : undefined,
         };
       }
+      case DeviceContextKey.EXTERNAL_TOTAL_STORAGE: {
+        return {
+          key: ctxKey,
+          subject: t('External Total Storage'),
+          value: data.external_total_storage ? (
+            <FileSize bytes={data.external_total_storage} />
+          ) : undefined,
+        };
+      }
       case DeviceContextKey.SIMULATOR:
         return {
           key: ctxKey,
@@ -284,6 +293,12 @@ export function getDeviceContextData({
           key: ctxKey,
           subject: t('Device Type'),
           value: data.device_type,
+        };
+      case DeviceContextKey.DEVICE_UNIQUE_IDENTIFIER:
+        return {
+          key: ctxKey,
+          subject: t('Device UID'),
+          value: data.device_unique_identifier,
         };
       case DeviceContextKey.BRAND:
         return {
@@ -363,7 +378,49 @@ export function getDeviceContextData({
           subject: t('Screen Width Pixels'),
           value: data.screen_width_pixels,
         };
-
+      case DeviceContextKey.PROCESSOR_COUNT:
+        return {
+          key: ctxKey,
+          subject: t('Processor Count'),
+          value: data.processor_count,
+        };
+      case DeviceContextKey.PROCESSOR_FREQUENCY:
+        return {
+          key: ctxKey,
+          // https://github.com/getsentry/relay/blob/25.3.0/relay-event-schema/src/protocol/contexts/device.rs#L137
+          subject: t('Processor Frequency (MHz)'),
+          value: data.processor_frequency,
+        };
+      case DeviceContextKey.SUPPORTS_ACCELEROMETER:
+        return {
+          key: ctxKey,
+          subject: t('Supports Accelerometer'),
+          value: data.supports_accelerometer,
+        };
+      case DeviceContextKey.SUPPORTS_AUDIO:
+        return {
+          key: ctxKey,
+          subject: t('Supports Audio'),
+          value: data.supports_audio,
+        };
+      case DeviceContextKey.SUPPORTS_GYROSCOPE:
+        return {
+          key: ctxKey,
+          subject: t('Supports Gyroscope'),
+          value: data.supports_gyroscope,
+        };
+      case DeviceContextKey.SUPPORTS_LOCATION_SERVICE:
+        return {
+          key: ctxKey,
+          subject: t('Supports Location Service'),
+          value: data.supports_location_service,
+        };
+      case DeviceContextKey.SUPPORTS_VIBRATION:
+        return {
+          key: ctxKey,
+          subject: t('Supports Vibration'),
+          value: data.supports_vibration,
+        };
       default:
         return {
           key: ctxKey,

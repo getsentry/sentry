@@ -2,8 +2,8 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import type {SelectOption} from 'sentry/components/compactSelect';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useRouter from 'sentry/utils/useRouter';
@@ -12,7 +12,7 @@ import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageStat
 import {FunctionTrendsWidget} from './functionTrendsWidget';
 import {SlowestFunctionsWidget} from './slowestFunctionsWidget';
 
-export type WidgetOption =
+type WidgetOption =
   | 'slowest functions avg'
   | 'slowest functions p50'
   | 'slowest functions' // kept for backwards compatibility as the p75

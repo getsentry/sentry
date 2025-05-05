@@ -6,9 +6,11 @@ from typing import Any, Literal, TypedDict
 import pytest
 from drf_spectacular.openapi import AutoSchema
 from drf_spectacular.utils import extend_schema_serializer
+from rest_framework import serializers
 
 from sentry.api.serializers import Serializer
 from sentry.apidocs.extensions import (
+    RestrictedJsonFieldExtension,
     SentryInlineResponseSerializerExtension,
     SentryResponseSerializerExtension,
 )
@@ -125,3 +127,9 @@ def test_sentry_fails_when_serializer_not_typed():
     seralizer_extension = SentryResponseSerializerExtension(FailSerializer)
     with pytest.raises(TypeError):
         seralizer_extension.map_serializer(AutoSchema(), "response")
+
+
+def test_sentry_restricted_json_field_extension():
+    seralizer_extension = RestrictedJsonFieldExtension(serializers.JSONField)
+    schema = seralizer_extension.map_serializer_field(AutoSchema(), "response")
+    assert schema == {"type": "object", "additionalProperties": {}}

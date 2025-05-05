@@ -24,17 +24,20 @@ def get_sentry_conf() -> str:
             return "~/.sentry"
 
 
-def discover_configs() -> tuple[str, str, str | None]:
+def discover_configs(directory: str | None = None) -> tuple[str, str, str | None]:
     """
     Discover the locations of three configuration components:
      * Config directory (~/.sentry)
      * Optional python config file (~/.sentry/sentry.conf.py)
      * Optional yaml config (~/.sentry/config.yml)
     """
-    try:
-        config = os.environ["SENTRY_CONF"]
-    except KeyError:
-        config = "~/.sentry"
+    if directory is not None:
+        config = directory
+    else:
+        try:
+            config = os.environ["SENTRY_CONF"]
+        except KeyError:
+            config = "~/.sentry"
 
     config = os.path.expanduser(config)
 

@@ -1,11 +1,11 @@
 import {useState} from 'react';
+import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import {BarChart} from 'sentry/components/charts/barChart';
 import BarChartZoom from 'sentry/components/charts/barChartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types/organization';
@@ -19,9 +19,12 @@ import {
   computeBuckets,
   formatHistogramData,
 } from 'sentry/utils/performance/histogram/utils';
-
-import type {ViewProps} from '../../../types';
-import {filterToColor, filterToField, SpanOperationBreakdownFilter} from '../../filter';
+import {
+  filterToColor,
+  filterToField,
+  SpanOperationBreakdownFilter,
+} from 'sentry/views/performance/transactionSummary/filter';
+import type {ViewProps} from 'sentry/views/performance/types';
 
 import {decodeHistogramZoom, ZOOM_END, ZOOM_START} from './utils';
 
@@ -56,6 +59,7 @@ function Content({
   queryExtras,
   totalCount,
 }: Props) {
+  const theme = useTheme();
   const [zoomError, setZoomError] = useState(false);
 
   function handleMouseOver() {
@@ -85,8 +89,8 @@ function Content({
 
     const colors =
       currentFilter === SpanOperationBreakdownFilter.NONE
-        ? getChartColorPalette(1)
-        : [filterToColor(currentFilter)];
+        ? theme.chart.getColorPalette(1)
+        : [filterToColor(currentFilter, theme)];
 
     // Use a custom tooltip formatter as we need to replace
     // the tooltip content entirely when zooming is no longer available.

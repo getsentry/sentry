@@ -48,7 +48,7 @@ const StyledPlatformIcon = styled(PlatformIcon)`
   margin-right: ${space(1)};
 `;
 
-export const fields: Record<string, Field> = {
+export const fields = {
   name: {
     name: 'name',
     type: 'string',
@@ -182,4 +182,4 @@ export const fields: Record<string, Field> = {
     label: t('Verify TLS/SSL'),
     help: t('Outbound requests will verify TLS (sometimes known as SSL) connections'),
   },
-};
+} satisfies Record<string, Field>;

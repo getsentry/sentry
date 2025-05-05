@@ -2,7 +2,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import ContextCard from 'sentry/components/events/contexts/contextCard';
 import {CONTEXT_DOCS_LINK} from 'sentry/components/events/contexts/utils';
-import KeyValueData from 'sentry/components/keyValueData';
+import {KeyValueData} from 'sentry/components/keyValueData';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -13,6 +13,7 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 
 interface ContextDataSectionProps {
   event: Event;
+  disableCollapsePersistence?: boolean;
   group?: Group;
   project?: Project;
 }
@@ -21,6 +22,7 @@ export default function ContextDataSection({
   event,
   group,
   project,
+  disableCollapsePersistence,
 }: ContextDataSectionProps) {
   const cards = getOrderedContextItems(event).map(
     ({alias, type, value: contextValue}) => (
@@ -52,6 +54,7 @@ export default function ContextDataSection({
         }
       )}
       isHelpHoverable
+      disableCollapsePersistence={disableCollapsePersistence}
     >
       <ErrorBoundary mini message={t('There was a problem loading event context.')}>
         <KeyValueData.Container>{cards}</KeyValueData.Container>

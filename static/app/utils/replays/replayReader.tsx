@@ -3,7 +3,7 @@ import memoize from 'lodash/memoize';
 import {type Duration, duration} from 'moment-timezone';
 
 import {defined} from 'sentry/utils';
-import domId from 'sentry/utils/domId';
+import {domId} from 'sentry/utils/domId';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import clamp from 'sentry/utils/number/clamp';
 import extractDomNodes from 'sentry/utils/replays/extractDomNodes';
@@ -82,11 +82,11 @@ interface ReplayReaderParams {
    * If provided, the replay will be clipped to this window.
    */
   clipWindow?: ClipWindow;
-
   /**
-   * The org's feature flags
+   * Relates to the setting of the clip window. If the event timestamp is before the replay started,
+   * the clip window will be set to the start of the replay.
    */
-  featureFlags?: string[];
+  eventTimestampMs?: number;
 }
 
 type RequiredNotNull<T> = {
@@ -157,8 +157,8 @@ export default class ReplayReader {
     errors,
     replayRecord,
     clipWindow,
-    featureFlags,
     fetching,
+    eventTimestampMs,
   }: ReplayReaderParams) {
     if (!attachments || !replayRecord || !errors) {
       return null;
@@ -169,9 +169,9 @@ export default class ReplayReader {
         attachments,
         errors,
         replayRecord,
-        featureFlags,
         fetching,
         clipWindow,
+        eventTimestampMs,
       });
     } catch (err) {
       Sentry.captureException(err);
@@ -183,10 +183,10 @@ export default class ReplayReader {
       return new ReplayReader({
         attachments: [],
         errors: [],
-        featureFlags,
         fetching,
         replayRecord,
         clipWindow,
+        eventTimestampMs,
       });
     }
   }
@@ -194,10 +194,10 @@ export default class ReplayReader {
   private constructor({
     attachments,
     errors,
-    featureFlags,
     fetching,
     replayRecord,
     clipWindow,
+    eventTimestampMs,
   }: RequiredNotNull<ReplayReaderParams>) {
     this._cacheKey = domId('replayReader-');
     this._fetching = fetching;
@@ -242,7 +242,6 @@ export default class ReplayReader {
 
     // Hydrate the data we were given
     this._replayRecord = replayRecord;
-    this._featureFlags = featureFlags;
     // Errors don't need to be sorted here, they will be merged with breadcrumbs
     // and spans in the getter and then sorted together.
     const {errorFrames, feedbackFrames} = hydrateErrors(replayRecord, errors);
@@ -290,7 +289,7 @@ export default class ReplayReader {
     this._duration = replayRecord.duration;
 
     if (clipWindow) {
-      this._applyClipWindow(clipWindow);
+      this._applyClipWindow(clipWindow, eventTimestampMs);
     }
   }
 
@@ -299,7 +298,6 @@ export default class ReplayReader {
   private _cacheKey: string;
   private _duration: Duration = duration(0);
   private _errors: ErrorFrame[] = [];
-  private _featureFlags: string[] | undefined = [];
   private _fetching = true;
   private _optionFrame: undefined | OptionFrame;
   private _replayRecord: ReplayRecord;
@@ -309,20 +307,32 @@ export default class ReplayReader {
   private _startOffsetMs = 0;
   private _videoEvents: VideoEvent[] = [];
   private _clipWindow: ClipWindow | undefined = undefined;
+  private _errorBeforeReplayStart = false;
 
-  private _applyClipWindow = (clipWindow: ClipWindow) => {
-    const clipStartTimestampMs = clamp(
-      clipWindow.startTimestampMs,
-      this._replayRecord.started_at.getTime(),
-      this._replayRecord.finished_at.getTime()
-    );
-    const clipEndTimestampMs = clamp(
-      clipWindow.endTimestampMs,
-      clipStartTimestampMs,
-      this._replayRecord.finished_at.getTime()
-    );
+  private _applyClipWindow = (clipWindow: ClipWindow, eventTimestampMs?: number) => {
+    let clipStartTimestampMs: number;
+    let clipEndTimestampMs: number;
+    const replayStart = this._replayRecord.started_at.getTime();
+    const replayEnd = this._replayRecord.finished_at.getTime();
 
-    this._duration = duration(clipEndTimestampMs - clipStartTimestampMs);
+    // error event for this clip is before the replay started.
+    // use the start of the replay as the start of the clip.
+    // set the clip to be at most 10 seconds long.
+    if (eventTimestampMs && eventTimestampMs < replayStart) {
+      clipStartTimestampMs = replayStart;
+      clipEndTimestampMs = Math.min(replayStart + 10 * 1000, replayEnd);
+      this._errorBeforeReplayStart = true;
+    } else {
+      clipStartTimestampMs = clamp(clipWindow.startTimestampMs, replayStart, replayEnd);
+      clipEndTimestampMs = clamp(
+        clipWindow.endTimestampMs,
+        clipStartTimestampMs,
+        replayEnd
+      );
+    }
+
+    const clipDuration = clipEndTimestampMs - clipStartTimestampMs;
+    this._duration = duration(clipDuration); // this value should not be 0
 
     // For video replays, we need to bypass setting the global offset (_startOffsetMs)
     // because it messes with the playback time by causing it
@@ -459,6 +469,11 @@ export default class ReplayReader {
   getDurationMs = () => {
     return this._duration.asMilliseconds();
   };
+
+  /**
+   * @returns Whether the error happened before the replay started
+   */
+  getErrorBeforeReplayStart = () => this._errorBeforeReplayStart;
 
   getStartOffsetMs = () => this._startOffsetMs;
 
@@ -685,29 +700,25 @@ export default class ReplayReader {
   });
 
   getWebVitalFrames = memoize(() => {
-    if (this._featureFlags?.includes('session-replay-web-vitals')) {
-      // sort by largest timestamp first to easily find the last CLS in a burst
-      const allWebVitals = this._sortedSpanFrames.filter(isWebVitalFrame).reverse();
-      let lastTimestamp = 0;
-      const groupedCls: WebVitalFrame[] = [];
+    // sort by largest timestamp first to easily find the last CLS in a burst
+    const allWebVitals = this._sortedSpanFrames.filter(isWebVitalFrame).reverse();
+    let lastTimestamp = 0;
+    const groupedCls: WebVitalFrame[] = [];
 
-      for (const frame of allWebVitals) {
-        if (isCLSFrame(frame)) {
-          if (lastTimestamp === frame.timestampMs) {
-            groupedCls.push(frame);
-          } else {
-            lastTimestamp = frame.timestampMs;
-          }
+    for (const frame of allWebVitals) {
+      if (isCLSFrame(frame)) {
+        if (lastTimestamp === frame.timestampMs) {
+          groupedCls.push(frame);
+        } else {
+          lastTimestamp = frame.timestampMs;
         }
       }
-      return allWebVitals
-        .filter(
-          frame =>
-            !groupedCls.includes(frame) && frame.description !== 'first-input-delay'
-        )
-        .reverse();
     }
-    return [];
+    return allWebVitals
+      .filter(
+        frame => !groupedCls.includes(frame) && frame.description !== 'first-input-delay'
+      )
+      .reverse();
   });
 
   getVideoEvents = () => this._videoEvents;

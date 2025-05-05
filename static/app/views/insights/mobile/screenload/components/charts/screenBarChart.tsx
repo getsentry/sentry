@@ -4,8 +4,8 @@ import {BarChart} from 'sentry/components/charts/barChart';
 import type {BaseChartProps} from 'sentry/components/charts/baseChart';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import TransitionChart from 'sentry/components/charts/transitionChart';
-import type {SelectOption} from 'sentry/components/compactSelect';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
@@ -23,7 +23,7 @@ import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {LoadingScreen} from 'sentry/views/insights/common/components/chart';
 import MiniChartPanel from 'sentry/views/insights/common/components/miniChartPanel';
 
-export type ChartSelectOptions = {
+type ChartSelectOptions = {
   title: string;
   yAxis: string;
   series?: Series[];
@@ -177,7 +177,7 @@ const Header = styled('div')`
 
 const StyledCompactSelect = styled(CompactSelect)`
   /* Reset font-weight set by HeaderTitleLegend, buttons are already bold and
-   * setting this higher up causes it to trickle into the menues */
+   * setting this higher up causes it to trickle into the menus */
   font-weight: ${p => p.theme.fontWeightNormal};
   margin: -${space(0.5)} -${space(1)} -${space(0.25)};
   min-width: 0;
@@ -189,7 +189,7 @@ const StyledCompactSelect = styled(CompactSelect)`
 `;
 
 const Subtitle = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   display: inline-block;
 `;

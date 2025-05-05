@@ -21,8 +21,7 @@ import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
-
-import {OrganizationContext} from '../organizationContext';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 type Props = RouteComponentProps<{sentryAppSlug: string}>;
 
@@ -151,7 +150,7 @@ function SentryAppExternalInstallationContent({params, ...props}: Props) {
     [isInstalled, selectedOrgSlug, sentryApp]
   );
 
-  const onInstall = useCallback(async (): Promise<any | undefined> => {
+  const onInstall = useCallback(async (): Promise<undefined | void> => {
     if (!organization || !sentryApp) {
       return undefined;
     }
@@ -216,7 +215,7 @@ function SentryAppExternalInstallationContent({params, ...props}: Props) {
         sentryApp={sentryApp}
       />
       {organization && (
-        <OrganizationContext.Provider value={organization}>
+        <OrganizationContext value={organization}>
           <SentryAppDetailsModal
             sentryApp={sentryApp}
             organization={organization}
@@ -224,7 +223,7 @@ function SentryAppExternalInstallationContent({params, ...props}: Props) {
             closeModal={onClose}
             isInstalled={disableInstall()}
           />
-        </OrganizationContext.Provider>
+        </OrganizationContext>
       )}
     </div>
   );

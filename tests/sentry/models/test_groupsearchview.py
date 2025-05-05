@@ -13,7 +13,6 @@ class GroupSearchViewTestCase(TestCase):
             organization=org,
             query="some query",
             query_sort="date",
-            position=0,
         )
 
         GroupSearchView.objects.create(
@@ -22,9 +21,6 @@ class GroupSearchViewTestCase(TestCase):
             organization=org,
             query="some query #2",
             query_sort="date",
-            position=1,
         )
 
         assert GroupSearchView.objects.filter(user_id=user.id).count() == 2
-        assert GroupSearchView.objects.filter(user_id=user.id, position=0).count() == 1
-        assert GroupSearchView.objects.filter(user_id=user.id, position=1).count() == 1

@@ -15,7 +15,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import type {Color} from 'sentry/utils/theme';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 
-export function generateVitalDetailRoute({orgSlug}: {orgSlug: string}): string {
+function generateVitalDetailRoute({orgSlug}: {orgSlug: string}): string {
   return `/organizations/${orgSlug}/performance/vitaldetail/`;
 }
 
@@ -124,8 +124,6 @@ export const vitalMap: Partial<Record<WebVital, string>> = {
   [WebVital.FID]: t('First Input Delay'),
   [WebVital.LCP]: t('Largest Contentful Paint'),
 };
-
-export const vitalChartTitleMap = vitalMap;
 
 export const vitalDescription: Partial<Record<WebVital, string>> = {
   [WebVital.FCP]: t(

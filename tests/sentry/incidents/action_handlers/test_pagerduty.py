@@ -16,7 +16,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
-from sentry.incidents.typings.metric_detector import AlertContext
+from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.silo.base import SiloMode
@@ -81,13 +81,12 @@ class PagerDutyActionHandlerTest(FireTest):
         metric_value = 1000
         notification_uuid = str(uuid.uuid4())
         data = build_incident_attachment(
-            alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
-            open_period_identifier=incident.identifier,
             organization=incident.organization,
-            snuba_query=incident.alert_rule.snuba_query,
+            alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident, IncidentStatus(incident.status), metric_value
+            ),
             integration_key=self.integration_key,
-            new_status=IncidentStatus(incident.status),
-            metric_value=metric_value,
             notification_uuid=notification_uuid,
         )
 
@@ -139,12 +138,11 @@ class PagerDutyActionHandlerTest(FireTest):
         notification_uuid = str(uuid.uuid4())
         data = build_incident_attachment(
             alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
-            open_period_identifier=incident.identifier,
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident, IncidentStatus(incident.status), metric_value
+            ),
             organization=incident.organization,
-            snuba_query=incident.alert_rule.snuba_query,
             integration_key=self.integration_key,
-            new_status=IncidentStatus(incident.status),
-            metric_value=metric_value,
             notification_uuid=notification_uuid,
         )
 
@@ -192,12 +190,11 @@ class PagerDutyActionHandlerTest(FireTest):
 
         expected_payload = build_incident_attachment(
             alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
-            open_period_identifier=incident.identifier,
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident, IncidentStatus(incident.status), metric_value
+            ),
             organization=incident.organization,
-            snuba_query=incident.alert_rule.snuba_query,
             integration_key=self.integration_key,
-            new_status=new_status,
-            metric_value=metric_value,
         )
         expected_payload = attach_custom_severity(
             expected_payload, self.action.sentry_app_config, new_status

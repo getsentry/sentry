@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from enum import StrEnum
 from typing import Any
 
+import sentry_sdk
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from parsimonious.exceptions import ParseError
@@ -84,7 +85,10 @@ def handle_send_historical_data_to_seer(
         raise TimeoutError(f"Failed to send data to Seer - cannot {method} alert rule.")
     except ParseError:
         raise ParseError("Failed to parse Seer store data response")
-    except (ValidationError, Exception):
+    except ValidationError:
+        raise ValidationError(f"Failed to send data to Seer - cannot {method} alert rule.")
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
         raise ValidationError(f"Failed to send data to Seer - cannot {method} alert rule.")
 
 

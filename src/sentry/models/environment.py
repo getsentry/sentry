@@ -2,7 +2,7 @@ import re
 from typing import ClassVar, Self
 from urllib.parse import unquote
 
-from django.db import IntegrityError, models, router, transaction
+from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -110,15 +110,11 @@ class Environment(Model):
         cache_key = f"envproj:c:{self.id}:{project.id}"
 
         if cache.get(cache_key) is None:
-            try:
-                with transaction.atomic(router.db_for_write(EnvironmentProject)):
-                    EnvironmentProject.objects.create(
-                        project=project, environment=self, is_hidden=is_hidden
-                    )
-                cache.set(cache_key, 1, 3600)
-            except IntegrityError:
-                # We've already created the object, should still cache the action.
-                cache.set(cache_key, 1, 3600)
+            EnvironmentProject.objects.get_or_create(
+                project=project, environment=self, defaults={"is_hidden": is_hidden}
+            )
+            # The object already exists, we cache the action to reduce the load on the database.
+            cache.set(cache_key, 1, 3600)
 
     @staticmethod
     def get_name_from_path_segment(segment):

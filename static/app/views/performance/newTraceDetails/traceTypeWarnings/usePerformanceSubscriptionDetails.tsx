@@ -17,6 +17,7 @@ type Subscription = {
       };
   planDetails: {
     billingInterval: 'monthly' | 'annual';
+    budgetTerm: 'pay-as-you-go' | 'on-demand';
   };
   planTier: string;
   onDemandBudgets?: {

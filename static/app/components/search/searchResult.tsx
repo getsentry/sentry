@@ -5,7 +5,7 @@ import {DocIntegrationAvatar} from 'sentry/components/core/avatar/docIntegration
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import IdBadge from 'sentry/components/idBadge';
 import {IconInput, IconLink, IconSettings} from 'sentry/icons';
-import PluginIcon from 'sentry/plugins/components/pluginIcon';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
 import highlightFuseMatches from 'sentry/utils/highlightFuseMatches';
 import {useParams} from 'sentry/utils/useParams';
@@ -18,6 +18,8 @@ type Props = {
   matches: Result['matches'];
 };
 
+const DEFAULT_AVATAR_SIZE = 24;
+
 function renderResultType({resultType, model}: Result['item']) {
   switch (resultType) {
     case 'settings':
@@ -27,11 +29,11 @@ function renderResultType({resultType, model}: Result['item']) {
     case 'route':
       return <IconLink />;
     case 'integration':
-      return <StyledPluginIcon pluginId={model.slug} />;
+      return <StyledPluginIcon size={DEFAULT_AVATAR_SIZE} pluginId={model.slug} />;
     case 'sentryApp':
-      return <SentryAppAvatar sentryApp={model} />;
+      return <SentryAppAvatar size={DEFAULT_AVATAR_SIZE} sentryApp={model} />;
     case 'docIntegration':
-      return <DocIntegrationAvatar docIntegration={model} />;
+      return <DocIntegrationAvatar size={DEFAULT_AVATAR_SIZE} docIntegration={model} />;
     default:
       return null;
   }
@@ -68,8 +70,8 @@ function SearchResult({item, matches, highlighted}: Props) {
 
       const badgeProps = {
         displayName: title,
-        displayEmail: DescriptionNode,
         description: DescriptionNode,
+        hideEmail: true,
         useLink: false,
         orgId: params.orgId,
         avatarSize: 32,
@@ -107,7 +109,7 @@ const SearchDetail = styled('div')`
 
 const ExtraDetail = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   margin-top: ${space(0.5)};
 `;
 
@@ -120,6 +122,7 @@ const Wrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: ${space(1)};
 `;
 
 const Content = styled('div')`

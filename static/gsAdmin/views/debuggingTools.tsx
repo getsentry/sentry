@@ -62,7 +62,6 @@ function IssueOwnerDebbuging() {
             name="organizaton-slug"
             onChange={e => setOrganizationSlug(e.target.value)}
             value={organizationSlug}
-            required
             minLength={1}
             placeholder="sentry"
           />
@@ -72,7 +71,6 @@ function IssueOwnerDebbuging() {
             name="project-slug"
             onChange={e => setProjectSlug(e.target.value)}
             value={projectSlug}
-            required
             minLength={1}
             placeholder="sentry"
           />
@@ -83,7 +81,6 @@ function IssueOwnerDebbuging() {
             name="stacktrace-path"
             onChange={e => setStacktracePath(e.target.value)}
             value={stacktracePath}
-            required
             minLength={1}
             placeholder="/src/sentry/integrations/github/webhook.py"
           />
@@ -210,7 +207,6 @@ function IssueEscalatingDebugging() {
             name="organizaton-slug"
             onChange={e => setOrganizationSlug(e.target.value)}
             value={organizationSlug}
-            required
             minLength={1}
             placeholder="sentry"
           />
@@ -220,7 +216,6 @@ function IssueEscalatingDebugging() {
             name="group-id"
             onChange={e => setGroupId(e.target.value)}
             value={groupId}
-            required
             minLength={1}
             placeholder="1"
           />

@@ -1070,7 +1070,7 @@ function parseRelativeDate(
   input: string,
   {sign, unit}: {sign: '-' | '+'; unit: string}
 ): {value: Date} {
-  let date = new Date().getTime();
+  let date = Date.now();
   const number = numeric(input);
 
   if (isNaN(date)) {
@@ -1420,6 +1420,7 @@ export const defaultConfig: SearchConfig = {
     'error.unhandled',
     'stack.in_app',
     'team_key_transaction',
+    'symbolicated_in_app',
   ]),
   sizeKeys: new Set([]),
   disallowedLogicalOperators: new Set(),
@@ -1505,7 +1506,7 @@ export function joinQuery(
   leadingSpace?: boolean,
   additionalSpaceBetween?: boolean
 ): string {
-  if (!parsedTerms || !parsedTerms.length) {
+  if (!parsedTerms?.length) {
     return '';
   }
 

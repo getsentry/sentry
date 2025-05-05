@@ -62,7 +62,7 @@ export function ContinuousProfileHeader({
         <FeedbackWidgetButton />
         {transactionTarget && (
           <LinkButton size="sm" onClick={handleGoToTransaction} to={transactionTarget}>
-            {t('Go to Transaction')}
+            {t('Go to Trace')}
           </LinkButton>
         )}
       </StyledHeaderActions>

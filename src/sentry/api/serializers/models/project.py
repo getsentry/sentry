@@ -932,6 +932,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     highlightContext: dict[str, Any]
     highlightPreset: HighlightPreset
     groupingConfig: str
+    derivedGroupingEnhancements: str
     groupingEnhancements: str
     groupingEnhancementsBase: str | None
     secondaryGroupingExpiry: int
@@ -947,7 +948,6 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     dynamicSamplingBiases: list[dict[str, str | bool]]
     eventProcessing: dict[str, bool]
     symbolSources: str
-    uptimeAutodetection: NotRequired[bool]
     isDynamicallySampled: bool
     tempestFetchScreenshots: NotRequired[bool]
     tempestFetchDumps: NotRequired[bool]
@@ -1062,6 +1062,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "groupingEnhancementsBase": self.get_value_with_default(
                 attrs, "sentry:grouping_enhancements_base"
             ),
+            "derivedGroupingEnhancements": self.get_value_with_default(
+                attrs, "sentry:derived_grouping_enhancements"
+            ),
             "secondaryGroupingExpiry": self.get_value_with_default(
                 attrs, "sentry:secondary_grouping_expiry"
             ),
@@ -1097,11 +1100,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "symbolSources": serialized_sources,
             "isDynamicallySampled": sample_rate is not None and sample_rate < 1.0,
         }
-
-        if features.has("organizations:uptime-settings", obj.organization):
-            data["uptimeAutodetection"] = bool(
-                attrs["options"].get("sentry:uptime_autodetection", True)
-            )
 
         if has_tempest_access(obj.organization, user):
             data["tempestFetchScreenshots"] = attrs["options"].get(

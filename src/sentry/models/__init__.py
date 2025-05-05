@@ -16,7 +16,7 @@ from .avatars import *  # NOQA
 from .broadcast import *  # NOQA
 from .commit import *  # NOQA
 from .commitauthor import *  # NOQA
-from .commitfilechange import CommitFileChange  # noqa
+from .commitfilechange import *  # noqa
 from .counter import *  # NOQA
 from .dashboard import *  # NOQA
 from .dashboard_permissions import *  # NOQA
@@ -47,6 +47,7 @@ from .grouphistory import *  # NOQA
 from .groupinbox import *  # NOQA
 from .grouplink import *  # NOQA
 from .groupmeta import *  # NOQA
+from .groupopenperiod import *  # NOQA
 from .groupowner import *  # NOQA
 from .groupredirect import *  # NOQA
 from .grouprelease import *  # NOQA
@@ -68,7 +69,7 @@ from .organization import *  # NOQA
 from .organizationaccessrequest import *  # NOQA
 from .organizationmapping import *  # NOQA
 from .organizationmember import *  # NOQA
-from .organizationmemberinvite import OrganizationMemberInvite  # NOQA
+from .organizationmemberinvite import *  # NOQA
 from .organizationmembermapping import *  # NOQA
 from .organizationmemberteam import *  # NOQA
 from .organizationmemberteamreplica import *  # NOQA
@@ -80,11 +81,12 @@ from .project import *  # NOQA
 from .projectbookmark import *  # NOQA
 from .projectcodeowners import *  # NOQA
 from .projectkey import *  # NOQA
-from .projectownership import ProjectOwnership  # NOQA
+from .projectownership import *  # NOQA
 from .projectplatform import *  # NOQA
 from .projectredirect import *  # NOQA
-from .projectteam import ProjectTeam  # noqa
-from .projecttemplate import ProjectTemplate  # noqa
+from .projectsdk import *  # NOQA
+from .projectteam import *  # NOQA
+from .projecttemplate import *  # NOQA
 from .promptsactivity import *  # NOQA
 from .pullrequest import *  # NOQA
 from .recentsearch import *  # NOQA
@@ -102,8 +104,8 @@ from .repository import *  # NOQA
 from .rollbackorganization import *  # NOQA
 from .rollbackuser import *  # NOQA
 from .rule import *  # NOQA
-from .rulefirehistory import RuleFireHistory  # NOQA
-from .rulesnooze import RuleSnooze  # NOQA
+from .rulefirehistory import *  # NOQA
+from .rulesnooze import *  # NOQA
 from .savedsearch import *  # NOQA
 from .search_common import *  # NOQA
 from .sentryshot import *  # NOQA

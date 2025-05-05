@@ -1,8 +1,5 @@
-import styled from '@emotion/styled';
-
 import {LinkButton} from 'sentry/components/core/button';
 import {SpanEvidenceTraceView} from 'sentry/components/events/interfaces/performance/spanEvidenceTraceView';
-import {getProblemSpansForSpanTree} from 'sentry/components/events/interfaces/performance/utils';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
@@ -15,12 +12,6 @@ import type {Organization} from 'sentry/types/organization';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
-import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
-
-import TraceView from '../spans/traceView';
-import type {TraceContextType} from '../spans/types';
-import WaterfallModel from '../spans/waterfallModel';
 
 import {SpanEvidenceKeyValueList} from './spanEvidenceKeyValueList';
 
@@ -29,10 +20,6 @@ interface Props {
   organization: Organization;
   projectSlug: string;
 }
-
-export type TraceContextSpanProxy = Omit<TraceContextType, 'span_id'> & {
-  span_id: string; // TODO: Remove this temporary type.
-};
 
 function SpanEvidenceInteriumSection({
   children,
@@ -81,32 +68,7 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
     return null;
   }
 
-  const hasNewTraceView = organization.features.includes(
-    'issue-details-new-performance-trace-view'
-  );
   const traceId = event.contexts.trace?.trace_id;
-
-  if (hasNewTraceView && traceId) {
-    return (
-      <SpanEvidenceInteriumSection
-        event={event}
-        organization={organization}
-        projectSlug={projectSlug}
-      >
-        <SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />
-        <SpanEvidenceTraceView
-          event={event}
-          organization={organization}
-          traceId={traceId}
-        />
-      </SpanEvidenceInteriumSection>
-    );
-  }
-
-  const {affectedSpanIds, focusedSpanIds} = getProblemSpansForSpanTree(event);
-  const profileId = event.contexts?.profile?.profile_id ?? null;
-  const hasProfilingFeature = organization.features.includes('profiling');
-
   return (
     <SpanEvidenceInteriumSection
       event={event}
@@ -114,48 +76,13 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
       projectSlug={projectSlug}
     >
       <SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />
-      {hasProfilingFeature ? (
-        <ProfilesProvider
-          orgSlug={organization.slug}
-          projectSlug={projectSlug}
-          profileMeta={profileId || ''}
-        >
-          <ProfileContext.Consumer>
-            {profiles => {
-              return (
-                <ProfileGroupProvider
-                  type="flamechart"
-                  input={profiles?.type === 'resolved' ? profiles.data : null}
-                  traceID={profileId || ''}
-                >
-                  <TraceViewWrapper>
-                    <TraceView
-                      organization={organization}
-                      waterfallModel={
-                        new WaterfallModel(event, affectedSpanIds, focusedSpanIds)
-                      }
-                      isEmbedded
-                    />
-                  </TraceViewWrapper>
-                </ProfileGroupProvider>
-              );
-            }}
-          </ProfileContext.Consumer>
-        </ProfilesProvider>
-      ) : (
-        <TraceViewWrapper>
-          <TraceView
-            organization={organization}
-            waterfallModel={new WaterfallModel(event, affectedSpanIds, focusedSpanIds)}
-            isEmbedded
-          />
-        </TraceViewWrapper>
+      {traceId && (
+        <SpanEvidenceTraceView
+          event={event}
+          organization={organization}
+          traceId={traceId}
+        />
       )}
     </SpanEvidenceInteriumSection>
   );
 }
-
-const TraceViewWrapper = styled('div')`
-  border: 1px solid ${p => p.theme.innerBorder};
-  border-radius: ${p => p.theme.borderRadius};
-`;

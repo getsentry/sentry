@@ -12,8 +12,8 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import NavTabs from 'sentry/components/navTabs';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {TabList, Tabs} from 'sentry/components/tabs';
 import {IconAdd, IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -24,7 +24,7 @@ import type {
 } from 'sentry/types/integrations';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
-import {singleLineRenderer} from 'sentry/utils/marked';
+import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -438,37 +438,57 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
     }
   }
 
-  // renders everything below header
   function renderMainContent() {
     const hasStacktraceLinking = provider!.features.includes('stacktrace-link');
     const hasCodeOwners =
       provider!.features.includes('codeowners') &&
       organization.features.includes('integrations-codeowners');
-    // if no code mappings, render the single tab
-    if (!hasStacktraceLinking) {
+    const hasUserMapping = provider!.features.includes('user-mapping');
+
+    const tabs: Array<[Tab, string]> = [];
+    const stackTraceLinkingTabs: Array<[Tab, string]> = hasStacktraceLinking
+      ? [
+          ['repos', t('Repositories')],
+          ['codeMappings', t('Code Mappings')],
+        ]
+      : [];
+
+    const codeOwnerTabs: Array<[Tab, string]> = hasCodeOwners
+      ? [
+          ['userMappings', t('User Mappings')],
+          ['teamMappings', t('Team Mappings')],
+        ]
+      : [];
+
+    // User mappings are mutually exclusive with stacktrace linking
+    // and code owners, so only render the main settings tab and user mappings.
+    const userMappingTabs: Array<[Tab, string]> = hasUserMapping
+      ? [
+          ['repos', t('Settings')],
+          ['userMappings', t('User Mappings')],
+        ]
+      : [];
+
+    const allTabs = tabs
+      .concat(stackTraceLinkingTabs)
+      .concat(codeOwnerTabs)
+      .concat(userMappingTabs);
+
+    if (allTabs.length === 0) {
       return renderMainTab();
     }
-    // otherwise render the tab view
-    const tabs = [
-      ['repos', t('Repositories')],
-      ['codeMappings', t('Code Mappings')],
-      ...(hasCodeOwners ? [['userMappings', t('User Mappings')]] : []),
-      ...(hasCodeOwners ? [['teamMappings', t('Team Mappings')]] : []),
-    ] as Array<[id: Tab, label: string]>;
 
     return (
       <Fragment>
-        <NavTabs underlined>
-          {tabs.map(tabTuple => (
-            <li
-              key={tabTuple[0]}
-              className={tab === tabTuple[0] ? 'active' : ''}
-              onClick={() => onTabChange(tabTuple[0])}
-            >
-              <CapitalizedLink>{tabTuple[1]}</CapitalizedLink>
-            </li>
-          ))}
-        </NavTabs>
+        <TabsContainer>
+          <Tabs value={tab} onChange={onTabChange}>
+            <TabList>
+              {allTabs.map(tabTuple => (
+                <TabList.Item key={tabTuple[0]}>{tabTuple[1]}</TabList.Item>
+              ))}
+            </TabList>
+          </Tabs>
+        </TabsContainer>
         {renderTabContent()}
       </Fragment>
     );
@@ -502,13 +522,13 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
   );
 }
 
+const TabsContainer = styled('div')`
+  margin-bottom: ${space(2)};
+`;
+
 export default ConfigureIntegration;
 
 const BackButtonWrapper = styled('div')`
   margin-bottom: ${space(2)};
   width: 100%;
-`;
-
-const CapitalizedLink = styled('a')`
-  text-transform: capitalize;
 `;

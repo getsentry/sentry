@@ -44,7 +44,6 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
             user_id=self.member.id,
             query=query,
             query_sort=sort,
-            position=0,
         )
         assert GroupSearchViewStarred.objects.filter(
             organization=self.organization,

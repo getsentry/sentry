@@ -3,19 +3,16 @@ from __future__ import annotations
 import hashlib
 import logging
 import uuid
-from abc import ABC, abstractmethod
 from datetime import datetime
-from os import path
-from typing import IO, TYPE_CHECKING, Generic, NamedTuple, Protocol, TypeVar
+from typing import IO, TYPE_CHECKING, NamedTuple
 
 import orjson
 import sentry_sdk
 from django.conf import settings
-from django.db import IntegrityError, router
+from django.db import router
 from django.db.models import Q
 from django.utils import timezone
 
-from sentry import options
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.debug_files.artifact_bundles import (
@@ -34,15 +31,15 @@ from sentry.models.artifactbundle import (
     ReleaseArtifactBundle,
 )
 from sentry.models.files.file import File
+from sentry.models.files.utils import MAX_FILE_SIZE
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.release import Release
-from sentry.models.releasefile import ReleaseArchive, ReleaseFile, update_artifact_index
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import attachments_tasks
 from sentry.utils import metrics, redis
 from sentry.utils.db import atomic_transaction
-from sentry.utils.files import get_max_file_size
 from sentry.utils.sdk import Scope, bind_organization_context
 
 logger = logging.getLogger(__name__)
@@ -105,14 +102,13 @@ def assemble_file(task, org_or_project, name, checksum, chunks, file_type) -> As
 
     # Reject all files that exceed the maximum allowed size for this organization.
     file_size = sum(size for _, _, size in file_blobs if size is not None)
-    max_file_size = get_max_file_size(organization)
-    if file_size > max_file_size:
+    if file_size > MAX_FILE_SIZE:
         set_assemble_status(
             task,
             org_or_project.id,
             checksum,
             ChunkFileState.ERROR,
-            detail=f"File {name} exceeds maximum size ({file_size} > {max_file_size})",
+            detail=f"File {name} exceeds maximum size ({file_size} > {MAX_FILE_SIZE})",
         )
 
         return None
@@ -230,6 +226,10 @@ def delete_assemble_status(task, scope, checksum):
     name="sentry.tasks.assemble.assemble_dif",
     queue="assemble",
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=attachments_tasks,
+        processing_deadline_duration=30,
+    ),
 )
 def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     """
@@ -306,21 +306,40 @@ class AssembleArtifactsError(Exception):
     pass
 
 
-class HasClose(Protocol):
-    @abstractmethod
-    def close(self):
-        pass
-
-
-TArchive = TypeVar("TArchive", bound=HasClose)
-
-
-class PostAssembler(Generic[TArchive], ABC):
-    archive: TArchive
-
-    def __init__(self, assemble_result: AssembleResult):
+class ArtifactBundlePostAssembler:
+    def __init__(
+        self,
+        assemble_result: AssembleResult,
+        organization: Organization,
+        release: str | None,
+        dist: str | None,
+        project_ids: list[int],
+        is_release_bundle_migration: bool = False,
+    ):
         self.assemble_result = assemble_result
         self._validate_bundle_guarded()
+
+        self.organization = organization
+        self.release = release
+        self.dist = dist
+        self.project_ids = project_ids
+        self.is_release_bundle_migration = is_release_bundle_migration
+
+    def _validate_bundle_guarded(self):
+        try:
+            self._validate_bundle()
+        except Exception:
+            metrics.incr("tasks.assemble.invalid_bundle")
+            # In case the bundle is invalid, we want to delete the actual `File` object created in the database, to
+            # avoid orphan entries.
+            self.delete_bundle_file_object()
+            raise AssembleArtifactsError("the bundle is invalid")
+
+    def _validate_bundle(self):
+        self.archive = ArtifactBundleArchive(self.assemble_result.bundle_temp_file)
+        metrics.incr(
+            "tasks.assemble.artifact_bundle.artifact_count", amount=self.archive.artifact_count
+        )
 
     def __enter__(self):
         return self
@@ -335,186 +354,6 @@ class PostAssembler(Generic[TArchive], ABC):
 
     def delete_bundle_file_object(self):
         self.assemble_result.delete_bundle()
-
-    def _validate_bundle_guarded(self):
-        try:
-            self._validate_bundle()
-        except Exception:
-            metrics.incr("tasks.assemble.invalid_bundle")
-            # In case the bundle is invalid, we want to delete the actual `File` object created in the database, to
-            # avoid orphan entries.
-            self.delete_bundle_file_object()
-            raise AssembleArtifactsError("the bundle is invalid")
-
-    @abstractmethod
-    def _validate_bundle(self):
-        pass
-
-    @abstractmethod
-    def post_assemble(self):
-        pass
-
-
-class ReleaseBundlePostAssembler(PostAssembler[ReleaseArchive]):
-    def __init__(self, assemble_result: AssembleResult, organization: Organization, version: str):
-        super().__init__(assemble_result)
-        self.organization = organization
-        self.version = version
-
-    def _validate_bundle(self):
-        self.archive = ReleaseArchive(self.assemble_result.bundle_temp_file)
-        metrics.incr(
-            "tasks.assemble.release_bundle.artifact_count", amount=self.archive.artifact_count
-        )
-
-    def post_assemble(self):
-        if self.archive.artifact_count == 0:
-            metrics.incr("tasks.assemble.release_bundle.discarded_empty_bundle")
-            self.delete_bundle_file_object()
-            return
-        with metrics.timer("tasks.assemble.release_bundle"):
-            self._create_release_file()
-
-    @sentry_sdk.tracing.trace
-    def _create_release_file(self):
-        manifest = self.archive.manifest
-
-        if manifest.get("org") != self.organization.slug:
-            raise AssembleArtifactsError("organization does not match uploaded bundle")
-
-        if manifest.get("release") != self.version:
-            raise AssembleArtifactsError("release does not match uploaded bundle")
-
-        try:
-            release = Release.objects.get(
-                organization_id=self.organization.id, version=self.version
-            )
-        except Release.DoesNotExist:
-            raise AssembleArtifactsError("release does not exist")
-
-        dist_name = manifest.get("dist")
-        dist = release.add_dist(dist_name) if dist_name else None
-
-        min_artifact_count = options.get("processing.release-archive-min-files")
-        saved_as_archive = False
-
-        if self.archive.artifact_count >= min_artifact_count:
-            try:
-                # NOTE: `update_artifact_index` also creates a `ReleaseFile` entry
-                # for this bundle.
-                update_artifact_index(
-                    release,
-                    dist,
-                    self.assemble_result.bundle,
-                    self.assemble_result.bundle_temp_file,
-                )
-                metrics.incr("sourcemaps.upload.release_bundle")
-                saved_as_archive = True
-            except Exception:
-                logger.exception("Unable to update artifact index")
-
-        if not saved_as_archive:
-            meta = {
-                "organization_id": self.organization.id,
-                "release_id": release.id,
-                "dist_id": dist.id if dist else dist,
-            }
-            metrics.incr("sourcemaps.upload.release_file")
-            self._store_single_files(meta)
-            # we just extracted the archive and stored it as individual files.
-            # there is no reason to keep the file around now anymore.
-            self.delete_bundle_file_object()
-
-    @sentry_sdk.tracing.trace
-    def _store_single_files(self, meta: dict):
-        try:
-            temp_dir = self.archive.extract()
-        except Exception:
-            raise AssembleArtifactsError("failed to extract bundle")
-
-        with temp_dir:
-            artifacts = self.archive.manifest.get("files", {})
-            for rel_path, artifact in artifacts.items():
-                artifact_url = artifact.get("url", rel_path)
-                artifact_basename = self._get_artifact_basename(artifact_url)
-
-                file = File.objects.create(
-                    name=artifact_basename, type="release.file", headers=artifact.get("headers", {})
-                )
-
-                full_path = path.join(temp_dir.name, rel_path)
-                with open(full_path, "rb") as fp:
-                    file.putfile(fp, logger=logger)
-
-                kwargs = dict(meta, name=artifact_url)
-                extra_fields = {"artifact_count": 1}
-                self._upsert_release_file(file, self._simple_update, kwargs, extra_fields)
-
-    @staticmethod
-    def _get_artifact_basename(url):
-        return url.rsplit("/", 1)[-1]
-
-    @staticmethod
-    def _upsert_release_file(file: File, update_fn, key_fields, additional_fields) -> bool:
-        success = False
-        release_file = None
-
-        # Release files must have unique names within their release
-        # and dist. If a matching file already exists, replace its
-        # file with the new one; otherwise create it.
-        try:
-            release_file = ReleaseFile.objects.get(**key_fields)
-        except ReleaseFile.DoesNotExist:
-            try:
-                with atomic_transaction(using=router.db_for_write(ReleaseFile)):
-                    release_file = ReleaseFile.objects.create(
-                        file=file, **dict(key_fields, **additional_fields)
-                    )
-            except IntegrityError:
-                # NB: This indicates a race, where another assemble task or
-                # file upload job has just created a conflicting file. Since
-                # we're upserting here anyway, yield to the faster actor and
-                # do not try again.
-                file.delete()
-            else:
-                success = True
-        else:
-            success = update_fn(release_file, file, additional_fields)
-
-        return success
-
-    @staticmethod
-    def _simple_update(release_file: ReleaseFile, new_file: File, additional_fields: dict) -> bool:
-        """Update function used in _upsert_release_file"""
-        old_file = release_file.file
-        release_file.update(file=new_file, **additional_fields)
-        old_file.delete()
-
-        return True
-
-
-class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
-    def __init__(
-        self,
-        assemble_result: AssembleResult,
-        organization: Organization,
-        release: str | None,
-        dist: str | None,
-        project_ids: list[int],
-        is_release_bundle_migration: bool = False,
-    ):
-        super().__init__(assemble_result)
-        self.organization = organization
-        self.release = release
-        self.dist = dist
-        self.project_ids = project_ids
-        self.is_release_bundle_migration = is_release_bundle_migration
-
-    def _validate_bundle(self):
-        self.archive = ArtifactBundleArchive(self.assemble_result.bundle_temp_file)
-        metrics.incr(
-            "tasks.assemble.artifact_bundle.artifact_count", amount=self.archive.artifact_count
-        )
 
     def post_assemble(self):
         if self.archive.artifact_count == 0:
@@ -753,42 +592,14 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
             backfill_artifact_bundle_db_indexing.delay(self.organization.id, release, dist)
 
 
-def prepare_post_assembler(
-    assemble_result: AssembleResult,
-    organization: Organization,
-    release: str | None,
-    dist: str | None,
-    project_ids: list[int] | None,
-    upload_as_artifact_bundle: bool,
-    is_release_bundle_migration: bool,
-) -> PostAssembler:
-    if upload_as_artifact_bundle:
-        if not project_ids:
-            raise AssembleArtifactsError(
-                "uploading an artifact bundle without a project is prohibited"
-            )
-        return ArtifactBundlePostAssembler(
-            assemble_result=assemble_result,
-            organization=organization,
-            release=release,
-            dist=dist,
-            project_ids=project_ids,
-            is_release_bundle_migration=is_release_bundle_migration,
-        )
-    else:
-        if not release:
-            raise AssembleArtifactsError(
-                "uploading a release bundle without a release is prohibited"
-            )
-        return ReleaseBundlePostAssembler(
-            assemble_result=assemble_result, organization=organization, version=release
-        )
-
-
 @instrumented_task(
     name="sentry.tasks.assemble.assemble_artifacts",
     queue="assemble",
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=attachments_tasks,
+        processing_deadline_duration=30,
+    ),
 )
 def assemble_artifacts(
     org_id,
@@ -798,36 +609,29 @@ def assemble_artifacts(
     # These params have been added for supporting artifact bundles assembling.
     project_ids=None,
     dist=None,
-    upload_as_artifact_bundle=False,
     is_release_bundle_migration=False,
     **kwargs,
-):
+) -> None:
     """
     Creates a release file or artifact bundle from an uploaded bundle given the checksums of its chunks.
     """
-    # We want to evaluate the type of assemble task given the input parameters.
-    assemble_task = (
-        AssembleTask.ARTIFACT_BUNDLE if upload_as_artifact_bundle else AssembleTask.RELEASE_BUNDLE
-    )
 
     try:
         organization = Organization.objects.get_from_cache(pk=org_id)
         bind_organization_context(organization)
 
-        set_assemble_status(assemble_task, org_id, checksum, ChunkFileState.ASSEMBLING)
-
-        archive_name = "bundle-artifacts" if upload_as_artifact_bundle else "release-artifacts"
-        archive_filename = f"{archive_name}-{uuid.uuid4().hex}.zip"
-        file_type = "artifact.bundle" if upload_as_artifact_bundle else "release.bundle"
+        set_assemble_status(
+            AssembleTask.ARTIFACT_BUNDLE, org_id, checksum, ChunkFileState.ASSEMBLING
+        )
 
         # Assemble the chunks into a temporary file
         assemble_result = assemble_file(
-            task=assemble_task,
+            task=AssembleTask.ARTIFACT_BUNDLE,
             org_or_project=organization,
-            name=archive_filename,
+            name=f"bundle-artifacts-{uuid.uuid4().hex}.zip",
             checksum=checksum,
             chunks=chunks,
-            file_type=file_type,
+            file_type="artifact.bundle",
         )
 
         # If not file has been created this means that the file failed to assemble because of bad input data.
@@ -835,29 +639,37 @@ def assemble_artifacts(
         if assemble_result is None:
             return
 
+        if not project_ids:
+            raise AssembleArtifactsError(
+                "uploading an artifact bundle without a project is prohibited"
+            )
+
         # We first want to prepare the post assembler which will take care of validating the archive.
-        with prepare_post_assembler(
+        post_assembler = ArtifactBundlePostAssembler(
             assemble_result=assemble_result,
             organization=organization,
             release=version,
             dist=dist,
             project_ids=project_ids,
-            upload_as_artifact_bundle=upload_as_artifact_bundle,
             is_release_bundle_migration=is_release_bundle_migration,
-        ) as post_assembler:
+        )
+        with post_assembler:
             # Once the archive is valid, the post assembler can run the post assembling job.
             post_assembler.post_assemble()
+
     except AssembleArtifactsError as e:
-        set_assemble_status(assemble_task, org_id, checksum, ChunkFileState.ERROR, detail=str(e))
+        set_assemble_status(
+            AssembleTask.ARTIFACT_BUNDLE, org_id, checksum, ChunkFileState.ERROR, detail=str(e)
+        )
     except Exception as e:
         logger.exception("failed to assemble bundle")
         sentry_sdk.capture_exception(e)
         set_assemble_status(
-            assemble_task,
+            AssembleTask.ARTIFACT_BUNDLE,
             org_id,
             checksum,
             ChunkFileState.ERROR,
             detail="internal server error",
         )
     else:
-        set_assemble_status(assemble_task, org_id, checksum, ChunkFileState.OK)
+        set_assemble_status(AssembleTask.ARTIFACT_BUNDLE, org_id, checksum, ChunkFileState.OK)

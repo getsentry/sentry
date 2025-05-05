@@ -8,7 +8,7 @@ interface Props {
   replay: ReplayReader;
 }
 
-const context = createContext<ReplayReader>(
+const Context = createContext<ReplayReader>(
   ReplayReader.factory({
     attachments: [],
     errors: [],
@@ -18,9 +18,9 @@ const context = createContext<ReplayReader>(
 );
 
 export function ReplayReaderProvider({children, replay}: Props) {
-  return <context.Provider value={replay}>{children}</context.Provider>;
+  return <Context value={replay}>{children}</Context>;
 }
 
 export function useReplayReader() {
-  return useContext(context);
+  return useContext(Context);
 }

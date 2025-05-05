@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.db import router, transaction
-from django.db.models import F, Q
+from django.db.models import Exists, F, OuterRef, Q
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -12,6 +12,11 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.bases.organizationmember import MemberAndStaffPermission
+from sentry.api.endpoints.organization_member.utils import (
+    ERR_RATE_LIMITED,
+    ROLE_CHOICES,
+    MemberConflictValidationError,
+)
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberSerializer
@@ -23,6 +28,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.authenticators import available_authenticators
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.models.team import Team, TeamStatus
 from sentry.roles import organization_roles, team_roles
 from sentry.search.utils import tokenize_query
@@ -32,40 +38,6 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
 from . import get_allowed_org_roles, save_team_assignments
-
-ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
-
-# Required to explicitly define roles w/ descriptions because OrganizationMemberSerializer
-# has the wrong descriptions, includes deprecated admin, and excludes billing
-ROLE_CHOICES = [
-    ("billing", "Can manage payment and compliance details."),
-    (
-        "member",
-        "Can view and act on events, as well as view most other data within the organization.",
-    ),
-    (
-        "manager",
-        """Has full management access to all teams and projects. Can also manage
-        the organization's membership.""",
-    ),
-    (
-        "owner",
-        """Has unrestricted access to the organization, its data, and its
-        settings. Can add, modify, and delete projects and members, as well as
-        make billing and plan changes.""",
-    ),
-    (
-        "admin",
-        """Can edit global integrations, manage projects, and add/remove teams.
-        They automatically assume the Team Admin role for teams they join.
-        Note: This role can no longer be assigned in Business and Enterprise plans. Use `TeamRoles` instead.
-        """,
-    ),
-]
-
-
-class MemberConflictValidationError(serializers.ValidationError):
-    pass
 
 
 @extend_schema_serializer(
@@ -131,6 +103,7 @@ class OrganizationMemberRequestSerializer(serializers.Serializer):
                 raise MemberConflictValidationError(
                     "There is an existing invite request for %s" % email
                 )
+
         return email
 
     def validate_role(self, role):
@@ -211,11 +184,19 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
         Response includes pending invites that are approved by organization owners or managers but waiting to be accepted by the invitee.
         """
-        queryset = OrganizationMember.objects.filter(
-            Q(user_is_active=True, user_id__isnull=False) | Q(user_id__isnull=True),
-            organization=organization,
-            invite_status=InviteStatus.APPROVED.value,
-        ).order_by("id")
+        queryset = (
+            OrganizationMember.objects.filter(
+                Q(user_is_active=True, user_id__isnull=False) | Q(user_id__isnull=True),
+                organization=organization,
+                invite_status=InviteStatus.APPROVED.value,
+            )
+            .filter(
+                ~Exists(
+                    OrganizationMemberInvite.objects.filter(organization_member_id=OuterRef("id"))
+                )
+            )
+            .order_by("id")
+        )
 
         query = request.GET.get("query")
         if query:

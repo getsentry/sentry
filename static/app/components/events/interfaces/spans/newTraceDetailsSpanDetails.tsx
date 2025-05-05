@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
@@ -9,6 +10,7 @@ import {LinkButton} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import DiscoverButton from 'sentry/components/discoverButton';
 import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';
+import {OpsDot} from 'sentry/components/events/opsBreakdown';
 import FileSize from 'sentry/components/fileSize';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -48,9 +50,7 @@ import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSum
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
-import {OpsDot} from '../../opsBreakdown';
-
-import * as SpanEntryContext from './context';
+import {SpanEntryContext} from './context';
 import {GapSpanDetails} from './gapSpanDetails';
 import InlineDocs from './inlineDocs';
 import {SpanProfileDetails} from './spanProfileDetails';
@@ -95,10 +95,12 @@ export type SpanDetailProps = {
 
 function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   const location = useLocation();
+  const theme = useTheme();
+
   const profileId = props.event.contexts.profile?.profile_id || '';
   const issues = useMemo(() => {
-    return [...props.node.errors, ...props.node.performance_issues];
-  }, [props.node.errors, props.node.performance_issues]);
+    return [...props.node.errors, ...props.node.occurrences];
+  }, [props.node.errors, props.node.occurrences]);
 
   const {projects} = useProjects();
   const project = projects.find(p => p.id === props.event.projectID);
@@ -123,7 +125,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
       // 12px is consistent with theme.iconSizes['xs'] but theme returns a string.
       return (
         <StyledDiscoverButton href="#" size="xs" disabled>
-          <StyledLoadingIndicator size={12} />
+          <StyledLoadingIndicator size={16} />
         </StyledDiscoverButton>
       );
     }
@@ -297,8 +299,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   }
 
   function renderSpanErrorMessage() {
-    const hasErrors =
-      props.node.errors.size > 0 || props.node.performance_issues.size > 0;
+    const hasErrors = props.node.errors.size > 0 || props.node.occurrences.size > 0;
 
     if (!hasErrors || isGapSpan(props.node.value)) {
       return null;
@@ -310,8 +311,8 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   }
 
   function partitionSizes(data: any): {
-    nonSizeKeys: {[key: string]: unknown};
-    sizeKeys: {[key: string]: number};
+    nonSizeKeys: Record<string, unknown>;
+    sizeKeys: Record<string, number>;
   } {
     const sizeKeys = SIZE_DATA_KEYS.reduce(
       (keys, key) => {
@@ -380,7 +381,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
       value => value === 0
     );
 
-    const timingKeys = getSpanSubTimings(span) ?? [];
+    const timingKeys = getSpanSubTimings(span, theme) ?? [];
     const parentTransaction = TraceTree.ParentTransaction(props.node);
     const averageSpanSelfTime: number | undefined =
       span['span.averageResults']?.['avg(span.self_time)'];
@@ -659,7 +660,6 @@ const ValueTd = styled('td')`
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   display: flex;
   align-items: center;
-  height: ${space(2)};
   margin: 0;
 `;
 
@@ -687,7 +687,7 @@ const SpanIdTitle = styled('a')`
   }
 `;
 
-export function Row({
+function Row({
   title,
   keep,
   children,
@@ -727,8 +727,8 @@ export function Row({
   );
 }
 
-export function Tags({span}: {span: RawSpanType}) {
-  const tags: {[tag_name: string]: string} | undefined = span?.tags;
+function Tags({span}: {span: RawSpanType}) {
+  const tags: Record<string, string> | undefined = span?.tags;
 
   if (!tags) {
     return null;
@@ -765,13 +765,13 @@ const Flex = styled('div')`
   display: flex;
   align-items: center;
 `;
-export const ButtonGroup = styled('div')`
+const ButtonGroup = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
 `;
 
-export const ValueRow = styled('div')`
+const ValueRow = styled('div')`
   display: grid;
   grid-template-columns: auto min-content;
   gap: ${space(1)};
@@ -786,7 +786,7 @@ const StyledPre = styled('pre')`
   background-color: transparent !important;
 `;
 
-export const ButtonContainer = styled('div')`
+const ButtonContainer = styled('div')`
   padding: 8px 10px;
 `;
 

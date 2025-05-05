@@ -1,11 +1,11 @@
 from functools import cached_property
+from unittest import TestCase
 from unittest.mock import patch
 
 from django.test import RequestFactory
 
 from sentry.middleware.health import HealthCheck
 from sentry.status_checks import Problem
-from sentry.testutils.cases import TestCase
 from sentry.utils import json
 
 

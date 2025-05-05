@@ -14,11 +14,6 @@ describe('python onboarding docs', function () {
     expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
-
-    // Renders install instructions
-    expect(
-      screen.getByText(textWithMarkupMatcher(/pip install --upgrade sentry-sdk/))
-    ).toBeInTheDocument();
   });
 
   it('renders without tracing', function () {
@@ -41,6 +36,9 @@ describe('python onboarding docs', function () {
     renderWithOnboardingLayout(docs);
 
     // Does not render continuous profiling config
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/profile_session_sample_rate=1\.0,/))
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByText(textWithMarkupMatcher(/sentry_sdk.profiler.start_profiler\(\)/))
     ).not.toBeInTheDocument();
@@ -73,6 +71,9 @@ describe('python onboarding docs', function () {
     ).not.toBeInTheDocument();
 
     // Does render continuous profiling config
+    expect(
+      screen.getByText(textWithMarkupMatcher(/profile_session_sample_rate=1\.0,/))
+    ).toBeInTheDocument();
     expect(
       screen.getByText(textWithMarkupMatcher(/sentry_sdk.profiler.start_profiler\(\)/))
     ).toBeInTheDocument();

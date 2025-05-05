@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import * as qs from 'query-string';
@@ -74,7 +75,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'time_spent_percentage(app,span.duration)',
+    key: 'time_spent_percentage(span.duration)',
     name: t('Time Spent'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -86,19 +87,19 @@ const SORTABLE_FIELDS = [
   'count_op(queue.process)',
   'avg_if(span.duration,span.op,queue.process)',
   'avg(messaging.message.receive.latency)',
-  `${SpanFunction.TIME_SPENT_PERCENTAGE}(app,span.duration)`,
+  `${SpanFunction.TIME_SPENT_PERCENTAGE}(span.duration)`,
 ] as const;
 
 type ValidSort = Sort & {
   field: (typeof SORTABLE_FIELDS)[number];
 };
 
-export function isAValidSort(sort: Sort): sort is ValidSort {
+function isAValidSort(sort: Sort): sort is ValidSort {
   return (SORTABLE_FIELDS as unknown as string[]).includes(sort.field);
 }
 
 const DEFAULT_SORT = {
-  field: 'time_spent_percentage(app,span.duration)' as const,
+  field: 'time_spent_percentage(span.duration)' as const,
   kind: 'desc' as const,
 };
 
@@ -106,6 +107,7 @@ export function TransactionsTable() {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
+  const theme = useTheme();
 
   const locationQuery = useLocationQuery({
     fields: {
@@ -114,9 +116,9 @@ export function TransactionsTable() {
     },
   });
   const sort =
-    decodeSorts(locationQuery[QueryParameterNames.DESTINATIONS_SORT])
-      .filter(isAValidSort)
-      .at(0) ?? DEFAULT_SORT;
+    decodeSorts(locationQuery[QueryParameterNames.DESTINATIONS_SORT]).find(
+      isAValidSort
+    ) ?? DEFAULT_SORT;
 
   const {data, isPending, meta, pageLinks, error} = useQueuesByTransactionQuery({
     destination: locationQuery.destination,
@@ -154,7 +156,7 @@ export function TransactionsTable() {
               sortParameterName: QueryParameterNames.DESTINATIONS_SORT,
             }),
           renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, location, organization),
+            renderBodyCell(column, row, meta, location, organization, theme),
         }}
       />
 
@@ -168,7 +170,8 @@ function renderBodyCell(
   row: Row,
   meta: EventsMetaType | undefined,
   location: Location,
-  organization: Organization
+  organization: Organization,
+  theme: Theme
 ) {
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const op = row['span.op'];
@@ -236,6 +239,7 @@ function renderBodyCell(
     location,
     organization,
     unit: meta.units?.[column.key],
+    theme,
   });
 }
 
@@ -265,5 +269,5 @@ const AlignRight = styled('span')`
 `;
 
 const NoValue = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;

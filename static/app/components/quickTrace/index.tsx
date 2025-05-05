@@ -1,6 +1,7 @@
 import {Component, Fragment} from 'react';
 import type {Location, LocationDescriptor} from 'history';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import DropdownLink from 'sentry/components/dropdownLink';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import type {
@@ -12,7 +13,6 @@ import {
   generateTraceTarget,
   isQuickTraceEvent,
 } from 'sentry/components/quickTrace/utils';
-import {Tooltip} from 'sentry/components/tooltip';
 import {backend, frontend, mobile, serverless} from 'sentry/data/platformCategories';
 import {IconFire} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
@@ -620,7 +620,7 @@ function readHideMissingServiceState() {
     return false;
   }
   const expires = parseInt(value, 10);
-  const now = new Date().getTime();
+  const now = Date.now();
   return expires > now;
 }
 
@@ -631,7 +631,7 @@ class MissingServiceNode extends Component<MissingServiceProps, MissingServiceSt
 
   dismissMissingService = () => {
     const {organization, platform} = this.props;
-    const now = new Date().getTime();
+    const now = Date.now();
     localStorage.setItem(
       HIDE_MISSING_SERVICE_KEY,
       (now + HIDE_MISSING_EXPIRES).toString()

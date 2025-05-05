@@ -12,9 +12,8 @@ import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import type {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import type {UseQueryOptions} from 'sentry/utils/queryClient';
-
-import useApi from '../useApi';
-import useOrganization from '../useOrganization';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export interface DiscoverQueryExtras {
   useOnDemandMetrics?: boolean;
@@ -121,7 +120,7 @@ export type DiscoverQueryProps = BaseDiscoverQueryProps & {
 type InnerRequestProps<P> = DiscoverQueryProps & P;
 type OuterRequestProps<P> = DiscoverQueryPropsWithContext & P;
 
-export type ReactProps<T> = {
+type ReactProps<T> = {
   children?: (props: GenericChildrenProps<T>) => React.ReactNode;
 };
 
@@ -462,5 +461,3 @@ export const parseError = (error: any): QueryError | null => {
 
   return new QueryError(t('An unknown error occurred.'), error);
 };
-
-export default GenericDiscoverQuery;

@@ -22,7 +22,7 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {performanceScoreTooltip} from 'sentry/views/dashboards/utils';
 import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 
-jest.mock('echarts-for-react/lib/core', () => {
+jest.mock('echarts-for-react/lib/core', function () {
   return jest.fn(({style}) => {
     return <div style={{...style, background: 'green'}}>echarts mock</div>;
   });
@@ -83,6 +83,7 @@ async function renderModal({
     {
       router,
       organization,
+      deprecatedRouterMocks: true,
     }
   );
   // Need to wait since WidgetViewerModal will make a request to events-meta
@@ -189,7 +190,7 @@ describe('Modals -> WidgetViewerModal', function () {
 
       beforeEach(function () {
         mockQuery = {
-          conditions: 'title:/organizations/:orgId/performance/summary/',
+          conditions: 'title:/organizations/:orgId/insights/summary/',
           fields: ['count()'],
           aggregates: ['count()'],
           columns: [],
@@ -285,7 +286,7 @@ describe('Modals -> WidgetViewerModal', function () {
             query: expect.objectContaining({
               query:
                 // The release was injected into the discover query
-                '(title:/organizations/:orgId/performance/summary/) release:"project-release@1.2.0" ',
+                '(title:/organizations/:orgId/insights/summary/) release:"project-release@1.2.0" ',
             }),
           })
         );
@@ -311,7 +312,7 @@ describe('Modals -> WidgetViewerModal', function () {
         await renderModal({initialData, widget: mockWidget});
         expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
           'href',
-          '/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&statsPeriod=24h&yAxis=count%28%29'
+          '/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Finsights%2Fsummary%2F&statsPeriod=24h&yAxis=count%28%29'
         );
       });
 
@@ -390,7 +391,7 @@ describe('Modals -> WidgetViewerModal', function () {
         await renderModal({initialData, widget: mockWidget});
         expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
           'href',
-          '/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&statsPeriod=24h&yAxis=count%28%29'
+          '/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Finsights%2Fsummary%2F&statsPeriod=24h&yAxis=count%28%29'
         );
       });
 
@@ -442,7 +443,7 @@ describe('Modals -> WidgetViewerModal', function () {
           },
         });
         await userEvent.click(
-          await screen.findByText('/organizations/:orgId/performance/summary/')
+          await screen.findByText('/organizations/:orgId/insights/summary/')
         );
       });
 
@@ -450,7 +451,7 @@ describe('Modals -> WidgetViewerModal', function () {
         mockEvents();
         mockWidget.queries = [
           {
-            conditions: 'title:/organizations/:orgId/performance/summary/',
+            conditions: 'title:/organizations/:orgId/insights/summary/',
             fields: ['count()'],
             aggregates: ['count()'],
             columns: ['transaction'],
@@ -466,7 +467,7 @@ describe('Modals -> WidgetViewerModal', function () {
         mockEvents();
         mockWidget.queries = [
           {
-            conditions: 'title:/organizations/:orgId/performance/summary/',
+            conditions: 'title:/organizations/:orgId/insights/summary/',
             fields: ['count()'],
             aggregates: ['count()'],
             columns: ['transaction'],
@@ -482,7 +483,7 @@ describe('Modals -> WidgetViewerModal', function () {
         mockEvents();
         mockWidget.queries = [
           {
-            conditions: 'title:/organizations/:orgId/performance/summary/',
+            conditions: 'title:/organizations/:orgId/insights/summary/',
             fields: ['count()'],
             aggregates: ['count()'],
             columns: ['transaction'],
@@ -586,7 +587,7 @@ describe('Modals -> WidgetViewerModal', function () {
         });
         mockWidget.queries = [
           {
-            conditions: 'title:/organizations/:orgId/performance/summary/',
+            conditions: 'title:/organizations/:orgId/insights/summary/',
             fields: [''],
             aggregates: [''],
             columns: ['transaction'],
@@ -606,7 +607,7 @@ describe('Modals -> WidgetViewerModal', function () {
           'href',
           expect.stringMatching(
             new RegExp(
-              '/organizations/org-slug/performance/summary/?.*project=2&referrer=performance-transaction-summary.*transaction=%2.*'
+              '/organizations/org-slug/insights/summary/?.*project=2&referrer=performance-transaction-summary.*transaction=%2.*'
             )
           )
         );
@@ -682,7 +683,7 @@ describe('Modals -> WidgetViewerModal', function () {
 
       beforeEach(function () {
         mockQuery = {
-          conditions: 'title:/organizations/:orgId/performance/summary/',
+          conditions: 'title:/organizations/:orgId/insights/summary/',
           fields: ['error.type', 'count()'],
           aggregates: ['count()'],
           columns: ['error.type'],
@@ -883,7 +884,7 @@ describe('Modals -> WidgetViewerModal', function () {
 
     describe('Table Widget', function () {
       const mockQuery = {
-        conditions: 'title:/organizations/:orgId/performance/summary/',
+        conditions: 'title:/organizations/:orgId/insights/summary/',
         fields: ['title', 'count()'],
         aggregates: ['count()'],
         columns: ['title'],
@@ -932,7 +933,7 @@ describe('Modals -> WidgetViewerModal', function () {
         await act(tick);
         expect(eventsMock).not.toHaveBeenCalled();
         await userEvent.click(await screen.findByLabelText('Next'));
-        await waitFor(() => {
+        await waitFor(function () {
           expect(eventsMock).toHaveBeenCalled();
         });
       });

@@ -34,7 +34,13 @@ export function ExportProfileButton(props: ExportProfileButtonProps) {
   const title = t('Export Profile');
 
   return props.variant === 'xs' ? (
-    <StyledButtonSmall size="xs" title={title} href={href} download={download} {...props}>
+    <StyledButtonSmall
+      size="zero"
+      title={title}
+      href={href}
+      download={download}
+      {...props}
+    >
       {props.children}
       <IconDownload size="xs" />
     </StyledButtonSmall>

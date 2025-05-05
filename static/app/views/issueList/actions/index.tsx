@@ -9,6 +9,7 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
+import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import IssueStreamHeaderLabel from 'sentry/components/IssueStreamHeaderLabel';
@@ -34,7 +35,6 @@ import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueLi
 
 import ActionSet from './actionSet';
 import Headers from './headers';
-import IssueListSortOptions from './sortOptions';
 import {BULK_LIMIT, BULK_LIMIT_STR, ConfirmAction} from './utils';
 
 type IssueListActionsProps = {
@@ -43,11 +43,9 @@ type IssueListActionsProps = {
   groupIds: string[];
   onDelete: () => void;
   onSelectStatsPeriod: (period: string) => void;
-  onSortChange: (sort: string) => void;
   query: string;
   queryCount: number;
   selection: PageFilters;
-  sort: string;
   statsPeriod: string;
   onActionTaken?: (itemIds: string[], data: IssueUpdateData) => void;
 };
@@ -72,9 +70,7 @@ function ActionsBarPriority({
   handleDelete,
   handleMerge,
   handleUpdate,
-  sort,
   selectedProjectSlug,
-  onSortChange,
   onSelectStatsPeriod,
   isSavedSearchesOpen,
   statsPeriod,
@@ -90,23 +86,18 @@ function ActionsBarPriority({
   multiSelected: boolean;
   narrowViewport: boolean;
   onSelectStatsPeriod: (period: string) => void;
-  onSortChange: (sort: string) => void;
   pageSelected: boolean;
   query: string;
   queryCount: number;
   selectedIdsSet: Set<string>;
   selectedProjectSlug: string | undefined;
   selection: PageFilters;
-  sort: string;
   statsPeriod: string;
 }) {
-  const organization = useOrganization();
   const shouldDisplayActions = anySelected && !narrowViewport;
 
   return (
-    <ActionsBarContainer
-      narrowHeader={organization.features.includes('issue-stream-table-layout')}
-    >
+    <ActionsBarContainer>
       {!narrowViewport && (
         <ActionsCheckbox isReprocessingQuery={displayReprocessingActions}>
           <Checkbox
@@ -137,27 +128,15 @@ function ActionsBarPriority({
                 onUpdate={handleUpdate}
               />
             </HeaderButtonsWrapper>
-          ) : organization.features.includes('issue-stream-table-layout') ? (
+          ) : (
             <NarrowHeaderButtonsWrapper>
               <IssueStreamHeaderLabel hideDivider>{t('Issue')}</IssueStreamHeaderLabel>
             </NarrowHeaderButtonsWrapper>
-          ) : (
-            <HeaderButtonsWrapper key="sort" {...animationProps}>
-              <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
-            </HeaderButtonsWrapper>
           )}
         </AnimatePresence>
       )}
       <AnimatePresence initial={false} mode="wait">
-        {anySelected ? (
-          !organization.features.includes('issue-stream-table-layout') && (
-            <motion.div key="sort" {...animationProps}>
-              <SortDropdownMargin>
-                <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
-              </SortDropdownMargin>
-            </motion.div>
-          )
-        ) : (
+        {anySelected ? null : (
           <AnimatedHeaderItemsContainer key="headers" {...animationProps}>
             <Headers
               onSelectStatsPeriod={onSelectStatsPeriod}
@@ -180,11 +159,9 @@ function IssueListActions({
   onActionTaken,
   onDelete,
   onSelectStatsPeriod,
-  onSortChange,
   queryCount,
   query,
   selection,
-  sort,
   statsPeriod,
 }: IssueListActionsProps) {
   const api = useApi();
@@ -383,7 +360,6 @@ function IssueListActions({
         queryCount={queryCount}
         selection={selection}
         statsPeriod={statsPeriod}
-        onSortChange={onSortChange}
         allInQuerySelected={allInQuerySelected}
         pageSelected={pageSelected}
         selectedIdsSet={selectedIdsSet}
@@ -395,13 +371,12 @@ function IssueListActions({
         narrowViewport={disableActions}
         selectedProjectSlug={selectedProjectSlug}
         isSavedSearchesOpen={isSavedSearchesOpen}
-        sort={sort}
         anySelected={anySelected}
         onSelectStatsPeriod={onSelectStatsPeriod}
       />
       {!allResultsVisible && pageSelected && (
-        <StyledAlert type="warning" system>
-          <SelectAllNotice data-test-id="issue-list-select-all-notice">
+        <Alert system type="warning">
+          <Flex justify="center" wrap="wrap">
             {allInQuerySelected ? (
               queryCount >= BULK_LIMIT ? (
                 tct(
@@ -422,10 +397,7 @@ function IssueListActions({
                   '%s issues on this page selected.',
                   numIssues
                 )}
-                <SelectAllLink
-                  onClick={() => setAllInQuerySelected(true)}
-                  data-test-id="issue-list-select-all-notice-link"
-                >
+                <SelectAllLink onClick={() => setAllInQuerySelected(true)}>
                   {queryCount >= BULK_LIMIT
                     ? tct(
                         'Select the first [count] issues that match this search query.',
@@ -439,8 +411,8 @@ function IssueListActions({
                 </SelectAllLink>
               </Fragment>
             )}
-          </SelectAllNotice>
-        </StyledAlert>
+          </Flex>
+        </Alert>
       )}
     </StickyActions>
   );
@@ -523,11 +495,11 @@ const StickyActions = styled(Sticky)`
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
 `;
 
-const ActionsBarContainer = styled('div')<{narrowHeader: boolean}>`
+const ActionsBarContainer = styled('div')`
   display: flex;
-  min-height: ${p => (p.narrowHeader ? '36px' : '45px')};
-  padding-top: ${p => (p.narrowHeader ? space(0.5) : space(1))};
-  padding-bottom: ${p => (p.narrowHeader ? space(0.5) : space(1))};
+  min-height: 36px;
+  padding-top: ${space(0.5)};
+  padding-bottom: ${space(0.5)};
   align-items: center;
   background: ${p => p.theme.backgroundSecondary};
   border-radius: 6px 6px 0 0;
@@ -568,32 +540,13 @@ const NarrowHeaderButtonsWrapper = styled(motion.div)`
   white-space: nowrap;
 `;
 
-const SelectAllNotice = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-
-  a:not([role='button']) {
-    color: ${p => p.theme.linkColor};
-    border-bottom: none;
-  }
-`;
-
 const SelectAllLink = styled('a')`
   margin-left: ${space(1)};
-`;
-
-const SortDropdownMargin = styled('div')`
-  margin-right: ${space(1)};
 `;
 
 const AnimatedHeaderItemsContainer = styled(motion.div)`
   display: flex;
   align-items: center;
-`;
-
-const StyledAlert = styled(Alert)`
-  border-bottom: none;
 `;
 
 export {IssueListActions};

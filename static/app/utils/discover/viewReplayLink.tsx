@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Link, {type LinkProps} from 'sentry/components/links/link';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import useReplayExists from 'sentry/utils/replayCount/useReplayExists';
 
@@ -37,7 +37,7 @@ const StyledLink = styled(Link)`
 `;
 
 const EmptyValueContainer = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 export default ViewReplayLink;

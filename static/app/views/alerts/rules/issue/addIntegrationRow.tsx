@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
 import {LinkButton} from 'sentry/components/core/button';
-import PluginIcon from 'sentry/plugins/components/pluginIcon';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -67,7 +67,7 @@ function AddIntegrationRow({onClick}: Props) {
 const RowWrapper = styled('div')`
   display: flex;
   border-radius: 4px;
-  border: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.border};
   justify-content: space-between;
   align-items: center;
   padding: ${space(3)} ${space(4)};

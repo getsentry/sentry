@@ -30,7 +30,7 @@ function PlanTable({organization, previewData, reservations, subscription}: Prop
 
   const {billedAmount, creditApplied, effectiveAt} = previewData;
 
-  const effectiveNow = new Date(effectiveAt).getTime() <= new Date().getTime() + 3600;
+  const effectiveNow = new Date(effectiveAt).getTime() <= Date.now() + 3600;
 
   return (
     <Fragment>
