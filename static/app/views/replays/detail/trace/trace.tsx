@@ -18,7 +18,7 @@ import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceA
 import {useTraceTree} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceTree';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import {loadTraceViewPreferences} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import {getInitialTracePreferences} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import {TraceWaterfall} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
 import {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
@@ -156,25 +156,35 @@ function Trace({replay}: {replay: undefined | ReplayRecord}) {
   );
 }
 
+const REPLAY_TRACE_WATERFALL_PREFERENCES_KEY = 'replay-trace-waterfall-preferences';
+
 export function NewTraceView({replay}: {replay: undefined | ReplayRecord}) {
   const preferences = useMemo(
     () =>
-      loadTraceViewPreferences('replay-trace-view-preferences') ||
-      DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES,
+      getInitialTracePreferences(
+        REPLAY_TRACE_WATERFALL_PREFERENCES_KEY,
+        DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES
+      ),
     []
   );
 
   return (
     <TraceStateProvider
       initialPreferences={preferences}
-      preferencesStorageKey="replay-trace-view-preferences"
+      preferencesStorageKey={REPLAY_TRACE_WATERFALL_PREFERENCES_KEY}
     >
-      <NewTraceViewImpl replay={replay} />
+      <NewTraceViewImpl replay={replay} preferences={preferences} />
     </TraceStateProvider>
   );
 }
 
-function NewTraceViewImpl({replay}: {replay: undefined | ReplayRecord}) {
+function NewTraceViewImpl({
+  replay,
+  preferences,
+}: {
+  preferences: TracePreferencesState;
+  replay: undefined | ReplayRecord;
+}) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const {eventView, indexComplete, indexError, replayTraces} = useReplayTraces({
@@ -245,6 +255,7 @@ function NewTraceViewImpl({replay}: {replay: undefined | ReplayRecord}) {
   return (
     <TraceViewWaterfallWrapper>
       <TraceWaterfall
+        preferences={preferences}
         traceSlug={firstTrace.traceSlug}
         trace={trace}
         tree={tree}

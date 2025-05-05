@@ -9,6 +9,9 @@ import type {EntrySpans, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {getIssueTypeFromOccurrenceType, IssueType} from 'sentry/types/group';
 
+export const TRACE_WATERFALL_PREFERENCES_KEY =
+  'issue-details-trace-waterfall-preferences';
+
 export function getSpanInfoFromTransactionEvent(
   event: Pick<
     EventTransaction,

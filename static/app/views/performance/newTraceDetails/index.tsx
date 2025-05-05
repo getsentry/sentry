@@ -21,7 +21,8 @@ import {useTraceRootEvent} from './traceApi/useTraceRootEvent';
 import {useTraceTree} from './traceApi/useTraceTree';
 import {
   DEFAULT_TRACE_VIEW_PREFERENCES,
-  loadTraceViewPreferences,
+  getInitialTracePreferences,
+  TracePreferencesState,
 } from './traceState/tracePreferences';
 import {TraceStateProvider} from './traceState/traceStateProvider';
 import {TraceMetaDataHeader} from './traceHeader';
@@ -41,14 +42,18 @@ function decodeTraceSlug(maybeSlug: string | undefined): string {
   return maybeSlug.trim();
 }
 
+export const TRACE_VIEW_PREFERENCES_KEY = 'trace-waterfall-preferences';
+
 export function TraceView() {
   const params = useParams<{traceSlug?: string}>();
   const traceSlug = useMemo(() => decodeTraceSlug(params.traceSlug), [params.traceSlug]);
 
   const preferences = useMemo(
     () =>
-      loadTraceViewPreferences('trace-view-preferences') ||
-      DEFAULT_TRACE_VIEW_PREFERENCES,
+      getInitialTracePreferences(
+        TRACE_VIEW_PREFERENCES_KEY,
+        DEFAULT_TRACE_VIEW_PREFERENCES
+      ),
     []
   );
 
@@ -56,15 +61,21 @@ export function TraceView() {
     <TraceViewLogsDataProvider traceSlug={traceSlug}>
       <TraceStateProvider
         initialPreferences={preferences}
-        preferencesStorageKey="trace-view-preferences"
+        preferencesStorageKey={TRACE_VIEW_PREFERENCES_KEY}
       >
-        <TraceViewImpl traceSlug={traceSlug} />
+        <TraceViewImpl traceSlug={traceSlug} preferences={preferences} />
       </TraceStateProvider>
     </TraceViewLogsDataProvider>
   );
 }
 
-function TraceViewImpl({traceSlug}: {traceSlug: string}) {
+function TraceViewImpl({
+  traceSlug,
+  preferences,
+}: {
+  preferences: TracePreferencesState;
+  traceSlug: string;
+}) {
   const organization = useOrganization();
   const queryParams = useTraceQueryParams();
   const traceEventView = useTraceEventView(traceSlug, queryParams);
@@ -106,6 +117,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
             />
             <TraceInnerLayout>
               <TraceWaterfall
+                preferences={preferences}
                 tree={tree}
                 trace={trace}
                 meta={meta}

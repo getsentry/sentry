@@ -36,11 +36,17 @@ export type TracePreferencesState = {
   missing_instrumentation: boolean;
 };
 
+type StoredTracePreferences = {
+  autogroup: TracePreferencesState['autogroup'];
+  drawer_layout: TraceLayoutPreferences;
+  missing_instrumentation: boolean;
+};
+
 export const TRACE_DRAWER_DEFAULT_SIZES: TraceDrawerPreferences['sizes'] = {
-  'drawer left': 0.33,
-  'drawer right': 0.33,
+  'drawer left': 0.4,
+  'drawer right': 0.4,
   'drawer bottom': 0.5,
-  'trace grid height': 330,
+  'trace grid height': 565,
 };
 
 export const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
@@ -64,46 +70,33 @@ export function storeTraceViewPreferences(
   key: string,
   state: TracePreferencesState
 ): void {
+  const storedState: StoredTracePreferences = {
+    drawer_layout: state.layout,
+    missing_instrumentation: state.missing_instrumentation,
+    autogroup: state.autogroup,
+  };
+
   // Make sure we dont fire this during a render phase
   window.requestAnimationFrame(() => {
     try {
-      localStorage.setItem(key, JSON.stringify(state));
+      localStorage.setItem(key, JSON.stringify(storedState));
     } catch (e) {
       Sentry.captureException(e);
     }
   });
 }
 
-function isInt(value: any): value is number {
-  return typeof value === 'number' && !isNaN(value);
-}
-
-function correctListWidth(state: TracePreferencesState): TracePreferencesState {
-  if (state.list.width < 0.1 || state.list.width > 0.9) {
-    state.list.width = 0.5;
-  }
-  return state;
-}
-
-function isPreferenceState(parsed: any): parsed is TracePreferencesState {
+function isPreferenceState(parsed: any): parsed is StoredTracePreferences {
   return (
-    parsed?.drawer &&
-    typeof parsed.drawer.minimized === 'boolean' &&
-    Array.isArray(parsed.drawer.layoutOptions) &&
-    parsed.drawer.sizes &&
-    isInt(parsed.drawer.sizes['drawer left']) &&
-    isInt(parsed.drawer.sizes['drawer right']) &&
-    isInt(parsed.drawer.sizes['drawer bottom']) &&
-    parsed.layout &&
-    typeof parsed.layout === 'string' &&
-    parsed.list &&
-    isInt(parsed.list.width)
+    'drawerLayout' in parsed &&
+    'missingInstrumentation' in parsed &&
+    'autogroup' in parsed
   );
 }
 
 function isValidAutogrouping(
-  state: TracePreferencesState
-): state is TracePreferencesState & {autogrouping: undefined} {
+  state: StoredTracePreferences
+): state is StoredTracePreferences & {autogrouping: undefined} {
   if (state.autogroup === undefined) {
     return false;
   }
@@ -117,15 +110,15 @@ function isValidAutogrouping(
 }
 
 function isValidMissingInstrumentation(
-  state: TracePreferencesState
-): state is TracePreferencesState & {missing_instrumentation: undefined} {
+  state: StoredTracePreferences
+): state is StoredTracePreferences & {missing_instrumentation: undefined} {
   if (typeof state.missing_instrumentation !== 'boolean') {
     return false;
   }
   return true;
 }
 
-export function loadTraceViewPreferences(key: string): TracePreferencesState | null {
+export function loadTraceViewPreferences(key: string): StoredTracePreferences | null {
   const stored = localStorage.getItem(key);
 
   if (stored) {
@@ -134,8 +127,6 @@ export function loadTraceViewPreferences(key: string): TracePreferencesState | n
       // We need a more robust way to validate the stored preferences.
       // Since we dont have a schema validation lib, just do it manually for now.
       if (isPreferenceState(parsed)) {
-        correctListWidth(parsed);
-
         // Correct old preferences that are missing autogrouping
         if (!isValidAutogrouping(parsed)) {
           parsed.autogroup = {...DEFAULT_TRACE_VIEW_PREFERENCES.autogroup};
@@ -152,6 +143,22 @@ export function loadTraceViewPreferences(key: string): TracePreferencesState | n
   }
 
   return null;
+}
+
+export function getInitialTracePreferences(
+  key: string,
+  default_state: TracePreferencesState
+): TracePreferencesState {
+  const stored = loadTraceViewPreferences(key);
+  const preferences = default_state;
+
+  if (stored) {
+    preferences.autogroup = stored.autogroup;
+    preferences.missing_instrumentation = stored.missing_instrumentation;
+    preferences.layout = stored.drawer_layout;
+  }
+
+  return preferences;
 }
 
 export function tracePreferencesReducer(

@@ -1,6 +1,7 @@
 import {lazy, Suspense, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {TRACE_WATERFALL_PREFERENCES_KEY} from 'sentry/components/events/interfaces/performance/utils';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {useIssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceApi/useIssuesTraceTree';
@@ -8,7 +9,7 @@ import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTra
 import {useTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {
-  loadTraceViewPreferences,
+  getInitialTracePreferences,
   type TracePreferencesState,
 } from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
@@ -53,8 +54,10 @@ interface SpanEvidenceTraceViewProps {
 export function SpanEvidenceTraceView(props: SpanEvidenceTraceViewProps) {
   const preferences = useMemo(
     () =>
-      loadTraceViewPreferences('issue-details-trace-view-preferences') ||
-      DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES,
+      getInitialTracePreferences(
+        TRACE_WATERFALL_PREFERENCES_KEY,
+        DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES
+      ),
     []
   );
 
@@ -63,7 +66,7 @@ export function SpanEvidenceTraceView(props: SpanEvidenceTraceViewProps) {
       initialPreferences={preferences}
       preferencesStorageKey="issue-details-trace-view-preferences"
     >
-      <SpanEvidenceTraceViewImpl {...props} />
+      <SpanEvidenceTraceViewImpl {...props} preferences={preferences} />
     </TraceStateProvider>
   );
 }
@@ -72,7 +75,8 @@ function SpanEvidenceTraceViewImpl({
   event,
   organization,
   traceId,
-}: SpanEvidenceTraceViewProps) {
+  preferences,
+}: SpanEvidenceTraceViewProps & {preferences: TracePreferencesState}) {
   const timestamp = new Date(event.dateReceived).getTime() / 1e3;
 
   const trace = useTrace({
@@ -103,6 +107,7 @@ function SpanEvidenceTraceViewImpl({
       <Suspense fallback={null}>
         <LazyIssuesTraceWaterfall
           tree={tree}
+          preferences={preferences}
           trace={trace}
           traceSlug={traceId}
           rootEventResults={rootEventResults}
