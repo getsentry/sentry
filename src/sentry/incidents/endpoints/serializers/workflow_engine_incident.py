@@ -100,7 +100,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
     def get_open_period_activities(
         self, open_period: GroupOpenPeriod
     ) -> list[IncidentActivitySerializerResponse]:
-        # a metric issue will only have one openperiod because if it's reopened it'll make a new metric issue
+        # an incident will be 1:1 with open periods, but there can be multiple open periods per metric issue
         # this won't actually work until we start writing to the table for metric issues (or are we planning a backfill? I can't remember)
 
         open_period_activities = []
@@ -120,19 +120,6 @@ class WorkflowEngineIncidentSerializer(Serializer):
         detected["type"] = IncidentActivityType.DETECTED
         open_period_activities.append(created)
         open_period_activities.append(detected)
-
-        if open_period.resolution_activity:
-            resolved = {
-                "id": "-1",
-                "incidentIdentifier": incident_identifier,
-                "type": IncidentActivityType.STATUS_CHANGE,
-                "value": IncidentStatus.CLOSED,
-                "previousValue": None,
-                "user": None,
-                "comment": None,
-                "dateCreated": open_period.date_started,
-            }
-            open_period_activities.append(resolved)
 
         # look up Activity rows for other status changes (warning / critical)
         status_change_activities = Activity.objects.filter(
@@ -170,6 +157,19 @@ class WorkflowEngineIncidentSerializer(Serializer):
                 "dateCreated": open_period.date_started,
             }
             open_period_activities.append(status_change)
+
+        if open_period.resolution_activity:
+            resolved = {
+                "id": "-1",
+                "incidentIdentifier": incident_identifier,
+                "type": IncidentActivityType.STATUS_CHANGE,
+                "value": IncidentStatus.CLOSED,
+                "previousValue": None,
+                "user": open_period.user,
+                "comment": None,
+                "dateCreated": open_period.date_started,
+            }
+            open_period_activities.append(resolved)
 
         return open_period_activities
 
@@ -254,7 +254,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
             ),  # TODO could be closed, need to handle
             "statusMethod": IncidentStatusMethod.RULE_TRIGGERED.value,  # TODO manual isn't allowed. could be RULE_UPDATED if status is closed
             "type": IncidentType.ALERT_TRIGGERED.value,  # IncidentType.Detected isn't used anymore
-            "title": obj.group.title,  # TODO this corresponds to the detector name / alert rule name, is the openperiod the same?
+            "title": obj.group.title,
             "dateStarted": obj.date_started,
             "dateDetected": obj.date_started,  # In workflow engine, date_started is the date the incident was detected
             "dateCreated": obj.date_added,
