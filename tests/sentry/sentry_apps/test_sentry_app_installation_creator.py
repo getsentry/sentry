@@ -11,6 +11,7 @@ from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProjec
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.models.user import User
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
 
@@ -141,3 +142,10 @@ class TestCreator(TestCase):
             organization_id=self.org.id,
             sentry_app="nulldb",
         )
+
+    @responses.activate
+    def test_placeholder_email(self):
+        responses.add(responses.POST, "https://example.com/webhook")
+        install = self.run_creator()
+        proxy_user = User.objects.get(id=install.sentry_app.proxy_user.id)
+        assert proxy_user.email == f"{proxy_user.id}@proxy-user.sentry.io"
