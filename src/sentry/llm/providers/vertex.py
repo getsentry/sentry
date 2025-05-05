@@ -2,11 +2,12 @@ import logging
 
 import google.auth
 import google.auth.transport.requests
-import requests
+from google import genai
+from google.genai.types import GenerateContentConfig, HttpOptions
 
 from sentry.llm.exceptions import VertexRequestFailed
 from sentry.llm.providers.base import LlmModelBase
-from sentry.llm.types import UseCaseConfig
+from sentry.llm.types import ProviderConfig, UseCaseConfig
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,15 @@ class VertexProvider(LlmModelBase):
     candidate_count = 1  # we only want one candidate returned at the moment
     top_p = 1  # TODO: make this configurable?
 
+    def __init__(self, provider_config: ProviderConfig) -> None:
+        super().__init__(provider_config)
+        self.client = genai.Client(
+            vertexai=True,
+            project=provider_config["options"]["project"],
+            location=provider_config["options"]["location"],
+            http_options=HttpOptions(api_version="v1"),
+        )
+
     def _complete_prompt(
         self,
         *,
@@ -30,35 +40,29 @@ class VertexProvider(LlmModelBase):
         max_output_tokens: int,
     ) -> str | None:
 
+        model = usecase_config["options"]["model"]
         content = f"{prompt} {message}" if prompt else message
+        generate_config = GenerateContentConfig(
+            candidate_count=self.candidate_count,
+            max_output_tokens=max_output_tokens,
+            temperature=temperature,
+            top_p=self.top_p,
+        )
 
-        payload = {
-            "instances": [{"content": content}],
-            "parameters": {
-                "candidateCount": self.candidate_count,
-                "maxOutputTokens": max_output_tokens,
-                "temperature": temperature,
-                "topP": self.top_p,
-            },
-        }
-
-        headers = {
-            "Authorization": f"Bearer {self._get_access_token()}",
-            "Content-Type": "application/json",
-        }
-        vertex_url = self.provider_config["options"]["url"]
-        vertex_url += usecase_config["options"]["model"] + ":predict"
-
-        response = requests.post(vertex_url, headers=headers, json=payload)
+        response = self.client.models.generate_content(
+            model=model,
+            contents=content,
+            config=generate_config,
+        )
 
         if response.status_code != 200:
             logger.error(
-                "Request failed with status code and response text.",
-                extra={"status_code": response.status_code, "response_text": response.text},
+                "Vertex request failed.",
+                extra={"status_code": response.status_code},
             )
-            raise VertexRequestFailed(f"Response {response.status_code}: {response.text}")
+            raise VertexRequestFailed(f"Response {response.status_code}")
 
-        return response.json()["predictions"][0]["content"]
+        return response.text
 
     def _get_access_token(self) -> str:
         # https://stackoverflow.com/questions/53472429/how-to-get-a-gcp-bearer-token-programmatically-with-python
