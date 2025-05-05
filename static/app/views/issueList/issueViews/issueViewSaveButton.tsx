@@ -49,6 +49,7 @@ function SegmentedIssueViewSaveButton({
 
   const discardUnsavedChanges = () => {
     if (view) {
+      trackAnalytics('issue_views.reset.clicked', {organization});
       navigate({
         pathname: location.pathname,
         query: getIssueViewQueryParams({view}),
@@ -58,6 +59,7 @@ function SegmentedIssueViewSaveButton({
 
   const saveView = () => {
     if (view) {
+      trackAnalytics('issue_views.save.clicked', {organization});
       updateGroupSearchView(
         {
           id: view.id,
@@ -77,11 +79,14 @@ function SegmentedIssueViewSaveButton({
     <ButtonBar merged>
       <PrimarySaveButton
         priority={buttonPriority}
-        analyticsEventName={
-          canEdit ? 'issue_views.save.clicked' : 'issue_views.save_as.clicked'
-        }
         data-test-id={hasUnsavedChanges ? 'save-button-unsaved' : 'save-button'}
-        onClick={canEdit ? saveView : openCreateIssueViewModal}
+        onClick={() => {
+          if (canEdit) {
+            saveView();
+          } else {
+            openCreateIssueViewModal();
+          }
+        }}
         disabled={isSaving}
       >
         {canEdit ? t('Save') : t('Save As')}
@@ -93,7 +98,6 @@ function SegmentedIssueViewSaveButton({
             label: t('Reset'),
             disabled: !hasUnsavedChanges,
             onAction: () => {
-              trackAnalytics('issue_views.reset.clicked', {organization});
               discardUnsavedChanges();
             },
           },
@@ -101,7 +105,6 @@ function SegmentedIssueViewSaveButton({
             key: 'save-as',
             label: t('Save as new view'),
             onAction: () => {
-              trackAnalytics('issue_views.save_as.clicked', {organization});
               openCreateIssueViewModal();
             },
             hidden: !canEdit,
@@ -126,8 +129,10 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
   const {viewId} = useParams();
   const {selection} = usePageFilters();
   const {data: view} = useSelectedGroupSearchView();
+  const organization = useOrganization();
 
   const openCreateIssueViewModal = () => {
+    trackAnalytics('issue_views.save_as.clicked', {organization});
     openModal(props => (
       <CreateIssueViewModal
         {...props}
@@ -143,11 +148,7 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
 
   if (!viewId) {
     return (
-      <Button
-        priority="primary"
-        onClick={openCreateIssueViewModal}
-        analyticsEventName="issue_views.save_as.clicked"
-      >
+      <Button priority="primary" onClick={openCreateIssueViewModal}>
         {t('Save As')}
       </Button>
     );
