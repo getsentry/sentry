@@ -8,6 +8,7 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {TextArea} from 'sentry/components/core/textarea';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
+import AutofixInsightSources from 'sentry/components/events/autofix/autofixInsightSources';
 import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
 import type {AutofixInsight} from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
@@ -25,7 +26,9 @@ interface AutofixInsightCardProps {
   groupId: string;
   index: number;
   insight: AutofixInsight;
+  isExpanded: boolean;
   isNewInsight: boolean | undefined;
+  onToggleExpand: (index: number | null) => void;
   runId: string;
   stepIndex: number;
 }
@@ -37,9 +40,10 @@ function AutofixInsightCard({
   groupId,
   runId,
   isNewInsight,
+  isExpanded,
+  onToggleExpand,
 }: AutofixInsightCardProps) {
   const isUserMessage = insight.justification === 'USER';
-  const [expanded, setExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState('');
   const {mutate: updateInsight} = useUpdateInsightCard({groupId, runId});
@@ -50,14 +54,14 @@ function AutofixInsightCard({
   });
 
   const toggleExpand = () => {
-    setExpanded(oldState => !oldState);
+    onToggleExpand(index);
   };
 
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsEditing(true);
     setEditText('');
-    setExpanded(false);
+    onToggleExpand(null);
   };
 
   const handleCancel = () => {
@@ -105,7 +109,10 @@ function AutofixInsightCard({
     <ContentWrapper>
       <AnimatePresence initial={isNewInsight}>
         <AnimationWrapper key="content">
-          <InsightContainer data-new-insight={isNewInsight ? 'true' : 'false'}>
+          <InsightContainer
+            data-new-insight={isNewInsight ? 'true' : 'false'}
+            expanded={isExpanded}
+          >
             {isEditing ? (
               <EditContainer>
                 <form onSubmit={handleSubmit}>
@@ -150,7 +157,7 @@ function AutofixInsightCard({
                 </form>
               </EditContainer>
             ) : (
-              <InsightCardRow onClick={toggleExpand} expanded={expanded}>
+              <InsightCardRow onClick={toggleExpand} expanded={isExpanded}>
                 <AutofixHighlightWrapper
                   groupId={groupId}
                   runId={runId}
@@ -159,7 +166,7 @@ function AutofixInsightCard({
                 >
                   <MiniHeader
                     dangerouslySetInnerHTML={truncatedTitleHtml}
-                    expanded={expanded}
+                    expanded={isExpanded}
                   />
                 </AutofixHighlightWrapper>
 
@@ -167,14 +174,14 @@ function AutofixInsightCard({
                   <Button
                     size="zero"
                     borderless
-                    title={expanded ? t('Hide evidence') : t('Show evidence')}
+                    title={isExpanded ? t('Hide evidence') : t('Show evidence')}
                     icon={
                       <StyledIconChevron
-                        direction={expanded ? 'down' : 'right'}
+                        direction={isExpanded ? 'down' : 'right'}
                         size="xs"
                       />
                     }
-                    aria-label={expanded ? t('Hide evidence') : t('Show evidence')}
+                    aria-label={isExpanded ? t('Hide evidence') : t('Show evidence')}
                   />
                   <EditButton
                     size="zero"
@@ -189,7 +196,7 @@ function AutofixInsightCard({
             )}
 
             <AnimatePresence>
-              {expanded && (
+              {isExpanded && (
                 <motion.div
                   initial={{height: 0, opacity: 0}}
                   animate={{height: 'auto', opacity: 1}}
@@ -200,15 +207,20 @@ function AutofixInsightCard({
                     bounce: 0.1,
                   }}
                 >
-                  <AutofixHighlightWrapper
-                    groupId={groupId}
-                    runId={runId}
-                    stepIndex={stepIndex}
-                    retainInsightCardIndex={insightCardAboveIndex}
-                  >
-                    <ContextBody>
+                  <ContextBody>
+                    <AutofixHighlightWrapper
+                      groupId={groupId}
+                      runId={runId}
+                      stepIndex={stepIndex}
+                      retainInsightCardIndex={insightCardAboveIndex}
+                    >
                       {hasFullJustification || !insight.change_diff ? (
-                        <MarkedText as="p" text={fullJustificationText} />
+                        <Fragment>
+                          <MarkedText as="p" text={fullJustificationText} />
+                          {insight.markdown_snippets && (
+                            <MarkedText as="p" text={insight.markdown_snippets} />
+                          )}
+                        </Fragment>
                       ) : (
                         <DiffContainer>
                           <AutofixDiff
@@ -220,8 +232,12 @@ function AutofixInsightCard({
                           />
                         </DiffContainer>
                       )}
-                    </ContextBody>
-                  </AutofixHighlightWrapper>
+                    </AutofixHighlightWrapper>
+                    <AutofixInsightSources
+                      sources={insight.sources}
+                      title={insight.insight}
+                    />
+                  </ContextBody>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -389,6 +405,7 @@ function AutofixInsightCards({
   runId,
 }: AutofixInsightCardsProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [expandedCardIndex, setExpandedCardIndex] = useState<number | null>(null);
   const previousInsightsRef = useRef<AutofixInsight[]>([]);
   const [newInsightIndices, setNewInsightIndices] = useState<number[]>([]);
 
@@ -404,6 +421,14 @@ function AutofixInsightCards({
 
   const handleToggleCollapse = () => {
     setIsCollapsed(!isCollapsed);
+    // Close any expanded card when collapsing the section
+    if (!isCollapsed) {
+      setExpandedCardIndex(null);
+    }
+  };
+
+  const handleToggleExpand = (index: number | null) => {
+    setExpandedCardIndex(prevIndex => (prevIndex === index ? null : index));
   };
 
   const validInsightCount = insights.filter(insight => insight).length;
@@ -447,6 +472,8 @@ function AutofixInsightCards({
                           groupId={groupId}
                           runId={runId}
                           isNewInsight={newInsightIndices.includes(index)}
+                          isExpanded={expandedCardIndex === index}
+                          onToggleExpand={handleToggleExpand}
                         />
                       ) : null
                     )}
@@ -556,11 +583,13 @@ const CardsStack = styled('div')`
   gap: 0;
 `;
 
-const InsightContainer = styled(motion.div)`
+const InsightContainer = styled(motion.div)<{expanded?: boolean}>`
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
   margin-bottom: 0;
   background: ${p => p.theme.background};
+
+  box-shadow: ${p => (p.expanded ? p.theme.dropShadowMedium : 'none')};
 
   &[data-new-insight='true'] {
     animation: fadeFromActive 0.8s ease-in-out;
@@ -656,7 +685,7 @@ const MiniHeader = styled('p')<{expanded?: boolean}>`
 
 const ContextBody = styled('div')`
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
-  background: ${p => p.theme.pink100};
+  background: ${p => p.theme.pink400}10;
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   overflow: hidden;
   position: relative;
