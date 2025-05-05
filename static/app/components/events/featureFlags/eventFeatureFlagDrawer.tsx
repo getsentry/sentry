@@ -49,7 +49,7 @@ interface FlagDrawerProps {
   focusControl?: FlagControlOptions;
 }
 
-export function FeatureFlagDrawer({
+export function EventFeatureFlagDrawer({
   group,
   event,
   project,
@@ -157,18 +157,12 @@ export const CardContainer = styled('div')<{numCols: number}>`
     :not(:last-child) {
       border-right: 1.5px solid ${p => p.theme.innerBorder};
       padding-right: ${space(2)};
-      div {
-        padding-left: ${space(0.5)};
-      }
     }
     :not(:first-child) {
       border-left: 1.5px solid ${p => p.theme.innerBorder};
       padding-left: ${space(2)};
       padding-right: 0;
       margin-left: -1px;
-      div {
-        padding-left: ${space(0.5)};
-      }
     }
   }
 `;

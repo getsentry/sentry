@@ -37,7 +37,7 @@ describe('SavedQueriesTable', () => {
     render(<SavedQueriesLandingContent />);
     await screen.findByText('Created by Me');
     await screen.findByText('Created by Others');
-    await screen.findByText('Recently Viewed');
+    await screen.findByText('Most Starred');
   });
 
   it('should filter tables when searching', async () => {

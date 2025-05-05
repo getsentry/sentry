@@ -20,6 +20,8 @@ type Query = {
 
 export type SortOption =
   | 'name'
+  | '-name'
+  | 'dateAdded'
   | '-dateAdded'
   | '-dateUpdated'
   | 'mostPopular'
@@ -29,10 +31,8 @@ export type SortOption =
 
 // Comes from ExploreSavedQueryModelSerializer
 export type SavedQuery = {
-  createdBy: Actor;
   dateAdded: string;
   dateUpdated: string;
-  environment: string[];
   id: number;
   interval: string;
   lastVisited: string;
@@ -42,7 +42,9 @@ export type SavedQuery = {
   query: [Query, ...Query[]];
   queryDataset: string;
   starred: boolean;
+  createdBy?: Actor;
   end?: string;
+  environment?: string[];
   isPrebuilt?: boolean;
   range?: string;
   start?: string;

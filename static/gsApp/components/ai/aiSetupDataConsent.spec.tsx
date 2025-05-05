@@ -10,7 +10,7 @@ describe('AiSetupDataConsent', () => {
 
   it('renders Enable Seer button if nobody in org has acknowledged', async () => {
     MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/setup/',
+      url: '/organizations/org-slug/issues/1/autofix/setup/',
       body: AutofixSetupFixture({
         setupAcknowledgement: {
           orgHasAcknowledged: false,
@@ -46,7 +46,7 @@ describe('AiSetupDataConsent', () => {
 
   it('renders Try Seer button if org has acknowledged but not the user', async () => {
     MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/setup/',
+      url: '/organizations/org-slug/issues/1/autofix/setup/',
       body: AutofixSetupFixture({
         setupAcknowledgement: {
           orgHasAcknowledged: true,

@@ -11,9 +11,9 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import SuspectTable from 'sentry/views/issueDetails/groupDistributions/suspectTable';
-import FlagDetailsLink from 'sentry/views/issueDetails/groupFeatureFlags/flagDetailsLink';
+import FlagDetailsLink from 'sentry/views/issueDetails/groupFeatureFlags/details/flagDetailsLink';
 import FlagDrawerCTA from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerCTA';
-import useGroupFlagDrawerData from 'sentry/views/issueDetails/groupFeatureFlags/useGroupFlagDrawerData';
+import useGroupFlagDrawerData from 'sentry/views/issueDetails/groupFeatureFlags/hooks/useGroupFlagDrawerData';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {
   Container,

@@ -45,7 +45,7 @@ interface UseTraceItemDetailsProps {
   enabled?: boolean;
 }
 
-interface TraceItemDetailsResponse {
+export interface TraceItemDetailsResponse {
   attributes: TraceItemResponseAttribute[];
   itemId: string;
   timestamp: string;

@@ -64,7 +64,6 @@ function Step({
   hasStepBelow,
   hasStepAbove,
   hasErroredStepBefore,
-  shouldCollapseByDefault,
   previousDefaultStepIndex,
   previousInsightCount,
   feedback,
@@ -73,7 +72,7 @@ function Step({
   isChangesFirstAppearance,
 }: StepProps) {
   return (
-    <StepCard>
+    <StepCard id={`autofix-step-${step.id}`} data-step-type={step.type}>
       <ContentWrapper>
         <AnimatePresence initial={false}>
           <AnimationWrapper key="content" {...animationProps}>
@@ -91,7 +90,6 @@ function Step({
                   stepIndex={step.index}
                   groupId={groupId}
                   runId={runId}
-                  shouldCollapseByDefault={shouldCollapseByDefault}
                 />
               )}
               {step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS && (

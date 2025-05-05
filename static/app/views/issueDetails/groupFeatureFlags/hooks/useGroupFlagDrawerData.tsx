@@ -2,8 +2,8 @@ import {useMemo} from 'react';
 
 import {OrderBy, SortBy} from 'sentry/components/events/featureFlags/utils';
 import type {Group} from 'sentry/types/group';
-import useGroupFeatureFlags from 'sentry/views/issueDetails/groupFeatureFlags/useGroupFeatureFlags';
-import {useGroupSuspectFlagScores} from 'sentry/views/issueDetails/groupFeatureFlags/useGroupSuspectFlagScores';
+import useGroupFeatureFlags from 'sentry/views/issueDetails/groupFeatureFlags/hooks/useGroupFeatureFlags';
+import {useGroupSuspectFlagScores} from 'sentry/views/issueDetails/groupFeatureFlags/hooks/useGroupSuspectFlagScores';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
 interface SuspectGroupTag extends GroupTag {

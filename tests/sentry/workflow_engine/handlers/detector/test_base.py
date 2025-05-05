@@ -12,7 +12,7 @@ from sentry.workflow_engine.handlers.detector import (
     DetectorHandler,
     DetectorOccurrence,
 )
-from sentry.workflow_engine.handlers.detector.stateful import StatefulDetectorHandler
+from sentry.workflow_engine.handlers.detector.stateful import StatefulGroupingDetectorHandler
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel, DetectorSettings
@@ -20,7 +20,7 @@ from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
 
 
 def build_mock_occurrence_and_event(
-    handler: StatefulDetectorHandler,
+    handler: StatefulGroupingDetectorHandler,
     group_key: DetectorGroupKey,
     new_status: PriorityLevel,
 ) -> tuple[DetectorOccurrence, dict[str, Any]]:
@@ -47,7 +47,7 @@ def status_change_comparator(self: StatusChangeMessage, other: StatusChangeMessa
     )
 
 
-class MockDetectorStateHandler(StatefulDetectorHandler[dict]):
+class MockDetectorStateHandler(StatefulGroupingDetectorHandler[dict]):
     counter_names = ["test1", "test2"]
 
     def get_dedupe_value(self, data_packet: DataPacket[dict]) -> int:
