@@ -2889,6 +2889,12 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert len(data) == 1
         assert data[0]["failure_rate_if(is_transaction, true)"] == 0.25
         assert meta["dataset"] == self.dataset
+        assert meta["fields"] == {
+            "failure_rate_if(is_transaction, true)": "percentage",
+        }
+        assert meta["units"] == {
+            "failure_rate_if(is_transaction, true)": None,
+        }
 
     def test_count_op(self):
         self.store_spans(

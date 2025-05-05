@@ -3,12 +3,9 @@ import styled from '@emotion/styled';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type EventView from 'sentry/utils/discover/eventView';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {
@@ -18,17 +15,14 @@ import {
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
-import {
-  isEAPTraceNode,
-  isTraceNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
+import {getRepresentativeTraceEvent} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import Highlights from 'sentry/views/performance/newTraceDetails/traceHeader/highlights';
 import {PlaceHolder} from 'sentry/views/performance/newTraceDetails/traceHeader/placeholder';
 import Projects from 'sentry/views/performance/newTraceDetails/traceHeader/projects';
 import ScrollToSectionLinks from 'sentry/views/performance/newTraceDetails/traceHeader/scrollToSectionLinks';
 import {TraceHeaderComponents} from 'sentry/views/performance/newTraceDetails/traceHeader/styles';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {isRootEvent} from 'sentry/views/performance/traceDetails/utils';
 
 import {getTraceViewBreadcrumbs} from './breadcrumbs';
 import {Meta} from './meta';
@@ -38,69 +32,12 @@ export interface TraceMetadataHeaderProps {
   logs: OurLogsResponseItem[];
   metaResults: TraceMetaQueryResults;
   organization: Organization;
-  rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
+  rootEventResults: TraceRootEventQueryResults;
   traceEventView: EventView;
   traceSlug: string;
   tree: TraceTree;
   project?: Project;
 }
-
-const CANDIDATE_TRACE_TITLE_OPS = ['pageload', 'navigation'];
-
-const getRepresentativeEvent = (
-  tree: TraceTree,
-  logs: OurLogsResponseItem[]
-): TraceTree.TraceEvent | OurLogsResponseItem | null => {
-  if (tree.type === 'empty' && logs.length > 0) {
-    return logs[0] ?? null;
-  }
-
-  const traceNode = tree.root.children[0];
-
-  if (!traceNode) {
-    return null;
-  }
-
-  if (!isTraceNode(traceNode) && !isEAPTraceNode(traceNode)) {
-    throw new TypeError('Not trace node');
-  }
-
-  let firstRootEvent: TraceTree.TraceEvent | null = null;
-  let candidateEvent: TraceTree.TraceEvent | null = null;
-  let firstEvent: TraceTree.TraceEvent | null = null;
-
-  const events = isTraceNode(traceNode)
-    ? [...traceNode.value.transactions, ...traceNode.value.orphan_errors]
-    : traceNode.value;
-  for (const event of events) {
-    // If we find a root transaction, we can stop looking and use it for the title.
-    if (!firstRootEvent && isRootEvent(event)) {
-      firstRootEvent = event;
-      break;
-    } else if (
-      // If we haven't found a root transaction, but we found a candidate transaction
-      // with an op that we care about, we can use it for the title. We keep looking for
-      // a root.
-      !candidateEvent &&
-      CANDIDATE_TRACE_TITLE_OPS.includes(
-        'transaction.op' in event
-          ? event['transaction.op']
-          : 'op' in event
-            ? event.op
-            : ''
-      )
-    ) {
-      candidateEvent = event;
-      continue;
-    } else if (!firstEvent) {
-      // If we haven't found a root or candidate transaction, we can use the first transaction
-      // in the trace for the title.
-      firstEvent = event;
-    }
-  }
-
-  return firstRootEvent ?? candidateEvent ?? firstEvent;
-};
 
 export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   const location = useLocation();
@@ -122,14 +59,14 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
     return <PlaceHolder organization={props.organization} traceSlug={props.traceSlug} />;
   }
 
-  const representativeEvent = getRepresentativeEvent(props.tree, props.logs);
-  const project = representativeEvent
-    ? OurLogKnownFieldKey.PROJECT_ID in representativeEvent
-      ? projects.find(p => {
-          return p.id === representativeEvent[OurLogKnownFieldKey.PROJECT_ID];
-        })
-      : projects.find(p => p.slug === representativeEvent.project_slug)
-    : undefined;
+  const rep = getRepresentativeTraceEvent(props.tree, props.logs);
+  const project = projects.find(p => {
+    const id =
+      rep.event && OurLogKnownFieldKey.PROJECT_ID in rep.event
+        ? rep.event[OurLogKnownFieldKey.PROJECT_ID]
+        : rep.event?.project_id;
+    return p.id === String(id);
+  });
 
   return (
     <TraceHeaderComponents.HeaderLayout>
@@ -154,16 +91,12 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
           </ButtonBar>
         </TraceHeaderComponents.HeaderRow>
         <TraceHeaderComponents.HeaderRow>
-          <Title
-            representativeEvent={representativeEvent}
-            rootEventResults={props.rootEventResults}
-          />
+          <Title representativeEvent={rep} rootEventResults={props.rootEventResults} />
           <Meta
             organization={props.organization}
-            rootEventResults={props.rootEventResults}
             tree={props.tree}
             meta={props.metaResults.data}
-            representativeEvent={representativeEvent}
+            representativeEvent={rep}
             logs={props.logs}
           />
         </TraceHeaderComponents.HeaderRow>
@@ -171,14 +104,12 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
         <TraceHeaderComponents.HeaderRow>
           <Highlights
             rootEventResults={props.rootEventResults}
-            tree={props.tree}
-            logs={props.logs}
             project={project}
             organization={props.organization}
           />
           <Flex>
             <ScrollToSectionLinks
-              rootEvent={props.rootEventResults}
+              rootEventResults={props.rootEventResults}
               tree={props.tree}
               logs={props.logs}
             />
