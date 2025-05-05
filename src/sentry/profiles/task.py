@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from base64 import b64decode
+from base64 import b64decode, b64encode
 from copy import deepcopy
 from datetime import datetime, timezone
 from operator import itemgetter
@@ -81,6 +81,14 @@ profile_chunks_producer = SingletonProducer(
 )
 
 
+def decode_payload(encoded: str) -> dict[str, Any]:
+    return msgpack.unpackb(b64decode(encoded.encode("utf-8")), use_list=False)
+
+
+def encode_payload(message: dict[str, Any]) -> str:
+    return b64encode(msgpack.packb(message)).decode("utf-8")
+
+
 @instrumented_task(
     name="sentry.profiles.task.process_profile",
     retry_backoff=True,
@@ -108,7 +116,7 @@ def process_profile_task(
         return
 
     if payload:
-        message_dict = msgpack.unpackb(b64decode(payload.encode("utf-8")), use_list=False)
+        message_dict = decode_payload(payload)
         profile = json.loads(message_dict["payload"], use_rapid_json=True)
 
         assert profile is not None
