@@ -665,7 +665,7 @@ def dual_update_migrated_alert_rule(alert_rule: AlertRule) -> (
             dc.update(type=threshold_type)
 
     # reset detector status, as the rule was updated
-    detector_state.update(active=False, state=DetectorPriorityLevel.OK)
+    detector_state.update(is_triggered=False, state=DetectorPriorityLevel.OK)
 
     return detector_state, detector
 
