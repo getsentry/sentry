@@ -12,7 +12,6 @@ import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import EventView, {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -34,7 +33,6 @@ import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/compon
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {APP_START_SPANS} from 'sentry/views/insights/mobile/appStarts/components/spanOpSelector';
@@ -43,7 +41,6 @@ import {
   WARM_START_TYPE,
 } from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
-import {useTableQuery} from 'sentry/views/insights/mobile/screenload/components/tables/screensTable';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
 import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
 import {
@@ -68,7 +65,6 @@ export function SpanOperationTable({
 }: Props) {
   const organization = useOrganization();
   const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_VITALS, organization);
-  const useEap = useInsightsEap();
   const moduleURL = useModuleURL(
     isMobileScreensEnabled ? ModuleName.MOBILE_VITALS : ModuleName.APP_START
   );
@@ -103,7 +99,7 @@ export function SpanOperationTable({
     'has:span.description',
     'transaction.op:ui.load',
     `transaction:${transaction}`,
-    useEap ? 'has:measurements.time_to_initial_display' : 'has:ttid',
+    'has:ttid',
     `${SpanMetricsField.APP_START_TYPE}:${
       startType || `[${COLD_START_TYPE},${WARM_START_TYPE}]`
     }`,
@@ -124,8 +120,6 @@ export function SpanOperationTable({
     primaryRelease,
     secondaryRelease
   );
-
-  console.log(queryStringPrimary);
 
   const sort = decodeSorts(location.query[QueryParameterNames.SPANS_SORT])[0] ?? {
     kind: 'desc',
@@ -172,13 +166,6 @@ export function SpanOperationTable({
     },
     'api.starfish.mobile-spartup-span-table'
   );
-
-  // const {data, isPending, pageLinks} = useTableQuery({
-  //   eventView,
-  //   enabled: true,
-  //   referrer: 'api.starfish.mobile-spartup-span-table',
-  //   cursor,
-  // });
 
   const columnNameMap = {
     [SPAN_OP]: t('Operation'),
