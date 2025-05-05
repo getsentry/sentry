@@ -105,7 +105,7 @@ class TestMetricIssueDetectorConfig(JSONConfigBaseTest, APITestCase):
             slug = "test_metric_issue"
             description = "Metric alert fired"
             category = GroupCategory.METRIC_ALERT.value
-            category_v2 = GroupCategory.PERFORMANCE_REGRESSION.value
+            category_v2 = GroupCategory.METRIC.value
             detector_settings = DetectorSettings(
                 config_schema=MetricIssue.detector_settings.config_schema,
             )

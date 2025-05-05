@@ -43,7 +43,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             slug = MetricIssue.slug
             description = "Metric alert"
             category = GroupCategory.METRIC_ALERT.value
-            category_v2 = GroupCategory.PERFORMANCE_REGRESSION.value
+            category_v2 = GroupCategory.METRIC.value
             detector_settings = DetectorSettings(handler=MockDetectorHandler)
             released = True
 

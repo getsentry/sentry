@@ -31,7 +31,7 @@ class GroupCategory(IntEnum):
     ERROR = 1
     """
     Deprecated
-    Will be broken out into PERFORMANCE_REGRESSION, DB_QUERY, HTTP_CLIENT, FRONTEND, MOBILE
+    Will be broken out into METRIC, DB_QUERY, HTTP_CLIENT, FRONTEND, MOBILE
     """
     PERFORMANCE = 2
     PROFILE = 3  # deprecated, merging with PERFORMANCE
@@ -53,14 +53,14 @@ class GroupCategory(IntEnum):
     UPTIME = 7
     """
     Deprecated
-    Metric alert types will move to the PERFORMANCE_REGRESSION category
+    Metric alert types will move to the METRIC category
     """
     METRIC_ALERT = 8
     TEST_NOTIFICATION = 9
 
     # New issue categories (under the organizations:issue-taxonomy flag)
     OUTAGE = 10
-    PERFORMANCE_REGRESSION = 11
+    METRIC = 11
     DB_QUERY = 12
     HTTP_CLIENT = 13
     FRONTEND = 14
@@ -464,7 +464,7 @@ class PerformanceP95EndpointRegressionGroupType(GroupType):
     slug = "performance_p95_endpoint_regression"
     description = "Endpoint Regression"
     category = GroupCategory.PERFORMANCE.value
-    category_v2 = GroupCategory.PERFORMANCE_REGRESSION.value
+    category_v2 = GroupCategory.METRIC.value
     enable_auto_resolve = False
     enable_escalation_detection = False
     default_priority = PriorityLevel.MEDIUM
@@ -479,7 +479,7 @@ class PerformanceStreamedSpansGroupTypeExperimental(GroupType):
     slug = "performance_streamed_spans_exp"
     description = "Streamed Spans (Experimental)"
     category = GroupCategory.PERFORMANCE.value
-    category_v2 = GroupCategory.PERFORMANCE_REGRESSION.value
+    category_v2 = GroupCategory.METRIC.value
     enable_auto_resolve = False
     enable_escalation_detection = False
     default_priority = PriorityLevel.LOW
@@ -548,7 +548,7 @@ class ProfileFunctionRegressionType(GroupType):
     slug = "profile_function_regression"
     description = "Function Regression"
     category = GroupCategory.PERFORMANCE.value
-    category_v2 = GroupCategory.PERFORMANCE_REGRESSION.value
+    category_v2 = GroupCategory.METRIC.value
     enable_auto_resolve = False
     released = True
     default_priority = PriorityLevel.MEDIUM
@@ -631,7 +631,7 @@ class MetricIssuePOC(GroupType):
     slug = "metric_issue_poc"
     description = "Metric Issue POC"
     category = GroupCategory.METRIC_ALERT.value
-    category_v2 = GroupCategory.PERFORMANCE_REGRESSION.value
+    category_v2 = GroupCategory.METRIC.value
     default_priority = PriorityLevel.HIGH
     enable_auto_resolve = False
     enable_escalation_detection = False
