@@ -25,7 +25,7 @@ export function CombinedBreadcrumbsAndLogsSection({
 
   return (
     <LogsPageParamsProvider
-      isOnEmbeddedView
+      isTableFrozen
       limitToTraceId={event.contexts?.trace?.trace_id}
       analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
     >
@@ -55,7 +55,6 @@ function CombinedBreadcrumbsAndLogsSectionContent({
       />
       <LogsIssuesSection
         initialCollapse={shouldCollapseLogs}
-        isOnEmbeddedView
         limitToTraceId={event.contexts?.trace?.trace_id}
         event={event}
         group={group}

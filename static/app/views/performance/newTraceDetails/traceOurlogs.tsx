@@ -33,7 +33,7 @@ export function TraceViewLogsDataProvider({
 }: UseTraceViewLogsDataProps) {
   return (
     <LogsPageParamsProvider
-      isOnEmbeddedView
+      isTableFrozen
       limitToTraceId={traceSlug}
       analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
     >

@@ -29,7 +29,6 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 
 export function LogsIssuesSection({
   initialCollapse,
-  isOnEmbeddedView,
   limitToTraceId,
   event,
   project,
@@ -53,7 +52,7 @@ export function LogsIssuesSection({
       () => (
         <LogsPageParamsProvider
           analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
-          isOnEmbeddedView
+          isTableFrozen
           limitToTraceId={limitToTraceId}
         >
           <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
@@ -89,7 +88,7 @@ export function LogsIssuesSection({
     >
       <LogsPageParamsProvider
         analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
-        isOnEmbeddedView={isOnEmbeddedView}
+        isTableFrozen
         limitToTraceId={limitToTraceId}
       >
         <LogsSectionContent tableData={tableData} openDrawer={onOpenLogsDrawer} />

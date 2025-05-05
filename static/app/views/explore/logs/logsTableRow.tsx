@@ -21,6 +21,7 @@ import {AttributesTree} from 'sentry/views/explore/components/traceItemAttribute
 import {
   useLogsAnalyticsPageSource,
   useLogsFields,
+  useLogsIsTableFrozen,
   useLogsSearch,
   useSetLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
@@ -92,6 +93,7 @@ export function LogRowContent({
   const fields = useLogsFields();
   const search = useLogsSearch();
   const setLogsSearch = useSetLogsSearch();
+  const isTableFrozen = useLogsIsTableFrozen();
 
   function toggleExpanded() {
     setExpanded(e => !e);
@@ -203,7 +205,7 @@ export function LogRowContent({
           };
 
           return (
-            <LogTableBodyCell key={field}>
+            <LogTableBodyCell key={field} data-test-id={'log-table-cell-' + field}>
               <CellAction
                 column={discoverColumn}
                 dataRow={dataRow as unknown as TableDataRow}
@@ -227,7 +229,9 @@ export function LogRowContent({
                   }
                 }}
                 allowActions={
-                  field === OurLogKnownFieldKey.TIMESTAMP ? [] : ALLOWED_CELL_ACTIONS
+                  field === OurLogKnownFieldKey.TIMESTAMP || isTableFrozen
+                    ? []
+                    : ALLOWED_CELL_ACTIONS
                 }
               >
                 <LogFieldRenderer

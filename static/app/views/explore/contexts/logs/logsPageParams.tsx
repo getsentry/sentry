@@ -33,7 +33,7 @@ interface LogsPageParams {
   readonly analyticsPageSource: LogsAnalyticsPageSource;
   readonly cursor: string;
   readonly fields: string[];
-  readonly isTableEditingFrozen: boolean | undefined;
+  readonly isTableFrozen: boolean | undefined;
   readonly search: MutableSearch;
   readonly sortBys: Sort[];
   /**
@@ -57,7 +57,7 @@ const [_LogsPageParamsProvider, _useLogsPageParams, LogsPageParamsContext] =
 export interface LogsPageParamsProviderProps {
   analyticsPageSource: LogsAnalyticsPageSource;
   children: React.ReactNode;
-  isOnEmbeddedView?: boolean;
+  isTableFrozen?: boolean;
   limitToProjectIds?: number[];
   limitToSpanId?: string;
   limitToTraceId?: string;
@@ -68,7 +68,7 @@ export function LogsPageParamsProvider({
   limitToTraceId,
   limitToSpanId,
   limitToProjectIds,
-  isOnEmbeddedView,
+  isTableFrozen,
   analyticsPageSource,
 }: LogsPageParamsProviderProps) {
   const location = useLocation();
@@ -83,15 +83,12 @@ export function LogsPageParamsProvider({
     baseSearch = baseSearch ?? new MutableSearch('');
     baseSearch.addFilterValue(OurLogKnownFieldKey.TRACE_ID, limitToTraceId);
   }
-  const isTableEditingFrozen = isOnEmbeddedView;
-  const fields = isTableEditingFrozen
-    ? defaultLogFields()
-    : getLogFieldsFromLocation(location);
-  const sortBys = isTableEditingFrozen
+  const fields = isTableFrozen ? defaultLogFields() : getLogFieldsFromLocation(location);
+  const sortBys = isTableFrozen
     ? [logsTimestampDescendingSortBy]
     : getLogSortBysFromLocation(location, fields);
   const pageFilters = usePageFilters();
-  const projectIds = isOnEmbeddedView
+  const projectIds = isTableFrozen
     ? (limitToProjectIds ?? [-1])
     : pageFilters.selection.projects;
   // TODO we should handle environments in a similar way to projects - otherwise page filters might break embedded views
@@ -105,7 +102,7 @@ export function LogsPageParamsProvider({
         search,
         sortBys,
         cursor,
-        isTableEditingFrozen,
+        isTableFrozen,
         baseSearch,
         projectIds,
         analyticsPageSource,
@@ -133,7 +130,7 @@ function setLogsPageParams(location: Location, pageParams: LogPageParamsUpdate) 
   updateNullableLocation(target, LOGS_QUERY_KEY, pageParams.search?.formatString());
   updateNullableLocation(target, LOGS_CURSOR_KEY, pageParams.cursor);
   updateNullableLocation(target, LOGS_FIELDS_KEY, pageParams.fields);
-  if (!pageParams.isTableEditingFrozen) {
+  if (!pageParams.isTableFrozen) {
     updateLocationWithLogSortBys(target, pageParams.sortBys);
   }
   return target;
@@ -203,9 +200,9 @@ export function useSetLogsSearch() {
   );
 }
 
-export function useLogsIsTableEditingFrozen() {
-  const {isTableEditingFrozen} = useLogsPageParams();
-  return isTableEditingFrozen;
+export function useLogsIsTableFrozen() {
+  const {isTableFrozen} = useLogsPageParams();
+  return isTableFrozen;
 }
 
 export function usePersistedLogsPageParams() {
