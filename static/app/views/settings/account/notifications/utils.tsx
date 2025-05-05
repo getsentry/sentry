@@ -54,7 +54,7 @@ export function getPricingDocsLinkForEventType(event: DataCategoryExact) {
     case DataCategoryExact.PROFILE_DURATION_UI:
       return 'https://docs.sentry.io/pricing/quotas/manage-ui-profile-hours/';
     default:
-      return 'http://docs.sentry.io/pricing/quotas/manage-event-stream-guide/';
+      return 'https://docs.sentry.io/pricing/quotas/manage-event-stream-guide/';
   }
 }
 
