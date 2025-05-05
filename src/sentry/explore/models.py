@@ -60,7 +60,11 @@ class ExploreSavedQuery(DefaultFieldsModel):
         choices=ExploreSavedQueryDataset.as_choices(), default=ExploreSavedQueryDataset.SPANS
     )
     is_multi_query = models.BooleanField(default=False)
+    # The corresponding prebuilt_id found in hardcoded prebuilt queries from src/sentry/explore/endpoints/explore_saved_queries.py
+    # If the saved query is not a prebuilt query, this will be None
     prebuilt_id = BoundedPositiveIntegerField(null=True, db_default=None)
+    # The version of the prebuilt query. If the version found in the explore_saved_queries.py hardcoded list is greater, then the saved
+    # query out of date and should be updated..
     prebuilt_version = BoundedPositiveIntegerField(null=True, db_default=None)
 
     class Meta:
