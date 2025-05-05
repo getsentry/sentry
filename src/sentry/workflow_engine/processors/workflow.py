@@ -279,8 +279,7 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
             "organizations:workflow-engine-trigger-actions",
             organization,
         ):
-            for action in actions:
-                action.trigger(event_data, detector)
+            trigger_actions(actions, event_data, detector)
 
         metrics.incr(
             "workflow_engine.process_workflows.triggered_actions",
@@ -297,3 +296,38 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
         )
 
     return triggered_workflows
+
+
+def trigger_actions(
+    actions: set[Action], event_data: WorkflowEventData, detector: Detector
+) -> None:
+    for action in actions:
+        workflow_ids = get_workflow_ids_for_action(action)
+
+        # This shouldn't happen
+        if len(workflow_ids) == 0:
+            logger.error(
+                "No workflows found for action",
+                extra={"action_id": action.id},
+            )
+            continue
+
+        # Currently Actions aren't used in multiple workflows, so we can just use the first one
+        # We will need to revisit this if we want to support Actions in multiple workflows
+        workflow_id = workflow_ids[0]
+
+        event_data = replace(
+            event_data,
+            workflow_id=workflow_id,
+        )
+        action.trigger(event_data, detector)
+
+
+def get_workflow_ids_for_action(action: Action) -> list[int]:
+    # Fetches workflows for an Action
+    # Action -> DataConditionGroupAction -> DataConditionGroup -> WorkflowDataConditionGroup -> Workflow
+    return list(
+        Workflow.objects.filter(
+            workflowdataconditiongroup__condition_group__dataconditiongroupaction__action=action
+        ).values_list("id", flat=True)
+    )
