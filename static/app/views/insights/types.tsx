@@ -78,6 +78,12 @@ export enum SpanFields {
   MOBILE_SLOW_FRAMES = 'mobile.slow_frames',
   FROZEN_FRAMES_RATE = 'measurements.frames_frozen_rate',
   SLOW_FRAMES_RATE = 'measurements.frames_slow_rate',
+  RAW_DOMAIN = 'raw_domain',
+  PROJECT = 'project',
+  MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH = 'measurements.http.response_content_length',
+  SPAN_DESCRIPTION = 'span.description',
+  SPAN_GROUP = 'span.group',
+  SPAN_OP = 'span.op',
 }
 
 type WebVitalsMeasurements =
@@ -115,10 +121,12 @@ type SpanNumberFields =
   | SpanFields.MOBILE_SLOW_FRAMES
   | SpanFields.FROZEN_FRAMES_RATE
   | SpanFields.SLOW_FRAMES_RATE
+  | SpanFields.MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH
   | DiscoverNumberFields;
 
 type SpanStringFields =
   | SpanMetricsField.RESOURCE_RENDER_BLOCKING_STATUS
+  | SpanFields.RAW_DOMAIN
   | 'id'
   | 'span_id'
   | 'span.op'
