@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import timedelta
 from typing import Any
 
@@ -37,7 +37,13 @@ from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers im
     QueryResult,
     slow_condition_query_handler_registry,
 )
-from sentry.workflow_engine.models import DataCondition, DataConditionGroup, Workflow
+from sentry.workflow_engine.models import (
+    Action,
+    DataCondition,
+    DataConditionGroup,
+    Workflow,
+    WorkflowDataConditionGroup,
+)
 from sentry.workflow_engine.models.data_condition import (
     PERCENT_CONDITIONS,
     SLOW_CONDITIONS,
@@ -414,31 +420,49 @@ def fire_actions_for_groups(
                 action_filters.add(dcg)
 
         # process action filters
-        filtered_actions = filter_recently_fired_workflow_actions(action_filters, event_data)
+        action_filter_results: list[tuple[Action, Workflow]] = []
+
+        # query WorkflowDataConditionGroup to link DataConditionGroup (from action_filters) to Workflow
+        wdcgs = WorkflowDataConditionGroup.objects.filter(
+            condition_group__in=action_filters
+        ).select_related("workflow", "condition_group")
+
+        action_filters_map: dict[DataConditionGroup, Workflow] = {
+            wdcg.condition_group: wdcg.workflow for wdcg in wdcgs
+        }
+
+        action_filter_results = filter_recently_fired_workflow_actions(
+            action_filters_map, event_data
+        )
 
         # process workflow_triggers
         workflows = set(Workflow.objects.filter(when_condition_group_id__in=workflow_triggers))
 
         # create WorkflowFireHistory (updated in evaluate_workflows_action_filters)
         create_workflow_fire_histories(workflows, event_data)
-        filtered_actions = filtered_actions.union(
-            evaluate_workflows_action_filters(workflows, event_data)
-        )
+
+        # evaluate action filters for the triggered workflows
+        workflow_trigger_action_results = evaluate_workflows_action_filters(workflows, event_data)
+
+        # Combine results
+        all_actions_with_workflows = action_filter_results + workflow_trigger_action_results
 
         # temporary fetching of organization, so not passing in as parameter
         organization = group.project.organization
 
         metrics.incr(
             "workflow_engine.delayed_workflow.triggered_actions",
-            amount=len(filtered_actions),
+            amount=len(all_actions_with_workflows),
             tags={"event_type": group_event.group.type},
         )
 
         logger.info(
             "workflow_engine.delayed_workflow.triggered_actions",
             extra={
-                "workflow_ids": [workflow.id for workflow in workflows],
-                "actions": filtered_actions,
+                "workflow_ids": [workflow.id for _, workflow in all_actions_with_workflows],
+                "actions_with_workflows": [
+                    (action.id, workflow.id) for action, workflow in all_actions_with_workflows
+                ],
                 "event_data": event_data,
             },
         )
@@ -447,8 +471,10 @@ def fire_actions_for_groups(
             "organizations:workflow-engine-trigger-actions",
             organization,
         ):
-            for action in filtered_actions:
-                action.trigger(event_data, detector)
+            for action, workflow in all_actions_with_workflows:
+                # Add workflow_id to event_data for action trigger context
+                action_event_data = replace(event_data, workflow_id=workflow.id)
+                action.trigger(action_event_data, detector)
 
 
 def cleanup_redis_buffer(

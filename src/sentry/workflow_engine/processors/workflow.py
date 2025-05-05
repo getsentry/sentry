@@ -7,7 +7,6 @@ from django.db import router, transaction
 from django.db.models import Q
 
 from sentry import buffer, features
-from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.eventstore.models import GroupEvent
 from sentry.models.environment import Environment
 from sentry.utils import json, metrics
@@ -17,6 +16,7 @@ from sentry.workflow_engine.models import (
     DataConditionGroup,
     Detector,
     Workflow,
+    WorkflowDataConditionGroup,
     WorkflowFireHistory,
 )
 from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
@@ -124,8 +124,10 @@ def evaluate_workflow_triggers(
 def evaluate_workflows_action_filters(
     workflows: set[Workflow],
     event_data: WorkflowEventData,
-) -> BaseQuerySet[Action]:
-    filtered_action_groups: set[DataConditionGroup] = set()
+) -> list[tuple[Action, Workflow]]:
+
+    # This is a mapping of the DataConditionGroup to the Workflow
+    filtered_action_groups: dict[DataConditionGroup, Workflow] = {}
 
     # Gets the list of the workflow ids, and then get the workflow_data_condition_groups for those workflows
     workflow_ids_to_envs = {workflow.id: workflow.environment for workflow in workflows}
@@ -142,7 +144,9 @@ def evaluate_workflows_action_filters(
         workflow_event_data = event_data
 
         # each DataConditionGroup here has 1 WorkflowDataConditionGroup
-        workflow_data_condition_group = action_condition.workflowdataconditiongroup_set.first()
+        workflow_data_condition_group: WorkflowDataConditionGroup | None = (
+            action_condition.workflowdataconditiongroup_set.first()
+        )
 
         # Populate the workflow_env in the event_data for the action_condition evaluation
         if workflow_data_condition_group:
@@ -166,7 +170,10 @@ def evaluate_workflows_action_filters(
                 )
         else:
             if evaluation:
-                filtered_action_groups.add(action_condition)
+                if workflow_data_condition_group:
+                    filtered_action_groups[workflow_data_condition_group.condition_group] = (
+                        workflow_data_condition_group.workflow
+                    )
 
     return filter_recently_fired_workflow_actions(filtered_action_groups, event_data)
 
@@ -258,10 +265,10 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
     with sentry_sdk.start_span(
         op="workflow_engine.process_workflows.evaluate_workflows_action_filters"
     ):
-        actions = evaluate_workflows_action_filters(triggered_workflows, event_data)
+        actions_with_workflows = evaluate_workflows_action_filters(triggered_workflows, event_data)
         metrics.incr(
             "workflow_engine.process_workflows.actions",
-            amount=len(actions),
+            amount=len(actions_with_workflows),
             tags={"detector_type": detector.type},
         )
 
@@ -269,7 +276,9 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
             "workflow_engine.process_workflows.actions (all)",
             extra={
                 "workflow_ids": [workflow.id for workflow in triggered_workflows],
-                "action_ids": [action.id for action in actions],
+                "actions_with_workflows": [
+                    (action.id, workflow.id) for action, workflow in actions_with_workflows
+                ],
                 "detector_type": detector.type,
             },
         )
@@ -279,19 +288,22 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
             "organizations:workflow-engine-trigger-actions",
             organization,
         ):
-            for action in actions:
-                action.trigger(event_data, detector)
+            for action, workflow in actions_with_workflows:
+                action_event_data = replace(event_data, workflow_id=workflow.id)
+                action.trigger(action_event_data, detector)
 
         metrics.incr(
             "workflow_engine.process_workflows.triggered_actions",
-            amount=len(actions),
+            amount=len(actions_with_workflows),
             tags={"detector_type": detector.type},
         )
         logger.info(
             "workflow_engine.process_workflows.triggered_actions (batch)",
             extra={
                 "workflow_ids": [workflow.id for workflow in triggered_workflows],
-                "action_ids": [action.id for action in actions],
+                "actions_with_workflows": [
+                    (action.id, workflow.id) for action, workflow in actions_with_workflows
+                ],
                 "detector_type": detector.type,
             },
         )

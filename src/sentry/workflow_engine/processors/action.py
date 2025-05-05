@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 
 from django.db.models import DurationField, ExpressionWrapper, F, IntegerField, Value
@@ -19,11 +20,14 @@ from sentry.workflow_engine.models import (
     ActionGroupStatus,
     DataCondition,
     DataConditionGroup,
+    Workflow,
     WorkflowDataConditionGroup,
     WorkflowFireHistory,
 )
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import WorkflowEventData
+
+logger = logging.getLogger(__name__)
 
 EnqueuedAction = tuple[DataConditionGroup, list[DataCondition]]
 
@@ -84,12 +88,17 @@ def update_workflow_fire_histories(
 
 # TODO(cathy): only reinforce workflow frequency for certain issue types
 def filter_recently_fired_workflow_actions(
-    filtered_action_groups: set[DataConditionGroup], event_data: WorkflowEventData
-) -> BaseQuerySet[Action]:
+    filtered_action_groups: dict[DataConditionGroup, Workflow], event_data: WorkflowEventData
+) -> list[tuple[Action, Workflow]]:
     # get the actions for any of the triggered data condition groups
-    actions = Action.objects.filter(
-        dataconditiongroupaction__condition_group__in=filtered_action_groups
-    ).distinct()
+    actions = (
+        Action.objects.filter(
+            dataconditiongroupaction__condition_group__in=filtered_action_groups.keys()
+        )
+        .prefetch_related("dataconditiongroupaction_set")
+        .distinct()
+    )
+
     group = event_data.event.group
 
     now = timezone.now()
@@ -115,9 +124,22 @@ def filter_recently_fired_workflow_actions(
     actions_without_statuses_ids = {action.id for action in actions_without_statuses}
     filtered_actions = actions.filter(id__in=actions_to_include | actions_without_statuses_ids)
 
+    result_list: list[tuple[Action, Workflow]] = []
+    for action in filtered_actions:
+        dcg_action = action.dataconditiongroupaction_set.first()
+        if dcg_action:
+            workflow = filtered_action_groups[dcg_action.condition_group]
+            result_list.append((action, workflow))
+        else:
+            logger.error(
+                "Action %s has no associated DataConditionGroupAction",
+                action.id,
+                extra={"action_id": action.id},
+            )
+
     update_workflow_fire_histories(filtered_actions, event_data)
 
-    return filtered_actions
+    return result_list
 
 
 def get_available_action_integrations_for_org(organization: Organization) -> list[RpcIntegration]:
