@@ -107,12 +107,13 @@ export function SpansTabContent({
   maxPickableDays,
   relativeOptions,
 }: SpanTabProps) {
+  useVisitExplore();
+
   const organization = useOrganization();
   const [controlSectionExpanded, setControlSectionExpanded] = useState(true);
 
   return (
     <Fragment>
-      <VisitExploreTrigger />
       <BodySearch>
         <SpanTabSearchSection
           defaultPeriod={defaultPeriod}
@@ -136,7 +137,7 @@ export function SpansTabContent({
   );
 }
 
-function VisitExploreTrigger() {
+function useVisitExplore() {
   const id = useExploreId();
   const visitQuery = useVisitQuery();
   useEffect(() => {
@@ -144,7 +145,6 @@ function VisitExploreTrigger() {
       visitQuery(id);
     }
   }, [id, visitQuery]);
-  return null;
 }
 
 interface SpanTabSearchSectionProps extends PickableDays {}
@@ -487,7 +487,7 @@ const ControlSection = styled('aside')<{expanded: boolean}>`
     ${p =>
       p.expanded
         ? css`
-            width: 338px; /* 300px fpr the toolbar + padding */
+            width: 338px; /* 300px for the toolbar + padding */
             padding: ${space(1)} ${space(1)} ${space(1)} ${space(4)};
             border-right: 1px solid ${p.theme.border};
           `
