@@ -33,12 +33,8 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
         # Clear the cache after each test
         cache.delete(f"ai-group-summary-v2:{self.group.id}")
 
-    @patch("sentry.seer.issue_summary.get_seer_org_acknowledgement")
     @patch("sentry.seer.issue_summary._call_seer")
-    def test_get_issue_summary_with_existing_summary(
-        self, mock_call_seer, mock_get_acknowledgement
-    ):
-        mock_get_acknowledgement.return_value = True
+    def test_get_issue_summary_with_existing_summary(self, mock_call_seer):
         existing_summary = {
             "group_id": str(self.group.id),
             "headline": "Existing headline",
@@ -61,12 +57,9 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
         assert status_code == 200
         assert summary_data == convert_dict_key_case(existing_summary, snake_to_camel_case)
         mock_call_seer.assert_not_called()
-        mock_get_acknowledgement.assert_called_once_with(self.group.organization.id)
 
-    @patch("sentry.seer.issue_summary.get_seer_org_acknowledgement")
     @patch("sentry.seer.issue_summary._get_event")
-    def test_get_issue_summary_without_event(self, mock_get_event, mock_get_acknowledgement):
-        mock_get_acknowledgement.return_value = True
+    def test_get_issue_summary_without_event(self, mock_get_event):
         mock_get_event.return_value = [None, None]
 
         summary_data, status_code = get_issue_summary(self.group, self.user)
@@ -74,16 +67,13 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
         assert status_code == 400
         assert summary_data == {"detail": "Could not find an event for the issue"}
         assert cache.get(f"ai-group-summary-v2:{self.group.id}") is None
-        mock_get_acknowledgement.assert_called_once_with(self.group.organization.id)
 
-    @patch("sentry.seer.issue_summary.get_seer_org_acknowledgement")
     @patch("sentry.seer.issue_summary._get_trace_connected_issues")
     @patch("sentry.seer.issue_summary._call_seer")
     @patch("sentry.seer.issue_summary._get_event")
     def test_get_issue_summary_without_existing_summary(
-        self, mock_get_event, mock_call_seer, mock_get_connected_issues, mock_get_acknowledgement
+        self, mock_get_event, mock_call_seer, mock_get_connected_issues
     ):
-        mock_get_acknowledgement.return_value = True
         event = Mock(
             event_id="test_event_id",
             data="test_event_data",
@@ -121,31 +111,14 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
             [self.group, self.group],
             [serialized_event, serialized_event],
         )
-        mock_get_acknowledgement.assert_called_once_with(self.group.organization.id)
 
         # Check if the cache was set correctly
         cached_summary = cache.get(f"ai-group-summary-v2:{self.group.id}")
         assert cached_summary == expected_response_summary
 
-    def test_get_issue_summary_without_ai_acknowledgement(self):
-        with patch(
-            "sentry.seer.issue_summary.get_seer_org_acknowledgement"
-        ) as mock_get_acknowledgement:
-            mock_get_acknowledgement.return_value = False
-
-            summary_data, status_code = get_issue_summary(self.group, self.user)
-
-            assert status_code == 403
-            assert summary_data == {
-                "detail": "AI Autofix has not been acknowledged by the organization."
-            }
-            mock_get_acknowledgement.assert_called_once_with(self.group.organization.id)
-
     @patch("sentry.seer.issue_summary.requests.post")
     @patch("sentry.seer.issue_summary._get_event")
-    @patch("sentry.seer.issue_summary.get_seer_org_acknowledgement")
-    def test_call_seer_integration(self, mock_get_acknowledgement, mock_get_event, mock_post):
-        mock_get_acknowledgement.return_value = True
+    def test_call_seer_integration(self, mock_get_event, mock_post):
         event = Mock(
             event_id="test_event_id",
             data="test_event_data",
@@ -179,16 +152,11 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
         assert status_code == 200
         assert summary_data == convert_dict_key_case(expected_response_summary, snake_to_camel_case)
         mock_post.assert_called_once()
-        mock_get_acknowledgement.assert_called_once_with(self.group.organization.id)
 
         assert cache.get(f"ai-group-summary-v2:{self.group.id}") == expected_response_summary
 
     @patch("sentry.seer.issue_summary.get_issue_summary")
-    @patch("sentry.seer.issue_summary.get_seer_org_acknowledgement")
-    def test_get_issue_summary_cache_write_read(
-        self, mock_get_acknowledgement, mock_get_issue_summary
-    ):
-        mock_get_acknowledgement.return_value = True
+    def test_get_issue_summary_cache_write_read(self, mock_get_issue_summary):
         # First request to populate the cache
         mock_get_event = Mock()
         mock_call_seer = Mock()
@@ -236,15 +204,10 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
             # Verify that _get_event and _call_seer were not called due to cache hit
             mock_get_event.assert_not_called()
             mock_call_seer.assert_not_called()
-            mock_get_acknowledgement.assert_called_with(self.group.organization.id)
 
     @patch("sentry.seer.issue_summary._generate_summary")
-    @patch("sentry.seer.issue_summary.get_seer_org_acknowledgement")
-    def test_get_issue_summary_concurrent_wait_for_lock(
-        self, mock_get_acknowledgement, mock_generate_summary
-    ):
+    def test_get_issue_summary_concurrent_wait_for_lock(self, mock_generate_summary):
         """Test that a second request waits for the lock and reads from cache."""
-        mock_get_acknowledgement.return_value = True
         cache_key = f"ai-group-summary-v2:{self.group.id}"
 
         # Mock summary generation to take time and cache the result
@@ -305,12 +268,8 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
         assert cache.get(cache_key) == generated_summary
 
     @patch("sentry.seer.issue_summary._generate_summary")
-    @patch("sentry.seer.issue_summary.get_seer_org_acknowledgement")
-    def test_get_issue_summary_concurrent_force_event_id_bypasses_lock(
-        self, mock_get_acknowledgement, mock_generate_summary
-    ):
+    def test_get_issue_summary_concurrent_force_event_id_bypasses_lock(self, mock_generate_summary):
         """Test that force_event_id bypasses lock waiting."""
-        mock_get_acknowledgement.return_value = True
         # Mock summary generation
         forced_summary = {"headline": "Forced Summary", "event_id": "force_event"}
         mock_generate_summary.return_value = (forced_summary, 200)
@@ -332,21 +291,17 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
 
         # Ensure generation was called directly
         mock_generate_summary.assert_called_once()
-        mock_get_acknowledgement.assert_called_once_with(self.group.organization.id)
 
     @patch("sentry.seer.issue_summary.cache.get")
     @patch("sentry.seer.issue_summary._generate_summary")
     @patch("sentry.utils.locking.lock.Lock.blocking_acquire")
-    @patch("sentry.seer.issue_summary.get_seer_org_acknowledgement")
     def test_get_issue_summary_lock_timeout(
         self,
-        mock_get_acknowledgement,
         mock_blocking_acquire,
         mock_generate_summary_core,
         mock_cache_get,
     ):
         """Test that a timeout waiting for the lock returns 503."""
-        mock_get_acknowledgement.return_value = True
         # Simulate lock acquisition always failing with the specific exception
         mock_blocking_acquire.side_effect = UnableToAcquireLock
         # Simulate cache miss even after timeout
@@ -362,7 +317,6 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
         mock_generate_summary_core.assert_not_called()
         # Ensure cache was checked twice (once initially, once after lock failure)
         assert mock_cache_get.call_count == 2
-        mock_get_acknowledgement.assert_called_once_with(self.group.organization.id)
 
     @patch("sentry.seer.issue_summary.Project.objects.filter")
     @patch("sentry.seer.issue_summary.eventstore.backend.get_events")
