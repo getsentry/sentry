@@ -186,12 +186,16 @@ function NewTraceViewImpl({replay}: {replay: undefined | ReplayRecord}) {
     traceSlug: firstTrace?.traceSlug,
     timestamp: firstTrace?.timestamp,
   });
-  const rootEvent = useTraceRootEvent(trace.data ?? null);
   const meta = useReplayTraceMeta(replay);
   const tree = useTraceTree({
     trace,
     meta,
     replay: replay ?? null,
+  });
+  const rootEvent = useTraceRootEvent({
+    tree,
+    logs: undefined,
+    traceId: firstTrace?.traceSlug ?? '',
   });
 
   const traceWaterfallModels = useTraceWaterfallModels();
@@ -244,7 +248,7 @@ function NewTraceViewImpl({replay}: {replay: undefined | ReplayRecord}) {
         traceSlug={firstTrace.traceSlug}
         trace={trace}
         tree={tree}
-        rootEvent={rootEvent}
+        rootEventResults={rootEvent}
         replayTraces={otherReplayTraces}
         organization={organization}
         traceEventView={eventView}
