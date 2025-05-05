@@ -108,6 +108,7 @@ const issueTypeConfig: Config = {
   [IssueCategory.HTTP_CLIENT]: httpClientConfig,
   [IssueCategory.DB_QUERY]: dbQueryConfig,
   [IssueCategory.MOBILE]: mobileConfig,
+  [IssueCategory.METRIC]: metricIssueConfig,
 };
 
 /**

@@ -100,6 +100,7 @@ export enum IssueCategory {
   RESPONSIVENESS = 'responsiveness',
   PERFORMANCE_BEST_PRACTICE = 'performance_best_practice',
 
+  METRIC = 'metric',
   FRONTEND = 'frontend',
   HTTP_CLIENT = 'http_client',
   DB_QUERY = 'db_query',
