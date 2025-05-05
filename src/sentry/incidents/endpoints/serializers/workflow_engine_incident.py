@@ -1,13 +1,12 @@
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, ClassVar, DefaultDict
+from typing import Any, ClassVar, DefaultDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Subquery
 
 from sentry.api.serializers import Serializer, serialize
-from sentry.api.serializers.models.incidentactivity import IncidentActivitySerializerResponse
 from sentry.incidents.endpoints.serializers.incident import (
     DetailedIncidentSerializerResponse,
     IncidentSerializerResponse,
@@ -55,14 +54,13 @@ class WorkflowEngineIncidentSerializer(Serializer):
         item_list: Sequence[GroupOpenPeriod],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ) -> defaultdict[GroupOpenPeriod, dict[str, list[str]]]:
+    ) -> defaultdict[GroupOpenPeriod, dict[str, Any]]:
 
         from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
             WorkflowEngineDetectorSerializer,
         )
 
-        # TODO: improve typing here
-        results: dict[GroupOpenPeriod, dict[str, Any]] = {}
+        results: DefaultDict[GroupOpenPeriod, dict[str, Any]] = defaultdict()
         open_periods_to_detectors = self.get_open_periods_to_detectors(item_list)
         alert_rules = {
             d["id"]: d
@@ -75,7 +73,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
         alert_rule_detectors = AlertRuleDetector.objects.filter(
             detector__in=list(open_periods_to_detectors.values())
         )
-        open_periods_to_alert_rules = defaultdict()
+        open_periods_to_alert_rules: DefaultDict[GroupOpenPeriod, int] = defaultdict()
         for open_period, detector in open_periods_to_detectors.items():
             for ard in alert_rule_detectors:
                 if ard.detector == detector:
@@ -102,9 +100,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
 
         return self.priority_to_incident_status[priority]
 
-    def get_open_period_activities(
-        self, open_period: GroupOpenPeriod
-    ) -> list[IncidentActivitySerializerResponse]:
+    def get_open_period_activities(self, open_period: GroupOpenPeriod) -> list[dict[str, Any]]:
         # XXX: an incident will be 1:1 with open periods, but there can be multiple open periods per metric issue
         # XXX: this won't actually work until we start writing to the table for metric issues (or are we planning a backfill?)
 
@@ -129,7 +125,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
         open_period_activities.append(detected)
 
         # look up Activity rows for other status changes (warning, critical, and resolved)
-        activity_status_to_incident_status = {
+        activity_status_to_incident_status: dict[str, Any] = {
             "high": IncidentStatus.CRITICAL,
             "medium": IncidentStatus.WARNING,
         }
@@ -138,12 +134,12 @@ class WorkflowEngineIncidentSerializer(Serializer):
             type__in=[ActivityType.SET_PRIORITY.value, ActivityType.SET_RESOLVED.value],
         ).order_by("datetime")
 
-        previous_activity = None
-        previous_priority = None
+        previous_activity: Activity | None = None
+        previous_priority: str | None = None
 
         for activity in status_change_activities:
             current_activity = activity
-            current_priority = current_activity.data.get("priority")
+            current_priority = cast(str, current_activity.data.get("priority"))
 
             if previous_activity:
                 previous_priority = previous_activity.data.get("priority")
@@ -154,7 +150,11 @@ class WorkflowEngineIncidentSerializer(Serializer):
                     "incidentIdentifier": incident_identifier,
                     "type": IncidentActivityType.STATUS_CHANGE,
                     "value": activity_status_to_incident_status.get(current_priority),
-                    "previousValue": activity_status_to_incident_status.get(previous_priority),
+                    "previousValue": (
+                        activity_status_to_incident_status.get(previous_priority)
+                        if previous_priority
+                        else None
+                    ),
                     "user": None,
                     "comment": None,
                     "dateCreated": open_period.date_started,
@@ -170,7 +170,11 @@ class WorkflowEngineIncidentSerializer(Serializer):
                     "incidentIdentifier": incident_identifier,
                     "type": IncidentActivityType.STATUS_CHANGE,
                     "value": IncidentStatus.CLOSED,
-                    "previousValue": activity_status_to_incident_status.get(previous_priority),
+                    "previousValue": (
+                        activity_status_to_incident_status.get(previous_priority)
+                        if previous_priority
+                        else None
+                    ),
                     "user": open_period.user_id,
                     "comment": None,
                     "dateCreated": open_period.date_started,
@@ -182,7 +186,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
         return open_period_activities
 
     def get_open_periods_to_detectors(
-        self, open_periods: list[GroupOpenPeriod]
+        self, open_periods: Sequence[GroupOpenPeriod]
     ) -> dict[GroupOpenPeriod, Detector]:
         action_group_statuses = ActionGroupStatus.objects.filter(
             group__in=[open_period.group for open_period in open_periods]
@@ -197,17 +201,19 @@ class WorkflowEngineIncidentSerializer(Serializer):
         dcgas = DataConditionGroupAction.objects.filter(
             action__in=list(open_periods_to_actions.values())
         )
-        open_periods_to_condition_group = defaultdict()
+        open_periods_to_condition_group: DefaultDict[GroupOpenPeriod, DataConditionGroupAction] = (
+            defaultdict()
+        )
         for open_period, action in open_periods_to_actions.items():
-            for dcg in dcgas:
-                if dcg.action == action:
-                    open_periods_to_condition_group[open_period] = dcg
+            for dcga in dcgas:
+                if dcga.action == action:
+                    open_periods_to_condition_group[open_period] = dcga
                     break
 
         action_filters = DataCondition.objects.filter(
             condition_group__in=[dcga.condition_group for dcga in dcgas]
         )
-        open_period_to_action_filters = defaultdict()
+        open_period_to_action_filters: DefaultDict[GroupOpenPeriod, DataCondition] = defaultdict()
         for open_period, dcga in open_periods_to_condition_group.items():
             for action_filter in action_filters:
                 if action_filter.condition_group == dcga.condition_group:
@@ -218,7 +224,9 @@ class WorkflowEngineIncidentSerializer(Serializer):
             condition_group__in=Subquery(action_filters.values("condition_group"))
         )
 
-        open_periods_to_workflow_dcgs = defaultdict()
+        open_periods_to_workflow_dcgs: DefaultDict[GroupOpenPeriod, WorkflowDataConditionGroup] = (
+            defaultdict()
+        )
         for open_period, action_filter in open_period_to_action_filters.items():
             for workflow_dcg in workflow_dcgs:
                 if workflow_dcg.condition_group == action_filter.condition_group:
@@ -227,7 +235,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
         detector_workflows = DetectorWorkflow.objects.filter(
             workflow__in=Subquery(workflow_dcgs.values("workflow"))
         )
-        open_periods_to_detectors = defaultdict()
+        open_periods_to_detectors: DefaultDict[GroupOpenPeriod, Detector] = defaultdict()
         for open_period, workflow_dcg in open_periods_to_workflow_dcgs.items():
             for detector_workflow in detector_workflows:
                 if detector_workflow.workflow == workflow_dcg.workflow:
