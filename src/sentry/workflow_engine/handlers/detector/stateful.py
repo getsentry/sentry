@@ -129,7 +129,7 @@ class StatefulGroupingDetectorHandler(
             detector_state = group_key_detectors.get(group_key)
             results[group_key] = DetectorStateData(
                 group_key=group_key,
-                active=detector_state.active if detector_state else False,
+                is_triggered=detector_state.is_triggered if detector_state else False,
                 status=(
                     DetectorPriorityLevel(int(detector_state.state))
                     if detector_state
@@ -210,8 +210,8 @@ class StatefulGroupingDetectorHandler(
         if state_data.status == new_status:
             return None
 
-        is_active = new_status != DetectorPriorityLevel.OK
-        self.enqueue_state_update(group_key, is_active, new_status)
+        is_triggered = new_status != DetectorPriorityLevel.OK
+        self.enqueue_state_update(group_key, is_triggered, new_status)
         event_data = None
         result: StatusChangeMessage | IssueOccurrence
         if new_status == DetectorPriorityLevel.OK:
@@ -248,7 +248,7 @@ class StatefulGroupingDetectorHandler(
 
         return DetectorEvaluationResult(
             group_key=group_key,
-            is_active=is_active,
+            is_triggered=is_triggered,
             priority=new_status,
             result=result,
             event_data=event_data,
@@ -263,9 +263,9 @@ class StatefulGroupingDetectorHandler(
         self.counter_updates[group_key] = counter_updates
 
     def enqueue_state_update(
-        self, group_key: DetectorGroupKey, is_active: bool, priority: DetectorPriorityLevel
+        self, group_key: DetectorGroupKey, is_triggered: bool, priority: DetectorPriorityLevel
     ):
-        self.state_updates[group_key] = (is_active, priority)
+        self.state_updates[group_key] = (is_triggered, priority)
 
     def build_dedupe_value_key(self, group_key: DetectorGroupKey) -> str:
         if group_key is None:
@@ -329,19 +329,19 @@ class StatefulGroupingDetectorHandler(
         )
         created_detector_states = []
         updated_detector_states = []
-        for group_key, (active, priority) in self.state_updates.items():
+        for group_key, (is_triggered, priority) in self.state_updates.items():
             detector_state = detector_state_lookup.get(group_key)
             if not detector_state:
                 created_detector_states.append(
                     DetectorState(
                         detector_group_key=group_key,
                         detector=self.detector,
-                        active=active,
+                        is_triggered=is_triggered,
                         state=priority,
                     )
                 )
-            elif active != detector_state.active or priority != detector_state.state:
-                detector_state.active = active
+            elif is_triggered != detector_state.is_triggered or priority != detector_state.state:
+                detector_state.is_triggered = is_triggered
                 detector_state.state = priority
                 updated_detector_states.append(detector_state)
 
@@ -349,5 +349,5 @@ class StatefulGroupingDetectorHandler(
             DetectorState.objects.bulk_create(created_detector_states)
 
         if updated_detector_states:
-            DetectorState.objects.bulk_update(updated_detector_states, ["active", "state"])
+            DetectorState.objects.bulk_update(updated_detector_states, ["is_triggered", "state"])
         self.state_updates.clear()

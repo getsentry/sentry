@@ -78,7 +78,7 @@ class DetectorEvaluationResult:
     group_key: DetectorGroupKey
     # TODO: Are these actually necessary? We're going to produce the occurrence in the detector, so we probably don't
     # need to know the other results externally
-    is_active: bool
+    is_triggered: bool
     priority: DetectorPriorityLevel
     # TODO: This is only temporarily optional. We should always have a value here if returning a result
     result: IssueOccurrence | StatusChangeMessage | None = None
@@ -89,7 +89,7 @@ class DetectorEvaluationResult:
 @dataclasses.dataclass(frozen=True)
 class DetectorStateData:
     group_key: DetectorGroupKey
-    active: bool
+    is_triggered: bool
     status: DetectorPriorityLevel
     # Stateful detectors always process data packets in order. Once we confirm that a data packet has been fully
     # processed and all workflows have been done, this value will be used by the stateful detector to prevent

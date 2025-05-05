@@ -25,7 +25,7 @@ class DetectorState(DefaultFieldsModel):
     detector_group_key = models.CharField(max_length=200, blank=True, null=True)
 
     # If the detector is currently active
-    active = models.BooleanField(default=False)
+    is_triggered = models.BooleanField(default=False, db_column="active")
 
     # The current state of the detector
     state = models.CharField(max_length=200, default=DetectorPriorityLevel.OK)
