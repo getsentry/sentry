@@ -3128,6 +3128,60 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert data[0]["count_scores(measurements.score.total)"] == 3
         assert meta["dataset"] == self.dataset
 
+    def test_count_scores_filter(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.lcp": {"value": 0.03},
+                            "score.total": {"value": 0.43},
+                        },
+                        "sentry_tags": {"transaction": "foo_transaction"},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.total": {"value": 1.0},
+                            "score.ratio.lcp": {"value": 0.03},
+                        },
+                        "sentry_tags": {"transaction": "foo_transaction"},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.total": {"value": 0.0},
+                            "score.ratio.lcp": {"value": 0.03},
+                        },
+                        "sentry_tags": {"transaction": "bar_transaction"},
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["count_scores(measurements.score.lcp)", "transaction"],
+                "query": "count_scores(measurements.score.lcp):>1",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["count_scores(measurements.score.lcp)"] == 2
+        assert data[0]["transaction"] == "foo_transaction"
+        assert meta["dataset"] == self.dataset
+
     def test_time_spent_percentage(self):
         spans = []
         for _ in range(4):
