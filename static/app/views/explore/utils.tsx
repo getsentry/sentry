@@ -8,7 +8,6 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {encodeSort} from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
@@ -53,7 +52,6 @@ export function getExploreUrl({
   const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
   const {environments, projects} = selection ?? {};
   const queryParams = {
-    dataset: DiscoverDatasets.SPANS_EAP_RPC,
     project: projects,
     environment: environments,
     statsPeriod,
@@ -153,7 +151,6 @@ function getExploreMultiQueryUrl({
   const {start, end, period: statsPeriod, utc} = selection.datetime;
   const {environments, projects} = selection;
   const queryParams = {
-    dataset: DiscoverDatasets.SPANS_EAP_RPC,
     project: projects,
     environment: environments,
     statsPeriod,
