@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import * as qs from 'query-string';
 
-import {getInterval} from 'sentry/components/charts/utils';
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
@@ -10,20 +9,17 @@ import Link from 'sentry/components/links/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {MetaType} from 'sentry/utils/discover/eventView';
-import EventView, {isFieldSortable} from 'sentry/utils/discover/eventView';
+import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
@@ -31,7 +27,6 @@ import {
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
@@ -76,7 +71,6 @@ export function SpanOperationTable({
   const location = useLocation();
   const theme = useTheme();
 
-  const {selection} = usePageFilters();
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
   const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
 
@@ -125,28 +119,6 @@ export function SpanOperationTable({
     kind: 'desc',
     field: `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
   };
-
-  const newQuery: NewQuery = {
-    name: '',
-    fields: [
-      PROJECT_ID,
-      SPAN_OP,
-      SPAN_GROUP,
-      SPAN_DESCRIPTION,
-      `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
-      `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
-      `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
-      `sum(${SPAN_SELF_TIME})`,
-    ],
-    query: queryStringPrimary,
-    dataset: DiscoverDatasets.SPANS_METRICS,
-    version: 2,
-    projects: selection.projects,
-    interval: getInterval(selection.datetime, STARFISH_CHART_INTERVAL_FIDELITY),
-  };
-
-  const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
-  eventView.sorts = [sort];
 
   const {data, meta, isPending, pageLinks} = useSpanMetrics(
     {
@@ -273,8 +245,6 @@ export function SpanOperationTable({
     return sortLink;
   }
 
-  const columnSortBy = eventView.getSorts();
-
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
     navigate({
       pathname,
@@ -296,7 +266,12 @@ export function SpanOperationTable({
         ].map(col => {
           return {key: col, name: columnNameMap[col] ?? col, width: COL_WIDTH_UNDEFINED};
         })}
-        columnSortBy={columnSortBy}
+        columnSortBy={[
+          {
+            key: sort.field,
+            order: sort.kind,
+          },
+        ]}
         grid={{
           renderHeadCell: column => renderHeadCell(column, meta),
           renderBodyCell,
