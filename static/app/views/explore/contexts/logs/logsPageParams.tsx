@@ -31,6 +31,7 @@ export const LOGS_FIELDS_KEY = 'logsFields';
 
 interface LogsPageParams {
   readonly analyticsPageSource: LogsAnalyticsPageSource;
+  readonly blockRowExpanding: boolean | undefined;
   readonly cursor: string;
   readonly fields: string[];
   readonly isTableFrozen: boolean | undefined;
@@ -57,6 +58,7 @@ const [_LogsPageParamsProvider, _useLogsPageParams, LogsPageParamsContext] =
 export interface LogsPageParamsProviderProps {
   analyticsPageSource: LogsAnalyticsPageSource;
   children: React.ReactNode;
+  blockRowExpanding?: boolean;
   isTableFrozen?: boolean;
   limitToProjectIds?: number[];
   limitToSpanId?: string;
@@ -68,6 +70,7 @@ export function LogsPageParamsProvider({
   limitToTraceId,
   limitToSpanId,
   limitToProjectIds,
+  blockRowExpanding,
   isTableFrozen,
   analyticsPageSource,
 }: LogsPageParamsProviderProps) {
@@ -103,6 +106,7 @@ export function LogsPageParamsProvider({
         sortBys,
         cursor,
         isTableFrozen,
+        blockRowExpanding,
         baseSearch,
         projectIds,
         analyticsPageSource,
@@ -202,7 +206,12 @@ export function useSetLogsSearch() {
 
 export function useLogsIsTableFrozen() {
   const {isTableFrozen} = useLogsPageParams();
-  return isTableFrozen;
+  return !!isTableFrozen;
+}
+
+export function useLogsBlockRowExpanding() {
+  const {blockRowExpanding} = useLogsPageParams();
+  return !!blockRowExpanding;
 }
 
 export function usePersistedLogsPageParams() {

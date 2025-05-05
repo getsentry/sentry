@@ -26,6 +26,7 @@ export function CombinedBreadcrumbsAndLogsSection({
   return (
     <LogsPageParamsProvider
       isTableFrozen
+      blockRowExpanding
       limitToTraceId={event.contexts?.trace?.trace_id}
       analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
     >
