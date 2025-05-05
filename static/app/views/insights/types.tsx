@@ -68,6 +68,7 @@ export enum SpanMetricsField {
 
 // TODO: This will be the final field type for eap spans
 export enum SpanFields {
+  TRANSACTION = 'transaction',
   IS_TRANSACTION = 'is_transaction',
   CACHE_HIT = 'cache.hit',
   IS_STARRED_TRANSACTION = 'is_starred_transaction',

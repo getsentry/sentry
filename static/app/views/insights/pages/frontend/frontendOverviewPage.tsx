@@ -8,8 +8,6 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   canUseMetricsData,
@@ -18,8 +16,9 @@ import {
 import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
-import {decodeSorts} from 'sentry/utils/queryString';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -44,12 +43,14 @@ import {
   DEFAULT_SORT,
   EAP_OVERVIEW_PAGE_ALLOWED_OPS,
   FRONTEND_LANDING_TITLE,
-  FRONTEND_PLATFORMS,
 } from 'sentry/views/insights/pages/frontend/settings';
+import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
 import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
 import {useIsNextJsInsightsEnabled} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {NewNextJsExperienceButton} from 'sentry/views/insights/pages/platform/nextjs/newNextjsExperienceToggle';
+import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
+import {categorizeProjects} from 'sentry/views/insights/pages/utils';
 import type {EAPSpanProperty} from 'sentry/views/insights/types';
 import {generateFrontendOtherPerformanceEventView} from 'sentry/views/performance/data';
 import {
@@ -80,9 +81,13 @@ function EAPOverviewPage() {
     withStaticFilters,
     true
   );
-  const searchBarEventView = eventView.clone();
 
   const sharedProps = {eventView, location, organization, withStaticFilters};
+  const {query: searchBarQuery} = useLocationQuery({
+    fields: {
+      query: decodeScalar,
+    },
+  });
 
   // TODO - this should come from MetricsField / EAP fields
   eventView.fields = [
@@ -101,14 +106,12 @@ function EAPOverviewPage() {
 
   const doubleChartRowEventView = eventView.clone(); // some of the double chart rows rely on span metrics, so they can't be queried the same way
 
-  const selectedFrontendProjects: Project[] = getSelectedProjectList(
-    selection.projects,
-    projects
-  ).filter((project): project is Project =>
-    Boolean(project?.platform && FRONTEND_PLATFORMS.includes(project.platform))
-  );
+  const {
+    frontendProjects: selectedFrontendProjects,
+    otherProjects: selectedOtherProjects,
+  } = categorizeProjects(getSelectedProjectList(selection.projects, projects));
 
-  const existingQuery = new MutableSearch(eventView.query);
+  const existingQuery = new MutableSearch(searchBarQuery);
   // TODO - this query is getting complicated, once were on EAP, we should consider moving this to the backend
   existingQuery.addOp('(');
   existingQuery.addFilterValues('span.op', EAP_OVERVIEW_PAGE_ALLOWED_OPS);
@@ -203,6 +206,11 @@ function EAPOverviewPage() {
     'api.performance.landing-table'
   );
 
+  const searchBarProjectsIds = [
+    ...selectedFrontendProjects,
+    ...selectedOtherProjects,
+  ].map(project => project.id);
+
   return (
     <Feature
       features="performance-view"
@@ -224,14 +232,16 @@ function EAPOverviewPage() {
                   <DatePageFilter />
                 </PageFilterBar>
                 {!showOnboarding && (
-                  <StyledTransactionNameSearchBar
-                    organization={organization}
-                    eventView={searchBarEventView}
-                    onSearch={(query: string) => {
-                      handleSearch(query);
-                    }}
-                    query={getFreeTextFromQuery(derivedQuery) ?? ''}
-                  />
+                  <InsightsSpanTagProvider>
+                    <StyledTransactionNameSearchBar
+                      organization={organization}
+                      projectIds={searchBarProjectsIds}
+                      onSearch={(query: string) => {
+                        handleSearch(query);
+                      }}
+                      query={getFreeTextFromQuery(derivedQuery) ?? ''}
+                    />
+                  </InsightsSpanTagProvider>
                 )}
               </ToolRibbon>
             </ModuleLayout.Full>
