@@ -312,9 +312,9 @@ def test_fix_for_issue_platform_environment(environment):
 
     fixed_event = fix_for_issue_platform(event)
     if environment == "my-environment":
-        assert fixed_event["environment"] == "my-environment", environment
+        assert fixed_event["environment"] == environment
     else:
-        assert fixed_event["environment"] == "production", environment
+        assert fixed_event["environment"] == "production"
 
 
 @django_db_all
