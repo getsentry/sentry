@@ -35,6 +35,7 @@ def delete_groups(
         {
             "project_id": first_group.project_id,
             "organization_slug": first_group.project.organization.slug,
+            "transaction_id": transaction_id,
         },
     )
 
