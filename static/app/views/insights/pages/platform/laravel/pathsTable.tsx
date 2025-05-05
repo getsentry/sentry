@@ -1,4 +1,4 @@
-import {Fragment, memo, useCallback, useState} from 'react';
+import {Fragment, memo, useCallback, useMemo, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -11,6 +11,7 @@ import GridEditable, {
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
+import Placeholder from 'sentry/components/placeholder';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -25,6 +26,20 @@ import CellAction, {Actions} from 'sentry/views/discover/table/cellAction';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+
+interface TableData {
+  avg: number;
+  controller: string | undefined;
+  errorRate: number;
+  isControllerLoading: boolean;
+  method: string;
+  p95: number;
+  projectId: number;
+  requests: number;
+  sum: number;
+  transaction: string;
+  users: number;
+}
 
 const errorRateColorThreshold = {
   error: 0.1,
@@ -48,6 +63,17 @@ const getCellColor = (value: number, thresholds: Record<string, number>) => {
 const EMPTY_ARRAY: never[] = [];
 const PER_PAGE = 10;
 
+const defaultColumnOrder: Array<GridColumnOrder<string>> = [
+  {key: 'request.method', name: t('Method'), width: 90},
+  {key: 'transaction', name: t('Path'), width: COL_WIDTH_UNDEFINED},
+  {key: 'count()', name: t('Requests'), width: 112},
+  {key: 'failure_rate()', name: t('Error Rate'), width: 124},
+  {key: 'avg(span.duration)', name: t('AVG'), width: 90},
+  {key: 'p95(span.duration)', name: t('P95'), width: 90},
+  {key: 'sum(span.duration)', name: t('Total'), width: 90},
+  {key: 'count_unique(user)', name: t('Users'), width: 90},
+];
+
 function isSortField(value: string): value is string {
   return defaultColumnOrder.some(column => column.key === value);
 }
@@ -70,53 +96,15 @@ function decodeSortOrder(value: QueryValue): 'asc' | 'desc' {
   return 'desc';
 }
 
-const useTableSortParams = () => {
-  return useLocationQuery({
+function useTableSortParams() {
+  const {field: sortField, order: sortOrder} = useLocationQuery({
     fields: {
       field: decodeSortField,
       order: decodeSortOrder,
     },
   });
-};
-
-function useTableData({query, cursor}: {cursor: string | undefined; query: string}) {
-  const {field: sortField, order: sortOrder} = useTableSortParams();
-
-  return useEAPSpans(
-    {
-      search: `(transaction.op:http.server) is_transaction:True ${query}`,
-      sorts: [{field: sortField, kind: sortOrder}],
-      fields: [
-        'request.method',
-        'project.id',
-        'transaction',
-        'span.description',
-        'avg(span.duration)',
-        'p95(span.duration)',
-        'failure_rate()',
-        'count()',
-        'count_unique(user)',
-        'sum(span.duration)',
-      ],
-      limit: PER_PAGE,
-      cursor,
-    },
-    Referrer.PATHS_TABLE
-  );
+  return {sortField, sortOrder};
 }
-
-type TableRow = ReturnType<typeof useTableData>['data'][number];
-
-const defaultColumnOrder: Array<GridColumnOrder<keyof TableRow>> = [
-  {key: 'request.method', name: t('Method'), width: 90},
-  {key: 'transaction', name: t('Path'), width: COL_WIDTH_UNDEFINED},
-  {key: 'count()', name: t('Requests'), width: 112},
-  {key: 'failure_rate()', name: t('Error Rate'), width: 124},
-  {key: 'avg(span.duration)', name: t('AVG'), width: 90},
-  {key: 'p95(span.duration)', name: t('P95'), width: 90},
-  {key: 'sum(span.duration)', name: t('Total'), width: 90},
-  {key: 'count_unique(user)', name: t('Users'), width: 90},
-];
 
 interface PathsTableProps {
   handleAddTransactionFilter: (value: string) => void;
@@ -146,14 +134,86 @@ export function PathsTable({
 
     return columns;
   });
+  const {sortField, sortOrder} = useTableSortParams();
 
-  const transactionsRequest = useTableData({
-    query: query ?? '',
-    cursor:
-      typeof location.query.pathsCursor === 'string'
-        ? location.query.pathsCursor
-        : undefined,
-  });
+  const transactionsRequest = useEAPSpans(
+    {
+      search: `transaction.op:http.server is_transaction:True ${query}`,
+      sorts: [{field: sortField, kind: sortOrder}],
+      fields: [
+        'request.method',
+        'project.id',
+        'transaction',
+        'avg(span.duration)',
+        'p95(span.duration)',
+        'failure_rate()',
+        'count()',
+        'count_unique(user)',
+        'sum(span.duration)',
+      ],
+      limit: PER_PAGE,
+      cursor:
+        typeof location.query.pathsCursor === 'string'
+          ? location.query.pathsCursor
+          : undefined,
+    },
+    Referrer.PATHS_TABLE
+  );
+
+  // Get the list of transactions from the first request
+  const transactionPaths = useMemo(() => {
+    return transactionsRequest.data?.map(transactions => transactions.transaction) ?? [];
+  }, [transactionsRequest.data]);
+
+  // The controller name is available in the span.description field on the `span.op:http.route` span in the same transaction
+  const routeControllersRequest = useEAPSpans(
+    {
+      search: `transaction.op:http.server span.op:http.route transaction:[${
+        transactionPaths.map(transactions => `"${transactions}"`).join(',') || '""'
+      }]`,
+      fields: [
+        'span.description',
+        'transaction',
+        // We need an aggregation so we do not receive individual events
+        'count()',
+      ],
+      limit: PER_PAGE,
+      enabled: !!transactionsRequest.data && transactionPaths.length > 0,
+    },
+    Referrer.PATHS_TABLE
+  );
+
+  const tableData = useMemo<TableData[]>(() => {
+    if (!transactionsRequest.data) {
+      return [];
+    }
+
+    // Create a mapping of transaction path to controller
+    const controllerMap = new Map(
+      routeControllersRequest.data?.map(item => [
+        item.transaction,
+        item['span.description'],
+      ])
+    );
+
+    return transactionsRequest.data.map(transaction => ({
+      method: transaction['request.method'],
+      transaction: transaction.transaction,
+      requests: transaction['count()'],
+      avg: transaction['avg(span.duration)'],
+      p95: transaction['p95(span.duration)'],
+      errorRate: transaction['failure_rate()'],
+      users: transaction['count_unique(user)'],
+      isControllerLoading: routeControllersRequest.isLoading,
+      controller: controllerMap.get(transaction.transaction),
+      projectId: transaction['project.id'],
+      sum: transaction['sum(span.duration)'],
+    }));
+  }, [
+    transactionsRequest.data,
+    routeControllersRequest.data,
+    routeControllersRequest.isLoading,
+  ]);
 
   const handleResizeColumn = useCallback(
     (columnIndex: number, nextColumn: GridColumnHeader<string>) => {
@@ -174,7 +234,7 @@ export function PathsTable({
   }, []);
 
   const renderBodyCell = useCallback(
-    (column: GridColumnOrder<string>, dataRow: TableRow) => {
+    (column: GridColumnOrder<string>, dataRow: TableData) => {
       return (
         <BodyCell
           column={column}
@@ -191,7 +251,7 @@ export function PathsTable({
       <GridEditable
         isLoading={transactionsRequest.isLoading}
         error={transactionsRequest.error}
-        data={transactionsRequest.data}
+        data={tableData}
         columnOrder={columnOrder}
         columnSortBy={EMPTY_ARRAY}
         stickyHeader
@@ -216,7 +276,7 @@ export function PathsTable({
 
 const HeadCell = memo(function HeadCell({column}: {column: GridColumnHeader<string>}) {
   const location = useLocation();
-  const {field: sortField, order: sortOrder} = useTableSortParams();
+  const {sortField, sortOrder} = useTableSortParams();
   return (
     <SortLink
       align={column.key === 'count_unique(user)' ? 'right' : 'left'}
@@ -247,20 +307,17 @@ const BodyCell = memo(function BodyCell({
   handleAddTransactionFilter,
 }: {
   column: GridColumnHeader<string>;
-  dataRow: TableRow;
+  dataRow: TableData;
   handleAddTransactionFilter: (value: string) => void;
 }) {
   const theme = useTheme();
   const organization = useOrganization();
-  const p95Color = getCellColor(
-    dataRow['p95(span.duration)'],
-    getP95Threshold(dataRow['avg(span.duration)'])
-  );
-  const errorRateColor = getCellColor(dataRow['failure_rate()'], errorRateColorThreshold);
+  const p95Color = getCellColor(dataRow.p95, getP95Threshold(dataRow.avg));
+  const errorRateColor = getCellColor(dataRow.errorRate, errorRateColorThreshold);
 
   switch (column.key) {
     case 'request.method':
-      return dataRow['request.method'];
+      return dataRow.method;
     case 'transaction':
       return (
         <CellAction
@@ -291,45 +348,49 @@ const BodyCell = memo(function BodyCell({
                   organization,
                   transaction: dataRow.transaction,
                   view: 'backend',
-                  projectID: dataRow['project.id'].toString(),
+                  projectID: dataRow.projectId.toString(),
                   query: {},
                 })}
               >
                 {dataRow.transaction}
               </Link>
             </Tooltip>
-            {dataRow['span.description'] && (
-              <Tooltip
-                title={dataRow['span.description']}
-                position="top"
-                maxWidth={400}
-                showOnlyOnOverflow
-                skipWrapper
-              >
-                <ControllerText>{dataRow['span.description']}</ControllerText>
-              </Tooltip>
+            {dataRow.isControllerLoading ? (
+              <Placeholder height={theme.fontSizeSmall} width="200px" />
+            ) : (
+              dataRow && (
+                <Tooltip
+                  title={dataRow.controller}
+                  position="top"
+                  maxWidth={400}
+                  showOnlyOnOverflow
+                  skipWrapper
+                >
+                  <ControllerText>{dataRow.controller}</ControllerText>
+                </Tooltip>
+              )
             )}
           </PathCell>
         </CellAction>
       );
     case 'count()':
-      return formatAbbreviatedNumber(dataRow['count()']);
+      return formatAbbreviatedNumber(dataRow.requests);
     case 'failure_rate()':
       return (
         <div style={{color: errorRateColor && theme[errorRateColor]}}>
-          {(dataRow['failure_rate()'] * 100).toFixed(2)}%
+          {(dataRow.errorRate * 100).toFixed(2)}%
         </div>
       );
     case 'avg(span.duration)':
-      return getDuration(dataRow['avg(span.duration)'] / 1000, 2, true, true);
+      return getDuration(dataRow.avg / 1000, 2, true, true);
     case 'p95(span.duration)':
       return (
         <div style={{color: p95Color && theme[p95Color]}}>
-          {getDuration(dataRow['p95(span.duration)'] / 1000, 2, true, true)}
+          {getDuration(dataRow.p95 / 1000, 2, true, true)}
         </div>
       );
     case 'sum(span.duration)':
-      return getDuration(dataRow['sum(span.duration)'] / 1000, 2, true, true);
+      return getDuration(dataRow.sum / 1000, 2, true, true);
     case 'count_unique(user)':
       return (
         <div
@@ -341,7 +402,7 @@ const BodyCell = memo(function BodyCell({
             justifyContent: 'flex-end',
           }}
         >
-          {formatAbbreviatedNumber(dataRow['count_unique(user)'])}
+          {formatAbbreviatedNumber(dataRow.users)}
           <IconUser size="xs" />
         </div>
       );
