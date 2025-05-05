@@ -40,6 +40,7 @@ interface TableData {
   errorRate: number;
   page: string;
   pageViews: number;
+  projectID: number;
   spanOp: string;
   totalTime: number;
 }
@@ -144,6 +145,7 @@ export function PagesTable({
         'count()',
         'sum(span.duration)',
         'avg(span.duration)',
+        'project.id',
       ],
       limit: 10,
       search: `span.op:[${spanOperationFilter}] ${query ? `${query}` : ''}`.trim(),
@@ -168,6 +170,7 @@ export function PagesTable({
       totalTime: span['sum(span.duration)'],
       avgDuration: span['avg(span.duration)'],
       spanOp: span['span.op'],
+      projectID: span['project.id'],
     }));
   }, [spansRequest.data]);
 
@@ -264,16 +267,15 @@ const BodyCell = memo(function PagesBodyCell({
   handleAddTransactionFilter: (value: string) => void;
 }) {
   const organization = useOrganization();
-  const location = useLocation();
 
   switch (column.key) {
     case 'transaction': {
       const target = transactionSummaryRouteWithQuery({
         organization,
         transaction: dataRow.page,
-        query: {
-          ...location.query,
-        },
+        view: 'frontend',
+        projectID: dataRow.projectID.toString(),
+        query: {},
       });
 
       return (
