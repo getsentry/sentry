@@ -308,13 +308,13 @@ const SuperHeaderLabel = styled(IssueStreamHeaderLabel)`
   font-size: 1rem;
   line-height: 1.2;
   padding-left: ${space(1)};
-  text-transform: capitalize;
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const SuperHeader = styled(PanelHeader)`
   background-color: ${p => p.theme.headerBackground};
   padding: ${space(1)};
+  text-transform: capitalize;
 `;
 
 const HeaderContainer = styled('div')`
