@@ -30,6 +30,6 @@ export const MODULES = [
 export const MOBILE_PLATFORMS: PlatformKey[] = [...mobile];
 
 export const DEFAULT_SORT: ValidSort = {
-  field: 'time_spent_percentage(span.duration)' satisfies EAPSpanProperty,
+  field: 'sum(span.duration)' satisfies EAPSpanProperty,
   kind: 'desc',
 };
