@@ -216,9 +216,9 @@ function AutofixInsightCard({
                     >
                       {hasFullJustification || !insight.change_diff ? (
                         <Fragment>
-                          <MarkedText as="p" text={fullJustificationText} />
+                          <ContextMarkedText as="p" text={fullJustificationText} />
                           {insight.markdown_snippets && (
-                            <MarkedText as="p" text={insight.markdown_snippets} />
+                            <ContextMarkedText as="p" text={insight.markdown_snippets} />
                           )}
                         </Fragment>
                       ) : (
@@ -581,6 +581,13 @@ const CardsStack = styled('div')`
   display: flex;
   flex-direction: column;
   gap: 0;
+`;
+
+const ContextMarkedText = styled(MarkedText)`
+  font-size: ${p => p.theme.fontSizeSmall};
+  code {
+    font-size: ${p => p.theme.fontSizeSmall};
+  }
 `;
 
 const InsightContainer = styled(motion.div)<{expanded?: boolean}>`
