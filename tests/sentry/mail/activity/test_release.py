@@ -166,6 +166,25 @@ class ReleaseTestCase(ActivityTestCase):
             self.user5.email,
         }
 
+    def test_prevent_duplicate_projects(self):
+        email = ReleaseActivityNotification(
+            Activity(
+                project=self.project,
+                user_id=self.user1.id,
+                type=ActivityType.RELEASE.value,
+                data={"version": self.release.version, "deploy_id": self.deploy.id},
+            )
+        )
+        self.team3 = self.create_team(organization=self.org)
+        self.project.add_team(self.team3)
+        self.create_team_membership(user=self.user1, team=self.team3)
+
+        user_context = email.get_recipient_context(Actor.from_orm_user(self.user1), {})
+        # This project exists in multiple teams. Make sure we correctly de-dupe these and don't show
+        # the same project twice
+        assert len(user_context["projects"]) == 1
+        assert user_context["projects"][0][0] == self.project
+
     def test_does_not_generate_on_no_release(self):
         email = ReleaseActivityNotification(
             Activity(
