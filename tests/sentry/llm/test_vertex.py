@@ -1,10 +1,12 @@
-from contextlib import contextmanager
 from unittest.mock import Mock, patch
 
-from sentry.llm.usecases import LLMUseCase, complete_prompt
+import pytest
+
+from sentry.llm.exceptions import VertexRequestFailed
+from sentry.llm.usecases import LLMUseCase, complete_prompt, llm_provider_backends
 
 
-@contextmanager
+@pytest.fixture
 def mock_options(set_sentry_option):
     with (
         set_sentry_option(
@@ -33,8 +35,8 @@ class MockGenaiClient:
         )()
 
 
-def test_complete_prompt(set_sentry_option):
-
+def test_complete_prompt(mock_options):
+    llm_provider_backends.clear()
     mock_generate_content = Mock(
         return_value=type(
             "obj",
@@ -43,12 +45,9 @@ def test_complete_prompt(set_sentry_option):
         )()
     )
 
-    with (
-        mock_options(set_sentry_option),
-        patch(
-            "sentry.llm.providers.vertex.genai.Client",
-            return_value=MockGenaiClient(mock_generate_content),
-        ),
+    with patch(
+        "sentry.llm.providers.vertex.genai.Client",
+        return_value=MockGenaiClient(mock_generate_content),
     ):
         res = complete_prompt(
             usecase=LLMUseCase.EXAMPLE,
@@ -61,3 +60,26 @@ def test_complete_prompt(set_sentry_option):
     assert res == "hello world"
     assert mock_generate_content.call_count == 1
     assert mock_generate_content.call_args[1]["model"] == "vertex-1.0"
+
+
+def test_complete_prompt_error(mock_options):
+    llm_provider_backends.clear()
+    mock_generate_content = Mock(
+        return_value=type(
+            "obj",
+            (object,),
+            {"status_code": 400},
+        )()
+    )
+
+    with patch(
+        "sentry.llm.providers.vertex.genai.Client",
+        return_value=MockGenaiClient(mock_generate_content),
+    ):
+        with pytest.raises(VertexRequestFailed):
+            complete_prompt(
+                usecase=LLMUseCase.EXAMPLE,
+                message="message here",
+                temperature=0.0,
+                max_output_tokens=1024,
+            )
