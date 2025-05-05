@@ -24,6 +24,12 @@ import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shar
 type View = 'api' | 'pages';
 type SpanOperation = 'pageload' | 'navigation';
 
+// Define cursor parameter names based on span operation
+const CURSOR_PARAM_NAMES: Record<SpanOperation, string> = {
+  pageload: 'pageCursor',
+  navigation: 'navCursor',
+};
+
 function PlaceholderWidget() {
   return <Widget Title={<Widget.WidgetTitle title="Placeholder Widget" />} />;
 }
@@ -51,6 +57,12 @@ export function NextJsOverviewPage({
 
   const updateQuery = (newParams: Record<string, string>) => {
     const currentParams = new URLSearchParams(location.search);
+
+    if ('spanOp' in newParams && newParams.spanOp !== spanOperationFilter) {
+      const oldCursorParamName = CURSOR_PARAM_NAMES[spanOperationFilter];
+      currentParams.delete(oldCursorParamName);
+    }
+
     for (const [key, value] of Object.entries(newParams)) {
       currentParams.set(key, value);
     }

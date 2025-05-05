@@ -1,4 +1,4 @@
-import {Fragment, memo, useCallback, useEffect, useMemo, useRef} from 'react';
+import {Fragment, memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -22,7 +22,6 @@ import type {QueryValue} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 import CellAction, {Actions} from 'sentry/views/discover/table/cellAction';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
@@ -131,26 +130,9 @@ export function PagesTable({
 }: PagesTableProps) {
   const organization = useOrganization();
   const location = useLocation();
-  const router = useRouter();
   const pageFilterChartParams = usePageFilterChartParams();
   const {sortField, sortOrder} = useTableSortParams();
   const currentCursorParamName = CURSOR_PARAM_NAMES[spanOperationFilter];
-  const prevSpanOperationFilterRef = useRef(spanOperationFilter);
-
-  useEffect(() => {
-    const prevFilter = prevSpanOperationFilterRef.current;
-    if (prevFilter !== spanOperationFilter) {
-      const prevCursorParamName = CURSOR_PARAM_NAMES[prevFilter];
-      if (location.query[prevCursorParamName]) {
-        const {[prevCursorParamName]: _removedCursor, ...restQuery} = location.query;
-        browserHistory.push({
-          pathname: location.pathname,
-          query: restQuery,
-        });
-      }
-    }
-    prevSpanOperationFilterRef.current = spanOperationFilter;
-  }, [spanOperationFilter, location.query, location.pathname, router]);
 
   const handleCursor: CursorHandler = (cursor, pathname, transactionQuery) => {
     browserHistory.push({
