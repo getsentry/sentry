@@ -1,7 +1,11 @@
 import pytest
 from django.core.exceptions import ValidationError
 
-from sentry.workflow_engine.models import Workflow
+from sentry import features
+from sentry.models.rule import Rule
+from sentry.receivers.rules import DEFAULT_RULE_LABEL
+from sentry.testutils.helpers.features import with_feature
+from sentry.workflow_engine.models import AlertRuleWorkflow, Workflow
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
@@ -112,3 +116,14 @@ class WorkflowTest(BaseWorkflowTest):
             config={"frequency": 5},
         )
         assert Workflow.objects.filter(name=name).count() == 2
+
+    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
+    def test_default_workflow_for_project(self):
+        assert features.has(
+            "organizations:workflow-engine-issue-alert-dual-write", self.organization
+        )
+        project = self.create_project(fire_project_created=True)
+        rule = Rule.objects.filter(project=project).first()
+        assert rule
+        assert AlertRuleWorkflow.objects.filter(rule_id=rule.id).exists()
+        assert AlertRuleWorkflow.objects.get(rule_id=rule.id).workflow.name == DEFAULT_RULE_LABEL

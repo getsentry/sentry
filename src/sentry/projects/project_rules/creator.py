@@ -55,6 +55,11 @@ class ProjectRuleCreator:
                         "workflow_engine.issue_alert.migrated",
                         extra={"rule_id": self.rule.id, "workflow_id": workflow.id},
                     )
+                else:
+                    logger.error(
+                        "workflow_engine.issue_alert.missing_flag",
+                        extra={"rule_id": self.rule.id},
+                    )
         except UnableToAcquireLock:
             raise UnableToAcquireLockApiError
 
