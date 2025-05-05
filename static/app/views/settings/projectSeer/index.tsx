@@ -26,7 +26,7 @@ const autofixAutomatingTuningField: FieldObject = {
   name: 'autofixAutomationTuning',
   label: t('Autofix Automation Tuning'),
   help: t(
-    "Choose how proactively Autofix attempts automatic fixes. 'Low' targets only issues deemed most likely to be successfully fixed."
+    "Select the proactivity level for Autofix. 'Low' focuses only on high-confidence fixes, while higher settings attempt to fix more issues with potentially lower success rates."
   ),
   type: 'range',
   min: 0,
