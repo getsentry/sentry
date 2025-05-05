@@ -7,6 +7,7 @@ import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvat
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Link from 'sentry/components/links/link';
 import {IconSync} from 'sentry/icons';
@@ -242,18 +243,18 @@ function Overview(props: Props) {
       <div>
         <SectionHeading>
           Integration Platform Apps{' '}
-          <Button size="xs" to="/_admin/sentry-apps/">
+          <LinkButton size="xs" to="/_admin/sentry-apps/">
             More
-          </Button>
+          </LinkButton>
         </SectionHeading>
         <SentryAppList {...props} />
       </div>
       <div>
         <SectionHeading>
           Document Integrations{' '}
-          <Button size="xs" to="/_admin/doc-integrations/">
+          <LinkButton size="xs" to="/_admin/doc-integrations/">
             More
-          </Button>
+          </LinkButton>
         </SectionHeading>
         <DocIntegrationList {...props} />
       </div>

@@ -5,8 +5,9 @@ import onboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import FeatureFlagSettingsButton from 'sentry/components/events/featureFlags/featureFlagSettingsButton';
 import {useFeatureFlagOnboarding} from 'sentry/components/events/featureFlags/useFeatureFlagOnboarding';

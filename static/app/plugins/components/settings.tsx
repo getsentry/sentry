@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
 import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import Form from 'sentry/components/deprecatedforms/form';
 import FormState from 'sentry/components/forms/state';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

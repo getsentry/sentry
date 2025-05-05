@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 import {PlatformIcon} from 'platformicons';
 
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import Link from 'sentry/components/links/link';
 import {IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';

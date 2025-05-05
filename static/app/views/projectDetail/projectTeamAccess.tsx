@@ -2,7 +2,8 @@ import styled from '@emotion/styled';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import Collapsible from 'sentry/components/collapsible';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';

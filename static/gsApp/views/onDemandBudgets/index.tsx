@@ -1,7 +1,8 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import ExternalLink from 'sentry/components/links/externalLink';

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {Flex} from 'sentry/components/container/flex';
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';

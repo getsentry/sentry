@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import IdBadge from 'sentry/components/idBadge';
 import ExternalLink from 'sentry/components/links/externalLink';

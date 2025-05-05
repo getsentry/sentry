@@ -56,6 +56,12 @@ describe('UpdatedEmptyState', function () {
       await screen.findByText('Waiting to receive first event to continue')
     ).toBeInTheDocument();
 
-    expect(screen.getByRole('button', {name: 'Take me to my error'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Take me to my error'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('button', {name: 'Take me to my error'})).not.toHaveAttribute(
+      'href'
+    );
   });
 });

@@ -1,4 +1,4 @@
-import type {BaseButtonProps} from 'sentry/components/core/button';
+import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
 import {IconPause, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -6,7 +6,7 @@ import type {ObjectStatus} from 'sentry/types/core';
 
 import type {UptimeRule} from './types';
 
-interface StatusToggleButtonProps extends Omit<BaseButtonProps, 'onClick'> {
+interface StatusToggleButtonProps extends Omit<ButtonProps, 'onClick'> {
   onToggleStatus: (status: ObjectStatus) => Promise<void>;
   uptimeRule: UptimeRule;
 }

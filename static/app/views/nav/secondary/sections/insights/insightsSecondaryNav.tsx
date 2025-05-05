@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

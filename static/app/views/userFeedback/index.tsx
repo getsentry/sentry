@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import omit from 'lodash/omit';
 
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';

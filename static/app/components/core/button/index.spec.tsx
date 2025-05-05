@@ -1,6 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 
 describe('Button', function () {
   it('renders', function () {
@@ -47,6 +48,10 @@ describe('LinkButton', function () {
         Disabled Link
       </LinkButton>
     );
-    expect(screen.getByRole('button', {name: 'Disabled Link'})).toBeDisabled();
+
+    const element = screen.getByRole('button', {name: 'Disabled Link'});
+
+    expect(element).not.toHaveAttribute('href');
+    expect(element).toHaveAttribute('aria-disabled', 'true');
   });
 });

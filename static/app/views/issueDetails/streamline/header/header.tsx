@@ -4,8 +4,8 @@ import Color from 'color';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Flex} from 'sentry/components/container/flex';
-import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import ErrorBoundary from 'sentry/components/errorBoundary';

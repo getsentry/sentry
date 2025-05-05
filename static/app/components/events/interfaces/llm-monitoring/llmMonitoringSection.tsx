@@ -1,5 +1,5 @@
-import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';

@@ -134,7 +134,10 @@ describe('IntegrationDetailedView', function () {
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
-    expect(screen.getByRole('button', {name: 'Configure'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Configure'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('allows members to configure github/gitlab', async function () {

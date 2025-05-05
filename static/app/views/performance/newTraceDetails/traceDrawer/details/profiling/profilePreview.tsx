@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/profiling-empty-state.svg';
 
-import {LinkButton} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
