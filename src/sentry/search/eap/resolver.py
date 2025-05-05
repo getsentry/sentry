@@ -617,16 +617,6 @@ class SearchResolver:
             ),
             context,
         )
-        return (
-            AggregationFilter(
-                comparison_filter=AggregationComparisonFilter(
-                    aggregation=proto_definition,
-                    op=operator,
-                    val=value,
-                ),
-            ),
-            context,
-        )
 
     def _resolve_search_value(
         self,
