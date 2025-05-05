@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button';
-import OnboardingAdditionalFeatures from 'sentry/components/events/featureFlags/onboardingAdditionalFeatures';
+import OnboardingAdditionalFeatures from 'sentry/components/events/featureFlags/onboarding/onboardingAdditionalFeatures';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

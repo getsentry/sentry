@@ -285,11 +285,11 @@ function builtInIssuesFields({
         ? [
             IssueCategory.ERROR,
             IssueCategory.OUTAGE,
-            IssueCategory.PERFORMANCE_BEST_PRACTICE,
-            IssueCategory.PERFORMANCE_REGRESSION,
-            IssueCategory.RESPONSIVENESS,
-            IssueCategory.USER_EXPERIENCE,
-            IssueCategory.FEEDBACK,
+            IssueCategory.METRIC,
+            IssueCategory.DB_QUERY,
+            IssueCategory.HTTP_CLIENT,
+            IssueCategory.FRONTEND,
+            IssueCategory.MOBILE,
           ]
         : [
             IssueCategory.ERROR,
