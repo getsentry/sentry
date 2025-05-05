@@ -458,6 +458,12 @@ function modifyFilterValue(
     return modifyFilterValueDate(query, token, newValue);
   }
 
+  if (token.value.type === Token.VALUE_TEXT) {
+    if (token.value.value.startsWith('*') && token.value.value.endsWith('*')) {
+      newValue = `*${newValue}*`;
+    }
+  }
+
   return replaceQueryToken(query, token.value, newValue);
 }
 
@@ -473,10 +479,19 @@ function updateFilterMultipleValues(
     return {...state, query: replaceQueryToken(state.query, token.value, '""')};
   }
 
-  const newValue =
-    uniqNonEmptyValues.length > 1
-      ? `[${uniqNonEmptyValues.join(',')}]`
-      : uniqNonEmptyValues[0]!;
+  let newValue = uniqNonEmptyValues[0]!;
+
+  if (uniqNonEmptyValues.length > 1) {
+    if (uniqNonEmptyValues.some(value => value.startsWith('*') && value.endsWith('*'))) {
+      const containsValues = uniqNonEmptyValues.map(value => {
+        return value.startsWith('*') && value.endsWith('*') ? value : `*${value}*`;
+      });
+
+      newValue = `[${containsValues.join(',')}]`;
+    } else {
+      newValue = `[${uniqNonEmptyValues.join(',')}]`;
+    }
+  }
 
   return {...state, query: replaceQueryToken(state.query, token.value, newValue)};
 }
