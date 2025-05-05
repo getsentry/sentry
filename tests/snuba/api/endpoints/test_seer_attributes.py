@@ -98,6 +98,5 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                     "foo",
                 ],
                 "project": [],
-                "span.duration": [],
             }
         }
