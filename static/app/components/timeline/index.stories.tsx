@@ -15,7 +15,7 @@ import {
 } from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 
-export default storyBook('Timeline (Updated 06/17/24)', story => {
+export default storyBook('Timeline', story => {
   story('Usage', () => (
     <CodeSnippet language="js">
       import Timeline from 'sentry/components/timeline';

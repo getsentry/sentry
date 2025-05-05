@@ -73,6 +73,17 @@ export enum SpanFields {
   IS_STARRED_TRANSACTION = 'is_starred_transaction',
   SPAN_DURATION = 'span.duration',
   USER = 'user',
+  MOBILE_FROZEN_FRAMES = 'mobile.frozen_frames',
+  MOBILE_TOTAL_FRAMES = 'mobile.total_frames',
+  MOBILE_SLOW_FRAMES = 'mobile.slow_frames',
+  FROZEN_FRAMES_RATE = 'measurements.frames_frozen_rate',
+  SLOW_FRAMES_RATE = 'measurements.frames_slow_rate',
+  RAW_DOMAIN = 'raw_domain',
+  PROJECT = 'project',
+  MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH = 'measurements.http.response_content_length',
+  SPAN_DESCRIPTION = 'span.description',
+  SPAN_GROUP = 'span.group',
+  SPAN_OP = 'span.op',
 }
 
 type WebVitalsMeasurements =
@@ -105,10 +116,17 @@ type SpanNumberFields =
   | SpanMetricsField.MOBILE_TOTAL_FRAMES
   | SpanMetricsField.MOBILE_SLOW_FRAMES
   | SpanMetricsField.SPAN_DURATION
+  | SpanFields.MOBILE_FROZEN_FRAMES
+  | SpanFields.MOBILE_TOTAL_FRAMES
+  | SpanFields.MOBILE_SLOW_FRAMES
+  | SpanFields.FROZEN_FRAMES_RATE
+  | SpanFields.SLOW_FRAMES_RATE
+  | SpanFields.MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH
   | DiscoverNumberFields;
 
 type SpanStringFields =
   | SpanMetricsField.RESOURCE_RENDER_BLOCKING_STATUS
+  | SpanFields.RAW_DOMAIN
   | 'id'
   | 'span_id'
   | 'span.op'
