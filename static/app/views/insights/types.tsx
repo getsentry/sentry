@@ -73,6 +73,11 @@ export enum SpanFields {
   IS_STARRED_TRANSACTION = 'is_starred_transaction',
   SPAN_DURATION = 'span.duration',
   USER = 'user',
+  MOBILE_FROZEN_FRAMES = 'mobile.frozen_frames',
+  MOBILE_TOTAL_FRAMES = 'mobile.total_frames',
+  MOBILE_SLOW_FRAMES = 'mobile.slow_frames',
+  FROZEN_FRAMES_RATE = 'measurements.frames_frozen_rate',
+  SLOW_FRAMES_RATE = 'measurements.frames_slow_rate',
 }
 
 type WebVitalsMeasurements =
@@ -105,6 +110,11 @@ type SpanNumberFields =
   | SpanMetricsField.MOBILE_TOTAL_FRAMES
   | SpanMetricsField.MOBILE_SLOW_FRAMES
   | SpanMetricsField.SPAN_DURATION
+  | SpanFields.MOBILE_FROZEN_FRAMES
+  | SpanFields.MOBILE_TOTAL_FRAMES
+  | SpanFields.MOBILE_SLOW_FRAMES
+  | SpanFields.FROZEN_FRAMES_RATE
+  | SpanFields.SLOW_FRAMES_RATE
   | DiscoverNumberFields;
 
 type SpanStringFields =
