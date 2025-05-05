@@ -83,9 +83,11 @@ function SpanEvidenceTraceViewImpl({
   const meta = useTraceMeta([{traceSlug: traceId, timestamp}]);
   const tree = useIssuesTraceTree({trace, meta, replay: null});
 
-  const shouldLoadTraceRoot = !trace.isPending && trace.data;
-
-  const rootEvent = useTraceRootEvent(shouldLoadTraceRoot ? trace.data : null);
+  const rootEventResults = useTraceRootEvent({
+    tree,
+    logs: undefined,
+    traceId,
+  });
 
   const params = useTraceQueryParams({timestamp});
   const traceEventView = useTraceEventView(traceId, params);
@@ -103,7 +105,7 @@ function SpanEvidenceTraceViewImpl({
           tree={tree}
           trace={trace}
           traceSlug={traceId}
-          rootEvent={rootEvent}
+          rootEventResults={rootEventResults}
           organization={organization}
           traceEventView={traceEventView}
           meta={meta}
