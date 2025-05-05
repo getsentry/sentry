@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -9,20 +9,19 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
+import {BACKEND_LANDING_TITLE} from 'sentry/views/insights/pages/backend/settings';
+import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {FRONTEND_LANDING_TITLE} from 'sentry/views/insights/pages/frontend/settings';
 import {NewNextJsExperienceButton} from 'sentry/views/insights/pages/platform/nextjs/newNextjsExperienceToggle';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
-import {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
 function getFreeTextFromQuery(query: string) {
   const conditions = new MutableSearch(query);
@@ -40,22 +39,15 @@ function getFreeTextFromQuery(query: string) {
 
 export function PlatformLandingPageLayout({
   children,
-  headerTitle,
+  performanceType,
 }: {
   children: React.ReactNode;
-  headerTitle: React.ReactNode;
+  performanceType: 'backend' | 'frontend';
 }) {
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
   const {defaultPeriod, maxPickableDays, relativeOptions} =
     limitMaxPickableDays(organization);
-
-  useEffect(() => {
-    trackAnalytics('laravel-insights.page-view', {
-      organization,
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const showOnboarding = onboardingProject !== undefined;
 
@@ -67,15 +59,25 @@ export function PlatformLandingPageLayout({
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <BackendHeader
-        headerTitle={headerTitle}
-        headerActions={
-          <Fragment>
-            <ViewTrendsButton />
-            <NewNextJsExperienceButton />
-          </Fragment>
-        }
-      />
+      {performanceType === 'backend' ? (
+        <BackendHeader
+          headerTitle={BACKEND_LANDING_TITLE}
+          headerActions={
+            <Fragment>
+              <NewNextJsExperienceButton />
+            </Fragment>
+          }
+        />
+      ) : (
+        <FrontendHeader
+          headerTitle={FRONTEND_LANDING_TITLE}
+          headerActions={
+            <Fragment>
+              <NewNextJsExperienceButton />
+            </Fragment>
+          }
+        />
+      )}
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
@@ -107,13 +109,7 @@ export function PlatformLandingPageLayout({
               </ToolRibbon>
             </ModuleLayout.Full>
             <ModuleLayout.Full>
-              {!showOnboarding && (
-                <PerformanceDisplayProvider
-                  value={{performanceType: ProjectPerformanceType.BACKEND}}
-                >
-                  {children}
-                </PerformanceDisplayProvider>
-              )}
+              {!showOnboarding && children}
               {showOnboarding && (
                 <LegacyOnboarding
                   project={onboardingProject}

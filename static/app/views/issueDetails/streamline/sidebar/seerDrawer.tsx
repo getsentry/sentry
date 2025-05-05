@@ -210,7 +210,10 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
                   {tct('Seer can be turned off in [settingsDocs:Settings].', {
                     settingsDocs: (
                       <Link
-                        to={`/settings/${organization.slug}/general-settings/#hideAiFeatures`}
+                        to={{
+                          pathname: `/settings/${organization.slug}/`,
+                          hash: '#hideAiFeatures',
+                        }}
                       />
                     ),
                   })}

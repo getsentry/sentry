@@ -3,8 +3,8 @@ __all__ = [
     "DetectorHandler",
     "DetectorOccurrence",
     "DetectorStateData",
-    "StatefulDetectorHandler",
+    "StatefulGroupingDetectorHandler",
 ]
 
 from .base import DetectorEvaluationResult, DetectorHandler, DetectorOccurrence, DetectorStateData
-from .stateful import StatefulDetectorHandler
+from .stateful import StatefulGroupingDetectorHandler

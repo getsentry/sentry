@@ -24,15 +24,14 @@ describe('OrgDropdown', function () {
     expect(screen.getByText('org-slug')).toBeInTheDocument();
     expect(screen.getByText('0 Projects')).toBeInTheDocument();
 
-    expect(screen.getByRole('link', {name: 'Organization Settings'})).toHaveAttribute(
-      'href',
-      `/organizations/${organization.slug}/settings/`
-    );
-    expect(screen.getByRole('link', {name: 'Members'})).toHaveAttribute(
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Organization Settings'})
+    ).toHaveAttribute('href', `/organizations/${organization.slug}/settings/`);
+    expect(screen.getByRole('menuitemradio', {name: 'Members'})).toHaveAttribute(
       'href',
       `/organizations/${organization.slug}/settings/members/`
     );
-    expect(screen.getByRole('link', {name: 'Teams'})).toHaveAttribute(
+    expect(screen.getByRole('menuitemradio', {name: 'Teams'})).toHaveAttribute(
       'href',
       `/organizations/${organization.slug}/settings/teams/`
     );
@@ -52,11 +51,11 @@ describe('OrgDropdown', function () {
 
     await userEvent.hover(screen.getByText('Switch Organization'));
 
-    expect(await screen.findByRole('link', {name: /org-1/})).toHaveAttribute(
+    expect(await screen.findByRole('menuitemradio', {name: /org-1/})).toHaveAttribute(
       'href',
       `/organizations/org-1/issues/`
     );
-    expect(await screen.findByRole('link', {name: /org-2/})).toHaveAttribute(
+    expect(await screen.findByRole('menuitemradio', {name: /org-2/})).toHaveAttribute(
       'href',
       `/organizations/org-2/issues/`
     );
