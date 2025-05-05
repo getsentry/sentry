@@ -95,7 +95,7 @@ SnubaError = TypedDict(
         "tags[level]": str,
         "timestamp": str,
         "title": str,
-        "trace.span": str,
+        "trace.span": str | None,
         "trace.transaction": str | None,
         "transaction": str,
     },
@@ -111,7 +111,7 @@ class TraceError(TypedDict):
     message: str
     project_id: int
     project_slug: str
-    span: str
+    span: str | None
     timestamp: float
     title: str
 
@@ -779,9 +779,11 @@ def build_span_query(trace_id: str, spans_params: SnubaParams, query_spans: list
     return parents_query
 
 
-def pad_span_id(span):
+def pad_span_id(span: str | None) -> str | None:
     """Snuba might return the span id without leading 0s since they're stored as UInt64
     which means a span like 0011 gets converted to an int, then back so we'll get `11` instead"""
+    if span is None:
+        return span
     return span.rjust(16, "0")
 
 
@@ -860,9 +862,10 @@ def augment_transactions_with_spans(
             )
 
     with sentry_sdk.start_span(op="augment.transactions", name="create query params"):
-        query_spans = {*trace_parent_spans, *error_spans, *occurrence_spans}
-        if "" in query_spans:
-            query_spans.remove("")
+        unfiltered_spans = {*trace_parent_spans, *error_spans, *occurrence_spans}
+        query_spans: set[str] = {
+            span for span in unfiltered_spans if span is not None and span != ""
+        }
         # If there are no spans to query just return transactions as is
         if len(query_spans) == 0:
             return transactions
@@ -1020,6 +1023,8 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         """
         parent_map: dict[str, list[SnubaError]] = defaultdict(list)
         for item in events:
+            if item["trace.span"] is None:
+                continue
             parent_map[item["trace.span"]].append(item)
         return parent_map
 
