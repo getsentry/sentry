@@ -22,7 +22,7 @@ import {
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -79,6 +79,8 @@ import {
   getPlanCategoryName,
 } from 'getsentry/utils/dataCategory';
 
+const DEFAULT_ERROR_MESSAGE = 'Unable to update the customer account';
+
 function makeSubscriptionQueryKey(orgId: string): ApiQueryKey {
   return [`/customers/${orgId}/`];
 }
@@ -127,22 +129,34 @@ export default function CustomerDetails() {
   });
 
   const onUpdateMutation = useMutation({
-    mutationFn: (params: Record<string, any>) => {
-      addLoadingMessage('Saving changes\u2026');
-
-      return api.requestPromise(`/customers/${orgId}/`, {
+    mutationFn: (params: Record<string, any>) =>
+      api.requestPromise(`/customers/${orgId}/`, {
         method: 'PUT',
         data: params,
-      });
-    },
+      }),
+    onMutate: () => addLoadingMessage('Saving changes\u2026'),
     onSuccess: data => {
       addSuccessMessage(
         `Customer account has been updated with ${JSON.stringify(data)}.`
       );
       setApiQueryData(queryClient, SUBSCRIPTION_QUERY_KEY, data);
     },
-    onError: error => {
-      addErrorMessage(error.message);
+    onError: (error: RequestError) => {
+      if (error.status === 400 || error.status === 402) {
+        const errors = Object.values(error.responseJSON || {});
+        const err = errors.length && errors[0];
+
+        const message =
+          typeof err === 'string'
+            ? err
+            : Array.isArray(err) && err.length && err[0]
+              ? err[0]
+              : DEFAULT_ERROR_MESSAGE;
+
+        addErrorMessage(message);
+      } else {
+        addErrorMessage(DEFAULT_ERROR_MESSAGE);
+      }
     },
   });
 
