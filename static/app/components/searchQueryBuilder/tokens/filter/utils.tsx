@@ -83,6 +83,11 @@ export function formatFilterValue(token: TokenResult<Token.FILTER>['value']): st
         return token.text;
       }
 
+      if (token.text.startsWith('*') && token.text.endsWith('*')) {
+        const newToken = token.text.slice(1, -1);
+        return token.quoted ? unescapeTagValue(newToken) : newToken;
+      }
+
       return token.quoted ? unescapeTagValue(token.value) : token.text;
     }
     case Token.VALUE_RELATIVE_DATE:
