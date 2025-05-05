@@ -31,7 +31,9 @@ class Migration(CheckedMigration):
 
     initial = True
 
-    dependencies = []
+    dependencies = [
+        ("sentry", "0864_move_monitors"),
+    ]
 
     operations = [
         migrations.SeparateDatabaseAndState(
