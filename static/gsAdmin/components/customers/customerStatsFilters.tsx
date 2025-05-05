@@ -8,86 +8,16 @@ import {DateTime} from 'sentry/components/dateTime';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {ChangeData} from 'sentry/components/timeRangeSelector';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
-import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
+import {DATA_CATEGORY_INFO, DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {space} from 'sentry/styles/space';
+import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import useRouter from 'sentry/utils/useRouter';
 
 const ON_DEMAND_PERIOD_KEY = 'onDemand';
 
-// TODO(data categories): for future, use DataCategory and DATA_CATEGORY_INFO to derive this information
-// Will need to update those constants to include any categories available here that aren't already defined
-export enum DataType {
-  ERRORS = 'errors',
-  TRANSACTIONS = 'transactions',
-  INDEXED_TRANSACTIONS = 'indexed_transactions',
-  REPLAYS = 'replays',
-  FEEDBACK = 'feedback',
-  PROFILES = 'profiles',
-  INDEXED_PROFILES = 'indexed_profiles',
-  MONITORS = 'monitors',
-  SPANS = 'spans',
-  INDEXED_SPANS = 'indexed_spans',
-  PROFILE_DURATION = 'profile_duration',
-  PROFILE_DURATION_UI = 'profile_duration_ui',
-  PROFILE_CHUNK = 'profile_chunk',
-  PROFILE_CHUNK_UI = 'profile_chunk_ui',
-  ATTACHMENTS = 'attachments',
-}
-
-const dataTypeLabels = {
-  [DataType.ERRORS]: 'Errors',
-  [DataType.TRANSACTIONS]: 'Transactions',
-  [DataType.INDEXED_TRANSACTIONS]: 'Indexed Transactions',
-  [DataType.PROFILES]: 'Profiles',
-  [DataType.INDEXED_PROFILES]: 'Indexed Profiles',
-  [DataType.PROFILE_DURATION]: 'Continuous Profile Hours',
-  [DataType.PROFILE_DURATION_UI]: 'UI Profile Hours',
-  [DataType.PROFILE_CHUNK]: 'Profile Chunks',
-  [DataType.PROFILE_CHUNK_UI]: 'UI Profile Chunks',
-  [DataType.REPLAYS]: 'Replays',
-  [DataType.FEEDBACK]: 'Feedback',
-  [DataType.MONITORS]: 'Monitor Check-Ins',
-  [DataType.SPANS]: 'Spans',
-  [DataType.INDEXED_SPANS]: 'Indexed Spans',
-  [DataType.ATTACHMENTS]: 'Attachments',
-};
-
-export function categoryFromDataType(dataType: DataType): string {
-  switch (dataType) {
-    case DataType.TRANSACTIONS:
-      return 'transaction';
-    case DataType.INDEXED_TRANSACTIONS:
-      return 'transaction_indexed';
-    case DataType.PROFILES:
-      return 'profile';
-    case DataType.INDEXED_PROFILES:
-      return 'profile_indexed';
-    case DataType.PROFILE_DURATION:
-      return 'profile_duration';
-    case DataType.PROFILE_DURATION_UI:
-      return 'profile_duration_ui';
-    case DataType.PROFILE_CHUNK:
-      return 'profile_chunk';
-    case DataType.PROFILE_CHUNK_UI:
-      return 'profile_chunk_ui';
-    case DataType.REPLAYS:
-      return 'replay';
-    case DataType.FEEDBACK:
-      return 'feedback';
-    case DataType.MONITORS:
-      return 'monitor';
-    case DataType.SPANS:
-      return 'span';
-    case DataType.INDEXED_SPANS:
-      return 'span_indexed';
-    case DataType.ATTACHMENTS:
-      return 'attachment';
-    case DataType.ERRORS:
-    default:
-      return 'error';
-  }
-}
+export type DataType =
+  (typeof DATA_CATEGORY_INFO)[keyof typeof DATA_CATEGORY_INFO]['apiName'];
 
 type Props = {
   dataType: DataType;
@@ -177,11 +107,16 @@ export function CustomerStatsFilters({
       <CompactSelect
         triggerProps={{prefix: 'Data Type'}}
         value={dataType}
-        options={Object.entries(dataTypeLabels).map(([value, label]) => ({
-          value,
-          label,
-        }))}
-        onChange={opt => onChange(opt.value as DataType)}
+        options={Object.entries(DATA_CATEGORY_INFO)
+          .filter(([_, categoryInfo]) => categoryInfo.statsInfo.showInternalStats)
+          .map(([category, categoryInfo]) => ({
+            value: categoryInfo.apiName,
+            label:
+              category === DataCategoryExact.SPAN
+                ? 'Accepted Spans'
+                : categoryInfo.titleName,
+          }))}
+        onChange={opt => onChange(opt.value)}
       />
       <DateTimeRange
         triggerProps={{prefix: 'Date Range'}}
