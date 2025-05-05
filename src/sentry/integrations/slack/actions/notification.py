@@ -305,9 +305,9 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
         open_period_start: datetime | None = None
         if event.group.issue_category == GroupCategory.UPTIME:
-            # Fallback in case we haven't created an open period yet
             open_period_start = open_period_start_for_group(event.group)
             new_notification_message_object.open_period_start = open_period_start
+
         # Get thread timestamp using the provided method and args
         with MessagingInteractionEvent(
             MessagingInteractionType.GET_PARENT_NOTIFICATION, SlackMessagingSpec()
