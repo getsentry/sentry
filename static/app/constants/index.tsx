@@ -541,6 +541,10 @@ export const DATA_CATEGORY_INFO = {
     productName: t('Seer'),
     uid: 27,
     isBilledCategory: false, // TODO(Seer): change to True for launch
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showInternalStats: false, // TODO(Seer): update this for launch
+    },
   },
   [DataCategoryExact.SEER_SCANNER]: {
     name: DataCategoryExact.SEER_SCANNER,
@@ -551,6 +555,10 @@ export const DATA_CATEGORY_INFO = {
     productName: t('Seer'),
     uid: 28,
     isBilledCategory: false, // TODO(Seer): change to True for launch
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showInternalStats: false, // TODO(Seer): update this for launch
+    },
   },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 
