@@ -2011,7 +2011,9 @@ function buildRoutes() {
         {/* Render tests onboarding without any layout wrapping */}
         <Route
           path="new/"
-          component={make(() => import('sentry/views/codecov/tests/onboarding'))}
+          component={make(
+            () => import('sentry/views/codecov/tests/onboarding/onboarding')
+          )}
         />
       </Route>
       <Route path="tokens/">
