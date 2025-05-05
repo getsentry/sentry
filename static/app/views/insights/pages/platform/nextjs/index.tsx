@@ -1,9 +1,9 @@
-import {useEffect, useState} from 'react';
+import {useEffect} from 'react';
+import {useLocation, useNavigate} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
-import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -16,7 +16,7 @@ import {WebVitalsWidget} from 'sentry/views/insights/pages/platform/nextjs/webVi
 import {DurationWidget} from 'sentry/views/insights/pages/platform/shared/durationWidget';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {PlatformLandingPageLayout} from 'sentry/views/insights/pages/platform/shared/layout';
-import {PagesTable} from 'sentry/views/insights/pages/platform/shared/pagesTable';
+import {PagesTable} from 'sentry/views/insights/pages/platform/shared/PagesTable';
 import {PathsTable} from 'sentry/views/insights/pages/platform/shared/pathsTable';
 import {TrafficWidget} from 'sentry/views/insights/pages/platform/shared/trafficWidget';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
@@ -41,16 +41,29 @@ export function NextJsOverviewPage({
       timestamp: date,
       version,
     })) ?? [];
-  const [activeView, setActiveView] = useState<View>('api');
-  const [spanOperationFilter, setSpanOperationFilter] =
-    useState<SpanOperation>('pageload');
+  const location = useLocation();
+  const navigate = useNavigate();
+  const queryParams = new URLSearchParams(location.search);
+
+  const activeView: View = (queryParams.get('view') as View) ?? 'api';
+  const spanOperationFilter: SpanOperation =
+    (queryParams.get('spanOp') as SpanOperation) ?? 'pageload';
+
+  const updateQuery = (newParams: Record<string, string>) => {
+    const currentParams = new URLSearchParams(location.search);
+    for (const [key, value] of Object.entries(newParams)) {
+      currentParams.set(key, value);
+    }
+    navigate({search: currentParams.toString()}, {replace: true});
+  };
 
   useEffect(() => {
     trackAnalytics('nextjs-insights.page-view', {
       organization,
+      view: activeView,
+      spanOp: spanOperationFilter,
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [organization, activeView, spanOperationFilter]);
 
   const {query, setTransactionFilter} = useTransactionNameQuery();
 
@@ -90,7 +103,7 @@ export function NextJsOverviewPage({
       <ControlsWrapper>
         <SegmentedControl
           value={activeView}
-          onChange={value => setActiveView(value)}
+          onChange={value => updateQuery({view: value})}
           size="sm"
         >
           <SegmentedControl.Item key="api">{t('API')}</SegmentedControl.Item>
@@ -103,7 +116,7 @@ export function NextJsOverviewPage({
             options={spanOperationOptions}
             value={spanOperationFilter}
             onChange={(option: SelectOption<SpanOperation>) =>
-              setSpanOperationFilter(option.value)
+              updateQuery({spanOp: option.value})
             }
           />
         )}
