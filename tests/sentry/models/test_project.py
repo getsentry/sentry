@@ -429,13 +429,10 @@ class ProjectTest(APITestCase, TestCase):
         assert alert_rule.team_id is None
         assert alert_rule.user_id is None
 
+    @with_feature("organizations:workflow-engine-issue-alert-dual-write")
     def test_project_detector(self):
-        project = self.create_project()
-        assert not Detector.objects.filter(project=project, type=ErrorGroupType.slug).exists()
-
-        with self.feature({"organizations:workflow-engine-issue-alert-dual-write": True}):
-            project = self.create_project()
-            assert Detector.objects.filter(project=project, type=ErrorGroupType.slug).exists()
+        project = self.create_project(fire_project_created=True)
+        assert Detector.objects.filter(project=project, type=ErrorGroupType.slug).exists()
 
 
 class ProjectOptionsTests(TestCase):
