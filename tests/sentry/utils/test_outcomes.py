@@ -328,8 +328,6 @@ def test_track_outcome_late(setup):
                         "topic": "outcomes-billing",
                     },
                 ),
-            ],
-            [
                 mock.call(
                     "events.outcomes",
                     skip_internal=True,
