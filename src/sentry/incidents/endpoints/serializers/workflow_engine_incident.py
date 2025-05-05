@@ -136,7 +136,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
 
         # look up Activity rows for other status changes (warning / critical)
         status_change_activities = Activity.objects.filter(
-            group=open_period.group, type=ActivityType.ActivityType.SET_PRIORITY
+            group=open_period.group, type=ActivityType.SET_PRIORITY.value
         )
 
         activity_status_to_incident_status = {
