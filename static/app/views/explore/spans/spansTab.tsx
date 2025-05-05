@@ -1,7 +1,6 @@
 import {useEffect, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 
 import Feature from 'sentry/components/acl/feature';
 import {getDiffInMinutes} from 'sentry/components/charts/utils';
@@ -21,6 +20,7 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
@@ -39,8 +39,6 @@ import SchemaHintsList, {
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {
-  PageParamsProvider,
-  useExploreDataset,
   useExploreFields,
   useExploreId,
   useExploreMode,
@@ -50,10 +48,7 @@ import {
   useSetExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {
-  SpanTagsProvider,
-  useSpanTags,
-} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
@@ -67,15 +62,51 @@ import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/sp
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 import {combineConfidenceForSeries, type PickableDays} from 'sentry/views/explore/utils';
-import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {Onboarding} from 'sentry/views/performance/onboarding';
 
 // eslint-disable-next-line no-restricted-imports
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
+interface SpansTabOnboardingProps extends PickableDays {
+  organization: Organization;
+  project: Project;
+}
+
+export function SpansTabOnboarding({
+  defaultPeriod,
+  maxPickableDays,
+  organization,
+  project,
+  relativeOptions,
+}: SpansTabOnboardingProps) {
+  return (
+    <Layout.Body>
+      <TopSection>
+        <FilterSection>
+          <StyledPageFilterBar condensed>
+            <ProjectPageFilter />
+            <EnvironmentPageFilter />
+            <DatePageFilter
+              defaultPeriod={defaultPeriod}
+              maxPickableDays={maxPickableDays}
+              relativeOptions={({arbitraryOptions}) => ({
+                ...arbitraryOptions,
+                ...relativeOptions,
+              })}
+            />
+          </StyledPageFilterBar>
+        </FilterSection>
+      </TopSection>
+      <OnboardingContentSection>
+        <Onboarding project={project} organization={organization} />
+      </OnboardingContentSection>
+    </Layout.Body>
+  );
+}
+
 type SpanTabProps = PickableDays;
 
-function SpansTabContentImpl({
+export function SpansTabContent({
   defaultPeriod,
   maxPickableDays,
   relativeOptions,
@@ -346,64 +377,6 @@ function IconDoubleChevron(props: React.ComponentProps<typeof IconChevron>) {
       <IconChevron style={{marginRight: `-3px`}} {...props} />
       <IconChevron style={{marginLeft: `-3px`}} {...props} />
     </DoubleChevronWrapper>
-  );
-}
-
-function ExploreTagsProvider({children}: any) {
-  const dataset = useExploreDataset();
-
-  return (
-    <SpanTagsProvider dataset={dataset} enabled>
-      {children}
-    </SpanTagsProvider>
-  );
-}
-
-type OnboardingContentProps = SpanTabProps & {onboardingProject: Project};
-
-function OnboardingContent(props: OnboardingContentProps) {
-  const organization = useOrganization();
-
-  return (
-    <Layout.Body>
-      <TopSection>
-        <FilterSection>
-          <StyledPageFilterBar condensed>
-            <ProjectPageFilter />
-            <EnvironmentPageFilter />
-            <DatePageFilter
-              defaultPeriod={props.defaultPeriod}
-              maxPickableDays={props.maxPickableDays}
-              relativeOptions={({arbitraryOptions}) => ({
-                ...arbitraryOptions,
-                ...props.relativeOptions,
-              })}
-            />
-          </StyledPageFilterBar>
-        </FilterSection>
-      </TopSection>
-      <OnboardingContentSection>
-        <Onboarding project={props.onboardingProject} organization={organization} />
-      </OnboardingContentSection>
-    </Layout.Body>
-  );
-}
-
-export function SpansTabContent(props: SpanTabProps) {
-  Sentry.setTag('explore.visited', 'yes');
-  const onboardingProject = useOnboardingProject();
-  const showOnboarding = onboardingProject !== undefined;
-
-  return (
-    <PageParamsProvider>
-      <ExploreTagsProvider>
-        {showOnboarding ? (
-          <OnboardingContent {...props} onboardingProject={onboardingProject} />
-        ) : (
-          <SpansTabContentImpl {...props} />
-        )}
-      </ExploreTagsProvider>
-    </PageParamsProvider>
   );
 }
 
