@@ -808,6 +808,16 @@ class DetailedProjectSerializerTest(TestCase):
         result = serialize(self.project, self.user, DetailedProjectSerializer())
         assert result["options"]["sentry:toolbar_allowed_origins"].split("\n") == origins
 
+    def test_autofix_automation_tuning_flag(self):
+        # Default is "off"
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        assert result["autofixAutomationTuning"] == "off"
+
+        # Update the value
+        self.project.update_option("sentry:autofix_automation_tuning", "high")
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        assert result["autofixAutomationTuning"] == "high"
+
 
 class BulkFetchProjectLatestReleases(TestCase):
     @cached_property
