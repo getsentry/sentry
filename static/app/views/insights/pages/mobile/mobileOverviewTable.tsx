@@ -15,8 +15,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
+import {StarredSegmentCell} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
+import {StyledIconStar} from 'sentry/views/insights/pages/backend/backendTable';
 import {TransactionCell} from 'sentry/views/insights/pages/transactionCell';
 import type {EAPSpanResponse} from 'sentry/views/insights/types';
 
@@ -27,10 +29,9 @@ type Row = Pick<
   | 'span.op'
   | 'project'
   | 'epm()'
-  | 'p50(span.duration)'
-  | 'p95(span.duration)'
-  | 'failure_rate()'
-  | 'time_spent_percentage(span.duration)'
+  | 'p75(measurements.frames_slow_rate)'
+  | 'p75(measurements.frames_frozen_rate)'
+  | 'count_unique(user)'
   | 'sum(span.duration)'
 >;
 
@@ -40,19 +41,13 @@ type Column = GridColumnHeader<
   | 'span.op'
   | 'project'
   | 'epm()'
-  | 'p50(span.duration)'
-  | 'p95(span.duration)'
-  | 'failure_rate()'
-  | 'time_spent_percentage(span.duration)'
+  | 'p75(measurements.frames_slow_rate)'
+  | 'p75(measurements.frames_frozen_rate)'
+  | 'count_unique(user)'
   | 'sum(span.duration)'
 >;
 
 const COLUMN_ORDER: Column[] = [
-  {
-    key: 'is_starred_transaction',
-    name: t('Starred'),
-    width: COL_WIDTH_UNDEFINED,
-  },
   {
     key: 'transaction',
     name: t('Transaction'),
@@ -74,22 +69,22 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'p50(span.duration)',
-    name: t('p50()'),
+    key: 'p75(measurements.frames_slow_rate)',
+    name: t('Slow Frame %'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'p95(span.duration)',
-    name: t('p95()'),
+    key: 'p75(measurements.frames_frozen_rate)',
+    name: t('Frozen Frame %'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'failure_rate()',
-    name: t('Failure Rate'),
+    key: 'count_unique(user)',
+    name: t('Users'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'time_spent_percentage(span.duration)',
+    key: 'sum(span.duration)',
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
   },
@@ -101,10 +96,10 @@ const SORTABLE_FIELDS = [
   'span.op',
   'project',
   'epm()',
-  'p50(span.duration)',
-  'p95(span.duration)',
-  'failure_rate()',
-  'time_spent_percentage(span.duration)',
+  'p75(measurements.frames_slow_rate)',
+  'p75(measurements.frames_frozen_rate)',
+  'count_unique(user)',
+  'sum(span.duration)',
 ] as const;
 
 export type ValidSort = Sort & {
@@ -158,6 +153,8 @@ export function MobileOverviewTable({response, sort}: Props) {
           },
         ]}
         grid={{
+          prependColumnWidths: ['max-content'],
+          renderPrependColumns,
           renderHeadCell: column =>
             renderHeadCell({
               column,
@@ -171,6 +168,24 @@ export function MobileOverviewTable({response, sort}: Props) {
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
     </VisuallyCompleteWithData>
   );
+}
+
+function renderPrependColumns(isHeader: boolean, row?: Row | undefined) {
+  if (isHeader) {
+    return [<StyledIconStar key="star" color="yellow300" isSolid />];
+  }
+
+  if (!row) {
+    return [];
+  }
+  return [
+    <StarredSegmentCell
+      key={row.transaction}
+      initialIsStarred={row.is_starred_transaction}
+      projectSlug={row.project}
+      segmentName={row.transaction}
+    />,
+  ];
 }
 
 function renderBodyCell(

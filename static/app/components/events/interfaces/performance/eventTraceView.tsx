@@ -74,9 +74,11 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
   const meta = useTraceMeta([{traceSlug: traceId, timestamp}]);
   const tree = useIssuesTraceTree({trace, meta, replay: null});
 
-  const shouldLoadTraceRoot = !trace.isPending && trace.data;
-
-  const rootEvent = useTraceRootEvent(shouldLoadTraceRoot ? trace.data : null);
+  const rootEventResults = useTraceRootEvent({
+    tree,
+    logs: undefined,
+    traceId,
+  });
 
   const traceEventView = useTraceEventView(traceId, params);
 
@@ -92,7 +94,7 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
         tree={tree}
         trace={trace}
         traceSlug={traceId}
-        rootEvent={rootEvent}
+        rootEventResults={rootEventResults}
         organization={organization}
         traceEventView={traceEventView}
         meta={meta}

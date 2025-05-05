@@ -8,6 +8,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
 import {useSelectedSavedSearch} from 'sentry/views/issueList/utils/useSelectedSavedSearch';
+import {usePrefersOldNavWithEnforcedStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 import IssueListSearchBar from './searchBar';
 
@@ -23,11 +24,17 @@ export function IssueSearchWithSavedSearches({
   onSearch,
 }: IssueSearchWithSavedSearchesProps) {
   const organization = useOrganization();
+
   const selectedSavedSearch = useSelectedSavedSearch();
   const [isSavedSearchesOpen, setIsSavedSearchesOpen] = useSyncedLocalStorageState(
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
     false
   );
+  const prefersOldNavWithEnforcement = usePrefersOldNavWithEnforcedStackedNav();
+
+  const shouldShowSavedSearchesButton =
+    !organization.features.includes('issue-stream-custom-views') ||
+    prefersOldNavWithEnforcement;
 
   function onSavedSearchesToggleClicked() {
     const newOpenState = !isSavedSearchesOpen;
@@ -40,7 +47,7 @@ export function IssueSearchWithSavedSearches({
 
   return (
     <SearchBarWithButtonContainer className={className}>
-      {!organization.features.includes('issue-stream-custom-views') && (
+      {shouldShowSavedSearchesButton && (
         <StyledButton onClick={onSavedSearchesToggleClicked}>
           {selectedSavedSearch?.name ?? t('Custom Search')}
         </StyledButton>
@@ -51,7 +58,7 @@ export function IssueSearchWithSavedSearches({
         initialQuery={query || ''}
         onSearch={onSearch}
         placeholder={t('Search for events, users, tags, and more')}
-        roundCorners={organization.features.includes('issue-stream-custom-views')}
+        roundCorners={!shouldShowSavedSearchesButton}
       />
     </SearchBarWithButtonContainer>
   );
@@ -81,12 +88,9 @@ const StyledButton = styled(Button)`
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
     border-right: none;
-    ${p => p.theme.overflowEllipsis};
 
-    > span {
+    & > span {
       ${p => p.theme.overflowEllipsis};
-      height: auto;
-      display: block;
     }
   }
 `;

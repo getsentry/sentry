@@ -66,6 +66,7 @@ import {
   TOTAL_EXPANDABLE_ROWS_HEIGHT,
 } from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
+import {EAP_QUERY_PARAMS} from 'sentry/views/performance/landing/widgets/widgets/settings';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {
   createUnnamedTransactionsDiscoverTarget,
@@ -117,11 +118,11 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   const metricsDataset = useEap ? DiscoverDatasets.SPANS_EAP : DiscoverDatasets.METRICS;
 
   const spanQueryParams: Record<string, string> = useEap
-    ? {dataset: DiscoverDatasets.SPANS_EAP}
+    ? {...EAP_QUERY_PARAMS}
     : {dataset: DiscoverDatasets.SPANS_METRICS};
 
   const metricsQueryParams: Record<string, string> = useEap
-    ? {dataset: DiscoverDatasets.SPANS_EAP}
+    ? {...EAP_QUERY_PARAMS}
     : {dataset: DiscoverDatasets.METRICS};
 
   let emptyComponent: any;

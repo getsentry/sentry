@@ -35,7 +35,7 @@ describe('SeerSection', () => {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/setup/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
         setupAcknowledgement: {
           orgHasAcknowledged: true,
@@ -47,7 +47,7 @@ describe('SeerSection', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       body: {steps: []},
     });
   });
@@ -101,14 +101,14 @@ describe('SeerSection', () => {
   });
 
   describe('Seer button text', () => {
-    it('shows "Set Up Seer" when AI needs setup', async () => {
+    it('shows "Set Up Seer" with summary when Seer needs setup', async () => {
       const customOrganization = OrganizationFixture({
         hideAiFeatures: false,
         features: ['gen-ai-features'],
       });
 
       MockApiClient.addMockResponse({
-        url: `/issues/${mockGroup.id}/autofix/setup/`,
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
         body: AutofixSetupFixture({
           setupAcknowledgement: {
             orgHasAcknowledged: false,
@@ -119,24 +119,23 @@ describe('SeerSection', () => {
         }),
       });
 
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
+        method: 'POST',
+        body: {whatsWrong: 'Test summary'},
+      });
+
       render(<SeerSection event={mockEvent} group={mockGroup} project={mockProject} />, {
         organization: customOrganization,
       });
 
-      await waitFor(() => {
-        expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
-      });
-
-      expect(
-        screen.getByText('Explore potential root causes and solutions with Autofix.')
-      ).toBeInTheDocument();
-
+      expect(await screen.findByText('Test summary')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Set Up Seer'})).toBeInTheDocument();
     });
 
     it('shows "Find Root Cause" even when autofix needs setup', async () => {
       MockApiClient.addMockResponse({
-        url: `/issues/${mockGroup.id}/autofix/setup/`,
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
         body: AutofixSetupFixture({
           setupAcknowledgement: {
             orgHasAcknowledged: true,
@@ -166,7 +165,7 @@ describe('SeerSection', () => {
     it('shows "Find Root Cause" when autofix is available', async () => {
       // Mock successful autofix setup but disable resources
       MockApiClient.addMockResponse({
-        url: `/issues/${mockGroup.id}/autofix/setup/`,
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
         body: AutofixSetupFixture({
           setupAcknowledgement: {
             orgHasAcknowledged: true,
@@ -204,7 +203,7 @@ describe('SeerSection', () => {
 
       // Mock config with autofix disabled
       MockApiClient.addMockResponse({
-        url: `/issues/${mockGroup.id}/autofix/setup/`,
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
         body: AutofixSetupFixture({
           setupAcknowledgement: {
             orgHasAcknowledged: true,

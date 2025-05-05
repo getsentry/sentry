@@ -5,6 +5,7 @@ from typing import Any
 from django.db import router, transaction
 from django.forms import ValidationError
 
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import (
     AlertRule,
@@ -802,39 +803,10 @@ def dual_delete_migrated_alert_rule(alert_rule: AlertRule) -> None:
 
     workflow: Workflow = alert_rule_workflow.workflow
     detector: Detector = alert_rule_detector.detector
-    data_condition_group: DataConditionGroup | None = detector.workflow_condition_group
 
-    data_source = get_data_source(alert_rule=alert_rule)
-    if data_source is None:
-        logger.info(
-            "DataSource does not exist",
-            extra={"alert_rule_id": alert_rule.id},
-        )
     with transaction.atomic(router.db_for_write(Detector)):
-        triggers_to_dual_delete = AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
-        for trigger in triggers_to_dual_delete:
-            dual_delete_migrated_alert_rule_trigger(trigger)
-
-        if data_condition_group:
-            # we need to delete the "resolve" dataconditions here as well
-            data_conditions = DataCondition.objects.filter(condition_group=data_condition_group)
-            resolve_detector_trigger = data_conditions.get(
-                condition_result=DetectorPriorityLevel.OK
-            )
-
-            resolve_detector_trigger.delete()
-
-        # NOTE: for migrated alert rules, each workflow is associated with a single detector
-        # make sure there are no other detectors associated with the workflow, then delete it if so
-        if DetectorWorkflow.objects.filter(workflow=workflow).count() == 1:
-            # also deletes alert_rule_workflow
-            workflow.delete()
-        # also deletes alert_rule_detector, detector_workflow (if not already deleted), detector_state
-        detector.delete()
-        if data_condition_group:
-            data_condition_group.delete()
-        if data_source:
-            data_source.delete()
+        RegionScheduledDeletion.schedule(instance=detector, days=0)
+        RegionScheduledDeletion.schedule(instance=workflow, days=0)
 
     return
 

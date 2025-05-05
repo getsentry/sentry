@@ -158,6 +158,23 @@ class MigrateMetricAlertTest(TestMigrations):
         )
         self.create_alert_rule_trigger(alert_rule=self.rule_with_long_name)
 
+        user = self.create_user()
+        self.rule_missing_org_member = self.create_alert_rule()
+        trigger = self.create_alert_rule_trigger(alert_rule=self.rule_missing_org_member)
+        self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, target_identifier=str(user.id)
+        )
+
+        team = self.create_team(organization=self.organization)
+        self.rule_missing_team = self.create_alert_rule(organization=self.organization)
+        trigger = self.create_alert_rule_trigger(alert_rule=self.rule_missing_team)
+        self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger,
+            target_identifier=str(team.id),
+            target_type=AlertRuleTriggerAction.TargetType.TEAM,
+        )
+        team.delete()
+
     def test_simple_rule(self):
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.valid_rule.id)
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=self.valid_rule.id)
@@ -426,3 +443,17 @@ class MigrateMetricAlertTest(TestMigrations):
             detector.name
             == "She cast her fragrance and her radiance over me. I ought never to have run away from her... I ought to have guessed all the affection that lay behind her poor little stratagems. Flowers are so inco..."
         )
+
+    def test_missing_org_member(self):
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(
+            alert_rule_id=self.rule_missing_org_member.id
+        )
+        workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
+
+        assert workflow.name == "Email [removed]"
+
+    def test_missing_team(self):
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.rule_missing_team.id)
+        workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
+
+        assert workflow.name == "Email [removed]"

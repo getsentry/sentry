@@ -8,7 +8,6 @@ import {t} from 'sentry/locale';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {Transform} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {QueryBatchNode} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -30,6 +29,7 @@ import {
   getMEPQueryParams,
   QUERY_LIMIT_PARAM,
 } from 'sentry/views/performance/landing/widgets/utils';
+import {EAP_QUERY_PARAMS} from 'sentry/views/performance/landing/widgets/widgets/settings';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
@@ -45,7 +45,10 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
   const useEap = useInsightsEap();
 
   const queryExtras = useEap
-    ? {...getMEPQueryParams(mepSetting), dataset: DiscoverDatasets.SPANS_EAP}
+    ? {
+        ...getMEPQueryParams(mepSetting),
+        ...EAP_QUERY_PARAMS,
+      }
     : getMEPQueryParams(mepSetting);
 
   if (props.fields.length !== 1) {
