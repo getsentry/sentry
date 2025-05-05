@@ -126,6 +126,7 @@ const Wrapper = styled('div')`
   display: flex;
   gap: ${space(1)};
   align-items: center;
+  height: 36px;
 `;
 
 const StyledShortId = styled(ShortId)`
