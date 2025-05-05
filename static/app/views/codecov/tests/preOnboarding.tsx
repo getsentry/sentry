@@ -143,7 +143,7 @@ const StyledP = styled('p')`
 
 const ItalicP = styled('p')`
   font-style: italic;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.tokens.content.primary};
 `;
 
 const IntroSection = styled('div')`
