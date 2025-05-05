@@ -4,7 +4,6 @@ import {
   FilterType,
   filterTypeConfig,
   interchangeableFilterOperators,
-  type TermOperator,
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
@@ -36,11 +35,11 @@ export function isAggregateFilterToken(
 
 export function getValidOpsForFilter(
   filterToken: TokenResult<Token.FILTER>
-): readonly TermOperator[] {
+): readonly TermOperatorNew[] {
   const fieldDefinition = getFieldDefinition(filterToken.key.text);
 
   if (fieldDefinition?.allowComparisonOperators) {
-    return allOperators;
+    return allOperators as unknown as TermOperatorNew[];
   }
 
   // If the token is invalid we want to use the possible expected types as our filter type
@@ -56,7 +55,7 @@ export function getValidOpsForFilter(
   const allValidTypes = [...new Set([...validTypes, ...interchangeableTypes.flat()])];
 
   // Find all valid operations
-  const validOps = new Set<TermOperator>(
+  const validOps = new Set<TermOperatorNew>(
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     allValidTypes.flatMap(type => filterTypeConfig[type].validOps)
   );
