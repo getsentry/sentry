@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from sentry.api.serializers import serialize
 from sentry.incidents.endpoints.serializers.workflow_engine_incident import (
+    WorkflowEngineDetailedIncidentSerializer,
     WorkflowEngineIncidentSerializer,
 )
 from sentry.incidents.logic import update_incident_status
@@ -162,4 +163,11 @@ class TestDetectorSerializer(TestWorklowEngineSerializer):
             self.user,
             WorkflowEngineIncidentSerializer(expand=["activities"]),
         )
+        assert serialized_incident == self.incident_expected
+
+    def test_detailed(self) -> None:
+        serialized_incident = serialize(
+            self.group_open_period, self.user, WorkflowEngineDetailedIncidentSerializer()
+        )
+        self.incident_expected["discoverQuery"] = "(event.type:error) AND (level:error)"
         assert serialized_incident == self.incident_expected
