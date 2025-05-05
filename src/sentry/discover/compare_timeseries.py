@@ -167,7 +167,7 @@ def get_mismatch_type(mismatches: dict[int, dict[str, float]], total_buckets: in
         snql_value = values["snql_value"]
         rpc_value = values["rpc_value"]
         diff = values["mismatch_percentage"]
-        confidence = values["confidence"]
+        confidence = values.get("confidence")
         sampling_rate = values.get("sampling_rate")
 
         if snql_value > 0:
@@ -304,7 +304,7 @@ def assert_timeseries_close(aligned_timeseries, alert_rule):
                 "snql_value": snql_value,
                 "mismatch_percentage": diff,
                 "sampling_rate": values.get("sampling_rate"),
-                "confidence": values["confidence"],
+                "confidence": values.get("confidence"),
             }
 
     sentry_sdk.set_tag("false_positive_misfires", false_positive_misfire)
@@ -344,7 +344,7 @@ def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
     if not project:
         return {"is_close": False, "skipped": True, "mismatches": {}}
 
-    if "apdex" in snuba_query.aggregate:
+    if "apdex" in snuba_query.aggregate or "percentile" in snuba_query.aggregate:
         logger.info(
             "Skipping alert %s, %s aggregate not yet supported by RPC",
             alert_rule.id,
