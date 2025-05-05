@@ -12,7 +12,7 @@ import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import toRoundedPercent from 'sentry/utils/number/toRoundedPercent';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useGroupFlagDrawerData from 'sentry/views/issueDetails/groupFeatureFlags/useGroupFlagDrawerData';
+import useGroupFlagDrawerData from 'sentry/views/issueDetails/groupFeatureFlags/hooks/useGroupFlagDrawerData';
 import {TagBar} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 
 interface Props {
