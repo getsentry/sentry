@@ -46,7 +46,7 @@ def test_complete_prompt(mock_options):
     )
 
     with patch(
-        "sentry.llm.providers.vertex.genai.Client",
+        "sentry.llm.providers.vertex.VertexProvider._create_genai_client",
         return_value=MockGenaiClient(mock_generate_content),
     ):
         res = complete_prompt(
@@ -73,7 +73,7 @@ def test_complete_prompt_error(mock_options):
     )
 
     with patch(
-        "sentry.llm.providers.vertex.genai.Client",
+        "sentry.llm.providers.vertex.VertexProvider._create_genai_client",
         return_value=MockGenaiClient(mock_generate_content),
     ):
         with pytest.raises(VertexRequestFailed):
