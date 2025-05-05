@@ -76,6 +76,8 @@ export enum SpanFields {
   MOBILE_FROZEN_FRAMES = 'mobile.frozen_frames',
   MOBILE_TOTAL_FRAMES = 'mobile.total_frames',
   MOBILE_SLOW_FRAMES = 'mobile.slow_frames',
+  FROZEN_FRAMES_RATE = 'measurements.frames_frozen_rate',
+  SLOW_FRAMES_RATE = 'measurements.frames_slow_rate',
 }
 
 type WebVitalsMeasurements =
@@ -111,6 +113,8 @@ type SpanNumberFields =
   | SpanFields.MOBILE_FROZEN_FRAMES
   | SpanFields.MOBILE_TOTAL_FRAMES
   | SpanFields.MOBILE_SLOW_FRAMES
+  | SpanFields.FROZEN_FRAMES_RATE
+  | SpanFields.SLOW_FRAMES_RATE
   | DiscoverNumberFields;
 
 type SpanStringFields =
@@ -280,8 +284,6 @@ export type EAPSpanResponse = {
     [Property in SpanFields as `count_unique(${Property})`]: number;
   } & {
     [Property in SpanNumberFields as `${CounterConditionalAggregate}(${Property},${string},${string})`]: number;
-  } & {
-    [Property in SpanNumberFields as `division(${Property},${Property})`]: number;
   };
 
 export type EAPSpanProperty = keyof EAPSpanResponse;

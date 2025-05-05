@@ -29,8 +29,8 @@ type Row = Pick<
   | 'span.op'
   | 'project'
   | 'epm()'
-  | 'division(mobile.slow_frames,mobile.total_frames)'
-  | 'division(mobile.frozen_frames,mobile.total_frames)'
+  | 'p75(measurements.frames_slow_rate)'
+  | 'p75(measurements.frames_frozen_rate)'
   | 'count_unique(user)'
   | 'sum(span.duration)'
 >;
@@ -41,8 +41,8 @@ type Column = GridColumnHeader<
   | 'span.op'
   | 'project'
   | 'epm()'
-  | 'division(mobile.slow_frames,mobile.total_frames)'
-  | 'division(mobile.frozen_frames,mobile.total_frames)'
+  | 'p75(measurements.frames_slow_rate)'
+  | 'p75(measurements.frames_frozen_rate)'
   | 'count_unique(user)'
   | 'sum(span.duration)'
 >;
@@ -69,12 +69,12 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'division(mobile.slow_frames,mobile.total_frames)',
+    key: 'p75(measurements.frames_slow_rate)',
     name: t('Slow Frame %'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'division(mobile.frozen_frames,mobile.total_frames)',
+    key: 'p75(measurements.frames_frozen_rate)',
     name: t('Frozen Frame %'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -96,8 +96,8 @@ const SORTABLE_FIELDS = [
   'span.op',
   'project',
   'epm()',
-  'division(mobile.slow_frames,mobile.total_frames)',
-  'division(mobile.frozen_frames,mobile.total_frames)',
+  'p75(measurements.frames_slow_rate)',
+  'p75(measurements.frames_frozen_rate)',
   'count_unique(user)',
   'sum(span.duration)',
 ] as const;
