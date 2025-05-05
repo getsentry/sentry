@@ -7,6 +7,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
@@ -138,6 +139,7 @@ export default function IntegrationCodeMappings({
   const {
     data: fetchedPathConfigs = [],
     isPending: isPendingPathConfigs,
+    isError: isErrorPathConfigs,
     getResponseHeader: getPathConfigsResponseHeader,
     refetch: refetchPathConfigs,
   } = useApiQuery<RepositoryProjectPathConfig[]>(
@@ -151,7 +153,11 @@ export default function IntegrationCodeMappings({
     }
   );
 
-  const {data: fetchedRepos = [], isPending: isPendingRepos} = useApiQuery<Repository[]>(
+  const {
+    data: fetchedRepos = [],
+    isPending: isPendingRepos,
+    isError: isErrorRepos,
+  } = useApiQuery<Repository[]>(
     [`/organizations/${organization.slug}/repos/`, {query: {status: 'active'}}],
     {staleTime: 30000}
   );
@@ -221,6 +227,14 @@ export default function IntegrationCodeMappings({
 
   if (isLoading) {
     return <LoadingIndicator />;
+  }
+
+  if (isErrorPathConfigs) {
+    return <LoadingError message={t('Error loading code mappings')} />;
+  }
+
+  if (isErrorRepos) {
+    return <LoadingError message={t('Error loading repositories')} />;
   }
 
   const pathConfigsPageLinks = getPathConfigsResponseHeader?.('Link');
