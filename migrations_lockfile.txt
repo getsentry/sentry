@@ -21,7 +21,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0880_orgauthtoken_bigint
+sentry: 0881_projectoptions_idx_on_key
 
 social_auth: 0002_default_auto_field
 
