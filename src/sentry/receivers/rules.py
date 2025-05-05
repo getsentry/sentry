@@ -52,6 +52,11 @@ def create_default_rules(project: Project, default_rules=True, RuleModel=Rule, *
                 "workflow_engine.default_issue_alert.migrated",
                 extra={"rule_id": rule.id, "workflow_id": workflow.id},
             )
+        else:
+            logger.error(
+                "workflow_engine.issue_alert.missing_flag",
+                extra={"rule_id": rule.id},
+            )
 
     try:
         user: RpcUser = project.organization.get_default_owner()

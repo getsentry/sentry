@@ -447,7 +447,7 @@ def register_temporary_features(manager: FeatureManager):
     # Enforce stacked navigation feature (with ability to opt out)
     manager.add("organizations:enforce-stacked-navigation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable dual writing for issue alert issues (see: alerts create issues)
-    manager.add("organizations:workflow-engine-issue-alert-dual-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:workflow-engine-issue-alert-dual-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False, default=True)
     # Enable workflow processing for metric issues
     manager.add("organizations:workflow-engine-process-metric-issue-workflows", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable workflow engine for issue alerts
