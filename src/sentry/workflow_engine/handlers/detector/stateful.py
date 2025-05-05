@@ -174,6 +174,8 @@ class StatefulGroupingDetectorHandler(
             )
             if result:
                 results[result.group_key] = result
+
+        self.commit_state_updates()
         return results
 
     def evaluate_group_key_value(

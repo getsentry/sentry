@@ -110,6 +110,3 @@ class DetectorHandler(abc.ABC, Generic[PacketT]):
         self, data_packet: DataPacket[PacketT]
     ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
         pass
-
-    def commit_state_updates(self):
-        pass
