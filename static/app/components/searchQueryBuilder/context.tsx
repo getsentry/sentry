@@ -1,4 +1,11 @@
-import {createContext, type Dispatch, useContext, useMemo, useRef} from 'react';
+import {
+  createContext,
+  type Dispatch,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+} from 'react';
 
 import type {SearchQueryBuilderProps} from 'sentry/components/searchQueryBuilder';
 import {useHandleSearch} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
@@ -30,8 +37,8 @@ interface SearchQueryBuilderContextData {
   focusOverride: FocusOverride | null;
   getFieldDefinition: (key: string, kind?: FieldKind) => FieldDefinition | null;
   getTagValues: (tag: Tag, query: string) => Promise<string[]>;
-  handleOnChange: (query: string) => void;
   handleSearch: (query: string) => void;
+  parseQuery: (query: string) => ParseResult | null;
   parsedQuery: ParseResult | null;
   query: string;
   searchSource: string;
@@ -72,7 +79,6 @@ export function SearchQueryBuilderProvider({
   filterKeyMenuWidth = 360,
   filterKeySections,
   getTagValues,
-  onChange,
   onSearch,
   placeholder,
   recentSearches,
@@ -88,9 +94,9 @@ export function SearchQueryBuilderProvider({
     disabled,
   });
 
-  const parsedQuery = useMemo(
-    () =>
-      parseQueryBuilderValue(state.query, fieldDefinitionGetter, {
+  const parseQuery = useCallback(
+    (query: string) =>
+      parseQueryBuilderValue(query, fieldDefinitionGetter, {
         getFilterTokenWarning,
         disallowFreeText,
         disallowLogicalOperators,
@@ -100,31 +106,23 @@ export function SearchQueryBuilderProvider({
         invalidMessages,
       }),
     [
-      state.query,
-      fieldDefinitionGetter,
       disallowFreeText,
       disallowLogicalOperators,
       disallowUnsupportedFilters,
       disallowWildcard,
+      fieldDefinitionGetter,
       filterKeys,
-      invalidMessages,
       getFilterTokenWarning,
+      invalidMessages,
     ]
   );
+  const parsedQuery = useMemo(() => parseQuery(state.query), [parseQuery, state.query]);
 
   const handleSearch = useHandleSearch({
     parsedQuery,
     recentSearches,
     searchSource,
     onSearch,
-    trigger: 'onsearch',
-  });
-  const handleOnChange = useHandleSearch({
-    parsedQuery,
-    recentSearches,
-    searchSource,
-    onSearch: onChange,
-    trigger: 'onchange',
   });
   const {width: searchBarWidth} = useDimensions({elementRef: wrapperRef});
   const size =
@@ -136,6 +134,7 @@ export function SearchQueryBuilderProvider({
       disabled,
       disallowFreeText: Boolean(disallowFreeText),
       disallowWildcard: Boolean(disallowWildcard),
+      parseQuery,
       parsedQuery,
       filterKeySections: filterKeySections ?? [],
       filterKeyMenuWidth,
@@ -146,7 +145,6 @@ export function SearchQueryBuilderProvider({
       wrapperRef,
       actionBarRef,
       handleSearch,
-      handleOnChange,
       placeholder,
       recentSearches,
       searchSource,
@@ -166,12 +164,12 @@ export function SearchQueryBuilderProvider({
     fieldDefinitionGetter,
     dispatch,
     handleSearch,
-    handleOnChange,
     placeholder,
     recentSearches,
     searchSource,
     size,
     portalTarget,
+    parseQuery,
   ]);
 
   return (

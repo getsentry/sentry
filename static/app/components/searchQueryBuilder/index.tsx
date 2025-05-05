@@ -108,6 +108,10 @@ export interface SearchQueryBuilderProps {
    */
   recentSearches?: SavedSearchType;
   /**
+   * When true, will trigger the `onSearch` callback when the query changes.
+   */
+  searchOnChange?: boolean;
+  /**
    * When true, will display a visual indicator when there are unsaved changes.
    * This search is considered unsubmitted when query !== initialQuery.
    */
@@ -184,11 +188,13 @@ function SearchQueryBuilderUI({
   queryInterface = QueryInterfaceType.TOKENIZED,
   showUnsubmittedIndicator,
   trailingItems,
+  onChange,
+  searchOnChange,
 }: SearchQueryBuilderProps) {
   const {parsedQuery, query, dispatch, wrapperRef, actionBarRef, size} =
     useSearchQueryBuilder();
 
-  useOnChange();
+  useOnChange({onChange, searchOnChange});
   useLayoutEffect(() => {
     dispatch({type: 'UPDATE_QUERY', query: initialQuery});
   }, [dispatch, initialQuery]);
