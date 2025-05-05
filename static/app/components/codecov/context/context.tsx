@@ -5,7 +5,6 @@ import type {
   CodecovContextTypes,
 } from 'sentry/components/codecov/container/container';
 
-// Context definition
 export const CodecovContext = createContext<
   (CodecovContextTypes & CodecovContextSetterTypes) | undefined
 >(undefined);

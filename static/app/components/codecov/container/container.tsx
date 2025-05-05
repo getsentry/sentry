@@ -17,7 +17,7 @@ export type CodecovContextSetterTypes = {
   setContextState: React.Dispatch<React.SetStateAction<CodecovContextTypes>>;
   updateSelectorData: (value: Partial<CodecovContextTypes>) => void;
 };
-type CodecovUrlParams = 'repository' | 'integratedOrg' | 'branch' | '';
+type CodecovUrlParams = 'repository' | 'integratedOrg' | 'branch' | 'codecovPeriod';
 
 type CodecovProviderProps = {
   children?: React.ReactNode;
