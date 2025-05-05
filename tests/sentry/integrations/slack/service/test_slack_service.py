@@ -308,13 +308,16 @@ class TestNotifyAllThreadsForActivity(TestCase):
             open_period_start=timezone.now() - timedelta(minutes=1),
         )
 
+        # Create a new open period
+        latest_open_period = get_latest_open_period(self.group)
+
         parent_notification_2_message = NotificationMessage.objects.create(
             id=124,
             date_added=timezone.now(),
             message_identifier=self.message_identifier,
             rule_action_uuid=self.rule_action_uuid,
             rule_fire_history=rule_fire_history,
-            open_period_start=get_latest_open_period(self.group).date_started,
+            open_period_start=latest_open_period.date_started if latest_open_period else None,
         )
 
         self.service.notify_all_threads_for_activity(activity=activity)
