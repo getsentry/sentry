@@ -138,7 +138,7 @@ def fix_for_issue_platform(event_data: dict[str, Any]) -> dict[str, Any]:
     release_value = event_data.get("release")
     if release_value:
         ret_event["release"] = release_value
-        
+
     if event_data.get("sdk"):
         ret_event["sdk"] = event_data["sdk"]
     ret_event["request"] = event_data.get("request", {})
