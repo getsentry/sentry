@@ -12,14 +12,20 @@ describe('GithubInstallationSelect', () => {
   it('renders installation options', async () => {
     render(<GithubInstallationSelect installation_info={installation_info} />);
 
-    expect(screen.getByText('Select a Github Installation')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Next'})).toBeDisabled();
+    expect(
+      screen.getByText('Install on an Existing Github Organization')
+    ).toBeInTheDocument();
+
+    expect(screen.getByRole('button', {name: 'Skip'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Skip'})).toBeEnabled();
+
+    expect(screen.getByRole('button', {name: 'Install'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Install'})).toBeDisabled();
 
     // Initial selection is None as no installation has been selected
     await userEvent.click(
       screen.getByRole('button', {
-        name: 'None',
+        name: 'Choose Installation',
       })
     );
 
@@ -30,47 +36,47 @@ describe('GithubInstallationSelect', () => {
     ).toBeInTheDocument();
   });
 
-  it('enables next button after selecting an installation', async () => {
+  it('enables Install button after selecting an installation', async () => {
     render(<GithubInstallationSelect installation_info={installation_info} />);
 
-    // Next button should be disabled initially
-    expect(screen.getByRole('button', {name: 'Next'})).toBeDisabled();
+    // Install button should be disabled initially
+    expect(screen.getByRole('button', {name: 'Install'})).toBeDisabled();
 
     // Click the select dropdown
     await userEvent.click(
       screen.getByRole('button', {
-        name: 'None',
+        name: 'Choose Installation',
       })
     );
 
     // Select an installation
     await userEvent.click(screen.getByText('bufo-bot'));
 
-    // Next button should be enabled
-    expect(screen.getByRole('button', {name: 'Next'})).toBeEnabled();
+    // Install button should be enabled
+    expect(screen.getByRole('button', {name: 'Install'})).toBeEnabled();
   });
 
   it('redirects to setup page when clicking next', async () => {
     render(<GithubInstallationSelect installation_info={installation_info} />);
 
-    // Next button should be disabled initially
-    expect(screen.getByRole('button', {name: 'Next'})).toBeDisabled();
+    // Install button should be disabled initially
+    expect(screen.getByRole('button', {name: 'Install'})).toBeDisabled();
 
     // Click the select dropdown
     await userEvent.click(
       screen.getByRole('button', {
-        name: 'None',
+        name: 'Choose Installation',
       })
     );
 
     // Select an installation
     await userEvent.click(screen.getByText('bufo-bot'));
 
-    // Next button should be enabled
-    expect(screen.getByRole('button', {name: 'Next'})).toBeEnabled();
+    // Install button should be enabled
+    expect(screen.getByRole('button', {name: 'Install'})).toBeEnabled();
 
     // Click next
-    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Install'}));
 
     expect(window.location.assign).toHaveBeenCalledWith(
       expect.stringContaining(
@@ -85,7 +91,7 @@ describe('GithubInstallationSelect', () => {
     // Initial selection is None as no installation has been selected
     await userEvent.click(
       screen.getByRole('button', {
-        name: 'None',
+        name: 'Choose Installation',
       })
     );
 
@@ -95,7 +101,7 @@ describe('GithubInstallationSelect', () => {
     );
 
     // Click next
-    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Install'}));
 
     expect(window.location.assign).toHaveBeenCalledWith(
       expect.stringContaining('/extensions/github/setup/?chosen_installation_id=-1')
