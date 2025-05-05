@@ -230,7 +230,7 @@ def sync_prebuilt_queries(organization):
 def sync_prebuilt_queries_starred(organization, user_id):
     """
     Queries the database to check if prebuilt queries have an ExploreSavedQueryStarred record for the user_id, and creates them if they don't.
-    This ensures that prebuilt queries have are starred by default for all users.
+    This ensures that prebuilt queries are starred by default for all users.
     """
     with transaction.atomic(router.db_for_write(ExploreSavedQueryStarred)):
         prebuilt_query_ids_without_starred_status = (
