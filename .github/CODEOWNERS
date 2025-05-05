@@ -80,8 +80,10 @@ Makefile                                                 @getsentry/owners-sentr
 .git-blame-ignore-revs                                   @getsentry/owners-sentry-dev
 
 /fixtures/stubs-for-mypy                                 @getsentry/python-typing
-/tools/mypy_helpers/                                     @getsentry/python-typing
+/src/sentry/conf/types/                                  @getsentry/python-typing
+/src/sentry/types/                                       @getsentry/python-typing
 /tests/tools/mypy_helpers                                @getsentry/python-typing
+/tools/mypy_helpers/                                     @getsentry/python-typing
 
 ## GitHub Routing Automations - notion.so/473791bae5bf43399d46093050b77bf0
 /.github/labels.yml                                      @getsentry/dev-infra
