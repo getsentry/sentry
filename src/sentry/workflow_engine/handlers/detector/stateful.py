@@ -23,8 +23,8 @@ from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 
-PacketT = TypeVar("PacketT")
-ConditionValueT = TypeVar("ConditionValueT")
+DataPacketType = TypeVar("DataPacketType")
+DataPacketEvaluationType = TypeVar("DataPacketEvaluationType")
 
 REDIS_TTL = int(timedelta(days=7).total_seconds())
 
@@ -35,8 +35,8 @@ def get_redis_client() -> RetryingRedisCluster:
 
 
 class StatefulGroupingDetectorHandler(
-    Generic[PacketT, ConditionValueT],
-    DetectorHandler[PacketT],
+    Generic[DataPacketType, DataPacketEvaluationType],
+    DetectorHandler[DataPacketType],
     abc.ABC,
 ):
     def __init__(self, detector: Detector):
@@ -54,17 +54,17 @@ class StatefulGroupingDetectorHandler(
         pass
 
     @abc.abstractmethod
-    def get_dedupe_value(self, data_packet: DataPacket[PacketT]) -> int:
+    def extract_dedupe_value(self, data_packet: DataPacket[DataPacketType]) -> int:
         """
         Extracts the deduplication value from a passed data packet.
-        TODO: This might belong on the `DataPacket` instead.
+        This is normally a timestamp.
         """
         pass
 
     @abc.abstractmethod
-    def get_group_key_values(
-        self, data_packet: DataPacket[PacketT]
-    ) -> dict[DetectorGroupKey, ConditionValueT]:
+    def extract_group_values(
+        self, data_packet: DataPacket[DataPacketType]
+    ) -> dict[DetectorGroupKey, DataPacketEvaluationType]:
         """
         Extracts the values for all the group keys that exist in the given data packet,
         and returns then as a dict keyed by group_key.
@@ -72,7 +72,7 @@ class StatefulGroupingDetectorHandler(
         pass
 
     @abc.abstractmethod
-    def build_occurrence_and_event_data(
+    def create_occurrence(
         self, group_key: DetectorGroupKey, new_status: PriorityLevel
     ) -> tuple[DetectorOccurrence, dict[str, Any]]:
         pass
@@ -95,14 +95,15 @@ class StatefulGroupingDetectorHandler(
         If data isn't currently stored, falls back to default values.
         """
         group_key_detectors = self.bulk_get_detector_state(group_keys)
-        dedupe_keys = [self.build_dedupe_value_key(gk) for gk in group_keys]
+        dedupe_keys = [self.build_dedupe_value_key(group_key) for group_key in group_keys]
         pipeline = get_redis_client().pipeline()
 
-        for dk in dedupe_keys:
-            pipeline.get(dk)
+        for dedupe_key in dedupe_keys:
+            pipeline.get(dedupe_key)
 
         group_key_dedupe_values = {
-            gk: int(dv) if dv else 0 for gk, dv in zip(group_keys, pipeline.execute())
+            group_key: int(dedupe_value) if dedupe_value else 0
+            for group_key, dedupe_value in zip(group_keys, pipeline.execute())
         }
 
         pipeline.reset()
@@ -110,44 +111,45 @@ class StatefulGroupingDetectorHandler(
 
         if self.counter_names:
             counter_keys = [
-                self.build_counter_value_key(gk, name)
-                for gk in group_keys
+                self.build_counter_value_key(group_key, name)
+                for group_key in group_keys
                 for name in self.counter_names
             ]
-            for ck in counter_keys:
-                pipeline.get(ck)
-            vals = [int(val) if val is not None else val for val in pipeline.execute()]
+            for counter_key in counter_keys:
+                pipeline.get(counter_key)
+            values = [int(value) if value is not None else value for value in pipeline.execute()]
+
             counter_updates = {
-                gk: dict(zip(self.counter_names, values))
-                for gk, values in zip(group_keys, chunked(vals, len(self.counter_names)))
+                group_key: dict(zip(self.counter_names, values))
+                for group_key, values in zip(group_keys, chunked(values, len(self.counter_names)))
             }
 
         results = {}
-        for gk in group_keys:
-            detector_state = group_key_detectors.get(gk)
-            results[gk] = DetectorStateData(
-                group_key=gk,
+        for group_key in group_keys:
+            detector_state = group_key_detectors.get(group_key)
+            results[group_key] = DetectorStateData(
+                group_key=group_key,
                 active=detector_state.active if detector_state else False,
                 status=(
                     DetectorPriorityLevel(int(detector_state.state))
                     if detector_state
                     else DetectorPriorityLevel.OK
                 ),
-                dedupe_value=group_key_dedupe_values[gk],
-                counter_updates=counter_updates.get(gk, {}),
+                dedupe_value=group_key_dedupe_values[group_key],
+                counter_updates=counter_updates.get(group_key, {}),
             )
         return results
 
     def evaluate(
-        self, data_packet: DataPacket[PacketT]
+        self, data_packet: DataPacket[DataPacketType]
     ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
         """
         Evaluates a given data packet and returns a list of `DetectorEvaluationResult`.
         There will be one result for each group key result in the packet, unless the
         evaluation is skipped due to various rules.
         """
-        dedupe_value = self.get_dedupe_value(data_packet)
-        group_values = self.get_group_key_values(data_packet)
+        dedupe_value = self.extract_dedupe_value(data_packet)
+        group_values = self.extract_group_values(data_packet)
         all_state_data = self.get_state_data(list(group_values.keys()))
         results = {}
         for group_key, group_value in group_values.items():
@@ -161,7 +163,7 @@ class StatefulGroupingDetectorHandler(
     def evaluate_group_key_value(
         self,
         group_key: DetectorGroupKey,
-        value: ConditionValueT,
+        value: DataPacketEvaluationType,
         state_data: DetectorStateData,
         dedupe_value: int,
     ) -> DetectorEvaluationResult | None:
@@ -205,51 +207,52 @@ class StatefulGroupingDetectorHandler(
         # TODO: We'll increment and change these later, but for now they don't change so just pass an empty dict
         self.enqueue_counter_update(group_key, {})
 
-        if state_data.status != new_status:
-            is_active = new_status != DetectorPriorityLevel.OK
-            self.enqueue_state_update(group_key, is_active, new_status)
-            event_data = None
-            result: StatusChangeMessage | IssueOccurrence
-            if new_status == DetectorPriorityLevel.OK:
-                # If we've determined that we're now ok, we just want to resolve the issue
-                result = StatusChangeMessage(
-                    fingerprint=self.build_fingerprint(group_key),
-                    project_id=self.detector.project_id,
-                    new_status=GroupStatus.RESOLVED,
-                    new_substatus=None,
-                )
-            else:
-                detector_occurrence, event_data = self.build_occurrence_and_event_data(
-                    group_key, PriorityLevel(new_status)
-                )
-                evidence_data = {
-                    **detector_occurrence.evidence_data,
-                    "detector_id": self.detector.id,
-                    "value": value,
-                }
-                result = detector_occurrence.to_issue_occurrence(
-                    occurrence_id=str(uuid4()),
-                    project_id=self.detector.project_id,
-                    status=new_status,
-                    detection_time=datetime.now(UTC),
-                    additional_evidence_data=evidence_data,
-                    fingerprint=self.build_fingerprint(group_key),
-                )
-                event_data["timestamp"] = result.detection_time
-                event_data["project_id"] = result.project_id
-                event_data["event_id"] = result.event_id
-                event_data.setdefault("platform", "python")
-                event_data.setdefault("received", result.detection_time)
-                event_data.setdefault("tags", {})
+        if state_data.status == new_status:
+            return None
 
-            return DetectorEvaluationResult(
-                group_key=group_key,
-                is_active=is_active,
-                priority=new_status,
-                result=result,
-                event_data=event_data,
+        is_active = new_status != DetectorPriorityLevel.OK
+        self.enqueue_state_update(group_key, is_active, new_status)
+        event_data = None
+        result: StatusChangeMessage | IssueOccurrence
+        if new_status == DetectorPriorityLevel.OK:
+            # If we've determined that we're now ok, we just want to resolve the issue
+            result = StatusChangeMessage(
+                fingerprint=self.build_fingerprint(group_key),
+                project_id=self.detector.project_id,
+                new_status=GroupStatus.RESOLVED,
+                new_substatus=None,
             )
-        return None
+        else:
+            detector_occurrence, event_data = self.create_occurrence(
+                group_key, PriorityLevel(new_status)
+            )
+            evidence_data = {
+                **detector_occurrence.evidence_data,
+                "detector_id": self.detector.id,
+                "value": value,
+            }
+            result = detector_occurrence.to_issue_occurrence(
+                occurrence_id=str(uuid4()),
+                project_id=self.detector.project_id,
+                status=new_status,
+                detection_time=datetime.now(UTC),
+                additional_evidence_data=evidence_data,
+                fingerprint=self.build_fingerprint(group_key),
+            )
+            event_data["timestamp"] = result.detection_time
+            event_data["project_id"] = result.project_id
+            event_data["event_id"] = result.event_id
+            event_data.setdefault("platform", "python")
+            event_data.setdefault("received", result.detection_time)
+            event_data.setdefault("tags", {})
+
+        return DetectorEvaluationResult(
+            group_key=group_key,
+            is_active=is_active,
+            priority=new_status,
+            result=result,
+            event_data=event_data,
+        )
 
     def enqueue_dedupe_update(self, group_key: DetectorGroupKey, dedupe_value: int):
         self.dedupe_updates[group_key] = dedupe_value
