@@ -30,6 +30,11 @@ jest.mock('sentry/utils/useRelease', () => ({
   }),
 }));
 
+jest.mock('sentry/views/explore/logs/useLogsQuery', () => ({
+  useExploreLogsTableRow: jest.fn().mockReturnValue({}),
+  usePrefetchLogTableRowOnHover: jest.fn().mockReturnValue({}),
+}));
+
 jest.mock('sentry/components/events/interfaces/frame/useStacktraceLink', () => ({
   __esModule: true,
   default: jest.fn().mockReturnValue({
