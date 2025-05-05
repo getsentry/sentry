@@ -58,7 +58,7 @@ const EXTRA_LANGUAGE_ALIASES: Record<string, string> = {
   svelte: 'javascript',
   'js?': 'javascript',
   'ts?': 'typescript',
-  'tsx?': 'typescript',
+  'tsx?': 'tsx',
   mts: 'typescript',
 
   // Clojure
