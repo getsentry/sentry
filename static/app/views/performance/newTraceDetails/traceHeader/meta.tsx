@@ -5,13 +5,11 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
 import type {TraceMeta} from 'sentry/utils/performance/quickTrace/types';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import type {RepresentativeTraceEvent} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
   isEAPError,
@@ -55,8 +53,7 @@ interface MetaProps {
   logs: OurLogsResponseItem[] | undefined;
   meta: TraceMeta | undefined;
   organization: Organization;
-  representativeEvent: TraceTree.TraceEvent | OurLogsResponseItem | null;
-  rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
+  representativeEvent: RepresentativeTraceEvent;
   tree: TraceTree;
 }
 
@@ -161,7 +158,9 @@ export function Meta(props: MetaProps) {
         <MetaSection
           headingText={t('Root Duration')}
           rightAlignBody
-          bodyText={getRootDuration(props.representativeEvent as TraceTree.TraceEvent)}
+          bodyText={getRootDuration(
+            props.representativeEvent.event as TraceTree.TraceEvent
+          )}
         />
       ) : hasLogs ? (
         <MetaSection
