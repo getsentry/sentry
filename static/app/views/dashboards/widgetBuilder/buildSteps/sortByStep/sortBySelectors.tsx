@@ -169,9 +169,7 @@ export function SortBySelectors({
                 sortDirection: values.sortDirection,
               });
             }}
-            useMenuPortal={organization.features.includes(
-              'dashboards-widget-builder-redesign'
-            )}
+            useMenuPortal
           />
         )}
       </Tooltip>

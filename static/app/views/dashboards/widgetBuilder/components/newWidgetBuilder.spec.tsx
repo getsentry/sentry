@@ -11,12 +11,7 @@ import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/ne
 
 const {organization, projects, router} = initializeOrg({
   organization: {
-    features: [
-      'global-views',
-      'open-membership',
-      'dashboards-eap',
-      'dashboards-widget-builder-redesign',
-    ],
+    features: ['global-views', 'open-membership', 'dashboards-eap'],
   },
   projects: [
     {id: '1', slug: 'project-1', isMember: true},
