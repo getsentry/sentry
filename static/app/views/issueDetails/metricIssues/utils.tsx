@@ -45,7 +45,10 @@ export function useMetricIssueAlertId({groupId}: {groupId: string}): string | un
   );
 
   // Fall back to the fetched event in case the provider doesn't have the detector details
-  return hasMetricDetector ? detectorId : event?.contexts?.metric_alert?.alert_rule_id;
+  const fallback =
+    event?.occurrence?.evidenceData?.alertId ||
+    event?.contexts?.metric_alert?.alert_rule_id;
+  return hasMetricDetector ? detectorId : fallback;
 }
 
 interface UseMetricTimePeriodParams {
