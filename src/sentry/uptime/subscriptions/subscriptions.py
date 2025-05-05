@@ -231,7 +231,6 @@ def create_project_uptime_subscription(
             name=name,
             owner_user_id=owner_user_id,
             owner_team_id=owner_team_id,
-            uptime_status=uptime_status,
         )
         detector = create_detector_from_project_subscription(uptime_monitor)
 
@@ -345,26 +344,20 @@ def disable_uptime_detector(detector: Detector):
     also be disabled.
     """
     uptime_monitor = get_project_subscription(detector)
+    uptime_subscription = uptime_monitor.uptime_subscription
+
     if uptime_monitor.status == ObjectStatus.DISABLED:
         return
 
-    if uptime_monitor.uptime_status == UptimeStatus.FAILED:
+    if uptime_subscription.uptime_status == UptimeStatus.FAILED:
         # Resolve the issue so that we don't see it in the ui anymore
         resolve_uptime_issue(uptime_monitor)
 
-    uptime_subscription = uptime_monitor.uptime_subscription
+    # We set the status back to ok here so that if we re-enable we'll start
+    # from a good state
+    uptime_subscription.update(uptime_status=UptimeStatus.OK)
 
-    uptime_monitor.update(
-        status=ObjectStatus.DISABLED,
-        # We set the status back to ok here so that if we re-enable we'll start
-        # from a good state
-        uptime_status=UptimeStatus.OK,
-    )
-    uptime_subscription.update(
-        # We set the status back to ok here so that if we re-enable we'll start
-        # from a good state
-        uptime_status=UptimeStatus.OK
-    )
+    uptime_monitor.update(status=ObjectStatus.DISABLED)
     detector.update(enabled=False)
 
     quotas.backend.remove_seat(DataCategory.UPTIME, uptime_monitor)

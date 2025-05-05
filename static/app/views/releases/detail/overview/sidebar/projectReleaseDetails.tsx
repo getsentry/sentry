@@ -1,4 +1,3 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
@@ -30,7 +29,6 @@ type Props = {
 };
 
 function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
-  const theme = useTheme();
   const organization = useOrganization();
   const orgSlug = organization.slug;
 
@@ -94,8 +92,8 @@ function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
                         )
                     )}
                   >
-                    <Button
-                      size={theme.isChonk ? 'zero' : 'xs'}
+                    <FinalizeButton
+                      size="zero"
                       onClick={() => {
                         finalizeRelease.mutate([release], {
                           onSettled() {
@@ -105,7 +103,7 @@ function ProjectReleaseDetails({release, releaseMeta, projectSlug}: Props) {
                       }}
                     >
                       {t('Finalize')}
-                    </Button>
+                    </FinalizeButton>
                   </Tooltip>
                 </ButtonContainer>
               )
@@ -180,6 +178,11 @@ const ButtonContainer = styled('div')`
     position: absolute;
     right: 0;
   }
+`;
+
+const FinalizeButton = styled(Button)`
+  font-size: ${p => p.theme.fontSizeSmall};
+  padding-inline: ${space(0.5)};
 `;
 
 export default ProjectReleaseDetails;

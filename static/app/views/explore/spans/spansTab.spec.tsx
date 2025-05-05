@@ -4,6 +4,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {FieldKind} from 'sentry/utils/fields';
 import {
   PageParamsProvider,
@@ -11,6 +12,7 @@ import {
   useExploreGroupBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import * as spanTagsModule from 'sentry/views/explore/contexts/spanTagsContext';
+import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
 import {SpansTabContent} from 'sentry/views/explore/spans/spansTab';
 
 jest.mock('sentry/utils/analytics');
@@ -78,11 +80,19 @@ describe('SpansTabContent', function () {
 
   it('should fire analytics once per change', async function () {
     render(
-      <SpansTabContent
-        defaultPeriod="7d"
-        maxPickableDays={7}
-        relativeOptions={{'1h': 'Last hour', '24h': 'Last 24 hours', '7d': 'Last 7 days'}}
-      />,
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP_RPC} enabled>
+          <SpansTabContent
+            defaultPeriod="7d"
+            maxPickableDays={7}
+            relativeOptions={{
+              '1h': 'Last hour',
+              '24h': 'Last 24 hours',
+              '7d': 'Last 7 days',
+            }}
+          />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
       {organization}
     );
 
@@ -135,7 +145,9 @@ describe('SpansTabContent', function () {
 
     render(
       <PageParamsProvider>
-        <Component />
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP_RPC} enabled>
+          <Component />
+        </SpanTagsProvider>
       </PageParamsProvider>,
       {organization}
     );
@@ -157,11 +169,11 @@ describe('SpansTabContent', function () {
     // Add a group by, and leave one unselected
     await userEvent.click(aggregates);
     await userEvent.click(within(groupBy).getByRole('button', {name: '\u2014'}));
-    await userEvent.click(within(groupBy).getByRole('option', {name: 'release'}));
+    await userEvent.click(within(groupBy).getByRole('option', {name: 'project'}));
 
-    expect(groupBys).toEqual(['release']);
+    expect(groupBys).toEqual(['project']);
     await userEvent.click(within(groupBy).getByRole('button', {name: 'Add Group'}));
-    expect(groupBys).toEqual(['release', '']);
+    expect(groupBys).toEqual(['project', '']);
 
     await userEvent.click(samples);
     expect(fields).toEqual([
@@ -171,7 +183,7 @@ describe('SpansTabContent', function () {
       'span.duration',
       'transaction',
       'timestamp',
-      'release',
+      'project',
     ]);
   });
 

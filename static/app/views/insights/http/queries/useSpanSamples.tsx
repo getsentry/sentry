@@ -11,7 +11,6 @@ import type {
   NonDefaultSpanSampleFields,
 } from 'sentry/views/insights/common/queries/useSpanSamples';
 import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {SpanIndexedField, type SpanIndexedResponse} from 'sentry/views/insights/types';
 
 interface UseSpanSamplesOptions<Fields> {
@@ -35,7 +34,6 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
     max = undefined,
   } = options;
 
-  const useEap = useInsightsEap();
   const {selection} = usePageFilters();
   const organization = useOrganization();
 
@@ -70,7 +68,6 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
           additionalFields: [...fields, SpanIndexedField.TRANSACTION_SPAN_ID],
           sort: '-timestamp',
           referrer,
-          useRpc: useEap ? '1' : undefined,
         },
       },
     ],

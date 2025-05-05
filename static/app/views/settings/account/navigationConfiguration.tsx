@@ -12,7 +12,7 @@ type ConfigParams = {
 };
 
 function getConfiguration({organization}: ConfigParams): NavigationSection[] {
-  if (organization && prefersStackedNav()) {
+  if (organization && prefersStackedNav(organization)) {
     return getUserOrgNavigationConfiguration({organization});
   }
 

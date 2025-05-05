@@ -13,7 +13,7 @@ export function makeTracesPathname({
   path: '/' | `/${string}/`;
 }) {
   return normalizeUrl(
-    prefersStackedNav()
+    prefersStackedNav(organization)
       ? `/organizations/${organization.slug}/${TRACES_BASE_PATHNAME}${path}`
       : `/organizations/${organization.slug}/${LEGACY_TRACES_BASE_PATHNAME}${path}`
   );
