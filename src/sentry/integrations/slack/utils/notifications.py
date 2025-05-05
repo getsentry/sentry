@@ -53,6 +53,7 @@ from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.threads import NotificationActionThreadUtils
 from sentry.models.group import Group
+from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.notifications.utils.open_period import open_period_start_for_group
@@ -326,7 +327,12 @@ def _handle_workflow_engine_notification(
 ) -> bool:
     assert metric_issue_context.group is not None
 
-    open_period_start = open_period_start_for_group(metric_issue_context.group)
+    latest_open_period = get_latest_open_period(metric_issue_context.group)
+    if latest_open_period:
+        open_period_start = latest_open_period.date_started
+    else:
+        # Fallback in case we haven't created an open period yet
+        open_period_start = open_period_start_for_group(metric_issue_context.group)
 
     parent_notification_message = _fetch_parent_notification_message_for_notification_action(
         organization=organization,

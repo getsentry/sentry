@@ -42,6 +42,7 @@ from sentry.integrations.utils.common import get_active_integration_for_organiza
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.group import Group
+from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
@@ -233,7 +234,12 @@ class SlackService:
             ]
             if group.issue_category == GroupCategory.UPTIME:
                 use_open_period_start = True
-                open_period_start = open_period_start_for_group(group)
+                latest_open_period = get_latest_open_period(group)
+                if latest_open_period:
+                    open_period_start = latest_open_period.date_started
+                else:
+                    # Fallback in case we haven't created an open period yet
+                    open_period_start = open_period_start_for_group(group)
                 if features.has(
                     "organizations:workflow-engine-trigger-actions",
                     group.organization,
