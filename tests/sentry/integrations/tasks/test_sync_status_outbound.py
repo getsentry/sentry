@@ -129,4 +129,6 @@ class TestSyncStatusOutbound(TestCase):
             mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
         )
 
-        assert_halt_metric(mock_record=mock_record, error_msg=IntegrationFormError("bruh"))
+        assert_halt_metric(
+            mock_record=mock_record, error_msg=IntegrationFormError({"error": "bruh"})
+        )
