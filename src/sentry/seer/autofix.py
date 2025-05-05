@@ -8,6 +8,7 @@ import orjson
 import requests
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.utils import timezone
 from rest_framework.response import Response
 
 from sentry import eventstore, features
@@ -18,6 +19,7 @@ from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.profiles.utils import get_from_profiling_service
+from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -736,6 +738,12 @@ def trigger_autofix(
     pr_to_comment_on_url: str | None = None,
     auto_run_source: str | None = None,
 ):
+    if not features.has("organizations:gen-ai-features", group.organization, actor=user):
+        return _respond_with_error("AI Autofix is not enabled for this project.", 403)
+
+    if not get_seer_org_acknowledgement(org_id=group.organization.id):
+        return _respond_with_error("AI Autofix has not been acknowledged by the organization.", 403)
+
     if event_id is None:
         event: Event | GroupEvent | None = group.get_recommended_event_for_environments()
         if not event:
@@ -749,12 +757,6 @@ def trigger_autofix(
                 status=400,
             )
         event_id = event.event_id
-
-    if not (
-        features.has("organizations:gen-ai-features", group.organization, actor=user)
-        and group.organization.get_option("sentry:gen_ai_consent_v2024_11_14", False)
-    ):
-        return _respond_with_error("AI Autofix is not enabled for this project.", 403)
 
     # For now we only send the event that the user is looking at, in the near future we want to send multiple events.
     serialized_event, event = _get_serialized_event(event_id, group, user)
@@ -800,6 +802,8 @@ def trigger_autofix(
         )
 
     check_autofix_status.apply_async(args=[run_id], countdown=timedelta(minutes=15).seconds)
+
+    group.update(seer_autofix_last_triggered=timezone.now())
 
     return Response(
         {

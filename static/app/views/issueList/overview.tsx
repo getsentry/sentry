@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -57,7 +58,7 @@ import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {NewTabContextProvider} from 'sentry/views/issueList/utils/newTabContext';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 import {useSelectedSavedSearch} from 'sentry/views/issueList/utils/useSelectedSavedSearch';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 import IssueListFilters from './filters';
 import IssueListHeader from './header';
@@ -86,6 +87,7 @@ interface Props
   > {
   initialQuery?: string;
   shouldFetchOnMount?: boolean;
+  title?: ReactNode;
 }
 
 interface EndpointParams extends Partial<PageFilters['datetime']> {
@@ -161,15 +163,19 @@ function IssueListOverview({
   router,
   initialQuery = DEFAULT_QUERY,
   shouldFetchOnMount = true,
+  title = t('Issues'),
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
   const api = useApi();
+  const prefersStackedNav = usePrefersStackedNav();
   const realtimeActiveCookie = Cookies.get('realtimeActive');
   const [realtimeActive, setRealtimeActive] = useState(
-    typeof realtimeActiveCookie === 'undefined' ? false : realtimeActiveCookie === 'true'
+    prefersStackedNav || typeof realtimeActiveCookie === 'undefined'
+      ? false
+      : realtimeActiveCookie === 'true'
   );
   const [groupIds, setGroupIds] = useState<string[]>([]);
   const [pageLinks, setPageLinks] = useState('');
@@ -185,7 +191,6 @@ function IssueListOverview({
   const undoRef = useRef(false);
   const pollerRef = useRef<CursorPoller | undefined>(undefined);
   const actionTakenRef = useRef(false);
-  const prefersStackedNav = usePrefersStackedNav();
   const urlParams = useParams<{viewId?: string}>();
 
   const {savedSearch, savedSearchLoading, savedSearches, selectedSearchId} =
@@ -498,8 +503,30 @@ function IssueListOverview({
     [getEndpointParams, api, organization.slug]
   );
 
+  // Blank views are created with ?new=true, in order to show the empty state.
+  // We want to clear this query param when data is fetched.
+  const resetNewViewQueryParam = useCallback(() => {
+    if (location.query.new) {
+      navigate(
+        {
+          pathname: location.pathname,
+          query: {
+            ...location.query,
+            new: undefined,
+          },
+        },
+        {
+          replace: true,
+          preventScrollReset: true,
+        }
+      );
+    }
+  }, [location.pathname, navigate, location.query]);
+
   const fetchData = useCallback(
     (fetchAllCounts = false) => {
+      resetNewViewQueryParam();
+
       if (realtimeActive || (!actionTakenRef.current && !undoRef.current)) {
         GroupStore.loadInitialData([]);
 
@@ -611,13 +638,14 @@ function IssueListOverview({
       });
     },
     [
+      resetNewViewQueryParam,
       realtimeActive,
       sort,
       api,
       organization,
       requestParams,
-      fetchStats,
       fetchCounts,
+      fetchStats,
       navigate,
       location.query,
       query,
@@ -1066,10 +1094,11 @@ function IssueListOverview({
     <NewTabContextProvider>
       <Layout.Page>
         {prefersStackedNav && (
-          <LeftNavViewsHeader selectedProjectIds={selection.projects} />
+          <LeftNavViewsHeader selectedProjectIds={selection.projects} title={title} />
         )}
         {!prefersStackedNav &&
-          (organization.features.includes('issue-stream-custom-views') ? (
+          (organization.features.includes('issue-stream-custom-views') &&
+          !organization.features.includes('enforce-stacked-navigation') ? (
             <ErrorBoundary message={'Failed to load custom tabs'} mini>
               <IssueViewsIssueListHeader
                 router={router}

@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -7,9 +8,9 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -19,24 +20,25 @@ import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useS
 import {
   canEditIssueView,
   confirmDeleteIssueView,
-  isNewViewPage,
 } from 'sentry/views/issueList/issueViews/utils';
 import {useDeleteGroupSearchView} from 'sentry/views/issueList/mutations/useDeleteGroupSearchView';
 import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
 import {makeFetchGroupSearchViewKey} from 'sentry/views/issueList/queries/useFetchGroupSearchView';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 type LeftNavViewsHeaderProps = {
   selectedProjectIds: number[];
+  title: ReactNode;
 };
 
-function PageTitle() {
+function PageTitle({title}: {title: ReactNode}) {
   const organization = useOrganization();
-  const location = useLocation();
   const {data: groupSearchView} = useSelectedGroupSearchView();
   const user = useUser();
-  const hasIssueViewSharing = organization.features.includes('issue-view-sharing');
+  const hasIssueViewSharing = organization.features.includes(
+    'enforce-stacked-navigation'
+  );
 
   if (
     hasIssueViewSharing &&
@@ -47,18 +49,15 @@ function PageTitle() {
   }
 
   if (groupSearchView) {
-    return <Layout.Title>{groupSearchView?.name ?? t('Issues')}</Layout.Title>;
+    return <Layout.Title>{groupSearchView?.name ?? title}</Layout.Title>;
   }
 
-  if (isNewViewPage(location.pathname)) {
-    return <Layout.Title>{t('New View')}</Layout.Title>;
-  }
-
-  return <Layout.Title>{t('Issues')}</Layout.Title>;
+  return <Layout.Title>{title}</Layout.Title>;
 }
 
 function IssueViewStarButton() {
   const organization = useOrganization();
+  const user = useUser();
   const queryClient = useQueryClient();
   const {data: groupSearchView} = useSelectedGroupSearchView();
   const {mutate: mutateViewStarred} = useUpdateGroupSearchViewStarred({
@@ -90,18 +89,33 @@ function IssueViewStarButton() {
     },
   });
 
-  if (!organization.features.includes('issue-view-sharing') || !groupSearchView) {
+  if (!organization.features.includes('enforce-stacked-navigation') || !groupSearchView) {
     return null;
   }
 
   return (
     <Button
       onClick={() => {
-        mutateViewStarred({
-          id: groupSearchView.id,
-          starred: !groupSearchView?.starred,
-          view: groupSearchView,
-        });
+        mutateViewStarred(
+          {
+            id: groupSearchView.id,
+            starred: !groupSearchView?.starred,
+            view: groupSearchView,
+          },
+          {
+            onSuccess: () => {
+              trackAnalytics('issue_views.star_view', {
+                organization,
+                ownership:
+                  user?.id === groupSearchView.createdBy?.id
+                    ? 'personal'
+                    : 'organization',
+                starred: !groupSearchView?.starred,
+                surface: 'issue-view-details',
+              });
+            },
+          }
+        );
       }}
       aria-label={groupSearchView?.starred ? t('Unstar view') : t('Star view')}
       icon={
@@ -122,7 +136,7 @@ function IssueViewEditMenu() {
   const {mutate: deleteIssueView} = useDeleteGroupSearchView();
   const navigate = useNavigate();
 
-  if (!organization.features.includes('issue-view-sharing') || !groupSearchView) {
+  if (!organization.features.includes('enforce-stacked-navigation') || !groupSearchView) {
     return null;
   }
 
@@ -149,6 +163,14 @@ function IssueViewEditMenu() {
                       navigate(
                         normalizeUrl(`/organizations/${organization.slug}/issues/`)
                       );
+                      trackAnalytics('issue_views.delete_view', {
+                        organization,
+                        ownership:
+                          user?.id === groupSearchView.createdBy?.id
+                            ? 'personal'
+                            : 'organization',
+                        surface: 'issue-view-details',
+                      });
                     },
                   }
                 ),
@@ -171,7 +193,7 @@ function IssueViewEditMenu() {
   );
 }
 
-function LeftNavViewsHeader({selectedProjectIds}: LeftNavViewsHeaderProps) {
+function LeftNavViewsHeader({selectedProjectIds, title}: LeftNavViewsHeaderProps) {
   const {projects} = useProjects();
   const prefersStackedNav = usePrefersStackedNav();
   const selectedProjects = projects.filter(({id}) =>
@@ -182,7 +204,7 @@ function LeftNavViewsHeader({selectedProjectIds}: LeftNavViewsHeaderProps) {
     <Layout.Header noActionWrap unified={prefersStackedNav}>
       <Layout.HeaderContent unified={prefersStackedNav}>
         <StyledLayoutTitle>
-          <PageTitle />
+          <PageTitle title={title} />
           <Actions>
             <IssueViewStarButton />
             <IssueViewEditMenu />
@@ -214,6 +236,7 @@ const StyledLayoutTitle = styled('div')`
 `;
 
 const Actions = styled('div')`
+  align-items: center;
   display: flex;
   gap: ${space(1)};
 `;

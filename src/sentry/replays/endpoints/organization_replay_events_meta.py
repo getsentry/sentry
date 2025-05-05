@@ -27,7 +27,9 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get_field_list(self, organization: Organization, request: Request) -> list[str]:
+    def get_field_list(
+        self, organization: Organization, request: Request, param_name: str = "field"
+    ) -> list[str]:
         return [
             "error.type",
             "error.value",  # Deprecated, use title instead. See replayDataUtils.tsx

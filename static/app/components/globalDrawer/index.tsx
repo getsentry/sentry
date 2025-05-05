@@ -59,7 +59,8 @@ export interface DrawerOptions {
    */
   onOpen?: () => void;
   /**
-   * If true (default), allows the drawer to be resized
+   * If true (default), allows the drawer to be resized - requires `drawerKey`
+   * to be defined
    */
   resizable?: boolean;
   /**
@@ -70,7 +71,7 @@ export interface DrawerOptions {
   /**
    * If true (default), closes the drawer when the location changes
    */
-  shouldCloseOnLocationChange?: (newPathname: Location) => boolean;
+  shouldCloseOnLocationChange?: (nextLocation: Location) => boolean;
   //
   // Custom framer motion transition for the drawer
   //

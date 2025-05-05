@@ -24,6 +24,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
+import {isAggregateField} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   type AggregationKey,
@@ -65,22 +66,14 @@ import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
-import {
-  combineConfidenceForSeries,
-  type DefaultPeriod,
-  type MaxPickableDays,
-} from 'sentry/views/explore/utils';
+import {combineConfidenceForSeries, type PickableDays} from 'sentry/views/explore/utils';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {Onboarding} from 'sentry/views/performance/onboarding';
 
 // eslint-disable-next-line no-restricted-imports
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
-type SpanTabProps = {
-  defaultPeriod: DefaultPeriod;
-  maxPickableDays: MaxPickableDays;
-  relativeOptions: Record<string, React.ReactNode>;
-};
+type SpanTabProps = PickableDays;
 
 function SpansTabContentImpl({
   defaultPeriod,
@@ -112,9 +105,6 @@ function SpansTabContentImpl({
   const toolbarExtras = [
     ...(organization?.features?.includes('visibility-explore-equations')
       ? ['equations' as const]
-      : []),
-    ...(organization?.features?.includes('visibility-explore-tabs')
-      ? ['tabs' as const]
       : []),
   ];
 
@@ -213,7 +203,9 @@ function SpansTabContentImpl({
     onSearch: (newQuery: string) => {
       const newFields = new MutableSearch(newQuery)
         .getFilterKeys()
-        .map(key => (key.startsWith('!') ? key.slice(1) : key));
+        .map(key => (key.startsWith('!') ? key.slice(1) : key))
+        // don't add aggregate functions to table fields
+        .filter(key => !isAggregateField(key));
       setExplorePageParams({
         query: newQuery,
         fields: [...new Set([...fields, ...newFields])],
@@ -331,7 +323,6 @@ function SpansTabContentImpl({
                 samplesTab={samplesTab}
                 setSamplesTab={setSamplesTab}
                 isProgressivelyLoading={tableIsProgressivelyLoading}
-                useTabs={organization.features.includes('visibility-explore-tabs')}
               />
               <Toggle>
                 <StyledButton
@@ -418,7 +409,7 @@ export function SpansTabContent(props: SpanTabProps) {
 
 function checkIsAllowedSelection(
   selection: PageFilters,
-  maxPickableDays: MaxPickableDays
+  maxPickableDays: PickableDays['maxPickableDays']
 ) {
   const maxPickableMinutes = maxPickableDays * 24 * 60;
   const selectedMinutes = getDiffInMinutes(selection.datetime);

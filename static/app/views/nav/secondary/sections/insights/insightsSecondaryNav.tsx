@@ -105,7 +105,10 @@ export function InsightsSecondaryNav() {
           title={displayStarredProjects ? t('Starred Projects') : t('Projects')}
           trailingItems={
             <AddProjectButtonLink
-              to={makeProjectsPathname({path: '/new/', orgSlug: organization.slug})}
+              to={makeProjectsPathname({
+                path: '/new/',
+                organization,
+              })}
               icon={<IconAdd />}
               size="zero"
               borderless

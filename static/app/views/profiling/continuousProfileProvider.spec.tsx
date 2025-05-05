@@ -41,6 +41,7 @@ describe('ContinuousProfileProvider', () => {
     render(<ContinuosProfileProvider>{null}</ContinuosProfileProvider>, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => expect(chunkRequest).toHaveBeenCalled());
@@ -74,6 +75,7 @@ describe('ContinuousProfileProvider', () => {
       render(<ContinuosProfileProvider>{null}</ContinuosProfileProvider>, {
         router,
         organization,
+        deprecatedRouterMocks: true,
       });
 
       await waitFor(() =>

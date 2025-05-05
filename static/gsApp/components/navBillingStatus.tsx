@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect} from 'react';
+import {Fragment, useCallback, useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion, type MotionProps} from 'framer-motion';
@@ -16,22 +16,22 @@ import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import type {Color} from 'sentry/utils/theme';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import {SidebarButton} from 'sentry/views/nav/primary/components';
 import {
   PrimaryButtonOverlay,
   usePrimaryButtonOverlay,
 } from 'sentry/views/nav/primary/primaryButtonOverlay';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
 import useSubscription from 'getsentry/hooks/useSubscription';
 import {
-  type DataCategories,
+  type BillingMetricHistory,
   OnDemandBudgetMode,
   type Subscription,
 } from 'getsentry/types';
-import {getCategoryInfoFromPlural} from 'getsentry/utils/billing';
 import {
+  getCategoryInfoFromPlural,
   getSingularCategoryName,
   listDisplayNames,
   sortCategoriesWithKeys,
@@ -60,7 +60,7 @@ function QuotaExceededContent({
   onCheck,
   isDismissed,
 }: {
-  exceededCategories: string[];
+  exceededCategories: DataCategory[];
   isDismissed: boolean;
   onCheck: ({
     checked,
@@ -75,7 +75,7 @@ function QuotaExceededContent({
   subscription: Subscription;
 }) {
   const eventTypes: EventType[] = exceededCategories.map(category => {
-    const categoryInfo = getCategoryInfoFromPlural(category as DataCategory);
+    const categoryInfo = getCategoryInfoFromPlural(category);
     return (categoryInfo?.name ?? category) as EventType;
   });
   return (
@@ -89,7 +89,7 @@ function QuotaExceededContent({
             ? tct('[category] Quota Exceeded', {
                 category: getSingularCategoryName({
                   plan: subscription.planDetails,
-                  category: exceededCategories[0] as DataCategory,
+                  category: exceededCategories[0]!,
                   hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
                   title: true,
                 }),
@@ -139,7 +139,11 @@ function QuotaExceededContent({
 
 function PrimaryNavigationQuotaExceeded({organization}: {organization: Organization}) {
   const subscription = useSubscription();
-  const exceededCategories = sortCategoriesWithKeys(subscription?.categories ?? {})
+  const exceededCategories = (
+    sortCategoriesWithKeys(subscription?.categories ?? {}) as Array<
+      [DataCategory, BillingMetricHistory]
+    >
+  )
     .filter(
       ([category]) =>
         category !== DataCategory.SPANS_INDEXED || subscription?.hadCustomDynamicSampling
@@ -148,7 +152,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
       if (currentHistory.usageExceeded) {
         const designatedBudget =
           subscription?.onDemandBudgets?.budgetMode === OnDemandBudgetMode.PER_CATEGORY
-            ? subscription.onDemandBudgets.budgets[category as DataCategories]
+            ? subscription.onDemandBudgets.budgets[category]
             : subscription?.onDemandMaxSpend;
         if (
           !designatedBudget &&
@@ -161,10 +165,10 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
         acc.push(category);
       }
       return acc;
-    }, [] as string[]);
+    }, [] as DataCategory[]);
   const promptsToCheck = exceededCategories
     .map(category => {
-      const categoryInfo = getCategoryInfoFromPlural(category as DataCategory);
+      const categoryInfo = getCategoryInfoFromPlural(category);
       return `${categoryInfo?.snakeCasePlural ?? category}_overage_alert`;
     })
     .filter(Boolean);
@@ -216,6 +220,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
     return Object.values(isPromptDismissed).every(Boolean);
   }, [isPromptDismissed]);
 
+  const hasAutoOpenedAlertRef = useRef(false);
   useEffect(() => {
     // auto open the alert if it hasn't been explicitly dismissed, and
     // either it has been more than a day since the last shown date,
@@ -233,11 +238,13 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
       .utc()
       .isAfter(moment(lastShownDate).utc());
     if (
+      !hasAutoOpenedAlertRef.current &&
       !hasSnoozedAllPrompts() &&
       (daysSinceLastShown >= 1 ||
         currentCategories !== lastShownCategories ||
         lastShownBeforeCurrentPeriod)
     ) {
+      hasAutoOpenedAlertRef.current = true;
       overlayState.open();
       localStorage.setItem(
         `billing-status-last-shown-categories-${organization.id}`,

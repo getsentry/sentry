@@ -597,9 +597,13 @@ class Group(Model):
         blank=True, null=True
     )
     short_id = BoundedBigIntegerField(null=True)
-    type = BoundedPositiveIntegerField(default=DEFAULT_TYPE_ID, db_index=True)
+    type = BoundedPositiveIntegerField(
+        default=DEFAULT_TYPE_ID, db_default=DEFAULT_TYPE_ID, db_index=True
+    )
     priority = models.PositiveSmallIntegerField(null=True)
     priority_locked_at = models.DateTimeField(null=True)
+    seer_fixability_score = models.FloatField(null=True)
+    seer_autofix_last_triggered = models.DateTimeField(null=True)
 
     objects: ClassVar[GroupManager] = GroupManager(cache_fields=("id",))
 

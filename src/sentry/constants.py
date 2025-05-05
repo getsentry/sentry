@@ -89,7 +89,6 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "404",
         "500",
         "_admin",
-        "_experiment",
         "_static",
         "about",
         "accept",
@@ -699,6 +698,7 @@ SCRAPE_JAVASCRIPT_DEFAULT = True
 JOIN_REQUESTS_DEFAULT = True
 HIDE_AI_FEATURES_DEFAULT = False
 GITHUB_COMMENT_BOT_DEFAULT = True
+GITLAB_COMMENT_BOT_DEFAULT = True
 ISSUE_ALERTS_THREAD_DEFAULT = True
 METRIC_ALERTS_THREAD_DEFAULT = True
 DATA_CONSENT_DEFAULT = False

@@ -1,24 +1,33 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
 import Redirect from 'sentry/components/redirect';
 import SearchBar from 'sentry/components/searchBar';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconMegaphone, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {unreachable} from 'sentry/utils/unreachable';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssueViewQueryParams';
+import {
+  DEFAULT_ENVIRONMENTS,
+  DEFAULT_TIME_FILTERS,
+} from 'sentry/views/issueList/issueViews/issueViews';
 import {IssueViewsTable} from 'sentry/views/issueList/issueViews/issueViewsList/issueViewsTable';
+import {useCreateGroupSearchView} from 'sentry/views/issueList/mutations/useCreateGroupSearchView';
 import {useDeleteGroupSearchView} from 'sentry/views/issueList/mutations/useDeleteGroupSearchView';
 import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
 import type {GroupSearchViewBackendSortOption} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
@@ -31,6 +40,8 @@ import {
   GroupSearchViewCreatedBy,
   GroupSearchViewSort,
 } from 'sentry/views/issueList/types';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
+import useDefaultProject from 'sentry/views/nav/secondary/sections/issues/issueViews/useDefaultProject';
 
 type IssueViewSectionProps = {
   createdBy: GroupSearchViewCreatedBy;
@@ -52,6 +63,10 @@ function getEndpointSort(
       return ['-name', '-visited', '-created'];
     case GroupSearchViewSort.VIEWED:
       return ['-visited', '-popularity', '-created'];
+    case GroupSearchViewSort.CREATED_ASC:
+      return ['created', '-popularity', '-visited'];
+    case GroupSearchViewSort.CREATED_DESC:
+      return ['-created', '-popularity', '-visited'];
     default:
       unreachable(sort);
       return [];
@@ -131,6 +146,14 @@ function IssueViewSection({createdBy, limit, cursorQueryParam}: IssueViewSection
     },
   });
 
+  useRouteAnalyticsParams(
+    isPending
+      ? {}
+      : {
+          [`num_results_${createdBy}`]: views.length,
+        }
+  );
+
   const pageLinks = getResponseHeader?.('Link');
 
   return (
@@ -208,6 +231,14 @@ function SortDropdown() {
           label: t('Name (Z-A)'),
           value: GroupSearchViewSort.NAME_DESC,
         },
+        {
+          label: t('Created (Newest)'),
+          value: GroupSearchViewSort.CREATED_DESC,
+        },
+        {
+          label: t('Created (Oldest)'),
+          value: GroupSearchViewSort.CREATED_ASC,
+        },
       ]}
     />
   );
@@ -219,83 +250,119 @@ export default function IssueViewsList() {
   const location = useLocation();
   const query = typeof location.query.query === 'string' ? location.query.query : '';
   const openFeedbackForm = useFeedbackForm();
+  const {mutate: createGroupSearchView, isPending: isCreatingView} =
+    useCreateGroupSearchView();
+  const defaultProject = useDefaultProject();
 
-  if (!organization.features.includes('issue-view-sharing')) {
+  if (!organization.features.includes('enforce-stacked-navigation')) {
     return <Redirect to={`/organizations/${organization.slug}/issues/`} />;
   }
 
   return (
-    <Layout.Page>
-      <Layout.Header unified>
-        <Layout.HeaderContent>
-          <Layout.Title>{t('All Views')}</Layout.Title>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <ButtonBar gap={1}>
-            {openFeedbackForm ? (
+    <SentryDocumentTitle title={t('All Views')} orgSlug={organization.slug}>
+      <Layout.Page>
+        <Layout.Header unified>
+          <Layout.HeaderContent>
+            <Layout.Title>{t('All Views')}</Layout.Title>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              {openFeedbackForm ? (
+                <Button
+                  icon={<IconMegaphone />}
+                  size="sm"
+                  onClick={() => {
+                    openFeedbackForm({
+                      formTitle: t('Give Feedback'),
+                      messagePlaceholder: t(
+                        'How can we make issue views better for you?'
+                      ),
+                      tags: {
+                        ['feedback.source']: 'custom_views',
+                        ['feedback.owner']: 'issues',
+                      },
+                    });
+                  }}
+                >
+                  {t('Give Feedback')}
+                </Button>
+              ) : null}
               <Button
-                icon={<IconMegaphone />}
+                priority="primary"
+                icon={<IconAdd />}
                 size="sm"
+                disabled={isCreatingView}
+                busy={isCreatingView}
                 onClick={() => {
-                  openFeedbackForm({
-                    formTitle: t('Give Feedback'),
-                    messagePlaceholder: t('How can we make issue views better for you?'),
-                    tags: {
-                      ['feedback.source']: 'custom_views',
-                      ['feedback.owner']: 'issues',
-                    },
+                  trackAnalytics('issue_views.table.create_view_clicked', {
+                    organization,
                   });
+                  createGroupSearchView(
+                    {
+                      name: t('New View'),
+                      query: 'is:unresolved',
+                      projects: defaultProject,
+                      environments: DEFAULT_ENVIRONMENTS,
+                      timeFilters: DEFAULT_TIME_FILTERS,
+                      querySort: IssueSortOptions.DATE,
+                      starred: true,
+                    },
+                    {
+                      onSuccess: data => {
+                        navigate({
+                          pathname: normalizeUrl(
+                            `/organizations/${organization.slug}/issues/views/${data.id}/`
+                          ),
+                          query: {
+                            ...getIssueViewQueryParams({view: data}),
+                            new: 'true',
+                          },
+                        });
+                      },
+                    }
+                  );
                 }}
               >
-                {t('Give Feedback')}
+                {t('Create View')}
               </Button>
-            ) : null}
-            <LinkButton
-              to={`/organizations/${organization.slug}/issues/views/new/`}
-              priority="primary"
-              icon={<IconAdd />}
-              size="sm"
-              onClick={() => {
-                trackAnalytics('issue_views.table.create_view_clicked', {
-                  organization,
-                });
-              }}
-            >
-              {t('Create View')}
-            </LinkButton>
-          </ButtonBar>
-        </Layout.HeaderActions>
-      </Layout.Header>
-      <Layout.Body>
-        <MainTableLayout fullWidth>
-          <FilterSortBar>
-            <SearchBar
-              defaultQuery={query}
-              onSearch={newQuery => {
-                navigate({
-                  pathname: location.pathname,
-                  query: {...location.query, query: newQuery},
-                });
-              }}
-              placeholder=""
+            </ButtonBar>
+          </Layout.HeaderActions>
+        </Layout.Header>
+        <Layout.Body>
+          <MainTableLayout fullWidth>
+            <FilterSortBar>
+              <SearchBar
+                defaultQuery={query}
+                onSearch={newQuery => {
+                  navigate({
+                    pathname: location.pathname,
+                    query: {...location.query, query: newQuery},
+                  });
+                  trackAnalytics('issue_views.table.search', {
+                    organization,
+                    query: newQuery,
+                  });
+                }}
+                placeholder={t('Search views by name or query')}
+              />
+              <SortDropdown />
+            </FilterSortBar>
+            <TableHeading>{t('My Views')}</TableHeading>
+            <IssueViewSection
+              createdBy={GroupSearchViewCreatedBy.ME}
+              limit={20}
+              cursorQueryParam="mc"
             />
-            <SortDropdown />
-          </FilterSortBar>
-          <TableHeading>{t('My Views')}</TableHeading>
-          <IssueViewSection
-            createdBy={GroupSearchViewCreatedBy.ME}
-            limit={20}
-            cursorQueryParam="mc"
-          />
-          <TableHeading>{t('Created by Others')}</TableHeading>
-          <IssueViewSection
-            createdBy={GroupSearchViewCreatedBy.OTHERS}
-            limit={20}
-            cursorQueryParam="sc"
-          />
-        </MainTableLayout>
-      </Layout.Body>
-    </Layout.Page>
+            <TableHeading>{t('Created by Others')}</TableHeading>
+            <IssueViewSection
+              createdBy={GroupSearchViewCreatedBy.OTHERS}
+              limit={20}
+              cursorQueryParam="sc"
+            />
+          </MainTableLayout>
+        </Layout.Body>
+      </Layout.Page>
+    </SentryDocumentTitle>
   );
 }
 

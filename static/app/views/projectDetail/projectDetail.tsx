@@ -32,7 +32,7 @@ import useApi from 'sentry/utils/useApi';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {ERRORS_BASIC_CHART_PERIODS} from './charts/projectErrorsBasicChart';
@@ -159,7 +159,7 @@ export default function ProjectDetail({router, location, organization}: Props) {
                 <Breadcrumbs
                   crumbs={[
                     {
-                      to: makeProjectsPathname({path: '/', orgSlug: organization.slug}),
+                      to: makeProjectsPathname({path: '/', organization}),
                       label: t('Projects'),
                     },
                     {label: t('Project Details')},

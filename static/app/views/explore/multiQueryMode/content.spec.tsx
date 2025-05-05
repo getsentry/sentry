@@ -44,7 +44,7 @@ describe('MultiQueryModeContent', function () {
     );
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/spans/fields/`,
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
       body: [{key: 'span.op', name: 'span.op'}],
     });
@@ -102,8 +102,7 @@ describe('MultiQueryModeContent', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </PageParamsProvider>
     );
 
     const section = await screen.findByTestId('section-visualize-0');
@@ -122,15 +121,13 @@ describe('MultiQueryModeContent', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </PageParamsProvider>
     );
 
     const section = await screen.findByTestId('section-visualize-0');
 
     expect(queries).toEqual([
       {
-        chartType: 1,
         yAxes: ['count(span.duration)'],
         sortBys: [
           {
@@ -151,7 +148,6 @@ describe('MultiQueryModeContent', function () {
 
     expect(queries).toEqual([
       {
-        chartType: 1,
         yAxes: ['avg(span.self_time)'],
         sortBys: [
           {
@@ -170,7 +166,6 @@ describe('MultiQueryModeContent', function () {
 
     expect(queries).toEqual([
       {
-        chartType: 1,
         yAxes: ['count(span.duration)'],
         sortBys: [
           {
@@ -197,15 +192,13 @@ describe('MultiQueryModeContent', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </PageParamsProvider>
     );
 
     const section = await screen.findByTestId('section-visualize-0');
 
     expect(queries).toEqual([
       {
-        chartType: 1,
         yAxes: ['count(span.duration)'],
         sortBys: [
           {
@@ -224,7 +217,6 @@ describe('MultiQueryModeContent', function () {
 
     expect(queries).toEqual([
       {
-        chartType: 1,
         yAxes: ['count_unique(span.op)'],
         sortBys: [
           {
@@ -245,7 +237,6 @@ describe('MultiQueryModeContent', function () {
 
     expect(queries).toEqual([
       {
-        chartType: 1,
         yAxes: ['avg(span.self_time)'],
         sortBys: [
           {
@@ -264,7 +255,6 @@ describe('MultiQueryModeContent', function () {
 
     expect(queries).toEqual([
       {
-        chartType: 1,
         yAxes: ['count_unique(span.op)'],
         sortBys: [
           {
@@ -291,13 +281,13 @@ describe('MultiQueryModeContent', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </PageParamsProvider>
     );
+
+    expect(await screen.findByRole('button', {name: 'Bar'})).toBeInTheDocument();
 
     expect(queries).toEqual([
       {
-        chartType: 1,
         yAxes: ['count(span.duration)'],
         sortBys: [
           {
@@ -315,9 +305,52 @@ describe('MultiQueryModeContent', function () {
     await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
     await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+
+    expect(await screen.findByRole('button', {name: 'Line'})).toBeInTheDocument();
     expect(queries).toEqual([
       {
-        chartType: 1,
+        yAxes: ['avg(span.self_time)'],
+        sortBys: [
+          {
+            field: 'timestamp',
+            kind: 'desc',
+          },
+        ],
+        fields: ['id', 'span.self_time', 'timestamp'],
+        groupBys: [],
+        query: '',
+      },
+    ]);
+  });
+
+  it('explicitly selecting visualization persists it', async function () {
+    let queries: any;
+    function Component() {
+      queries = useReadQueriesFromLocation();
+      return <MultiQueryModeContent />;
+    }
+
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Bar'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Area'}));
+
+    const section = screen.getByTestId('section-visualize-0');
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+
+    expect(await screen.findByRole('button', {name: 'Area'})).toBeInTheDocument();
+    expect(queries).toEqual([
+      {
+        chartType: 2,
         yAxes: ['avg(span.self_time)'],
         sortBys: [
           {
@@ -344,13 +377,11 @@ describe('MultiQueryModeContent', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </PageParamsProvider>
     );
 
     expect(queries).toEqual([
       {
-        chartType: 1,
         yAxes: ['count(span.duration)'],
         sortBys: [
           {
@@ -368,7 +399,6 @@ describe('MultiQueryModeContent', function () {
     await userEvent.click(within(section).getByRole('option', {name: 'id'}));
     expect(queries).toEqual([
       {
-        chartType: 1,
         yAxes: ['count(span.duration)'],
         sortBys: [
           {
@@ -395,13 +425,11 @@ describe('MultiQueryModeContent', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </PageParamsProvider>
     );
 
     expect(queries).toEqual([
       {
-        chartType: 1,
         yAxes: ['count(span.duration)'],
         sortBys: [
           {
@@ -420,7 +448,6 @@ describe('MultiQueryModeContent', function () {
     expect(queries).toEqual([
       {
         yAxes: ['count(span.duration)'],
-        chartType: 1,
         sortBys: [
           {
             field: 'count(span.duration)',
@@ -446,13 +473,11 @@ describe('MultiQueryModeContent', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </PageParamsProvider>
     );
 
     expect(queries).toEqual([
       {
-        chartType: 1,
         yAxes: ['count(span.duration)'],
         sortBys: [
           {
@@ -470,7 +495,6 @@ describe('MultiQueryModeContent', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Add Query'}));
     expect(queries).toEqual([
       {
-        chartType: 1,
         yAxes: ['count(span.duration)'],
         sortBys: [
           {
@@ -483,7 +507,6 @@ describe('MultiQueryModeContent', function () {
         query: '',
       },
       {
-        chartType: 1,
         yAxes: ['count(span.duration)'],
         sortBys: [
           {
@@ -504,7 +527,6 @@ describe('MultiQueryModeContent', function () {
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
     expect(queries).toEqual([
       {
-        chartType: 1,
         yAxes: ['avg(span.self_time)'],
         sortBys: [
           {
@@ -517,7 +539,6 @@ describe('MultiQueryModeContent', function () {
         query: '',
       },
       {
-        chartType: 1,
         yAxes: ['count(span.duration)'],
         sortBys: [
           {
@@ -533,7 +554,6 @@ describe('MultiQueryModeContent', function () {
     await userEvent.click(screen.getAllByLabelText('Delete Query')[0]!);
     expect(queries).toEqual([
       {
-        chartType: 1,
         yAxes: ['count(span.duration)'],
         sortBys: [
           {
@@ -560,13 +580,11 @@ describe('MultiQueryModeContent', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </PageParamsProvider>
     );
 
     expect(queries).toEqual([
       {
-        chartType: 1,
         yAxes: ['count(span.duration)'],
         sortBys: [
           {
@@ -713,13 +731,12 @@ describe('MultiQueryModeContent', function () {
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
           <Component />
         </SpanTagsProvider>
-      </PageParamsProvider>,
-      {enableRouterMocks: false}
+      </PageParamsProvider>
     );
 
     expect(queries).toEqual([
       {
-        chartType: 1,
+        chartType: undefined,
         yAxes: ['count(span.duration)'],
         sortBys: [
           {
@@ -741,7 +758,7 @@ describe('MultiQueryModeContent', function () {
 
     expect(queries).toEqual([
       {
-        chartType: 1,
+        chartType: undefined,
         yAxes: ['count(span.duration)'],
         sortBys: [
           {
@@ -777,7 +794,11 @@ describe('MultiQueryModeContent', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     const section = screen.getByTestId('section-visualization-0');
@@ -798,7 +819,10 @@ describe('MultiQueryModeContent', function () {
   });
 
   it('renders a save query button', async function () {
-    render(<MultiQueryModeContent />, {organization});
+    render(<MultiQueryModeContent />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByLabelText('Save')).toBeInTheDocument();
     await userEvent.click(screen.getByLabelText('Save'));
     expect(await screen.findByText('A New Query')).toBeInTheDocument();
@@ -856,7 +880,11 @@ describe('MultiQueryModeContent', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
     // No good way to check for highlighted css, so we just check for the text
     expect(await screen.findByText('Save')).toBeInTheDocument();

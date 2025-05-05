@@ -104,7 +104,7 @@ class TrialStartedSidebarItem extends Component<Props, State> {
   }
 
   renderWithHovercard(hovercardBody: React.ReactNode) {
-    const prefersNewNav = prefersStackedNav();
+    const prefersNewNav = prefersStackedNav(this.props.organization);
 
     return (
       <StyledHovercard
@@ -144,7 +144,7 @@ class TrialStartedSidebarItem extends Component<Props, State> {
       }
     }
 
-    const prefersNewNav = prefersStackedNav();
+    const prefersNewNav = prefersStackedNav(this.props.organization);
 
     const content = (
       <Wrapper
