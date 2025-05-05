@@ -338,7 +338,7 @@ class GetArtifactBundlesContainingUrlTest(TestCase):
             set(),
         )
 
-    def test_contains_vs_startswith(self):
+    def test_contains(self):
         """
         Test that demonstrates why we use reversed_url__istartswith instead of contains.
         A 'contains' query would match parts of filenames anywhere, but we want to match
@@ -359,7 +359,7 @@ class GetArtifactBundlesContainingUrlTest(TestCase):
             get_artifact_bundles_containing_url(
                 self.project, self.release_name, self.dist_name, search_string
             ),
-            set(),
+            {bundle.id},
         )
 
         bundle2 = self.create_bundle()
@@ -376,7 +376,7 @@ class GetArtifactBundlesContainingUrlTest(TestCase):
             get_artifact_bundles_containing_url(
                 self.project, self.release_name, self.dist_name, search_string
             ),
-            {bundle2.id},
+            {bundle.id, bundle2.id},
         )
 
     def test_case_insensitive_url_matching(self):
