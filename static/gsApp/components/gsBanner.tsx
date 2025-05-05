@@ -803,21 +803,9 @@ class GSBanner extends Component<Props, State> {
       }
       const key = isWarning ? 'warning' : 'overage';
 
-      const featureMap = Object.values(DATA_CATEGORY_INFO)
-        .filter(
-          c =>
-            c.isBilledCategory ||
-            // TODO(Seer): remove the following two after launch (when isBilledCategory is true for both categories)
-            c.name === DataCategoryExact.SEER_AUTOFIX ||
-            c.name === DataCategoryExact.SEER_SCANNER
-        )
-        .reduce(
-          (acc, c) => {
-            acc[c.name] = `${snakeCase(c.plural)}_${key}_alert`;
-            return acc;
-          },
-          {} as Record<EventType, string>
-        );
+      const featureMap = objectFromBilledCategories(
+        c => `${snakeCase(c.plural)}_${key}_alert`
+      );
 
       promptsUpdate(api, {
         organization,
