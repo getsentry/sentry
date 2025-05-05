@@ -1,5 +1,4 @@
 import {useEffect} from 'react';
-import {useLocation, useNavigate} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
@@ -7,6 +6,8 @@ import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
@@ -16,7 +17,7 @@ import {WebVitalsWidget} from 'sentry/views/insights/pages/platform/nextjs/webVi
 import {DurationWidget} from 'sentry/views/insights/pages/platform/shared/durationWidget';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {PlatformLandingPageLayout} from 'sentry/views/insights/pages/platform/shared/layout';
-import {PagesTable} from 'sentry/views/insights/pages/platform/shared/PagesTable';
+import {PagesTable} from 'sentry/views/insights/pages/platform/shared/pagesTable';
 import {PathsTable} from 'sentry/views/insights/pages/platform/shared/pathsTable';
 import {TrafficWidget} from 'sentry/views/insights/pages/platform/shared/trafficWidget';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
@@ -29,6 +30,10 @@ const CURSOR_PARAM_NAMES: Record<SpanOperation, string> = {
   pageload: 'pageCursor',
   navigation: 'navCursor',
 };
+const spanOperationOptions: Array<SelectOption<SpanOperation>> = [
+  {value: 'pageload', label: t('Pageloads')},
+  {value: 'navigation', label: t('Navigations')},
+];
 
 function PlaceholderWidget() {
   return <Widget Title={<Widget.WidgetTitle title="Placeholder Widget" />} />;
@@ -49,24 +54,28 @@ export function NextJsOverviewPage({
     })) ?? [];
   const location = useLocation();
   const navigate = useNavigate();
-  const queryParams = new URLSearchParams(location.search);
 
-  const activeView: View = (queryParams.get('view') as View) ?? 'api';
+  const activeView: View = (location.query.view as View) ?? 'api';
   const spanOperationFilter: SpanOperation =
-    (queryParams.get('spanOp') as SpanOperation) ?? 'pageload';
+    (location.query.spanOp as SpanOperation) ?? 'pageload';
 
   const updateQuery = (newParams: Record<string, string>) => {
-    const currentParams = new URLSearchParams(location.search);
-
+    const newQuery = {
+      ...location.query,
+      ...newParams,
+    };
     if ('spanOp' in newParams && newParams.spanOp !== spanOperationFilter) {
       const oldCursorParamName = CURSOR_PARAM_NAMES[spanOperationFilter];
-      currentParams.delete(oldCursorParamName);
+      delete newQuery[oldCursorParamName];
     }
 
-    for (const [key, value] of Object.entries(newParams)) {
-      currentParams.set(key, value);
-    }
-    navigate({search: currentParams.toString()}, {replace: true});
+    navigate(
+      {
+        pathname: location.pathname,
+        query: newQuery,
+      },
+      {replace: true}
+    );
   };
 
   useEffect(() => {
@@ -78,11 +87,6 @@ export function NextJsOverviewPage({
   }, [organization, activeView, spanOperationFilter]);
 
   const {query, setTransactionFilter} = useTransactionNameQuery();
-
-  const spanOperationOptions: Array<SelectOption<SpanOperation>> = [
-    {value: 'pageload', label: t('Pageloads')},
-    {value: 'navigation', label: t('Navigations')},
-  ];
 
   return (
     <PlatformLandingPageLayout performanceType={performanceType}>

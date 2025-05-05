@@ -1,5 +1,6 @@
 import {Fragment, memo, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import GridEditable, {
@@ -13,35 +14,23 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import type {QueryValue} from 'sentry/utils/queryString';
+import {type QueryValue} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import CellAction, {Actions} from 'sentry/views/discover/table/cellAction';
+import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-interface SpansQueryResponse {
-  data: Array<{
-    'avg(span.duration)': number;
-    'count(span.duration)': number;
-    'failure_rate()': number;
-    'span.op': string;
-    'sum(span.duration)': number;
-    transaction: string;
-  }>;
-  link?: string;
-}
-
 type SortableField =
   | 'transaction'
-  | 'count(span.duration)'
+  | 'count()'
   | 'failure_rate()'
   | 'sum(span.duration)'
   | 'avg(span.duration)';
@@ -71,11 +60,9 @@ const getOrderBy = (field: string, order: 'asc' | 'desc') => {
   return order === 'asc' ? field : `-${field}`;
 };
 
-const PER_PAGE = 10;
-
 const defaultColumnOrder: Array<GridColumnOrder<SortableField>> = [
   {key: 'transaction', name: t('Page'), width: COL_WIDTH_UNDEFINED},
-  {key: 'count(span.duration)', name: t('Page Views'), width: 122},
+  {key: 'count()', name: t('Page Views'), width: 122},
   {key: 'failure_rate()', name: t('Error Rate'), width: 122},
   {key: 'sum(span.duration)', name: t('Total'), width: 110},
 ];
@@ -88,7 +75,7 @@ function decodeSortField(value: QueryValue): SortableField {
   if (typeof value === 'string' && isSortField(value)) {
     return value;
   }
-  return 'count(span.duration)';
+  return 'count()';
 }
 
 function isSortOrder(value: string): value is 'asc' | 'desc' {
@@ -128,55 +115,54 @@ export function PagesTable({
   query,
   handleAddTransactionFilter,
 }: PagesTableProps) {
-  const organization = useOrganization();
   const location = useLocation();
   const pageFilterChartParams = usePageFilterChartParams();
   const {sortField, sortOrder} = useTableSortParams();
   const currentCursorParamName = CURSOR_PARAM_NAMES[spanOperationFilter];
+  const navigate = useNavigate();
 
   const handleCursor: CursorHandler = (cursor, pathname, transactionQuery) => {
-    browserHistory.push({
+    navigate({
       pathname,
-      query: {...transactionQuery, [currentCursorParamName]: cursor},
+      search: qs.stringify({...transactionQuery, [currentCursorParamName]: cursor}),
     });
   };
 
-  const spansRequest = useApiQuery<SpansQueryResponse>(
-    [
-      `/organizations/${organization.slug}/events/`,
-      {
-        query: {
-          ...pageFilterChartParams,
-          dataset: 'spans',
-          field: [
-            'transaction',
-            'span.op',
-            'failure_rate()',
-            'count(span.duration)',
-            'sum(span.duration)',
-            'avg(span.duration)',
-          ],
-          query: `span.op:[${spanOperationFilter}] ${query ? `${query}` : ''}`.trim(),
-          referrer: Referrer.PAGES_TABLE,
-          orderby: getOrderBy(sortField, sortOrder),
-          useRpc: 1,
-          per_page: PER_PAGE,
-          cursor: location.query[currentCursorParamName],
-          sampling: 'BEST_EFFORT',
+  const spansRequest = useEAPSpans(
+    {
+      ...pageFilterChartParams,
+      sorts: [
+        {
+          field: sortField,
+          kind: sortOrder,
         },
-      },
-    ],
-    {staleTime: 0}
+      ],
+      fields: [
+        'transaction',
+        'span.op',
+        'failure_rate()',
+        'count()',
+        'sum(span.duration)',
+        'avg(span.duration)',
+      ],
+      search: `span.op:[${spanOperationFilter}] ${query ? `${query}` : ''}`.trim(),
+      orderby: getOrderBy(sortField, sortOrder),
+      cursor:
+        typeof location.query[currentCursorParamName] === 'string'
+          ? location.query[currentCursorParamName]
+          : undefined,
+    },
+    Referrer.PAGES_TABLE
   );
 
   const tableData = useMemo<TableData[]>(() => {
-    if (!spansRequest.data?.data) {
+    if (!spansRequest.data) {
       return [];
     }
 
-    return spansRequest.data.data.map(span => ({
+    return spansRequest.data.map(span => ({
       page: span.transaction,
-      pageViews: span['count(span.duration)'],
+      pageViews: span['count()'],
       errorRate: span['failure_rate()'],
       totalTime: span['sum(span.duration)'],
       avgDuration: span['avg(span.duration)'],
@@ -184,9 +170,12 @@ export function PagesTable({
     }));
   }, [spansRequest.data]);
 
-  const renderHeadCell = useCallback((column: GridColumnHeader<SortableField>) => {
-    return <HeadCell column={column} />;
-  }, []);
+  const renderHeadCell = useCallback(
+    (column: GridColumnHeader<SortableField>) => {
+      return <HeadCell column={column} currentCursorParamName={currentCursorParamName} />;
+    },
+    [currentCursorParamName]
+  );
 
   const renderBodyCell = useCallback(
     (column: GridColumnHeader<SortableField>, dataRow: TableData) => {
@@ -201,7 +190,7 @@ export function PagesTable({
     [handleAddTransactionFilter]
   );
 
-  const pagesTablePageLinks = spansRequest.getResponseHeader?.('Link');
+  const pagesTablePageLinks = spansRequest.pageLinks;
 
   return (
     <Fragment>
@@ -211,7 +200,7 @@ export function PagesTable({
           error={spansRequest.error}
           data={tableData}
           columnOrder={defaultColumnOrder}
-          columnSortBy={[]}
+          columnSortBy={[{key: sortField, order: sortOrder}]}
           stickyHeader
           grid={{
             renderHeadCell,
@@ -226,8 +215,10 @@ export function PagesTable({
 
 const HeadCell = memo(function PagesTableHeadCell({
   column,
+  currentCursorParamName,
 }: {
   column: GridColumnHeader<SortableField>;
+  currentCursorParamName: string;
 }) {
   const location = useLocation();
   const {sortField, sortOrder} = useTableSortParams();
@@ -247,7 +238,7 @@ const HeadCell = memo(function PagesTableHeadCell({
         generateSortLink={() => {
           const newQuery = {
             ...location.query,
-            pagesCursor: undefined,
+            [currentCursorParamName]: undefined,
             field: column.key,
             order:
               sortField === column.key ? (sortOrder === 'asc' ? 'desc' : 'asc') : 'desc',
@@ -306,7 +297,7 @@ const BodyCell = memo(function PagesBodyCell({
         </CellAction>
       );
     }
-    case 'count(span.duration)':
+    case 'count()':
       return <Count>{formatAbbreviatedNumber(dataRow.pageViews)}</Count>;
     case 'failure_rate()': {
       const thresholds = errorRateColorThreshold;
