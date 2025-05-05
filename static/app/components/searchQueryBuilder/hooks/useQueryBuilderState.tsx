@@ -174,20 +174,24 @@ function modifyFilterOperatorQuery(
   // if the operator is contains, update the token (output value) to be wrapped in stars
   if (newOperator === TermOperatorNew.CONTAINS) {
     newToken.operator = TermOperator.DEFAULT;
-    if (
-      newToken.value.type === Token.VALUE_TEXT &&
-      !newToken.value.value.startsWith('*') &&
-      !newToken.value.value.endsWith('*')
-    ) {
-      newToken.value.value = `*${newToken.value.value}*`;
+    if (newToken.value.type === Token.VALUE_TEXT) {
+      if (!newToken.value.value.startsWith('*')) {
+        newToken.value.value = `*${newToken.value.value}`;
+      }
+
+      if (!newToken.value.value.endsWith('*')) {
+        newToken.value.value = `${newToken.value.value}*`;
+      }
     } else if (newToken.value.type === Token.VALUE_TEXT_LIST) {
       newToken.value.items.forEach(item => {
-        if (
-          item.value?.text &&
-          !item.value.text.startsWith('*') &&
-          !item.value.text.endsWith('*')
-        ) {
-          item.value.text = `*${item.value.text}*`;
+        if (item.value?.text) {
+          if (!item.value.text.startsWith('*')) {
+            item.value.text = `*${item.value.text}`;
+          }
+
+          if (!item.value.text.endsWith('*')) {
+            item.value.text = `${item.value.text}*`;
+          }
         }
       });
     }
