@@ -256,11 +256,7 @@ def get_top_groups(
     Since frequency conditions require snuba query(s), we need to limit the number groups we process.
     """
     if has_issue_state_condition:
-        datasets = {
-            dataset_map.get(group)
-            for group in condition_activity.keys()
-            if dataset_map.get(group) is not None
-        }
+        datasets = {dataset_map[group] for group in condition_activity.keys()}
     else:
         # condition_activity will be empty because there are no issue state conditions.
         # So, we look to find top groups over all datasets
