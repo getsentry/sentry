@@ -3,6 +3,7 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
+import base64
 import logging
 from datetime import UTC, datetime
 from io import BytesIO
@@ -65,7 +66,7 @@ class DBBackedRelocationExportService(RegionRelocationExportService):
                 requesting_region_name,
                 replying_region_name,
                 org_slug,
-                encrypt_with_public_key,
+                base64.b64encode(encrypt_with_public_key).decode("utf8"),
                 int(round(datetime.now(tz=UTC).timestamp())),
             ]
         )
