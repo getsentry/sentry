@@ -45,7 +45,8 @@ def check_autofix_status(run_id: int):
         ),
     ),
 )
-def start_seer_automation(group: Group):
+def start_seer_automation(group_id: int):
     from sentry.seer.issue_summary import get_issue_summary
 
+    group = Group.objects.get(id=group_id)
     get_issue_summary(group=group, source="post_process")

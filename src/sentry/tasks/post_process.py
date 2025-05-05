@@ -1566,7 +1566,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     ):
         return
 
-    start_seer_automation.delay(group)
+    start_seer_automation.delay(group.id)
 
 
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
