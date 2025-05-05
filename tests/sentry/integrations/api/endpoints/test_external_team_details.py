@@ -30,6 +30,18 @@ class ExternalTeamDetailsTest(APITestCase):
         assert response.data["id"] == str(self.external_team.id)
         assert response.data["externalName"] == "@getsentry/growth"
 
+    def test_ignore_camelcase_teamid(self):
+        other_team = self.create_team(organization=self.organization)
+        data = {
+            "externalName": "@getsentry/growth",
+            "teamId": other_team.id,
+        }
+        with self.feature({"organizations:integrations-codeowners": True}):
+            self.get_success_response(
+                self.organization.slug, self.team.slug, self.external_team.id, **data
+            )
+        assert not ExternalActor.objects.filter(team_id=other_team.id).exists()
+
     def test_invalid_provider_update(self):
         data = {"provider": "git"}
         with self.feature({"organizations:integrations-codeowners": True}):
