@@ -45,7 +45,7 @@ interface UseTraceItemDetailsProps {
   enabled?: boolean;
 }
 
-interface TraceItemDetailsResponse {
+export interface TraceItemDetailsResponse {
   attributes: TraceItemResponseAttribute[];
   itemId: string;
   timestamp: string;
@@ -77,7 +77,8 @@ export function useTraceItemDetails(props: UseTraceItemDetailsProps) {
   const project = useProjectFromId({project_id: props.projectId});
   const enabled = (props.enabled ?? true) && !!project;
 
-  if (!project) {
+  // Only capture exception if the project is not found and the query is enabled.
+  if ((props.enabled ?? true) && !project) {
     captureException(
       new Error(`Project "${props.projectId}" not found in useTraceItemDetails`)
     );

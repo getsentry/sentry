@@ -34,7 +34,9 @@ export function getDetectorDetails({
    * for Alert Rule IDs. Hopefully we can consolidate this when we move to the detector system.
    * Ideally, this function wouldn't even check the event, but rather the group/issue.
    */
-  const metricAlertRuleId = event?.contexts?.metric_alert?.alert_rule_id;
+  const metricAlertRuleId =
+    event?.occurrence?.evidenceData?.alertId ||
+    event?.contexts?.metric_alert?.alert_rule_id;
   if (metricAlertRuleId) {
     return {
       detectorType: 'metric_alert',
