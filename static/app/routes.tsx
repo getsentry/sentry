@@ -1131,6 +1131,7 @@ function buildRoutes() {
           key="org-dashboards"
         >
           <IndexRoute component={make(() => import('sentry/views/dashboards/manage'))} />
+          {traceViewRoute}
         </Route>
       </Fragment>
       <Fragment>
