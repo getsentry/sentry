@@ -15,6 +15,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {useTraceItemAttributeValues} from 'sentry/views/explore/hooks/useTraceItemAttributeValues';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
@@ -45,6 +46,9 @@ export function TransactionNameSearchBar(props: SearchBarProps) {
   const [loading, setLoading] = useState(false);
   const [searchString, setSearchString] = useState(searchQuery);
   const containerRef = useRef<HTMLDivElement>(null);
+  const {
+    selection: {projects: selectedProjectIds},
+  } = usePageFilters();
   useOnClickOutside(containerRef, useCallback(closeDropdown, []));
 
   const getTraceItemAttributeValues = useTraceItemAttributeValues({
@@ -201,7 +205,9 @@ export function TransactionNameSearchBar(props: SearchBarProps) {
       view,
       organization,
       transaction,
-      projectID: projectIds,
+      projectID: projectIds.length
+        ? projectIds
+        : selectedProjectIds.map(id => id.toString()),
       query: {},
     });
 
