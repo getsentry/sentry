@@ -191,14 +191,13 @@ function EAPOverviewPage() {
         'is_starred_transaction',
         'transaction',
         'project',
-        'epm()',
-        'p50(span.duration)',
-        'p95(span.duration)',
-        'failure_rate()',
-        'time_spent_percentage(span.duration)',
+        'tpm()',
+        'p50_if(span.duration,is_transaction,true)',
+        'p95_if(span.duration,is_transaction,true)',
+        'failure_rate_if(is_transaction,true)',
         'performance_score(measurements.score.total)',
         'count_unique(user)',
-        'sum(span.duration)',
+        'sum_if(span.duration,is_transaction,true)',
       ],
     },
     'api.performance.landing-table'
@@ -276,7 +275,7 @@ function FrontendOverviewPageWithProviders() {
   return (
     <DomainOverviewPageProviders maxPickableDays={maxPickableDays}>
       {isNextJsPageEnabled ? (
-        <NextJsOverviewPage headerTitle={FRONTEND_LANDING_TITLE} />
+        <NextJsOverviewPage performanceType="frontend" />
       ) : useEap ? (
         <EAPOverviewPage />
       ) : (
