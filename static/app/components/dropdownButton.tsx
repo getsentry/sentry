@@ -51,7 +51,9 @@ function DropdownButton({
       {showChevron && (
         <ChevronWrap>
           <IconChevron
-            color={props.priority === 'default' ? 'subText' : undefined}
+            color={
+              !props.priority || props.priority === 'default' ? 'subText' : undefined
+            }
             direction={isOpen ? 'up' : 'down'}
             size={size === 'zero' || size === 'xs' ? 'xs' : 'sm'}
           />
