@@ -206,9 +206,9 @@ export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
     if (token.value.type === Token.VALUE_TEXT) {
       isContains = token.value.value.startsWith('*') && token.value.value.endsWith('*');
     } else if (token.value.type === Token.VALUE_TEXT_LIST) {
-      isContains = token.value.items.every(item => {
-        return item.value?.value.startsWith('*') && item.value?.value.endsWith('*');
-      });
+      isContains = token.value.items.every(
+        item => item.value?.value.startsWith('*') && item.value?.value.endsWith('*')
+      );
     }
 
     return {
@@ -264,6 +264,10 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
   let isContains = false;
   if (token.value.type === Token.VALUE_TEXT) {
     isContains = token.value.value.startsWith('*') && token.value.value.endsWith('*');
+  } else if (token.value.type === Token.VALUE_TEXT_LIST) {
+    isContains = token.value.items.every(
+      entry => entry.value?.value.startsWith('*') && entry.value?.value.endsWith('*')
+    );
   }
 
   return (
