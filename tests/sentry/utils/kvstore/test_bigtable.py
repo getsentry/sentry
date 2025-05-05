@@ -83,7 +83,7 @@ def test_compression_compatibility(request, store_factory) -> None:
             assert reader.get(key) == value
 
 
-def test_get_uses_5s_deadline_for_retry():
+def test_get_uses_5s_timeout_for_retry():
     store = BigtableKVStorage("test", "test", "test")
     mock_table = mock.Mock()
     with (
@@ -97,5 +97,5 @@ def test_get_uses_5s_deadline_for_retry():
         # Check the retry argument
         _, kwargs = mock_table.read_row.call_args
         retry_arg = kwargs["retry"]
-        assert hasattr(retry_arg, "_deadline")
-        assert retry_arg._deadline == 5.0
+        assert hasattr(retry_arg, "_timeout")
+        assert retry_arg._timeout == 5.0
