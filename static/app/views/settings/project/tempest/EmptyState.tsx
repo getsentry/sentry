@@ -7,10 +7,13 @@ import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {decodeInteger} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 export default function EmptyState() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   return (
     <div>
@@ -25,7 +28,18 @@ export default function EmptyState() {
       <Body>
         <Setup>
           <BodyTitle>{t('Install instructions')}</BodyTitle>
-          <GuidedSteps>
+          <GuidedSteps
+            initialStep={decodeInteger(location.query.guidedStep)}
+            onStepChange={step => {
+              navigate({
+                pathname: location.pathname,
+                query: {
+                  ...location.query,
+                  guidedStep: step,
+                },
+              });
+            }}
+          >
             <GuidedSteps.Step
               stepKey="step-1"
               title={t('Retrieve Back Office Server Credential from Sony')}

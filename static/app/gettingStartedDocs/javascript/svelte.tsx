@@ -94,7 +94,12 @@ const getDynamicParts = (params: Params): string[] => {
 const getSdkSetupSnippet = (params: Params, isVersion5: boolean) => {
   const config = buildSdkConfig({
     params,
-    staticParts: [`dsn: "${params.dsn.public}"`],
+    staticParts: [
+      `dsn: "${params.dsn.public}"`,
+      `// Setting this option to true will send default PII data to Sentry.
+      // For example, automatic IP address collection on events
+      sendDefaultPii: true`,
+    ],
     getIntegrations,
     getDynamicParts,
   });
@@ -116,7 +121,14 @@ export default app;
 `;
 };
 
-const getVerifySnippet = () => `
+const getVerifySnippet = (isVersion5: boolean) =>
+  isVersion5
+    ? `
+// SomeComponent.svelte
+<button type="button" onclick="{() => {throw new Error("This is your first error!");}}">
+  Break the world
+</button>`
+    : `
 // SomeComponent.svelte
 <button type="button" on:click="{() => {throw new Error("This is your first error!");}}">
   Break the world
@@ -216,10 +228,16 @@ const onboarding: OnboardingConfig = {
         {
           code: [
             {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: getVerifySnippet(),
+              label: 'Svelte v5',
+              value: 'svelte v5',
+              language: 'html',
+              code: getVerifySnippet(true),
+            },
+            {
+              label: 'Svelte v3/v4',
+              value: 'svelte v3/v4',
+              language: 'html',
+              code: getVerifySnippet(false),
             },
           ],
         },

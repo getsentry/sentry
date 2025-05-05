@@ -18,11 +18,13 @@ import {
 } from 'sentry/utils/discover/fieldRenderers';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
+import {
+  type SectionCardKeyValueList,
+  TraceDrawerComponents,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {TraceDrawerActionValueKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
-
-import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
-import {TraceDrawerActionValueKind} from '../../utils';
 
 export function hasSpanMeasurements(span: TraceTree.Span) {
   return !!span.measurements && Object.keys(span.measurements).length > 0;

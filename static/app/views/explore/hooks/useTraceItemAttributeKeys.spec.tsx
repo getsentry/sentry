@@ -83,7 +83,7 @@ describe('useTraceItemAttributeKeys', () => {
         (_url: string, options: {query?: Record<string, any>}) => {
           const query = options?.query || {};
           return (
-            query.item_type === TraceItemDataset.LOGS && query.attribute_type === 'string'
+            query.itemType === TraceItemDataset.LOGS && query.attributeType === 'string'
           );
         },
       ],
@@ -146,7 +146,7 @@ describe('useTraceItemAttributeKeys', () => {
         (_url: string, options: {query?: Record<string, any>}) => {
           const query = options?.query || {};
           return (
-            query.item_type === TraceItemDataset.LOGS && query.attribute_type === 'number'
+            query.itemType === TraceItemDataset.LOGS && query.attributeType === 'number'
           );
         },
       ],

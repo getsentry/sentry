@@ -110,6 +110,9 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
     staticParts: [
       `${siblingOption === VueVersion.VUE2 ? 'Vue' : 'app'}`,
       `dsn: "${params.dsn.public}"`,
+      `// Setting this option to true will send default PII data to Sentry.
+      // For example, automatic IP address collection on events
+      sendDefaultPii: true`,
     ],
     getIntegrations,
     getDynamicParts,

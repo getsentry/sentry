@@ -50,8 +50,6 @@ describe('IntegrationOrganizationLink', () => {
   });
 
   beforeEach(() => {
-    window.location.assign = jest.fn();
-
     MockApiClient.clearMockResponses();
     const org1Lite = pick(org1, ['slug', 'name', 'id']);
     const org2Lite = pick(org2, ['slug', 'name', 'id']);
@@ -83,7 +81,10 @@ describe('IntegrationOrganizationLink', () => {
       body: {providers: [VercelProviderFixture()]},
     });
 
-    render(<IntegrationOrganizationLink />, {router});
+    render(<IntegrationOrganizationLink />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
     expect(getOrgsMock).toHaveBeenCalled();
@@ -108,7 +109,10 @@ describe('IntegrationOrganizationLink', () => {
       body: org2,
     });
 
-    render(<IntegrationOrganizationLink />, {router});
+    render(<IntegrationOrganizationLink />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
     // Select the same organization as the domain

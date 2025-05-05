@@ -207,8 +207,8 @@ export function getPageloadTransactionChildCount(
   return count;
 }
 
-export function isTracePerformanceIssue(
+export function isTraceOccurence(
   issue: TraceTree.TraceIssue
-): issue is TraceTree.TracePerformanceIssue {
-  return 'suspect_spans' in issue;
+): issue is TraceTree.TraceOccurrence {
+  return 'issue_id' in issue && issue.event_type !== 'error';
 }

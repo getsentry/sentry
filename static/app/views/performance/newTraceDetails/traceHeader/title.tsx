@@ -8,6 +8,7 @@ import {space} from 'sentry/styles/space';
 import {type EventTransaction, ReplayContextKey} from 'sentry/types/event';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
@@ -17,8 +18,8 @@ import {
   isEAPError,
   isTraceError,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
-
-import type {TraceTree} from '../traceModels/traceTree';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 interface TitleProps {
   representativeEvent: TraceTree.TraceEvent | OurLogsResponseItem | null;
@@ -34,10 +35,10 @@ function getTitle(event: TraceTree.TraceEvent | OurLogsResponseItem | null): {
   }
 
   // Handle log events
-  if (OurLogKnownFieldKey.SEVERITY_TEXT in event) {
+  if (OurLogKnownFieldKey.SEVERITY in event) {
     return {
       title: t('Trace'),
-      subtitle: event[OurLogKnownFieldKey.BODY],
+      subtitle: event[OurLogKnownFieldKey.MESSAGE],
     };
   }
 
@@ -66,11 +67,16 @@ function getTitle(event: TraceTree.TraceEvent | OurLogsResponseItem | null): {
 }
 
 function ContextBadges({rootEventResults}: Pick<TitleProps, 'rootEventResults'>) {
+  const organization = useOrganization();
+
   if (!rootEventResults.data) {
     return null;
   }
 
-  const replay_id = rootEventResults.data.contexts.replay?.[ReplayContextKey.REPLAY_ID];
+  const replayId = rootEventResults.data.contexts.replay?.[ReplayContextKey.REPLAY_ID];
+  if (!replayId) {
+    return null;
+  }
 
   return (
     <Fragment>
@@ -80,10 +86,12 @@ function ContextBadges({rootEventResults}: Pick<TitleProps, 'rootEventResults'>)
         priority="link"
         icon={<IconPlay size="xs" />}
         to={{
-          pathname: `/explore/replays/${replay_id}`,
+          pathname: makeReplaysPathname({
+            path: `/${replayId}/`,
+            organization,
+          }),
         }}
-        replace
-        aria-label={t("View this issue's replays")}
+        aria-label={t("View this issue's replay")}
       >
         {t('1 Replay')}
       </ReplayButton>

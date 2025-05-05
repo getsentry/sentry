@@ -38,7 +38,6 @@ describe('useActiveNavGroup', function () {
       [PrimaryNavGroup.CODECOV, '/codecov/foo/'],
     ])('correctly matches %s nav group', async function (navGroup, path) {
       render(<TestComponent />, {
-        enableRouterMocks: false,
         initialRouterConfig: {
           location: {
             pathname: path,
@@ -58,11 +57,11 @@ describe('useActiveNavGroup', function () {
       [PrimaryNavGroup.DASHBOARDS, '/organizations/org-slug/dashboard/foo/'],
       [PrimaryNavGroup.INSIGHTS, '/organizations/org-slug/insights/foo/'],
       [PrimaryNavGroup.SETTINGS, '/organizations/org-slug/settings/foo/'],
+      [PrimaryNavGroup.SETTINGS, '/settings/account/details/'],
       [PrimaryNavGroup.CODECOV, '/organizations/org-slug/codecov/foo/'],
     ])('correctly matches %s nav group', async function (navGroup, path) {
       mockUsingCustomerDomain.mockReturnValue(false);
       render(<TestComponent />, {
-        enableRouterMocks: false,
         initialRouterConfig: {
           location: {
             pathname: path,

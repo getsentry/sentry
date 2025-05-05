@@ -1,8 +1,6 @@
 import {Fragment} from 'react';
 
 import ExternalLink from 'sentry/components/links/externalLink';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
 import {CopyDsnField} from 'sentry/components/onboarding/gettingStartedDoc/copyDsnField';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
@@ -79,7 +77,7 @@ const onboarding: OnboardingConfig = {
       collapsible: true,
       title: t('Manual Configuration'),
       description: tct(
-        'Alternatively, you can also [manualSetupLink:set up the SDK manually], by following these steps:',
+        'Alternatively, you can also set up the SDK manually, by following the [manualSetupLink:manual setup docs].',
         {
           manualSetupLink: (
             <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/remix/manual-setup/" />
@@ -87,44 +85,6 @@ const onboarding: OnboardingConfig = {
         }
       ),
       configurations: [
-        {
-          description: (
-            <List symbol="bullet">
-              <ListItem>
-                {tct(
-                  "Create two files in the root directory of your project, [code:entry.client.tsx] and [code:entry.server.tsx] (if they don't already exist).",
-                  {
-                    code: <code />,
-                  }
-                )}
-              </ListItem>
-              <ListItem>
-                {tct(
-                  'Add the default [sentryInitCode:Sentry.init] call to both, client and server entry files.',
-                  {
-                    sentryInitCode: <code />,
-                  }
-                )}
-              </ListItem>
-              <ListItem>
-                {tct(
-                  'Create a [code:.sentryclirc] with an auth token to upload source maps (this file is automatically added to your [code:.gitignore]).',
-                  {
-                    code: <code />,
-                  }
-                )}
-              </ListItem>
-              <ListItem>
-                {tct(
-                  'Adjust your [code:build] script in your [code:package.json] to automatically upload source maps to Sentry when you build your application.',
-                  {
-                    code: <code />,
-                  }
-                )}
-              </ListItem>
-            </List>
-          ),
-        },
         {
           description: <CopyDsnField params={params} />,
         },

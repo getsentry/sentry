@@ -6,8 +6,6 @@ import responses
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
-from sentry.integrations.github.constants import STACKFRAME_COUNT
-from sentry.integrations.github.tasks.language_parsers import PATCH_PARSERS
 from sentry.integrations.github.tasks.open_pr_comment import (
     format_issue_table,
     format_open_pr_comment,
@@ -20,6 +18,8 @@ from sentry.integrations.github.tasks.open_pr_comment import (
 )
 from sentry.integrations.github.tasks.utils import PullRequestFile, PullRequestIssue
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.source_code_management.constants import STACKFRAME_COUNT
+from sentry.integrations.source_code_management.language_parsers import PATCH_PARSERS
 from sentry.models.group import Group, GroupStatus
 from sentry.models.pullrequest import CommentType, PullRequest, PullRequestComment
 from sentry.shared_integrations.exceptions import ApiError
@@ -825,7 +825,7 @@ Your pull request is modifying functions with the following pre-existing issues:
     "sentry.integrations.github.tasks.open_pr_comment.get_projects_and_filenames_from_source_file"
 )
 @patch(
-    "sentry.integrations.github.tasks.language_parsers.PythonParser.extract_functions_from_patch"
+    "sentry.integrations.source_code_management.language_parsers.PythonParser.extract_functions_from_patch"
 )
 @patch("sentry.integrations.github.tasks.open_pr_comment.get_top_5_issues_by_count_for_file")
 @patch("sentry.integrations.github.tasks.open_pr_comment.safe_for_comment")
@@ -1035,9 +1035,11 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
     @patch("sentry.analytics.record")
     @patch("sentry.integrations.github.tasks.open_pr_comment.metrics")
+    @patch("sentry.integrations.github.integration.metrics")
     @responses.activate
     def test_comment_workflow_api_error(
         self,
+        mock_integration_metrics,
         mock_metrics,
         mock_analytics,
         _,
@@ -1083,7 +1085,9 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
         with pytest.raises(ApiError):
             open_pr_comment_workflow(self.pr.id)
-            mock_metrics.incr.assert_called_with("github.open_pr_comment.api_error")
+        mock_metrics.incr.assert_called_with(
+            "github.open_pr_comment.error", tags={"type": "api_error"}
+        )
 
         pr_2 = PullRequest.objects.create(
             organization_id=self.organization.id,
@@ -1093,7 +1097,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
         # does not raise ApiError for locked issue
         open_pr_comment_workflow(pr_2.id)
-        mock_metrics.incr.assert_called_with(
+        mock_integration_metrics.incr.assert_called_with(
             "github.open_pr_comment.error", tags={"type": "issue_locked_error"}
         )
 
@@ -1106,7 +1110,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         # does not raise ApiError for rate limited error
         open_pr_comment_workflow(pr_3.id)
 
-        mock_metrics.incr.assert_called_with(
+        mock_integration_metrics.incr.assert_called_with(
             "github.open_pr_comment.error", tags={"type": "rate_limited_error"}
         )
         assert not mock_analytics.called

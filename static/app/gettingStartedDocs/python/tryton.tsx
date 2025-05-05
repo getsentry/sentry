@@ -10,6 +10,7 @@ import {
   crashReportOnboardingPython,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
+import {getPythonInstallConfig} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
@@ -74,7 +75,15 @@ const onboarding: OnboardingConfig = {
     tct('The Tryton integration adds support for the [link:Tryton Framework Server].', {
       link: <ExternalLink href="https://www.tryton.org/" />,
     }),
-  install: () => [],
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct('Install [code:sentry-sdk] from PyPI:', {
+        code: <code />,
+      }),
+      configurations: getPythonInstallConfig(),
+    },
+  ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,

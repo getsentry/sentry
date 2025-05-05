@@ -15,6 +15,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
+import type {DataCategory} from 'sentry/types/core';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
@@ -112,7 +113,7 @@ function ChangePlanAction({
    */
   const findClosestTier = (
     plan: Plan | null,
-    category: string,
+    category: DataCategory,
     currentValue: number
   ): number | null => {
     if (!plan?.planCategories || !(category in plan.planCategories)) {
@@ -156,7 +157,11 @@ function ChangePlanAction({
 
     Object.entries(subscription.categories).forEach(([category, metricHistory]) => {
       if (metricHistory.reserved) {
-        const closestTier = findClosestTier(plan, category, metricHistory.reserved);
+        const closestTier = findClosestTier(
+          plan,
+          category as DataCategory,
+          metricHistory.reserved
+        );
         if (closestTier) {
           formModel.setValue(
             `reserved${toTitleCase(category, {
@@ -181,7 +186,7 @@ function ChangePlanAction({
   ) => {
     addLoadingMessage('Updating plan\u2026');
 
-    if (!data.plan || !planList.find(p => p.id === data.plan)) {
+    if (!data.plan || !planList.some(p => p.id === data.plan)) {
       onSubmitError('Plan not found');
       return;
     }

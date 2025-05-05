@@ -1,28 +1,21 @@
 import {Fragment} from 'react';
 
 import {t} from 'sentry/locale';
-
-import {isEAPTraceNode, isTraceNode} from '../traceGuards';
-import {TraceIcons} from '../traceIcons';
-import type {TraceTree} from '../traceModels/traceTree';
-import type {TraceTreeNode} from '../traceModels/traceTreeNode';
-import {makeTraceNodeBarColor, TraceBar} from '../traceRow/traceBar';
+import {
+  isEAPTraceNode,
+  isTraceNode,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {
   maybeFocusTraceRow,
   TRACE_COUNT_FORMATTER,
   TraceChildrenButton,
   TraceRowConnectors,
   type TraceRowProps,
-} from '../traceRow/traceRow';
-import {useHasTraceNewUi} from '../useHasTraceNewUi';
-
-const NO_ERRORS = new Set<TraceTree.TraceError>();
-const NO_PERFORMANCE_ISSUES = new Set<TraceTree.TracePerformanceIssue>();
-const NO_PROFILES: any = [];
+} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
 
 export function TraceRootRow(props: TraceRowProps<TraceTreeNode<TraceTree.Trace>>) {
-  const hasTraceNewUi = useHasTraceNewUi();
-
   if (!isTraceNode(props.node) && !isEAPTraceNode(props.node)) {
     throw new Error('Trace row rendered called on row that is not root');
   }
@@ -79,29 +72,7 @@ export function TraceRootRow(props: TraceRowProps<TraceTreeNode<TraceTree.Trace>
         ref={props.registerSpanColumnRef}
         className={props.spanColumnClassName}
         onDoubleClick={props.onRowDoubleClick}
-      >
-        {!hasTraceNewUi && (
-          <Fragment>
-            <TraceBar
-              node={props.node}
-              virtualized_index={props.virtualized_index}
-              manager={props.manager}
-              color={makeTraceNodeBarColor(props.theme, props.node)}
-              node_space={props.node.space}
-              errors={NO_ERRORS}
-              performance_issues={NO_PERFORMANCE_ISSUES}
-              profiles={NO_PROFILES}
-            />
-            <button
-              ref={props.registerSpanArrowRef}
-              className="TraceArrow"
-              onClick={props.onSpanArrowClick}
-            >
-              <TraceIcons.Chevron direction="left" />
-            </button>
-          </Fragment>
-        )}
-      </div>
+      />
     </div>
   );
 }

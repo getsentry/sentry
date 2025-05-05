@@ -12,14 +12,13 @@ import type {TraceMeta} from 'sentry/utils/performance/quickTrace/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
   isEAPError,
   isTraceError,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
-
-import {TraceDrawerComponents} from '../traceDrawer/details/styles';
-import type {TraceTree} from '../traceModels/traceTree';
 
 type MetaDataProps = {
   bodyText: React.ReactNode;
@@ -53,7 +52,7 @@ const SectionBody = styled('div')<{rightAlign?: boolean}>`
 `;
 
 interface MetaProps {
-  logs: OurLogsResponseItem[];
+  logs: OurLogsResponseItem[] | undefined;
   meta: TraceMeta | undefined;
   organization: Organization;
   representativeEvent: TraceTree.TraceEvent | OurLogsResponseItem | null;
@@ -102,10 +101,10 @@ export function Meta(props: MetaProps) {
       return [];
     }
 
-    const unique: TraceTree.TracePerformanceIssue[] = [];
+    const unique: TraceTree.TraceOccurrence[] = [];
     const seenIssues: Set<number> = new Set();
 
-    for (const issue of traceNode.performance_issues) {
+    for (const issue of traceNode.occurrences) {
       if (seenIssues.has(issue.issue_id)) {
         continue;
       }
@@ -124,7 +123,7 @@ export function Meta(props: MetaProps) {
     traceNode?.space[0] ?? (timestamp ? timestamp * 1000 : undefined);
 
   const hasSpans = (props.meta?.span_count ?? 0) > 0;
-  const hasLogs = props.logs.length > 0;
+  const hasLogs = (props.logs?.length ?? 0) > 0;
 
   return (
     <MetaWrapper>
@@ -168,7 +167,7 @@ export function Meta(props: MetaProps) {
         <MetaSection
           rightAlignBody
           headingText={t('Logs')}
-          bodyText={props.logs.length}
+          bodyText={props.logs?.length ?? 0}
         />
       ) : null}
     </MetaWrapper>

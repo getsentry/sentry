@@ -1,7 +1,7 @@
 from typing import Any
+from unittest import TestCase
 
 from sentry.integrations.services.assignment_source import AssignmentSource
-from sentry.testutils.cases import TestCase
 
 
 class TestAssignmentSource(TestCase):

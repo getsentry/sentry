@@ -51,7 +51,7 @@ import {
   SavedQueryDatasets,
 } from 'sentry/utils/discover/types';
 import localStorage from 'sentry/utils/localStorage';
-import marked from 'sentry/utils/marked';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -59,23 +59,24 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {
+  DEFAULT_EVENT_VIEW,
+  DEFAULT_EVENT_VIEW_MAP,
+} from 'sentry/views/discover/results/data';
+import ResultsChart from 'sentry/views/discover/results/resultsChart';
+import ResultsHeader from 'sentry/views/discover/results/resultsHeader';
+import ResultsSearchQueryBuilder from 'sentry/views/discover/results/resultsSearchQueryBuilder';
+import {SampleDataAlert} from 'sentry/views/discover/results/sampleDataAlert';
+import Tags from 'sentry/views/discover/results/tags';
 import {DATASET_LABEL_MAP} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
 import {
   getDatasetFromLocationOrSavedQueryDataset,
   getSavedQueryDataset,
   getSavedQueryWithDataset,
 } from 'sentry/views/discover/savedQuery/utils';
-
-import {addRoutePerformanceContext} from '../performance/utils';
-
-import {DEFAULT_EVENT_VIEW, DEFAULT_EVENT_VIEW_MAP} from './data';
-import ResultsChart from './resultsChart';
-import ResultsHeader from './resultsHeader';
-import ResultsSearchQueryBuilder from './resultsSearchQueryBuilder';
-import {SampleDataAlert} from './sampleDataAlert';
-import Table from './table';
-import Tags from './tags';
-import {generateTitle} from './utils';
+import Table from 'sentry/views/discover/table';
+import {generateTitle} from 'sentry/views/discover/utils';
+import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
 
 type Props = {
   api: Client;
@@ -697,7 +698,7 @@ export class Results extends Component<Props, State> {
       return tips.map((tip, index) => (
         <Alert.Container key={`tip-${index}`}>
           <Alert type="info" showIcon key={`tip-${index}`}>
-            <TipContainer dangerouslySetInnerHTML={{__html: marked(tip)}} />
+            <TipContainer as="span" text={tip} />
           </Alert>
         </Alert.Container>
       ));
@@ -823,7 +824,6 @@ export class Results extends Component<Props, State> {
                 >
                   <ResultsChart
                     api={api}
-                    router={router}
                     organization={organization}
                     eventView={eventView}
                     location={location}
@@ -912,7 +912,7 @@ const Top = styled(Layout.Main)`
   flex-grow: 0;
 `;
 
-const TipContainer = styled('span')`
+const TipContainer = styled(MarkedText)`
   > p {
     margin: 0;
   }

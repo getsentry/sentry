@@ -8,10 +8,11 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.groupsearchview import GroupSearchViewSerializer
-from sentry.api.serializers.rest_framework.groupsearchview import GroupSearchViewDetailsPutValidator
+from sentry.api.serializers.rest_framework.groupsearchview import ViewValidator
+from sentry.issues.endpoints.bases import GroupSearchViewPermission
 from sentry.issues.endpoints.organization_group_search_views import pick_default_project
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
@@ -31,14 +32,6 @@ class GroupSearchViewValidatorResponse(TypedDict):
     timeFilters: NotRequired[dict[str, Any]]
 
 
-class MemberPermission(OrganizationPermission):
-    scope_map = {
-        "GET": ["member:read"],
-        "PUT": ["member:read", "member:write"],
-        "DELETE": ["member:read", "member:write"],
-    }
-
-
 @region_silo_endpoint
 class OrganizationGroupSearchViewDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
@@ -47,7 +40,7 @@ class OrganizationGroupSearchViewDetailsEndpoint(OrganizationEndpoint):
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
-    permission_classes = (MemberPermission,)
+    permission_classes = (GroupSearchViewPermission,)
 
     def get(self, request: Request, organization: Organization, view_id: str) -> Response:
         """
@@ -86,15 +79,15 @@ class OrganizationGroupSearchViewDetailsEndpoint(OrganizationEndpoint):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         try:
-            view = GroupSearchView.objects.get(
-                id=view_id, organization=organization, user_id=request.user.id
-            )
+            view = GroupSearchView.objects.get(id=view_id, organization=organization)
         except GroupSearchView.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        serializer = GroupSearchViewDetailsPutValidator(
+        self.check_object_permissions(request, view)
+
+        serializer = ViewValidator(
             data=request.data,
-            context={"organization": organization, "access": request.access},
+            context={"organization": organization},
         )
 
         if not serializer.is_valid():
@@ -110,8 +103,6 @@ class OrganizationGroupSearchViewDetailsEndpoint(OrganizationEndpoint):
         view.time_filters = validated_data["timeFilters"]
         view.projects.set(validated_data["projects"])
 
-        view.visibility = validated_data.get("visibility", view.visibility)
-
         view.save()
 
         has_global_views = features.has("organizations:global-views", organization)
@@ -124,7 +115,9 @@ class OrganizationGroupSearchViewDetailsEndpoint(OrganizationEndpoint):
                 view,
                 request.user,
                 serializer=GroupSearchViewSerializer(
-                    has_global_views=has_global_views, default_project=default_project
+                    has_global_views=has_global_views,
+                    default_project=default_project,
+                    organization=organization,
                 ),
             ),
             status=status.HTTP_200_OK,
@@ -140,18 +133,11 @@ class OrganizationGroupSearchViewDetailsEndpoint(OrganizationEndpoint):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         try:
-            view = GroupSearchView.objects.get(id=view_id)
+            view = GroupSearchView.objects.get(id=view_id, organization=organization)
         except GroupSearchView.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        # Only view creators and org admins can delete views
-        has_delete_access = (
-            view.user_id == request.user.id
-            or request.access.has_scope("org:admin")
-            or request.access.has_scope("team:admin")
-        )
-        if not has_delete_access:
-            return Response(status=status.HTTP_403_FORBIDDEN)
+        self.check_object_permissions(request, view)
 
         try:
             GroupSearchViewStarred.objects.clear_starred_view_for_all_members(

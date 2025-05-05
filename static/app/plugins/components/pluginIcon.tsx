@@ -78,18 +78,33 @@ export interface PluginIconProps extends React.RefAttributes<HTMLDivElement> {
 
 export function PluginIcon({pluginId, size = 20, ref}: PluginIconProps) {
   return (
-    <StyledPluginIcon size={size} pluginSrc={getPluginIconSource(pluginId)} ref={ref} />
+    <StyledPluginIconContainer size={size}>
+      <StyledPluginIcon size={size} pluginSrc={getPluginIconSource(pluginId)} ref={ref} />
+    </StyledPluginIconContainer>
   );
 }
+
+const StyledPluginIconContainer = styled('div')<{
+  size: number;
+}>`
+  height: ${p => p.size}px;
+  width: ${p => p.size}px;
+  min-width: ${p => p.size}px;
+  background-color: ${p => p.theme.white};
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
 
 const StyledPluginIcon = styled('div')<{
   pluginSrc: string;
   size: number;
 }>`
   position: relative;
-  height: ${p => p.size}px;
-  width: ${p => p.size}px;
-  min-width: ${p => p.size}px;
+  height: ${p => p.size - p.size * 0.2}px;
+  width: ${p => p.size - p.size * 0.2}px;
+  min-width: ${p => p.size - p.size * 0.2}px;
   border-radius: 2px;
   border: 0;
   display: inline-block;

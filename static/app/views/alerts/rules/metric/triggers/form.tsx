@@ -14,16 +14,18 @@ import withApi from 'sentry/utils/withApi';
 import withConfig from 'sentry/utils/withConfig';
 import {getThresholdUnits} from 'sentry/views/alerts/rules/metric/constants';
 import ThresholdControl from 'sentry/views/alerts/rules/metric/triggers/thresholdControl';
-
-import {isSessionAggregate} from '../../../utils';
 import type {
   AlertRuleThresholdType,
   ThresholdControlValue,
   Trigger,
   UnsavedMetricRule,
   UnsavedTrigger,
-} from '../types';
-import {AlertRuleComparisonType, AlertRuleTriggerType} from '../types';
+} from 'sentry/views/alerts/rules/metric/types';
+import {
+  AlertRuleComparisonType,
+  AlertRuleTriggerType,
+} from 'sentry/views/alerts/rules/metric/types';
+import {isSessionAggregate} from 'sentry/views/alerts/utils';
 
 type Props = {
   aggregate: UnsavedMetricRule['aggregate'];

@@ -132,7 +132,6 @@ class ProjectMemberSerializer(serializers.Serializer):
         "performanceIssueCreationRate",
         "performanceIssueCreationThroughPlatform",
         "performanceIssueSendToPlatform",
-        "uptimeAutodetection",
         "tempestFetchScreenshots",
         "tempestFetchDumps",
     ]
@@ -227,7 +226,6 @@ E.g. `['release', 'environment']`""",
     performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
     performanceIssueSendToPlatform = serializers.BooleanField(required=False)
-    uptimeAutodetection = serializers.BooleanField(required=False)
     tempestFetchScreenshots = serializers.BooleanField(required=False)
     tempestFetchDumps = serializers.BooleanField(required=False)
 
@@ -352,7 +350,7 @@ E.g. `['release', 'environment']`""",
             return value
 
         try:
-            Enhancements.from_config_string(value)
+            Enhancements.from_rules_text(value)
         except InvalidEnhancerConfig as e:
             raise serializers.ValidationError(str(e))
 
@@ -763,10 +761,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:dynamic_sampling_biases"] = result[
                     "dynamicSamplingBiases"
                 ]
-
-        if result.get("uptimeAutodetection") is not None:
-            if project.update_option("sentry:uptime_autodetection", result["uptimeAutodetection"]):
-                changed_proj_settings["sentry:uptime_autodetection"] = result["uptimeAutodetection"]
 
         if has_elevated_scopes:
             options = result.get("options", {})

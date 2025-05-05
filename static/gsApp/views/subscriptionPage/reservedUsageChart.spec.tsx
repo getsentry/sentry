@@ -5,6 +5,7 @@ import {
   SubscriptionFixture,
 } from 'getsentry-test/fixtures/subscription';
 
+import {DataCategory} from 'sentry/types/core';
 import {ChartDataTransform} from 'sentry/views/organizationStats/usageChart';
 
 import {type BillingStats, PlanTier} from 'getsentry/types';
@@ -91,7 +92,7 @@ describe('mapCostStatsToChart', () => {
     ];
 
     const result = mapCostStatsToChart({
-      category: 'errors',
+      category: DataCategory.ERRORS,
       stats,
       transform: ChartDataTransform.CUMULATIVE,
       subscription,
@@ -145,7 +146,7 @@ describe('mapCostStatsToChart', () => {
     ];
 
     const result = mapCostStatsToChart({
-      category: 'errors',
+      category: DataCategory.ERRORS,
       stats,
       transform: ChartDataTransform.PERIODIC,
       subscription,
@@ -199,7 +200,7 @@ describe('mapCostStatsToChart', () => {
     ];
 
     const result = mapCostStatsToChart({
-      category: 'errors',
+      category: DataCategory.ERRORS,
       stats,
       transform: ChartDataTransform.PERIODIC,
       subscription,
@@ -233,7 +234,7 @@ describe('mapCostStatsToChart', () => {
     );
 
     const result = mapCostStatsToChart({
-      category: 'errors',
+      category: DataCategory.ERRORS,
       stats,
       transform: ChartDataTransform.PERIODIC,
       subscription,
@@ -664,7 +665,13 @@ describe('getCategoryOptions', () => {
     });
 
     result.forEach(option => {
-      expect(subscription.planDetails.checkoutCategories).toContain(option.value);
+      const inCheckoutCategories = subscription.planDetails.checkoutCategories.includes(
+        option.value
+      );
+      const inOnDemandCategories = subscription.planDetails.onDemandCategories.includes(
+        option.value
+      );
+      expect(inCheckoutCategories || inOnDemandCategories).toBe(true);
     });
   });
 

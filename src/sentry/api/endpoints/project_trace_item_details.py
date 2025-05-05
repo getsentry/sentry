@@ -8,8 +8,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDetailsRequest
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -46,6 +44,8 @@ def convert_rpc_attribute_to_json(
                     column_type = "string"
                 elif val_type in ["int", "float", "double"]:
                     column_type = "number"
+                    if val_type == "double":
+                        val_type = "float"
                 else:
                     raise BadRequest(f"unknown column type in protobuf: {val_type}")
 
@@ -148,18 +148,7 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
                 trace_item_type=trace_item_type,
                 request_id=str(uuid.uuid4()),
             ),
-            filter=TraceItemFilter(
-                comparison_filter=ComparisonFilter(
-                    key=AttributeKey(
-                        type=AttributeKey.TYPE_STRING,
-                        name="sentry.trace_id",
-                    ),
-                    op=ComparisonFilter.OP_EQUALS,
-                    value=AttributeValue(
-                        val_str=trace_id,
-                    ),
-                )
-            ),
+            trace_id=trace_id,
         )
 
         resp = MessageToDict(snuba_rpc.trace_item_details_rpc(req))

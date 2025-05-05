@@ -73,7 +73,7 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
     router.replace(
       makeProjectsPathname({
         path: '/new/',
-        orgSlug: organization.slug,
+        organization,
       }) + `?referrer=getting-started&project=${recentCreatedProject.id}`
     );
   }, [api, recentCreatedProject, organization, isProjectActive, router]);
@@ -92,8 +92,8 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
       </h2>
       <ButtonBar gap={1}>
         <Button
-          icon={<IconChevron direction="left" size="sm" />}
           size="sm"
+          icon={<IconChevron direction="left" size="xs" />}
           onClick={handleGoBack}
         >
           {t('Back to Platform Selection')}

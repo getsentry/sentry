@@ -2,10 +2,13 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
+import {INTERNAL_SOURCE} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/utils';
+import ProcessingItem from 'sentry/components/events/interfaces/debugMeta/processing/item';
+import ProcessingList from 'sentry/components/events/interfaces/debugMeta/processing/list';
 import FileSize from 'sentry/components/fileSize';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -17,10 +20,6 @@ import type {
 } from 'sentry/types/debugImage';
 import {CandidateDownloadStatus, SymbolType} from 'sentry/types/debugImage';
 import {capitalize} from 'sentry/utils/string/capitalize';
-
-import ProcessingItem from '../../../processing/item';
-import ProcessingList from '../../../processing/list';
-import {INTERNAL_SOURCE} from '../../utils';
 
 import Divider from './divider';
 import Features from './features';

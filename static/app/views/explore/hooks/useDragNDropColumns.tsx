@@ -9,7 +9,7 @@ export type Column = {
 
 interface UseDragAndDropColumnsProps {
   columns: string[];
-  setColumns: (columns: string[]) => void;
+  setColumns: (columns: string[], op: 'insert' | 'update' | 'delete' | 'reorder') => void;
 }
 
 const extractColumns = (editableColumns: Column[]) => {
@@ -44,7 +44,7 @@ export function useDragNDropColumns({columns, setColumns}: UseDragAndDropColumns
 
       setNextId(nextId + 1); // make sure to increment the id for the next time
 
-      setColumns(extractColumns(newEditableColumns));
+      setColumns(extractColumns(newEditableColumns), 'insert');
 
       return newEditableColumns;
     });
@@ -55,7 +55,7 @@ export function useDragNDropColumns({columns, setColumns}: UseDragAndDropColumns
       const newEditableColumns = [...oldEditableColumns];
       newEditableColumns[i]!.column = column;
 
-      setColumns(extractColumns(newEditableColumns));
+      setColumns(extractColumns(newEditableColumns), 'update');
 
       return newEditableColumns;
     });
@@ -64,7 +64,7 @@ export function useDragNDropColumns({columns, setColumns}: UseDragAndDropColumns
   function deleteColumnAtIndex(i: number) {
     setEditableColumns(oldEditableColumns => {
       if (oldEditableColumns.length === 1) {
-        setColumns(['']);
+        setColumns([''], 'delete');
         return [{id: 1, column: undefined}];
       }
 
@@ -73,7 +73,7 @@ export function useDragNDropColumns({columns, setColumns}: UseDragAndDropColumns
         ...oldEditableColumns.slice(i + 1),
       ];
 
-      setColumns(extractColumns(newEditableColumns));
+      setColumns(extractColumns(newEditableColumns), 'delete');
 
       return newEditableColumns;
     });
@@ -89,7 +89,7 @@ export function useDragNDropColumns({columns, setColumns}: UseDragAndDropColumns
       setEditableColumns(oldEditableColumns => {
         const newEditableColumns = arrayMove(oldEditableColumns, oldIndex, newIndex);
 
-        setColumns(extractColumns(newEditableColumns));
+        setColumns(extractColumns(newEditableColumns), 'reorder');
 
         return newEditableColumns;
       });

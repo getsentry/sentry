@@ -6,7 +6,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
-export function getInstallSnippet({
+function getInstallSnippet({
   params,
   packageManager,
   additionalPackages = [],
@@ -197,6 +197,10 @@ Sentry.init({
     profileLifecycle: 'trace',`
       : ''
   }
+
+  // Setting this option to true will send default PII data to Sentry.
+  // For example, automatic IP address collection on events
+  sendDefaultPii: true,
   });${
     params.isProfilingSelected &&
     params.profilingOptions?.defaultProfilingMode === 'continuous'
@@ -214,8 +218,10 @@ Sentry.startSpan({
 
 export const getNodeProfilingOnboarding = ({
   basePackage = '@sentry/node',
+  profilingLifecycle = 'trace',
 }: {
   basePackage?: string;
+  profilingLifecycle?: 'trace' | 'manual';
 } = {}): OnboardingConfig => ({
   install: params => [
     {
@@ -255,21 +261,35 @@ Sentry.init({
   dsn: "${params.dsn.public}",
   integrations: [
     nodeProfilingIntegration(),
-  ],
-  // Tracing must be enabled for profiling to work
-  tracesSampleRate: 1.0, //  Capture 100% of the transactions${
+  ],${
     params.profilingOptions?.defaultProfilingMode === 'continuous'
-      ? `
+      ? profilingLifecycle === 'trace'
+        ? `
+  // Tracing must be enabled for profiling to work
+  tracesSampleRate: 1.0,
   // Set sampling rate for profiling - this is evaluated only once per SDK.init call
   profileSessionSampleRate: 1.0,
   // Trace lifecycle automatically enables profiling during active traces
   profileLifecycle: 'trace',`
+        : `
+  // Tracing is not required for profiling to work
+  // but for the best experience we recommend enabling it
+  tracesSampleRate: 1.0,
+  // Set sampling rate for profiling - this is evaluated only once per SDK.init call
+  profileSessionSampleRate: 1.0,`
       : `
+  // Tracing must be enabled for profiling to work
+  tracesSampleRate: 1.0,
   // Set sampling rate for profiling - this is evaluated only once per SDK.init call
   profilesSampleRate: 1.0,`
   }
+
+  // Setting this option to true will send default PII data to Sentry.
+  // For example, automatic IP address collection on events
+  sendDefaultPii: true,
 });${
-                params.profilingOptions?.defaultProfilingMode === 'continuous'
+                params.profilingOptions?.defaultProfilingMode === 'continuous' &&
+                profilingLifecycle === 'trace'
                   ? `
 
 // Profiling happens automatically after setting it up with \`Sentry.init()\`.
@@ -280,19 +300,32 @@ Sentry.startSpan({
   // The code executed here will be profiled
 });`
                   : ''
+              }${
+                params.profilingOptions?.defaultProfilingMode === 'continuous' &&
+                profilingLifecycle === 'manual'
+                  ? `
+
+Sentry.profiler.startProfiler();
+// Code executed between these two calls will be profiled
+Sentry.profiler.stopProfiler();
+                  `
+                  : ''
               }`,
             },
           ],
-          additionalInfo: tct(
-            'If you need more fine grained control over which spans are profiled, you can do so by [link:enabling manual lifecycle profiling].',
-            {
-              link: (
-                <ExternalLink
-                  href={`https://docs.sentry.io/platforms/javascript/guides/node/profiling/node-profiling/#enabling-manual-lifecycle-profiling`}
-                />
-              ),
-            }
-          ),
+          additionalInfo:
+            profilingLifecycle === 'trace'
+              ? tct(
+                  'If you need more fine grained control over which spans are profiled, you can do so by [link:enabling manual lifecycle profiling].',
+                  {
+                    link: (
+                      <ExternalLink
+                        href={`https://docs.sentry.io/platforms/javascript/guides/node/profiling/node-profiling/#enabling-manual-lifecycle-profiling`}
+                      />
+                    ),
+                  }
+                )
+              : '',
         },
         {
           description: tct(

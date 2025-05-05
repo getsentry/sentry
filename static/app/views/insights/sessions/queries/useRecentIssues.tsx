@@ -3,7 +3,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export default function useRecentIssues({projectId}: {projectId: string}) {
+export default function useRecentIssues({projectId}: {projectId: string | undefined}) {
   const organization = useOrganization();
   const location = useLocation();
 
@@ -21,7 +21,7 @@ export default function useRecentIssues({projectId}: {projectId: string}) {
   const {data: recentIssues, isPending} = useApiQuery<Group[]>(
     [
       `/projects/${organization.slug}/${projectId}/issues/`,
-      {query: {...locationQuery.query, statsPeriod: '14d', limit: 3}},
+      {query: {...locationQuery.query, statsPeriod: '14d', limit: 2}},
     ],
     {staleTime: 0}
   );

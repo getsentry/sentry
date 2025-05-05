@@ -4,6 +4,7 @@ import {FeatureFlagTagsFixture} from 'sentry-fixture/tags';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {OrderBy, SortBy} from 'sentry/components/events/featureFlags/utils';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import FlagDrawerContent from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerContent';
 
@@ -19,6 +20,11 @@ describe('GroupFeatureFlagsDrawerContent', function () {
       body: [],
     });
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/1/suspect/flags/`,
+      body: [],
+    });
+
     ProjectsStore.init();
     ProjectsStore.loadInitialData([
       ProjectFixture({platform: 'javascript', hasFlags: false}),
@@ -31,7 +37,16 @@ describe('GroupFeatureFlagsDrawerContent', function () {
       body: FeatureFlagTagsFixture(),
     });
 
-    render(<FlagDrawerContent environments={[]} group={GroupFixture()} search="" />);
+    render(
+      <FlagDrawerContent
+        environments={[]}
+        group={GroupFixture()}
+        search=""
+        debugSuspectScores={false}
+        orderBy={OrderBy.NEWEST}
+        sortBy={SortBy.EVAL_ORDER}
+      />
+    );
 
     await waitFor(() => {
       expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -57,7 +72,16 @@ describe('GroupFeatureFlagsDrawerContent', function () {
       },
     });
 
-    render(<FlagDrawerContent environments={[]} group={GroupFixture()} search="" />);
+    render(
+      <FlagDrawerContent
+        environments={[]}
+        group={GroupFixture()}
+        search=""
+        debugSuspectScores={false}
+        orderBy={OrderBy.NEWEST}
+        sortBy={SortBy.EVAL_ORDER}
+      />
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId('loading-error')).toBeInTheDocument();
@@ -70,7 +94,16 @@ describe('GroupFeatureFlagsDrawerContent', function () {
       body: FeatureFlagTagsFixture(),
     });
 
-    render(<FlagDrawerContent environments={[]} group={GroupFixture()} search="zxf" />);
+    render(
+      <FlagDrawerContent
+        environments={[]}
+        group={GroupFixture()}
+        search="zxf"
+        debugSuspectScores={false}
+        orderBy={OrderBy.NEWEST}
+        sortBy={SortBy.EVAL_ORDER}
+      />
+    );
 
     await waitFor(() => {
       expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -87,7 +120,16 @@ describe('GroupFeatureFlagsDrawerContent', function () {
       ProjectFixture({platform: 'javascript', hasFlags: true}),
     ]);
 
-    render(<FlagDrawerContent environments={[]} group={GroupFixture()} search="" />);
+    render(
+      <FlagDrawerContent
+        environments={[]}
+        group={GroupFixture()}
+        search=""
+        debugSuspectScores={false}
+        orderBy={OrderBy.NEWEST}
+        sortBy={SortBy.EVAL_ORDER}
+      />
+    );
 
     await waitFor(() => {
       expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -99,7 +141,16 @@ describe('GroupFeatureFlagsDrawerContent', function () {
   });
 
   it('renders CTA when no flags returned and hasFlags is false', async function () {
-    render(<FlagDrawerContent environments={[]} group={GroupFixture()} search="" />);
+    render(
+      <FlagDrawerContent
+        environments={[]}
+        group={GroupFixture()}
+        search=""
+        debugSuspectScores={false}
+        orderBy={OrderBy.NEWEST}
+        sortBy={SortBy.EVAL_ORDER}
+      />
+    );
 
     await waitFor(() => {
       expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -114,7 +165,16 @@ describe('GroupFeatureFlagsDrawerContent', function () {
       ProjectFixture({platform: 'dotnet-awslambda', hasFlags: false}),
     ]);
 
-    render(<FlagDrawerContent environments={[]} group={GroupFixture()} search="" />);
+    render(
+      <FlagDrawerContent
+        environments={[]}
+        group={GroupFixture()}
+        search=""
+        debugSuspectScores={false}
+        orderBy={OrderBy.NEWEST}
+        sortBy={SortBy.EVAL_ORDER}
+      />
+    );
 
     await waitFor(() => {
       expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -126,7 +186,16 @@ describe('GroupFeatureFlagsDrawerContent', function () {
   it('does not render CTA when project not found', async function () {
     ProjectsStore.reset();
 
-    render(<FlagDrawerContent environments={[]} group={GroupFixture()} search="" />);
+    render(
+      <FlagDrawerContent
+        environments={[]}
+        group={GroupFixture()}
+        search=""
+        debugSuspectScores={false}
+        orderBy={OrderBy.NEWEST}
+        sortBy={SortBy.EVAL_ORDER}
+      />
+    );
 
     await waitFor(() => {
       expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();

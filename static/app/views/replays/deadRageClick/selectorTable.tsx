@@ -5,14 +5,14 @@ import type {Location} from 'history';
 import {PlatformIcon} from 'platformicons';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
+import useQueryBasedColumnResize from 'sentry/components/gridEditable/useQueryBasedColumnResize';
+import useQueryBasedSorting from 'sentry/components/gridEditable/useQueryBasedSorting';
 import Link from 'sentry/components/links/link';
 import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHeaderCell';
-import useQueryBasedColumnResize from 'sentry/components/replays/useQueryBasedColumnResize';
-import useQueryBasedSorting from 'sentry/components/replays/useQueryBasedSorting';
 import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconCursorArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -22,10 +22,6 @@ import useProjects from 'sentry/utils/useProjects';
 import {WiderHovercard} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {DeadRageSelectorItem} from 'sentry/views/replays/types';
-
-export interface UrlState {
-  widths: string[];
-}
 
 export function transformSelectorQuery(selector: string) {
   return selector

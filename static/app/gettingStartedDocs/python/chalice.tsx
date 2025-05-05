@@ -1,7 +1,6 @@
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   type Docs,
-  DocsPageLocation,
   type DocsParams,
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -10,10 +9,12 @@ import {
   crashReportOnboardingPython,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
+import {
+  getPythonInstallConfig,
+  getPythonProfilingOnboarding,
+} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
-
-const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[chalice]'`;
 
 const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
@@ -67,7 +68,7 @@ def index():
     return {"hello": "world"}`;
 
 const onboarding: OnboardingConfig = {
-  install: (params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
       description: tct(
@@ -76,21 +77,7 @@ const onboarding: OnboardingConfig = {
           code: <code />,
         }
       ),
-      configurations: [
-        {
-          description:
-            params.docsLocation === DocsPageLocation.PROFILING_PAGE
-              ? tct(
-                  'You need a minimum version [code:2.24.1] of the [code:sentry-python] SDK for the profiling feature.',
-                  {
-                    code: <code />,
-                  }
-                )
-              : undefined,
-          language: 'bash',
-          code: getInstallSnippet(),
-        },
-      ],
+      configurations: getPythonInstallConfig({packageName: "'sentry-sdk[chalice]'"}),
     },
   ],
   configure: (params: Params) => [
@@ -133,7 +120,7 @@ const onboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
-  profilingOnboarding: onboarding,
+  profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[chalice]'}),
   crashReportOnboarding: crashReportOnboardingPython,
 };
 

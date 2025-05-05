@@ -74,6 +74,9 @@ from sentry.relocation.utils import (
 from sentry.signals import relocated, relocation_redeem_promo_code
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import relocation_tasks
+from sentry.taskworker.retry import LastAction, Retry
 from sentry.types.region import get_local_region
 from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.models.user import User
@@ -160,8 +163,17 @@ ERR_COMPLETED_INTERNAL = "Internal error during relocation wrap-up."
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
     soft_time_limit=FAST_TIME_LIMIT,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=FAST_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
-def uploading_start(uuid: UUID, replying_region_name: str | None, org_slug: str | None) -> None:
+def uploading_start(
+    uuid: UUID | str, replying_region_name: str | None, org_slug: str | None
+) -> None:
     """
     The very first action in the relocation pipeline. In the case of a `SAAS_TO_SAAS` relocation, it
     will trigger the export of the requested organization from the region it currently live in. If
@@ -248,6 +260,7 @@ def uploading_start(uuid: UUID, replying_region_name: str | None, org_slug: str 
         control_relocation_export_service,
     )
 
+    uuid = str(uuid)
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.UPLOADING_START,
@@ -320,6 +333,11 @@ def uploading_start(uuid: UUID, replying_region_name: str | None, org_slug: str 
     # 10 minutes per try.
     soft_time_limit=60 * 10,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=60 * 10,
+        retry=Retry(times=4, on=(Exception,), times_exceeded=LastAction.Discard),
+    ),
 )
 def fulfill_cross_region_export_request(
     uuid_str: str,
@@ -380,7 +398,7 @@ def fulfill_cross_region_export_request(
         fp,
         encryptor=LocalFileEncryptor(BytesIO(encrypt_with_public_key)),
         org_filter={org_slug},
-        printer=LoggingPrinter(uuid),
+        printer=LoggingPrinter(uuid_str),
         checkpointer=StorageBackedCheckpointExporter(
             crypto=EncryptorDecryptorPair(
                 encryptor=GCPKMSEncryptor.from_crypto_key_version(get_default_crypto_key_version()),
@@ -431,14 +449,22 @@ def fulfill_cross_region_export_request(
     retry_backoff_jitter=True,
     soft_time_limit=FAST_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=FAST_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
 def cross_region_export_timeout_check(
-    uuid: UUID,
+    uuid: UUID | str,
 ) -> None:
     """
     Not part of the primary `OrderedTask` queue. This task is only used to ensure that cross-region
     export requests don't hang indefinitely.
     """
+    uuid = str(uuid)
 
     try:
         relocation = Relocation.objects.get(uuid=uuid)
@@ -446,7 +472,7 @@ def cross_region_export_timeout_check(
         logger.exception("Could not locate Relocation model by UUID: %s", uuid)
         return
 
-    logger_data = {"uuid": str(relocation.uuid), "task": "cross_region_export_timeout_check"}
+    logger_data = {"uuid": uuid, "task": "cross_region_export_timeout_check"}
     logger.info(
         "cross_region_export_timeout_check: started",
         extra=logger_data,
@@ -488,13 +514,20 @@ def cross_region_export_timeout_check(
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
     soft_time_limit=FAST_TIME_LIMIT,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=FAST_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
-def uploading_complete(uuid: UUID) -> None:
+def uploading_complete(uuid: UUID | str) -> None:
     """
     Just check to ensure that uploading the (potentially very large!) backup file has completed
     before we try to do all sorts of fun stuff with it.
     """
-
+    uuid = str(uuid)
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.UPLOADING_COMPLETE,
@@ -535,8 +568,15 @@ def uploading_complete(uuid: UUID) -> None:
     retry_backoff_jitter=True,
     soft_time_limit=MEDIUM_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=MEDIUM_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
-def preprocessing_scan(uuid: UUID) -> None:
+def preprocessing_scan(uuid: UUID | str) -> None:
     """
     Performs the very first part of the `PREPROCESSING` step of a `Relocation`, which involves
     decrypting the user-supplied tarball and picking out some useful information for it. This let's
@@ -554,7 +594,7 @@ def preprocessing_scan(uuid: UUID) -> None:
 
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
-
+    uuid = str(uuid)
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.PREPROCESSING_SCAN,
@@ -709,15 +749,22 @@ def preprocessing_scan(uuid: UUID) -> None:
     retry_backoff_jitter=True,
     soft_time_limit=MEDIUM_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=MEDIUM_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
-def preprocessing_transfer(uuid: UUID) -> None:
+def preprocessing_transfer(uuid: UUID | str) -> None:
     """
     We currently have the user's relocation data stored in the main filestore bucket, but we need to
     move it to the relocation bucket. This task handles that transfer.
 
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
-
+    uuid = str(uuid)
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.PREPROCESSING_TRANSFER,
@@ -797,14 +844,21 @@ def preprocessing_transfer(uuid: UUID) -> None:
     retry_backoff_jitter=True,
     soft_time_limit=MEDIUM_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=MEDIUM_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
-def preprocessing_baseline_config(uuid: UUID) -> None:
+def preprocessing_baseline_config(uuid: UUID | str) -> None:
     """
     Pulls down the global config data we'll need to check for collisions and global data integrity.
 
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
-
+    uuid = str(uuid)
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.PREPROCESSING_BASELINE_CONFIG,
@@ -848,15 +902,22 @@ def preprocessing_baseline_config(uuid: UUID) -> None:
     retry_backoff_jitter=True,
     soft_time_limit=MEDIUM_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=MEDIUM_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
-def preprocessing_colliding_users(uuid: UUID) -> None:
+def preprocessing_colliding_users(uuid: UUID | str) -> None:
     """
     Pulls down any already existing users whose usernames match those found in the import - we'll
     need to validate that none of these are mutated during import.
 
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
-
+    uuid = str(uuid)
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.PREPROCESSING_COLLIDING_USERS,
@@ -897,8 +958,15 @@ def preprocessing_colliding_users(uuid: UUID) -> None:
     retry_backoff_jitter=True,
     soft_time_limit=MEDIUM_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=MEDIUM_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
-def preprocessing_complete(uuid: UUID) -> None:
+def preprocessing_complete(uuid: UUID | str) -> None:
     """
     This task ensures that every file CloudBuild will need to do its work is actually present and
     available. Even if we've "finished" our uploads from the previous step, they may still not (yet)
@@ -907,7 +975,7 @@ def preprocessing_complete(uuid: UUID) -> None:
 
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
-
+    uuid = str(uuid)
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.PREPROCESSING_COMPLETE,
@@ -1020,7 +1088,6 @@ def _update_relocation_validation_attempt(
         )
     ):
         uuid_str = str(relocation.uuid)
-        uuid = UUID(uuid_str)
 
         # If no interesting status updates occurred, check again in a minute.
         if status == ValidationStatus.IN_PROGRESS:
@@ -1030,7 +1097,7 @@ def _update_relocation_validation_attempt(
             )
             return NextTask(
                 task=validating_poll,
-                args=[uuid, str(relocation_validation_attempt.build_id)],
+                args=[uuid_str, str(relocation_validation_attempt.build_id)],
                 countdown=60,
             )
 
@@ -1054,7 +1121,7 @@ def _update_relocation_validation_attempt(
                     extra={"uuid": uuid_str, "task": task.name},
                 )
 
-                return NextTask(task=validating_start, args=[uuid])
+                return NextTask(task=validating_start, args=[uuid_str])
 
             # Always accept the numerically higher `ValidationStatus`, since that is a more definite
             # result.
@@ -1103,7 +1170,7 @@ def _update_relocation_validation_attempt(
             extra={"uuid": uuid_str, "task": task.name},
         )
 
-        return NextTask(task=importing, args=[uuid])
+        return NextTask(task=importing, args=[uuid_str])
 
 
 @instrumented_task(
@@ -1115,14 +1182,21 @@ def _update_relocation_validation_attempt(
     retry_backoff_jitter=True,
     soft_time_limit=FAST_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=FAST_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
-def validating_start(uuid: UUID) -> None:
+def validating_start(uuid: UUID | str) -> None:
     """
     Calls into Google CloudBuild and kicks off a validation run.
 
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
-
+    uuid = str(uuid)
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.VALIDATING_START,
@@ -1194,14 +1268,19 @@ def validating_start(uuid: UUID) -> None:
     retry_backoff_jitter=True,
     soft_time_limit=FAST_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=FAST_TIME_LIMIT,
+        retry=Retry(times=MAX_VALIDATION_POLLS, on=(Exception,), times_exceeded=LastAction.Discard),
+    ),
 )
-def validating_poll(uuid: UUID, build_id: str) -> None:
+def validating_poll(uuid: UUID | str, build_id: str) -> None:
     """
     Checks the progress of a Google CloudBuild validation run.
 
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
-
+    uuid = str(uuid)
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.VALIDATING_POLL,
@@ -1223,7 +1302,7 @@ def validating_poll(uuid: UUID, build_id: str) -> None:
     logger.info(
         "Validation polling: active",
         extra={
-            "uuid": str(relocation.uuid),
+            "uuid": uuid,
             "task": OrderedTask.VALIDATING_POLL.name,
             "build_id": build_id,
         },
@@ -1292,8 +1371,15 @@ def validating_poll(uuid: UUID, build_id: str) -> None:
     retry_backoff_jitter=True,
     soft_time_limit=FAST_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=FAST_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
-def validating_complete(uuid: UUID, build_id: str) -> None:
+def validating_complete(uuid: UUID | str, build_id: str) -> None:
     """
     Wraps up a validation run, and reports on what we found. If this task is being called, the
     CloudBuild run as completed successfully, so we just need to figure out if there were any
@@ -1301,7 +1387,7 @@ def validating_complete(uuid: UUID, build_id: str) -> None:
 
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
-
+    uuid = str(uuid)
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.VALIDATING_COMPLETE,
@@ -1380,15 +1466,22 @@ def validating_complete(uuid: UUID, build_id: str) -> None:
     acks_late=True,
     soft_time_limit=SLOW_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=SLOW_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_SLOW_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
-def importing(uuid: UUID) -> None:
+def importing(uuid: UUID | str) -> None:
     """
     Perform the import on the actual live instance we are targeting.
 
     This function is NOT idempotent - if an import breaks, we should just abandon it rather than
     trying it again!
     """
-
+    uuid = str(uuid)
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.IMPORTING,
@@ -1442,12 +1535,19 @@ def importing(uuid: UUID) -> None:
     retry_backoff_jitter=True,
     soft_time_limit=FAST_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=FAST_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
-def postprocessing(uuid: UUID) -> None:
+def postprocessing(uuid: UUID | str) -> None:
     """
     Make the owner of this relocation an owner of all of the organizations we just imported.
     """
-
+    uuid = str(uuid)
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.POSTPROCESSING,
@@ -1462,10 +1562,9 @@ def postprocessing(uuid: UUID) -> None:
         attempts_left,
         ERR_POSTPROCESSING_INTERNAL,
     ):
-        uuid_str = str(uuid)
         imported_org_ids: set[int] = set()
         for chunk in RegionImportChunk.objects.filter(
-            import_uuid=uuid_str, model="sentry.organization"
+            import_uuid=uuid, model="sentry.organization"
         ):
             imported_org_ids = imported_org_ids.union(set(chunk.inserted_map.values()))
 
@@ -1497,7 +1596,7 @@ def postprocessing(uuid: UUID) -> None:
         # Last, but certainly not least: trigger signals, so that interested subscribers in eg:
         # getsentry can do whatever postprocessing they need to. If even a single one fails, we fail
         # the entire task.
-        for _, result in relocated.send_robust(sender=postprocessing, relocation_uuid=uuid_str):
+        for _, result in relocated.send_robust(sender=postprocessing, relocation_uuid=uuid):
             if isinstance(result, Exception):
                 raise result
 
@@ -1506,7 +1605,7 @@ def postprocessing(uuid: UUID) -> None:
         relocation_redeem_promo_code.send_robust(
             sender=postprocessing,
             user_id=relocation.owner_id,
-            relocation_uuid=uuid_str,
+            relocation_uuid=uuid,
             orgs=list(imported_orgs),
         )
 
@@ -1515,7 +1614,7 @@ def postprocessing(uuid: UUID) -> None:
                 analytics.record(
                     "relocation.organization_imported",
                     organization_id=org.id,
-                    relocation_uuid=uuid_str,
+                    relocation_uuid=uuid,
                     slug=org.slug,
                     owner_id=relocation.owner_id,
                 )
@@ -1534,12 +1633,19 @@ def postprocessing(uuid: UUID) -> None:
     retry_backoff_jitter=True,
     soft_time_limit=FAST_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=FAST_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
-def notifying_unhide(uuid: UUID) -> None:
+def notifying_unhide(uuid: UUID | str) -> None:
     """
     Un-hide the just-imported organizations, making them visible to users in the UI.
     """
-
+    uuid = str(uuid)
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.NOTIFYING_UNHIDE,
@@ -1580,12 +1686,19 @@ def notifying_unhide(uuid: UUID) -> None:
     retry_backoff_jitter=True,
     soft_time_limit=FAST_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=FAST_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
-def notifying_users(uuid: UUID) -> None:
+def notifying_users(uuid: UUID | str) -> None:
     """
     Send an email to all users that have been imported, telling them to claim their accounts.
     """
-
+    uuid = str(uuid)
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.NOTIFYING_USERS,
@@ -1600,15 +1713,14 @@ def notifying_users(uuid: UUID) -> None:
         attempts_left,
         ERR_NOTIFYING_INTERNAL,
     ):
-        uuid_str = str(uuid)
         imported_user_ids: set[int] = set()
-        chunks = ControlImportChunkReplica.objects.filter(import_uuid=uuid_str, model="sentry.user")
+        chunks = ControlImportChunkReplica.objects.filter(import_uuid=uuid, model="sentry.user")
         for control_chunk in chunks:
             imported_user_ids = imported_user_ids.union(set(control_chunk.inserted_map.values()))
 
         imported_org_slugs: set[str] = set()
         for region_chunk in RegionImportChunk.objects.filter(
-            import_uuid=uuid_str, model="sentry.organization"
+            import_uuid=uuid, model="sentry.organization"
         ):
             imported_org_slugs = imported_org_slugs.union(
                 set(region_chunk.inserted_identifiers.values())
@@ -1654,12 +1766,19 @@ def notifying_users(uuid: UUID) -> None:
     retry_backoff_jitter=True,
     soft_time_limit=FAST_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=FAST_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
-def notifying_owner(uuid: UUID) -> None:
+def notifying_owner(uuid: UUID | str) -> None:
     """
     Send an email to the creator and owner, telling them that their relocation was successful.
     """
-
+    uuid = str(uuid)
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.NOTIFYING_OWNER,
@@ -1674,10 +1793,9 @@ def notifying_owner(uuid: UUID) -> None:
         attempts_left,
         ERR_NOTIFYING_INTERNAL,
     ):
-        uuid_str = str(uuid)
         imported_org_slugs: set[int] = set()
         for chunk in RegionImportChunk.objects.filter(
-            import_uuid=uuid_str, model="sentry.organization"
+            import_uuid=uuid, model="sentry.organization"
         ):
             imported_org_slugs = imported_org_slugs.union(set(chunk.inserted_identifiers.values()))
 
@@ -1685,7 +1803,7 @@ def notifying_owner(uuid: UUID) -> None:
             relocation,
             Relocation.EmailKind.SUCCEEDED,
             {
-                "uuid": uuid_str,
+                "uuid": uuid,
                 "orgs": list(imported_org_slugs),
             },
         )
@@ -1702,12 +1820,19 @@ def notifying_owner(uuid: UUID) -> None:
     retry_backoff_jitter=True,
     soft_time_limit=FAST_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=relocation_tasks,
+        processing_deadline_duration=FAST_TIME_LIMIT,
+        retry=Retry(
+            times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard
+        ),
+    ),
 )
-def completed(uuid: UUID) -> None:
+def completed(uuid: UUID | str) -> None:
     """
     Finish up a relocation by marking it a success.
     """
-
+    uuid = str(uuid)
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.COMPLETED,

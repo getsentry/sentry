@@ -31,7 +31,7 @@ describe('DomainViewHeader', function () {
         modules={[ModuleName.HTTP]}
         selectedModule={undefined}
       />,
-      {organization}
+      {organization, deprecatedRouterMocks: true}
     );
 
     expect(screen.getByText('domainTitle')).toBeInTheDocument();
@@ -58,7 +58,7 @@ describe('DomainViewHeader', function () {
         modules={[ModuleName.HTTP]}
         selectedModule={undefined}
       />,
-      {organization}
+      {organization, deprecatedRouterMocks: true}
     );
 
     const overviewTab = screen.getByRole('tab', {name: 'Overview'});
@@ -82,7 +82,7 @@ describe('DomainViewHeader', function () {
         modules={[ModuleName.HTTP]}
         selectedModule={undefined}
       />,
-      {organization: organizationWithoutFeatures}
+      {organization: organizationWithoutFeatures, deprecatedRouterMocks: true}
     );
 
     expect(screen.getByText('domainTitle')).toBeInTheDocument();
@@ -99,7 +99,7 @@ describe('DomainViewHeader', function () {
         selectedModule={undefined}
         hasOverviewPage={false}
       />,
-      {organization}
+      {organization, deprecatedRouterMocks: true}
     );
 
     expect(screen.getByText('domainTitle')).toBeInTheDocument();
@@ -116,12 +116,12 @@ describe('DomainViewHeader', function () {
         selectedModule={undefined}
         hasOverviewPage={false}
       />,
-      {organization}
+      {organization, deprecatedRouterMocks: true}
     );
-    expect(screen.getByRole('tab', {name: 'Mobile Vitals New'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Mobile Vitals new'})).toBeInTheDocument();
     expect(screen.getByRole('tab', {name: 'Network Requests'})).toBeInTheDocument();
     expect(
-      screen.queryByRole('tab', {name: 'Network Requests New'})
+      screen.queryByRole('tab', {name: 'Network Requests new'})
     ).not.toBeInTheDocument();
   });
 });

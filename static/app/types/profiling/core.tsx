@@ -26,7 +26,7 @@ export type Trace = {
   trace_annotations?: readonly Annotation[];
 };
 
-export type Span = {
+type Span = {
   duration_ms: number;
   id: string | number;
   name: string;
@@ -40,31 +40,4 @@ export type Span = {
     success: boolean;
   }>;
   queue_label?: string;
-};
-
-export type SuspectFunction = {
-  count: number;
-  examples: string[];
-  fingerprint: number;
-  name: string;
-  p75: number;
-  p95: number;
-  p99: number;
-  package: string;
-  sum: number;
-  worst: string;
-};
-
-export type ProfileTransaction = {
-  duration_ms: {
-    p50: number;
-    p75: number;
-    p90: number;
-    p95: number;
-    p99: number;
-  };
-  last_profile_at: string;
-  name: string;
-  profiles_count: number;
-  project_id: string;
 };

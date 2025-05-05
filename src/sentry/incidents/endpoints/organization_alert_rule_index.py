@@ -67,11 +67,8 @@ from sentry.relay.config.metric_extraction import (
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.snuba.dataset import Dataset
-from sentry.uptime.models import (
-    ProjectUptimeSubscription,
-    ProjectUptimeSubscriptionMode,
-    UptimeStatus,
-)
+from sentry.uptime.models import ProjectUptimeSubscription, UptimeStatus
+from sentry.uptime.types import ProjectUptimeSubscriptionMode
 from sentry.utils.cursors import Cursor, StringCursor
 
 
@@ -183,7 +180,7 @@ class OrganizationOnDemandRuleStatsEndpoint(OrganizationEndpoint):
 class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization) -> Response:
@@ -328,7 +325,10 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 incident_status=Case(
                     # If an uptime monitor is failing we want to treat it the same as if an alert is failing, so sort
                     # by the critical status
-                    When(uptime_status=UptimeStatus.FAILED, then=IncidentStatus.CRITICAL.value),
+                    When(
+                        uptime_subscription__uptime_status=UptimeStatus.FAILED,
+                        then=IncidentStatus.CRITICAL.value,
+                    ),
                     default=-2,
                 )
             )

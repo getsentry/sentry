@@ -20,7 +20,7 @@ from sentry.models.projectcodeowners import ProjectCodeOwners
 class OrganizationCodeOwnersAssociationsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationIntegrationsLoosePermission,)
 

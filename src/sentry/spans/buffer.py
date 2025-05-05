@@ -360,16 +360,20 @@ class SpansBuffer:
             for payload in segment:
                 val = rapidjson.loads(payload)
                 old_segment_id = val.get("segment_id")
-                if old_segment_id:
-                    val_data = val.setdefault("data", {})
-                    if isinstance(val_data, dict):
-                        val_data["__sentry_internal_old_segment_id"] = old_segment_id
-                val["segment_id"] = segment_span_id
+                outcome = "same" if old_segment_id == segment_span_id else "different"
+
                 is_segment = val["is_segment"] = segment_span_id == val["span_id"]
                 if is_segment:
                     has_root_span = True
 
-                outcome = "same" if old_segment_id == segment_span_id else "different"
+                val_data = val.setdefault("data", {})
+                if isinstance(val_data, dict):
+                    val_data["__sentry_internal_span_buffer_outcome"] = outcome
+
+                    if old_segment_id:
+                        val_data["__sentry_internal_old_segment_id"] = old_segment_id
+
+                val["segment_id"] = segment_span_id
 
                 metrics.incr(
                     "spans.buffer.flush_segments.is_same_segment",

@@ -86,7 +86,7 @@ type UsageProps = {
   /**
    * The data category to display
    */
-  category: string;
+  category: DataCategory;
   displayMode: 'usage' | 'cost';
   organization: Organization;
   subscription: Subscription;
@@ -155,7 +155,7 @@ type State = {expanded: boolean; trialButtonBusy: boolean};
  *
  * @param category - The data category to calculate usage for (e.g. 'errors', 'transactions')
  * @param subscription - The subscription object containing plan and usage details
- * @param totals - Object containing the accepted event count for this category
+ * @param accepted - The accepted event count for this category
  * @param prepaid - The prepaid/reserved event limit (volume-based reserved) or commited spend (budget-based reserved) for this category
  * @param reservedCpe - The reserved cost-per-event for this category (for reserved budget categories), in cents
  * @param reservedSpend - The reserved spend for this category (for reserved budget categories). If provided, calculations with `totals` and `reservedCpe` are overriden to use the number provided for `prepaidSpend`
@@ -168,10 +168,10 @@ type State = {expanded: boolean; trialButtonBusy: boolean};
  *   - prepaidUsage: Number of events used within prepaid limit
  */
 export function calculateCategoryPrepaidUsage(
-  category: string,
+  category: DataCategory,
   subscription: Subscription,
-  totals: Pick<BillingStatTotal, 'accepted'>,
   prepaid: number,
+  accepted?: number | null,
   reservedCpe?: number | null,
   reservedSpend?: number | null
 ): {
@@ -184,6 +184,10 @@ export function calculateCategoryPrepaidUsage(
   prepaidSpend: number;
   prepaidUsage: number;
 } {
+  const categoryInfo: BillingMetricHistory | undefined =
+    subscription.categories[category];
+  const usage = accepted ?? categoryInfo?.usage ?? 0;
+
   // Calculate the prepaid total
   let prepaidTotal: any;
   if (isUnlimitedReserved(prepaid)) {
@@ -201,13 +205,10 @@ export function calculateCategoryPrepaidUsage(
   }
   const hasReservedBudget = reservedCpe || typeof reservedSpend === 'number'; // reservedSpend can be 0
   const prepaidUsed = hasReservedBudget
-    ? (reservedSpend ?? totals.accepted * (reservedCpe ?? 0))
-    : totals.accepted;
+    ? (reservedSpend ?? usage * (reservedCpe ?? 0))
+    : usage;
   const prepaidPercentUsed = getPercentage(prepaidUsed, prepaidTotal);
 
-  // Calculate the prepaid price
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const categoryInfo: BillingMetricHistory = subscription.categories[category];
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const slots: EventBucket[] = subscription.planDetails.planCategories[category];
 
@@ -246,7 +247,7 @@ export function calculateCategoryPrepaidUsage(
     (hasReservedBudget && prepaidUsed >= prepaidTotal)
       ? categoryInfo.onDemandQuantity
       : 0;
-  const prepaidUsage = totals.accepted - onDemandUsage;
+  const prepaidUsage = usage - onDemandUsage;
 
   return {
     prepaidPrice,
@@ -258,7 +259,7 @@ export function calculateCategoryPrepaidUsage(
 }
 
 export function calculateCategoryOnDemandUsage(
-  category: string,
+  category: DataCategory,
   subscription: Subscription
 ): {
   /**
@@ -279,7 +280,7 @@ export function calculateCategoryOnDemandUsage(
   const isSharedOnDemand = 'sharedMaxBudget' in onDemandBudgets;
   const onDemandTotalAvailable = isSharedOnDemand
     ? onDemandBudgets.sharedMaxBudget
-    : getOnDemandBudget(onDemandBudgets, category as DataCategory);
+    : getOnDemandBudget(onDemandBudgets, category);
   const {onDemandTotalSpent} = calculateTotalSpend(subscription);
   const {onDemandSpent: onDemandCategorySpend} = calculateCategorySpend(
     subscription,
@@ -309,7 +310,7 @@ function ReservedUsage({
   category,
   productTrial,
 }: {
-  category: string;
+  category: DataCategory;
   prepaidUsage: number;
   productTrial: ProductTrial | null;
   reserved: number | null;
@@ -353,11 +354,12 @@ function UsageTotals({
 }: UsageProps) {
   const [state, setState] = useState<State>({expanded: false, trialButtonBusy: false});
   const theme = useTheme();
+  const colors = theme.chart.getColorPalette(5);
 
   const COLORS = {
-    reserved: theme.chart.colors[5][0],
-    ondemand: theme.chart.colors[5][1],
-    secondary_reserved: theme.chart.colors[5][2],
+    reserved: colors[0],
+    ondemand: colors[1],
+    secondary_reserved: colors[2],
   } as const;
 
   const usageOptions = {useUnitScaling: true};
@@ -379,7 +381,7 @@ function UsageTotals({
   const totalMaxOndemandBudget =
     'sharedMaxBudget' in onDemandBudgets
       ? onDemandBudgets.sharedMaxBudget
-      : getOnDemandBudget(onDemandBudgets, category as DataCategory);
+      : getOnDemandBudget(onDemandBudgets, category);
 
   const {onDemandSpent: categoryOnDemandSpent, onDemandUnitPrice} =
     calculateCategorySpend(subscription, category);
@@ -425,11 +427,8 @@ function UsageTotals({
   }
 
   const productTrial =
-    getActiveProductTrial(subscription.productTrials ?? null, category as DataCategory) ??
-    getPotentialProductTrial(
-      subscription.productTrials ?? null,
-      category as DataCategory
-    );
+    getActiveProductTrial(subscription.productTrials ?? null, category) ??
+    getPotentialProductTrial(subscription.productTrials ?? null, category);
 
   const {
     ondemandPercentUsed,
@@ -438,18 +437,20 @@ function UsageTotals({
     onDemandCategoryMax,
   } = calculateCategoryOnDemandUsage(category, subscription);
   const unusedOnDemandWidth = 100 - ondemandPercentUsed;
-
+  const categoryInfo: BillingMetricHistory | undefined =
+    subscription.categories[category];
+  const usage = categoryInfo?.usage ?? 0;
   const {prepaidPrice, prepaidPercentUsed, prepaidUsage, onDemandUsage} =
     calculateCategoryPrepaidUsage(
       category,
       subscription,
-      totals,
       prepaid,
+      null,
       undefined,
       reservedSpend
     );
   const unusedPrepaidWidth =
-    reserved !== 0 || subscription.isTrial ? 100 - prepaidPercentUsed : 0;
+    reserved !== 0 || subscription.isTrial ? 100 - prepaidPercentUsed : 100;
   const totalCategorySpend =
     (hasReservedBudget
       ? (subscription.reservedBudgets?.find(budget => category in budget.categories)
@@ -494,11 +495,7 @@ function UsageTotals({
     return t('usage this period');
   }
 
-  const formattedUnitsUsed = formatUsageWithUnits(
-    totals.accepted,
-    category,
-    usageOptions
-  );
+  const formattedUnitsUsed = formatUsageWithUnits(usage, category, usageOptions);
 
   // use dropped profile chunks to estimate dropped continuous profiling
   // for AM3 plans, include profiles category to estimate dropped continuous profile hours
@@ -510,9 +507,9 @@ function UsageTotals({
             ? (eventTotals[DataCategory.PROFILES] ?? EMPTY_STAT_TOTAL)
             : EMPTY_STAT_TOTAL,
         ]),
-        accepted: totals.accepted,
+        accepted: usage,
       }
-    : totals;
+    : {...totals, accepted: usage};
 
   const hasReservedQuota: boolean =
     reserved !== null && (reserved === UNLIMITED_RESERVED || reserved > 0);
@@ -584,7 +581,7 @@ function UsageTotals({
               )}
             </AcceptedSummary>
           </BaseRow>
-          <PlanUseBarContainer>
+          <PlanUseBarContainer data-test-id={`usage-bar-container-${category}`}>
             <PlanUseBarGroup style={{width: `${reservedMaxWidth}%`}}>
               {prepaidPercentUsed >= 1 && (
                 <Fragment>
@@ -695,7 +692,7 @@ function UsageTotals({
                                 <LegendTitle>
                                   {getPlanCategoryName({
                                     plan: subscription.planDetails,
-                                    category: categoryKey,
+                                    category: categoryKey as DataCategory,
                                     hadCustomDynamicSampling:
                                       subscription.hadCustomDynamicSampling,
                                     title: true,
@@ -838,7 +835,7 @@ function UsageTotals({
                 .map(([categoryKey]) => (
                   <UsageTotalsTable
                     key={categoryKey}
-                    category={categoryKey}
+                    category={categoryKey as DataCategory}
                     totals={allTotalsByCategory?.[categoryKey] ?? EMPTY_STAT_TOTAL}
                     subscription={subscription}
                   />
@@ -851,7 +848,7 @@ function UsageTotals({
                 <UsageTotalsTable
                   isEventBreakdown
                   key={key}
-                  category={key}
+                  category={key as DataCategory}
                   totals={eventTotal}
                   subscription={subscription}
                   data-test-id={`event-breakdown-${key}`}

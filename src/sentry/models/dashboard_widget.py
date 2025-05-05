@@ -5,6 +5,7 @@ from typing import Any
 
 from django.contrib.postgres.fields import ArrayField as DjangoArrayField
 from django.db import models
+from django.db.models.functions import Now
 from django.utils import timezone
 from django.utils.translation import gettext_lazy
 
@@ -171,9 +172,9 @@ class DashboardWidgetQuery(Model):
     # Order of the widget query in the widget.
     order = BoundedPositiveIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
-    date_modified = models.DateTimeField(default=timezone.now)
+    date_modified = models.DateTimeField(default=timezone.now, db_default=Now())
     # Whether this query is hidden from the UI, used by metric widgets
-    is_hidden = models.BooleanField(default=False)
+    is_hidden = models.BooleanField(default=False, db_default=False)
     # Used by Big Number to select aggregate displayed
     selected_aggregate = models.IntegerField(null=True)
 
@@ -222,7 +223,7 @@ class DashboardWidgetQueryOnDemand(Model):
     spec_version = models.IntegerField(null=True)
     extraction_state = models.CharField(max_length=30, choices=OnDemandExtractionState.choices)
     date_modified = models.DateTimeField(default=timezone.now)
-    date_added = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now, db_default=Now())
 
     def can_extraction_be_auto_overridden(self):
         """Determines whether tasks can override extraction state"""
@@ -278,7 +279,9 @@ class DashboardWidget(Model):
 
     # The method of which the discover split datasets was decided
     dataset_source = BoundedPositiveIntegerField(
-        choices=DatasetSourcesTypes.as_choices(), default=DatasetSourcesTypes.UNKNOWN.value
+        choices=DatasetSourcesTypes.as_choices(),
+        default=DatasetSourcesTypes.UNKNOWN.value,
+        db_default=DatasetSourcesTypes.UNKNOWN.value,
     )
 
     class Meta:

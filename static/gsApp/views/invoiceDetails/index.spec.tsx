@@ -10,6 +10,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {InvoiceItemType} from 'getsentry/types';
 import InvoiceDetails from 'getsentry/views/invoiceDetails';
@@ -77,7 +78,9 @@ describe('InvoiceDetails', function () {
       method: 'GET',
       body: basicInvoice,
     });
-    render(<InvoiceDetails {...routerProps} params={params} />);
+    render(<InvoiceDetails {...routerProps} params={params} />, {
+      deprecatedRouterMocks: true,
+    });
     await waitFor(() => expect(mockapi).toHaveBeenCalled());
 
     expect(await screen.findByText('Sentry')).toBeInTheDocument();
@@ -86,6 +89,39 @@ describe('InvoiceDetails', function () {
     expect(screen.getByText('Oct 21, 2021')).toBeInTheDocument();
     expect(screen.getByText('Sep 20, 2021')).toBeInTheDocument();
     expect(screen.getByText('$89.00 USD')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Your subscription will automatically renew on or about the same day each month and your credit card on file will be charged the recurring subscription fees set forth above. In addition to recurring subscription fees, you may also be charged for monthly on-demand fees. You may cancel your subscription at any time /
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('renders disclaimer with annual billing', async function () {
+    const annualInvoice = InvoiceFixture(
+      {
+        customer: SubscriptionFixture({
+          organization,
+          billingInterval: 'annual',
+          planDetails: PlanFixture({budgetTerm: 'pay-as-you-go'}),
+        }),
+      },
+      organization
+    );
+    const mockapi = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/invoices/${annualInvoice.id}/`,
+      method: 'GET',
+      body: annualInvoice,
+    });
+    render(<InvoiceDetails {...routerProps} params={params} />, {
+      deprecatedRouterMocks: true,
+    });
+    await waitFor(() => expect(mockapi).toHaveBeenCalled());
+
+    expect(
+      screen.getByText(
+        /Your subscription will automatically renew on or about the same day each year and your credit card on file will be charged the recurring subscription fees set forth above. In addition to recurring subscription fees, you may also be charged for monthly pay-as-you-go fees. You may cancel your subscription at any time /
+      )
+    ).toBeInTheDocument();
   });
 
   it('renders credit applied', async function () {
@@ -95,7 +131,9 @@ describe('InvoiceDetails', function () {
       body: creditInvoice,
     });
     const creditParams = {invoiceGuid: creditInvoice.id};
-    render(<InvoiceDetails {...routerProps} params={creditParams} />);
+    render(<InvoiceDetails {...routerProps} params={creditParams} />, {
+      deprecatedRouterMocks: true,
+    });
     await waitFor(() => expect(mockapi).toHaveBeenCalled());
 
     expect(await screen.findByText('Sentry')).toBeInTheDocument();
@@ -110,7 +148,9 @@ describe('InvoiceDetails', function () {
       statusCode: 404,
       body: {},
     });
-    render(<InvoiceDetails {...routerProps} params={params} />);
+    render(<InvoiceDetails {...routerProps} params={params} />, {
+      deprecatedRouterMocks: true,
+    });
     await waitFor(() => expect(mockapi).toHaveBeenCalled());
 
     expect(
@@ -155,7 +195,9 @@ describe('InvoiceDetails', function () {
       body: pastDueInvoice,
     });
 
-    render(<InvoiceDetails {...routerProps} params={pastDueParams} />);
+    render(<InvoiceDetails {...routerProps} params={pastDueParams} />, {
+      deprecatedRouterMocks: true,
+    });
 
     await waitFor(() => expect(mockapiInvoice).toHaveBeenCalled());
 
@@ -175,7 +217,9 @@ describe('InvoiceDetails', function () {
       url: `/customers/${organization.slug}/invoices/${basicInvoice.id}/`,
       method: 'POST',
     });
-    render(<InvoiceDetails {...routerProps} params={params} />);
+    render(<InvoiceDetails {...routerProps} params={params} />, {
+      deprecatedRouterMocks: true,
+    });
     await waitFor(() => expect(mockget).toHaveBeenCalled());
 
     const input = await screen.findByPlaceholderText('you@example.com');
@@ -234,6 +278,7 @@ describe('InvoiceDetails', function () {
     renderGlobalModal();
     render(<InvoiceDetails {...routerProps} params={pastDueParams} />, {
       router,
+      deprecatedRouterMocks: true,
     });
 
     await waitFor(() => expect(mockapiInvoice).toHaveBeenCalled());
@@ -269,7 +314,9 @@ describe('InvoiceDetails', function () {
         method: 'GET',
         body: basicInvoice,
       });
-      render(<InvoiceDetails {...routerProps} params={params} />);
+      render(<InvoiceDetails {...routerProps} params={params} />, {
+        deprecatedRouterMocks: true,
+      });
 
       await waitFor(() => expect(mockInvoice).toHaveBeenCalled());
 
@@ -306,7 +353,9 @@ describe('InvoiceDetails', function () {
         method: 'GET',
         body: basicInvoiceWithSentryTaxIds,
       });
-      render(<InvoiceDetails {...routerProps} params={params} />);
+      render(<InvoiceDetails {...routerProps} params={params} />, {
+        deprecatedRouterMocks: true,
+      });
 
       await waitFor(() => expect(mockInvoice).toHaveBeenCalled());
       expect(await screen.findByText('Country Id: 1234')).toBeInTheDocument();
@@ -327,7 +376,9 @@ describe('InvoiceDetails', function () {
         method: 'GET',
         body: basicInvoiceReverseCharge,
       });
-      render(<InvoiceDetails {...routerProps} params={params} />);
+      render(<InvoiceDetails {...routerProps} params={params} />, {
+        deprecatedRouterMocks: true,
+      });
 
       await waitFor(() => expect(mockInvoice).toHaveBeenCalled());
       expect(await screen.findByText('VAT')).toBeInTheDocument();

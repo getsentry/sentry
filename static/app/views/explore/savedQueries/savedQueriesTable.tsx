@@ -1,5 +1,6 @@
-import {useCallback} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
 import {
   addErrorMessage,
@@ -8,51 +9,24 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Avatar from 'sentry/components/core/avatar';
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {Button} from 'sentry/components/core/button';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  type GridColumnHeader,
-  type GridColumnOrder,
-} from 'sentry/components/gridEditable';
-import {GridHeadCellStatic} from 'sentry/components/gridEditable/styles';
-import Link from 'sentry/components/links/link';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
-import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconEllipsis, IconGlobe, IconStar} from 'sentry/icons';
+import {SavedEntityTable} from 'sentry/components/savedEntityTable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
-import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
-import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
-import {getExploreUrlFromSavedQueryUrl} from 'sentry/views/explore/utils';
-import {StreamlineGridEditable} from 'sentry/views/issueDetails/streamline/eventListTable';
-
-import {useDeleteQuery} from '../hooks/useDeleteQuery';
+import {useDeleteQuery} from 'sentry/views/explore/hooks/useDeleteQuery';
 import {
   type SavedQuery,
   type SortOption,
   useGetSavedQueries,
-} from '../hooks/useGetSavedQueries';
-
-const NO_VALUE = ' \u2014 ';
-
-const ORDER: Array<GridColumnOrder<keyof SavedQuery | 'access'>> = [
-  {key: 'name', width: COL_WIDTH_UNDEFINED, name: t('Name')},
-  {key: 'projects', width: 80, name: t('Projects')},
-  {key: 'query', width: COL_WIDTH_UNDEFINED, name: t('Query')},
-  {key: 'createdBy', width: 80, name: t('Owner')},
-  {key: 'access', width: 80, name: t('Access')},
-  {key: 'lastVisited', width: 120, name: t('Last Viewed')},
-];
-
-type Column = GridColumnHeader<keyof SavedQuery | 'access'>;
+} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
+import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
+import {ExploreParams} from 'sentry/views/explore/savedQueries/exploreParams';
+import {getExploreUrlFromSavedQueryUrl} from 'sentry/views/explore/utils';
 
 type Props = {
   cursorKey?: string;
@@ -70,12 +44,11 @@ export function SavedQueriesTable({
   sort = 'recentlyViewed',
 }: Props) {
   const organization = useOrganization();
-  const {projects} = useProjects();
   const location = useLocation();
   const navigate = useNavigate();
   const cursor = decodeScalar(location.query[cursorKey]);
-  const {data, isLoading, pageLinks} = useGetSavedQueries({
-    sortBy: sort,
+  const {data, isLoading, pageLinks, isFetched, isError} = useGetSavedQueries({
+    sortBy: ['starred', sort],
     exclude: mode === 'owned' ? 'shared' : mode === 'shared' ? 'owned' : undefined, // Inverse because this is an exclusion
     perPage,
     cursor,
@@ -84,7 +57,41 @@ export function SavedQueriesTable({
   const filteredData = data?.filter(row => row.query?.length > 0) ?? [];
   const {deleteQuery} = useDeleteQuery();
   const {starQuery} = useStarQuery();
-  const {updateQueryFromSavedQuery} = useSaveQuery();
+  const {saveQueryFromSavedQuery, updateQueryFromSavedQuery} = useSaveQuery();
+
+  const [starredIds, setStarredIds] = useState<number[]>([]);
+
+  // Initialize starredIds state when queries have been fetched
+  useEffect(() => {
+    if (isFetched === true) {
+      setStarredIds(data?.filter(row => row.starred).map(row => row.id) ?? []);
+    }
+  }, [isFetched, data]);
+
+  const starQueryHandler = useCallback(
+    (id: number, starred: boolean) => {
+      if (starred) {
+        setStarredIds(prev => [...prev, id]);
+      } else {
+        setStarredIds(prev => prev.filter(starredId => starredId !== id));
+      }
+      trackAnalytics('trace_explorer.star_query', {
+        save_type: starred ? 'star_query' : 'unstar_query',
+        ui_source: 'table',
+        organization,
+      });
+      starQuery(id, starred).catch(() => {
+        // If the starQuery call fails, we need to revert the starredIds state
+        addErrorMessage(t('Unable to star query'));
+        if (starred) {
+          setStarredIds(prev => prev.filter(starredId => starredId !== id));
+        } else {
+          setStarredIds(prev => [...prev, id]);
+        }
+      });
+    },
+    [starQuery, organization]
+  );
 
   const getHandleUpdateFromSavedQuery = useCallback(
     (savedQuery: SavedQuery) => {
@@ -95,6 +102,13 @@ export function SavedQueriesTable({
     [updateQueryFromSavedQuery]
   );
 
+  const duplicateQuery = async (savedQuery: SavedQuery) => {
+    await saveQueryFromSavedQuery({
+      ...savedQuery,
+      name: `${savedQuery.name} (Copy)`,
+    });
+  };
+
   const handleCursor: CursorHandler = (_cursor, pathname, query) => {
     navigate({
       pathname,
@@ -102,263 +116,174 @@ export function SavedQueriesTable({
     });
   };
 
-  const renderBodyCell = (col: Column, row: SavedQuery) => {
-    if (col.key === 'name') {
-      const link = getExploreUrlFromSavedQueryUrl({savedQuery: row, organization});
-      return (
-        <NoOverflow>
-          <Link to={link}>{row.name}</Link>
-        </NoOverflow>
-      );
-    }
-    if (col.key === 'query') {
-      return (
-        <FormattedQueryWrapper>
-          <FormattedQuery query={row.query[0].query} />
-        </FormattedQueryWrapper>
-      );
-    }
-    if (col.key === 'createdBy') {
-      return (
-        <Center>
-          <Avatar user={row.createdBy} tooltip={row.createdBy.name} hasTooltip />
-        </Center>
-      );
-    }
-    if (col.key === 'projects') {
-      const rowProjects = row.projects
-        .map(p => projects.find(project => Number(project.id) === p))
-        .filter(p => p !== undefined)
-        .slice(0, 3);
+  const debouncedOnClick = useMemo(
+    () =>
+      debounce(
+        (id, starred) => {
+          if (starred) {
+            addLoadingMessage(t('Unstarring query...'));
+            starQueryHandler(id, false);
+            addSuccessMessage(t('Query unstarred'));
+          } else {
+            addLoadingMessage(t('Starring query...'));
+            starQueryHandler(id, true);
+            addSuccessMessage(t('Query starred'));
+          }
+        },
+        1000,
+        {leading: true}
+      ),
+    [starQueryHandler]
+  );
 
-      return (
-        <Center>
-          <StackedProjectBadges>
-            {rowProjects.map(project => (
-              <ProjectAvatar
-                key={project.slug}
-                project={project}
-                tooltip={project.name}
-                hasTooltip
-              />
-            ))}
-          </StackedProjectBadges>
-        </Center>
-      );
-    }
-    if (col.key === 'lastVisited') {
-      return (
-        <LastColumnWrapper>
-          <span>
-            {row.lastVisited ? new Date(row.lastVisited).toDateString() : NO_VALUE}
-          </span>
-          <span>
-            <DropdownMenu
-              items={[
-                {
-                  key: 'rename',
-                  label: t('Rename'),
-                  onAction: () => {
-                    openSaveQueryModal({
-                      organization,
-                      queries: row.query.map((query, queryIndex) => ({
-                        query: query.query,
-                        groupBys: query.groupby,
-                        visualizes: query.visualize.map((v, visualizationIndex) => ({
-                          ...v,
-                          label: `visualization-${queryIndex}-${visualizationIndex}`,
-                        })),
-                      })),
-                      saveQuery: getHandleUpdateFromSavedQuery(row),
-                      name: row.name,
-                    });
-                  },
-                },
-                {
-                  key: 'duplicate',
-                  label: t('Duplicate'),
-                },
-                {
-                  key: 'delete',
-                  label: t('Delete'),
-                  onAction: () => {
-                    addLoadingMessage(t('Deleting query...'));
-                    try {
-                      deleteQuery(row.id);
-                      addSuccessMessage(t('Query deleted'));
-                    } catch (error) {
-                      addErrorMessage(t('Unable to delete query'));
-                    }
-                  },
-                  priority: 'danger',
-                },
-              ]}
-              trigger={triggerProps => (
-                <OptionsButton
-                  {...triggerProps}
-                  aria-label={t('Query actions')}
-                  size="xs"
-                  borderless
-                  onClick={e => {
-                    e.stopPropagation();
-                    e.preventDefault();
-
-                    triggerProps.onClick?.(e);
-                  }}
-                  icon={<IconEllipsis direction="down" size="sm" />}
-                  data-test-id="menu-trigger"
-                />
-              )}
-            />
-          </span>
-        </LastColumnWrapper>
-      );
-    }
-    if (col.key === 'access') {
-      return (
-        <Center>
-          <Tooltip
-            title={
-              <span>
-                <div>
-                  {t('View')}: {t('Everyone')}
-                </div>
-                <div>
-                  {t('Edit')}: {t('Everyone')}
-                </div>
-              </span>
-            }
-          >
-            <span>
-              <IconGlobe size="sm" />
-            </span>
-          </Tooltip>
-        </Center>
-      );
-    }
-    return <div>{row[col.key]}</div>;
-  };
-
-  const renderHeadCell = (col: Column) => {
-    if (col.key === 'projects' || col.key === 'createdBy' || col.key === 'access') {
-      return <Center>{col.name}</Center>;
-    }
-    if (col.key === 'lastVisited') {
-      return <div>{col.name}</div>;
-    }
-    return <div>{col.name}</div>;
-  };
-
-  const renderPrependColumns = (isHeader: boolean, row?: SavedQuery) => {
-    if (isHeader) {
-      return [<span key="starred-header" />];
-    }
-    if (!row) {
-      return [null];
-    }
-    return [
-      <Center key={`starred-${row.id}`}>
-        <Button
-          aria-label={row.starred ? t('Unstar') : t('Star')}
-          size="zero"
-          borderless
-          icon={<IconStar size="sm" color="gray400" isSolid={row.starred} />}
-          onClick={() => {
-            if (row.starred) {
-              addLoadingMessage(t('Unstarring query...'));
-              starQuery(row.id, false);
-              addSuccessMessage(t('Query unstarred'));
-            } else {
-              addLoadingMessage(t('Starring query...'));
-              starQuery(row.id, true);
-              addSuccessMessage(t('Query starred'));
-            }
-          }}
-        />
-      </Center>,
-    ];
-  };
   return (
     <span>
-      <StyledStreamlineGridEditable>
-        <GridEditable
-          isLoading={isLoading}
-          data={filteredData}
-          grid={{
-            renderBodyCell,
-            renderHeadCell,
-            renderPrependColumns,
-            prependColumnWidths: ['max-content'],
-          }}
-          columnOrder={ORDER}
-          columnSortBy={[]}
-          bodyStyle={{overflow: 'visible', zIndex: 'unset'}}
-          minimumColWidth={30}
-        />
-      </StyledStreamlineGridEditable>
+      <SavedEntityTableWithColumns
+        pageSize={perPage}
+        isLoading={isLoading}
+        header={
+          <SavedEntityTable.Header>
+            <SavedEntityTable.HeaderCell key="star" />
+            <SavedEntityTable.HeaderCell key="name">
+              {t('Name')}
+            </SavedEntityTable.HeaderCell>
+            <SavedEntityTable.HeaderCell key="project">
+              {t('Project')}
+            </SavedEntityTable.HeaderCell>
+            <SavedEntityTable.HeaderCell key="envs">
+              {t('Envs')}
+            </SavedEntityTable.HeaderCell>
+            <SavedEntityTable.HeaderCell key="query">
+              {t('Query')}
+            </SavedEntityTable.HeaderCell>
+            <SavedEntityTable.HeaderCell key="created-by">
+              {t('Creator')}
+            </SavedEntityTable.HeaderCell>
+            <SavedEntityTable.HeaderCell key="last-visited" noBorder>
+              {t('Last Viewed')}
+            </SavedEntityTable.HeaderCell>
+            <SavedEntityTable.HeaderCell key="actions" />
+          </SavedEntityTable.Header>
+        }
+        isEmpty={filteredData.length === 0}
+        isError={isError}
+        emptyMessage={t('No saved queries found')}
+      >
+        {filteredData.map((query, index) => (
+          <SavedEntityTable.Row
+            key={query.id}
+            isFirst={index === 0}
+            data-test-id={`table-row-${index}`}
+          >
+            <SavedEntityTable.Cell hasButton>
+              <SavedEntityTable.CellStar
+                isStarred={starredIds.includes(query.id)}
+                onClick={() => debouncedOnClick(query.id, query.starred)}
+              />
+            </SavedEntityTable.Cell>
+            <SavedEntityTable.Cell>
+              <SavedEntityTable.CellName
+                to={getExploreUrlFromSavedQueryUrl({savedQuery: query, organization})}
+              >
+                {query.name}
+              </SavedEntityTable.CellName>
+            </SavedEntityTable.Cell>
+            <SavedEntityTable.Cell>
+              <SavedEntityTable.CellProjects projects={query.projects} />
+            </SavedEntityTable.Cell>
+            <SavedEntityTable.Cell>
+              <SavedEntityTable.CellEnvironments environments={query.environment} />
+            </SavedEntityTable.Cell>
+            <SavedEntityTable.Cell>
+              <StyledExploreParams
+                query={query.query[0].query}
+                visualizes={query.query[0].visualize}
+                groupBys={query.query[0].groupby}
+              />
+            </SavedEntityTable.Cell>
+            <SavedEntityTable.Cell>
+              <Avatar user={query.createdBy} tooltip={query.createdBy.name} hasTooltip />
+            </SavedEntityTable.Cell>
+            <SavedEntityTable.Cell>
+              <SavedEntityTable.CellTimeSince date={query.lastVisited} />
+            </SavedEntityTable.Cell>
+            <SavedEntityTable.Cell hasButton>
+              <SavedEntityTable.CellActions
+                items={[
+                  {
+                    key: 'rename',
+                    label: t('Rename'),
+                    onAction: () => {
+                      trackAnalytics('trace_explorer.save_query_modal', {
+                        action: 'open',
+                        save_type: 'rename_query',
+                        ui_source: 'table',
+                        organization,
+                      });
+                      openSaveQueryModal({
+                        organization,
+                        saveQuery: getHandleUpdateFromSavedQuery(query),
+                        name: query.name,
+                        source: 'table',
+                      });
+                    },
+                  },
+                  {
+                    key: 'duplicate',
+                    label: t('Duplicate'),
+                    onAction: async () => {
+                      addLoadingMessage(t('Duplicating query...'));
+                      try {
+                        await duplicateQuery(query);
+                        addSuccessMessage(t('Query duplicated'));
+                      } catch (error) {
+                        addErrorMessage(t('Unable to duplicate query'));
+                      }
+                    },
+                  },
+                  {
+                    key: 'delete',
+                    label: t('Delete'),
+                    onAction: async () => {
+                      addLoadingMessage(t('Deleting query...'));
+                      try {
+                        await deleteQuery(query.id);
+                        addSuccessMessage(t('Query deleted'));
+                      } catch (error) {
+                        addErrorMessage(t('Unable to delete query'));
+                      }
+                    },
+                    priority: 'danger',
+                  },
+                ]}
+              />
+            </SavedEntityTable.Cell>
+          </SavedEntityTable.Row>
+        ))}
+      </SavedEntityTableWithColumns>
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
     </span>
   );
 }
 
-const Center = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
+const SavedEntityTableWithColumns = styled(SavedEntityTable)`
+  grid-template-columns:
+    40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(0, 1fr)
+    minmax(auto, 120px)
+    auto 48px;
 `;
 
-const LastColumnWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  width: 100%;
-  justify-content: space-between;
-`;
-
-const StackedProjectBadges = styled('div')`
-  display: flex;
-  align-items: center;
-  & * {
-    margin-left: 0;
-    margin-right: 0;
-    cursor: pointer !important;
-  }
-
-  & *:hover {
-    z-index: unset;
-  }
-
-  & > :not(:first-child) {
-    margin-left: -${space(0.5)};
-  }
-`;
-
-const FormattedQueryWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  width: 100%;
+const StyledExploreParams = styled(ExploreParams)`
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  flex-wrap: nowrap;
+  margin-bottom: 0;
 
-  > div {
+  span {
+    flex-wrap: nowrap;
+    overflow: visible;
+  }
+
+  div {
     flex-wrap: nowrap;
   }
-`;
-
-const NoOverflow = styled('div')`
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
-const StyledStreamlineGridEditable = styled(StreamlineGridEditable)`
-  ${GridHeadCellStatic}:first-child {
-    height: auto;
-    padding-left: ${space(1.5)};
-  }
-`;
-
-const OptionsButton = styled(Button)`
-  padding: 0;
 `;

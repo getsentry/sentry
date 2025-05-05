@@ -103,6 +103,4 @@ class AdminRelays extends Component<Props, State> {
   }
 }
 
-export {AdminRelays};
-
 export default withApi(AdminRelays);

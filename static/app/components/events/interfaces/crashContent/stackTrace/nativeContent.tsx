@@ -1,16 +1,7 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
-import StacktracePlatformIcon from 'sentry/components/events/interfaces/crashContent/stackTrace/platformIcon';
-import Panel from 'sentry/components/panels/panel';
-import {t} from 'sentry/locale';
-import type {Event, Frame} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
-import type {PlatformKey} from 'sentry/types/project';
-import type {StacktraceType} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils';
-
-import NativeFrame from '../../nativeFrame';
+import NativeFrame from 'sentry/components/events/interfaces/nativeFrame';
 import {
   findImageForAddress,
   getHiddenFrameIndices,
@@ -18,7 +9,16 @@ import {
   isRepeatedFrame,
   parseAddress,
   stackTracePlatformIcon,
-} from '../../utils';
+} from 'sentry/components/events/interfaces/utils';
+import Panel from 'sentry/components/panels/panel';
+import type {Event, Frame} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {PlatformKey} from 'sentry/types/project';
+import type {StacktraceType} from 'sentry/types/stacktrace';
+import {defined} from 'sentry/utils';
+
+import {OmittedFrames} from './omittedFrames';
+import StacktracePlatformIcon from './platformIcon';
 
 function isFrameUsedForGrouping(
   frame: Frame,
@@ -31,14 +31,6 @@ function isFrameUsedForGrouping(
   }
 
   return minGroupingLevel <= groupingCurrentLevel;
-}
-
-function renderOmittedFrames(firstFrameOmitted: boolean, lastFrameOmitted: boolean) {
-  return t(
-    'Frames %d until %d were omitted and not available.',
-    firstFrameOmitted,
-    lastFrameOmitted
-  );
 }
 
 type Props = {
@@ -130,8 +122,6 @@ export function NativeContent({
     }));
   };
 
-  const firstFrameOmitted = data.framesOmitted?.[0] ?? null;
-  const lastFrameOmitted = data.framesOmitted?.[1] ?? null;
   const lastFrameIndex = getLastFrameIndex(frames);
   const frameCountMap = getInitialFrameCounts();
   const hiddenFrameIndices: number[] = getHiddenFrameIndices({
@@ -207,11 +197,11 @@ export function NativeContent({
           registersMeta: meta?.registers,
         };
 
-        if (frameIndex === firstFrameOmitted) {
+        if (frameIndex === data.framesOmitted?.[0]) {
           return (
             <Fragment key={frameIndex}>
               <NativeFrame {...frameProps} />
-              {renderOmittedFrames(firstFrameOmitted, lastFrameOmitted)}
+              <OmittedFrames omittedFrames={data.framesOmitted} />
             </Fragment>
           );
         }
@@ -219,11 +209,11 @@ export function NativeContent({
         return <NativeFrame key={frameIndex} {...frameProps} />;
       }
 
-      if (frameIndex !== firstFrameOmitted) {
+      if (frameIndex !== data.framesOmitted?.[0]) {
         return null;
       }
 
-      return renderOmittedFrames(firstFrameOmitted, lastFrameOmitted);
+      return <OmittedFrames key={frameIndex} omittedFrames={data.framesOmitted} />;
     })
     .filter((frame): frame is React.ReactElement => !!frame);
 
@@ -266,6 +256,6 @@ const ContentPanel = styled(Panel)<{hideIcon?: boolean}>`
   overflow: hidden;
 `;
 
-export const Frames = styled('ul')`
+const Frames = styled('ul')`
   list-style: none;
 `;

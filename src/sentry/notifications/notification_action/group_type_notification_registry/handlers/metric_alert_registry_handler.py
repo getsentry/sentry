@@ -1,10 +1,9 @@
 import logging
 
-from sentry.issues.grouptype import MetricIssuePOC
+from sentry.incidents.grouptype import MetricIssue
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.notifications.models.notificationaction import ActionTarget
-from sentry.notifications.notification_action.exceptions import NotificationHandlerException
 from sentry.notifications.notification_action.registry import (
     group_type_notification_registry,
     metric_alert_handler_registry,
@@ -17,7 +16,7 @@ from sentry.workflow_engine.types import WorkflowEventData
 logger = logging.getLogger(__name__)
 
 
-@group_type_notification_registry.register(MetricIssuePOC.slug)
+@group_type_notification_registry.register(MetricIssue.slug)
 class MetricAlertRegistryHandler(LegacyRegistryHandler):
     @staticmethod
     def handle_workflow_action(job: WorkflowEventData, action: Action, detector: Detector) -> None:
@@ -31,12 +30,12 @@ class MetricAlertRegistryHandler(LegacyRegistryHandler):
                 extra={"action_id": action.id},
             )
             raise
-        except Exception as e:
+        except Exception:
             logger.exception(
                 "Error invoking metric alert handler",
                 extra={"action_id": action.id},
             )
-            raise NotificationHandlerException(e)
+            raise
 
     @staticmethod
     def target(action: Action) -> OrganizationMember | Team | str | None:

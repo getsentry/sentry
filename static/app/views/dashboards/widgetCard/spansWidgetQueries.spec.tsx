@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -246,7 +246,9 @@ describe('spansWidgetQueries', () => {
     );
 
     // Best effort data is eventually returned
-    expect(await screen.findByText('400')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('400')).toBeInTheDocument();
+    });
 
     expect(rerenderedPreflightMock).toHaveBeenCalledTimes(1);
     expect(rerenderedBestEffortMock).toHaveBeenCalledTimes(1);
@@ -314,7 +316,9 @@ describe('spansWidgetQueries', () => {
     );
 
     // Best effort data is eventually returned
-    expect(await screen.findByText('best effort')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('best effort')).toBeInTheDocument();
+    });
 
     expect(preflightMock).toHaveBeenCalledTimes(1);
     expect(bestEffortMock).toHaveBeenCalledTimes(1);
@@ -391,6 +395,128 @@ describe('spansWidgetQueries', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           sampling: 'BEST_EFFORT',
+        }),
+      })
+    );
+  });
+
+  it('triggers a normal mode request for charts', async () => {
+    widget = WidgetFixture({
+      queries: [
+        {
+          name: '',
+          aggregates: ['a'],
+          fields: ['a'],
+          columns: [],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+      displayType: DisplayType.LINE,
+    });
+
+    const normalModeMock = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/events-stats/`,
+      body: {
+        data: [
+          [1, [{count: 1}]],
+          [2, [{count: 2}]],
+          [3, [{count: 3}]],
+        ],
+      },
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return options.query.sampling === 'NORMAL';
+        },
+      ],
+    });
+
+    render(
+      <OrganizationContext.Provider
+        value={OrganizationFixture({
+          features: ['visibility-explore-progressive-loading-normal-sampling-mode'],
+        })}
+      >
+        <SpansWidgetQueries
+          api={api}
+          widget={widget}
+          selection={{
+            ...selection,
+            datetime: {period: '24hr', end: null, start: null, utc: null},
+          }}
+          dashboardFilters={{}}
+        >
+          {({timeseriesResults}) => <div>{timeseriesResults?.[0]?.data?.[0]?.value}</div>}
+        </SpansWidgetQueries>
+      </OrganizationContext.Provider>
+    );
+
+    expect(await screen.findByText('1')).toBeInTheDocument();
+
+    expect(normalModeMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          sampling: 'NORMAL',
+        }),
+      })
+    );
+  });
+
+  it('triggers a normal mode request for tables', async () => {
+    widget = WidgetFixture({
+      queries: [
+        {
+          name: '',
+          aggregates: ['a'],
+          fields: ['a'],
+          columns: [],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+      displayType: DisplayType.TABLE,
+    });
+
+    const normalModeMock = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/events/`,
+      body: {
+        data: [{a: 'normal mode'}],
+      },
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return options.query.sampling === 'NORMAL';
+        },
+      ],
+    });
+
+    render(
+      <OrganizationContext.Provider
+        value={OrganizationFixture({
+          features: ['visibility-explore-progressive-loading-normal-sampling-mode'],
+        })}
+      >
+        <SpansWidgetQueries
+          api={api}
+          widget={widget}
+          selection={{
+            ...selection,
+            datetime: {period: '24hr', end: null, start: null, utc: null},
+          }}
+          dashboardFilters={{}}
+        >
+          {({tableResults}) => <div>{tableResults?.[0]?.data?.[0]?.a}</div>}
+        </SpansWidgetQueries>
+      </OrganizationContext.Provider>
+    );
+
+    expect(await screen.findByText('normal mode')).toBeInTheDocument();
+
+    expect(normalModeMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          sampling: 'NORMAL',
         }),
       })
     );

@@ -1,7 +1,7 @@
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 import sentry_sdk
 from django.http import HttpRequest, HttpResponse
@@ -43,6 +43,7 @@ class SerializedEvent(TypedDict):
 class SerializedIssue(SerializedEvent):
     issue_id: int
     level: str
+    end_timestamp: NotRequired[datetime]
 
 
 class SerializedSpan(SerializedEvent):
@@ -51,8 +52,12 @@ class SerializedSpan(SerializedEvent):
     occurrences: list["SerializedIssue"]
     duration: float
     end_timestamp: datetime
+    measurements: dict[str, Any]
     op: str
     parent_span_id: str | None
+    profile_id: str
+    profiler_id: str
+    sdk_name: str
     is_transaction: bool
 
 
@@ -89,12 +94,14 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
     def serialize_rpc_issue(self, event: dict[str, Any]) -> SerializedIssue:
         if event.get("event_type") == "occurrence":
             occurrence = event["issue_data"]["occurrence"]
+            span = event["span"]
             return SerializedIssue(
                 event_id=occurrence.id,
                 project_id=occurrence.project_id,
-                project_slug=event["project_name"],
-                start_timestamp=event["timestamp"],
-                transaction=event["transaction"],
+                project_slug=span["project.slug"],
+                start_timestamp=span["precise.start_ts"],
+                end_timestamp=span["precise.finish_ts"],
+                transaction=span["transaction"],
                 description=occurrence.issue_title,
                 level=occurrence.level,
                 issue_id=event["issue_data"]["issue_id"],
@@ -124,18 +131,24 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
                 event_id=event["id"],
                 project_id=event["project.id"],
                 project_slug=event["project.slug"],
+                profile_id=event["profile.id"],
+                profiler_id=event["profiler.id"],
                 parent_span_id=None if event["parent_span"] == "0" * 16 else event["parent_span"],
                 start_timestamp=event["precise.start_ts"],
                 end_timestamp=event["precise.finish_ts"],
+                measurements={
+                    key: value for key, value in event.items() if key.startswith("measurements.")
+                },
                 duration=event["span.duration"],
                 transaction=event["transaction"],
                 is_transaction=event["is_transaction"],
                 description=event["description"],
+                sdk_name=event["sdk.name"],
                 op=event["span.op"],
                 event_type="span",
             )
         else:
-            raise Exception(f"Unknown event encountered in trace: {event.get('event_type')}")
+            return self.serialize_rpc_issue(event)
 
     @sentry_sdk.tracing.trace
     def run_errors_query(self, snuba_params: SnubaParams, trace_id: str):
@@ -261,9 +274,7 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
                     [
                         {
                             "event_type": "occurrence",
-                            "timestamp": span["precise.start_ts"],
-                            "transaction": span["transaction"],
-                            "project_name": span["project.slug"],
+                            "span": span,
                             "issue_data": occurrence,
                         }
                         for occurrence in id_to_occurrence[span["id"]]

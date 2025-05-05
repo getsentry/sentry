@@ -4,8 +4,10 @@ import type {EventTransaction} from 'sentry/types/event';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import type {SpanMetricsResponse} from 'sentry/views/insights/types';
-
-import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
+import {
+  type SectionCardKeyValueList,
+  TraceDrawerComponents,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 
 import {hasSDKContext} from './sdk';
 

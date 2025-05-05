@@ -57,8 +57,6 @@ if TYPE_CHECKING:
     from sentry.models.options.project_template_option import ProjectTemplateOptionManager
     from sentry.users.models.user import User
 
-SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
-
 # NOTE:
 # - When you modify this list, ensure that the platform IDs listed in "sentry/static/app/data/platforms.tsx" match.
 # - Please keep this list organized alphabetically.
@@ -375,21 +373,8 @@ class Project(Model):
             span.set_data("project_slug", self.slug)
             return Counter.increment(self, delta)
 
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            lock = locks.get(
-                f"slug:project:{self.organization_id}", duration=5, name="project_slug"
-            )
-            with TimedRetryPolicy(10)(lock.acquire):
-                slugify_instance(
-                    self,
-                    self.name,
-                    organization=self.organization,
-                    reserved=RESERVED_PROJECT_SLUGS,
-                    max_length=50,
-                )
-
-        if SENTRY_USE_SNOWFLAKE:
+    def _save_project(self, *args, **kwargs):
+        if settings.SENTRY_USE_SNOWFLAKE:
             snowflake_redis_key = "project_snowflake_key"
             save_with_snowflake_id(
                 instance=self,
@@ -398,6 +383,25 @@ class Project(Model):
             )
         else:
             super().save(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        if getattr(self, "id", None) is not None:
+            # no need to acquire lock if we're updating an existing project
+            self._save_project(*args, **kwargs)
+            return
+
+        # when project is created, we need to acquire a lock to ensure that the generated slug is unique
+        lock = locks.get(f"slug:project:{self.organization_id}", duration=5, name="project_slug")
+        with TimedRetryPolicy(10)(lock.acquire):
+            if not self.slug:
+                slugify_instance(
+                    self,
+                    self.name,
+                    organization=self.organization,
+                    reserved=RESERVED_PROJECT_SLUGS,
+                    max_length=50,
+                )
+            self._save_project(*args, **kwargs)
 
     def get_absolute_url(self, params=None):
         path = f"/organizations/{self.organization.slug}/issues/"

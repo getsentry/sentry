@@ -28,13 +28,12 @@ import {
   COLD_START_TYPE,
   StartTypeSelector,
 } from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
+import AppStartWidgets from 'sentry/views/insights/mobile/appStarts/components/widgets';
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
 import {MobileMetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
-
-import AppStartWidgets from '../components/widgets';
 
 type Query = {
   [SpanMetricsField.APP_START_TYPE]: string;

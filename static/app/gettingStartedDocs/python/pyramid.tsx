@@ -14,10 +14,12 @@ import {
   featureFlagOnboarding,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
+import {
+  getPythonInstallConfig,
+  getPythonProfilingOnboarding,
+} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
-
-const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
 
 const getSdkSetupSnippet = (params: Params) => `
 from pyramid.config import Configurator
@@ -39,13 +41,10 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct('Install [code:sentry-sdk] from PyPI:', {code: <code />}),
-      configurations: [
-        {
-          language: 'bash',
-          code: getInstallSnippet(),
-        },
-      ],
+      description: tct('Install [code:sentry-sdk] from PyPI:', {
+        code: <code />,
+      }),
+      configurations: getPythonInstallConfig(),
     },
   ],
   configure: (params: Params) => [
@@ -113,6 +112,7 @@ const docs: Docs = {
   crashReportOnboarding: crashReportOnboardingPython,
   featureFlagOnboarding,
   feedbackOnboardingJsLoader,
+  profilingOnboarding: getPythonProfilingOnboarding(),
 };
 
 export default docs;

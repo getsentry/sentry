@@ -1,8 +1,8 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {Polarity} from 'sentry/components/percentChange';
-import {Tooltip} from 'sentry/components/tooltip';
 import {defined} from 'sentry/utils';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -10,6 +10,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 import {DifferenceToPreviousPeriodValue} from 'sentry/views/dashboards/widgets/bigNumberWidget/differenceToPreviousPeriodValue';
+import {NON_FINITE_NUMBER_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   TabularRow,
   TabularValueType,
@@ -17,12 +18,10 @@ import type {
   Thresholds,
 } from 'sentry/views/dashboards/widgets/common/types';
 
-import {NON_FINITE_NUMBER_MESSAGE} from '../common/settings';
-
 import {DEEMPHASIS_COLOR_NAME, LOADING_PLACEHOLDER} from './settings';
 import {ThresholdsIndicator} from './thresholdsIndicator';
 
-export interface BigNumberWidgetVisualizationProps {
+interface BigNumberWidgetVisualizationProps {
   field: string;
   value: number | string;
   maximumValue?: number;

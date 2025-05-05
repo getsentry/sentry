@@ -1,77 +1,74 @@
-import {useMemo} from 'react';
+import {Fragment, useEffect} from 'react';
 
+import {Flex} from 'sentry/components/container/flex';
+import type {OrderBy, SortBy} from 'sentry/components/events/featureFlags/utils';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import SuspectTable from 'sentry/views/issueDetails/groupDistributions/suspectTable';
 import FlagDetailsLink from 'sentry/views/issueDetails/groupFeatureFlags/flagDetailsLink';
 import FlagDrawerCTA from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerCTA';
-import useGroupFeatureFlags from 'sentry/views/issueDetails/groupFeatureFlags/useGroupFeatureFlags';
+import useGroupFlagDrawerData from 'sentry/views/issueDetails/groupFeatureFlags/useGroupFlagDrawerData';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {
   Container,
   StyledEmptyStateWarning,
 } from 'sentry/views/issueDetails/groupTags/tagDrawerContent';
-import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
-/**
- * Ordering for flags in the drawer.
- */
-function getSortedTags(tags: GroupTag[]) {
-  // Alphabetical by key.
-  return tags.toSorted((t1, t2) => t1.key.localeCompare(t2.key));
+interface Props {
+  debugSuspectScores: boolean;
+  environments: string[];
+  group: Group;
+  orderBy: OrderBy;
+  search: string;
+  sortBy: SortBy;
 }
 
 export default function FlagDrawerContent({
-  group,
+  debugSuspectScores,
   environments,
+  group,
+  orderBy,
   search,
-}: {
-  environments: string[];
-  group: Group;
-  search: string;
-}) {
-  // Flags use the same endpoint and response format as tags, so we reuse TagDistribution, tag types, and "tag" in variable names.
-  const {
-    data = [],
-    isPending,
-    isError,
-    refetch,
-  } = useGroupFeatureFlags({
-    groupId: group.id,
-    environment: environments,
-  });
+  sortBy,
+}: Props) {
+  const organization = useOrganization();
 
-  const tagValues = useMemo(
-    () =>
-      data.reduce<Record<string, string>>((valueMap, tag) => {
-        valueMap[tag.key] = tag.topValues.map(tv => tv.value).join(' ');
-        return valueMap;
-      }, {}),
-    [data]
-  );
+  // If we're showing the suspect section at all
+  const enableSuspectFlags = organization.features.includes('feature-flag-suspect-flags');
 
-  const displayTags = useMemo(() => {
-    const sortedTags = getSortedTags(data);
-    const searchedTags = sortedTags.filter(
-      tag =>
-        tag.key.includes(search) ||
-        tag.name.includes(search) ||
-        tagValues[tag.key]?.toLowerCase().includes(search.toLowerCase())
-    );
-    return searchedTags;
-  }, [data, search, tagValues]);
+  const {displayFlags, allGroupFlagCount, isPending, isError, refetch} =
+    useGroupFlagDrawerData({
+      environments,
+      group,
+      orderBy,
+      search,
+      sortBy,
+    });
 
+  // CTA logic
   const {projects} = useProjects();
   const project = projects.find(p => p.slug === group.project.slug)!;
 
   const showCTA =
-    data.length === 0 &&
+    allGroupFlagCount === 0 &&
     project &&
     !project.hasFlags &&
     featureFlagOnboardingPlatforms.includes(project.platform ?? 'other');
+
+  useEffect(() => {
+    if (!isPending && !isError && !showCTA) {
+      trackAnalytics('flags.drawer_rendered', {
+        organization,
+        numFlags: allGroupFlagCount,
+      });
+    }
+  }, [organization, allGroupFlagCount, isPending, isError, showCTA]);
 
   return isPending ? (
     <LoadingIndicator />
@@ -81,22 +78,52 @@ export default function FlagDrawerContent({
       onRetry={refetch}
     />
   ) : showCTA ? (
-    <FlagDrawerCTA />
-  ) : displayTags.length === 0 ? (
+    <FlagDrawerCTA projectPlatform={project.platform} />
+  ) : allGroupFlagCount === 0 ? (
     <StyledEmptyStateWarning withIcon>
-      {data.length === 0
-        ? t('No feature flags were found for this issue')
-        : t('No feature flags were found for this search')}
+      {t('No feature flags were found for this issue')}
+    </StyledEmptyStateWarning>
+  ) : displayFlags.length === 0 ? (
+    <StyledEmptyStateWarning withIcon>
+      {t('No feature flags were found for this search')}
     </StyledEmptyStateWarning>
   ) : (
-    <Container>
-      {displayTags.map(tag => (
-        <div key={tag.name}>
-          <FlagDetailsLink tag={tag} key={tag.name}>
-            <TagDistribution tag={tag} key={tag.name} />
-          </FlagDetailsLink>
-        </div>
-      ))}
-    </Container>
+    <Fragment>
+      {enableSuspectFlags ? (
+        <SuspectTable
+          debugSuspectScores={debugSuspectScores}
+          environments={environments}
+          group={group}
+        />
+      ) : null}
+      <Container>
+        {displayFlags.map(flag => (
+          <div key={flag.key}>
+            <FlagDetailsLink tag={flag} key={flag.key}>
+              <TagDistribution tag={flag} key={flag.key} />
+            </FlagDetailsLink>
+            {debugSuspectScores && <DebugSuspectScore {...flag.suspect} />}
+          </div>
+        ))}
+      </Container>
+    </Fragment>
+  );
+}
+
+function DebugSuspectScore({
+  baselinePercent,
+  score,
+}: {
+  baselinePercent: undefined | number;
+  score: undefined | number;
+}) {
+  return (
+    <Flex justify="space-between" w="100%">
+      <span>Sus: {score?.toFixed(5) ?? '_'}</span>
+      <span>
+        Baseline:{' '}
+        {baselinePercent === undefined ? '_' : `${(baselinePercent * 100).toFixed(5)}%`}
+      </span>
+    </Flex>
   );
 }

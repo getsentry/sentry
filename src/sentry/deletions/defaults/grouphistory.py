@@ -21,7 +21,14 @@ class GroupHistoryDeletionTask(ModelDeletionTask[GroupHistory]):
             return super().chunk()
 
         for group_id in group_ids:
-            # Delete all history records for a single group
-            self.model.objects.filter(group_id=group_id).delete()
+            # Delete history records for a single group in chunks of 100
+            queryset = self.model.objects.filter(group_id=group_id)
+            while True:
+                # Get IDs for the first 100 records
+                chunk_ids = list(queryset.order_by("id").values_list("id", flat=True)[:100])
+                if not chunk_ids:
+                    break
+                # Delete records for these IDs
+                self.model.objects.filter(id__in=chunk_ids).delete()
 
         return False

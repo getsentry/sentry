@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import type {
   GridColumnHeader,
@@ -10,7 +11,6 @@ import type {
 } from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
@@ -55,7 +55,8 @@ const PAGELOADS_COLUMN_ORDER: GridColumnOrder[] = [
   {key: 'score', width: COL_WIDTH_UNDEFINED, name: t('Score')},
 ];
 
-const SPANS_SAMPLES_WITHOUT_TRACE_COLUMN_ORDER: GridColumnOrder[] = [
+const SPANS_SAMPLES_COLUMN_ORDER: GridColumnOrder[] = [
+  {key: 'id', width: COL_WIDTH_UNDEFINED, name: t('Trace')},
   {
     key: SpanIndexedField.SPAN_DESCRIPTION,
     width: COL_WIDTH_UNDEFINED,
@@ -160,9 +161,7 @@ export function PageOverviewWebVitalsDetailPanel({
   };
 
   const getProjectSlug = (row: TransactionSampleRowWithScore): string => {
-    return project && !Array.isArray(location.query.project)
-      ? project.slug
-      : row.projectSlug;
+    return project && !Array.isArray(location.query.project) ? project.slug : row.project;
   };
 
   const renderHeadCell = (col: Column) => {
@@ -459,7 +458,7 @@ export function PageOverviewWebVitalsDetailPanel({
             <GridEditable
               data={spansTableData}
               isLoading={isSpansLoading}
-              columnOrder={SPANS_SAMPLES_WITHOUT_TRACE_COLUMN_ORDER}
+              columnOrder={SPANS_SAMPLES_COLUMN_ORDER}
               columnSortBy={[sort]}
               grid={{
                 renderHeadCell,
@@ -470,7 +469,7 @@ export function PageOverviewWebVitalsDetailPanel({
             <GridEditable
               data={spansTableData}
               isLoading={isSpansLoading}
-              columnOrder={SPANS_SAMPLES_WITHOUT_TRACE_COLUMN_ORDER}
+              columnOrder={SPANS_SAMPLES_COLUMN_ORDER}
               columnSortBy={[sort]}
               grid={{
                 renderHeadCell,
@@ -479,7 +478,7 @@ export function PageOverviewWebVitalsDetailPanel({
             />
           ) : (
             <GridEditable
-              data={transactionsTableData}
+              data={transactionsTableData as any as TransactionSampleRowWithScore[]} // TODO: fix typing
               isLoading={isTransactionWebVitalsQueryLoading}
               columnOrder={PAGELOADS_COLUMN_ORDER}
               columnSortBy={[sort]}

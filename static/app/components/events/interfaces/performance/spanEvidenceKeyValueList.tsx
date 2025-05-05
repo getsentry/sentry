@@ -9,11 +9,21 @@ import mapValues from 'lodash/mapValues';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {LinkButton} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {getKeyValueListData as getRegressionIssueKeyValueList} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
+import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
+import type {
+  ProcessedSpanType,
+  RawSpanType,
+  TraceContextSpanProxy,
+} from 'sentry/components/events/interfaces/spans/types';
+import {
+  getSpanSubTimings,
+  SpanSubTimingName,
+} from 'sentry/components/events/interfaces/spans/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Link from 'sentry/components/links/link';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type {Entry, EntryRequest, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -34,10 +44,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
-
-import KeyValueList from '../keyValueList';
-import type {ProcessedSpanType, RawSpanType, TraceContextSpanProxy} from '../spans/types';
-import {getSpanSubTimings, SpanSubTimingName} from '../spans/utils';
 
 const formatter = new SQLishFormatter();
 
@@ -298,16 +304,13 @@ const PREVIEW_COMPONENTS: Partial<
   [IssueType.PERFORMANCE_CONSECUTIVE_HTTP]: ConsecutiveHTTPSpanEvidence,
   [IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD]: LargeHTTPPayloadSpanEvidence,
   [IssueType.PERFORMANCE_HTTP_OVERHEAD]: HTTPOverheadSpanEvidence,
-  [IssueType.PERFORMANCE_DURATION_REGRESSION]: RegressionEvidence,
   [IssueType.PERFORMANCE_ENDPOINT_REGRESSION]: RegressionEvidence,
   [IssueType.PROFILE_FILE_IO_MAIN_THREAD]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_JSON_DECODE_MAIN_THREAD]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_REGEX_MAIN_THREAD]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_FRAME_DROP]: MainThreadFunctionEvidence,
-  [IssueType.PROFILE_FRAME_DROP_EXPERIMENTAL]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_FUNCTION_REGRESSION]: RegressionEvidence,
-  [IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL]: RegressionEvidence,
 };
 
 export function SpanEvidenceKeyValueList({
