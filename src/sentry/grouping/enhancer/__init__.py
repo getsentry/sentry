@@ -130,6 +130,7 @@ def _can_use_hint(
     variant_name: str,
     frame_component: FrameGroupingComponent,
     hint: str | None,
+    desired_hint_type: Literal["in-app", "contributes"] | None = None,
 ) -> bool:
     # Prevent clobbering an existing hint with no hint
     if hint is None:
@@ -137,6 +138,10 @@ def _can_use_hint(
 
     frame_type = "in-app" if frame_component.in_app else "system"
     hint_type = "contributes" if "ignored" in hint else "in-app"
+
+    # Don't use the hint if we've specifically asked for something different
+    if desired_hint_type and hint_type != desired_hint_type:
+        return False
 
     # System frames can't contribute to the app variant, no matter what +/-group rules say, so we
     # ignore the hint if it's about contributing since it's irrelevant
