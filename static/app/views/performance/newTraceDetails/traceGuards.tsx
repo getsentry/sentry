@@ -1,4 +1,4 @@
-import {Measurement} from 'sentry/types/event';
+import type {Measurement} from 'sentry/types/event';
 import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
 
 import {MissingInstrumentationNode} from './traceModels/missingInstrumentationNode';

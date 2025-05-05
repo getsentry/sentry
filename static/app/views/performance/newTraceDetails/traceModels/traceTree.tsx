@@ -43,7 +43,7 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {
   collectTraceMeasurements,
-  RENDERABLE_MEASUREMENTS,
+  type RENDERABLE_MEASUREMENTS,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree.measurements';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {isRootEvent} from 'sentry/views/performance/traceDetails/utils';
@@ -376,7 +376,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         slug: value.project_slug,
       });
 
-      let parentNode;
+      let parentNode: TraceTreeNode<TraceTree.NodeValue>;
       if (isEAPTransaction(value)) {
         // For collapsed eap-transactions we still render the embedded eap-transactions as visible children.
         // We parent the eap-transactions under the closest collapsed eap-transaction node. Mimics the behavior

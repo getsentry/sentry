@@ -15,6 +15,7 @@ from sentry.constants import METRIC_ALERTS_THREAD_DEFAULT, ObjectStatus
 from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
 from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializerResponse
+from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
     MetricIssueContext,
@@ -65,11 +66,17 @@ def _get_thread_config(
     parent_notification_message: (
         NotificationActionNotificationMessage | MetricAlertNotificationMessage | None
     ),
+    incident_status: IncidentStatus,
 ) -> tuple[bool, str | None]:
     if parent_notification_message is None:
         return False, None
 
-    return True, parent_notification_message.message_identifier
+    reply_broadcast = False
+    # If the incident is critical status, even if it's in a thread, send to main channel
+    if incident_status == IncidentStatus.CRITICAL:
+        reply_broadcast = True
+
+    return reply_broadcast, parent_notification_message.message_identifier
 
 
 def _fetch_parent_notification_message_for_incident(
@@ -336,7 +343,9 @@ def _handle_workflow_engine_notification(
         parent_notification_message=parent_notification_message,
     )
 
-    reply_broadcast, thread_ts = _get_thread_config(parent_notification_message)
+    reply_broadcast, thread_ts = _get_thread_config(
+        parent_notification_message, metric_issue_context.new_status
+    )
 
     return _send_notification(
         integration=integration,
@@ -377,7 +386,9 @@ def _handle_legacy_notification(
         parent_notification_message=parent_notification_message,
     )
 
-    reply_broadcast, thread_ts = _get_thread_config(parent_notification_message)
+    reply_broadcast, thread_ts = _get_thread_config(
+        parent_notification_message, metric_issue_context.new_status
+    )
 
     return _send_notification(
         integration=integration,

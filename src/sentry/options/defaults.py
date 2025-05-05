@@ -883,22 +883,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-#  Percentage of orgs that will be put into a bucket using the split rate below.
-register(
-    "issues.details.streamline-experiment-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# 50% of orgs will only see the Streamline UI, 50% will only see the Legacy UI.
-register(
-    "issues.details.streamline-experiment-split-rate",
-    type=Float,
-    default=0.5,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 
 # Killswitch for issue priority
 register(
@@ -1641,12 +1625,12 @@ register(
 )
 register(
     "performance.issues.consecutive_http.problem-creation",
-    default=0.25,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "performance.issues.large_http_payload.problem-creation",
-    default=0.25,
+    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -3307,7 +3291,16 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
+register(
+    "taskworker.ingest.errors.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.ingest.transactions.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Orgs for which compression should be disabled in the chunk upload endpoint.
 # This is intended to circumvent sporadic 503 errors reported by some customers.
 register("chunk-upload.no-compression", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
