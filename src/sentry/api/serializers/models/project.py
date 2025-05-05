@@ -951,7 +951,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     isDynamicallySampled: bool
     tempestFetchScreenshots: NotRequired[bool]
     tempestFetchDumps: NotRequired[bool]
-    autofixAutorunThreshold: NotRequired[str]
+    autofixAutomationTuning: NotRequired[str]
 
 
 class DetailedProjectSerializer(ProjectWithTeamSerializer):
@@ -1100,8 +1100,8 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             },
             "symbolSources": serialized_sources,
             "isDynamicallySampled": sample_rate is not None and sample_rate < 1.0,
-            "autofixAutorunThreshold": self.get_value_with_default(
-                attrs, "sentry:autofix_autorun_threshold"
+            "autofixAutomationTuning": self.get_value_with_default(
+                attrs, "sentry:autofix_automation_tuning"
             ),
         }
 

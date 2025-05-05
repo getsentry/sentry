@@ -134,7 +134,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         "performanceIssueSendToPlatform",
         "tempestFetchScreenshots",
         "tempestFetchDumps",
-        "autofixAutorunThreshold",
+        "autofixAutomationTuning",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -229,10 +229,8 @@ E.g. `['release', 'environment']`""",
     performanceIssueSendToPlatform = serializers.BooleanField(required=False)
     tempestFetchScreenshots = serializers.BooleanField(required=False)
     tempestFetchDumps = serializers.BooleanField(required=False)
-    autofixAutorunThreshold = serializers.ChoiceField(
-        choices=["off", "low", "medium", "high"],
-        required=False,
-        help_text="The confidence level required for Autofix to automatically run on new issues.",
+    autofixAutomationTuning = serializers.ChoiceField(
+        choices=["off", "low", "medium", "high"], required=False
     )
 
     # DO NOT ADD MORE TO OPTIONS
@@ -461,7 +459,7 @@ E.g. `['release', 'environment']`""",
             )
         return value
 
-    def validate_autofixAutorunThreshold(self, value):
+    def validate_autofixAutomationTuning(self, value):
         organization = self.context["project"].organization
         actor = self.context["request"].user
         if not features.has(
@@ -777,12 +775,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "dynamicSamplingBiases"
                 ]
 
-        if result.get("autofixAutorunThreshold") is not None:
+        if result.get("autofixAutomationTuning") is not None:
             if project.update_option(
-                "sentry:autofix_autorun_threshold", result["autofixAutorunThreshold"]
+                "sentry:autofix_automation_tuning", result["autofixAutomationTuning"]
             ):
-                changed_proj_settings["sentry:autofix_autorun_threshold"] = result[
-                    "autofixAutorunThreshold"
+                changed_proj_settings["sentry:autofix_automation_tuning"] = result[
+                    "autofixAutomationTuning"
                 ]
 
         if has_elevated_scopes:
