@@ -402,6 +402,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
+                    "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -435,6 +436,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
+                    "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -466,6 +468,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
+                    "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -481,6 +484,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
+                    "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -496,6 +500,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
+                    "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -511,6 +516,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
+                    "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
@@ -526,6 +532,7 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 attribute_types={
                     "duration",
                     "number",
+                    "percentage",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
