@@ -53,7 +53,9 @@ class TestProcessProfileConsumerStrategy(TestCase):
         processing_strategy.join(1)
         processing_strategy.terminate()
 
-        process_profile_task.assert_called_with(payload=b64encode(payload), sampled=True)
+        process_profile_task.assert_called_with(
+            payload=b64encode(payload).decode("utf-8"), sampled=True
+        )
 
 
 def test_adjust_instruction_addr_sample_format():

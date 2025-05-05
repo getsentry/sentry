@@ -108,7 +108,7 @@ def process_profile_task(
         return
 
     if payload:
-        message_dict = msgpack.unpackb(b64decode(payload), use_list=False)
+        message_dict = msgpack.unpackb(b64decode(payload.encode("utf-8")), use_list=False)
         profile = json.loads(message_dict["payload"], use_rapid_json=True)
 
         assert profile is not None
