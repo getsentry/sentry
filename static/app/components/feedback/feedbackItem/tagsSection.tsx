@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import Collapsible from 'sentry/components/collapsible';
@@ -9,7 +10,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 interface Props {
-  tags: Record<string, string>;
+  tags: Record<string, string | ReactNode>;
 }
 
 export default function TagsSection({tags}: Props) {
