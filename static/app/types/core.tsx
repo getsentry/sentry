@@ -90,6 +90,8 @@ export enum DataCategory {
   UPTIME = 'uptime',
   LOG_ITEM = 'logItems',
   LOG_BYTE = 'logBytes',
+  SEER_AUTOFIX = 'seerAutofix',
+  SEER_SCANNER = 'seerScanner',
 }
 
 /**
@@ -116,6 +118,9 @@ export enum DataCategoryExact {
 
   LOG_ITEM = 'logItem',
   LOG_BYTE = 'logByte',
+
+  SEER_AUTOFIX = 'seerAutofix',
+  SEER_SCANNER = 'seerScanner',
 }
 
 export interface DataCategoryInfo {

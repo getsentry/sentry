@@ -63,7 +63,7 @@ describe('CheckoutOverviewV2', function () {
     expect(screen.getByTestId('additional-monthly-charge')).toHaveTextContent(
       '+ up to $300/mo based on PAYG usage'
     );
-    expect(screen.getByText('All Sentry Products')).toBeInTheDocument();
+    expect(screen.getByText('Sentry Products')).toBeInTheDocument();
     expect(screen.getByText('Total Monthly Charges')).toBeInTheDocument();
   });
 
@@ -95,7 +95,7 @@ describe('CheckoutOverviewV2', function () {
     );
 
     expect(screen.getByText('Sentry Team Plan')).toBeInTheDocument();
-    expect(screen.getByText('All Sentry Products')).toBeInTheDocument();
+    expect(screen.getByText('Sentry Products')).toBeInTheDocument();
     expect(screen.getByText('Total Annual Charges')).toBeInTheDocument();
     expect(screen.getByText('$312/yr')).toBeInTheDocument();
     expect(screen.getByTestId('additional-monthly-charge')).toHaveTextContent(

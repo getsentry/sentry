@@ -66,6 +66,8 @@ function ReviewAndConfirm({
     'partner-billing-migration'
   );
 
+  const seerCents = formData.seerEnabled ? 2000 : 0;
+
   const fetchPreview = useCallback(async () => {
     await fetchPreviewData(
       organization,
@@ -162,6 +164,8 @@ function ReviewAndConfirm({
             cardActionError={state.cardActionError}
             hasPartnerMigrationFeature={hasPartnerMigrationFeature}
             subscription={subscription}
+            formData={formData}
+            seerCents={seerCents}
           />
         </StyledPanelBody>
       )}
@@ -247,7 +251,14 @@ function ReviewAndConfirmHeader({
   );
 }
 
-function ReviewAndConfirmItems({previewData}: Pick<State, 'previewData'>) {
+function ReviewAndConfirmItems({
+  previewData,
+  formData,
+  seerCents,
+}: Pick<State, 'previewData'> & {
+  formData: StepPropsWithApi['formData'];
+  seerCents: number;
+}) {
   if (!previewData) {
     return null;
   }
@@ -289,6 +300,15 @@ function ReviewAndConfirmItems({previewData}: Pick<State, 'previewData'>) {
           <div>{`${displayPrice({cents: -creditApplied})}`}</div>
         </PreviewItem>
       )}
+
+      {formData.seerEnabled && (
+        <PreviewItem key="seer">
+          <Title>
+            <div>{t('Seer AI Agent')}</div>
+          </Title>
+          <div>{`${displayPrice({cents: seerCents})}`}</div>
+        </PreviewItem>
+      )}
     </PreviewItems>
   );
 }
@@ -300,8 +320,12 @@ function ReviewAndConfirmBody({
   previewData,
   hasPartnerMigrationFeature,
   subscription,
+  formData,
+  seerCents,
 }: Pick<State, 'cardActionError' | 'loading' | 'loadError' | 'previewData'> & {
+  formData: StepPropsWithApi['formData'];
   hasPartnerMigrationFeature: boolean;
+  seerCents: number;
   subscription: Subscription;
 }) {
   if (loading) {
@@ -335,10 +359,14 @@ function ReviewAndConfirmBody({
           <Alert type="error">{cardActionError}</Alert>
         </Alert.Container>
       )}
-      <ReviewAndConfirmItems previewData={previewData} />
+      <ReviewAndConfirmItems
+        previewData={previewData}
+        formData={formData}
+        seerCents={seerCents}
+      />
       <PreviewTotal>
         <div>{t('Total due')}</div>
-        <div>{`${displayPrice({cents: previewData.billedAmount})}`}</div>
+        <div>{`${displayPrice({cents: previewData.billedAmount + seerCents})}`}</div>
       </PreviewTotal>
     </Preview>
   );

@@ -174,6 +174,27 @@ class CheckoutOverview extends Component<Props> {
     );
   }
 
+  renderSeer() {
+    const {formData} = this.props;
+    const {seerEnabled} = formData;
+
+    if (!seerEnabled) {
+      return null;
+    }
+
+    const seerPrice = utils.displayPrice({cents: 2000});
+
+    return (
+      <DetailItem key="seer" data-test-id="seer">
+        <div>
+          <DetailTitle>{t('Seer: Sentry AI Enhancements')}</DetailTitle>
+          {t('Surface insights and propose solutions to fix bugs faster.')}
+        </div>
+        <DetailPrice>{`${seerPrice}/mo`}</DetailPrice>
+      </DetailItem>
+    );
+  }
+
   renderDetailItems = () => {
     const {activePlan, discountInfo} = this.props;
 
@@ -224,6 +245,7 @@ class CheckoutOverview extends Component<Props> {
           </PriceContainer>
         </DetailItem>
         {this.renderDataOptions()}
+        {this.renderSeer()}
         {this.renderOnDemand()}
       </Fragment>
     );
@@ -248,16 +270,31 @@ class CheckoutOverview extends Component<Props> {
       };
     }
 
-    const reservedTotal = utils.getReservedTotal({
+    let reservedTotal = utils.getReservedTotal({
       ...formData,
       plan: activePlan,
       ...discountData,
     });
 
-    const originalTotal = utils.getReservedTotal({
+    let originalTotal = utils.getReservedTotal({
       ...formData,
       plan: activePlan,
     });
+
+    // Add Seer budget to the total if it's enabled
+    if (formData.seerEnabled && formData.seerBudget) {
+      // Convert the display strings back to numbers for addition, then convert back to display strings
+      const reservedTotalValue = parseFloat(reservedTotal.replace(/,/g, ''));
+      const seerBudgetValue = formData.seerBudget / 100; // Convert cents to dollars
+      reservedTotal = utils.displayPrice({
+        cents: (reservedTotalValue + seerBudgetValue) * 100,
+      });
+
+      const originalTotalValue = parseFloat(originalTotal.replace(/,/g, ''));
+      originalTotal = utils.displayPrice({
+        cents: (originalTotalValue + seerBudgetValue) * 100,
+      });
+    }
 
     const billingInterval =
       discountInfo?.billingInterval === 'monthly' ? 'Months' : 'Years';
