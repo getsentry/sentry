@@ -145,6 +145,7 @@ export function PagesTable({
         'sum(span.duration)',
         'avg(span.duration)',
       ],
+      limit: 10,
       search: `span.op:[${spanOperationFilter}] ${query ? `${query}` : ''}`.trim(),
       orderby: getOrderBy(sortField, sortOrder),
       cursor:
