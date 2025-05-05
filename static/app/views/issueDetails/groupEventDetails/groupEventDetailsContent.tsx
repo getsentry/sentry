@@ -225,7 +225,8 @@ export function EventDetailsContent({
           project={project}
         />
       )}
-      {event.contexts?.metric_alert?.alert_rule_id && (
+      {(event.contexts?.metric_alert?.alert_rule_id ||
+        event?.occurrence?.evidenceData?.alertId) && (
         <MetricIssuesSection
           organization={organization}
           group={group}
