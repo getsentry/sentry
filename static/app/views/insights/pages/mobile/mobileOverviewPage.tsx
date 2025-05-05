@@ -3,10 +3,6 @@ import styled from '@emotion/styled';
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -43,6 +39,7 @@ import {
   MOBILE_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/mobile/settings';
+import {OverviewDatePageFilter} from 'sentry/views/insights/pages/overviewFilterBar';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import type {EAPSpanProperty} from 'sentry/views/insights/types';
 import {
@@ -222,11 +219,7 @@ function EAPMobileOverviewPage() {
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
               <ToolRibbon>
-                <PageFilterBar condensed>
-                  <ProjectPageFilter />
-                  <EnvironmentPageFilter />
-                  <DatePageFilter />
-                </PageFilterBar>
+                <OverviewDatePageFilter />
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar
                     organization={organization}

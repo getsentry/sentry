@@ -4,10 +4,6 @@ import Feature from 'sentry/components/acl/feature';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -25,7 +21,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -46,6 +41,7 @@ import {
   FRONTEND_LANDING_TITLE,
   FRONTEND_PLATFORMS,
 } from 'sentry/views/insights/pages/frontend/settings';
+import {OverviewDatePageFilter} from 'sentry/views/insights/pages/overviewFilterBar';
 import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
 import {useIsNextJsInsightsEnabled} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {NewNextJsExperienceButton} from 'sentry/views/insights/pages/platform/nextjs/newNextjsExperienceToggle';
@@ -218,11 +214,7 @@ function EAPOverviewPage() {
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
               <ToolRibbon>
-                <PageFilterBar condensed>
-                  <ProjectPageFilter />
-                  <EnvironmentPageFilter />
-                  <DatePageFilter />
-                </PageFilterBar>
+                <OverviewDatePageFilter />
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar
                     organization={organization}
@@ -266,14 +258,11 @@ function EAPOverviewPage() {
 }
 
 function FrontendOverviewPageWithProviders() {
-  const organization = useOrganization();
   const [isNextJsPageEnabled] = useIsNextJsInsightsEnabled();
   const useEap = useInsightsEap();
 
-  const {maxPickableDays} = limitMaxPickableDays(organization);
-
   return (
-    <DomainOverviewPageProviders maxPickableDays={maxPickableDays}>
+    <DomainOverviewPageProviders>
       {isNextJsPageEnabled ? (
         <NextJsOverviewPage performanceType="frontend" />
       ) : useEap ? (

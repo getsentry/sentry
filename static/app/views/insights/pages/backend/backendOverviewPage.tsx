@@ -5,10 +5,6 @@ import Feature from 'sentry/components/acl/feature';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -24,7 +20,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -51,6 +46,7 @@ import {
   MOBILE_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS,
 } from 'sentry/views/insights/pages/mobile/settings';
+import {OverviewDatePageFilter} from 'sentry/views/insights/pages/overviewFilterBar';
 import {LaravelOverviewPage} from 'sentry/views/insights/pages/platform/laravel';
 import {CachesWidget} from 'sentry/views/insights/pages/platform/laravel/cachesWidget';
 import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
@@ -236,11 +232,7 @@ function EAPBackendOverviewPage() {
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
               <ToolRibbon>
-                <PageFilterBar condensed>
-                  <ProjectPageFilter />
-                  <EnvironmentPageFilter />
-                  <DatePageFilter />
-                </PageFilterBar>
+                <OverviewDatePageFilter />
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar
                     organization={organization}
@@ -299,18 +291,8 @@ function EAPBackendOverviewPage() {
 }
 
 function BackendOverviewPageWithProviders() {
-  const organization = useOrganization();
-  const isLaravelPageAvailable = useIsLaravelInsightsAvailable();
-  const [isNextJsPageEnabled] = useIsNextJsInsightsEnabled();
-
-  const {maxPickableDays} = limitMaxPickableDays(organization);
-
   return (
-    <DomainOverviewPageProviders
-      maxPickableDays={
-        isLaravelPageAvailable || isNextJsPageEnabled ? maxPickableDays : undefined
-      }
-    >
+    <DomainOverviewPageProviders>
       <BackendOverviewPage />
     </DomainOverviewPageProviders>
   );
