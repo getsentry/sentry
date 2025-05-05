@@ -586,6 +586,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         serializer = serializer_cls(
             data=request.data, partial=True, context={"project": project, "request": request}
         )
+        serializer.is_valid()
+
         result = serializer.validated_data
 
         if result.get("dynamicSamplingBiases") and not (has_dynamic_sampling(project.organization)):
