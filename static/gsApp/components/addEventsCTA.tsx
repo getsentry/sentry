@@ -4,6 +4,7 @@ import type {Client} from 'sentry/api';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
 import type {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
+import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import withApi from 'sentry/utils/withApi';
 
@@ -18,17 +19,28 @@ import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
 
 /**
+ * Add event types before they are explicitly set with `isBilledCategory: true`
+ * in DATA_CATEGORY_INFO (ie. before launch) for use in quota CTAs and notifications.
+ */
+export const TEMPORARY_EVENT_TYPES = [
+  DataCategoryExact.SEER_AUTOFIX,
+  DataCategoryExact.SEER_SCANNER,
+];
+
+/**
  * Event types for quota CTAs and notifications.
  * When a new billed category is added, all records keying on EventType
  * will error to alert the author that they need to be updated.
  *
  * TODO(data categories): move this to dataCategory.tsx
  */
-export type EventType = {
-  [K in keyof typeof DATA_CATEGORY_INFO]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
-    ? (typeof DATA_CATEGORY_INFO)[K]['name']
-    : never;
-}[keyof typeof DATA_CATEGORY_INFO];
+export type EventType =
+  | {
+      [K in keyof typeof DATA_CATEGORY_INFO]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
+        ? (typeof DATA_CATEGORY_INFO)[K]['name']
+        : never;
+    }[keyof typeof DATA_CATEGORY_INFO]
+  | (typeof TEMPORARY_EVENT_TYPES)[number];
 
 type Props = {
   api: Client;

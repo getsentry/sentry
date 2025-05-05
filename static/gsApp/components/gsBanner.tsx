@@ -44,7 +44,7 @@ import {
   openTrialEndingModal,
 } from 'getsentry/actionCreators/modal';
 import type {EventType} from 'getsentry/components/addEventsCTA';
-import AddEventsCTA from 'getsentry/components/addEventsCTA';
+import AddEventsCTA, {TEMPORARY_EVENT_TYPES} from 'getsentry/components/addEventsCTA';
 import ProductTrialAlert from 'getsentry/components/productTrial/productTrialAlert';
 import {makeLinkToOwnersAndBillingMembers} from 'getsentry/components/profiling/alerts';
 import withSubscription from 'getsentry/components/withSubscription';
@@ -52,6 +52,7 @@ import ZendeskLink from 'getsentry/components/zendeskLink';
 import {BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {
+  type BilledDataCategoryInfo,
   PlanTier,
   type Promotion,
   type PromotionClaimed,
@@ -90,17 +91,27 @@ enum ModalType {
  */
 const TRIAL_ENDING_DAY_WINDOW = 3;
 
-const ALERTS_OFF: Record<EventType, boolean> = {
-  error: false,
-  transaction: false,
-  replay: false,
-  attachment: false,
-  monitorSeat: false,
-  span: false,
-  profileDuration: false,
-  profileDurationUI: false,
-  uptime: false,
-};
+/**
+ * BilledDataCategoryInfo objects for all categories that are billed or
+ * are about to be billed.
+ */
+// const BILLED_CATEGORIES = Object.values(BILLED_DATA_CATEGORY_INFO).filter(
+//   c => c.isBilledCategory || c.name in TEMPORARY_EVENT_TYPES
+// );
+
+function objectFromBilledCategories(callback: (c: BilledDataCategoryInfo) => any) {
+  return Object.values(BILLED_DATA_CATEGORY_INFO).reduce(
+    (acc, c) => {
+      if (c.isBilledCategory || TEMPORARY_EVENT_TYPES.includes(c.name)) {
+        acc[c.name as EventType] = callback(c);
+      }
+      return acc;
+    },
+    {} as Record<EventType, any>
+  );
+}
+
+const ALERTS_OFF: Record<EventType, boolean> = objectFromBilledCategories(() => false);
 
 type SuspensionModalProps = ModalRenderProps & {
   subscription: Subscription;
@@ -316,40 +327,9 @@ class GSBanner extends Component<Props, State> {
   // assume dismissed until we've checked the backend
   state: State = {
     deactivatedMemberDismissed: true,
-    overageAlertDismissed: {
-      error: true,
-      transaction: true,
-      replay: true,
-      attachment: true,
-      monitorSeat: true,
-      span: true,
-      profileDuration: true,
-      profileDurationUI: true,
-      uptime: true,
-    },
-    overageWarningDismissed: {
-      error: true,
-      transaction: true,
-      replay: true,
-      attachment: true,
-      monitorSeat: true,
-      span: true,
-      profileDuration: true,
-      profileDurationUI: true,
-      uptime: true,
-    },
-    productTrialDismissed: {
-      // TODO(data categories): Technically we only need the categories that can have product trials
-      error: true,
-      transaction: true,
-      replay: true,
-      attachment: true,
-      monitorSeat: true,
-      span: true,
-      profileDuration: true,
-      profileDurationUI: true,
-      uptime: true,
-    },
+    overageAlertDismissed: objectFromBilledCategories(() => true),
+    overageWarningDismissed: objectFromBilledCategories(() => true),
+    productTrialDismissed: objectFromBilledCategories(() => true),
   };
   async componentDidMount() {
     if (this.props.promotionData) {
@@ -717,88 +697,24 @@ class GSBanner extends Component<Props, State> {
           checkResults.deactivated_member_alert!
         ),
         // billing period related prompt checks
-        overageAlertDismissed: {
-          error: promptIsDismissedForBillingPeriod(checkResults.errors_overage_alert!),
-          transaction: promptIsDismissedForBillingPeriod(
-            checkResults.transactions_overage_alert!
-          ),
-          replay: promptIsDismissedForBillingPeriod(checkResults.replays_overage_alert!),
-          attachment: promptIsDismissedForBillingPeriod(
-            checkResults.attachments_overage_alert!
-          ),
-          monitorSeat: promptIsDismissedForBillingPeriod(
-            checkResults.monitor_seats_overage_alert!
-          ),
-          span: promptIsDismissedForBillingPeriod(checkResults.spans_overage_alert!),
-          profileDuration: promptIsDismissedForBillingPeriod(
-            checkResults.profile_duration_overage_alert!
-          ),
-          profileDurationUI: promptIsDismissedForBillingPeriod(
-            checkResults.profile_duration_ui_overage_alert!
-          ),
-          uptime: promptIsDismissedForBillingPeriod(checkResults.uptime_overage_alert!),
-        } satisfies Record<EventType, boolean>,
-        overageWarningDismissed: {
-          error: promptIsDismissedForBillingPeriod(checkResults.errors_warning_alert!),
-          transaction: promptIsDismissedForBillingPeriod(
-            checkResults.transactions_warning_alert!
-          ),
-          replay: promptIsDismissedForBillingPeriod(checkResults.replays_warning_alert!),
-          attachment: promptIsDismissedForBillingPeriod(
-            checkResults.attachments_warning_alert!
-          ),
-          monitorSeat: promptIsDismissedForBillingPeriod(
-            checkResults.monitor_seats_warning_alert!
-          ),
-          span: promptIsDismissedForBillingPeriod(checkResults.spans_warning_alert!),
-          profileDuration: promptIsDismissedForBillingPeriod(
-            checkResults.profile_duration_warning_alert!
-          ),
-          profileDurationUI: promptIsDismissedForBillingPeriod(
-            checkResults.profile_duration_ui_warning_alert!
-          ),
-          uptime: promptIsDismissedForBillingPeriod(checkResults.uptime_warning_alert!),
-        } satisfies Record<EventType, boolean>,
+        overageAlertDismissed: objectFromBilledCategories(c =>
+          promptIsDismissedForBillingPeriod(
+            checkResults[`${snakeCase(c.plural)}_overage_alert`]!
+          )
+        ),
+        overageWarningDismissed: objectFromBilledCategories(c =>
+          promptIsDismissedForBillingPeriod(
+            checkResults[`${snakeCase(c.plural)}_warning_alert`]!
+          )
+        ),
         // TODO(data categories): We don't need to check every EventType for product trials,
         // only the ones that are supported for product trials.
-        productTrialDismissed: {
-          error: trialPromptIsDismissed(
-            checkResults.errors_product_trial_alert!,
+        productTrialDismissed: objectFromBilledCategories(c =>
+          trialPromptIsDismissed(
+            checkResults[`${snakeCase(c.plural)}_product_trial_alert`]!,
             subscription
-          ),
-          transaction: trialPromptIsDismissed(
-            checkResults.transactions_product_trial_alert!,
-            subscription
-          ),
-          replay: trialPromptIsDismissed(
-            checkResults.replays_product_trial_alert!,
-            subscription
-          ),
-          attachment: trialPromptIsDismissed(
-            checkResults.attachments_product_trial_alert!,
-            subscription
-          ),
-          monitorSeat: trialPromptIsDismissed(
-            checkResults.monitor_seats_product_trial_alert!,
-            subscription
-          ),
-          span: trialPromptIsDismissed(
-            checkResults.spans_product_trial_alert!,
-            subscription
-          ),
-          profileDuration: trialPromptIsDismissed(
-            checkResults.profile_duration_product_trial_alert!,
-            subscription
-          ),
-          profileDurationUI: trialPromptIsDismissed(
-            checkResults.profile_duration_ui_product_trial_alert!,
-            subscription
-          ),
-          uptime: trialPromptIsDismissed(
-            checkResults.uptime_product_trial_alert!,
-            subscription
-          ),
-        } satisfies Record<EventType, boolean>,
+          )
+        ),
       });
     } catch (error) {
       // let check fail but capture exception
@@ -811,35 +727,11 @@ class GSBanner extends Component<Props, State> {
     if (subscription.hasOverageNotificationsDisabled) {
       return ALERTS_OFF;
     }
-    return {
-      error:
-        !this.state.overageAlertDismissed.error &&
-        !!subscription.categories.errors?.usageExceeded,
-      transaction:
-        !this.state.overageAlertDismissed.transaction &&
-        !!subscription.categories.transactions?.usageExceeded,
-      replay:
-        !this.state.overageAlertDismissed.replay &&
-        !!subscription.categories.replays?.usageExceeded,
-      attachment:
-        !this.state.overageAlertDismissed.attachment &&
-        !!subscription.categories.attachments?.usageExceeded,
-      monitorSeat:
-        !this.state.overageAlertDismissed.monitorSeat &&
-        !!subscription.categories.monitorSeats?.usageExceeded,
-      span:
-        !this.state.overageAlertDismissed.span &&
-        !!subscription.categories.spans?.usageExceeded,
-      profileDuration:
-        !this.state.overageAlertDismissed.profileDuration &&
-        !!subscription.categories.profileDuration?.usageExceeded,
-      profileDurationUI:
-        !this.state.overageAlertDismissed.profileDurationUI &&
-        !!subscription.categories.profileDurationUI?.usageExceeded,
-      uptime:
-        !this.state.overageAlertDismissed.uptime &&
-        !!subscription.categories.uptime?.usageExceeded,
-    } satisfies Record<EventType, boolean>;
+    return objectFromBilledCategories(
+      c =>
+        !this.state.overageAlertDismissed[c.name as EventType] &&
+        !!subscription.categories[c.plural]?.usageExceeded
+    );
   }
 
   get overageWarningActive(): Record<EventType, boolean> {
@@ -851,35 +743,11 @@ class GSBanner extends Component<Props, State> {
     ) {
       return ALERTS_OFF;
     }
-    return {
-      error:
-        !this.state.overageWarningDismissed.error &&
-        !!subscription.categories.errors?.sentUsageWarning,
-      transaction:
-        !this.state.overageWarningDismissed.transaction &&
-        !!subscription.categories.transactions?.sentUsageWarning,
-      replay:
-        !this.state.overageWarningDismissed.replay &&
-        !!subscription.categories.replays?.sentUsageWarning,
-      attachment:
-        !this.state.overageWarningDismissed.attachment &&
-        !!subscription.categories.attachments?.sentUsageWarning,
-      monitorSeat:
-        !this.state.overageWarningDismissed.monitorSeat &&
-        !!subscription.categories.monitorSeats?.sentUsageWarning,
-      span:
-        !this.state.overageWarningDismissed.span &&
-        !!subscription.categories.spans?.sentUsageWarning,
-      profileDuration:
-        !this.state.overageWarningDismissed.profileDuration &&
-        !!subscription.categories.profileDuration?.sentUsageWarning,
-      profileDurationUI:
-        !this.state.overageWarningDismissed.profileDurationUI &&
-        !!subscription.categories.profileDurationUI?.sentUsageWarning,
-      uptime:
-        !this.state.overageWarningDismissed.uptime &&
-        !!subscription.categories.uptime?.sentUsageWarning,
-    } satisfies Record<EventType, boolean>;
+    return objectFromBilledCategories(
+      c =>
+        !this.state.overageWarningDismissed[c.name as EventType] &&
+        !!subscription.categories[c.plural]?.sentUsageWarning
+    );
   }
 
   // Returns true for overage alert, false for overage warning, and null if we don't show anything.
@@ -935,17 +803,21 @@ class GSBanner extends Component<Props, State> {
       }
       const key = isWarning ? 'warning' : 'overage';
 
-      const featureMap: Record<EventType, string> = {
-        error: `errors_${key}_alert`,
-        transaction: `transactions_${key}_alert`,
-        replay: `replays_${key}_alert`,
-        attachment: `attachments_${key}_alert`,
-        monitorSeat: `monitor_seats_${key}_alert`,
-        span: `spans_${key}_alert`,
-        profileDuration: `profile_duration_${key}_alert`,
-        profileDurationUI: `profile_duration_ui_${key}_alert`,
-        uptime: `uptime_${key}_alert`,
-      };
+      const featureMap = Object.values(DATA_CATEGORY_INFO)
+        .filter(
+          c =>
+            c.isBilledCategory ||
+            // TODO(Seer): remove the following two after launch (when isBilledCategory is true for both categories)
+            c.name === DataCategoryExact.SEER_AUTOFIX ||
+            c.name === DataCategoryExact.SEER_SCANNER
+        )
+        .reduce(
+          (acc, c) => {
+            acc[c.name] = `${snakeCase(c.plural)}_${key}_alert`;
+            return acc;
+          },
+          {} as Record<EventType, string>
+        );
 
       promptsUpdate(api, {
         organization,
@@ -954,17 +826,9 @@ class GSBanner extends Component<Props, State> {
       });
     }
 
-    const dismissedState: Record<EventType, boolean> = {
-      error: true,
-      attachment: true,
-      replay: true,
-      transaction: true,
-      monitorSeat: true,
-      span: true,
-      profileDuration: true,
-      profileDurationUI: true,
-      uptime: true,
-    };
+    const dismissedState: Record<EventType, boolean> = objectFromBilledCategories(
+      () => true
+    );
     // Suppress all warnings and alerts
     this.setState({
       overageAlertDismissed: dismissedState,
@@ -1016,8 +880,7 @@ class GSBanner extends Component<Props, State> {
             value &&
             getActiveProductTrial(
               subscription.productTrials ?? null,
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              DATA_CATEGORY_INFO[key].plural
+              DATA_CATEGORY_INFO[key as DataCategoryExact].plural
             ) === null
         )
         .map(([key, _]) => key as EventType);
@@ -1039,8 +902,7 @@ class GSBanner extends Component<Props, State> {
             value &&
             getActiveProductTrial(
               subscription.productTrials ?? null,
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              DATA_CATEGORY_INFO[key].plural
+              DATA_CATEGORY_INFO[key as DataCategoryExact].plural
             ) === null
         )
         .map(([key, _]) => key as EventType);
@@ -1198,6 +1060,7 @@ class GSBanner extends Component<Props, State> {
       product: DataCategory.PROFILE_DURATION_UI,
       categories: [DataCategory.PROFILE_DURATION_UI],
     },
+    // TODO(Seer): add in-product links for Seer categories
   };
 
   renderProductTrialAlerts() {
