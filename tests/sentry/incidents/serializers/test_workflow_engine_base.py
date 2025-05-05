@@ -27,7 +27,7 @@ class TestWorklowEngineSerializer(TestCase):
             alert_rule_trigger=self.critical_trigger
         )
         _, _, _, self.detector, _, _, _, _ = migrate_alert_rule(self.alert_rule)
-        self.critical_detector_trigger, _ = migrate_metric_data_conditions(self.critical_trigger)
+        self.critical_detector_trigger, _, _ = migrate_metric_data_conditions(self.critical_trigger)
 
         self.critical_action, _, _ = migrate_metric_action(self.critical_trigger_action)
         self.resolve_trigger_data_condition = migrate_resolve_threshold_data_condition(
@@ -88,7 +88,7 @@ class TestWorklowEngineSerializer(TestCase):
         self.warning_trigger_action = self.create_alert_rule_trigger_action(
             alert_rule_trigger=self.warning_trigger
         )
-        self.warning_detector_trigger, _ = migrate_metric_data_conditions(self.warning_trigger)
+        self.warning_detector_trigger, _, _ = migrate_metric_data_conditions(self.warning_trigger)
         self.warning_action, _, _ = migrate_metric_action(self.warning_trigger_action)
         self.expected_warning_action = [
             {
