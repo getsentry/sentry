@@ -67,31 +67,23 @@ import {Onboarding} from 'sentry/views/performance/onboarding';
 // eslint-disable-next-line no-restricted-imports
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
-interface SpansTabOnboardingProps extends PickableDays {
+interface SpansTabOnboardingProps {
+  datePageFilterProps: PickableDays;
   organization: Organization;
   project: Project;
 }
 
 export function SpansTabOnboarding({
-  defaultPeriod,
-  maxPickableDays,
+  datePageFilterProps,
   organization,
   project,
-  relativeOptions,
 }: SpansTabOnboardingProps) {
   return (
     <Layout.Body>
       <PageFilterBar condensed>
         <ProjectPageFilter />
         <EnvironmentPageFilter />
-        <DatePageFilter
-          defaultPeriod={defaultPeriod}
-          maxPickableDays={maxPickableDays}
-          relativeOptions={({arbitraryOptions}) => ({
-            ...arbitraryOptions,
-            ...relativeOptions,
-          })}
-        />
+        <DatePageFilter {...datePageFilterProps} />
       </PageFilterBar>
       <OnboardingContentSection>
         <Onboarding project={project} organization={organization} />
@@ -100,13 +92,11 @@ export function SpansTabOnboarding({
   );
 }
 
-interface SpanTabProps extends PickableDays {}
+interface SpanTabProps {
+  datePageFilterProps: PickableDays;
+}
 
-export function SpansTabContent({
-  defaultPeriod,
-  maxPickableDays,
-  relativeOptions,
-}: SpanTabProps) {
+export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
   useVisitExplore();
 
   const organization = useOrganization();
@@ -115,11 +105,7 @@ export function SpansTabContent({
   return (
     <Fragment>
       <BodySearch>
-        <SpanTabSearchSection
-          defaultPeriod={defaultPeriod}
-          maxPickableDays={maxPickableDays}
-          relativeOptions={relativeOptions}
-        />
+        <SpanTabSearchSection datePageFilterProps={datePageFilterProps} />
       </BodySearch>
       <BodyContent>
         <SpanTabControlSection
@@ -127,7 +113,7 @@ export function SpansTabContent({
           controlSectionExpanded={controlSectionExpanded}
         />
         <SpanTabContentSection
-          maxPickableDays={maxPickableDays}
+          maxPickableDays={datePageFilterProps.maxPickableDays}
           organization={organization}
           setControlSectionExpanded={setControlSectionExpanded}
           controlSectionExpanded={controlSectionExpanded}
@@ -147,13 +133,11 @@ function useVisitExplore() {
   }, [id, visitQuery]);
 }
 
-interface SpanTabSearchSectionProps extends PickableDays {}
+interface SpanTabSearchSectionProps {
+  datePageFilterProps: PickableDays;
+}
 
-function SpanTabSearchSection({
-  defaultPeriod,
-  maxPickableDays,
-  relativeOptions,
-}: SpanTabSearchSectionProps) {
+function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) {
   const mode = useExploreMode();
   const fields = useExploreFields();
   const query = useExploreQuery();
@@ -217,14 +201,7 @@ function SpanTabSearchSection({
             <StyledPageFilterBar condensed>
               <ProjectPageFilter />
               <EnvironmentPageFilter />
-              <DatePageFilter
-                defaultPeriod={defaultPeriod}
-                maxPickableDays={maxPickableDays}
-                relativeOptions={({arbitraryOptions}) => ({
-                  ...arbitraryOptions,
-                  ...relativeOptions,
-                })}
-              />
+              <DatePageFilter {...datePageFilterProps} />
             </StyledPageFilterBar>
             <EAPSpanSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
           </FilterSection>

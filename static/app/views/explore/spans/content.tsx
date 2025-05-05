@@ -48,14 +48,13 @@ export function ExploreContent() {
   Sentry.setTag('explore.visited', 'yes');
 
   const organization = useOrganization();
-  const {defaultPeriod, maxPickableDays, relativeOptions} =
-    limitMaxPickableDays(organization);
+  const datePageFilterProps = limitMaxPickableDays(organization);
 
   const onboardingProject = useOnboardingProject();
 
   return (
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
-      <PageFiltersContainer maxPickableDays={maxPickableDays}>
+      <PageFiltersContainer maxPickableDays={datePageFilterProps.maxPickableDays}>
         <Layout.Page>
           <SpansTabWrapper>
             <SpansTabHeader organization={organization} />
@@ -63,16 +62,10 @@ export function ExploreContent() {
               <SpansTabOnboarding
                 organization={organization}
                 project={onboardingProject}
-                defaultPeriod={defaultPeriod}
-                maxPickableDays={maxPickableDays}
-                relativeOptions={relativeOptions}
+                datePageFilterProps={datePageFilterProps}
               />
             ) : (
-              <SpansTabContent
-                defaultPeriod={defaultPeriod}
-                maxPickableDays={maxPickableDays}
-                relativeOptions={relativeOptions}
-              />
+              <SpansTabContent datePageFilterProps={datePageFilterProps} />
             )}
           </SpansTabWrapper>
         </Layout.Page>
