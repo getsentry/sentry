@@ -7,8 +7,9 @@ import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumb
 import {Flex} from 'sentry/components/container/flex';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Button, LinkButton} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DateTime} from 'sentry/components/dateTime';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixProgressBar} from 'sentry/components/events/autofix/autofixProgressBar';
