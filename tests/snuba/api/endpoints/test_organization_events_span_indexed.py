@@ -4280,6 +4280,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
             {
                 "field": ["app_start_type", "ttid"],
                 "query": "has:ttid",
+                "orderby": "app_start_type",
                 "project": self.project.id,
                 "dataset": self.dataset,
             }
