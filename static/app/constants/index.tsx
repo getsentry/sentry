@@ -531,6 +531,27 @@ export const DATA_CATEGORY_INFO = {
       yAxisMinInterval: 0.5 * GIGABYTE,
     },
   },
+  // TODO(Seer): Confirm naming
+  [DataCategoryExact.SEER_AUTOFIX]: {
+    name: DataCategoryExact.SEER_AUTOFIX,
+    apiName: 'seer_autofix',
+    plural: DataCategory.SEER_AUTOFIX,
+    displayName: 'issue fix run',
+    titleName: t('Issue Fix Run'),
+    productName: t('Seer'),
+    uid: 27,
+    isBilledCategory: false, // TODO(Seer): change to True for launch
+  },
+  [DataCategoryExact.SEER_SCANNER]: {
+    name: DataCategoryExact.SEER_SCANNER,
+    apiName: 'seer_scanner',
+    plural: DataCategory.SEER_SCANNER,
+    displayName: 'issue triage run',
+    titleName: t('Issue Triage Run'),
+    productName: t('Seer'),
+    uid: 28,
+    isBilledCategory: false, // TODO(Seer): change to True for launch
+  },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 
 // Special Search characters
