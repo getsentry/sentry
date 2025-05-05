@@ -605,7 +605,11 @@ class SearchResolver:
             raise InvalidSearchQuery(f"Unknown operator: {term.operator}")
 
         kwargs = {"op": operator, "val": value}
-        aggregation_key = "conditional_aggregation" if isinstance(proto_definition, AttributeConditionalAggregation) else "aggregation"
+        aggregation_key = (
+            "conditional_aggregation"
+            if isinstance(proto_definition, AttributeConditionalAggregation)
+            else "aggregation"
+        )
         kwargs[aggregation_key] = proto_definition
         return (
             AggregationFilter(
