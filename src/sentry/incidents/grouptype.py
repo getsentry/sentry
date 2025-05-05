@@ -29,7 +29,7 @@ class MetricIssueEvidenceData(EvidenceData):
     alert_id: int
 
 
-class MetricAlertDetectorHandler(StatefulGroupingDetectorHandler[QuerySubscriptionUpdate]):
+class MetricAlertDetectorHandler(StatefulGroupingDetectorHandler[QuerySubscriptionUpdate, int]):
     def build_occurrence_and_event_data(
         self, group_key: DetectorGroupKey, new_status: PriorityLevel
     ) -> tuple[DetectorOccurrence, dict[str, Any]]:

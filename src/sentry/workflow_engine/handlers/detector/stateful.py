@@ -1,6 +1,6 @@
 import abc
 from datetime import UTC, datetime, timedelta
-from typing import Any, TypeVar
+from typing import Any, Generic, TypeVar
 from uuid import uuid4
 
 from django.conf import settings
@@ -23,7 +23,9 @@ from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 
-T = TypeVar("T")
+PacketT = TypeVar("PacketT")
+ConditionValueT = TypeVar("ConditionValueT")
+
 REDIS_TTL = int(timedelta(days=7).total_seconds())
 
 
@@ -32,7 +34,11 @@ def get_redis_client() -> RetryingRedisCluster:
     return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
 
 
-class StatefulGroupingDetectorHandler(DetectorHandler[T], abc.ABC):
+class StatefulGroupingDetectorHandler(
+    Generic[PacketT, ConditionValueT],
+    DetectorHandler[PacketT],
+    abc.ABC,
+):
     def __init__(self, detector: Detector):
         super().__init__(detector)
         self.dedupe_updates: dict[DetectorGroupKey, int] = {}
@@ -48,7 +54,7 @@ class StatefulGroupingDetectorHandler(DetectorHandler[T], abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_dedupe_value(self, data_packet: DataPacket[T]) -> int:
+    def get_dedupe_value(self, data_packet: DataPacket[PacketT]) -> int:
         """
         Extracts the deduplication value from a passed data packet.
         TODO: This might belong on the `DataPacket` instead.
@@ -56,7 +62,9 @@ class StatefulGroupingDetectorHandler(DetectorHandler[T], abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_group_key_values(self, data_packet: DataPacket[T]) -> dict[DetectorGroupKey, int]:
+    def get_group_key_values(
+        self, data_packet: DataPacket[PacketT]
+    ) -> dict[DetectorGroupKey, ConditionValueT]:
         """
         Extracts the values for all the group keys that exist in the given data packet,
         and returns then as a dict keyed by group_key.
@@ -131,7 +139,7 @@ class StatefulGroupingDetectorHandler(DetectorHandler[T], abc.ABC):
         return results
 
     def evaluate(
-        self, data_packet: DataPacket[T]
+        self, data_packet: DataPacket[PacketT]
     ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
         """
         Evaluates a given data packet and returns a list of `DetectorEvaluationResult`.
@@ -153,7 +161,7 @@ class StatefulGroupingDetectorHandler(DetectorHandler[T], abc.ABC):
     def evaluate_group_key_value(
         self,
         group_key: DetectorGroupKey,
-        value: int,
+        value: ConditionValueT,
         state_data: DetectorStateData,
         dedupe_value: int,
     ) -> DetectorEvaluationResult | None:
