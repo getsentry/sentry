@@ -1,7 +1,7 @@
 import abc
 import dataclasses
 from datetime import UTC, datetime, timedelta
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic
 from uuid import uuid4
 
 from django.conf import settings
@@ -15,6 +15,8 @@ from sentry.types.group import PriorityLevel
 from sentry.utils import metrics, redis
 from sentry.utils.iterators import chunked
 from sentry.workflow_engine.handlers.detector.base import (
+    DataPacketEvaluationType,
+    DataPacketType,
     DetectorEvaluationResult,
     DetectorHandler,
     DetectorOccurrence,
@@ -22,9 +24,6 @@ from sentry.workflow_engine.handlers.detector.base import (
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
-
-DataPacketType = TypeVar("DataPacketType")
-DataPacketEvaluationType = TypeVar("DataPacketEvaluationType")
 
 REDIS_TTL = int(timedelta(days=7).total_seconds())
 
