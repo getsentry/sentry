@@ -36,11 +36,13 @@ function MergeAccountsModal(props: Props) {
   ];
 
   const {
-    data: mergeAccounts,
+    data: fetchedMergeAccounts,
     isPending,
     isError,
     refetch,
   } = useApiQuery<{users: User[]}>(makeMergeAccountsQueryKey(), {staleTime: 0});
+
+  const mergeAccounts = fetchedMergeAccounts ?? {users: []};
 
   const fetchUserByUsername = async (username: string) => {
     try {
@@ -51,10 +53,13 @@ function MergeAccountsModal(props: Props) {
       setApiQueryData(
         queryClient,
         makeMergeAccountsQueryKey(),
-        (prev: {users: User[]} | undefined) => ({
-          ...prev,
-          users: [...(prev?.users || []), data.user],
-        })
+        (prev: {users: User[]} | undefined) => {
+          const users = prev?.users || [];
+          return {
+            ...prev,
+            users: [...users, data.user],
+          };
+        }
       );
     } catch {
       setError(true);
@@ -69,7 +74,6 @@ function MergeAccountsModal(props: Props) {
         method: 'POST',
         data: {users: userIds},
       });
-      onAction({});
     },
     onSuccess: () => {
       clearIndicators();
@@ -102,7 +106,7 @@ function MergeAccountsModal(props: Props) {
     );
 
   const renderUsernames = () => {
-    return mergeAccounts?.users.map((user, key) => (
+    return mergeAccounts.users.map((user, key) => (
       <label key={key} style={{display: 'block', width: 200, marginBottom: 10}}>
         <input
           type="checkbox"
