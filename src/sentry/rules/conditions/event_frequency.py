@@ -190,7 +190,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         return current_value > value
 
     def passes_activity_frequency(
-        self, activity: ConditionActivity, buckets: dict[datetime, int | float]
+        self, activity: ConditionActivity, buckets: dict[datetime, int]
     ) -> bool:
         interval, value = self._get_options()
         if not (interval and value is not None):
@@ -1010,7 +1010,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
         return batch_percents
 
     def passes_activity_frequency(
-        self, activity: ConditionActivity, buckets: dict[datetime, int | float]
+        self, activity: ConditionActivity, buckets: dict[datetime, int]
     ) -> bool:
         raise NotImplementedError
 
@@ -1018,9 +1018,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
         return EventFrequencyPercentForm(self.data)
 
 
-def bucket_count(
-    start: datetime, end: datetime, buckets: dict[datetime, int | float]
-) -> int | float:
+def bucket_count(start: datetime, end: datetime, buckets: dict[datetime, int]) -> int:
     rounded_end = round_to_five_minute(end)
     rounded_start = round_to_five_minute(start)
     count = buckets.get(rounded_end, 0) - buckets.get(rounded_start, 0)
