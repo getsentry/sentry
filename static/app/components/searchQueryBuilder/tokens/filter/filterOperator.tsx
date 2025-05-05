@@ -10,6 +10,7 @@ import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/contex
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import {getValidOpsForFilter} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {TermOperatorNew} from 'sentry/components/searchQueryBuilder/types';
 import {
   isDateToken,
   recentSearchTypeToLabel,
@@ -17,8 +18,7 @@ import {
 import {
   FilterType,
   type ParseResultToken,
-  TermOperator,
-  type Token,
+  Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
@@ -37,51 +37,52 @@ interface FilterOperatorProps {
 const MENU_OFFSET: [number, number] = [0, 12];
 
 const OP_LABELS = {
-  [TermOperator.DEFAULT]: 'is',
-  [TermOperator.GREATER_THAN]: '>',
-  [TermOperator.GREATER_THAN_EQUAL]: '>=',
-  [TermOperator.LESS_THAN]: '<',
-  [TermOperator.LESS_THAN_EQUAL]: '<=',
-  [TermOperator.NOT_EQUAL]: 'is not',
+  [TermOperatorNew.DEFAULT]: 'is',
+  [TermOperatorNew.GREATER_THAN]: '>',
+  [TermOperatorNew.GREATER_THAN_EQUAL]: '>=',
+  [TermOperatorNew.LESS_THAN]: '<',
+  [TermOperatorNew.LESS_THAN_EQUAL]: '<=',
+  [TermOperatorNew.NOT_EQUAL]: 'is not',
+  [TermOperatorNew.CONTAINS]: 'contains',
 };
 
 const DATE_OP_LABELS = {
-  [TermOperator.GREATER_THAN]: 'is after',
-  [TermOperator.GREATER_THAN_EQUAL]: 'is on or after',
-  [TermOperator.LESS_THAN]: 'is before',
-  [TermOperator.LESS_THAN_EQUAL]: 'is on or before',
-  [TermOperator.EQUAL]: 'is',
-  [TermOperator.DEFAULT]: 'is',
+  [TermOperatorNew.GREATER_THAN]: 'is after',
+  [TermOperatorNew.GREATER_THAN_EQUAL]: 'is on or after',
+  [TermOperatorNew.LESS_THAN]: 'is before',
+  [TermOperatorNew.LESS_THAN_EQUAL]: 'is on or before',
+  [TermOperatorNew.EQUAL]: 'is',
+  [TermOperatorNew.DEFAULT]: 'is',
 };
 
-const DATE_OPTIONS: TermOperator[] = [
-  TermOperator.GREATER_THAN,
-  TermOperator.GREATER_THAN_EQUAL,
-  TermOperator.LESS_THAN,
-  TermOperator.LESS_THAN_EQUAL,
-  TermOperator.EQUAL,
+const DATE_OPTIONS: TermOperatorNew[] = [
+  TermOperatorNew.GREATER_THAN,
+  TermOperatorNew.GREATER_THAN_EQUAL,
+  TermOperatorNew.LESS_THAN,
+  TermOperatorNew.LESS_THAN_EQUAL,
+  TermOperatorNew.EQUAL,
 ];
 
 function getOperatorFromDateToken(token: TokenResult<Token.FILTER>) {
   switch (token.filter) {
     case FilterType.DATE:
     case FilterType.SPECIFIC_DATE:
-      return token.operator;
+      return token.operator as unknown as TermOperatorNew;
     case FilterType.RELATIVE_DATE:
       return token.value.sign === '+'
-        ? TermOperator.LESS_THAN
-        : TermOperator.GREATER_THAN;
+        ? TermOperatorNew.LESS_THAN
+        : TermOperatorNew.GREATER_THAN;
     default:
-      return TermOperator.DEFAULT;
+      return TermOperatorNew.DEFAULT;
   }
 }
 
-function getTermOperatorFromToken(token: TokenResult<Token.FILTER>) {
+function getTermOperatorFromToken(token: TokenResult<Token.FILTER>): TermOperatorNew {
   if (token.negated) {
-    return TermOperator.NOT_EQUAL;
+    return TermOperatorNew.NOT_EQUAL;
   }
 
-  return token.operator;
+  return token.operator as unknown as TermOperatorNew;
 }
 
 function FilterKeyOperatorLabel({
@@ -107,8 +108,8 @@ function FilterKeyOperatorLabel({
 
 export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
   label: ReactNode;
-  operator: TermOperator;
-  options: Array<SelectOption<TermOperator>>;
+  operator: TermOperatorNew;
+  options: Array<SelectOption<TermOperatorNew>>;
 } {
   if (isDateToken(token)) {
     const operator = getOperatorFromDateToken(token);
@@ -118,7 +119,7 @@ export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
     return {
       operator,
       label: <OpLabel>{opLabel}</OpLabel>,
-      options: DATE_OPTIONS.map((op): SelectOption<TermOperator> => {
+      options: DATE_OPTIONS.map((op): SelectOption<TermOperatorNew> => {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         const optionOpLabel = DATE_OP_LABELS[op] ?? op;
 
@@ -139,18 +140,18 @@ export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
       label: (
         <FilterKeyOperatorLabel
           keyLabel={token.key.text}
-          opLabel={operator === TermOperator.NOT_EQUAL ? 'not' : undefined}
+          opLabel={operator === TermOperatorNew.NOT_EQUAL ? 'not' : undefined}
           includeKeyLabel
         />
       ),
       options: [
         {
-          value: TermOperator.DEFAULT,
+          value: TermOperatorNew.DEFAULT,
           label: <FilterKeyOperatorLabel keyLabel={token.key.text} includeKeyLabel />,
           textValue: 'is',
         },
         {
-          value: TermOperator.NOT_EQUAL,
+          value: TermOperatorNew.NOT_EQUAL,
           label: (
             <FilterKeyOperatorLabel
               keyLabel={token.key.text}
@@ -169,18 +170,18 @@ export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
       operator,
       label: (
         <FilterKeyOperatorLabel
-          keyLabel={operator === TermOperator.NOT_EQUAL ? 'does not have' : 'has'}
+          keyLabel={operator === TermOperatorNew.NOT_EQUAL ? 'does not have' : 'has'}
           includeKeyLabel
         />
       ),
       options: [
         {
-          value: TermOperator.DEFAULT,
+          value: TermOperatorNew.DEFAULT,
           label: <FilterKeyOperatorLabel keyLabel="has" includeKeyLabel />,
           textValue: 'has',
         },
         {
-          value: TermOperator.NOT_EQUAL,
+          value: TermOperatorNew.NOT_EQUAL,
           label: <FilterKeyOperatorLabel keyLabel="does not have" includeKeyLabel />,
           textValue: 'does not have',
         },
@@ -188,16 +189,57 @@ export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
     };
   }
 
+  // make new enum that contains all the operators and the new ones
+  // change all the places that accept the old enum to use the new one
+  // add contains to the special case for text (here)
+  // change the reducer (modifyFilterOperator in useQueryBuilderState) to use the new enum
+  // if the value is contains do things (i.e. wrap in the stars)
+  // if the value is wrapped in stars parse it out and switch to the `contains` operator from `is` operator
+
   const keyLabel = token.key.text;
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const opLabel = OP_LABELS[operator] ?? operator;
+
+  // special case for text, and add in contains option
+  if (token.filter === FilterType.TEXT || token.filter === FilterType.TEXT_IN) {
+    let isContains = false;
+    if (token.value.type === Token.VALUE_TEXT) {
+      isContains = token.value.value.startsWith('*') && token.value.value.endsWith('*');
+    } else if (token.value.type === Token.VALUE_TEXT_LIST) {
+      isContains = token.value.items.every(item => {
+        return item.value?.value.startsWith('*') && item.value?.value.endsWith('*');
+      });
+    }
+
+    return {
+      operator,
+      label: isContains ? <OpLabel>contains</OpLabel> : <OpLabel>{opLabel}</OpLabel>,
+      options: [
+        {
+          value: TermOperatorNew.DEFAULT,
+          label: <FilterKeyOperatorLabel keyLabel="is" includeKeyLabel />,
+          textValue: 'is',
+        },
+        {
+          value: TermOperatorNew.NOT_EQUAL,
+          label: <FilterKeyOperatorLabel keyLabel="is not" includeKeyLabel />,
+          textValue: 'is not',
+        },
+        {
+          value: TermOperatorNew.CONTAINS,
+          label: <FilterKeyOperatorLabel keyLabel="contains" includeKeyLabel />,
+          textValue: 'contains',
+        },
+      ],
+    };
+  }
 
   return {
     operator,
     label: <OpLabel>{opLabel}</OpLabel>,
     options: getValidOpsForFilter(token)
-      .filter(op => op !== TermOperator.EQUAL)
-      .map((op): SelectOption<TermOperator> => {
+      .filter(op => op !== TermOperatorNew.EQUAL)
+      .map((op): SelectOption<TermOperatorNew> => {
         const optionOpLabel = OP_LABELS[op] ?? op;
 
         return {
@@ -219,6 +261,11 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
 
   const onlyOperator = token.filter === FilterType.IS || token.filter === FilterType.HAS;
 
+  let isContains = false;
+  if (token.value.type === Token.VALUE_TEXT) {
+    isContains = token.value.value.startsWith('*') && token.value.value.endsWith('*');
+  }
+
   return (
     <CompactSelect
       disabled={disabled}
@@ -230,12 +277,12 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
           {...mergeProps(triggerProps, filterButtonProps)}
         >
           <InteractionStateLayer />
-          {label}
+          {isContains ? <OpLabel>contains</OpLabel> : label}
         </OpButton>
       )}
       size="sm"
       options={options}
-      value={operator}
+      value={isContains ? TermOperatorNew.CONTAINS : operator}
       onOpenChange={onOpenChange}
       onChange={option => {
         trackAnalytics('search.operator_autocompleted', {
