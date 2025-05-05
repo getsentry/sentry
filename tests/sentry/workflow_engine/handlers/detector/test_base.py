@@ -50,13 +50,13 @@ def status_change_comparator(self: StatusChangeMessage, other: StatusChangeMessa
 class MockDetectorStateHandler(StatefulGroupingDetectorHandler[dict, int | None]):
     counter_names = ["test1", "test2"]
 
-    def get_dedupe_value(self, data_packet: DataPacket[dict]) -> int:
+    def extract_dedupe_value(self, data_packet: DataPacket[dict]) -> int:
         return data_packet.packet.get("dedupe", 0)
 
-    def get_group_key_values(self, data_packet: DataPacket[dict]) -> dict[str | None, int | None]:
+    def extract_group_values(self, data_packet: DataPacket[dict]) -> dict[str | None, int | None]:
         return data_packet.packet.get("group_vals", {})
 
-    def build_occurrence_and_event_data(
+    def create_occurrence(
         self, group_key: DetectorGroupKey, new_status: PriorityLevel
     ) -> tuple[DetectorOccurrence, dict[str, Any]]:
         return build_mock_occurrence_and_event(self, group_key, new_status)
