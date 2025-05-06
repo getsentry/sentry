@@ -2217,8 +2217,8 @@ function buildRoutes() {
         component={make(() => import('sentry/views/issueList/pages/errorsOutages'))}
       />
       <Route
-        path={`${IssueTaxonomy.REGRESSIONS}/`}
-        component={make(() => import('sentry/views/issueList/pages/regressions'))}
+        path={`${IssueTaxonomy.BREACHED_METRICS}/`}
+        component={make(() => import('sentry/views/issueList/pages/breachedMetrics'))}
       />
       <Route
         path={`${IssueTaxonomy.WARNINGS}/`}

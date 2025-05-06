@@ -3,7 +3,7 @@ import {IssueCategory} from 'sentry/types/group';
 
 export enum IssueTaxonomy {
   ERRORS_AND_OUTAGES = 'errors-outages',
-  REGRESSIONS = 'regressions',
+  BREACHED_METRICS = 'breached-metrics',
   WARNINGS = 'warnings',
 }
 
@@ -20,16 +20,17 @@ export const ISSUE_TAXONOMY_CONFIG: Record<
     label: t('Errors & Outages'),
     key: 'errors-outages',
   },
-  [IssueTaxonomy.REGRESSIONS]: {
-    categories: [IssueCategory.PERFORMANCE_REGRESSION],
-    label: t('Regressions'),
-    key: 'regressions',
+  [IssueTaxonomy.BREACHED_METRICS]: {
+    categories: [IssueCategory.METRIC],
+    label: t('Breached Metrics'),
+    key: 'breached-metrics',
   },
   [IssueTaxonomy.WARNINGS]: {
     categories: [
-      IssueCategory.RESPONSIVENESS,
-      IssueCategory.USER_EXPERIENCE,
-      IssueCategory.PERFORMANCE_BEST_PRACTICE,
+      IssueCategory.DB_QUERY,
+      IssueCategory.HTTP_CLIENT,
+      IssueCategory.FRONTEND,
+      IssueCategory.MOBILE,
     ],
     label: t('Warnings'),
     key: 'warnings',
