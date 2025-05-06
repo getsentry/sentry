@@ -12,7 +12,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import {SlowSSRWidget} from 'sentry/views/insights/pages/platform/nextjs/slowSsrWidget';
+import {DeadRageClicksWidget} from 'sentry/views/insights/pages/platform/nextjs/deadRageClickWidget';
 import {WebVitalsWidget} from 'sentry/views/insights/pages/platform/nextjs/webVitalsWidget';
 import {DurationWidget} from 'sentry/views/insights/pages/platform/shared/durationWidget';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
@@ -110,7 +110,7 @@ export function NextJsOverviewPage({
           <WebVitalsWidget query={query} />
         </WebVitalsContainer>
         <QueriesContainer>
-          <SlowSSRWidget query={query} releases={releases} />
+          <DeadRageClicksWidget query={query} releases={releases} />
         </QueriesContainer>
         <CachesContainer>
           <PlaceholderWidget />
