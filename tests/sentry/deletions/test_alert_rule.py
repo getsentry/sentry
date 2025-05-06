@@ -68,7 +68,9 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
         assert not Incident.objects.filter(id=incident.id).exists()
         assert not IncidentProject.objects.filter(incident=incident, project=self.project).exists()
         assert not IncidentGroupOpenPeriod.objects.filter(
-            incident_id=incident.id, group_open_period=group_open_period
+            incident_id=incident.id,
+            incident_identifier=incident.identifier,
+            group_open_period=group_open_period,
         ).exists()
         assert not GroupOpenPeriod.objects.filter(
             project=self.project, group=group, user_id=self.user.id
