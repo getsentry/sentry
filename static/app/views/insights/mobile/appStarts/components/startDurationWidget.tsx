@@ -100,19 +100,10 @@ function StartDurationWidget({additionalFilters, chartHeight}: Props) {
     'api.starfish.mobile-startup-series'
   );
 
-  const series = data[0] ?? {};
-
-  // The expected response is a multi series response, but if there is no data
-  // then we get an object representing a single series with all empty values
-  // (i.e without being grouped by release)
-  const hasReleaseData = series && data.length > 0;
-
   // Only transform the data is we know there's at least one release
-  const transformedSeries = hasReleaseData
-    ? data.sort((releaseA, _releaseB) =>
-        releaseA.seriesName === primaryRelease ? -1 : 1
-      )
-    : [];
+  const sortedSeries = data.sort((releaseA, _releaseB) =>
+    releaseA.seriesName === primaryRelease ? -1 : 1
+  );
 
   return (
     <MiniChartPanel
@@ -130,7 +121,7 @@ function StartDurationWidget({additionalFilters, chartHeight}: Props) {
       }
     >
       <Chart
-        data={transformedSeries}
+        data={sortedSeries}
         height={chartHeight}
         loading={isSeriesLoading}
         grid={{
