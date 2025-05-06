@@ -84,7 +84,7 @@ export function formatFilterValue(token: TokenResult<Token.FILTER>['value']): st
         return token.text;
       }
 
-      if (token.text.startsWith('*') && token.text.endsWith('*')) {
+      if (token.contains) {
         const newToken = token.text.slice(1, -1);
         return token.quoted ? unescapeTagValue(newToken) : newToken;
       }
