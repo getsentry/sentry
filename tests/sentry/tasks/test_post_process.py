@@ -2486,7 +2486,7 @@ class KickOffSeerAutomationTestMixin(BasePostProgressGroupMixin):
             event=event,
         )
 
-        mock_start_seer_automation.assert_called_once_with(event.group)
+        mock_start_seer_automation.assert_called_once_with(event.group.id)
 
     @patch("sentry.tasks.autofix.start_seer_automation.delay")
     def test_kick_off_seer_automation_without_org_feature(self, mock_start_seer_automation):
