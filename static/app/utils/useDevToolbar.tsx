@@ -19,7 +19,6 @@ export default function useDevToolbar(organization: null | Organization) {
       projectIdOrSlug: 'javascript',
       environment: 'prod',
       theme: config.theme,
-      debug: 'logging,login-success,settings',
       featureFlags: organization ? getFlagpoleAdapter(organization) : undefined,
     },
   });
