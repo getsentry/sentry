@@ -49,6 +49,14 @@ class DetectorStateData:
     counter_updates: dict[str, int | None]
 
 
+class DetectorStateManager:
+    """
+    Move the SQL + Redis state here, out of the `StatefulGroupingDetectorHandler`.
+    """
+
+    pass
+
+
 class StatefulGroupingDetectorHandler(
     Generic[DataPacketType, DataPacketEvaluationType],
     DetectorHandler[DataPacketType],
@@ -71,8 +79,10 @@ class StatefulGroupingDetectorHandler(
     @abc.abstractmethod
     def extract_dedupe_value(self, data_packet: DataPacket[DataPacketType]) -> int:
         """
-        Extracts the deduplication value from a passed data packet.
-        This is normally a timestamp.
+        Extracts the deduplication value from a passed data packet. This duplication
+        value is used to determine if we've already processed data to this point or not.
+
+        This is normally a timestamp, but could be any sortable value; (e.g. a sequence number, timestamp, etc).
         """
         pass
 
