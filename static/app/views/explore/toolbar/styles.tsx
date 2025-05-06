@@ -44,7 +44,7 @@ export const ToolbarRow = styled('div')`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  gap: ${space(0.5)};
+  gap: ${space(1)};
 
   :not(:last-child) {
     margin-bottom: ${space(0.5)};
