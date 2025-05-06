@@ -7,7 +7,6 @@ from django.db import router, transaction
 from django.db.models import Q
 
 from sentry import buffer, features
-from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.eventstore.models import GroupEvent
 from sentry.models.environment import Environment
 from sentry.utils import json, metrics
@@ -15,6 +14,7 @@ from sentry.workflow_engine.models import (
     Action,
     DataCondition,
     DataConditionGroup,
+    DataConditionGroupAction,
     Detector,
     Workflow,
     WorkflowFireHistory,
@@ -124,7 +124,7 @@ def evaluate_workflow_triggers(
 def evaluate_workflows_action_filters(
     workflows: set[Workflow],
     event_data: WorkflowEventData,
-) -> BaseQuerySet[Action]:
+) -> set[DataConditionGroup]:
     filtered_action_groups: set[DataConditionGroup] = set()
 
     # Gets the list of the workflow ids, and then get the workflow_data_condition_groups for those workflows
@@ -168,7 +168,7 @@ def evaluate_workflows_action_filters(
             if evaluation:
                 filtered_action_groups.add(action_condition)
 
-    return filter_recently_fired_workflow_actions(filtered_action_groups, event_data)
+    return filtered_action_groups
 
 
 def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
@@ -258,7 +258,12 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
     with sentry_sdk.start_span(
         op="workflow_engine.process_workflows.evaluate_workflows_action_filters"
     ):
-        actions = evaluate_workflows_action_filters(triggered_workflows, event_data)
+        action_data_condition_groups = evaluate_workflows_action_filters(
+            triggered_workflows, event_data
+        )
+        action_workflow_lookup = build_action_workflow_lookup(action_data_condition_groups)
+        actions = filter_recently_fired_workflow_actions(action_data_condition_groups, event_data)
+
         metrics.incr(
             "workflow_engine.process_workflows.actions",
             amount=len(actions),
@@ -280,7 +285,11 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
             organization,
         ):
             for action in actions:
-                action.trigger(event_data, detector)
+                action_event_data = replace(
+                    event_data,
+                    workflow_id=action_workflow_lookup.get(action.id),
+                )
+                action.trigger(action_event_data, detector)
 
         metrics.incr(
             "workflow_engine.process_workflows.triggered_actions",
@@ -297,3 +306,17 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
         )
 
     return triggered_workflows
+
+
+def build_action_workflow_lookup(
+    action_data_condition_groups: set[DataConditionGroup],
+) -> dict[int, int]:
+    action_workflow_lookup: dict[int, int] = {}
+    # fetch all actions via the DataConditionGroupAction model
+    data_condition_group_actions = DataConditionGroupAction.objects.filter(
+        condition_group__in=action_data_condition_groups
+    ).values_list("action_id", "condition_group__workflowdataconditiongroup__workflow_id")
+
+    for action_id, workflow_id in data_condition_group_actions:
+        action_workflow_lookup[action_id] = workflow_id
+    return action_workflow_lookup

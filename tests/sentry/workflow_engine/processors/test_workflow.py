@@ -23,6 +23,7 @@ from sentry.workflow_engine.models import (
     WorkflowFireHistory,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
 from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
     WorkflowDataConditionGroupType,
@@ -531,7 +532,12 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         self.event_data = WorkflowEventData(event=self.group_event)
 
     def test_basic__no_filter(self):
-        triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.event_data)
+        action_data_condition_groups = evaluate_workflows_action_filters(
+            {self.workflow}, self.event_data
+        )
+        triggered_actions = filter_recently_fired_workflow_actions(
+            action_data_condition_groups, self.event_data
+        )
         assert set(triggered_actions) == {self.action}
 
     def test_basic__with_filter__passes(self):
@@ -542,7 +548,12 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
             condition_result=True,
         )
 
-        triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.event_data)
+        action_data_condition_groups = evaluate_workflows_action_filters(
+            {self.workflow}, self.event_data
+        )
+        triggered_actions = filter_recently_fired_workflow_actions(
+            action_data_condition_groups, self.event_data
+        )
         assert set(triggered_actions) == {self.action}
 
     def test_basic__with_filter__filtered(self):
@@ -553,7 +564,12 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
             comparison=self.detector.id + 1,
         )
 
-        triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.event_data)
+        action_data_condition_groups = evaluate_workflows_action_filters(
+            {self.workflow}, self.event_data
+        )
+        triggered_actions = filter_recently_fired_workflow_actions(
+            action_data_condition_groups, self.event_data
+        )
         assert not triggered_actions
 
     def test_with_slow_conditions(self):
@@ -631,8 +647,11 @@ class TestWorkflowFireHistory(BaseWorkflowTest):
 
         create_workflow_fire_histories({self.workflow, workflow}, self.event_data)
 
-        triggered_actions = evaluate_workflows_action_filters(
+        action_data_condition_groups = evaluate_workflows_action_filters(
             {self.workflow, workflow}, self.event_data
+        )
+        triggered_actions = filter_recently_fired_workflow_actions(
+            action_data_condition_groups, self.event_data
         )
         assert set(triggered_actions) == {self.action}
 

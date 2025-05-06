@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import timedelta
 from typing import Any
 
@@ -49,6 +49,7 @@ from sentry.workflow_engine.processors.data_condition_group import evaluate_data
 from sentry.workflow_engine.processors.detector import get_detector_by_event
 from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
+    build_action_workflow_lookup,
     create_workflow_fire_histories,
     evaluate_workflows_action_filters,
 )
@@ -413,6 +414,8 @@ def fire_actions_for_groups(
             elif dcg.id in trigger_group_to_dcg_model[DataConditionHandler.Group.ACTION_FILTER]:
                 action_filters.add(dcg)
 
+        action_workflow_lookup = build_action_workflow_lookup(action_filters)
+
         # process action filters
         filtered_actions = filter_recently_fired_workflow_actions(action_filters, event_data)
 
@@ -421,8 +424,10 @@ def fire_actions_for_groups(
 
         # create WorkflowFireHistory (updated in evaluate_workflows_action_filters)
         create_workflow_fire_histories(workflows, event_data)
+
+        action_data_condition_groups = evaluate_workflows_action_filters(workflows, event_data)
         filtered_actions = filtered_actions.union(
-            evaluate_workflows_action_filters(workflows, event_data)
+            filter_recently_fired_workflow_actions(action_data_condition_groups, event_data)
         )
 
         # temporary fetching of organization, so not passing in as parameter
@@ -448,7 +453,11 @@ def fire_actions_for_groups(
             organization,
         ):
             for action in filtered_actions:
-                action.trigger(event_data, detector)
+                action_event_data = replace(
+                    event_data,
+                    workflow_id=action_workflow_lookup.get(action.id),
+                )
+                action.trigger(action_event_data, detector)
 
 
 def cleanup_redis_buffer(
