@@ -14,7 +14,7 @@ def mock_options(set_sentry_option):
             {
                 "vertex": {
                     "models": ["vertex-1.0"],
-                    "options": {"project": "my-gcp-project", "location": "us-central1"},
+                    "options": {"gcp_project": "my-gcp-project", "gcp_location": "us-central1"},
                 }
             },
         ),

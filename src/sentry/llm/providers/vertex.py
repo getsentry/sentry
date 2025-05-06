@@ -60,8 +60,8 @@ class VertexProvider(LlmModelBase):
     def _create_genai_client(self):
         return genai.Client(
             vertexai=True,
-            project=self.provider_config["options"]["project"],
-            location=self.provider_config["options"]["location"],
+            project=self.provider_config["options"]["gcp_project"],
+            location=self.provider_config["options"]["gcp_location"],
             http_options=HttpOptions(api_version="v1"),
         )
 
