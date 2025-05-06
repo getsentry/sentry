@@ -65,6 +65,7 @@ OPTION_KEYS = frozenset(
         "sentry:breakdowns",
         "sentry:transaction_name_cluster_rules",
         "sentry:uptime_autodetection",
+        "sentry:autofix_automation_tuning",
         "quotas:spike-protection-disabled",
         "feedback:branding",
         "digests:mail:minimum_delay",
