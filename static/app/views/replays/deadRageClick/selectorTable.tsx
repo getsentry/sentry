@@ -186,7 +186,7 @@ export function SelectorLink({
   return (
     <StyledTextOverflow>
       <WiderHovercard position="right" body={hovercardContent}>
-        <Link
+        <StyledLink
           to={{
             pathname,
             query: {
@@ -198,7 +198,7 @@ export function SelectorLink({
           }}
         >
           <TextOverflow>{value}</TextOverflow>
-        </Link>
+        </StyledLink>
       </WiderHovercard>
     </StyledTextOverflow>
   );
@@ -222,6 +222,10 @@ const ClickCount = styled(TextOverflow)`
   gap: ${space(0.75)};
   align-items: center;
   justify-content: start;
+`;
+
+const StyledLink = styled(Link)`
+  min-width: 0;
 `;
 
 const StyledTextOverflow = styled(TextOverflow)`
