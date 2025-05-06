@@ -18,6 +18,22 @@ describe('SamplesTables', () => {
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
+          referrer: 'api.starfish.get-span-operations',
+        }),
+      ],
+      body: {
+        data: [{'span.op': 'app.start.cold', 'count()': 1996}],
+        meta: {
+          fields: {'span.op': 'string', 'count()': 'integer'},
+        },
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/events/`,
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
           referrer: 'api.insights.user-geo-subregion-selector',
         }),
       ],
