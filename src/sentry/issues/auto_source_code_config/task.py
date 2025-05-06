@@ -66,9 +66,15 @@ def process_event(
         "event_id": event_id,
     }
 
-    event = eventstore.backend.get_event_by_id(project_id, event_id, group_id)
-    if event is None:
-        logger.error("Event not found.", extra=extra)
+    try:
+        event = eventstore.backend.get_event_by_id(project_id, event_id, group_id)
+        assert event is not None
+    except Exception:
+        metrics.incr(
+            key=f"{METRIC_PREFIX}.failure",
+            tags={"reason": "event_fetching_failed"},
+            sample_rate=1.0,
+        )
         return [], []
 
     platform = event.platform
