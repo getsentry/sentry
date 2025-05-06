@@ -48,7 +48,7 @@ import UsageChart, {
 import UsageStatsPerMin from './usageStatsPerMin';
 import {isContinuousProfiling, isDisplayUtc} from './utils';
 
-export type ChartData = {
+type ChartData = {
   cardStats: {
     accepted?: string;
     accepted_stored?: string;
