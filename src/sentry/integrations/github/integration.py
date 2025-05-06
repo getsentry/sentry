@@ -16,7 +16,7 @@ from django.utils.translation import gettext_lazy as _
 from sentry import features, options
 from sentry.constants import ObjectStatus
 from sentry.http import safe_urlopen, safe_urlread
-from sentry.identity.github.provider import GitHubIdentityProvider
+from sentry.identity.github.provider import GitHubIdentityProvider, get_user_info
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -28,7 +28,6 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
 from sentry.integrations.github.tasks.link_all_repos import link_all_repos
-from sentry.integrations.github.utils import get_pre_integration_installation_info, get_user_info
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
@@ -60,7 +59,7 @@ from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import determine_active_organization
 from sentry.web.helpers import render_to_response
 
-from .client import GitHubApiClient, GitHubBaseClient
+from .client import GitHubApiClient, GitHubBaseClient, GithubSetupApiClient
 from .issues import GitHubIssuesSpec
 from .repository import GitHubRepositoryProvider
 
@@ -426,6 +425,10 @@ class GitHubIntegrationProvider(IntegrationProvider):
 
     setup_dialog_config = {"width": 1030, "height": 1000}
 
+    @property
+    def client(self):
+        return GithubSetupApiClient()
+
     def post_install(
         self,
         integration: Integration,
@@ -460,9 +463,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
         return [OAuthLoginView(), GitHubInstallation()]
 
     def get_installation_info(self, installation_id: str) -> Mapping[str, Any]:
-        resp: Mapping[str, Any] = get_pre_integration_installation_info(
-            installation_id=installation_id
-        )
+        resp: Mapping[str, Any] = self.client.get_installation_info(installation_id=installation_id)
         return resp
 
     def build_integration(self, state: Mapping[str, str]) -> IntegrationData:

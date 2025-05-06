@@ -55,8 +55,36 @@ class GithubRateLimitInfo:
         return f"GithubRateLimitInfo(limit={self.limit},rem={self.remaining},reset={self.reset})"
 
 
+class GithubSetupApiClient(IntegrationProxyClient):
+    """
+    API Client that doesn't require an installation.
+    This client is used during integration setup to fetch data
+    needed to build installation metadata
+    """
+
+    base_url = "https://api.github.com"
+    integration_name = "github_setup"
+
+    def __init__(self, verify_ssl: bool = True):
+        super().__init__(verify_ssl=verify_ssl)
+        self.jwt = get_jwt()
+
+    @control_silo_function
+    def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
+
+        prepared_request.headers["Authorization"] = f"Bearer {self.jwt}"
+        prepared_request.headers["Accept"] = "application/vnd.github+json"
+        return prepared_request
+
+    def get_installation_info(self, installation_id: int | str) -> dict[str, Any]:
+        """
+        https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-an-installation-for-the-authenticated-app
+        """
+        return self.get(f"/app/installations/{installation_id}")
+
+
 class GithubProxyClient(IntegrationProxyClient):
-    integration: Integration  # late init
+    integration: Integration | RpcIntegration  # late init
 
     def _get_installation_id(self) -> str:
         """
