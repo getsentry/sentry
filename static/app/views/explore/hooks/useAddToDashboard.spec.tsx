@@ -53,38 +53,13 @@ describe('AddToDashboardButton', () => {
             {
               aggregates: ['count(span.duration)'],
               columns: [],
-              fields: ['count(span.duration)'],
+              fields: [],
               conditions: '',
-              orderby: '-timestamp',
+              orderby: '',
               name: '',
             },
           ],
         },
-
-        // For Open in Widget Builder
-        widgetAsQueryParams: expect.objectContaining({
-          dataset: WidgetType.SPANS,
-          defaultTableColumns: [
-            'id',
-            'span.op',
-            'span.description',
-            'span.duration',
-            'transaction',
-            'timestamp',
-          ],
-          defaultTitle: 'Custom Widget',
-          defaultWidgetQuery:
-            'name=&aggregates=count(span.duration)&columns=&fields=count(span.duration)&conditions=&orderby=-timestamp',
-          displayType: DisplayType.BAR,
-          field: [
-            'id',
-            'span.op',
-            'span.description',
-            'span.duration',
-            'transaction',
-            'timestamp',
-          ],
-        }),
       })
     );
   });
@@ -140,38 +115,13 @@ describe('AddToDashboardButton', () => {
               {
                 aggregates: ['max(span.duration)'],
                 columns: [],
-                fields: ['max(span.duration)'],
+                fields: [],
                 conditions: '',
-                orderby: '-timestamp',
+                orderby: '',
                 name: '',
               },
             ],
           },
-
-          // For Open in Widget Builder
-          widgetAsQueryParams: expect.objectContaining({
-            dataset: WidgetType.SPANS,
-            defaultTableColumns: [
-              'id',
-              'span.op',
-              'span.description',
-              'span.duration',
-              'transaction',
-              'timestamp',
-            ],
-            defaultTitle: 'Custom Widget',
-            defaultWidgetQuery:
-              'name=&aggregates=max(span.duration)&columns=&fields=max(span.duration)&conditions=&orderby=-timestamp',
-            displayType: expectedDisplayType,
-            field: [
-              'id',
-              'span.op',
-              'span.description',
-              'span.duration',
-              'transaction',
-              'timestamp',
-            ],
-          }),
         })
       );
     }
@@ -213,38 +163,13 @@ describe('AddToDashboardButton', () => {
             {
               aggregates: ['max(span.duration)'],
               columns: [],
-              fields: ['max(span.duration)'],
+              fields: [],
               conditions: '',
-              orderby: '-timestamp',
+              orderby: '',
               name: '',
             },
           ],
         },
-
-        // For Open in Widget Builder
-        widgetAsQueryParams: expect.objectContaining({
-          dataset: WidgetType.SPANS,
-          defaultTableColumns: [
-            'id',
-            'span.op',
-            'span.description',
-            'span.duration',
-            'transaction',
-            'timestamp',
-          ],
-          defaultTitle: 'Custom Widget',
-          defaultWidgetQuery:
-            'name=&aggregates=max(span.duration)&columns=&fields=max(span.duration)&conditions=&orderby=-timestamp',
-          displayType: DisplayType.LINE,
-          field: [
-            'id',
-            'span.op',
-            'span.description',
-            'span.duration',
-            'transaction',
-            'timestamp',
-          ],
-        }),
       })
     );
   });
@@ -273,24 +198,13 @@ describe('AddToDashboardButton', () => {
             {
               aggregates: ['count(span.duration)'],
               columns: [],
-              fields: ['count(span.duration)'],
+              fields: [],
               conditions: '',
               orderby: '-count(span.duration)',
               name: '',
             },
           ],
         },
-
-        // For Open in Widget Builder
-        widgetAsQueryParams: expect.objectContaining({
-          dataset: WidgetType.SPANS,
-          defaultTableColumns: ['count(span.duration)'],
-          defaultTitle: 'Custom Widget',
-          defaultWidgetQuery:
-            'name=&aggregates=count(span.duration)&columns=&fields=count(span.duration)&conditions=&orderby=-count(span.duration)',
-          displayType: DisplayType.BAR,
-          field: ['count(span.duration)'],
-        }),
       })
     );
   });
@@ -336,28 +250,13 @@ describe('AddToDashboardButton', () => {
                 'min(span.duration)',
               ],
               columns: [],
-              fields: ['avg(span.duration)', 'max(span.duration)', 'min(span.duration)'],
+              fields: [],
               conditions: '',
               orderby: '-avg(span.duration)',
               name: '',
             },
           ],
         },
-
-        // For Open in Widget Builder
-        widgetAsQueryParams: expect.objectContaining({
-          dataset: WidgetType.SPANS,
-          defaultTableColumns: [
-            'avg(span.duration)',
-            'max(span.duration)',
-            'min(span.duration)',
-          ],
-          defaultTitle: 'Custom Widget',
-          defaultWidgetQuery:
-            'name=&aggregates=avg(span.duration)%2Cmax(span.duration)%2Cmin(span.duration)&columns=&fields=avg(span.duration)%2Cmax(span.duration)%2Cmin(span.duration)&conditions=&orderby=-avg(span.duration)',
-          displayType: DisplayType.LINE,
-          field: ['avg(span.duration)', 'max(span.duration)', 'min(span.duration)'],
-        }),
       })
     );
   });

@@ -319,6 +319,21 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             internal_name="sentry.sampling_factor",
             search_type="number",
         ),
+        ResolvedAttribute(
+            public_alias="code.lineno",
+            internal_name="code.lineno",
+            search_type="number",
+        ),
+        ResolvedAttribute(
+            public_alias="app_start_type",
+            internal_name="sentry.app_start_type",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="ttid",
+            internal_name="sentry.ttid",
+            search_type="string",
+        ),
         simple_sentry_field("browser.name"),
         simple_sentry_field("device.family"),
         simple_sentry_field("device.arch"),

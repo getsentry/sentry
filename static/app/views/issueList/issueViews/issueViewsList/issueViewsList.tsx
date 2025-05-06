@@ -8,6 +8,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
 import Redirect from 'sentry/components/redirect';
 import SearchBar from 'sentry/components/searchBar';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconMegaphone, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -253,111 +254,115 @@ export default function IssueViewsList() {
     useCreateGroupSearchView();
   const defaultProject = useDefaultProject();
 
-  if (!organization.features.includes('issue-view-sharing')) {
+  if (!organization.features.includes('enforce-stacked-navigation')) {
     return <Redirect to={`/organizations/${organization.slug}/issues/`} />;
   }
 
   return (
-    <Layout.Page>
-      <Layout.Header unified>
-        <Layout.HeaderContent>
-          <Layout.Title>{t('All Views')}</Layout.Title>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <ButtonBar gap={1}>
-            {openFeedbackForm ? (
+    <SentryDocumentTitle title={t('All Views')} orgSlug={organization.slug}>
+      <Layout.Page>
+        <Layout.Header unified>
+          <Layout.HeaderContent>
+            <Layout.Title>{t('All Views')}</Layout.Title>
+          </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              {openFeedbackForm ? (
+                <Button
+                  icon={<IconMegaphone />}
+                  size="sm"
+                  onClick={() => {
+                    openFeedbackForm({
+                      formTitle: t('Give Feedback'),
+                      messagePlaceholder: t(
+                        'How can we make issue views better for you?'
+                      ),
+                      tags: {
+                        ['feedback.source']: 'custom_views',
+                        ['feedback.owner']: 'issues',
+                      },
+                    });
+                  }}
+                >
+                  {t('Give Feedback')}
+                </Button>
+              ) : null}
               <Button
-                icon={<IconMegaphone />}
+                priority="primary"
+                icon={<IconAdd />}
                 size="sm"
+                disabled={isCreatingView}
+                busy={isCreatingView}
                 onClick={() => {
-                  openFeedbackForm({
-                    formTitle: t('Give Feedback'),
-                    messagePlaceholder: t('How can we make issue views better for you?'),
-                    tags: {
-                      ['feedback.source']: 'custom_views',
-                      ['feedback.owner']: 'issues',
-                    },
+                  trackAnalytics('issue_views.table.create_view_clicked', {
+                    organization,
                   });
+                  createGroupSearchView(
+                    {
+                      name: t('New View'),
+                      query: 'is:unresolved',
+                      projects: defaultProject,
+                      environments: DEFAULT_ENVIRONMENTS,
+                      timeFilters: DEFAULT_TIME_FILTERS,
+                      querySort: IssueSortOptions.DATE,
+                      starred: true,
+                    },
+                    {
+                      onSuccess: data => {
+                        navigate({
+                          pathname: normalizeUrl(
+                            `/organizations/${organization.slug}/issues/views/${data.id}/`
+                          ),
+                          query: {
+                            ...getIssueViewQueryParams({view: data}),
+                            new: 'true',
+                          },
+                        });
+                      },
+                    }
+                  );
                 }}
               >
-                {t('Give Feedback')}
+                {t('Create View')}
               </Button>
-            ) : null}
-            <Button
-              priority="primary"
-              icon={<IconAdd />}
-              size="sm"
-              disabled={isCreatingView}
-              busy={isCreatingView}
-              onClick={() => {
-                trackAnalytics('issue_views.table.create_view_clicked', {
-                  organization,
-                });
-                createGroupSearchView(
-                  {
-                    name: t('New View'),
-                    query: 'is:unresolved',
-                    projects: defaultProject,
-                    environments: DEFAULT_ENVIRONMENTS,
-                    timeFilters: DEFAULT_TIME_FILTERS,
-                    querySort: IssueSortOptions.DATE,
-                    starred: true,
-                  },
-                  {
-                    onSuccess: data => {
-                      navigate({
-                        pathname: normalizeUrl(
-                          `/organizations/${organization.slug}/issues/views/${data.id}/`
-                        ),
-                        query: {
-                          ...getIssueViewQueryParams({view: data}),
-                          new: 'true',
-                        },
-                      });
-                    },
-                  }
-                );
-              }}
-            >
-              {t('Create View')}
-            </Button>
-          </ButtonBar>
-        </Layout.HeaderActions>
-      </Layout.Header>
-      <Layout.Body>
-        <MainTableLayout fullWidth>
-          <FilterSortBar>
-            <SearchBar
-              defaultQuery={query}
-              onSearch={newQuery => {
-                navigate({
-                  pathname: location.pathname,
-                  query: {...location.query, query: newQuery},
-                });
-                trackAnalytics('issue_views.table.search', {
-                  organization,
-                  query: newQuery,
-                });
-              }}
-              placeholder={t('Search views by name or query')}
+            </ButtonBar>
+          </Layout.HeaderActions>
+        </Layout.Header>
+        <Layout.Body>
+          <MainTableLayout fullWidth>
+            <FilterSortBar>
+              <SearchBar
+                defaultQuery={query}
+                onSearch={newQuery => {
+                  navigate({
+                    pathname: location.pathname,
+                    query: {...location.query, query: newQuery},
+                  });
+                  trackAnalytics('issue_views.table.search', {
+                    organization,
+                    query: newQuery,
+                  });
+                }}
+                placeholder={t('Search views by name or query')}
+              />
+              <SortDropdown />
+            </FilterSortBar>
+            <TableHeading>{t('My Views')}</TableHeading>
+            <IssueViewSection
+              createdBy={GroupSearchViewCreatedBy.ME}
+              limit={20}
+              cursorQueryParam="mc"
             />
-            <SortDropdown />
-          </FilterSortBar>
-          <TableHeading>{t('My Views')}</TableHeading>
-          <IssueViewSection
-            createdBy={GroupSearchViewCreatedBy.ME}
-            limit={20}
-            cursorQueryParam="mc"
-          />
-          <TableHeading>{t('Created by Others')}</TableHeading>
-          <IssueViewSection
-            createdBy={GroupSearchViewCreatedBy.OTHERS}
-            limit={20}
-            cursorQueryParam="sc"
-          />
-        </MainTableLayout>
-      </Layout.Body>
-    </Layout.Page>
+            <TableHeading>{t('Created by Others')}</TableHeading>
+            <IssueViewSection
+              createdBy={GroupSearchViewCreatedBy.OTHERS}
+              limit={20}
+              cursorQueryParam="sc"
+            />
+          </MainTableLayout>
+        </Layout.Body>
+      </Layout.Page>
+    </SentryDocumentTitle>
   );
 }
 

@@ -2,6 +2,7 @@ import abc
 import dataclasses
 import logging
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Generic, TypeVar
 
@@ -13,7 +14,16 @@ from sentry.workflow_engine.models import DataConditionGroup, DataPacket, Detect
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
-T = TypeVar("T")
+
+PacketT = TypeVar("PacketT")
+EvidenceValueT = TypeVar("EvidenceValueT")
+
+
+@dataclass
+class EvidenceData(Generic[EvidenceValueT]):
+    value: EvidenceValueT
+    detector_id: int
+    data_condition_ids: list[int]
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
@@ -87,7 +97,7 @@ class DetectorStateData:
     counter_updates: dict[str, int | None]
 
 
-class DetectorHandler(abc.ABC, Generic[T]):
+class DetectorHandler(abc.ABC, Generic[PacketT]):
     def __init__(self, detector: Detector):
         self.detector = detector
         if detector.workflow_condition_group_id is not None:
@@ -107,7 +117,7 @@ class DetectorHandler(abc.ABC, Generic[T]):
 
     @abc.abstractmethod
     def evaluate(
-        self, data_packet: DataPacket[T]
+        self, data_packet: DataPacket[PacketT]
     ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
         pass
 

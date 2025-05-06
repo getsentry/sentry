@@ -10,6 +10,13 @@ from requests import RequestException
 from requests.models import Response
 
 from sentry.sentry_apps.external_requests.utils import send_and_save_sentry_app_request
+from sentry.sentry_apps.metrics import (
+    SentryAppEventType,
+    SentryAppExternalRequestFailureReason,
+    SentryAppExternalRequestHaltReason,
+    SentryAppInteractionEvent,
+    SentryAppInteractionType,
+)
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
 from sentry.sentry_apps.utils.errors import SentryAppErrorType
@@ -17,6 +24,8 @@ from sentry.utils import json
 
 DEFAULT_SUCCESS_MESSAGE = "Success!"
 DEFAULT_ERROR_MESSAGE = "Something went wrong!"
+FAILURE_REASON_BASE = f"{SentryAppEventType.ALERT_RULE_ACTION_REQUESTED}.{{}}"
+
 
 logger = logging.getLogger("sentry.sentry_apps.external_requests")
 
@@ -38,41 +47,60 @@ class SentryAppAlertRuleActionRequester:
     http_method: str | None = "POST"
 
     def run(self) -> SentryAppAlertRuleActionResult:
-        try:
-            response = send_and_save_sentry_app_request(
-                url=self._build_url(),
-                sentry_app=self.sentry_app,
-                org_id=self.install.organization_id,
-                event="alert_rule_action.requested",
-                headers=self._build_headers(),
-                method=self.http_method,
-                data=self.body,
-            )
-
-        except RequestException as e:
-
-            error_type = "alert_rule_action.error"
-            extras = {
-                "sentry_app_slug": self.sentry_app.slug,
-                "installation_uuid": self.install.uuid,
+        event = SentryAppEventType.ALERT_RULE_ACTION_REQUESTED
+        with SentryAppInteractionEvent(
+            operation_type=SentryAppInteractionType.EXTERNAL_REQUEST,
+            event_type=event,
+        ).capture() as lifecycle:
+            extras: dict[str, Any] = {
                 "uri": self.uri,
-                "error_message": str(e),
+                "installation_uuid": self.install.uuid,
+                "sentry_app_slug": self.sentry_app.slug,
             }
-            logger.info(
-                error_type,
-                extra={**extras},
-            )
+            try:
+
+                response = send_and_save_sentry_app_request(
+                    url=self._build_url(),
+                    sentry_app=self.sentry_app,
+                    org_id=self.install.organization_id,
+                    event=event,
+                    headers=self._build_headers(),
+                    method=self.http_method,
+                    data=self.body,
+                )
+
+            except RequestException as e:
+                halt_reason = FAILURE_REASON_BASE.format(
+                    SentryAppExternalRequestHaltReason.BAD_RESPONSE
+                )
+                lifecycle.record_halt(halt_reason=e, extra={"halt_reason": halt_reason, **extras})
+
+                return SentryAppAlertRuleActionResult(
+                    success=False,
+                    message=self._get_response_message(e.response, DEFAULT_ERROR_MESSAGE),
+                    error_type=SentryAppErrorType.INTEGRATOR,
+                    webhook_context={"error_type": halt_reason, **extras},
+                    status_code=500,
+                )
+            except Exception as e:
+                failure_reason = FAILURE_REASON_BASE.format(
+                    SentryAppExternalRequestFailureReason.UNEXPECTED_ERROR
+                )
+                lifecycle.record_failure(
+                    failure_reason=e, extra={"failure_reason": failure_reason, **extras}
+                )
+
+                return SentryAppAlertRuleActionResult(
+                    success=False,
+                    message=DEFAULT_ERROR_MESSAGE,
+                    error_type=SentryAppErrorType.SENTRY,
+                    webhook_context={"error_type": failure_reason, **extras},
+                    status_code=500,
+                )
 
             return SentryAppAlertRuleActionResult(
-                success=False,
-                message=self._get_response_message(e.response, DEFAULT_ERROR_MESSAGE),
-                error_type=SentryAppErrorType.INTEGRATOR,
-                webhook_context={"error_type": "alert_rule_action.error", **extras},
-                status_code=500,
+                success=True, message=self._get_response_message(response, DEFAULT_SUCCESS_MESSAGE)
             )
-        return SentryAppAlertRuleActionResult(
-            success=True, message=self._get_response_message(response, DEFAULT_SUCCESS_MESSAGE)
-        )
 
     def _build_url(self) -> str:
         urlparts = list(urlparse(self.sentry_app.webhook_url))

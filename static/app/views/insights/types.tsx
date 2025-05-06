@@ -71,7 +71,28 @@ export enum SpanFields {
   IS_TRANSACTION = 'is_transaction',
   CACHE_HIT = 'cache.hit',
   IS_STARRED_TRANSACTION = 'is_starred_transaction',
+  SPAN_DURATION = 'span.duration',
+  USER = 'user',
+  MOBILE_FROZEN_FRAMES = 'mobile.frozen_frames',
+  MOBILE_TOTAL_FRAMES = 'mobile.total_frames',
+  MOBILE_SLOW_FRAMES = 'mobile.slow_frames',
+  FROZEN_FRAMES_RATE = 'measurements.frames_frozen_rate',
+  SLOW_FRAMES_RATE = 'measurements.frames_slow_rate',
+  RAW_DOMAIN = 'raw_domain',
+  PROJECT = 'project',
+  MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH = 'measurements.http.response_content_length',
+  SPAN_DESCRIPTION = 'span.description',
+  SPAN_GROUP = 'span.group',
+  SPAN_OP = 'span.op',
 }
+
+type WebVitalsMeasurements =
+  | 'measurements.score.cls'
+  | 'measurements.score.fcp'
+  | 'measurements.score.inp'
+  | 'measurements.score.lcp'
+  | 'measurements.score.ttfb'
+  | 'measurements.score.total';
 
 type SpanBooleanFields =
   | SpanFields.CACHE_HIT
@@ -94,10 +115,18 @@ type SpanNumberFields =
   | SpanMetricsField.MOBILE_FROZEN_FRAMES
   | SpanMetricsField.MOBILE_TOTAL_FRAMES
   | SpanMetricsField.MOBILE_SLOW_FRAMES
+  | SpanMetricsField.SPAN_DURATION
+  | SpanFields.MOBILE_FROZEN_FRAMES
+  | SpanFields.MOBILE_TOTAL_FRAMES
+  | SpanFields.MOBILE_SLOW_FRAMES
+  | SpanFields.FROZEN_FRAMES_RATE
+  | SpanFields.SLOW_FRAMES_RATE
+  | SpanFields.MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH
   | DiscoverNumberFields;
 
 type SpanStringFields =
   | SpanMetricsField.RESOURCE_RENDER_BLOCKING_STATUS
+  | SpanFields.RAW_DOMAIN
   | 'id'
   | 'span_id'
   | 'span.op'
@@ -150,9 +179,19 @@ export type Aggregate =
   | (typeof COUNTER_AGGREGATES)[number]
   | (typeof DISTRIBUTION_AGGREGATES)[number];
 
+type CounterConditionalAggregate =
+  | `sum_if`
+  | `avg_if`
+  | `p50_if`
+  | `p75_if`
+  | `p90_if`
+  | `p95_if`
+  | `p99_if`;
+
 type ConditionalAggregate =
   | `avg_if`
   | `count_op`
+  | `failure_rate_if`
   | 'trace_status_rate'
   | 'time_spent_percentage';
 
@@ -160,6 +199,7 @@ export const SPAN_FUNCTIONS = [
   'sps',
   'spm',
   'epm',
+  'tpm',
   'count',
   'time_spent_percentage',
   'http_response_rate',
@@ -169,6 +209,8 @@ export const SPAN_FUNCTIONS = [
   'sum',
   'failure_rate',
 ] as const;
+
+export const WEB_VITAL_FUNCTIONS = ['performance_score', 'count_scores'] as const;
 
 type BreakpointCondition = 'less' | 'greater';
 
@@ -181,6 +223,8 @@ type RegressionFunctions = [
 type SpanAnyFunction = `any(${string})`;
 
 export type SpanFunctions = (typeof SPAN_FUNCTIONS)[number];
+
+type WebVitalsFunctions = (typeof WEB_VITAL_FUNCTIONS)[number];
 
 export type SpanMetricsResponse = {
   [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
@@ -224,6 +268,8 @@ export type EAPSpanResponse = {
 } & {
   [Property in SpanFunctions as `${Property}()`]: number;
 } & {
+  [Property in WebVitalsMeasurements as `${WebVitalsFunctions}(${Property})`]: number;
+} & {
   [Property in SpanStringFields as `${Property}`]: string;
 } & {
   [Property in SpanNumberFields as `${Property}`]: number;
@@ -242,6 +288,10 @@ export type EAPSpanResponse = {
       | `${Property}(${string},${string},${string})`]: number;
   } & {
     [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
+  } & {
+    [Property in SpanFields as `count_unique(${Property})`]: number;
+  } & {
+    [Property in SpanNumberFields as `${CounterConditionalAggregate}(${Property},${string},${string})`]: number;
   };
 
 export type EAPSpanProperty = keyof EAPSpanResponse;
@@ -424,6 +474,7 @@ export type SpanIndexedFieldTypes = SpanIndexedResponse;
 export enum SpanFunction {
   SPS = 'sps',
   EPM = 'epm',
+  TPM = 'tpm',
   TIME_SPENT_PERCENTAGE = 'time_spent_percentage',
   HTTP_RESPONSE_COUNT = 'http_response_count',
   HTTP_RESPONSE_RATE = 'http_response_rate',
@@ -537,6 +588,7 @@ enum DiscoverFields {
   FCP = 'measurements.fcp',
   CLS = 'measurements.cls',
   TTFB = 'measurements.ttfb',
+  INP = 'measurements.inp',
   TRANSACTION_DURATION = 'transaction.duration',
   SPAN_DURATION = 'span.duration',
   REPLAY_ID = 'replayId',
@@ -564,6 +616,7 @@ enum DiscoverFields {
 export type MetricsProperty = keyof MetricsResponse;
 
 type DiscoverNumberFields =
+  | DiscoverFields.INP
   | DiscoverFields.CLS
   | DiscoverFields.FCP
   | DiscoverFields.LCP
@@ -606,6 +659,11 @@ export type DiscoverResponse = {
 export type DiscoverProperty = keyof DiscoverResponse;
 
 export type MetricsQueryFilters = Partial<Record<MetricsStringFields, string>> & {
+  [SpanIndexedField.PROJECT_ID]?: string;
+};
+
+export type SpanQueryFilters = Partial<Record<SpanStringFields, string>> & {
+  is_transaction?: 'true' | 'false';
   [SpanIndexedField.PROJECT_ID]?: string;
 };
 
