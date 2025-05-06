@@ -312,6 +312,4 @@ def build_action_workflow_lookup(
         condition_group__in=action_data_condition_groups
     ).values_list("action_id", "condition_group__workflowdataconditiongroup__workflow_id")
 
-    for action_id, workflow_id in data_condition_group_actions:
-        action_workflow_lookup[action_id] = workflow_id
-    return action_workflow_lookup
+    return dict(data_condition_group_actions)
