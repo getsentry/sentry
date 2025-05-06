@@ -1300,7 +1300,8 @@ class TestTriggerAutofixWithoutOrgAcknowledgement(APITestCase, SnubaTestCase):
 
         assert response.status_code == 403
         assert (
-            "AI Autofix has not been acknowledged by the organization." in response.data["detail"]
+            "Seer has not been enabled for this organization. Please open an issue at sentry.io/issues and set up Seer."
+            in response.data["detail"]
         )
         # Verify _get_serialized_event was not called since we have no event
         mock_get_serialized_event.assert_not_called()

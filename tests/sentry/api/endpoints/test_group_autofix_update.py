@@ -107,7 +107,10 @@ class TestGroupAutofixUpdate(APITestCase):
         )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.data["error"] == "AI Autofix has not been acknowledged by the organization."
+        assert (
+            response.data["error"]
+            == "Seer has not been enabled for this organization. Please open an issue at sentry.io/issues and set up Seer."
+        )
 
     @patch(
         "sentry.api.endpoints.group_autofix_update.get_seer_org_acknowledgement", return_value=True
