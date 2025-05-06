@@ -6,6 +6,7 @@ import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   LogsPageDataProvider,
   useLogsPageData,
@@ -60,12 +61,14 @@ export function TraceViewLogsSection() {
 }
 
 function LogsSectionContent({tableData}: {tableData: UseExploreLogsTableResult}) {
+  const organization = useOrganization();
   const setLogsQuery = useSetLogsQuery();
   const logsSearch = useLogsSearch();
 
   return (
     <Fragment>
       <SearchQueryBuilder
+        searchOnChange={organization.features.includes('ui-search-on-change')}
         placeholder={t('Search logs for this event')}
         filterKeys={{}}
         getTagValues={() => new Promise<string[]>(() => [])}
