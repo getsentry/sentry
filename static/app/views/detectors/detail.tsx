@@ -16,9 +16,11 @@ import {IconArrow, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {useParams} from 'sentry/utils/useParams';
 import {ConnectedAutomationsList} from 'sentry/views/detectors/components/connectedAutomationList';
 import DetailsPanel from 'sentry/views/detectors/components/detailsPanel';
 import IssuesList from 'sentry/views/detectors/components/issuesList';
+import {useDetectorQuery} from 'sentry/views/detectors/hooks';
 
 type Priority = {
   sensitivity: string;
@@ -32,9 +34,14 @@ const priorities: Priority[] = [
 
 export default function DetectorDetail() {
   useWorkflowEngineFeatureGate({redirect: true});
+  const {detectorId} = useParams();
+  if (!detectorId) {
+    throw new Error(`Unable to find detector.`);
+  }
+  const {data: detector} = useDetectorQuery(detectorId);
 
   return (
-    <SentryDocumentTitle title={'/endpoint'} noSuffix>
+    <SentryDocumentTitle title={detector.id} noSuffix>
       <BreadcrumbsProvider crumb={{label: t('Monitors'), to: '/issues/monitors'}}>
         <ActionsProvider actions={<Actions />}>
           <DetailLayout project={{slug: 'project-slug', platform: 'javascript-astro'}}>
