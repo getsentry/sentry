@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 
 import {Alert} from 'sentry/components/core/alert';
 import DetailedError from 'sentry/components/errors/detailedError';
+import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -17,10 +18,19 @@ type CustomComponentRenderProps = {
 };
 
 type Props = DefaultProps & {
+  // allow the error message to be dismissable, which allows the
+  // component that errored to be able to render again. this
+  // allows a component like GlobalDrawer to be openable again, otherwise if
+  // you hit an error in drawer, you'll need to refresh to see
+  // it again. this is because GlobalDrawer is rendered high up
+  // in the tree and does not get unmounted, so error state will
+  // never change.
+  allowDismiss?: boolean;
   children?: React.ReactNode;
   // To add context for better UX
   className?: string;
   customComponent?: ((props: CustomComponentRenderProps) => React.ReactNode) | null;
+
   // To add context for better error reporting
   errorTag?: Record<string, string>;
 
@@ -60,6 +70,7 @@ class ErrorBoundary extends Component<Props, State> {
         const errorBoundaryError = new Error(error.message);
         errorBoundaryError.name = `React ErrorBoundary ${errorBoundaryError.name}`;
         errorBoundaryError.stack = errorInfo.componentStack!;
+
         error.cause = errorBoundaryError;
       } catch {
         // Some browsers won't let you write to Error instance
@@ -68,6 +79,10 @@ class ErrorBoundary extends Component<Props, State> {
         Sentry.captureException(error);
       }
     });
+  }
+
+  handleClose() {
+    this.setState({error: null});
   }
 
   render() {
@@ -92,7 +107,12 @@ class ErrorBoundary extends Component<Props, State> {
       return (
         <Alert.Container>
           <Alert type="error" showIcon className={className}>
-            {message || t('There was a problem rendering this component')}
+            <AlertContent>
+              {message || t('There was a problem rendering this component')}
+              {this.props.allowDismiss && (
+                <IconClose onClick={() => this.handleClose()} />
+              )}
+            </AlertContent>
           </Alert>
         </Alert.Container>
       );
@@ -116,6 +136,12 @@ Anyway, we apologize for the inconvenience.`
     );
   }
 }
+
+const AlertContent = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
 
 const Wrapper = styled('div')`
   color: ${p => p.theme.textColor};

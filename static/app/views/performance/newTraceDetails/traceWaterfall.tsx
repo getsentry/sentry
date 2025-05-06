@@ -18,7 +18,6 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {IconGrabbable} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -36,6 +35,7 @@ import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingRedu
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
   DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -100,7 +100,7 @@ export interface TraceWaterfallProps {
   meta: TraceMetaQueryResults;
   organization: Organization;
   replay: ReplayRecord | null;
-  rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
+  rootEventResults: TraceRootEventQueryResults;
   source: string;
   trace: UseApiQueryResult<TraceTree.Trace, RequestError>;
   traceEventView: EventView;
@@ -794,7 +794,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         />
         <TraceActionsMenu
           traceSlug={props.traceSlug}
-          rootEventResults={props.rootEvent}
+          rootEventResults={props.rootEventResults}
           traceEventView={props.traceEventView}
         />
         <TracePreferencesDropdown

@@ -1,6 +1,11 @@
+import type {ReactNode} from 'react';
+import styled from '@emotion/styled';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
+import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import {IconBusiness} from 'sentry/icons/iconBusiness';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Confidence, Organization} from 'sentry/types/organization';
@@ -8,7 +13,6 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {encodeSort} from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
@@ -53,7 +57,6 @@ export function getExploreUrl({
   const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
   const {environments, projects} = selection ?? {};
   const queryParams = {
-    dataset: DiscoverDatasets.SPANS_EAP_RPC,
     project: projects,
     environment: environments,
     statsPeriod,
@@ -105,7 +108,7 @@ export function getExploreUrlFromSavedQueryUrl({
           start: savedQuery.start ?? null,
           utc: null,
         },
-        environments: savedQuery.environment,
+        environments: savedQuery.environment ?? [],
         projects: savedQuery.projects,
       },
     });
@@ -115,7 +118,9 @@ export function getExploreUrlFromSavedQueryUrl({
     ...savedQuery,
     ...savedQuery.query[0],
     groupBy:
-      savedQuery.query[0].groupby.length === 0 ? [''] : savedQuery.query[0].groupby,
+      (savedQuery.query[0].groupby?.length ?? 0) === 0
+        ? ['']
+        : savedQuery.query[0].groupby,
     query: savedQuery.query[0].query,
     title: savedQuery.name,
     mode: savedQuery.query[0].mode,
@@ -127,7 +132,7 @@ export function getExploreUrlFromSavedQueryUrl({
         start: savedQuery.start ?? null,
         utc: null,
       },
-      environments: savedQuery.environment,
+      environments: savedQuery.environment ?? [],
       projects: savedQuery.projects,
     },
   });
@@ -151,7 +156,6 @@ function getExploreMultiQueryUrl({
   const {start, end, period: statsPeriod, utc} = selection.datetime;
   const {environments, projects} = selection;
   const queryParams = {
-    dataset: DiscoverDatasets.SPANS_EAP_RPC,
     project: projects,
     environment: environments,
     statsPeriod,
@@ -244,7 +248,13 @@ type DefaultPeriod = '24h' | '7d' | '14d' | '30d';
 export interface PickableDays {
   defaultPeriod: DefaultPeriod;
   maxPickableDays: MaxPickableDays;
-  relativeOptions: Record<string, React.ReactNode>;
+  relativeOptions: ({
+    arbitraryOptions,
+  }: {
+    arbitraryOptions: Record<string, ReactNode>;
+  }) => Record<string, ReactNode>;
+  isOptionDisabled?: ({value}: SelectOptionWithKey<string>) => boolean;
+  menuFooter?: ReactNode;
 }
 
 export function limitMaxPickableDays(organization: Organization): PickableDays {
@@ -254,7 +264,7 @@ export function limitMaxPickableDays(organization: Organization): PickableDays {
     30: '30d',
   };
 
-  const relativeOptions: Array<[DefaultPeriod, React.ReactNode]> = [
+  const relativeOptions: Array<[DefaultPeriod, ReactNode]> = [
     ['7d', t('Last 7 days')],
     ['14d', t('Last 14 days')],
     ['30d', t('Last 30 days')],
@@ -270,16 +280,35 @@ export function limitMaxPickableDays(organization: Organization): PickableDays {
   const defaultPeriod: DefaultPeriod = defaultPeriods[maxPickableDays];
 
   const index = relativeOptions.findIndex(([period, _]) => period === defaultPeriod) + 1;
-  const enabledOptions = relativeOptions.slice(0, index);
+  const enabledOptions = Object.fromEntries(relativeOptions.slice(0, index));
+  const disabledOptions = Object.fromEntries(
+    relativeOptions.slice(index).map(([value, label]) => {
+      return [value, <DisabledDateOption key={value} label={label} />];
+    })
+  );
+
+  const isOptionDisabled = (option: SelectOptionWithKey<string>): boolean => {
+    return disabledOptions.hasOwnProperty(option.value);
+  };
+
+  const menuFooter = index === relativeOptions.length ? null : <UpsellFooterHook />;
 
   return {
     defaultPeriod,
+    isOptionDisabled,
     maxPickableDays,
-    relativeOptions: {
+    menuFooter,
+    relativeOptions: ({
+      arbitraryOptions,
+    }: {
+      arbitraryOptions: Record<string, ReactNode>;
+    }) => ({
+      ...arbitraryOptions,
       '1h': t('Last hour'),
       '24h': t('Last 24 hours'),
-      ...Object.fromEntries(enabledOptions),
-    },
+      ...enabledOptions,
+      ...disabledOptions,
+    }),
   };
 }
 
@@ -319,3 +348,26 @@ export function computeVisualizeSampleTotals(
     return sampleCount;
   });
 }
+
+function DisabledDateOption({label}: {label: ReactNode}) {
+  return (
+    <DisabledDateOptionContainer>
+      {label}
+      <StyledIconBuisness />
+    </DisabledDateOptionContainer>
+  );
+}
+
+const DisabledDateOptionContainer = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const StyledIconBuisness = styled(IconBusiness)`
+  margin-left: auto;
+`;
+
+const UpsellFooterHook = HookOrDefault({
+  hookName: 'component:explore-date-range-query-limit-footer',
+  defaultComponent: () => undefined,
+});

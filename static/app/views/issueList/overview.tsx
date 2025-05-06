@@ -88,6 +88,7 @@ interface Props
   initialQuery?: string;
   shouldFetchOnMount?: boolean;
   title?: ReactNode;
+  titleDescription?: ReactNode;
 }
 
 interface EndpointParams extends Partial<PageFilters['datetime']> {
@@ -164,15 +165,19 @@ function IssueListOverview({
   initialQuery = DEFAULT_QUERY,
   shouldFetchOnMount = true,
   title = t('Issues'),
+  titleDescription,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
   const api = useApi();
+  const prefersStackedNav = usePrefersStackedNav();
   const realtimeActiveCookie = Cookies.get('realtimeActive');
   const [realtimeActive, setRealtimeActive] = useState(
-    typeof realtimeActiveCookie === 'undefined' ? false : realtimeActiveCookie === 'true'
+    prefersStackedNav || typeof realtimeActiveCookie === 'undefined'
+      ? false
+      : realtimeActiveCookie === 'true'
   );
   const [groupIds, setGroupIds] = useState<string[]>([]);
   const [pageLinks, setPageLinks] = useState('');
@@ -188,7 +193,6 @@ function IssueListOverview({
   const undoRef = useRef(false);
   const pollerRef = useRef<CursorPoller | undefined>(undefined);
   const actionTakenRef = useRef(false);
-  const prefersStackedNav = usePrefersStackedNav();
   const urlParams = useParams<{viewId?: string}>();
 
   const {savedSearch, savedSearchLoading, savedSearches, selectedSearchId} =
@@ -1092,7 +1096,11 @@ function IssueListOverview({
     <NewTabContextProvider>
       <Layout.Page>
         {prefersStackedNav && (
-          <LeftNavViewsHeader selectedProjectIds={selection.projects} title={title} />
+          <LeftNavViewsHeader
+            selectedProjectIds={selection.projects}
+            title={title}
+            description={titleDescription}
+          />
         )}
         {!prefersStackedNav &&
           (organization.features.includes('issue-stream-custom-views') &&

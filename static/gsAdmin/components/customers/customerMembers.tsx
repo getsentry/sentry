@@ -6,7 +6,6 @@ import {Tag} from 'sentry/components/core/badge/tag';
 import {LinkButton} from 'sentry/components/core/button';
 import Link from 'sentry/components/links/link';
 import {IconMail} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 import ResultGrid from 'admin/components/resultGrid';
@@ -25,7 +24,7 @@ const getRow = (row: any) => [
         href={`mailto:${row.email}`}
         icon={<IconMail size="xs" />}
         title="Send email"
-        aria-label={t('Send email')}
+        aria-label={'Send email'}
       />
       {row.user ? (
         <Link to={`/_admin/users/${row.user.id}/`}>{row.email}</Link>

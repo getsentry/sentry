@@ -15,9 +15,21 @@ import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceIte
 import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import type {PickableDays} from 'sentry/views/explore/utils';
 
 jest.mock('sentry/utils/useLocation');
 const mockUseLocation = jest.mocked(useLocation);
+
+const datePageFilterProps: PickableDays = {
+  defaultPeriod: '7d' as const,
+  maxPickableDays: 7,
+  relativeOptions: ({arbitraryOptions}) => ({
+    ...arbitraryOptions,
+    '1h': 'Last hour',
+    '24h': 'Last 24 hours',
+    '7d': 'Last 7 days',
+  }),
+};
 
 describe('LogsTabContent', function () {
   const {organization, project} = initializeOrg({
@@ -138,15 +150,7 @@ describe('LogsTabContent', function () {
         <LogsPageParamsProvider
           analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
         >
-          <LogsTabContent
-            defaultPeriod="14d"
-            maxPickableDays={7}
-            relativeOptions={{
-              '1h': 'Last hour',
-              '24h': 'Last 24 hours',
-              '7d': 'Last 7 days',
-            }}
-          />
+          <LogsTabContent {...datePageFilterProps} />
         </LogsPageParamsProvider>
       </TraceItemAttributeProvider>
     );
