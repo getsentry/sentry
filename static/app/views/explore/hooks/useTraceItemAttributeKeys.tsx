@@ -85,7 +85,7 @@ export function useTraceItemAttributeKeys({
   };
 }
 
-function isKnownAttribute(attribute: Tag) {
+export function isKnownAttribute(attribute: Tag) {
   // For now, skip all the sentry. prefixed attributes as they
   // should be covered by the static attributes that will be
   // merged with these results.

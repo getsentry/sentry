@@ -10,6 +10,7 @@ import {
   isSpanOperationBreakdownField,
   measurementType,
 } from 'sentry/utils/discover/fields';
+import {isKnownAttribute} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
 
 import grammar from './grammar.pegjs';
 import {getKeyName} from './utils';
@@ -877,7 +878,8 @@ export class TokenConverter {
     if (
       this.config.validateKeys &&
       this.config.supportedTags &&
-      !this.config.supportedTags[getKeyName(key)]
+      !this.config.supportedTags[getKeyName(key)] &&
+      !isKnownAttribute({key: key.text, name: getKeyName(key)})
     ) {
       return {
         type: InvalidReason.INVALID_KEY,
