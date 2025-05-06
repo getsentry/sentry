@@ -2171,7 +2171,18 @@ describe('GSBanner Overage Alerts', function () {
         profileChunks: MetricHistoryFixture({usageExceeded: true}),
       },
     });
+    subscription.planDetails.categories = [
+      ...subscription.planDetails.categories,
+      DataCategory.LOG_BYTE,
+      DataCategory.LOG_ITEM,
+      DataCategory.PROFILE_CHUNKS,
+    ];
     SubscriptionStore.set(organization.slug, subscription);
+
+    const promptsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+    });
 
     render(<GSBanner organization={organization} />, {
       organization,
@@ -2185,5 +2196,16 @@ describe('GSBanner Overage Alerts', function () {
 
     await act(tick);
     expect(container).toBeEmptyDOMElement();
+    const lastCall = promptsMock.mock.lastCall;
+    const nonBilledOveragePrompts = [
+      'log_bytes_overage_alert',
+      'log_items_overage_alert',
+      'profile_chunks_overage_alert',
+    ];
+    expect(
+      (lastCall[1].query.feature as string[]).some(prompt =>
+        nonBilledOveragePrompts.includes(prompt)
+      )
+    ).toBe(false);
   });
 });
