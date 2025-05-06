@@ -2204,11 +2204,9 @@ def migrate_remaining_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchema
 
                 data = rule.data
                 user_id = None
-                created_activity = list(RuleActivity.objects.filter(rule=rule, type=1))[
-                    0
-                ]  # created
+                created_activity = list(RuleActivity.objects.filter(rule=rule, type=1))  # created
                 if created_activity:
-                    user_id = getattr(created_activity, "user_id")
+                    user_id = getattr(created_activity[0], "user_id")
 
                 conditions, filters = split_conditions_and_filters(data["conditions"])
                 action_match = data.get("action_match") or "all"
