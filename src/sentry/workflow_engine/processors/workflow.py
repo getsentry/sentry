@@ -127,13 +127,8 @@ def evaluate_workflows_action_filters(
 ) -> set[DataConditionGroup]:
     filtered_action_groups: set[DataConditionGroup] = set()
 
-    # Gets the list of the workflow ids, and then get the workflow_data_condition_groups for those workflows
-    workflow_ids_to_envs = {workflow.id: workflow.environment for workflow in workflows}
-
     action_conditions = (
-        DataConditionGroup.objects.filter(
-            workflowdataconditiongroup__workflow_id__in=list(workflow_ids_to_envs.keys())
-        )
+        DataConditionGroup.objects.filter(workflowdataconditiongroup__workflow__in=list(workflows))
         .prefetch_related("workflowdataconditiongroup_set")
         .distinct()
     )
