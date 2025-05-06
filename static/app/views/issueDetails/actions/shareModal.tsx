@@ -258,7 +258,7 @@ const ModalContent = styled('div')<{hasPublicShare: boolean}>`
   display: flex;
   gap: ${space(1)};
   flex-direction: column;
-  min-height: ${p => (p.hasPublicShare ? '240px' : '')};
+  min-height: ${p => (p.hasPublicShare ? '275px' : '')};
 `;
 
 const UrlContainer = styled('div')`
