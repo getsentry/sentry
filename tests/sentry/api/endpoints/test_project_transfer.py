@@ -187,9 +187,9 @@ class ProjectTransferTest(APITestCase):
         )
         assert transfer_link_match is not None
         transfer_link = transfer_link_match.group()
-        url: ParseResult = urlparse(url=transfer_link)
-        parsed_url = parse_qs(url.query)
-        signed_data = str(parsed_url["data"][0])
+        parsed_url: ParseResult = urlparse(url=transfer_link)
+        parsed_qs = parse_qs(parsed_url.query)
+        signed_data = str(parsed_qs["data"][0])
         parsed_data = unsign(signed_data, salt=SALT)
 
         assert parsed_data["actor_id"] == owner_a.id
