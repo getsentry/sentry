@@ -508,7 +508,7 @@ def fire_rules(
             if features.has(
                 "organizations:workflow-engine-process-workflows-logs",
                 project.organization,
-            ):
+            ) or features.has("projects:num-events-issue-debugging", project):
                 logger.info(
                     "post_process.delayed_processing.triggered_rule",
                     extra={
