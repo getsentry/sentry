@@ -40,7 +40,7 @@ import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {IconChat, IconFatal, IconImage, IconMegaphone, IconPlay} from 'sentry/icons';
-import {CRASH_REPORT_SOURCES} from 'sentry/utils/feedback/types';
+import hasLinkedError from 'sentry/utils/feedback/hasLinkedError';
 import useReplayCount from 'sentry/utils/replayCount/useReplayCount';
 
 import useInfiniteFeedbackList from './useInfiniteFeedbackList';
@@ -142,7 +142,7 @@ function FeedbackListItem({item}: {item: FeedbackIssueListItem}) {
   const {feedbackHasReplay} = useReplayCountForFeedbacks();
 
   const hasReplayId = feedbackHasReplay(item.id);
-  const isFatal = CRASH_REPORT_SOURCES.includes(item.metadata.source ?? '');
+  const isFatal = hasLinkedError(item);
   const hasAttachments = item.latestEventHasAttachments;
   const hasComments = item.numComments > 0;
 

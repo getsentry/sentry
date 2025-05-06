@@ -16,10 +16,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {
-  CRASH_REPORT_SOURCES,
-  type FeedbackIssueListItem,
-} from 'sentry/utils/feedback/types';
+import feedbackHasLinkedError from 'sentry/utils/feedback/hasLinkedError';
+import {type FeedbackIssueListItem} from 'sentry/utils/feedback/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useReplayCountForFeedbacks from 'sentry/utils/replayCount/useReplayCountForFeedbacks';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
@@ -50,9 +48,7 @@ function FeedbackListItem({feedbackItem, isSelected, onSelect, style, ref}: Prop
   const hasReplayId = feedbackHasReplay(feedbackItem.id);
   const location = useLocation();
 
-  const hasLinkedError = CRASH_REPORT_SOURCES.includes(
-    feedbackItem.metadata.source ?? ''
-  );
+  const hasLinkedError = feedbackHasLinkedError(feedbackItem);
   const hasAttachments = feedbackItem.latestEventHasAttachments;
   const hasComments = feedbackItem.numComments > 0;
 
