@@ -10,7 +10,6 @@ import {
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -268,7 +267,7 @@ export default function CustomerDetails() {
   }) => {
     if (error) {
       const msg = JSON.stringify(error.responseText);
-      addErrorMessage(t('Failed to toggle spend allocations due to [msg]', {msg}));
+      addErrorMessage(`Failed to toggle spend allocations due to ${msg}`);
     } else {
       const clone = cloneDeep(subscription);
       if (clone) {
@@ -276,9 +275,7 @@ export default function CustomerDetails() {
         setApiQueryData(queryClient, SUBSCRIPTION_QUERY_KEY, clone);
       }
       addSuccessMessage(
-        tct('Spend Allocations has been [action] for organization.', {
-          action: spendAllocationEnabled ? t('enabled') : t('disabled'),
-        })
+        `Spend Allocations has been ${spendAllocationEnabled ? 'enabled' : 'disabled'} for organization.`
       );
     }
   };
