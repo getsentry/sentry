@@ -9,7 +9,7 @@ import {ISSUE_TAXONOMY_CONFIG, IssueTaxonomy} from 'sentry/views/issueList/taxon
 
 type Props = RouteComponentProps;
 
-const CONFIG = ISSUE_TAXONOMY_CONFIG[IssueTaxonomy.REGRESSIONS];
+const CONFIG = ISSUE_TAXONOMY_CONFIG[IssueTaxonomy.BREACHED_METRICS];
 const QUERY = `is:unresolved issue.category:[${CONFIG.categories.join(',')}]`;
 
 export default function RegressionsPage(props: Props) {
