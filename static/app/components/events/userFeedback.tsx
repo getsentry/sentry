@@ -10,7 +10,9 @@ import {space} from 'sentry/styles/space';
 import type {UserReport} from 'sentry/types/group';
 import {escape, nl2br} from 'sentry/utils';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
 
 type Props = {
   issueId: string;
@@ -36,8 +38,8 @@ export function EventUserFeedback({
   };
 
   const {onClick, label} = useCopyToClipboard({text: report.email});
-
   const {selection} = usePageFilters();
+  const organization = useOrganization();
 
   return (
     <div className={className}>
@@ -49,7 +51,10 @@ export function EventUserFeedback({
             <ActivityAuthor>
               <Link
                 to={{
-                  pathname: `/organizations/${orgSlug}/issues/feedback/`,
+                  pathname: makeFeedbackPathname({
+                    path: '/',
+                    organization,
+                  }),
                   query: {
                     project: selection.projects.length ? selection.projects[0] : -1,
                     query: `associated_event_id:${report.eventID}`,
