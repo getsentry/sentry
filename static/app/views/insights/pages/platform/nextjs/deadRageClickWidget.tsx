@@ -127,7 +127,7 @@ function DeadRageClickWidgetVisualization({items}: {items: DeadRageSelectorItem[
 DeadRageClickWidgetVisualization.LoadingPlaceholder =
   TimeSeriesWidgetVisualization.LoadingPlaceholder;
 
-export function ProjectInfo({id}: {id: number}) {
+function ProjectInfo({id}: {id: number}) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === id.toString());
   const platform = project?.platform;

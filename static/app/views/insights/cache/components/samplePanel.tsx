@@ -441,7 +441,7 @@ const CACHE_STATUS_OPTIONS = [
   },
 ];
 
-export const useTransactionDuration = ({transaction}: {transaction: string}) => {
+const useTransactionDuration = ({transaction}: {transaction: string}) => {
   const useEap = useInsightsEap();
 
   const metricsResult = useMetrics(

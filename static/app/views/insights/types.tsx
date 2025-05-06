@@ -210,8 +210,6 @@ export const SPAN_FUNCTIONS = [
   'failure_rate',
 ] as const;
 
-export const WEB_VITAL_FUNCTIONS = ['performance_score', 'count_scores'] as const;
-
 type BreakpointCondition = 'less' | 'greater';
 
 type RegressionFunctions = [
@@ -224,7 +222,7 @@ type SpanAnyFunction = `any(${string})`;
 
 export type SpanFunctions = (typeof SPAN_FUNCTIONS)[number];
 
-type WebVitalsFunctions = (typeof WEB_VITAL_FUNCTIONS)[number];
+type WebVitalsFunctions = 'performance_score' | 'count_scores';
 
 export type SpanMetricsResponse = {
   [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;

@@ -18,7 +18,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {TraceContextSectionKeys} from 'sentry/views/performance/newTraceDetails/traceHeader/scrollToSectionLinks';
 
-export interface TraceSummaryData {
+interface TraceSummaryData {
   keyObservations: string;
   performanceCharacteristics: string;
   suggestedInvestigations: string;
@@ -34,7 +34,7 @@ const makeTraceSummaryQueryKey = (
   {method: 'POST', data: {traceSlug}},
 ];
 
-export function useTraceSummary(traceSlug: string) {
+function useTraceSummary(traceSlug: string) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const queryKey = makeTraceSummaryQueryKey(organization.slug, traceSlug);

@@ -10,7 +10,7 @@ import type {
 import {AlternativeConfiguration} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
-export function getPythonInstallSnippet({
+function getPythonInstallSnippet({
   packageName,
   packageManager = 'pip',
   minimumVersion,

@@ -48,24 +48,6 @@ import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/uti
 
 const formatter = new SQLishFormatter();
 
-export function hasFormattedSpanDescription(node: TraceTreeNode<TraceTree.Span>) {
-  const span = node.value;
-  const resolvedModule: ModuleName = resolveSpanModule(
-    span.sentry_tags?.op,
-    span.sentry_tags?.category
-  );
-
-  const formattedDescription =
-    resolvedModule === ModuleName.DB
-      ? formatter.toString(span.description ?? '')
-      : (span.description ?? '');
-
-  return (
-    !!formattedDescription &&
-    [ModuleName.DB, ModuleName.RESOURCE].includes(resolvedModule)
-  );
-}
-
 export function SpanDescription({
   node,
   organization,
