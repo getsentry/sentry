@@ -35,7 +35,7 @@ export function useCreateSummaryFilterLink(f_b_type: string) {
 }
 
 const StyledSummaryEntryLabel = styled('span')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSizeLarge};
   font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.gray300};
 `;
@@ -56,7 +56,7 @@ const SummaryEntryBase = css`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  font-size: 1.875rem;
+  font-size: 2.25rem;
 `;
 
 export const SummaryEntryValue = styled('span')`
@@ -67,7 +67,7 @@ export const SummaryEntryValue = styled('span')`
 const StyledSummaryEntryValueLink = styled('span')`
   font-variant-numeric: tabular-nums;
   color: ${p => p.theme.blue300};
-  font-size: 1.875rem;
+  font-size: 2.25rem;
 
   /* This stops the text from jumping when becoming bold */
   &::after {
@@ -109,12 +109,12 @@ export function SummaryEntryValueLink({children, filterBy}: SummaryEntryValueLin
   );
 }
 
-export const SummaryEntry = styled('div')`
+export const SummaryEntry = styled('div')<{columns?: number}>`
   display: flex;
   flex-direction: column;
   align-items: start;
   justify-content: space-between;
-  grid-column: span 1;
+  grid-column: span ${p => p.columns ?? 1};
 `;
 
 export const SummaryEntries = styled('div')<{
@@ -139,5 +139,5 @@ export const SummaryEntries = styled('div')<{
 export const SummaryContainer = styled('div')<{columns: number}>`
   display: grid;
   grid-template-columns: repeat(${p => p.columns}, 1fr);
-  gap: ${space(2)};
+  gap: ${space(1)};
 `;
