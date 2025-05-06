@@ -383,6 +383,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         simple_sentry_field("user.id"),
         simple_sentry_field("user.ip"),
         simple_sentry_field("user.username"),
+        simple_sentry_field("os.name"),
         simple_measurements_field("app_start_cold", "millisecond"),
         simple_measurements_field("app_start_warm", "millisecond"),
         simple_measurements_field("frames_frozen"),
