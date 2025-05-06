@@ -72,7 +72,7 @@ class Retry:
         times: int = 1,
         on: tuple[type[BaseException], ...] | None = None,
         ignore: tuple[type[BaseException], ...] | None = None,
-        times_exceeded: LastAction = LastAction.Deadletter,
+        times_exceeded: LastAction = LastAction.Discard,
     ):
         self._times = times
         self._allowed_exception_types: tuple[type[BaseException], ...] = on or ()
