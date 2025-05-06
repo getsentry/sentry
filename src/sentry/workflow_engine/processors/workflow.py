@@ -306,7 +306,6 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
 def build_action_workflow_lookup(
     action_data_condition_groups: set[DataConditionGroup],
 ) -> dict[int, int]:
-    action_workflow_lookup: dict[int, int] = {}
     # fetch all actions via the DataConditionGroupAction model
     data_condition_group_actions = DataConditionGroupAction.objects.filter(
         condition_group__in=action_data_condition_groups
