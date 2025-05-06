@@ -288,6 +288,10 @@ export function getContextTitle({
       return t('Profile');
     case 'replay':
       return t('Replay');
+    case 'ota_updates':
+      return t('OTA Updates');
+    case 'react_native_context':
+      return t('React Native');
     default:
       return contextType;
   }
