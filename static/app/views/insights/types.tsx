@@ -618,6 +618,8 @@ enum DiscoverFields {
   SCORE_RATIO_CLS = 'measurements.score.ratio.cls',
   SCORE_RATIO_TTFB = 'measurements.score.ratio.ttfb',
   SCORE_RATIO_INP = 'measurements.score.ratio.inp',
+  MEASUREMENTS_TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
+  MEASUREMENTS_TIME_TO_FULL_DISPLAY = 'measurements.time_to_full_display',
 }
 
 export type MetricsProperty = keyof MetricsResponse;
@@ -645,7 +647,9 @@ type DiscoverNumberFields =
   | DiscoverFields.SCORE_RATIO_FCP
   | DiscoverFields.SCORE_RATIO_CLS
   | DiscoverFields.SCORE_RATIO_TTFB
-  | DiscoverFields.SCORE_RATIO_INP;
+  | DiscoverFields.SCORE_RATIO_INP
+  | DiscoverFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY
+  | DiscoverFields.MEASUREMENTS_TIME_TO_FULL_DISPLAY;
 
 type DiscoverStringFields =
   | DiscoverFields.ID
