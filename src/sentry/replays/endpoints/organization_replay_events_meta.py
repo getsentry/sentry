@@ -1,7 +1,3 @@
-from collections.abc import Sequence
-from datetime import datetime
-from typing import Any
-
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -12,7 +8,6 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models.organization import Organization
-from sentry.snuba.dataset import Dataset
 
 
 @region_silo_endpoint
@@ -35,8 +30,7 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
     def get_field_list(
         self, organization: Organization, request: Request, param_name: str = "field"
     ) -> list[str]:
-
-        fields = [
+        return [
             "error.type",
             "error.value",  # Deprecated, use title instead. See replayDataUtils.tsx
             "id",
@@ -45,11 +39,6 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
             "timestamp",
             "title",
         ]
-        dataset_label = request.GET.get("dataset", Dataset.Discover.value)
-        if dataset_label == Dataset.Discover.value:
-            fields.append("timestamp_ms")
-
-        return fields
 
     def get(self, request: Request, organization) -> Response:
         if not features.has("organizations:session-replay", organization, actor=request.user):
@@ -92,24 +81,3 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
                 standard_meta=True,
             ),
         )
-
-    def handle_results_with_meta(
-        self,
-        request: Request,
-        organization: Organization,
-        project_ids: Sequence[int],
-        results: dict[str, Any],
-        standard_meta: bool | None = False,
-        dataset: Any | None = None,
-    ) -> dict[str, Any]:
-        results = super().handle_results_with_meta(
-            request, organization, project_ids, results, standard_meta, dataset
-        )
-        for event in results["data"]:
-            if "timestamp_ms" in event:
-                # add ms to timestamp by converting the timestamp_ms to ISO 8601
-                event["timestamp"] = datetime.strptime(
-                    event["timestamp_ms"], "%Y-%m-%d %H:%M:%S.%f"
-                ).strftime("%Y-%m-%dT%H:%M:%S.%f+00:00")
-                del event["timestamp_ms"]
-        return results
