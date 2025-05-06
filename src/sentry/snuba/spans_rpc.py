@@ -381,7 +381,7 @@ def run_trace_query(
         "ttfb",
     }:
         trace_attributes.append(f"measurements.{key}")
-        trace_attributes.append(f"measurements.score.{key}")
+        trace_attributes.append(f"measurements.score.ratio.{key}")
     resolver = get_resolver(params=params, config=SearchResolverConfig())
     columns, _ = resolver.resolve_attributes(trace_attributes)
     meta = resolver.resolve_meta(referrer=referrer)
