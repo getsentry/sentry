@@ -88,6 +88,7 @@ interface Props
   initialQuery?: string;
   shouldFetchOnMount?: boolean;
   title?: ReactNode;
+  titleDescription?: ReactNode;
 }
 
 interface EndpointParams extends Partial<PageFilters['datetime']> {
@@ -164,6 +165,7 @@ function IssueListOverview({
   initialQuery = DEFAULT_QUERY,
   shouldFetchOnMount = true,
   title = t('Issues'),
+  titleDescription,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
@@ -1094,7 +1096,11 @@ function IssueListOverview({
     <NewTabContextProvider>
       <Layout.Page>
         {prefersStackedNav && (
-          <LeftNavViewsHeader selectedProjectIds={selection.projects} title={title} />
+          <LeftNavViewsHeader
+            selectedProjectIds={selection.projects}
+            title={title}
+            description={titleDescription}
+          />
         )}
         {!prefersStackedNav &&
           (organization.features.includes('issue-stream-custom-views') &&

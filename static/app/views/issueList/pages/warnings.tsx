@@ -23,7 +23,12 @@ export default function WarningsPage(props: Props) {
     <IssueListContainer title={CONFIG.label}>
       <PageFiltersContainer>
         <NoProjectMessage organization={organization}>
-          <IssueListOverview {...props} initialQuery={QUERY} title={CONFIG.label} />
+          <IssueListOverview
+            {...props}
+            initialQuery={QUERY}
+            title={CONFIG.label}
+            titleDescription={CONFIG.description}
+          />
         </NoProjectMessage>
       </PageFiltersContainer>
     </IssueListContainer>
