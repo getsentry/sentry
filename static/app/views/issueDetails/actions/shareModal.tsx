@@ -214,7 +214,7 @@ export default function ShareIssueModal({
                 </LoadingContainer>
               )}
               {group && !loading && isPublished && shareUrl && (
-                <PublishActions>
+                <Fragment>
                   <UrlContainer>
                     <TextContainer>
                       <StyledAutoSelectText ref={urlRef}>{shareUrl}</StyledAutoSelectText>
@@ -232,6 +232,7 @@ export default function ShareIssueModal({
                   </UrlContainer>
                   <ButtonContainer>
                     <Button
+                      size="sm"
                       priority="primary"
                       onClick={handleCopy}
                       analyticsEventKey="issue_details.publish_issue_modal.copy_link"
@@ -243,7 +244,7 @@ export default function ShareIssueModal({
                       {t('Copy Public Link')}
                     </Button>
                   </ButtonContainer>
-                </PublishActions>
+                </Fragment>
               )}
             </Fragment>
           )}
@@ -320,11 +321,6 @@ const ReshareButton = styled(Button)`
   border-radius: 0;
   height: 100%;
   flex-shrink: 0;
-`;
-
-const PublishActions = styled('div')`
-  display: flex;
-  gap: ${space(1)};
 `;
 
 const ButtonContainer = styled('div')`
