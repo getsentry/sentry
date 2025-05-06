@@ -30,9 +30,5 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
                 condition=Q(incident_identifier__isnull=False) & Q(incident_id__isnull=False)
                 | Q(incident_identifier__isnull=True) & Q(incident_id__isnull=True),
                 name="inc_id_inc_identifier_together",
-            ),
-            models.UniqueConstraint(
-                fields=["incident_id", "group_open_period"],
-                name="workflow_engine_uniq_incident_groupopenperiod",
-            ),
+            )
         ]
