@@ -113,32 +113,11 @@ class CreateSnubaQueryTest(TestCase):
         assert snuba_query.environment is None
         assert snuba_query.event_types == []
 
-    @mock.patch("sentry.search.events.builder.metrics.MetricsQueryBuilder")
-    def test_handle_querybuilder_errors(self, mock_builder):
-        mock_builder.side_effect = InvalidSearchQuery("some error")
-        query_type = SnubaQuery.Type.CRASH_RATE
-        dataset = Dataset.Metrics
-        query = ""
-        aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
-        time_window = timedelta(minutes=10)
-        resolution = timedelta(minutes=1)
-
-        with pytest.raises(SubscriptionError):
-            create_snuba_query(
-                query_type,
-                dataset,
-                query,
-                aggregate,
-                time_window,
-                resolution,
-                None,
-            )
-
 
 class CreateSnubaSubscriptionTest(TestCase):
     def test(self):
         query_type = SnubaQuery.Type.ERROR
-        type = "something"
+        subscription_type = "something"
         dataset = Dataset.Events
         query = "level:error"
         time_window = timedelta(minutes=10)
@@ -146,20 +125,20 @@ class CreateSnubaSubscriptionTest(TestCase):
         snuba_query = create_snuba_query(
             query_type, dataset, query, "count()", time_window, resolution, self.environment
         )
-        subscription = create_snuba_subscription(self.project, type, snuba_query)
+        subscription = create_snuba_subscription(self.project, subscription_type, snuba_query)
         subscription_with_query_extra = create_snuba_subscription(
-            self.project, type, snuba_query, query_extra="foo:bar"
+            self.project, subscription_type, snuba_query, query_extra="foo:bar"
         )
 
         assert subscription.status == QuerySubscription.Status.CREATING.value
         assert subscription.project == self.project
-        assert subscription.type == type
+        assert subscription.type == subscription_type
         assert subscription.subscription_id is None
         assert subscription_with_query_extra.query_extra == "foo:bar"
 
     def test_with_task(self):
         with self.tasks():
-            type = "something"
+            subscription_type = "something"
             query_type = SnubaQuery.Type.ERROR
             dataset = Dataset.Events
             query = "level:error"
@@ -168,15 +147,15 @@ class CreateSnubaSubscriptionTest(TestCase):
             snuba_query = create_snuba_query(
                 query_type, dataset, query, "count()", time_window, resolution, self.environment
             )
-            subscription = create_snuba_subscription(self.project, type, snuba_query)
+            subscription = create_snuba_subscription(self.project, subscription_type, snuba_query)
             subscription = QuerySubscription.objects.get(id=subscription.id)
             assert subscription.status == QuerySubscription.Status.ACTIVE.value
             assert subscription.project == self.project
-            assert subscription.type == type
+            assert subscription.type == subscription_type
             assert subscription.subscription_id is not None
 
     def test_translated_query(self):
-        type = "something"
+        subscription_type = "something"
         query_type = SnubaQuery.Type.ERROR
         dataset = Dataset.Events
         query = "event.type:error"
@@ -186,12 +165,32 @@ class CreateSnubaSubscriptionTest(TestCase):
             snuba_query = create_snuba_query(
                 query_type, dataset, query, "count()", time_window, resolution, self.environment
             )
-            subscription = create_snuba_subscription(self.project, type, snuba_query)
+            subscription = create_snuba_subscription(self.project, subscription_type, snuba_query)
         subscription = QuerySubscription.objects.get(id=subscription.id)
         assert subscription.status == QuerySubscription.Status.ACTIVE.value
         assert subscription.project == self.project
-        assert subscription.type == type
+        assert subscription.type == subscription_type
         assert subscription.subscription_id is not None
+
+    @mock.patch("sentry.snuba.tasks.get_entity_subscription_from_snuba_query")
+    def test_handler_querybuilder_errors(self, mock_entity):
+        mock_entity.dataset = None
+        entity_subscription = mock.Mock()
+        mock_entity.return_value = entity_subscription
+        entity_subscription.build_query_builder.side_effect = InvalidSearchQuery("some error")
+
+        subscription_type = "something"
+        query_type = SnubaQuery.Type.ERROR
+        dataset = Dataset.Events
+        query = "event.type:error"
+        time_window = timedelta(minutes=10)
+        resolution = timedelta(minutes=1)
+        with self.tasks():
+            snuba_query = create_snuba_query(
+                query_type, dataset, query, "count()", time_window, resolution, self.environment
+            )
+            with pytest.raises(SubscriptionError):
+                create_snuba_subscription(self.project, subscription_type, snuba_query)
 
 
 class UpdateSnubaQueryTest(TestCase):
