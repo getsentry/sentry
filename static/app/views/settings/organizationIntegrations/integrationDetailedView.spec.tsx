@@ -1,5 +1,7 @@
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
+import {GitLabIntegrationFixture} from 'sentry-fixture/gitlabIntegration';
+import {GitLabIntegrationProviderFixture} from 'sentry-fixture/gitlabIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
@@ -87,6 +89,18 @@ describe('IntegrationDetailedView', function () {
       url: `/organizations/${organization.slug}/integrations/`,
       match: [MockApiClient.matchQuery({provider_key: 'github', includeConfig: 0})],
       body: [GitHubIntegrationFixture()],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/config/integrations/`,
+      match: [MockApiClient.matchQuery({provider_key: 'gitlab'})],
+      body: {
+        providers: [GitLabIntegrationProviderFixture()],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      match: [MockApiClient.matchQuery({provider_key: 'gitlab', includeConfig: 0})],
+      body: [GitLabIntegrationFixture()],
     });
   });
 
