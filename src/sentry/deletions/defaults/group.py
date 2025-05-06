@@ -78,7 +78,7 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
 
     def set_group_and_project_ids(self) -> None:
         group_ids = []
-        self.project_groups = defaultdict(list[Group])
+        self.project_groups: defaultdict[int, list[Group]] = defaultdict(list)
         for group in self.groups:
             self.project_groups[group.project_id].append(group)
             group_ids.append(group.id)
@@ -162,7 +162,8 @@ class ErrorEventsDeletionTask(EventsBaseDeletionTask):
 
     def delete_events_from_snuba(self) -> None:
         # Remove all group events now that their node data has been removed.
-        for project_id, group_ids in self.project_groups.items():
+        for project_id, groups in self.project_groups.items():
+            group_ids = [group.id for group in groups]
             eventstream_state = eventstream.backend.start_delete_groups(project_id, group_ids)
             eventstream.backend.end_delete_groups(eventstream_state)
 
