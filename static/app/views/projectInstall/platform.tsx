@@ -40,13 +40,11 @@ const ProductUnavailableCTAHook = HookOrDefault({
 
 type Props = {
   currentPlatformKey: PlatformKey;
-  loading: boolean;
   platform: PlatformIntegration | undefined;
-  project: Project | undefined;
+  project: Project;
 };
 
 export function ProjectInstallPlatform({
-  loading,
   project,
   currentPlatformKey,
   platform: currentPlatform,
@@ -143,10 +141,6 @@ export function ProjectInstallPlatform({
     [navigate, organization.slug, project?.id]
   );
 
-  if (!project) {
-    return null;
-  }
-
   if (!platform.id && platform.key !== 'other') {
     return <NotFound />;
   }
@@ -207,7 +201,6 @@ export function ProjectInstallPlatform({
         <StyledButtonBar gap={1}>
           <Button
             priority="primary"
-            busy={loading}
             onClick={() => {
               trackAnalytics('onboarding.take_me_to_issues_clicked', {
                 organization,
