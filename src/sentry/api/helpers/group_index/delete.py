@@ -89,7 +89,7 @@ def delete_group_list(
     # The moment groups are marked as pending deletion, we create audit entries
     # so that we can see who requested the deletion. Even if anything after this point
     # fails, we will still have a record of who requested the deletion.
-    create_audit_entries(request, project, group_list, delete_type, transaction_id)
+    create_audit_entries(request, organization_id, project, group_list, delete_type, transaction_id)
 
     # Tell seer to delete grouping records for these groups
     call_delete_seer_grouping_records_by_hash(error_ids)
