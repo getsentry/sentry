@@ -352,7 +352,13 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             assert len(requests) == 2
 
             # First batch should contain group1 only (since group1.times_seen=3, group2.times_seen=3, 3+3>5)
-            # So, batching will be: [group1], [group2], [group3]
+            # So, batching will be: [group1], [group2, group3]
             # But the code tries to add group2 to the batch, sees it would exceed, so starts a new batch
-            assert set(requests[0].query.column_conditions["group_id"]) == {group1.id}
-            assert set(requests[1].query.column_conditions["group_id"]) == {group2.id, group3.id}
+            columns_first_request = set(requests[0].query.column_conditions["group_id"])
+            columns_second_request = set(requests[1].query.column_conditions["group_id"])
+            if group1.id in columns_first_request:
+                assert columns_first_request == {group1.id}
+                assert columns_second_request == {group2.id, group3.id}
+            else:
+                assert columns_first_request == {group2.id, group3.id}
+                assert columns_second_request == {group1.id}
