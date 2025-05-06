@@ -48,6 +48,7 @@ export default function ReleaseDropdownFilter({version}: {version: string}) {
                     location,
                     release: version,
                     projectId: location?.query.project,
+                    source: 'replay-tags',
                   })
                 : makeReleasesPathname({
                     organization,
