@@ -117,6 +117,7 @@ describe('ReplayClipPreview', () => {
       durationAfterMs: 5_000,
       durationBeforeMs: 5_000,
     },
+    fullReplayButtonProps: {},
   };
 
   it('Should render a placeholder when is fetching the replay data', () => {
@@ -200,22 +201,5 @@ describe('ReplayClipPreview', () => {
     expect(
       screen.queryByTestId('replay-details-breadcrumbs-tab')
     ).not.toBeInTheDocument();
-  });
-  it('Render the back and forward buttons when we pass in showNextAndPrevious', async () => {
-    const handleBackClick = jest.fn();
-    const handleForwardClick = jest.fn();
-    render(
-      <ReplayClipPreview
-        {...defaultProps}
-        handleBackClick={handleBackClick}
-        handleForwardClick={handleForwardClick}
-        showNextAndPrevious
-      />
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Previous Clip'}));
-    expect(handleBackClick).toHaveBeenCalled();
-    await userEvent.click(screen.getByRole('button', {name: 'Next Clip'}));
-    expect(handleForwardClick).toHaveBeenCalled();
   });
 });

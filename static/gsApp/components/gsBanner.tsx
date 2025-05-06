@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import Cookies from 'js-cookie';
 import every from 'lodash/every';
+import snakeCase from 'lodash/snakeCase';
 import moment from 'moment-timezone';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -35,7 +36,7 @@ import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
 import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
-import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
+import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 
 import {
   openForcedTrialModal,
@@ -664,16 +665,10 @@ class GSBanner extends Component<Props, State> {
     const {api, organization, subscription} = this.props;
     const category_overage_prompts = Object.values(BILLED_DATA_CATEGORY_INFO)
       .filter(categoryInfo => categoryInfo.isBilledCategory)
-      .map(
-        categoryInfo =>
-          `${'snakeCasePlural' in categoryInfo ? categoryInfo.snakeCasePlural : categoryInfo.plural}_overage_alert`
-      );
+      .map(categoryInfo => `${snakeCase(categoryInfo.plural)}_overage_alert`);
     const category_warning_prompts = Object.values(BILLED_DATA_CATEGORY_INFO)
       .filter(categoryInfo => categoryInfo.isBilledCategory)
-      .map(
-        categoryInfo =>
-          `${'snakeCasePlural' in categoryInfo ? categoryInfo.snakeCasePlural : categoryInfo.plural}_warning_alert`
-      );
+      .map(categoryInfo => `${snakeCase(categoryInfo.plural)}_warning_alert`);
     const category_product_trial_prompts = Object.values(BILLED_DATA_CATEGORY_INFO)
       .filter(
         categoryInfo => categoryInfo.isBilledCategory && categoryInfo.canProductTrial
@@ -983,12 +978,12 @@ class GSBanner extends Component<Props, State> {
     let overquotaPrompt: React.ReactNode;
     let eventTypes: EventType[] = [];
 
-    if (prefersStackedNav()) {
+    if (prefersStackedNav(organization)) {
       // new nav uses sidebar quota alert (see quotaExceededNavItem.tsx)
       return null;
     }
 
-    const eventTypeToElement = (eventType: EventType): React.JSX.Element => {
+    const renderDocsLinkForEventType = (eventType: EventType): React.JSX.Element => {
       const onClick = () => {
         trackGetsentryAnalytics('quota_alert.clicked_link', {
           organization,
@@ -999,126 +994,18 @@ class GSBanner extends Component<Props, State> {
         });
       };
       return (
-        {
-          error: (
-            <ExternalLink
-              key="error"
-              href={getDocsLinkForEventType(DataCategoryExact.ERROR)}
-              onClick={onClick}
-            >
-              {getSingularCategoryName({
-                plan,
-                category: DataCategory.ERRORS,
-                capitalize: false,
-              })}
-            </ExternalLink>
-          ),
-          transaction: (
-            <ExternalLink
-              key="transaction"
-              href={getDocsLinkForEventType(DataCategoryExact.TRANSACTION)}
-              onClick={onClick}
-            >
-              {getSingularCategoryName({
-                plan,
-                category: DataCategory.TRANSACTIONS,
-                capitalize: false,
-              })}
-            </ExternalLink>
-          ),
-          replay: (
-            <ExternalLink
-              key="replay"
-              href={getDocsLinkForEventType(DataCategoryExact.REPLAY)}
-              onClick={onClick}
-            >
-              {getSingularCategoryName({
-                plan,
-                category: DataCategory.REPLAYS,
-                capitalize: false,
-              })}
-            </ExternalLink>
-          ),
-          attachment: (
-            <ExternalLink
-              key="attachment"
-              href={getDocsLinkForEventType(DataCategoryExact.ATTACHMENT)}
-              onClick={onClick}
-            >
-              {getSingularCategoryName({
-                plan,
-                category: DataCategory.ATTACHMENTS,
-                capitalize: false,
-              })}
-            </ExternalLink>
-          ),
-          monitorSeat: (
-            <ExternalLink
-              key="monitor-seats"
-              href={getDocsLinkForEventType(DataCategoryExact.MONITOR_SEAT)}
-              onClick={onClick}
-            >
-              {getSingularCategoryName({
-                plan,
-                category: DataCategory.MONITOR_SEATS,
-                capitalize: false,
-              })}
-            </ExternalLink>
-          ),
-          span: (
-            <ExternalLink
-              key="spans"
-              href={getDocsLinkForEventType(DataCategoryExact.SPAN)}
-              onClick={onClick}
-            >
-              {getSingularCategoryName({
-                plan,
-                category: DataCategory.SPANS,
-                capitalize: false,
-              })}
-            </ExternalLink>
-          ),
-          uptime: (
-            <ExternalLink
-              key="uptime"
-              href={getDocsLinkForEventType(DataCategoryExact.UPTIME)}
-              onClick={onClick}
-            >
-              {getSingularCategoryName({
-                plan,
-                category: DataCategory.UPTIME,
-                capitalize: false,
-              })}
-            </ExternalLink>
-          ),
-          profileDuration: (
-            <ExternalLink
-              key="profiles"
-              href={getDocsLinkForEventType(DataCategoryExact.PROFILE_DURATION)}
-              onClick={onClick}
-            >
-              {getSingularCategoryName({
-                plan,
-                category: DataCategory.PROFILE_DURATION,
-                capitalize: false,
-              })}
-            </ExternalLink>
-          ),
-          profileDurationUI: (
-            <ExternalLink
-              key="profiles-ui"
-              href={getDocsLinkForEventType(DataCategoryExact.PROFILE_DURATION_UI)}
-              onClick={onClick}
-            >
-              {getSingularCategoryName({
-                plan,
-                category: DataCategory.PROFILE_DURATION_UI,
-                capitalize: false,
-              })}
-            </ExternalLink>
-          ),
-        } satisfies Record<EventType, React.JSX.Element>
-      )[eventType];
+        <ExternalLink
+          key={eventType}
+          href={getPricingDocsLinkForEventType(eventType)}
+          onClick={onClick}
+        >
+          {getSingularCategoryName({
+            plan,
+            category: DATA_CATEGORY_INFO[eventType].plural,
+            capitalize: false,
+          })}
+        </ExternalLink>
+      );
     };
 
     let strictlySeatOverage = false;
@@ -1140,7 +1027,7 @@ class GSBanner extends Component<Props, State> {
         {
           eventTypes: (
             <b>
-              <Oxfordize>{eventTypes.map(eventTypeToElement)}</Oxfordize>
+              <Oxfordize>{eventTypes.map(renderDocsLinkForEventType)}</Oxfordize>
             </b>
           ),
         }
@@ -1186,7 +1073,7 @@ class GSBanner extends Component<Props, State> {
           {
             eventTypes: (
               <b>
-                <Oxfordize>{eventTypes.map(eventTypeToElement)}</Oxfordize>
+                <Oxfordize>{eventTypes.map(renderDocsLinkForEventType)}</Oxfordize>
               </b>
             ),
             periodEnd: moment(subscription.onDemandPeriodEnd).add(1, 'days').format('ll'),
@@ -1335,7 +1222,7 @@ class GSBanner extends Component<Props, State> {
     return productPath.categories
       .map((category: DataCategory) => {
         const categoryInfo = getCategoryInfoFromPlural(category);
-        const categorySnakeCase = categoryInfo?.snakeCasePlural ?? category;
+        const categorySnakeCase = snakeCase(category);
         const isDismissed =
           this.state.productTrialDismissed[categoryInfo?.name as EventType];
         const trial = getProductTrial(subscription.productTrials ?? null, category);

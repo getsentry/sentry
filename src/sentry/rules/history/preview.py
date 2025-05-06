@@ -12,6 +12,8 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.rules import RuleBase, rules
+from sentry.rules.conditions.base import EventCondition
+from sentry.rules.conditions.event_frequency import BaseEventFrequencyCondition
 from sentry.rules.history.preview_strategy import (
     DATASET_TO_COLUMN_NAME,
     get_dataset_from_category,
@@ -170,6 +172,8 @@ def get_issue_state_activity(
             raise PreviewException
         # instantiates a EventCondition subclass and retrieves activities related to it
         condition_inst = condition_cls(project=project, data=condition)
+        assert isinstance(condition_inst, EventCondition)
+
         try:
             activities = condition_inst.get_activity(start, end, CONDITION_ACTIVITY_LIMIT)
             for activity in activities:
@@ -252,7 +256,7 @@ def get_top_groups(
     Since frequency conditions require snuba query(s), we need to limit the number groups we process.
     """
     if has_issue_state_condition:
-        datasets = {dataset_map.get(group) for group in condition_activity.keys()}
+        datasets = {dataset_map[group] for group in condition_activity.keys()}
     else:
         # condition_activity will be empty because there are no issue state conditions.
         # So, we look to find top groups over all datasets
@@ -438,6 +442,7 @@ def apply_frequency_conditions(
             passes = [True] * len(activities)
             for conditions in condition_types.values():
                 # reuse frequency buckets for conditions of the same type
+                assert isinstance(conditions[0], BaseEventFrequencyCondition)
                 try:
                     buckets = get_frequency_buckets(
                         project,
@@ -471,6 +476,7 @@ def apply_frequency_conditions(
                     passes = [True] * len(activities)
 
                 for condition in conditions[1:] if skip_first else conditions:
+                    assert isinstance(condition, BaseEventFrequencyCondition)
                     for i, activity in enumerate(activities):
                         try:
                             if passes[i] and not condition.passes_activity_frequency(
@@ -488,6 +494,7 @@ def apply_frequency_conditions(
         for group, activities in group_activity.items():
             pass_buckets = set()
             for conditions in condition_types.values():
+                assert isinstance(conditions[0], BaseEventFrequencyCondition)
                 try:
                     buckets = get_frequency_buckets(
                         project,
@@ -500,6 +507,7 @@ def apply_frequency_conditions(
                 except NotImplementedError:
                     raise PreviewException
                 for condition in conditions:
+                    assert isinstance(condition, BaseEventFrequencyCondition)
                     for bucket_time in buckets.keys():
                         activity = ConditionActivity(
                             group,

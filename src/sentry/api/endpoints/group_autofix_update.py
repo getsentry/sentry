@@ -6,6 +6,7 @@ import orjson
 import requests
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.utils import timezone
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
@@ -45,7 +46,9 @@ class GroupAutofixUpdateEndpoint(GroupAiEndpoint):
         if not get_seer_org_acknowledgement(org_id=group.organization.id):
             return Response(
                 status=403,
-                data={"error": "AI Autofix has not been acknowledged by the organization."},
+                data={
+                    "error": "Seer has not been enabled for this organization. Please open an issue at sentry.io/issues and set up Seer."
+                },
             )
 
         path = "/v1/automation/autofix/update"
@@ -72,5 +75,7 @@ class GroupAutofixUpdateEndpoint(GroupAiEndpoint):
         )
 
         response.raise_for_status()
+
+        group.update(seer_autofix_last_triggered=timezone.now())
 
         return Response(status=202, data=response.json())

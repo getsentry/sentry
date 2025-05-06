@@ -21,7 +21,6 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.seer.autofix import trigger_autofix
 from sentry.seer.models import SummarizeIssueResponse
-from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
@@ -233,6 +232,47 @@ def _get_trace_connected_issues(event: GroupEvent) -> list[Group]:
     return connected_issues
 
 
+def _run_automation(
+    group: Group,
+    user: User | RpcUser | AnonymousUser,
+    event: GroupEvent,
+    source: str,
+):
+    if features.has(
+        "organizations:trigger-autofix-on-issue-summary", group.organization, actor=user
+    ):
+        with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
+            try:
+                issue_summary = _generate_fixability_score(group.id)
+            except Exception:
+                logger.exception("Error generating fixability score", extra={"group_id": group.id})
+                return
+
+        if not issue_summary.scores:
+            return
+
+        if issue_summary.scores.fixability_score is not None:
+            group.update(seer_fixability_score=issue_summary.scores.fixability_score)
+
+        if issue_summary.scores.is_fixable:
+            with sentry_sdk.start_span(op="ai_summary.get_autofix_state"):
+                autofix_state = get_autofix_state(group_id=group.id)
+
+            if (
+                not autofix_state
+            ):  # Only trigger autofix if we don't have an autofix on this issue already.
+                auto_run_source_map = {
+                    "issue_details": "issue_summary_fixability",
+                    "alert": "issue_summary_on_alert_fixability",
+                }
+                _trigger_autofix_task.delay(
+                    group_id=group.id,
+                    event_id=event.event_id,
+                    user_id=user.id if user else None,
+                    auto_run_source=auto_run_source_map.get(source, "unknown_source"),
+                )
+
+
 def _generate_summary(
     group: Group,
     user: User | RpcUser | AnonymousUser,
@@ -265,33 +305,7 @@ def _generate_summary(
         serialized_events_for_connected_issues,
     )
 
-    if features.has(
-        "organizations:trigger-autofix-on-issue-summary", group.organization, actor=user
-    ):
-        # This is a temporary feature flag to allow us to trigger autofix on issue summary
-        with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
-            try:
-                issue_summary = _generate_fixability_score(group.id)
-            except Exception:
-                logger.exception("Error generating fixability score", extra={"group_id": group.id})
-
-        if issue_summary.scores.is_fixable:
-            with sentry_sdk.start_span(op="ai_summary.get_autofix_state"):
-                autofix_state = get_autofix_state(group_id=group.id)
-
-            if (
-                not autofix_state
-            ):  # Only trigger autofix if we don't have an autofix on this issue already.
-                auto_run_source_map = {
-                    "issue_details": "issue_summary_fixability",
-                    "alert": "issue_summary_on_alert_fixability",
-                }
-                _trigger_autofix_task.delay(
-                    group_id=group.id,
-                    event_id=event.event_id,
-                    user_id=user.id if user else None,
-                    auto_run_source=auto_run_source_map.get(source, "unknown_source"),
-                )
+    _run_automation(group, user, event, source)
 
     summary_dict = issue_summary.dict()
     summary_dict["event_id"] = event.event_id
@@ -323,9 +337,6 @@ def get_issue_summary(
         user = AnonymousUser()
     if not features.has("organizations:gen-ai-features", group.organization, actor=user):
         return {"detail": "Feature flag not enabled"}, 400
-
-    if not get_seer_org_acknowledgement(group.organization.id):
-        return {"detail": "AI Autofix has not been acknowledged by the organization."}, 403
 
     cache_key = f"ai-group-summary-v2:{group.id}"
     lock_key = f"ai-group-summary-v2-lock:{group.id}"

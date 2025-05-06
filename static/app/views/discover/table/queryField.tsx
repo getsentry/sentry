@@ -65,6 +65,7 @@ type Props = {
   fieldValue: QueryFieldValue;
   onChange: (fieldValue: QueryFieldValue) => void;
   className?: string;
+  disableParameterSelector?: boolean;
   disabled?: boolean;
   error?: string;
   /**
@@ -439,6 +440,7 @@ class _QueryField extends Component<Props> {
       fieldValue,
       useMenuPortal,
       theme,
+      disableParameterSelector,
     } = this.props;
 
     const inputs = parameters.map((descriptor: ParameterDescription, index: number) => {
@@ -483,7 +485,7 @@ class _QueryField extends Component<Props> {
             required={descriptor.required}
             onChange={this.handleFieldParameterChange}
             inFieldLabel={inFieldLabels ? t('Parameter: ') : undefined}
-            disabled={disabled}
+            disabled={disabled || disableParameterSelector}
             menuPortalTarget={portalProps.menuPortalTarget}
             styles={{
               ...portalProps.styles,
@@ -576,7 +578,8 @@ class _QueryField extends Component<Props> {
     if (shouldRenderTag === false) {
       return null;
     }
-    let text, tagType;
+    let text: string;
+    let tagType: 'success' | 'highlight' | 'warning' | undefined = undefined;
     switch (kind) {
       case FieldValueKind.FUNCTION:
         text = 'f(x)';
@@ -606,7 +609,6 @@ class _QueryField extends Component<Props> {
       default:
         text = kind;
     }
-    // @ts-expect-error TS(2322): Type 'string | undefined' is not assignable to typ... Remove this comment to see the full error message
     return <Tag type={tagType}>{text}</Tag>;
   }
 

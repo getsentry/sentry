@@ -1,9 +1,11 @@
 import {Fragment, useRef} from 'react';
+import styled from '@emotion/styled';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
+import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {IssueViewNavItems} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavItems';
@@ -31,7 +33,7 @@ export function IssuesSecondaryNav() {
               to={`${baseUrl}/feedback/`}
               analyticsItemName="issues_feedback"
             >
-              {t('Feedback')}
+              {t('User Feedback')}
             </SecondaryNav.Item>
           </SecondaryNav.Section>
         )}
@@ -43,32 +45,21 @@ export function IssuesSecondaryNav() {
               </SecondaryNav.Item>
             </SecondaryNav.Section>
             <SecondaryNav.Section>
-              <SecondaryNav.Item
-                to={`${baseUrl}/errors-outages/`}
-                end
-                analyticsItemName="issues_types_errors_outages"
-              >
-                {t('Errors & Outages')}
-              </SecondaryNav.Item>
-              <SecondaryNav.Item
-                to={`${baseUrl}/metrics/`}
-                end
-                analyticsItemName="issues_types_metrics"
-              >
-                {t('Metrics')}
-              </SecondaryNav.Item>
-              <SecondaryNav.Item
-                to={`${baseUrl}/best-practices/`}
-                end
-                analyticsItemName="issues_types_best_practices"
-              >
-                {t('Best Practices')}
-              </SecondaryNav.Item>
+              {Object.values(ISSUE_TAXONOMY_CONFIG).map(({key, label}) => (
+                <SecondaryNav.Item
+                  key={key}
+                  to={`${baseUrl}/${key}/`}
+                  end
+                  analyticsItemName={`issues_types_${key}`}
+                >
+                  {label}
+                </SecondaryNav.Item>
+              ))}
               <SecondaryNav.Item
                 to={`${baseUrl}/feedback/`}
                 analyticsItemName="issues_feedback"
               >
-                {t('Feedback')}
+                {t('User Feedback')}
               </SecondaryNav.Item>
             </SecondaryNav.Section>
           </Fragment>
@@ -85,7 +76,7 @@ export function IssuesSecondaryNav() {
 function ConfigureSection({baseUrl}: {baseUrl: string}) {
   const hasWorkflowEngine = useWorkflowEngineFeatureGate();
   return (
-    <SecondaryNav.Section title={t('Configure')}>
+    <StickyBottomSection title={t('Configure')}>
       {hasWorkflowEngine ? (
         <Fragment>
           <SecondaryNav.Item
@@ -112,6 +103,12 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
           {t('Alerts')}
         </SecondaryNav.Item>
       )}
-    </SecondaryNav.Section>
+    </StickyBottomSection>
   );
 }
+
+const StickyBottomSection = styled(SecondaryNav.Section)`
+  position: sticky;
+  bottom: 0;
+  background: ${p => (p.theme.isChonk ? p.theme.background : p.theme.surface200)};
+`;

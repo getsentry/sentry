@@ -76,7 +76,7 @@ export const PAGE_CHART_OPTIONS: Record<
 
 export const DEFAULT_LAYOUTS: Record<
   DomainView,
-  ReadonlyArray<keyof typeof CHART_MAP>
+  ReadonlyArray<keyof typeof CHART_MAP | undefined>
 > = {
   frontend: [
     // ORDER MATTERS HERE
