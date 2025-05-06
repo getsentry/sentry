@@ -331,28 +331,33 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
     @mock.patch("sentry.deletions.defaults.group.bulk_snuba_queries")
     def test_issue_platform_batching(self, mock_bulk_snuba_queries: mock.Mock) -> None:
         # Patch max_rows_to_delete to a small value for testing
-        with mock.patch.object(IssuePlatformEventsDeletionTask, "max_rows_to_delete", 5):
+        with mock.patch.object(IssuePlatformEventsDeletionTask, "max_rows_to_delete", 6):
             # Create three groups with times_seen such that batching is required
             group1 = self.create_group(project=self.project)
             group2 = self.create_group(project=self.project)
             group3 = self.create_group(project=self.project)
+            group4 = self.create_group(project=self.project)
 
             # Set times_seen for each group
             Group.objects.filter(id=group1.id).update(times_seen=3, type=GroupCategory.FEEDBACK)
-            Group.objects.filter(id=group2.id).update(times_seen=3, type=GroupCategory.FEEDBACK)
-            Group.objects.filter(id=group3.id).update(times_seen=2, type=GroupCategory.FEEDBACK)
+            Group.objects.filter(id=group2.id).update(times_seen=1, type=GroupCategory.FEEDBACK)
+            Group.objects.filter(id=group3.id).update(times_seen=3, type=GroupCategory.FEEDBACK)
+            Group.objects.filter(id=group4.id).update(times_seen=3, type=GroupCategory.FEEDBACK)
 
             # This will delete the group and the events from the node store and Snuba
             with self.tasks():
-                delete_groups(object_ids=[group1.id, group2.id, group3.id])
+                delete_groups(object_ids=[group1.id, group2.id, group3.id, group4.id])
 
-            # There should be two batches: [group1, group2] (3+3=6 > 5, so group2 starts new batch), [group3]
+            # There should be two batches: [group3, group1] (2+3=5 > 5, so group2 starts new batch), [group2]
             assert mock_bulk_snuba_queries.call_count == 1
             requests = mock_bulk_snuba_queries.call_args[0][0]
             assert len(requests) == 2
 
-            # First batch should contain group1 only (since group1.times_seen=3, group2.times_seen=3, 3+3>5)
-            # So, batching will be: [group1], [group2], [group3]
-            # But the code tries to add group2 to the batch, sees it would exceed, so starts a new batch
-            assert set(requests[0].query.column_conditions["group_id"]) == {group1.id}
-            assert set(requests[1].query.column_conditions["group_id"]) == {group2.id, group3.id}
+            first_batch = requests[0].query.column_conditions["group_id"]
+            second_batch = requests[1].query.column_conditions["group_id"]
+
+            # Since we sort by times_seen, the first batch will be [group2, group1]
+            # and the second batch will be [group3, group4]
+            assert first_batch == [group2.id, group1.id]  # group2 has less times_seen than group1
+            # group3 and group4 have the same times_seen, thus sorted by id
+            assert second_batch == [group3.id, group4.id]
