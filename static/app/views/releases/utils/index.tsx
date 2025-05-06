@@ -146,7 +146,7 @@ export function getReleaseBounds(release?: Release): ReleaseBounds {
   ).endOf('minute');
 
   if (moment(releaseStart).isSame(releaseEnd, 'minute')) {
-    releaseEnd = moment(releaseEnd).add(1, 'minutes');
+    releaseEnd = moment(releaseEnd).add(1, 'seconds');
   }
 
   if (releaseStart.isBefore(retentionBound)) {
