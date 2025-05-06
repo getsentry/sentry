@@ -19,7 +19,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 
 from sentry import features, options, quotas
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.constants import ObjectStatus
+from sentry.models.project import Project
 from sentry.remote_subscriptions.consumers.result_consumer import (
     ResultProcessor,
     ResultsStrategyFactory,
@@ -28,11 +28,10 @@ from sentry.uptime.detectors.ranking import _get_cluster
 from sentry.uptime.detectors.result_handler import handle_onboarding_result
 from sentry.uptime.issue_platform import create_issue_platform_occurrence, resolve_uptime_issue
 from sentry.uptime.models import (
-    ProjectUptimeSubscription,
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
-    get_project_subscription_for_uptime_subscription,
+    get_detector,
     get_top_hosting_provider_names,
     load_regions_for_uptime_subscription,
 )
@@ -48,6 +47,7 @@ from sentry.uptime.types import IncidentStatus, ProjectUptimeSubscriptionMode
 from sentry.utils import metrics
 from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+from sentry.workflow_engine.models.detector import Detector
 
 logger = logging.getLogger(__name__)
 
@@ -77,14 +77,12 @@ def _get_snuba_uptime_checks_producer() -> KafkaProducer:
 _snuba_uptime_checks_producer = SingletonProducer(_get_snuba_uptime_checks_producer)
 
 
-def build_last_update_key(project_subscription: ProjectUptimeSubscription) -> str:
-    return f"project-sub-last-update:{project_subscription.id}"
+def build_last_update_key(detector: Detector) -> str:
+    return f"project-sub-last-update:detector:{detector.id}"
 
 
-def build_active_consecutive_status_key(
-    project_subscription: ProjectUptimeSubscription, status: str
-) -> str:
-    return f"project-sub-active:{status}:{project_subscription.id}"
+def build_active_consecutive_status_key(detector: Detector, status: str) -> str:
+    return f"project-sub-active:{status}:detector:{detector.id}"
 
 
 def get_active_failure_threshold():
@@ -129,12 +127,12 @@ def should_run_region_checks(subscription: UptimeSubscription, result: CheckResu
 
 
 def has_reached_status_threshold(
-    project_subscription: ProjectUptimeSubscription,
+    detector: Detector,
     status: str,
     metric_tags: dict[str, str],
 ) -> bool:
     pipeline = _get_cluster().pipeline()
-    key = build_active_consecutive_status_key(project_subscription, status)
+    key = build_active_consecutive_status_key(detector, status)
     pipeline.incr(key)
     pipeline.expire(key, ACTIVE_THRESHOLD_REDIS_TTL)
     status_count = int(pipeline.execute()[0])
@@ -174,21 +172,15 @@ def try_check_and_update_regions(
 
 
 def produce_snuba_uptime_result(
-    project_subscription: ProjectUptimeSubscription,
+    uptime_subscription: UptimeSubscription,
+    project: Project,
     result: CheckResult,
     metric_tags: dict[str, str],
 ) -> None:
     """
     Produces a message to Snuba's Kafka topic for uptime check results.
-
-    Args:
-        project_subscription: The project subscription associated with the result
-        result: The check result to be sent to Snuba
     """
     try:
-        uptime_subscription = project_subscription.uptime_subscription
-        project = project_subscription.project
-
         retention_days = quotas.backend.get_event_retention(organization=project.organization) or 90
 
         if uptime_subscription.uptime_status == UptimeStatus.FAILED:
@@ -265,7 +257,7 @@ def record_check_completion_metrics(result: CheckResult, metric_tags: dict[str, 
 
 def record_check_metrics(
     result: CheckResult,
-    project_subscription: ProjectUptimeSubscription,
+    detector: Detector,
     metric_tags: dict[str, str],
 ) -> None:
     """
@@ -274,7 +266,7 @@ def record_check_metrics(
     if result["status"] == CHECKSTATUS_MISSED_WINDOW:
         logger.info(
             "handle_result_for_project.missed",
-            extra={"project_id": project_subscription.project_id, **result},
+            extra={"project_id": detector.project_id, **result},
         )
         # Do not log other metrics for missed_window results, this was a
         # synthetic result
@@ -298,11 +290,11 @@ def record_check_metrics(
 
 
 def handle_active_result(
-    project_subscription: ProjectUptimeSubscription,
+    detector: Detector,
+    uptime_subscription: UptimeSubscription,
     result: CheckResult,
     metric_tags: dict[str, str],
 ):
-    uptime_subscription = project_subscription.uptime_subscription
     uptime_status = uptime_subscription.uptime_status
     result_status = result["status"]
 
@@ -311,15 +303,15 @@ def handle_active_result(
         CHECKSTATUS_FAILURE if result_status == CHECKSTATUS_SUCCESS else CHECKSTATUS_SUCCESS
     )
     # Delete any consecutive results we have for the opposing status, since we received this status
-    redis.delete(build_active_consecutive_status_key(project_subscription, delete_status))
+    redis.delete(build_active_consecutive_status_key(detector, delete_status))
 
     if uptime_status == UptimeStatus.OK and result_status == CHECKSTATUS_FAILURE:
-        if not has_reached_status_threshold(project_subscription, result_status, metric_tags):
+        if not has_reached_status_threshold(detector, result_status, metric_tags):
             return
 
         issue_creation_flag_enabled = features.has(
             "organizations:uptime-create-issues",
-            project_subscription.project.organization,
+            detector.project.organization,
         )
 
         restricted_host_provider_ids = options.get(
@@ -339,7 +331,7 @@ def handle_active_result(
             )
 
         if issue_creation_flag_enabled and not issue_creation_restricted_by_provider:
-            create_issue_platform_occurrence(result, project_subscription)
+            create_issue_platform_occurrence(result, detector)
             metrics.incr(
                 "uptime.result_processor.active.sent_occurrence",
                 tags=metric_tags,
@@ -348,23 +340,21 @@ def handle_active_result(
             logger.info(
                 "uptime_active_sent_occurrence",
                 extra={
-                    "project_id": project_subscription.project_id,
+                    "project_id": detector.project_id,
                     "url": uptime_subscription.url,
                     **result,
                 },
             )
-        project_subscription.uptime_subscription.update(
+        uptime_subscription.update(
             uptime_status=UptimeStatus.FAILED,
             uptime_status_update_date=django_timezone.now(),
         )
     elif uptime_status == UptimeStatus.FAILED and result_status == CHECKSTATUS_SUCCESS:
-        if not has_reached_status_threshold(project_subscription, result_status, metric_tags):
+        if not has_reached_status_threshold(detector, result_status, metric_tags):
             return
 
-        if features.has(
-            "organizations:uptime-create-issues", project_subscription.project.organization
-        ):
-            resolve_uptime_issue(project_subscription)
+        if features.has("organizations:uptime-create-issues", detector.project.organization):
+            resolve_uptime_issue(detector)
             metrics.incr(
                 "uptime.result_processor.active.resolved",
                 sample_rate=1.0,
@@ -373,12 +363,12 @@ def handle_active_result(
             logger.info(
                 "uptime_active_resolved",
                 extra={
-                    "project_id": project_subscription.project_id,
+                    "project_id": detector.project_id,
                     "url": uptime_subscription.url,
                     **result,
                 },
             )
-        project_subscription.uptime_subscription.update(
+        uptime_subscription.update(
             uptime_status=UptimeStatus.OK,
             uptime_status_update_date=django_timezone.now(),
         )
@@ -423,14 +413,14 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
 
         try_check_and_update_regions(subscription, result, subscription_regions)
 
-        project_subscription = get_project_subscription_for_uptime_subscription(subscription.id)
+        detector = get_detector(subscription)
 
         # Nothing to do if there's an orphaned project subscription
-        if not project_subscription:
+        if not detector:
             remove_uptime_subscription_if_unused(subscription)
             return
 
-        organization = project_subscription.project.organization
+        organization = detector.project.organization
 
         # Detailed logging for specific organizations, useful for if we need to
         # debug a specific organizations checks.
@@ -438,7 +428,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             logger.info("handle_result_for_project.before_dedupe", extra=result)
 
         # Nothing to do if this subscription is disabled.
-        if project_subscription.status == ObjectStatus.DISABLED:
+        if not detector.enabled:
             return
 
         # Nothing to do if the feature isn't enabled
@@ -446,7 +436,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             metrics.incr("uptime.result_processor.dropped_no_feature")
             return
 
-        mode_name = ProjectUptimeSubscriptionMode(project_subscription.mode).name.lower()
+        mode_name = ProjectUptimeSubscriptionMode(detector.config["mode"]).name.lower()
 
         status_reason = "none"
         if result["status_reason"]:
@@ -459,7 +449,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         )
 
         cluster = _get_cluster()
-        last_update_key = build_last_update_key(project_subscription)
+        last_update_key = build_last_update_key(detector)
         last_update_raw: str | None = cluster.get(last_update_key)
         last_update_ms = 0 if last_update_raw is None else int(last_update_raw)
 
@@ -491,27 +481,27 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         # can guarantee that we get the earliest delay stat for each scheduled
         # check for the monitor here, and so this stat will be a more accurate
         # measurement of delay/duration.
-        record_check_metrics(result, project_subscription, {"mode": mode_name, **metric_tags})
+        record_check_metrics(result, detector, {"mode": mode_name, **metric_tags})
 
         Mode = ProjectUptimeSubscriptionMode
         try:
-            match project_subscription.mode:
+            match detector.config["mode"]:
                 case Mode.AUTO_DETECTED_ONBOARDING:
-                    handle_onboarding_result(project_subscription, result, metric_tags.copy())
+                    handle_onboarding_result(detector, subscription, result, metric_tags.copy())
                 case Mode.AUTO_DETECTED_ACTIVE | Mode.MANUAL:
-                    handle_active_result(project_subscription, result, metric_tags.copy())
+                    handle_active_result(detector, subscription, result, metric_tags.copy())
                 case _:
                     logger.error(
                         "Unknown subscription mode",
-                        extra={"mode": project_subscription.mode},
+                        extra={"mode": detector.config["mode"]},
                     )
         except Exception:
             logger.exception("Failed to process result for uptime project subscription")
 
         # Snuba production _must_ happen after handling the result, since we
-        # may mutate the project_subscription when we determine we're in an incident
+        # may mutate the UptimeSubscription when we determine we're in an incident
         if options.get("uptime.snuba_uptime_results.enabled"):
-            produce_snuba_uptime_result(project_subscription, result, metric_tags.copy())
+            produce_snuba_uptime_result(subscription, detector.project, result, metric_tags.copy())
 
         # Track the last update date to allow deduplication
         cluster.set(

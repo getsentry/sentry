@@ -18,13 +18,13 @@ import {
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
+import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {APP_START_SPANS} from 'sentry/views/insights/mobile/appStarts/components/spanOpSelector';
 import type {SpanOperationTableProps} from 'sentry/views/insights/mobile/common/components/tables/samplesTables';
 import {ScreensTable} from 'sentry/views/insights/mobile/common/components/tables/screensTable';
-import {useTableQuery} from 'sentry/views/insights/mobile/screenload/components/tables/screensTable';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
 import {SUMMARY_PAGE_BASE_URL} from 'sentry/views/insights/mobile/screenRendering/settings';
 import {Referrer} from 'sentry/views/insights/mobile/ui/referrers';
@@ -104,12 +104,27 @@ export function SpanOperationTable({
 
   const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
 
-  const {data, isPending, pageLinks} = useTableQuery({
-    eventView,
-    enabled: true,
-    referrer: Referrer.SPAN_OPERATION_TABLE,
-    cursor,
-  });
+  const {data, meta, isPending, pageLinks} = useSpanMetrics(
+    {
+      cursor,
+      search: queryStringPrimary,
+      orderby,
+      fields: [
+        PROJECT_ID,
+        SPAN_OP,
+        SPAN_GROUP,
+        SPAN_DESCRIPTION,
+        `division_if(mobile.slow_frames,mobile.total_frames,release,${primaryRelease})`,
+        `division_if(mobile.slow_frames,mobile.total_frames,release,${secondaryRelease})`,
+        `division_if(mobile.frozen_frames,mobile.total_frames,release,${primaryRelease})`,
+        `division_if(mobile.frozen_frames,mobile.total_frames,release,${secondaryRelease})`,
+        `avg_if(mobile.frames_delay,release,${primaryRelease})`,
+        `avg_if(mobile.frames_delay,release,${secondaryRelease})`,
+        `avg_compare(mobile.frames_delay,release,${primaryRelease},${secondaryRelease})`,
+      ],
+    },
+    Referrer.SPAN_OPERATION_TABLE
+  );
 
   const columnNameMap = {
     [SPAN_OP]: t('Operation'),
@@ -202,7 +217,7 @@ export function SpanOperationTable({
     <ScreensTable
       columnNameMap={columnNameMap}
       columnTooltipMap={columnTooltipMap}
-      data={data}
+      data={{data, meta}}
       eventView={eventView}
       isLoading={isPending}
       pageLinks={pageLinks}

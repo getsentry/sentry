@@ -284,6 +284,78 @@ class NPlusOneDBSpanExperimentalDetectorTest(unittest.TestCase):
             )
         ]
 
+    def test_detects_n_plus_one_with_mongodb(self):
+        event = get_event("n-plus-one-db/n-plus-one-db-mongodb")
+        offender_spans_ids = [
+            "1b956e6208c12234",
+            "507ac1e45eeb6f48",
+            "a26f142f8f4ddf8c",
+            "943646644c6cd1e2",
+            "382d73298e39b6ad",
+            "825c930f96d2413e",
+            "34ed0679baf34c21",
+            "828489c5141f7e98",
+            "4951058576fc8740",
+            "cec67e0ed8212153",
+            "e6f2d476420b4142",
+            "d9fea64390f835e6",
+            "6bb43d3c81cff71e",
+            "d46e8e0ec4894684",
+            "03112ecef7f2d2a8",
+        ]
+        assert self.find_problems(event) == [
+            PerformanceProblem(
+                fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-4e7d5e9be7cb7af2dc8af3ab6be354707e3ab2bc",
+                op="db",
+                desc='{"filter":{"productid":{"buffer":"?"}},"find":"reviews"}',
+                type=PerformanceNPlusOneExperimentalGroupType,
+                parent_span_ids=["991fdf5c47a068b0"],
+                cause_span_ids=["398687f1a7e9cf73"],
+                offender_span_ids=offender_spans_ids,
+                evidence_data={
+                    "cause_span_ids": ["398687f1a7e9cf73"],
+                    "num_repeating_spans": "15",
+                    "offender_span_ids": offender_spans_ids,
+                    "op": "db",
+                    "parent_span": "http.server",
+                    "parent_span_ids": ["991fdf5c47a068b0"],
+                    "repeating_spans": """db - '{"filter":{"productid":{"buffer":"?"}},"find":"reviews"}'""",
+                    "repeating_spans_compact": """'{"filter":{"productid":{"buffer":"?"}},"find":"reviews"}'""",
+                    "transaction_name": "GET /products",
+                },
+                evidence_display=[
+                    IssueEvidence(
+                        name="Offending Spans",
+                        value="""db - '{"filter":{"productid":{"buffer":"?"}},"find":"reviews"}'""",
+                        important=True,
+                    ),
+                ],
+            ),
+        ]
+
+    def test_ignores_quick_n_plus_one_with_mongodb(self):
+        event = get_event("n-plus-one-db/n-plus-one-db-mongodb")
+        # Shorten spans to ~10-20ms
+        for index, span in enumerate(event["spans"]):
+            if span.get("op") == "db" and span["data"].get("db.collection.name") == "reviews":
+                span["start_timestamp"] = index
+                span["timestamp"] = index + 0.001  # Each span takes 1ms
+        assert self.find_problems(event) == []
+
+    def test_ignores_few_spans_n_plus_one_with_mongodb(self):
+        event = get_event("n-plus-one-db/n-plus-one-db-mongodb")
+        override_spans = []
+        allowed_span_count = 3
+        # Remove all but 'allowed_span_count' N+1 spans
+        for span in event["spans"]:
+            if span.get("op") == "db" and span["data"].get("db.collection.name") == "reviews":
+                if allowed_span_count == 0:
+                    continue
+                allowed_span_count -= 1
+            override_spans.append(span)
+        event["spans"] = override_spans
+        assert self.find_problems(event) == []
+
 
 @pytest.mark.django_db
 class NPlusOneDbSettingTest(TestCase):
