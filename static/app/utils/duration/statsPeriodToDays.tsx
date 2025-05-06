@@ -11,6 +11,9 @@ export function statsPeriodToDays(
   if (statsPeriod?.endsWith('h')) {
     return parseInt(statsPeriod.slice(0, -1), 10) / 24;
   }
+  if (statsPeriod?.endsWith('m')) {
+    return parseInt(statsPeriod.slice(0, -1), 10) / 1440;
+  }
   if (start && end) {
     return (new Date(end).getTime() - new Date(start).getTime()) / (24 * 60 * 60 * 1000);
   }

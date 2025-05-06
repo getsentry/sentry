@@ -439,7 +439,7 @@ function getReleasesRequest(
       columns.length === 0
         ? 1
         : isCustomReleaseSorting
-          ? getCustomReleaseSortLimit(period, start, end)
+          ? getCustomReleaseSortLimit(period, start, end, interval)
           : limit,
     orderBy: unsupportedOrderby
       ? ''
@@ -457,20 +457,26 @@ function getReleasesRequest(
   });
 }
 
+const MAX_POINTS = 10000;
+
 /**
  * This is used to decide the "limit" parameter for the release health request.
  * This limit is actually passed to the "per_page" parameter of the request.
- * For stats period less than 14 days we limit to 50 releases, otherwise we limit to 25;
- * this will prevent the "requested intervals is too granular for per_page..." error.
+ * The limit is determined by the following formula: limit < MAX_POINTS / numberOfIntervals.
+ * This is to prevent the "requested intervals is too granular for per_page..." error from the backend.
  */
 function getCustomReleaseSortLimit(
   period: string | null,
   start?: DateString,
-  end?: DateString
+  end?: DateString,
+  interval?: string
 ) {
   const periodInDays = statsPeriodToDays(period, start, end);
-  if (periodInDays < 14) {
-    return 50;
+  const intervalInDays = statsPeriodToDays(interval);
+  const numberOfIntervals = periodInDays / intervalInDays;
+  const limit = Math.floor(MAX_POINTS / numberOfIntervals) - 1;
+  if (limit < 1 || limit > 100) {
+    return 100;
   }
-  return 25;
+  return limit;
 }
