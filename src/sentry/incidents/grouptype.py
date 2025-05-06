@@ -29,7 +29,7 @@ class MetricIssueEvidenceData(EvidenceData):
     alert_id: int
 
 
-class MetricAlertDetectorHandler(StatefulGroupingDetectorHandler[QuerySubscriptionUpdate]):
+class MetricAlertDetectorHandler(StatefulGroupingDetectorHandler[QuerySubscriptionUpdate, int]):
     def build_occurrence_and_event_data(
         self, group_key: DetectorGroupKey, new_status: PriorityLevel
     ) -> tuple[DetectorOccurrence, dict[str, Any]]:
@@ -65,7 +65,7 @@ class MetricIssue(GroupType):
     slug = "metric_issue"
     description = "Metric issue triggered"
     category = GroupCategory.METRIC_ALERT.value
-    category_v2 = GroupCategory.PERFORMANCE_REGRESSION.value
+    category_v2 = GroupCategory.METRIC.value
     creation_quota = Quota(3600, 60, 100)
     default_priority = PriorityLevel.HIGH
     enable_auto_resolve = False

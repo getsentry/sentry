@@ -11,7 +11,7 @@ from sentry.constants import ObjectStatus
 from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 
 if TYPE_CHECKING:
     from sentry.integrations.services.integration import RpcIntegration
@@ -38,7 +38,7 @@ class ExternalIssueManager(BaseManager["ExternalIssue"]):
         return self.filter(**kwargs)
 
     def get_linked_issues(
-        self, event: Event, integration: RpcIntegration
+        self, event: GroupEvent, integration: RpcIntegration
     ) -> QuerySet[ExternalIssue]:
         from sentry.models.grouplink import GroupLink
 
@@ -52,7 +52,7 @@ class ExternalIssueManager(BaseManager["ExternalIssue"]):
             integration_id=integration.id,
         )
 
-    def has_linked_issue(self, event: Event, integration: RpcIntegration) -> bool:
+    def has_linked_issue(self, event: GroupEvent, integration: RpcIntegration) -> bool:
         return self.get_linked_issues(event, integration).exists()
 
 
