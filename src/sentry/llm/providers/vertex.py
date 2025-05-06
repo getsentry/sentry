@@ -63,7 +63,7 @@ class VertexProvider(LlmModelBase):
             )
             raise VertexRequestFailed(f"Response {response.status_code}: {response.text}")
 
-        return response.json()["predictions"][0]["content"]
+        return response.json()["candidates"][0]["content"]["parts"][0]["text"]
 
     def _get_access_token(self) -> str:
         # https://stackoverflow.com/questions/53472429/how-to-get-a-gcp-bearer-token-programmatically-with-python
