@@ -34,7 +34,6 @@ def delete_groups(
     sentry_sdk.set_tags(
         {
             "project_id": first_group.project_id,
-            "organization_slug": first_group.project.organization.slug,
             "transaction_id": transaction_id,
         },
     )
@@ -51,7 +50,6 @@ def delete_groups(
             "first_id": first_group.id,
             # These can be used when looking for logs in GCP
             "project_id": first_group.project_id,
-            "organization_slug": first_group.project.organization.slug,
             # All tasks initiated by the same request will have the same transaction_id
             "transaction_id": transaction_id,
         },

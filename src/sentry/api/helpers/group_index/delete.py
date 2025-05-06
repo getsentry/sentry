@@ -30,6 +30,7 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 def delete_group_list(
     request: Request,
+    organization_id: int,
     project: Project,
     group_list: list[Group],
     delete_type: Literal["delete", "discard"],
@@ -37,6 +38,7 @@ def delete_group_list(
     """Deletes a list of groups which belong to a single project.
 
     :param request: The request object.
+    :param organization_id: The organization ID.
     :param project: The project the groups belong to.
     :param group_list: The list of groups to delete.
     :param delete_type: The type of deletion to perform. This is used to determine the type of audit log to create.
@@ -60,7 +62,7 @@ def delete_group_list(
         extra={
             "objects": group_ids,
             "project_id": project.id,
-            "organization_slug": project.organization.slug,
+            "organization_id": organization_id,
             "transaction_id": transaction_id,
         },
     )
@@ -68,7 +70,7 @@ def delete_group_list(
     sentry_sdk.set_tags(
         {
             "project_id": project.id,
-            "organization_slug": project.organization.slug,
+            "organization_id": organization_id,
             "transaction_id": transaction_id,
         },
     )
@@ -112,6 +114,7 @@ def delete_group_list(
 
 def create_audit_entries(
     request: Request,
+    organization_id: int,
     project: Project,
     group_list: Sequence[Group],
     delete_type: Literal["delete", "discard"],
@@ -136,7 +139,7 @@ def create_audit_entries(
             extra={
                 "object_id": group.id,
                 "project_id": group.project_id,
-                "organization_slug": group.project.organization.slug,
+                "organization_id": organization_id,
                 "transaction_id": transaction_id,
                 "model": type(group).__name__,
             },
@@ -188,7 +191,11 @@ def delete_groups(
 
     for project in projects:
         delete_group_list(
-            request, project, groups_by_project_id.get(project.id, []), delete_type="delete"
+            request,
+            organization_id,
+            project,
+            groups_by_project_id.get(project.id, []),
+            delete_type="delete",
         )
 
     return Response(status=204)
