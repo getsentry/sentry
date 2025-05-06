@@ -3545,10 +3545,10 @@
   resolved "https://registry.yarnpkg.com/@sentry/status-page-list/-/status-page-list-0.6.0.tgz#9ae1a2cf0fa5a89f0eefd81e6887c13f15ef6270"
   integrity sha512-umFIGPsFo8wjT5xLSraUd69GDJhBv8a8YgpAt8zE23SlkFNiWZcDP+Wr6yif2EQvB6Z6i3TmnQcz3mBN1j1kNA==
 
-"@sentry/toolbar@1.0.0-beta.13":
-  version "1.0.0-beta.13"
-  resolved "https://registry.yarnpkg.com/@sentry/toolbar/-/toolbar-1.0.0-beta.13.tgz#0a1bd7db5d9deeabf99c46f71d0eb51d99d07fbe"
-  integrity sha512-BBRExkL0rd5a10uAORDN8L7GIFyzIb1tXx7xaoq1yRwQsAGl4HGZ1uMs7ZKdA1ilrlM7K1gF1VJqxfyl29wfSQ==
+"@sentry/toolbar@1.0.0-beta.14":
+  version "1.0.0-beta.14"
+  resolved "https://registry.yarnpkg.com/@sentry/toolbar/-/toolbar-1.0.0-beta.14.tgz#79cb5bb6f7b0d86fb202401e3f7f53a881e3b0c7"
+  integrity sha512-IyA/3atBCG0J94ZiYF4l0vG4fUk2WMa5E+giq7Tj89XaHYP+IfLtNfx0nxWf5659R5PjoLfE5GISHYJKgskNMg==
 
 "@sentry/webpack-plugin@^3.1.1":
   version "3.1.1"
