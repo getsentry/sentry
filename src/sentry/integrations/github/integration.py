@@ -30,8 +30,12 @@ from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RAT
 from sentry.integrations.github.tasks.link_all_repos import link_all_repos
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import RpcRepository, repository_service
-from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
+from sentry.integrations.source_code_management.commit_context import (
+    CommitContextIntegration,
+    PRCommentWorkflow,
+)
 from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
@@ -39,12 +43,17 @@ from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
 )
+from sentry.models.group import Group
+from sentry.models.organization import Organization
+from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.snuba.referrer import Referrer
+from sentry.types.referrer_ids import GITHUB_PR_BOT_REFERRER
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import determine_active_organization
@@ -173,11 +182,9 @@ def get_document_origin(org) -> str:
 class GitHubIntegration(
     RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration, RepoTreesIntegration
 ):
-    codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
+    integration_name = "github"
 
-    @property
-    def integration_name(self) -> str:
-        return "github"
+    codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
     def get_client(self) -> GitHubBaseClient:
         if not self.org_integration:
@@ -290,6 +297,26 @@ class GitHubIntegration(
         assert isinstance(resp, dict)
         return resp
 
+    def get_account_id(self):
+        installation_metadata = self.model.metadata
+        github_account_id = installation_metadata.get("account_id")
+
+        # Attempt to backfill the id if it does not exist
+        if github_account_id is None:
+            client: GitHubBaseClient = self.get_client()
+            installation_id: int = self.model.external_id
+            updated_installation_info: Mapping[str, Any] = client.get_installation_info(
+                installation_id
+            )
+
+            github_account_id = updated_installation_info["account"]["id"]
+            installation_metadata["account_id"] = github_account_id
+            integration_service.update_integration(
+                integration_id=self.model.id, metadata=installation_metadata
+            )
+
+        return github_account_id
+
     # CommitContextIntegration methods
 
     def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
@@ -309,6 +336,75 @@ class GitHubIntegration(
                 return True
 
         return False
+
+    def get_pr_comment_workflow(self) -> PRCommentWorkflow:
+        return GitHubPRCommentWorkflow(integration=self)
+
+
+MERGED_PR_COMMENT_BODY_TEMPLATE = """\
+## Suspect Issues
+This pull request was deployed and Sentry observed the following issues:
+
+{issue_list}
+
+<sub>Did you find this useful? React with a 👍 or 👎</sub>"""
+
+MERGED_PR_SINGLE_ISSUE_TEMPLATE = "- ‼️ **{title}** `{subtitle}` [View Issue]({url})"
+
+
+class GitHubPRCommentWorkflow(PRCommentWorkflow):
+    organization_option_key = "sentry:github_pr_bot"
+    referrer = Referrer.GITHUB_PR_COMMENT_BOT
+    referrer_id = GITHUB_PR_BOT_REFERRER
+
+    @staticmethod
+    def format_comment_subtitle(subtitle: str) -> str:
+        return subtitle[:47] + "..." if len(subtitle) > 50 else subtitle
+
+    @staticmethod
+    def format_comment_url(url: str, referrer: str) -> str:
+        return url + "?referrer=" + referrer
+
+    def get_comment_body(self, issue_ids: list[int]) -> str:
+        issues = Group.objects.filter(id__in=issue_ids).order_by("id").all()
+
+        issue_list = "\n".join(
+            [
+                MERGED_PR_SINGLE_ISSUE_TEMPLATE.format(
+                    title=issue.title,
+                    subtitle=self.format_comment_subtitle(issue.culprit),
+                    url=self.format_comment_url(issue.get_absolute_url(), self.referrer_id),
+                )
+                for issue in issues
+            ]
+        )
+
+        return MERGED_PR_COMMENT_BODY_TEMPLATE.format(issue_list=issue_list)
+
+    def get_comment_data(
+        self,
+        organization: Organization,
+        repo: Repository,
+        pr: PullRequest,
+        comment_body: str,
+        issue_ids: list[int],
+    ) -> dict[str, Any]:
+        enabled_copilot = features.has("organizations:gen-ai-features", organization)
+
+        comment_data = {
+            "body": comment_body,
+        }
+        if enabled_copilot:
+            comment_data["actions"] = [
+                {
+                    "name": f"Root cause #{i + 1}",
+                    "type": "copilot-chat",
+                    "prompt": f"@sentry root cause issue {str(issue_id)} with PR URL https://github.com/{repo.name}/pull/{str(pr.key)}",
+                }
+                for i, issue_id in enumerate(issue_ids[:3])
+            ]
+
+        return comment_data
 
 
 class GitHubIntegrationProvider(IntegrationProvider):
@@ -368,7 +464,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
 
     def get_installation_info(self, installation_id: str) -> Mapping[str, Any]:
         client = self.get_client()
-        resp: Mapping[str, Any] = client.get(f"/app/installations/{installation_id}")
+        resp: Mapping[str, Any] = client.get_installation_info(installation_id)
         return resp
 
     def build_integration(self, state: Mapping[str, str]) -> IntegrationData:
@@ -393,6 +489,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
                 "icon": installation["account"]["avatar_url"],
                 "domain_name": installation["account"]["html_url"].replace("https://", ""),
                 "account_type": installation["account"]["type"],
+                "account_id": installation["account"]["id"],
             },
         }
 

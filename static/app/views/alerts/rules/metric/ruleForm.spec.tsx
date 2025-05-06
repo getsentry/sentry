@@ -31,7 +31,7 @@ jest.mock('sentry/utils/analytics', () => ({
 }));
 
 describe('Incident Rules Form', () => {
-  let organization: any, project: any, router: any, location: any, anomalies: any;
+  let organization: any, project: any, location: any, anomalies: any;
   function Component(props: any) {
     const theme = useTheme();
     return <RuleFormContainer theme={theme} {...props} />;
@@ -45,7 +45,9 @@ describe('Incident Rules Form', () => {
         project={project}
         {...props}
       />,
-      {router, organization}
+      {
+        organization,
+      }
     );
   }
 
@@ -57,7 +59,6 @@ describe('Incident Rules Form', () => {
     project = initialData.project;
     location = initialData.router.location;
     ProjectsStore.loadInitialData([project]);
-    router = initialData.router;
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       body: [],

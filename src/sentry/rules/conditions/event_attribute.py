@@ -65,6 +65,10 @@ ATTR_CHOICES: dict[str, Columns | None] = {
     "app.in_foreground": Columns.APP_IN_FOREGROUND,
     "os.distribution_name": Columns.OS_DISTRIBUTION_NAME,
     "os.distribution_version": Columns.OS_DISTRIBUTION_VERSION,
+    "symbolicated_in_app": Columns.SYMBOLICATED_IN_APP,
+    "ota_updates.channel": Columns.OTA_UPDATES_CHANNEL,
+    "ota_updates.runtime_version": Columns.OTA_UPDATES_RUNTIME_VERSION,
+    "ota_updates.update_id": Columns.OTA_UPDATES_UPDATE_ID,
 }
 
 
@@ -430,4 +434,19 @@ class OsAttributeHandler(AttributeHandler):
             if os_context is None:
                 os_context = {}
             return [os_context.get(path[1])]
+        return []
+
+
+@attribute_registry.register("ota_updates")
+class ExpoUpdatesAttributeHandler(AttributeHandler):
+    minimum_path_length = 2
+
+    @classmethod
+    def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
+        if path[1] in ("channel", "runtime_version", "update_id"):
+            contexts = event.data.get("contexts", {})
+            ota_updates_context = contexts.get("ota_updates")
+            if ota_updates_context is None:
+                ota_updates_context = {}
+            return [ota_updates_context.get(path[1])]
         return []

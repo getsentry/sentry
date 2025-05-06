@@ -166,13 +166,13 @@ export type SentryAppSchemaStacktraceLink = {
   params?: string[];
 };
 
-export type SentryAppSchemaAlertRuleAction = {
+type SentryAppSchemaAlertRuleAction = {
   settings: SentryAppSchemaAlertRuleActionSettings;
   title: string;
   type: 'alert-rule-action';
 };
 
-export type SentryAppSchemaAlertRuleActionSettings = {
+type SentryAppSchemaAlertRuleActionSettings = {
   description: string;
   // a list of FormFields
   required_fields: any[];
@@ -210,7 +210,7 @@ export interface StacktraceLinkResult {
   sourceUrl?: string;
 }
 
-export type StacktraceErrorMessage =
+type StacktraceErrorMessage =
   | 'file_not_found'
   | 'stack_root_mismatch'
   | 'integration_link_forbidden';
@@ -380,7 +380,7 @@ export interface IntegrationProvider extends BaseIntegrationProvider {
   setupDialog: {height: number; url: string; width: number};
 }
 
-export interface OrganizationIntegrationProvider extends BaseIntegrationProvider {
+interface OrganizationIntegrationProvider extends BaseIntegrationProvider {
   aspects: IntegrationAspects;
 }
 
@@ -617,7 +617,7 @@ export interface RepositoryProjectPathConfig extends BaseRepositoryProjectPathCo
   provider: BaseIntegrationProvider | null;
 }
 
-export interface RepositoryProjectPathConfigWithIntegration
+interface RepositoryProjectPathConfigWithIntegration
   extends BaseRepositoryProjectPathConfig {
   integrationId: string;
   provider: BaseIntegrationProvider;

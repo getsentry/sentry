@@ -7,7 +7,7 @@ import {IconCheckmark, IconWarning} from 'sentry/icons';
 import {fadeOut, pulse} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 
-export interface ControlStateProps {
+interface ControlStateProps {
   /**
    * Display the  error indicator
    */

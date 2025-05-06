@@ -14,7 +14,7 @@ import type {WidgetDescriptionProps} from 'sentry/views/dashboards/widgets/widge
 import {TooltipIconTrigger} from './tooltipIconTrigger';
 import {WarningsList} from './warningsList';
 
-export interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
+interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
   actions?: MenuItemProps[];
   actionsDisabled?: boolean;
   actionsMessage?: string;

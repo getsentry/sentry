@@ -44,6 +44,9 @@ from sentry.rules.processing.processor import (
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.post_process import should_retry_fetch
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import issues_tasks
+from sentry.taskworker.retry import Retry
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
@@ -456,7 +459,9 @@ def fire_rules(
         group_to_groupevent = get_group_to_groupevent(
             parsed_rulegroup_to_event_data, project.id, group_ids
         )
-        if features.has("organizations:workflow-engine-process-workflows", project.organization):
+        if features.has(
+            "organizations:workflow-engine-process-workflows", project.organization
+        ) or features.has("projects:num-events-issue-debugging", project):
             serialized_groups = {
                 group.id: group_event.event_id for group, group_event in group_to_groupevent.items()
             }
@@ -465,6 +470,7 @@ def fire_rules(
                 extra={
                     "group_to_groupevent": serialized_groups,
                     "project_id": project_id,
+                    "rule_id": rule.id,
                 },
             )
         for group, groupevent in group_to_groupevent.items():
@@ -502,7 +508,7 @@ def fire_rules(
             if features.has(
                 "organizations:workflow-engine-process-workflows-logs",
                 project.organization,
-            ):
+            ) or features.has("projects:num-events-issue-debugging", project):
                 logger.info(
                     "post_process.delayed_processing.triggered_rule",
                     extra={
@@ -529,6 +535,8 @@ def fire_rules(
                     extra={
                         "total": len(callback_and_futures),
                         "not_sent": not_sent,
+                        "project_id": project_id,
+                        "rule_id": rule.id,
                     },
                 )
 
@@ -554,6 +562,13 @@ def cleanup_redis_buffer(
     soft_time_limit=50,
     time_limit=60,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+        processing_deadline_duration=60,
+        retry=Retry(
+            times=5,
+        ),
+    ),
 )
 def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **kwargs: Any) -> None:
     """

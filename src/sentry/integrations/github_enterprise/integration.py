@@ -18,6 +18,7 @@ from sentry.integrations.base import (
     IntegrationFeatures,
     IntegrationMetadata,
 )
+from sentry.integrations.github.constants import ISSUE_LOCKED_ERROR_MESSAGE, RATE_LIMITED_MESSAGE
 from sentry.integrations.github.integration import GitHubIntegrationProvider, build_repository_query
 from sentry.integrations.github.issues import GitHubIssuesSpec
 from sentry.integrations.github.utils import get_jwt
@@ -30,7 +31,7 @@ from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
-from sentry.utils import jwt
+from sentry.utils import jwt, metrics
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
@@ -172,7 +173,7 @@ class GitHubEnterpriseIntegration(
 
     # IntegrationInstallation methods
 
-    def message_from_error(self, exc):
+    def message_from_error(self, exc: Exception) -> str:
         if isinstance(exc, ApiError):
             if exc.code is None:
                 message = None
@@ -238,7 +239,22 @@ class GitHubEnterpriseIntegration(
     # CommitContextIntegration methods
 
     def on_create_or_update_comment_error(self, api_error: ApiError, metrics_base: str) -> bool:
-        raise NotImplementedError
+        if api_error.json:
+            if ISSUE_LOCKED_ERROR_MESSAGE in api_error.json.get("message", ""):
+                metrics.incr(
+                    metrics_base.format(integration=self.integration_name, key="error"),
+                    tags={"type": "issue_locked_error"},
+                )
+                return True
+
+            elif RATE_LIMITED_MESSAGE in api_error.json.get("message", ""):
+                metrics.incr(
+                    metrics_base.format(integration=self.integration_name, key="error"),
+                    tags={"type": "rate_limited_error"},
+                )
+                return True
+
+        return False
 
 
 class InstallationForm(forms.Form):

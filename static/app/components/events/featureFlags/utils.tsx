@@ -101,7 +101,7 @@ export const enum FlagControlOptions {
   SORT = 'sort',
 }
 
-export const handleSortAlphabetical = (flags: KeyValueDataContentProps[]) => {
+const handleSortAlphabetical = (flags: KeyValueDataContentProps[]) => {
   return [...flags].sort((a, b) => {
     return a.item.key.localeCompare(b.item.key);
   });

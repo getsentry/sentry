@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from sentry.eventstore.models import GroupEvent
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
@@ -12,13 +11,59 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import Incident, IncidentStatus
-from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.models.group import Group, GroupStatus
-from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.types.group import PriorityLevel
-from sentry.workflow_engine.models import Action, Detector
+from sentry.workflow_engine.models import Action, Condition, DataCondition, Detector
+from sentry.workflow_engine.models.data_source import DataSource
+
+if TYPE_CHECKING:
+    from sentry.incidents.grouptype import MetricIssueEvidenceData
+
+CONDITION_TO_ALERT_RULE_THRESHOLD_TYPE = {
+    Condition.GREATER_OR_EQUAL: AlertRuleThresholdType.ABOVE,
+    Condition.GREATER: AlertRuleThresholdType.ABOVE,
+    Condition.LESS_OR_EQUAL: AlertRuleThresholdType.BELOW,
+    Condition.LESS: AlertRuleThresholdType.BELOW,
+}
+
+
+def fetch_threshold_type(evidence_data: MetricIssueEvidenceData) -> AlertRuleThresholdType:
+    return CONDITION_TO_ALERT_RULE_THRESHOLD_TYPE[evidence_data.data_condition_type]
+
+
+def fetch_alert_threshold(
+    evidence_data: MetricIssueEvidenceData, group_status: GroupStatus
+) -> float | None:
+    if group_status == GroupStatus.RESOLVED or group_status == GroupStatus.IGNORED:
+        return None
+    else:
+        return evidence_data.data_condition_comparison_value
+
+
+def fetch_resolve_threshold(
+    evidence_data: MetricIssueEvidenceData, group_status: GroupStatus
+) -> float | None:
+    """
+    This is the opposite of `fetch_alert_threshold`.
+    We keep it explicitly separate to make it clear that we are fetching the resolve threshold and to consolidate tech debt.
+    """
+    if group_status == GroupStatus.RESOLVED or group_status == GroupStatus.IGNORED:
+        return evidence_data.data_condition_comparison_value
+    else:
+        return None
+
+
+def fetch_sensitivity(evidence_data: MetricIssueEvidenceData) -> str | None:
+    # TODO - (saponifi3d) - Update this once the platform supports this
+    for data_condition_id in evidence_data.data_condition_ids:
+        data_condition = DataCondition.objects.get(id=data_condition_id)
+        if data_condition.type == Condition.ANOMALY_DETECTION:
+            return data_condition.comparison.get("sensitivity")
+    return None
 
 
 @dataclass
@@ -49,24 +94,22 @@ class AlertContext:
 
     @classmethod
     def from_workflow_engine_models(
-        cls, detector: Detector, issue_occurrence: IssueOccurrence
+        cls, detector: Detector, evidence_data: MetricIssueEvidenceData, group_status: GroupStatus
     ) -> AlertContext:
-        # TODO(iamrajjoshi): Finalize the fetch from issue_occurrence once we have evidence_data contract
-        threshold_type = issue_occurrence.evidence_data.get("threshold_type")
-        if threshold_type is not None:
-            threshold_type = AlertRuleThresholdType(threshold_type)
+        threshold_type = fetch_threshold_type(evidence_data)
+        resolve_threshold = fetch_resolve_threshold(evidence_data, group_status)
+        alert_threshold = fetch_alert_threshold(evidence_data, group_status)
+        sensitivity = fetch_sensitivity(evidence_data)
+
         return cls(
             name=detector.name,
             action_identifier_id=detector.id,
             threshold_type=threshold_type,
             detection_type=detector.config.get("detection_type"),
             comparison_delta=detector.config.get("comparison_delta"),
-            # TODO(iamrajjoshi): Add sensitivity, alert_threshold, resolve_threshold
-            sensitivity=None,
-            resolve_threshold=None,
-            # Currently, i am hacking this so we don't have to fetch the alert_threshold, but we should
-            # remove this once we have the evidence_data contract
-            alert_threshold=1.0,
+            sensitivity=sensitivity,
+            resolve_threshold=resolve_threshold,
+            alert_threshold=alert_threshold,
         )
 
 
@@ -144,52 +187,51 @@ class MetricIssueContext:
     group: Group | None
 
     @classmethod
-    def _get_new_status(cls, group: Group, occurrence: IssueOccurrence) -> IncidentStatus:
+    def _get_new_status(cls, group: Group, priority_level: PriorityLevel) -> IncidentStatus:
         if group.status == GroupStatus.RESOLVED:
             return IncidentStatus.CLOSED
-        elif occurrence.initial_issue_priority == PriorityLevel.MEDIUM.value:
+        elif priority_level == PriorityLevel.MEDIUM:
             return IncidentStatus.WARNING
         else:
             return IncidentStatus.CRITICAL
 
     @classmethod
-    def _get_snuba_query(cls, occurrence: IssueOccurrence) -> SnubaQuery:
-        snuba_query_id = occurrence.evidence_data.get("snuba_query_id")
-        if not snuba_query_id:
-            raise ValueError("Snuba query ID is required for alert context")
-        try:
-            query = SnubaQuery.objects.get(id=snuba_query_id)
-        except SnubaQuery.DoesNotExist as e:
-            raise ValueError("Snuba query does not exist") from e
-        return query
+    def _get_subscription(cls, evidence_data: MetricIssueEvidenceData) -> QuerySubscription:
+        data_source_ids = evidence_data.data_source_ids
+        data_source = DataSource.objects.filter(
+            id__in=data_source_ids, type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+        ).first()
+
+        if data_source is None:
+            raise ValueError("No data sources found for alert context")
+
+        subscription = QuerySubscription.objects.get(id=data_source.source_id)
+        return subscription
 
     @classmethod
-    def _get_subscription(cls, occurrence: IssueOccurrence) -> QuerySubscription | None:
-        return occurrence.evidence_data.get("subscription_id")
+    def from_group_event(
+        cls, group: Group, evidence_data: MetricIssueEvidenceData, priority_level: int | None
+    ) -> MetricIssueContext:
+        if priority_level is None:
+            raise ValueError("Priority level is required for metric issues")
 
-    @classmethod
-    def _get_metric_value(cls, occurrence: IssueOccurrence) -> float:
-        if (metric_value := occurrence.evidence_data.get("metric_value")) is None:
-            raise ValueError("Metric value is required for alert context")
-        return metric_value
+        open_period = get_latest_open_period(group)
+        if open_period is None:
+            raise ValueError("No open periods found for group")
 
-    @classmethod
-    def from_group_event(cls, group_event: GroupEvent) -> MetricIssueContext:
-        group = group_event.group
-        occurrence = group_event.occurrence
-        if occurrence is None:
-            raise ValueError("Occurrence is required for alert context")
+        subscription = cls._get_subscription(evidence_data)
+        snuba_query = subscription.snuba_query
+
         return cls(
             # TODO(iamrajjoshi): Replace with something once we know how we want to build the link
             # If we store open periods in the database, we can use the id from that
             # Otherwise, we can use the issue id
             id=group.id,
-            # TODO(iamrajjoshi): This should probably be the id of the latest open period
-            open_period_identifier=group.id,
-            snuba_query=cls._get_snuba_query(occurrence),
-            subscription=cls._get_subscription(occurrence),
-            new_status=cls._get_new_status(group, occurrence),
-            metric_value=cls._get_metric_value(occurrence),
+            open_period_identifier=open_period.id,
+            snuba_query=snuba_query,
+            subscription=subscription,
+            new_status=cls._get_new_status(group, PriorityLevel(priority_level)),
+            metric_value=evidence_data.value,
             group=group,
             title=group.title,
         )
@@ -232,7 +274,7 @@ class OpenPeriodContext:
 
     @classmethod
     def from_group(cls, group: Group) -> OpenPeriodContext:
-        open_period = GroupOpenPeriod.objects.filter(group=group).order_by("-date_started").first()
+        open_period = get_latest_open_period(group)
         if open_period is None:
             raise ValueError("No open periods found for group")
         return cls(

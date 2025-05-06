@@ -256,6 +256,6 @@ const ContentPanel = styled(Panel)<{hideIcon?: boolean}>`
   overflow: hidden;
 `;
 
-export const Frames = styled('ul')`
+const Frames = styled('ul')`
   list-style: none;
 `;

@@ -207,8 +207,7 @@ describe('Performance Transaction Events Content', function () {
           projectId="123"
           projects={[]}
         />
-      </OrganizationContext>,
-      {router: initialData.router}
+      </OrganizationContext>
     );
 
     expect(await screen.findByTestId('events-table')).toBeInTheDocument();
@@ -248,8 +247,7 @@ describe('Performance Transaction Events Content', function () {
           projectId="123"
           projects={[]}
         />
-      </OrganizationContext>,
-      {router: initialData.router}
+      </OrganizationContext>
     );
 
     expect(await screen.findByTestId('events-table')).toBeInTheDocument();
@@ -294,8 +292,7 @@ describe('Performance Transaction Events Content', function () {
           projectId="1"
           projects={[ProjectFixture({id: '1', platform: 'python'})]}
         />
-      </OrganizationContext>,
-      {router: initialData.router}
+      </OrganizationContext>
     );
 
     expect(await screen.findByTestId('events-table')).toBeInTheDocument();

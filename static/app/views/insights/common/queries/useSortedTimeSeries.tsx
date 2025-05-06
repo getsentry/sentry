@@ -111,6 +111,9 @@ export const useSortedTimeSeries = <
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
       interval: eventView.interval,
       sampling: samplingMode,
+      // Timeseries requests do not support cursors, overwrite it to undefined so
+      // pagination does not cause extra requests
+      cursor: undefined,
     }),
     options: {
       enabled: enabled && pageFilters.isReady,
@@ -235,13 +238,13 @@ export function convertEventsStatsToTimeSeriesData(
 
   const serie: TimeSeries = {
     field: label,
-    data: seriesData.data.map(([timestamp, countsForTimestamp]) => ({
-      timestamp: new Date(timestamp * 1000).toISOString(),
+    values: seriesData.data.map(([timestamp, countsForTimestamp]) => ({
+      timestamp: timestamp * 1000,
       value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
     })),
     meta: {
-      type: seriesData.meta?.fields?.[seriesName]!,
-      unit: seriesData.meta?.units?.[seriesName] as DataUnit,
+      valueType: seriesData.meta?.fields?.[seriesName]!,
+      valueUnit: seriesData.meta?.units?.[seriesName] as DataUnit,
     },
     confidence: determineSeriesConfidence(seriesData),
     sampleCount: seriesData.meta?.accuracy?.sampleCount,

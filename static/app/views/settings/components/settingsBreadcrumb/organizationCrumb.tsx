@@ -4,24 +4,24 @@ import sortBy from 'lodash/sortBy';
 import IdBadge from 'sentry/components/idBadge';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 
 import BreadcrumbDropdown from './breadcrumbDropdown';
 import findFirstRouteWithoutRouteParam from './findFirstRouteWithoutRouteParam';
 import MenuItem from './menuItem';
+import type {SettingsBreadcrumbProps} from './types';
 import {CrumbLink} from '.';
 
-type Props = RouteComponentProps<{projectId?: string}>;
-
-function OrganizationCrumb({params, routes, route, ...props}: Props) {
+function OrganizationCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
   const navigate = useNavigate();
   const {organizations} = useLegacyStore(OrganizationsStore);
   const organization = useOrganization();
+  const params = useParams();
 
   const handleSelect = (item: {value: Organization}) => {
     // If we are currently in a project context, and we're attempting to switch organizations,

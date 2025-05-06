@@ -32,7 +32,7 @@ export default function CollapsibleSection({
   );
 }
 
-export const Body = styled('details')`
+const Body = styled('details')`
   display: flex;
   flex-direction: column;
   background-color: ${p => p.theme.backgroundElevated};
@@ -57,12 +57,12 @@ export const Body = styled('details')`
   }
 `;
 
-export const Heading = styled('h2')`
+const Heading = styled('h2')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin: 0;
 `;
 
-export const HeadingWrapper = styled('summary')`
+const HeadingWrapper = styled('summary')`
   display: flex;
   justify-content: space-between;
   position: relative;
@@ -73,7 +73,7 @@ export const HeadingWrapper = styled('summary')`
   cursor: pointer;
 `;
 
-export const Description = styled('span')`
+const Description = styled('span')`
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.subText};
   margin: 0;

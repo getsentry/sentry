@@ -3,7 +3,7 @@ import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
 import type {TooltipSubLabel} from 'sentry/components/charts/components/tooltip';
-import type {DataCategoryInfo, IntervalPeriod} from 'sentry/types/core';
+import type {DataCategory, IntervalPeriod} from 'sentry/types/core';
 import {Outcome} from 'sentry/types/core';
 
 import {getDateFromMoment} from './usageChart/utils';
@@ -42,7 +42,7 @@ export function mapSeriesToChart({
 }: {
   chartDateInterval: IntervalPeriod;
   chartDateUtc: boolean;
-  dataCategory: DataCategoryInfo['plural'];
+  dataCategory: DataCategory;
   endpointQuery: Record<string, unknown>;
   orgStats?: UsageSeries;
   shouldEstimateDroppedProfiles?: boolean;

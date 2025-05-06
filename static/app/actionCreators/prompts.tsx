@@ -52,7 +52,7 @@ type PromptCheckParams = {
 /**
  * Raw response data from the endpoint
  */
-export type PromptResponseItem = {
+type PromptResponseItem = {
   /**
    * Time since dismissed
    */
@@ -144,10 +144,12 @@ export function usePrompts({
   projectId,
   daysToSnooze,
   options,
+  isDismissed = promptIsDismissed,
 }: {
   features: string[];
   organization: Organization | null;
   daysToSnooze?: number;
+  isDismissed?: (prompt: PromptData, daysToSnooze?: number) => boolean;
   options?: Partial<UseApiQueryOptions<PromptResponse>>;
   projectId?: string;
 }) {
@@ -159,7 +161,7 @@ export function usePrompts({
       return features.reduce(
         (acc, feature) => {
           const prompt = prompts.data.features?.[feature];
-          acc[feature] = promptIsDismissed(
+          acc[feature] = isDismissed(
             {dismissedTime: prompt?.dismissed_ts, snoozedTime: prompt?.snoozed_ts},
             daysToSnooze
           );
@@ -169,7 +171,7 @@ export function usePrompts({
       );
     }
     return {};
-  }, [prompts.isSuccess, prompts.data?.features, features, daysToSnooze]);
+  }, [prompts.isSuccess, prompts.data?.features, features, daysToSnooze, isDismissed]);
 
   const dismissPrompt = useCallback(
     (feature: string) => {
@@ -310,6 +312,7 @@ export function usePrompt({
     if (!organization) {
       return;
     }
+
     promptsUpdate(api, {
       organization,
       projectId,

@@ -101,7 +101,9 @@ def child_process(
     child_worker_init(process_type)
 
     from django.core.cache import cache
+    from usageaccountant import UsageUnit
 
+    from sentry import usage_accountant
     from sentry.taskworker.registry import taskregistry
     from sentry.taskworker.state import clear_current_task, current_task, set_current_task
     from sentry.taskworker.task import Task
@@ -133,8 +135,6 @@ def child_process(
         processing_pool_name: str,
         process_type: str,
     ) -> None:
-        # print("!!!!!! STARTING WORKER !!!!!!!")
-
         processed_task_count = 0
 
         def handle_alarm(signum: int, frame: FrameType | None) -> None:
@@ -328,7 +328,7 @@ def child_process(
         execution_duration = completion_time - start_time
         execution_latency = completion_time - task_added_time
 
-        logger.info(
+        logger.debug(
             "taskworker.task_execution",
             extra={
                 "taskname": activation.taskname,
@@ -362,6 +362,14 @@ def child_process(
                 "taskname": activation.taskname,
                 "processing_pool": processing_pool_name,
             },
+        )
+
+        namespace = taskregistry.get(activation.namespace)
+        usage_accountant.record(
+            resource_id="taskworker",
+            app_feature=namespace.app_feature,
+            amount=int(execution_duration * 1000),
+            usage_type=UsageUnit.MILLISECONDS,
         )
 
         if (

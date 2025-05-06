@@ -92,7 +92,11 @@ describe('IntegrationDetailedView', function () {
 
   it('shows integration name, status, and install button', async function () {
     const router = RouterFixture({params: {integrationSlug: 'bitbucket'}});
-    render(<IntegrationDetailedView />, {organization, router});
+    render(<IntegrationDetailedView />, {
+      organization,
+      router,
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(screen.getByText('Bitbucket')).toBeInTheDocument();
     expect(screen.getByText('Installed')).toBeInTheDocument();
@@ -104,7 +108,11 @@ describe('IntegrationDetailedView', function () {
       params: {integrationSlug: 'bitbucket'},
       location: {query: {tab: 'configurations'}},
     });
-    render(<IntegrationDetailedView />, {organization, router});
+    render(<IntegrationDetailedView />, {
+      organization,
+      router,
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
     expect(screen.getByTestId('integration-name')).toHaveTextContent(
@@ -119,7 +127,11 @@ describe('IntegrationDetailedView', function () {
       location: {query: {tab: 'configurations'}},
     });
     const lowerAccessOrganization = OrganizationFixture({access: ['org:read']});
-    render(<IntegrationDetailedView />, {organization: lowerAccessOrganization, router});
+    render(<IntegrationDetailedView />, {
+      organization: lowerAccessOrganization,
+      router,
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
     expect(screen.getByRole('button', {name: 'Configure'})).toBeDisabled();
@@ -131,7 +143,11 @@ describe('IntegrationDetailedView', function () {
       location: {query: {tab: 'configurations'}},
     });
     const lowerAccessOrganization = OrganizationFixture({access: ['org:read']});
-    render(<IntegrationDetailedView />, {organization: lowerAccessOrganization, router});
+    render(<IntegrationDetailedView />, {
+      organization: lowerAccessOrganization,
+      router,
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
     expect(screen.getByRole('button', {name: 'Configure'})).toBeEnabled();
@@ -141,7 +157,11 @@ describe('IntegrationDetailedView', function () {
     const router = RouterFixture({
       params: {integrationSlug: 'github'},
     });
-    render(<IntegrationDetailedView />, {organization, router});
+    render(<IntegrationDetailedView />, {
+      organization,
+      router,
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(screen.getByText('features')).toBeInTheDocument();
   });
@@ -155,7 +175,11 @@ describe('IntegrationDetailedView', function () {
     const router = RouterFixture({
       params: {integrationSlug: 'github'},
     });
-    render(<IntegrationDetailedView />, {organization, router});
+    render(<IntegrationDetailedView />, {
+      organization,
+      router,
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByText('features'));
@@ -173,7 +197,11 @@ describe('IntegrationDetailedView', function () {
     const router = RouterFixture({
       params: {integrationSlug: 'github'},
     });
-    render(<IntegrationDetailedView />, {organization, router});
+    render(<IntegrationDetailedView />, {
+      organization,
+      router,
+      deprecatedRouterMocks: true,
+    });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByText('features'));

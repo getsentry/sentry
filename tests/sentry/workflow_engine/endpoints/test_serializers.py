@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from sentry.api.serializers import serialize
-from sentry.incidents.grouptype import MetricAlertFire
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.snuba.dataset import Dataset
@@ -18,7 +18,7 @@ from sentry.workflow_engine.types import DetectorPriorityLevel
 class TestDetectorSerializer(TestCase):
     def test_serialize_simple(self):
         detector = self.create_detector(
-            project_id=self.project.id, name="Test Detector", type=MetricAlertFire.slug
+            project_id=self.project.id, name="Test Detector", type=MetricIssue.slug
         )
         result = serialize(detector)
 
@@ -26,12 +26,13 @@ class TestDetectorSerializer(TestCase):
             "id": str(detector.id),
             "projectId": str(detector.project_id),
             "name": "Test Detector",
-            "type": MetricAlertFire.slug,
+            "type": MetricIssue.slug,
             "dateCreated": detector.date_added,
             "dateUpdated": detector.date_updated,
             "dataSources": None,
             "conditionGroup": None,
-            "config": default_detector_config_data[MetricAlertFire.slug],
+            "connectedWorkflows": [],
+            "config": default_detector_config_data[MetricIssue.slug],
         }
 
     def test_serialize_full(self):
@@ -57,7 +58,7 @@ class TestDetectorSerializer(TestCase):
         detector = self.create_detector(
             project_id=self.project.id,
             name="Test Detector",
-            type=MetricAlertFire.slug,
+            type=MetricIssue.slug,
             workflow_condition_group=condition_group,
         )
         snuba_query = create_snuba_query(
@@ -79,13 +80,17 @@ class TestDetectorSerializer(TestCase):
             source_id=str(subscription.id),
         )
         data_source.detectors.set([detector])
+        workflow = self.create_workflow(
+            organization=self.organization,
+        )
+        self.create_detector_workflow(detector=detector, workflow=workflow)
 
         result = serialize(detector)
         assert result == {
             "id": str(detector.id),
             "projectId": str(detector.project_id),
             "name": "Test Detector",
-            "type": MetricAlertFire.slug,
+            "type": MetricIssue.slug,
             "dateCreated": detector.date_added,
             "dateUpdated": detector.date_updated,
             "dataSources": [
@@ -131,7 +136,8 @@ class TestDetectorSerializer(TestCase):
                     }
                 ],
             },
-            "config": default_detector_config_data[MetricAlertFire.slug],
+            "connectedWorkflows": [str(workflow.id)],
+            "config": default_detector_config_data[MetricIssue.slug],
         }
 
     def test_serialize_bulk(self):
@@ -139,7 +145,7 @@ class TestDetectorSerializer(TestCase):
             self.create_detector(
                 project_id=self.project.id,
                 name=f"Test Detector {i}",
-                type=MetricAlertFire.slug,
+                type=MetricIssue.slug,
             )
             for i in range(2)
         ]

@@ -134,6 +134,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         "performanceIssueSendToPlatform",
         "tempestFetchScreenshots",
         "tempestFetchDumps",
+        "autofixAutomationTuning",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -228,6 +229,9 @@ E.g. `['release', 'environment']`""",
     performanceIssueSendToPlatform = serializers.BooleanField(required=False)
     tempestFetchScreenshots = serializers.BooleanField(required=False)
     tempestFetchDumps = serializers.BooleanField(required=False)
+    autofixAutomationTuning = serializers.ChoiceField(
+        choices=["off", "low", "medium", "high"], required=False
+    )
 
     # DO NOT ADD MORE TO OPTIONS
     # Each param should be a field in the serializer like above.
@@ -350,7 +354,7 @@ E.g. `['release', 'environment']`""",
             return value
 
         try:
-            Enhancements.from_config_string(value)
+            Enhancements.from_rules_text(value)
         except InvalidEnhancerConfig as e:
             raise serializers.ValidationError(str(e))
 
@@ -452,6 +456,17 @@ E.g. `['release', 'environment']`""",
         if not has_tempest_access(organization, actor=actor):
             raise serializers.ValidationError(
                 "Organization does not have the tempest feature enabled."
+            )
+        return value
+
+    def validate_autofixAutomationTuning(self, value):
+        organization = self.context["project"].organization
+        actor = self.context["request"].user
+        if not features.has(
+            "organizations:trigger-autofix-on-issue-summary", organization, actor=actor
+        ):
+            raise serializers.ValidationError(
+                "Organization does not have the trigger-autofix-on-issue-summary feature enabled."
             )
         return value
 
@@ -760,6 +775,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if project.update_option("sentry:dynamic_sampling_biases", updated_biases):
                 changed_proj_settings["sentry:dynamic_sampling_biases"] = result[
                     "dynamicSamplingBiases"
+                ]
+
+        if result.get("autofixAutomationTuning") is not None:
+            if project.update_option(
+                "sentry:autofix_automation_tuning", result["autofixAutomationTuning"]
+            ):
+                changed_proj_settings["sentry:autofix_automation_tuning"] = result[
+                    "autofixAutomationTuning"
                 ]
 
         if has_elevated_scopes:

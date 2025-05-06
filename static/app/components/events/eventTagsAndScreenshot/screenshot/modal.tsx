@@ -22,8 +22,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import ImageVisualization from './imageVisualization';
 import ScreenshotPagination from './screenshotPagination';
 
-export const MAX_SCREENSHOTS_PER_PAGE = 20;
-
 interface ScreenshotModalProps extends ModalRenderProps {
   downloadUrl: string;
   eventAttachment: EventAttachment;

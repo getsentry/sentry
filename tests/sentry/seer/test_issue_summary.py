@@ -1,15 +1,14 @@
 import datetime
-from typing import Any
+import threading
+import time
 from unittest.mock import ANY, Mock, call, patch
 
-import orjson
-
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
-from sentry.models.group import Group
+from sentry.locks import locks
 from sentry.seer.issue_summary import (
-    _call_seer,
     _get_event,
     _get_trace_connected_issues,
+    _run_automation,
     get_issue_summary,
 )
 from sentry.seer.models import SummarizeIssueResponse, SummarizeIssueScores
@@ -17,6 +16,7 @@ from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
+from sentry.utils.locking import UnableToAcquireLock
 
 pytestmark = [requires_snuba]
 
@@ -205,56 +205,118 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
             mock_get_event.assert_not_called()
             mock_call_seer.assert_not_called()
 
-    def test_call_seer_payload(self):
-        with (
-            patch("sentry.seer.issue_summary.requests.post") as mock_post,
-            patch("sentry.seer.issue_summary.sign_with_seer_secret") as mock_sign,
-        ):
-            serialized_event = {
-                "event_id": "test_event_id",
-                "data": "test_event_data",
-                "project_id": self.project.id,
-            }
-            connected_groups: list[Group] = []
-            connected_serialized_events: list[dict[str, Any]] = []
+    @patch("sentry.seer.issue_summary._generate_summary")
+    def test_get_issue_summary_concurrent_wait_for_lock(self, mock_generate_summary):
+        """Test that a second request waits for the lock and reads from cache."""
+        cache_key = f"ai-group-summary-v2:{self.group.id}"
 
-            mock_sign.return_value = {"Authorization": "Bearer test_token"}
-            mock_post.return_value.json.return_value = {
-                "group_id": str(self.group.id),
-                "whats_wrong": "Test whats wrong",
-                "trace": "Test trace",
-                "possible_cause": "Test possible cause",
-                "headline": "Test headline",
-                "scores": {
-                    "possible_cause_confidence": 0.9,
-                    "possible_cause_novelty": 0.8,
-                },
-            }
+        # Mock summary generation to take time and cache the result
+        generated_summary = {"headline": "Generated Summary", "event_id": "gen_event"}
+        cache_key = f"ai-group-summary-v2:{self.group.id}"
 
-            _call_seer(self.group, serialized_event, connected_groups, connected_serialized_events)
+        def side_effect_generate(*args, **kwargs):
+            # Simulate work
+            time.sleep(0.3)
+            # Write to cache before returning (simulates behavior after lock release)
+            cache.set(cache_key, generated_summary, timeout=60)
+            return generated_summary, 200
 
-            expected_payload = {
-                "group_id": self.group.id,
-                "issue": {
-                    "id": self.group.id,
-                    "title": self.group.title,
-                    "short_id": self.group.qualified_short_id,
-                    "events": [serialized_event],
-                },
-                "connected_issues": [],
-                "organization_slug": self.group.organization.slug,
-                "organization_id": self.group.organization.id,
-                "project_id": self.group.project.id,
-            }
+        mock_generate_summary.side_effect = side_effect_generate
 
-            mock_post.assert_called_once()
-            actual_payload = orjson.loads(mock_post.call_args[1]["data"])
-            assert actual_payload == expected_payload
+        results = {}
+        exceptions = {}
 
-            # Check headers
-            headers = mock_post.call_args[1]["headers"]
-            assert headers["content-type"] == "application/json;charset=utf-8"
-            assert headers["Authorization"] == "Bearer test_token"
+        def target(req_id):
+            try:
+                summary_data, status_code = get_issue_summary(self.group, self.user)
+                results[req_id] = (summary_data, status_code)
+            except Exception as e:
+                exceptions[req_id] = e
+
+        # Start two threads concurrently
+        thread1 = threading.Thread(target=target, args=(1,))
+        thread2 = threading.Thread(target=target, args=(2,))
+
+        thread1.start()
+        # Give thread1 a slight head start, but the lock should handle the race
+        time.sleep(0.01)
+        thread2.start()
+
+        # Wait for both threads to complete
+        thread1.join(timeout=5)
+        thread2.join(timeout=5)
+
+        # Assertions
+        if exceptions:
+            raise AssertionError(f"Threads raised exceptions: {exceptions}")
+
+        assert 1 in results, "Thread 1 did not complete in time"
+        assert 2 in results, "Thread 2 did not complete in time"
+
+        # Both should succeed and get the same summary
+        assert results[1][1] == 200, f"Thread 1 failed with status {results[1][1]}"
+        assert results[2][1] == 200, f"Thread 2 failed with status {results[2][1]}"
+        expected_result = convert_dict_key_case(generated_summary, snake_to_camel_case)
+        assert results[1][0] == expected_result, "Thread 1 returned wrong summary"
+        assert results[2][0] == expected_result, "Thread 2 returned wrong summary"
+
+        # Check that _generate_summary was only called once
+        # (by the thread that acquired the lock)
+        mock_generate_summary.assert_called_once()
+
+        # Ensure the cache contains the final result
+        assert cache.get(cache_key) == generated_summary
+
+    @patch("sentry.seer.issue_summary._generate_summary")
+    def test_get_issue_summary_concurrent_force_event_id_bypasses_lock(self, mock_generate_summary):
+        """Test that force_event_id bypasses lock waiting."""
+        # Mock summary generation
+        forced_summary = {"headline": "Forced Summary", "event_id": "force_event"}
+        mock_generate_summary.return_value = (forced_summary, 200)
+
+        # Ensure cache is empty and lock *could* be acquired if attempted
+        cache_key = f"ai-group-summary-v2:{self.group.id}"
+        lock_key = f"ai-group-summary-v2-lock:{self.group.id}"
+        cache.delete(cache_key)
+
+        locks.get(lock_key, duration=1).release()  # Ensure lock isn't held
+
+        # Call with force_event_id=True
+        summary_data, status_code = get_issue_summary(
+            self.group, self.user, force_event_id="some_event"
+        )
+
+        assert status_code == 200
+        assert summary_data == convert_dict_key_case(forced_summary, snake_to_camel_case)
+
+        # Ensure generation was called directly
+        mock_generate_summary.assert_called_once()
+
+    @patch("sentry.seer.issue_summary.cache.get")
+    @patch("sentry.seer.issue_summary._generate_summary")
+    @patch("sentry.utils.locking.lock.Lock.blocking_acquire")
+    def test_get_issue_summary_lock_timeout(
+        self,
+        mock_blocking_acquire,
+        mock_generate_summary_core,
+        mock_cache_get,
+    ):
+        """Test that a timeout waiting for the lock returns 503."""
+        # Simulate lock acquisition always failing with the specific exception
+        mock_blocking_acquire.side_effect = UnableToAcquireLock
+        # Simulate cache miss even after timeout
+        mock_cache_get.return_value = None
+
+        summary_data, status_code = get_issue_summary(self.group, self.user)
+
+        assert status_code == 503
+        assert summary_data == {"detail": "Timeout waiting for summary generation lock"}
+        # Ensure lock acquisition was attempted
+        mock_blocking_acquire.assert_called_once()
+        # Ensure generation was NOT called
+        mock_generate_summary_core.assert_not_called()
+        # Ensure cache was checked twice (once initially, once after lock failure)
+        assert mock_cache_get.call_count == 2
 
     @patch("sentry.seer.issue_summary.Project.objects.filter")
     @patch("sentry.seer.issue_summary.eventstore.backend.get_events")
@@ -407,3 +469,50 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
             ]
         )
         mock_serialize.assert_called_once()
+
+    @patch("sentry.seer.issue_summary._trigger_autofix_task.delay")
+    @patch("sentry.seer.issue_summary.get_autofix_state")
+    @patch("sentry.seer.issue_summary._generate_fixability_score")
+    @patch("sentry.seer.issue_summary.features.has")
+    def test_run_automation_saves_fixability_score(
+        self,
+        mock_features_has,
+        mock_generate_fixability_score,
+        mock_get_autofix_state,
+        mock_trigger_autofix_task,
+    ):
+        """Test that _run_automation saves the fixability score."""
+        mock_features_has.return_value = True
+        mock_event = Mock(event_id="test_event_id")
+        mock_user = self.user
+
+        mock_fixability_response = SummarizeIssueResponse(
+            group_id=str(self.group.id),
+            headline="some headline",
+            whats_wrong="some whats wrong",
+            trace="some trace",
+            possible_cause="some possible cause",
+            scores=SummarizeIssueScores(
+                fixability_score=0.5,
+                is_fixable=True,
+            ),
+        )
+        mock_generate_fixability_score.return_value = mock_fixability_response
+        mock_get_autofix_state.return_value = None
+
+        self.group.refresh_from_db()
+        assert self.group.seer_fixability_score is None
+
+        _run_automation(self.group, mock_user, mock_event, source="issue_details")
+
+        mock_generate_fixability_score.assert_called_once_with(self.group.id)
+
+        mock_trigger_autofix_task.assert_called_once_with(
+            group_id=self.group.id,
+            event_id="test_event_id",
+            user_id=mock_user.id,
+            auto_run_source="issue_summary_fixability",
+        )
+
+        self.group.refresh_from_db()
+        assert self.group.seer_fixability_score == 0.5

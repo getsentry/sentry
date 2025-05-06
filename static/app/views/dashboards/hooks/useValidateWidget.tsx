@@ -1,23 +1,10 @@
 import {validateWidgetRequest} from 'sentry/actionCreators/dashboards';
-import type {Client} from 'sentry/api';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {ValidateWidgetResponse, Widget} from 'sentry/views/dashboards/types';
 import {cleanWidgetForRequest} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-
-export function validateWidget(
-  api: Client,
-  orgId: string,
-  widget: Widget
-): Promise<undefined> {
-  const {selection} = PageFiltersStore.getState();
-  const widgetQuery = validateWidgetRequest(orgId, widget, selection);
-  const promise: Promise<undefined> = api.requestPromise(widgetQuery[0], widgetQuery[1]);
-  return promise;
-}
 
 export function useValidateWidgetQuery(_widget: Widget) {
   const organization = useOrganization();

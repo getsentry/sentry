@@ -129,7 +129,7 @@ type RuleTaskResponse = {
 
 type RouteParams = {projectId?: string; ruleId?: string};
 
-export type IncompatibleRule = {
+type IncompatibleRule = {
   conditionIndices: number[] | null;
   filterIndices: number[] | null;
 };

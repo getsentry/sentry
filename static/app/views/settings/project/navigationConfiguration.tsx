@@ -61,6 +61,11 @@ export default function getConfiguration({
           title: t('Data Forwarding'),
         },
         {
+          path: `${pathPrefix}/seer/`,
+          title: t('Seer'),
+          show: () => !organization?.hideAiFeatures,
+        },
+        {
           path: `${pathPrefix}/user-feedback/`,
           title: t('User Feedback'),
           show: () => !isSelfHostedErrorsOnly,

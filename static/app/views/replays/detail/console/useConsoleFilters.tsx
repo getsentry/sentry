@@ -1,7 +1,6 @@
 import type {RefObject} from 'react';
 import {useCallback, useMemo, useRef} from 'react';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {defined} from 'sentry/utils';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
@@ -11,10 +10,6 @@ import {
   isConsoleFrame,
 } from 'sentry/utils/replays/types';
 import {filterItems} from 'sentry/views/replays/detail/utils';
-
-export interface ConsoleSelectOption extends SelectOption<string> {
-  qs: 'f_c_logLevel' | 'f_c_search';
-}
 
 export type FilterFields = {
   f_c_logLevel: string[];

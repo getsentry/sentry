@@ -54,7 +54,7 @@ const DOWNTIME_START_TYPES = [
 
 const DOWNTIME_TERMINAL_TYPES = [GroupActivityType.SET_RESOLVED];
 
-export function useDowntimeDuration({group}: {group: Group}): {
+function useDowntimeDuration({group}: {group: Group}): {
   durationMs: number;
   endDate: Date;
   startDate: Date;

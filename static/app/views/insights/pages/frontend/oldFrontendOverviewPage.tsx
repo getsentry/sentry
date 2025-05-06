@@ -39,6 +39,7 @@ import {
   FRONTEND_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/frontend/settings';
+import {NewNextJsExperienceButton} from 'sentry/views/insights/pages/platform/nextjs/newNextjsExperienceToggle';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import {
   generateFrontendOtherPerformanceEventView,
@@ -66,7 +67,7 @@ const DURATION_TOOLTIP = tct(
   }
 );
 
-export const FRONTEND_COLUMN_TITLES = [
+const FRONTEND_COLUMN_TITLES = [
   {title: 'transaction'},
   {title: 'operation'},
   {title: 'project'},
@@ -205,7 +206,10 @@ export function OldFrontendOverviewPage() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <FrontendHeader headerTitle={FRONTEND_LANDING_TITLE} />
+      <FrontendHeader
+        headerTitle={FRONTEND_LANDING_TITLE}
+        headerActions={<NewNextJsExperienceButton />}
+      />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>

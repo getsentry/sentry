@@ -7,7 +7,6 @@ from typing import Any
 import sentry_sdk
 from symbolic.proguard import ProguardMapper
 
-from sentry import features, options
 from sentry.issues.grouptype import (
     GroupType,
     PerformanceDBMainThreadGroupType,
@@ -122,10 +121,6 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
     settings_key = DetectorType.FILE_IO_MAIN_THREAD
     group_type = PerformanceFileIOMainThreadGroupType
 
-    @classmethod
-    def is_detector_enabled(cls) -> bool:
-        return not options.get("performance_issues.file_io_main_thread.disabled")
-
     def _prepare_deobfuscation(self) -> None:
         event = self._event
         if "debug_meta" in event:
@@ -200,9 +195,7 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
         return data.get("blocked_main_thread", False) is True
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return features.has(
-            "organizations:performance-file-io-main-thread-detector", organization, actor=None
-        )
+        return True
 
 
 class DBMainThreadDetector(BaseIOMainThreadDetector):
@@ -243,6 +236,4 @@ class DBMainThreadDetector(BaseIOMainThreadDetector):
         return data.get("blocked_main_thread", False) is True
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return features.has(
-            "organizations:performance-db-main-thread-detector", organization, actor=None
-        )
+        return True

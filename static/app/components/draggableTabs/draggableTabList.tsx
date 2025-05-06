@@ -403,7 +403,7 @@ function BaseDraggableTabList({
 
 const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nodes);
 
-export interface DraggableTabListProps
+interface DraggableTabListProps
   extends AriaTabListOptions<DraggableTabListItemProps>,
     TabListStateOptions<DraggableTabListItemProps> {
   onReorder: (newOrder: Array<Node<DraggableTabListItemProps>>) => void;

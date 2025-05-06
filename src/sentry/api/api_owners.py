@@ -16,7 +16,7 @@ class ApiOwner(Enum):
     FLAG = "replay-backend"
     HYBRID_CLOUD = "hybrid-cloud"
     INTEGRATIONS = "product-owners-settings-integrations"
-    ISSUES = "issues"
+    ISSUES = "issue-workflow"
     ML_AI = "machine-learning-ai"
     OWNERS_INGEST = "ingest"
     OWNERS_SNUBA = "owners-snuba"

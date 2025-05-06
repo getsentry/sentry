@@ -48,7 +48,7 @@ type InternalState = {
   orphanErrors?: TraceError[];
 };
 
-export type ExternalState = {
+type ExternalState = {
   didInit: boolean;
   errors: Error[];
   isFetching: boolean;

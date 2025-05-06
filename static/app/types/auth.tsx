@@ -101,7 +101,7 @@ export type ChallengeData = {
   webAuthnRegisterData: string;
 };
 
-export type EnrolledAuthenticator = {
+type EnrolledAuthenticator = {
   authId: string;
   createdAt: string;
   lastUsedAt: string | null;
@@ -163,7 +163,7 @@ export enum UserIdentityStatus {
   NEEDED_FOR_ORG_AUTH = 'needed_for_org_auth',
 }
 
-export type UserIdentityProvider = {
+type UserIdentityProvider = {
   key: string;
   name: string;
 };

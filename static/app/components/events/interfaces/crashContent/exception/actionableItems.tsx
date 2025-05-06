@@ -6,8 +6,8 @@ import moment from 'moment-timezone';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
-import type {EventErrorData} from 'sentry/components/events/errorItem';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import type {EventErrorData} from 'sentry/components/events/interfaces/types';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {

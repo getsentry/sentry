@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import FeatureFlagOnboardingSidebar from 'sentry/components/events/featureFlags/featureFlagOnboardingSidebar';
+import FeatureFlagOnboardingSidebar from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingSidebar';
 import FeedbackOnboardingSidebar from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Hook from 'sentry/components/hook';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
@@ -49,6 +49,7 @@ import {space} from 'sentry/styles/space';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {ChonkOptInBanner} from 'sentry/utils/theme/ChonkOptInBanner';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -529,6 +530,8 @@ function Sidebar() {
                 collapsed={collapsed || horizontal}
                 organization={organization}
               />
+              <ChonkOptInBanner collapsed={collapsed || horizontal} />
+
               {HookStore.get('sidebar:try-business').length > 0 &&
                 HookStore.get('sidebar:try-business')[0]!({
                   orientation,

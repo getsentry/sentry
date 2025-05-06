@@ -21,7 +21,7 @@ export default function CreateProjectButton() {
       }
       to={makeProjectsPathname({
         path: '/new/',
-        orgSlug: organization.slug,
+        organization,
       })}
       icon={<IconAdd isCircled />}
     >

@@ -16,10 +16,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 
 import {CustomerStats} from 'admin/components/customers/customerStats';
-import {
-  CustomerStatsFilters,
-  DataType,
-} from 'admin/components/customers/customerStatsFilters';
+import type {DataType} from 'admin/components/customers/customerStatsFilters';
+import {CustomerStatsFilters} from 'admin/components/customers/customerStatsFilters';
 import DetailLabel from 'admin/components/detailLabel';
 import DetailList from 'admin/components/detailList';
 import DetailsContainer from 'admin/components/detailsContainer';
@@ -64,11 +62,7 @@ function ProjectDetails() {
   }
 
   const activeDataType = (): DataType => {
-    if (Object.values(DataType).includes(location.query.dataType as DataType)) {
-      return location.query.dataType as DataType;
-    }
-
-    return DataType.ERRORS;
+    return (location.query.dataType as DataType) ?? 'error';
   };
 
   const handleStatsTypeChange = (dataType: DataType) => {

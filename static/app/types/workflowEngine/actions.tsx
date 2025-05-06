@@ -4,7 +4,7 @@ export interface Action {
   type: ActionType;
 }
 
-export enum ActionType {
+enum ActionType {
   SLACK = 'slack',
   MSTEAMS = 'msteams',
   DISCORD = 'discord',

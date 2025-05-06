@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import RadioGroup, {type RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
@@ -27,20 +26,7 @@ function WidgetBuilderDatasetSelector() {
   datasetChoices.push([WidgetType.TRANSACTIONS, t('Transactions')]);
 
   if (organization.features.includes('dashboards-eap')) {
-    datasetChoices.push([
-      WidgetType.SPANS,
-      <FeatureBadgeAlignmentWrapper aria-label={t('Spans')} key={'dataset-choice-spans'}>
-        {t('Spans')}{' '}
-        <FeatureBadge
-          type="beta"
-          tooltipProps={{
-            title: t(
-              'This feature is available for early adopters and the UX may change'
-            ),
-          }}
-        />
-      </FeatureBadgeAlignmentWrapper>,
-    ]);
+    datasetChoices.push([WidgetType.SPANS, t('Spans')]);
   }
   datasetChoices.push([WidgetType.ISSUE, t('Issues')]);
   datasetChoices.push([WidgetType.RELEASE, t('Releases')]);
@@ -89,13 +75,6 @@ const DatasetChoices = styled(RadioGroup<WidgetType>)`
   flex-direction: row;
   flex-wrap: wrap;
   gap: ${space(2)};
-`;
-
-const FeatureBadgeAlignmentWrapper = styled('div')`
-  ${FeatureBadge} {
-    position: relative;
-    top: -1px;
-  }
 `;
 
 const StyledSectionHeader = styled(SectionHeader)`

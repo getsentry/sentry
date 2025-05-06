@@ -19,7 +19,8 @@ import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 import {OrgDropdown} from 'sentry/views/nav/orgDropdown';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
+import {UserDropdown} from 'sentry/views/nav/userDropdown';
 
 import {sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
 import DeactivatedMember from 'getsentry/components/features/illustrations/deactivatedMember';
@@ -133,6 +134,7 @@ function DisabledMemberView(props: Props) {
       {prefersStackedNav ? (
         <MinimalistSidebar>
           {organization ? <OrgDropdown hideOrgLinks /> : null}
+          {<UserDropdown />}
         </MinimalistSidebar>
       ) : (
         <MinimalistSidebarLegacy collapsed={false}>
@@ -224,6 +226,7 @@ const MinimalistSidebar = styled('div')`
   background: ${p => (p.theme.isChonk ? p.theme.background : p.theme.surface300)};
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 0 ${space(2)};
 `;
 

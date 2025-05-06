@@ -11,7 +11,7 @@ export type ModuleFilters = {
   [SpanMetricsField.USER_GEO_SUBREGION]?: SubregionCode[];
 };
 
-export type DataKey =
+type DataKey =
   | 'change'
   | 'timeSpent'
   | 'p50p95'

@@ -10,7 +10,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 
-export type IssueCellProps = {
+type IssueCellProps = {
   className?: string;
   disabled?: boolean;
   group?: Group;

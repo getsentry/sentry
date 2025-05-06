@@ -31,7 +31,7 @@ describe('Onboarding', function () {
       step: 'welcome',
     };
 
-    const {routerProps, router, organization} = initializeOrg({
+    const {routerProps, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -42,7 +42,6 @@ describe('Onboarding', function () {
         <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
-        router,
         organization,
       }
     );
@@ -55,7 +54,7 @@ describe('Onboarding', function () {
       step: 'select-platform',
     };
 
-    const {routerProps, router, organization} = initializeOrg({
+    const {routerProps, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -66,7 +65,6 @@ describe('Onboarding', function () {
         <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
-        router,
         organization,
       }
     );
@@ -87,7 +85,7 @@ describe('Onboarding', function () {
       step: 'setup-docs',
     };
 
-    const {routerProps, router, organization} = initializeOrg({
+    const {routerProps, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -144,7 +142,6 @@ describe('Onboarding', function () {
         <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
-        router,
         organization,
       }
     );
@@ -163,7 +160,7 @@ describe('Onboarding', function () {
       step: 'setup-docs',
     };
 
-    const {routerProps, router, organization} = initializeOrg({
+    const {routerProps, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -215,7 +212,6 @@ describe('Onboarding', function () {
         <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
-        router,
         organization,
       }
     );
@@ -239,7 +235,7 @@ describe('Onboarding', function () {
       step: 'select-platform',
     };
 
-    const {routerProps, router, organization} = initializeOrg({
+    const {routerProps, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -250,7 +246,6 @@ describe('Onboarding', function () {
         <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
-        router,
         organization,
       }
     );
@@ -275,7 +270,7 @@ describe('Onboarding', function () {
       step: 'setup-docs',
     };
 
-    const {routerProps, router, organization} = initializeOrg({
+    const {routerProps, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -327,7 +322,6 @@ describe('Onboarding', function () {
         <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
-        router,
         organization,
       }
     );
@@ -381,7 +375,6 @@ describe('Onboarding', function () {
         <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
-        router,
         organization,
       }
     );

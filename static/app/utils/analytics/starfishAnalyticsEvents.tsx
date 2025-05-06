@@ -1,4 +1,4 @@
-export type StarfishEventParameters = {
+type StarfishEventParameters = {
   'starfish.chart.zoom': {
     end: number;
     start: number;
@@ -37,8 +37,6 @@ export type StarfishEventParameters = {
     query: string;
   };
 };
-
-export type StarfishEventKey = keyof StarfishEventParameters;
 
 export const starfishEventMap: Record<keyof StarfishEventParameters, string> = {
   'starfish.chart.zoom': 'Starfish: Chart Zoomed',

@@ -185,6 +185,16 @@ function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryField
     return true;
   }
 
+  if (
+    fieldValue?.kind === 'function' &&
+    fieldValue?.function[0] === AggregationKey.COUNT
+  ) {
+    return (
+      option.value.meta.name === 'span.duration' ||
+      fieldValue.function[1] === option.value.meta.name
+    );
+  }
+
   const expectedDataType =
     fieldValue?.kind === 'function' &&
     fieldValue?.function[0] === AggregationKey.COUNT_UNIQUE
@@ -223,7 +233,6 @@ function getEventsRequest(
     cursor,
     referrer,
     dataset: DiscoverDatasets.SPANS_EAP,
-    useRpc: '1',
     ...queryExtras,
   };
 
@@ -294,8 +303,6 @@ function getSeriesRequest(
     referrer
   );
 
-  requestData.useRpc = true;
-
   // Filtering out all spans with op like 'ui.interaction*' which aren't
   // embedded under transactions. The trace view does not support rendering
   // such spans yet.
@@ -309,7 +316,7 @@ function getSeriesRequest(
 }
 
 // Filters the primary options in the sort by selector
-export function filterSeriesSortOptions(columns: Set<string>) {
+function filterSeriesSortOptions(columns: Set<string>) {
   return (option: FieldValueOption) => {
     if (option.value.kind === FieldValueKind.FUNCTION) {
       return true;

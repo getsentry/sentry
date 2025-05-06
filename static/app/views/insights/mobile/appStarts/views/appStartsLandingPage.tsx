@@ -9,7 +9,7 @@ import {
 import ScreensTemplate from 'sentry/views/insights/mobile/common/components/screensTemplate';
 import {ModuleName} from 'sentry/views/insights/types';
 
-export function InitializationModule() {
+function InitializationModule() {
   return (
     <ScreensTemplate
       additionalSelectors={<StartTypeSelector />}

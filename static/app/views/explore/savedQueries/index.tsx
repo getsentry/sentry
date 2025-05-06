@@ -1,9 +1,13 @@
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SavedQueriesLandingContent} from 'sentry/views/explore/savedQueries/savedQueriesLandingContent';
+import {getExploreUrl} from 'sentry/views/explore/utils';
 
 export default function SavedQueriesView() {
   const organization = useOrganization();
@@ -13,20 +17,21 @@ export default function SavedQueriesView() {
       <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                {
-                  label: t('Explore'),
-                  to: `/organizations/${organization.slug}/traces/`,
-                },
-                {
-                  label: t('All Queries'),
-                  to: `/organizations/${organization.slug}/explore/saved-queries/`,
-                },
-              ]}
-            />
             <Layout.Title>{t('All Queries')}</Layout.Title>
           </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              <FeedbackWidgetButton />
+              <LinkButton
+                priority="primary"
+                icon={<IconAdd />}
+                size="sm"
+                to={getExploreUrl({organization, visualize: []})}
+              >
+                {t('Create Query')}
+              </LinkButton>
+            </ButtonBar>
+          </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body>
           <Layout.Main fullWidth>

@@ -36,7 +36,7 @@ import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
  *
  * Returns a function that can be used to reset the modal.
  */
-export function useIssueDetailsPromoModal() {
+function useIssueDetailsPromoModal() {
   const organization = useOrganization();
   const hasStreamlinedUI = useHasStreamlinedUI();
   const {mutate: mutateAssistant} = useMutateAssistant();

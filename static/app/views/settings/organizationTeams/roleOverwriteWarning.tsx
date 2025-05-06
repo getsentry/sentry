@@ -51,7 +51,7 @@ export function hasOrgRoleOverwrite(props: Props) {
 /**
  * Standardize string so situations where org-level vs team-level roles is easier to recognize
  */
-export function getOverwriteString(props: Props) {
+function getOverwriteString(props: Props) {
   const {orgRole, orgRoleList, teamRoleList, isSelf} = props;
   const orgRoleObj = orgRoleList.find(r => r.id === orgRole);
   const teamRoleObj = teamRoleList.find(r => r.id === orgRoleObj?.minimumTeamRole);

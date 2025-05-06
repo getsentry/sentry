@@ -43,7 +43,10 @@ describe('IssueDetailsEventNavigation', () => {
     it('can navigate to the oldest event', async () => {
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-      render(<IssueDetailsEventNavigation {...defaultProps} />, {router});
+      render(<IssueDetailsEventNavigation {...defaultProps} />, {
+        router,
+        deprecatedRouterMocks: true,
+      });
 
       await userEvent.click(await screen.findByRole('tab', {name: 'First'}));
 
@@ -56,7 +59,10 @@ describe('IssueDetailsEventNavigation', () => {
     it('can navigate to the latest event', async () => {
       jest.spyOn(useMedia, 'default').mockReturnValue(true);
 
-      render(<IssueDetailsEventNavigation {...defaultProps} />, {router});
+      render(<IssueDetailsEventNavigation {...defaultProps} />, {
+        router,
+        deprecatedRouterMocks: true,
+      });
 
       await userEvent.click(await screen.findByRole('tab', {name: 'Last'}));
 
@@ -78,6 +84,7 @@ describe('IssueDetailsEventNavigation', () => {
 
       render(<IssueDetailsEventNavigation {...defaultProps} />, {
         router: recommendedEventRouter,
+        deprecatedRouterMocks: true,
       });
 
       await userEvent.click(await screen.findByRole('tab', {name: 'Rec.'}));
@@ -90,7 +97,9 @@ describe('IssueDetailsEventNavigation', () => {
   });
 
   it('can navigate next/previous events', async () => {
-    render(<IssueDetailsEventNavigation {...defaultProps} />);
+    render(<IssueDetailsEventNavigation {...defaultProps} />, {
+      deprecatedRouterMocks: true,
+    });
 
     expect(await screen.findByRole('button', {name: 'Previous Event'})).toHaveAttribute(
       'href',
@@ -115,7 +124,9 @@ describe('IssueDetailsEventNavigation', () => {
       url: `/organizations/org-slug/issues/group-id/events/prev-event-id/`,
       body: EventFixture(),
     });
-    render(<IssueDetailsEventNavigation {...defaultProps} event={event} />);
+    render(<IssueDetailsEventNavigation {...defaultProps} event={event} />, {
+      deprecatedRouterMocks: true,
+    });
 
     expect(mockNextEvent).not.toHaveBeenCalled();
     expect(mockPreviousEvent).not.toHaveBeenCalled();

@@ -1,4 +1,5 @@
 import React from 'react';
+import {PlatformIcon} from 'platformicons';
 
 import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
@@ -9,7 +10,6 @@ import {
   makeTraceNodeBarColor,
   TraceBar,
 } from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
-import {SpanProjectIcon} from 'sentry/views/performance/newTraceDetails/traceRow/traceIcons';
 import {
   maybeFocusTraceRow,
   TRACE_COUNT_FORMATTER,
@@ -71,7 +71,7 @@ export function TraceSpanRow(
               </TraceChildrenButton>
             ) : null}
           </div>
-          <SpanProjectIcon
+          <PlatformIcon
             platform={props.projects[props.node.metadata.project_slug ?? ''] ?? 'default'}
           />
           {props.node.value.op && props.node.value.op !== 'default' && (

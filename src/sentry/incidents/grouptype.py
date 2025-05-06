@@ -12,7 +12,11 @@ from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.models.organization import Organization
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
-from sentry.workflow_engine.handlers.detector import DetectorOccurrence, StatefulDetectorHandler
+from sentry.workflow_engine.handlers.detector import (
+    DetectorOccurrence,
+    StatefulGroupingDetectorHandler,
+)
+from sentry.workflow_engine.handlers.detector.base import EvidenceData
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorSettings
 
@@ -20,7 +24,12 @@ COMPARISON_DELTA_CHOICES: list[None | int] = [choice.value for choice in Compari
 COMPARISON_DELTA_CHOICES.append(None)
 
 
-class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate]):
+@dataclass
+class MetricIssueEvidenceData(EvidenceData):
+    alert_id: int
+
+
+class MetricAlertDetectorHandler(StatefulGroupingDetectorHandler[QuerySubscriptionUpdate, int]):
     def build_occurrence_and_event_data(
         self, group_key: DetectorGroupKey, new_status: PriorityLevel
     ) -> tuple[DetectorOccurrence, dict[str, Any]]:
@@ -28,7 +37,7 @@ class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
         occurrence = DetectorOccurrence(
             issue_title="Some Issue Title",
             subtitle="An Issue Subtitle",
-            type=MetricAlertFire,
+            type=MetricIssue,
             level="error",
             culprit="Some culprit",
         )
@@ -51,11 +60,12 @@ class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
 # Example GroupType and detector handler for metric alerts. We don't create these issues yet, but we'll use something
 # like these when we're sending issues as alerts
 @dataclass(frozen=True)
-class MetricAlertFire(GroupType):
+class MetricIssue(GroupType):
     type_id = 8001
-    slug = "metric_alert_fire"
-    description = "Metric alert fired"
+    slug = "metric_issue"
+    description = "Metric issue triggered"
     category = GroupCategory.METRIC_ALERT.value
+    category_v2 = GroupCategory.METRIC.value
     creation_quota = Quota(3600, 60, 100)
     default_priority = PriorityLevel.HIGH
     enable_auto_resolve = False

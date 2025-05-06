@@ -10,7 +10,7 @@ export type WidgetTemplate = Widget & {
   description: string;
 };
 
-export const getDefaultWidgets = (organization: Organization) => {
+const getDefaultWidgets = (organization: Organization) => {
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
   const transactionsWidgets = [
     {

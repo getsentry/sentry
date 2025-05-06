@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from base64 import b64decode, b64encode
 from copy import deepcopy
 from datetime import datetime, timezone
 from operator import itemgetter
@@ -38,6 +39,9 @@ from sentry.search.utils import DEVICE_CLASS
 from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import ingest_profiling_tasks
+from sentry.taskworker.retry import Retry
 from sentry.utils import json, metrics
 from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
@@ -77,6 +81,14 @@ profile_chunks_producer = SingletonProducer(
 )
 
 
+def decode_payload(encoded: str) -> dict[str, Any]:
+    return msgpack.unpackb(b64decode(encoded.encode("utf-8")), use_list=False)
+
+
+def encode_payload(message: dict[str, Any]) -> str:
+    return b64encode(msgpack.packb(message)).decode("utf-8")
+
+
 @instrumented_task(
     name="sentry.profiles.task.process_profile",
     retry_backoff=True,
@@ -88,10 +100,15 @@ profile_chunks_producer = SingletonProducer(
     task_time_limit=60,
     task_acks_on_failure_or_timeout=False,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=ingest_profiling_tasks,
+        processing_deadline_duration=60,
+        retry=Retry(times=2),
+    ),
 )
 def process_profile_task(
     profile: Profile | None = None,
-    payload: Any = None,
+    payload: str | bytes | None = None,
     sampled: bool = True,
     **kwargs: Any,
 ) -> None:
@@ -99,7 +116,11 @@ def process_profile_task(
         return
 
     if payload:
-        message_dict = msgpack.unpackb(payload, use_list=False)
+        if isinstance(payload, str):  # It's been b64encoded for taskworker
+            message_dict = decode_payload(payload)
+        else:
+            message_dict = msgpack.unpackb(payload, use_list=False)
+
         profile = json.loads(message_dict["payload"], use_rapid_json=True)
 
         assert profile is not None

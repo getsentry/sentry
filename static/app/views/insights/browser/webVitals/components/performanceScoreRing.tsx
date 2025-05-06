@@ -192,6 +192,3 @@ const RingBar = styled('circle')<{
 `;
 
 export default PerformanceScoreRing;
-
-// We export components to allow for css selectors
-export {RingBackground, RingBar, Text as RingText};

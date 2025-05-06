@@ -103,9 +103,7 @@ export function ToolbarGroupBy({autoSwitchToAggregates}: ToolbarGroupBy) {
             {editableColumns.map((column, i) => (
               <ColumnEditorRow
                 key={column.id}
-                canDelete={
-                  editableColumns.length > 1 || !['', undefined].includes(column.column)
-                }
+                canDelete={editableColumns.length > 1}
                 column={column}
                 options={options}
                 onColumnChange={c => updateColumnAtIndex(i, c)}
@@ -158,14 +156,16 @@ function ColumnEditorRow({
       style={{transform: CSS.Transform.toString(transform), transition}}
       {...attributes}
     >
-      <Button
-        aria-label={t('Drag to reorder')}
-        borderless
-        size="zero"
-        disabled={disabled}
-        icon={<IconGrabbable size="sm" />}
-        {...listeners}
-      />
+      {canDelete ? (
+        <Button
+          aria-label={t('Drag to reorder')}
+          borderless
+          size="zero"
+          disabled={disabled}
+          icon={<IconGrabbable size="sm" />}
+          {...listeners}
+        />
+      ) : null}
       <StyledCompactSelect
         data-test-id="editor-column"
         options={options}
@@ -176,14 +176,15 @@ function ColumnEditorRow({
         searchable
         triggerProps={{style: {width: '100%'}}}
       />
-      <Button
-        aria-label={t('Remove Column')}
-        borderless
-        disabled={!canDelete || disabled}
-        size="zero"
-        icon={<IconDelete size="sm" />}
-        onClick={() => onColumnDelete()}
-      />
+      {canDelete ? (
+        <Button
+          aria-label={t('Remove Column')}
+          borderless
+          size="zero"
+          icon={<IconDelete size="sm" />}
+          onClick={() => onColumnDelete()}
+        />
+      ) : null}
     </ToolbarRow>
   );
 }

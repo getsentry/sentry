@@ -26,7 +26,7 @@ import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/rele
 import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
 import {ModuleName} from 'sentry/views/insights/types';
 
-export function SessionsOverview() {
+function SessionsOverview() {
   const {view = ''} = useDomainViewFilters();
   const [filters, setFilters] = useState<string[]>(['']);
 

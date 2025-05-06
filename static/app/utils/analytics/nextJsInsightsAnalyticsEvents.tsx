@@ -1,4 +1,4 @@
-export type NextJsInsightsEventParameters = {
+type NextJsInsightsEventParameters = {
   'nextjs-insights.page-view': Record<string, unknown>;
   'nextjs-insights.ui_toggle': {
     isEnabled: boolean;

@@ -8,7 +8,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import type {Anomaly} from 'sentry/views/alerts/types';
 import {AnomalyType} from 'sentry/views/alerts/types';
 
-export interface AnomalyMarkerSeriesOptions {
+interface AnomalyMarkerSeriesOptions {
   theme: Theme;
   endDate?: Date;
   startDate?: Date;

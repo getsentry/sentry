@@ -121,7 +121,7 @@ class GroupingConfigLoader:
                     if enhancements_string
                     else derived_enhancements
                 )
-            enhancements = Enhancements.from_config_string(
+            enhancements = Enhancements.from_rules_text(
                 enhancements_string, bases=[enhancements_base] if enhancements_base else []
             ).base64_string
         except InvalidEnhancerConfig:
@@ -188,7 +188,7 @@ def get_default_enhancements(config_id: str | None = None) -> str:
     base: str | None = DEFAULT_GROUPING_ENHANCEMENTS_BASE
     if config_id is not None:
         base = CONFIGURATIONS[config_id].enhancements_base
-    return Enhancements.from_config_string("", bases=[base] if base else []).base64_string
+    return Enhancements.from_rules_text("", bases=[base] if base else []).base64_string
 
 
 def get_projects_default_fingerprinting_bases(

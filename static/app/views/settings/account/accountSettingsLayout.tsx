@@ -12,7 +12,7 @@ function AccountSettingsLayout({children, ...props}: Props) {
     <SettingsLayout
       {...props}
       renderNavigation={
-        prefersStackedNav()
+        organization && prefersStackedNav(organization)
           ? undefined
           : () => <AccountSettingsNavigation organization={organization} />
       }

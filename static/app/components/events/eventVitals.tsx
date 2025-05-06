@@ -200,4 +200,4 @@ const Value = styled('span')<{failedThreshold: boolean}>`
   ${p => p.failedThreshold && `color: ${p.theme.errorText};`}
 `;
 
-export const EventVitalContainer = styled('div')``;
+const EventVitalContainer = styled('div')``;

@@ -9,6 +9,7 @@ import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DebugForm} from 'sentry/components/workflowEngine/form/debug';
+import {Card} from 'sentry/components/workflowEngine/ui/card';
 import {IconAdd, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -19,6 +20,7 @@ import {
   useAutomationBuilderReducer,
 } from 'sentry/views/automations/components/automationBuilderContext';
 import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
+import {useConnectedMonitors} from 'sentry/views/automations/components/editConnectedMonitors';
 
 const FREQUENCY_OPTIONS = [
   {value: '5', label: t('5 minutes')},
@@ -41,6 +43,11 @@ export default function AutomationForm() {
     model.setValue('name', title);
   }, [title, model]);
 
+  const {monitors, connectedMonitorIds, toggleConnected} = useConnectedMonitors();
+  const connectedMonitors = monitors.filter(monitor =>
+    connectedMonitorIds.has(monitor.id)
+  );
+
   return (
     <Form
       hideFooter
@@ -49,19 +56,23 @@ export default function AutomationForm() {
     >
       <AutomationBuilderContext.Provider value={{state, actions}}>
         <Flex column gap={space(1.5)} style={{padding: space(2)}}>
-          <SectionBody>
+          <Card>
             <Heading>{t('Connect Monitors')}</Heading>
-            <StyledConnectedMonitorsList monitors={[]} />
+            <ConnectedMonitorsList
+              monitors={connectedMonitors}
+              connectedMonitorIds={connectedMonitorIds}
+              toggleConnected={toggleConnected}
+            />
             <ButtonWrapper justify="space-between">
               <Button icon={<IconAdd />}>{t('Create New Monitor')}</Button>
               <Button icon={<IconEdit />}>{t('Edit Monitors')}</Button>
             </ButtonWrapper>
-          </SectionBody>
-          <SectionBody>
+          </Card>
+          <Card>
             <Heading>{t('Automation Builder')}</Heading>
             <AutomationBuilder />
-          </SectionBody>
-          <SectionBody>
+          </Card>
+          <Card>
             <Heading>{t('Action Interval')}</Heading>
             <EmbeddedSelectField
               name="frequency"
@@ -69,7 +80,7 @@ export default function AutomationForm() {
               clearable={false}
               options={FREQUENCY_OPTIONS}
             />
-          </SectionBody>
+          </Card>
           <DebugForm />
         </Flex>
       </AutomationBuilderContext.Provider>
@@ -77,22 +88,9 @@ export default function AutomationForm() {
   );
 }
 
-const SectionBody = styled('div')`
-  display: flex;
-  flex-direction: column;
-  background-color: ${p => p.theme.backgroundElevated};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(2)} ${space(2)};
-`;
-
 const Heading = styled('h2')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  margin-bottom: ${space(1.5)};
-`;
-
-const StyledConnectedMonitorsList = styled(ConnectedMonitorsList)`
-  margin: ${space(2)} 0;
+  margin: 0;
 `;
 
 const ButtonWrapper = styled(Flex)`

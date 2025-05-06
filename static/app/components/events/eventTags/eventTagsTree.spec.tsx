@@ -76,6 +76,7 @@ describe('EventTagsTree', function () {
   it('renders tag tree', async function () {
     render(<EventTags projectSlug={project.slug} event={event} />, {
       organization,
+      deprecatedRouterMocks: true,
     });
     expect(mockDetailedProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -144,6 +145,7 @@ describe('EventTagsTree', function () {
     });
     render(<EventTags projectSlug={project.slug} event={releaseEvent} />, {
       organization,
+      deprecatedRouterMocks: true,
     });
     expect(mockDetailedProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -203,6 +205,7 @@ describe('EventTagsTree', function () {
       const uniqueTagsEvent = EventFixture({tags: [tag], projectID: project.id});
       render(<EventTags projectSlug={project.slug} event={uniqueTagsEvent} />, {
         organization,
+        deprecatedRouterMocks: true,
       });
       expect(mockDetailedProject).toHaveBeenCalled();
       expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -250,6 +253,7 @@ describe('EventTagsTree', function () {
     });
     render(<EventTags projectSlug={project.slug} event={errorTagEvent} />, {
       organization,
+      deprecatedRouterMocks: true,
     });
     expect(mockDetailedProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -272,6 +276,7 @@ describe('EventTagsTree', function () {
     });
     render(<EventTags projectSlug={project.slug} event={uniqueTagsEvent} />, {
       organization,
+      deprecatedRouterMocks: true,
     });
     expect(mockDetailedProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -297,6 +302,7 @@ describe('EventTagsTree', function () {
     });
     render(<EventTags projectSlug={highlightProject.slug} event={highlightsEvent} />, {
       organization,
+      deprecatedRouterMocks: true,
     });
     expect(mockHighlightProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -336,6 +342,7 @@ describe('EventTagsTree', function () {
     });
     render(<EventTags projectSlug={highlightProject.slug} event={highlightsEvent} />, {
       organization: readAccessOrganization,
+      deprecatedRouterMocks: true,
     });
     expect(mockHighlightProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -361,6 +368,7 @@ describe('EventTagsTree', function () {
     render(<EventTags projectSlug={project.slug} event={highlightsEvent} />, {
       organization,
       router: issueDetailsRouter,
+      deprecatedRouterMocks: true,
     });
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 

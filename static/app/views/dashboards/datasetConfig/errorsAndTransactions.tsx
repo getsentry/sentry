@@ -457,7 +457,7 @@ export function getCustomEventsFieldRenderer(
   return getFieldRenderer(field, meta, false);
 }
 
-export function getEventsRequest(
+function getEventsRequest(
   url: string,
   api: Client,
   query: WidgetQuery,

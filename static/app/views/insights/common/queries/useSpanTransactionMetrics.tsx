@@ -7,18 +7,6 @@ import {SpanMetricsField} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME} = SpanMetricsField;
 
-export type SpanTransactionMetrics = {
-  'avg(http.response_content_length)': number;
-  'avg(span.self_time)': number;
-  'epm()': number;
-  'http_response_count(5)': number;
-  'resource.render_blocking_status': '' | 'non-blocking' | 'blocking';
-  'sum(span.self_time)': number;
-  'time_spent_percentage()': number;
-  transaction: string;
-  'transaction.method': string;
-};
-
 export const useSpanTransactionMetrics = (
   filters: MetricsFilters,
   sorts?: Sort[],

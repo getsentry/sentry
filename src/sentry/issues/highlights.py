@@ -8,15 +8,16 @@ from rest_framework import serializers
 from sentry.models.project import Project
 from sentry.utils.platform_categories import MOBILE
 
+VALID_KEY_PATTERN = re.compile(r"^[a-zA-Z0-9_.:-]+$")
+
 
 @extend_schema_field(field=OpenApiTypes.OBJECT)
 class HighlightContextField(serializers.Field):
-    def to_internal_value(self, data):
+    def to_internal_value(self, data: object) -> dict[str, list[str]]:
         if not isinstance(data, dict):
             raise serializers.ValidationError("Expected a dictionary.")
-
         for key, value in data.items():
-            if not re.match(r"^.+$", key):
+            if not VALID_KEY_PATTERN.match(key):
                 raise serializers.ValidationError(f"Key '{key}' is invalid.")
             if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
                 raise serializers.ValidationError(f"Value for '{key}' must be a list of strings.")

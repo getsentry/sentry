@@ -7,7 +7,6 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
-import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import type {
   SpanIndexedFieldTypes,
   SpanIndexedProperty,
@@ -143,7 +142,6 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
             ...additionalFields,
           ],
           sort: `-${SPAN_SELF_TIME}`,
-          useRpc: useInsightsEap() ? '1' : undefined,
         },
       },
     ],

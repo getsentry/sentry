@@ -57,7 +57,7 @@ import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
 export const NONE = 'none';
 
-export const NONE_AGGREGATE = {
+const NONE_AGGREGATE = {
   textValue: t('field'),
   label: tct('[emphasis:field]', {emphasis: <em />}),
   value: NONE,
@@ -834,7 +834,7 @@ function Visualize({error, setError}: VisualizeProps) {
 
 export default Visualize;
 
-export function renderTag(kind: FieldValueKind, label: string, dataType?: string) {
+function renderTag(kind: FieldValueKind, label: string, dataType?: string) {
   if (dataType) {
     switch (dataType) {
       case 'boolean':

@@ -11,7 +11,7 @@ export type DetectorType =
   | 'replay'
   | 'uptime';
 
-export interface NewDetector {
+interface NewDetector {
   config: Record<string, unknown>;
   dataCondition: DataConditionGroup;
   dataSource: DataSource;

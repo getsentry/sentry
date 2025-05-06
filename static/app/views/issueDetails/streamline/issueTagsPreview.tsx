@@ -54,7 +54,7 @@ type Segment = {
 };
 
 const bgColor = (index: number, theme: Theme) =>
-  Color(theme.chart.colors[4].at(index)).alpha(0.8).toString();
+  Color(theme.chart.getColorPalette(4).at(index)).alpha(0.8).toString();
 const getRoundedPercentage = (percentage: number) =>
   percentage < 0.5 ? '<1%' : `${Math.round(percentage)}%`;
 

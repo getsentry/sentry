@@ -18,7 +18,6 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {IconGrabbable} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -31,19 +30,18 @@ import {
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import {capitalize} from 'sentry/utils/string/capitalize';
 import useApi from 'sentry/utils/useApi';
 import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingReducer';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
   DEFAULT_TRACE_VIEW_PREFERENCES,
   loadTraceViewPreferences,
 } from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {useDividerResizeSync} from 'sentry/views/performance/newTraceDetails/useDividerResizeSync';
-import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/useTraceSpaceListeners';
 import type {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
 import type {useTraceWaterfallScroll} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallScroll';
@@ -77,7 +75,6 @@ import {
 } from './traceGuards';
 import {TracePreferencesDropdown} from './tracePreferencesDropdown';
 import {TraceResetZoomButton} from './traceResetZoomButton';
-import {TraceShortcuts} from './traceShortcutsModal';
 import type {TraceReducer, TraceReducerState} from './traceState';
 import {
   traceNodeAdjacentAnalyticsProperties,
@@ -99,16 +96,11 @@ const TRACE_TAB: TraceReducerState['tabs']['tabs'][0] = {
   label: t('Trace'),
 };
 
-const VITALS_TAB: TraceReducerState['tabs']['tabs'][0] = {
-  node: 'vitals',
-  label: t('Vitals'),
-};
-
 export interface TraceWaterfallProps {
   meta: TraceMetaQueryResults;
   organization: Organization;
   replay: ReplayRecord | null;
-  rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
+  rootEventResults: TraceRootEventQueryResults;
   source: string;
   trace: UseApiQueryResult<TraceTree.Trace, RequestError>;
   traceEventView: EventView;
@@ -133,7 +125,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
   const traceDispatch = useTraceStateDispatch();
   const traceStateEmitter = useTraceStateEmitter();
-  const hasTraceNewUi = useHasTraceNewUi();
 
   const traceState = useTraceState();
 
@@ -200,31 +191,11 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       return;
     }
 
-    // New trace UI has the trace info and web vitalsin the bottom drawer
-    const newTabs = hasTraceNewUi ? [] : [TRACE_TAB];
-
-    if (props.tree.vitals.size > 0 && !hasTraceNewUi) {
-      const types = Array.from(props.tree.vital_types.values());
-      const label = types.length > 1 ? t('Vitals') : capitalize(types[0]!) + ' Vitals';
-
-      newTabs.push({
-        ...VITALS_TAB,
-        label,
-      });
-    }
-
-    if (props.tree.profiled_events.size > 0 && !hasTraceNewUi) {
-      newTabs.push({
-        node: 'profiles',
-        label: 'Profiles',
-      });
-    }
-
     traceDispatch({
       type: 'initialize tabs reducer',
       payload: {
         current_tab: traceStateRef?.current?.tabs?.tabs?.[0] ?? null,
-        tabs: newTabs,
+        tabs: [],
         last_clicked_tab: null,
       },
     });
@@ -318,9 +289,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     ) => {
       // sync query string with the clicked node
       if (node) {
-        // The new ui has the trace info and web vitals in the bottom drawer and
-        // we don't treat the trace node as a clickable node
-        if ((isTraceNode(node) || isEAPTraceNode(node)) && hasTraceNewUi) {
+        if (isTraceNode(node) || isEAPTraceNode(node)) {
           return;
         }
 
@@ -367,7 +336,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         });
       }
     },
-    [traceDispatch, hasTraceNewUi]
+    [traceDispatch]
   );
 
   const onRowClick = useCallback(
@@ -376,9 +345,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       event: React.MouseEvent<HTMLElement>,
       index: number
     ) => {
-      // The new ui has the trace info and web vitals in the bottom drawer and
-      // we don't treat the trace node as a clickable node
-      if ((isTraceNode(node) || isEAPTraceNode(node)) && hasTraceNewUi) {
+      if (isTraceNode(node) || isEAPTraceNode(node)) {
         traceDispatch({
           type: 'set roving index',
           action_source: 'click',
@@ -420,7 +387,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         node,
       });
     },
-    [setRowAsFocused, traceDispatch, organization, projects, hasTraceNewUi]
+    [setRowAsFocused, traceDispatch, organization, projects]
   );
 
   const onTabScrollToNode = useCallback(
@@ -825,10 +792,9 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           viewManager={viewManager}
           organization={props.organization}
         />
-        <TraceShortcuts />
         <TraceActionsMenu
           traceSlug={props.traceSlug}
-          rootEventResults={props.rootEvent}
+          rootEventResults={props.rootEventResults}
           traceEventView={props.traceEventView}
         />
         <TracePreferencesDropdown
@@ -841,11 +807,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           onMissingInstrumentationChange={onMissingInstrumentationChange}
         />
       </TraceToolbar>
-      <TraceGrid
-        layout={traceState.preferences.layout}
-        ref={setTraceGridRef}
-        hideBottomBorder={hasTraceNewUi}
-      >
+      <TraceGrid layout={traceState.preferences.layout} ref={setTraceGridRef}>
         <DemoTourElement
           id={DemoTourStep.PERFORMANCE_SPAN_TREE}
           title={t('Trace Waterfall')}
@@ -889,7 +851,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           scheduler={traceScheduler}
           onTabScrollToNode={onTabScrollToNode}
           onScrollToNode={onScrollToNode}
-          rootEventResults={props.rootEvent}
           traceEventView={props.traceEventView}
         />
       </TraceGrid>
@@ -926,7 +887,6 @@ const TraceToolbar = styled('div')`
 
 export const TraceGrid = styled('div')<{
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';
-  hideBottomBorder?: boolean;
 }>`
   --info: ${p => p.theme.purple400};
   --warning: ${p => p.theme.yellow300};
@@ -967,9 +927,6 @@ export const TraceGrid = styled('div')<{
         : '1fr min-content'};
   grid-template-rows: 1fr auto;
 
-  ${p =>
-    p.hideBottomBorder
-      ? `border-radius: ${p.theme.borderRadius} ${p.theme.borderRadius} 0 0;`
-      : `border-radius: ${p.theme.borderRadius};`}
-  ${p => (p.hideBottomBorder ? 'border-bottom: none;' : '')}
+  ${p => `border-radius: ${p.theme.borderRadius} ${p.theme.borderRadius} 0 0;`}
+  border-bottom: none;
 `;

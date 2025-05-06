@@ -1,7 +1,7 @@
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 function Header() {
   const prefersStackedNav = usePrefersStackedNav();

@@ -43,8 +43,12 @@ def process_segment(unprocessed_spans: list[UnprocessedSpan]) -> list[Span]:
     if segment_span is None:
         return spans
 
-    with metrics.timer("spans.consumers.process_segments.get_project"):
-        project = Project.objects.get_from_cache(id=segment_span["project_id"])
+    try:
+        with metrics.timer("spans.consumers.process_segments.get_project"):
+            project = Project.objects.get_from_cache(id=segment_span["project_id"])
+    except Project.DoesNotExist:
+        # If the project does not exist then it might have been deleted during ingestion.
+        return []
 
     _create_models(segment_span, project)
     _detect_performance_problems(segment_span, spans, project)

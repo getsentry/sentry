@@ -18,7 +18,7 @@ from django.core.cache import cache
 from django.utils import timezone
 from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 
-from sentry import features, nodestore, options
+from sentry import nodestore, options
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import InvalidGroupTypeError, get_group_type_by_type_id
@@ -226,11 +226,11 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
             if payload.get("culprit"):
                 occurrence_data["culprit"] = payload["culprit"]
 
-            if payload.get("initial_issue_priority") is not None:
-                occurrence_data["initial_issue_priority"] = payload["initial_issue_priority"]
+            if payload.get("priority") is not None:
+                occurrence_data["priority"] = payload["priority"]
             else:
                 group_type = get_group_type_by_type_id(occurrence_data["type"])
-                occurrence_data["initial_issue_priority"] = group_type.default_priority
+                occurrence_data["priority"] = group_type.default_priority
 
             if "event" in payload:
                 event_payload = payload["event"]
@@ -388,7 +388,7 @@ def process_occurrence_message(
 @sentry_sdk.tracing.trace
 @metrics.wraps("occurrence_consumer.process_message")
 def _process_message(
-    message: Mapping[str, Any]
+    message: Mapping[str, Any],
 ) -> tuple[IssueOccurrence | None, GroupInfo | None] | None:
     """
     :raises InvalidEventPayloadError: when the message is invalid
@@ -476,31 +476,19 @@ def process_occurrence_group(items: list[Mapping[str, Any]]) -> None:
     Process a group of related occurrences (all part of the same group)
     completely serially.
     """
+    status_changes = [
+        item for item in items if item.get("payload_type") == PayloadType.STATUS_CHANGE.value
+    ]
 
-    try:
-        project = Project.objects.get_from_cache(id=items[0]["project_id"])
-        organization = Organization.objects.get_from_cache(id=project.organization_id)
-    except Exception:
-        logger.exception("Failed to fetch project or organization")
-        organization = None
-    if organization and features.has(
-        "organizations:occurence-consumer-prune-status-changes", organization
-    ):
-        status_changes = [
-            item for item in items if item.get("payload_type") == PayloadType.STATUS_CHANGE.value
-        ]
-
-        if status_changes:
-            items = [
-                item
-                for item in items
-                if item.get("payload_type") != PayloadType.STATUS_CHANGE.value
-            ] + status_changes[-1:]
-            metrics.incr(
-                "occurrence_consumer.process_occurrence_group.dropped_status_changes",
-                amount=len(status_changes) - 1,
-                sample_rate=1.0,
-            )
+    if status_changes:
+        items = [
+            item for item in items if item.get("payload_type") != PayloadType.STATUS_CHANGE.value
+        ] + status_changes[-1:]
+        metrics.incr(
+            "occurrence_consumer.process_occurrence_group.dropped_status_changes",
+            amount=len(status_changes) - 1,
+            sample_rate=1.0,
+        )
 
     for item in items:
         cache_key = f"occurrence_consumer.process_occurrence_group.{item['id']}"

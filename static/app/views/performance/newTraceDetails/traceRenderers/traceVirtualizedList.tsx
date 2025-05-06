@@ -345,7 +345,7 @@ function findRenderedItems({
   return {rendered, virtualized};
 }
 
-export function findOptimisticStartIndex({
+function findOptimisticStartIndex({
   items,
   overscroll,
   rowHeight,

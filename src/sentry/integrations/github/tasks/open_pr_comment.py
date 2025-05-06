@@ -24,7 +24,6 @@ from snuba_sdk import Request as SnubaRequest
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.integrations.github.client import GitHubApiClient
 from sentry.integrations.github.constants import RATE_LIMITED_MESSAGE
-from sentry.integrations.github.tasks.pr_comment import format_comment_url
 from sentry.integrations.github.tasks.utils import (
     GithubAPIErrorType,
     PullRequestFile,
@@ -89,6 +88,10 @@ OPEN_PR_ISSUE_TABLE_TOGGLE_TEMPLATE = """\
 OPEN_PR_ISSUE_DESCRIPTION_LENGTH = 52
 
 MAX_RECENT_ISSUES = 5000
+
+
+def format_comment_url(url: str, referrer: str) -> str:
+    return url + "?referrer=" + referrer
 
 
 def format_open_pr_comment(issue_tables: list[str]) -> str:
@@ -615,9 +618,8 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     try:
         installation.create_or_update_comment(
             repo=repo,
-            pr_key=pull_request.key,
+            pr=pull_request,
             comment_data={"body": comment_body},
-            pullrequest_id=pull_request.id,
             issue_list=issue_id_list,
             comment_type=CommentType.OPEN_PR,
             metrics_base=OPEN_PR_METRICS_BASE,

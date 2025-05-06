@@ -1,5 +1,7 @@
-import {ANNUAL, MONTHLY, UNLIMITED_RESERVED} from 'getsentry/constants';
 import {CheckoutType, type Plan} from 'getsentry/types';
+import {type DataCategory} from 'sentry/types/core';
+import {ANNUAL, MONTHLY, UNLIMITED_RESERVED} from 'getsentry/constants';
+
 
 const AM3_CHECKOUT_CATEGORIES = [
   'errors',
@@ -8,14 +10,14 @@ const AM3_CHECKOUT_CATEGORIES = [
   'monitorSeats',
   'spans',
   'uptime',
-]
-const AM3_CATEGORIES = [...AM3_CHECKOUT_CATEGORIES, 'profileDuration', 'profileDurationUI'];
+] as DataCategory[];
+const AM3_CATEGORIES = [...AM3_CHECKOUT_CATEGORIES, 'profileDuration', 'profileDurationUI'] as DataCategory[];
 
 const AM3_DS_CHECKOUT_CATEGORIES = [
   ...AM3_CHECKOUT_CATEGORIES,
   'spansIndexed'
-]
-const AM3_DS_CATEGORIES = [...AM3_DS_CHECKOUT_CATEGORIES, 'profileDuration', 'profileDurationUI']
+] as DataCategory[];
+const AM3_DS_CATEGORIES = [...AM3_DS_CHECKOUT_CATEGORIES, 'profileDuration', 'profileDurationUI'] as DataCategory[];
 
 const AM3_CATEGORY_DISPLAY_NAMES = {
   errors: {singular: 'error', plural: 'errors'},
