@@ -107,10 +107,10 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
         )
         for event in results["data"]:
             if "timestamp_ms" in event and event["timestamp_ms"] is not None:
-                # add ms to timestamp by converting the timestamp_ms to ISO 8601
-                event["timestamp"] = datetime.strptime(
-                    event["timestamp_ms"], "%Y-%m-%d %H:%M:%S.%f"
-                ).strftime("%Y-%m-%dT%H:%M:%S.%f+00:00")
+                # add ms to timestamp by taking the timestamp_ms, they differ in format, so we convert to datetime and back to isoformat
+                event["timestamp"] = (
+                    datetime.fromisoformat(event["timestamp_ms"]).astimezone().isoformat()
+                )
 
             if "timestamp_ms" in event:
                 del event["timestamp_ms"]
