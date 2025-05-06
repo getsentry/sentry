@@ -141,15 +141,15 @@ export function PathsTable({
       search: `transaction.op:http.server is_transaction:True ${query}`,
       sorts: [{field: sortField, kind: sortOrder}],
       fields: [
-        'http.request.method',
         'project.id',
         'transaction',
         'avg(span.duration)',
         'p95(span.duration)',
         'failure_rate()',
         'count()',
-        'count_unique(user)',
         'sum(span.duration)',
+        ...(showHttpMethodColumn ? ['http.request.method' as const] : []),
+        ...(showUsersColumn ? ['count_unique(user)' as const] : []),
       ],
       limit: PER_PAGE,
       cursor:
@@ -174,6 +174,7 @@ export function PathsTable({
       fields: [
         'span.description',
         'transaction',
+        'http.request.method',
         // We need an aggregation so we do not receive individual events
         'count()',
       ],

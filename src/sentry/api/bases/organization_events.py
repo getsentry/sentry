@@ -31,7 +31,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
-from sentry.search.eap.constants import SAMPLING_MODE_MAP
+from sentry.search.eap.constants import SAMPLING_MODE_MAP, VALID_GRANULARITIES
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
@@ -458,6 +458,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             )
         # If the user sends an invalid interval, use the default instead
         except InvalidSearchQuery:
+            # on RPC don't use default interval on error
+            if use_rpc:
+                raise
             sentry_sdk.set_tag("user.invalid_interval", request.GET.get("interval"))
             date_range = snuba_params.date_range
             stats_period = parse_stats_period(get_interval_from_range(date_range, False))
@@ -516,6 +519,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     except NoProjects:
                         return {"data": []}
 
+                if use_rpc and snuba_params.date_range.total_seconds() < min(VALID_GRANULARITIES):
+                    raise InvalidSearchQuery(
+                        f"Timeseries queries must be for periods of at least {min(VALID_GRANULARITIES)} seconds"
+                    )
                 rollup = self.get_rollup(request, snuba_params, top_events, use_rpc)
                 snuba_params.granularity_secs = rollup
                 self.validate_comparison_delta(comparison_delta, snuba_params, organization)

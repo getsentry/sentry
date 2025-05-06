@@ -1220,13 +1220,8 @@ class EventView {
           this.dataset === DiscoverDatasets.SPANS_EAP_RPC
             ? DiscoverDatasets.SPANS_EAP
             : this.dataset,
-        useRpc: this.dataset === DiscoverDatasets.SPANS_EAP_RPC ? '1' : undefined,
       }
     ) as EventQuery & LocationQuery;
-
-    if (eventQuery.useRpc !== '1') {
-      delete eventQuery.useRpc;
-    }
 
     if (eventQuery.team && !eventQuery.team.length) {
       delete eventQuery.team;
