@@ -8,12 +8,14 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
+import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import Avatar from 'sentry/components/core/avatar';
-import {ExploreParams} from 'sentry/components/modals/explore/saveQueryModal';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -26,10 +28,13 @@ import {
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
+import {ExploreParams} from 'sentry/views/explore/savedQueries/exploreParams';
 import {getExploreUrlFromSavedQueryUrl} from 'sentry/views/explore/utils';
 
 type Props = {
+  title: string;
   cursorKey?: string;
+  hideIfEmpty?: boolean;
   mode?: 'owned' | 'shared' | 'all';
   perPage?: number;
   searchQuery?: string;
@@ -42,6 +47,8 @@ export function SavedQueriesTable({
   cursorKey = 'cursor',
   searchQuery,
   sort = 'recentlyViewed',
+  title,
+  hideIfEmpty = false,
 }: Props) {
   const organization = useOrganization();
   const location = useLocation();
@@ -75,6 +82,11 @@ export function SavedQueriesTable({
       } else {
         setStarredIds(prev => prev.filter(starredId => starredId !== id));
       }
+      trackAnalytics('trace_explorer.star_query', {
+        save_type: starred ? 'star_query' : 'unstar_query',
+        ui_source: 'table',
+        organization,
+      });
       starQuery(id, starred).catch(() => {
         // If the starQuery call fails, we need to revert the starredIds state
         addErrorMessage(t('Unable to star query'));
@@ -85,7 +97,7 @@ export function SavedQueriesTable({
         }
       });
     },
-    [starQuery]
+    [starQuery, organization]
   );
 
   const getHandleUpdateFromSavedQuery = useCallback(
@@ -131,8 +143,13 @@ export function SavedQueriesTable({
     [starQueryHandler]
   );
 
+  if (hideIfEmpty && filteredData.length === 0) {
+    return null;
+  }
+
   return (
     <span>
+      <TableHeading>{title}</TableHeading>
       <SavedEntityTableWithColumns
         pageSize={perPage}
         isLoading={isLoading}
@@ -154,7 +171,7 @@ export function SavedQueriesTable({
             <SavedEntityTable.HeaderCell key="created-by">
               {t('Creator')}
             </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell key="last-visited">
+            <SavedEntityTable.HeaderCell key="last-visited" noBorder>
               {t('Last Viewed')}
             </SavedEntityTable.HeaderCell>
             <SavedEntityTable.HeaderCell key="actions" />
@@ -170,7 +187,7 @@ export function SavedQueriesTable({
             isFirst={index === 0}
             data-test-id={`table-row-${index}`}
           >
-            <SavedEntityTable.Cell>
+            <SavedEntityTable.Cell hasButton>
               <SavedEntityTable.CellStar
                 isStarred={starredIds.includes(query.id)}
                 onClick={() => debouncedOnClick(query.id, query.starred)}
@@ -187,7 +204,7 @@ export function SavedQueriesTable({
               <SavedEntityTable.CellProjects projects={query.projects} />
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell>
-              <SavedEntityTable.CellEnvironments environments={query.environment} />
+              <SavedEntityTable.CellEnvironments environments={query.environment ?? []} />
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell>
               <StyledExploreParams
@@ -197,25 +214,46 @@ export function SavedQueriesTable({
               />
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell>
-              <Avatar user={query.createdBy} tooltip={query.createdBy.name} hasTooltip />
+              {query.isPrebuilt ? (
+                <Tooltip title={'Sentry'}>
+                  <ActivityAvatar type="system" size={20} />
+                </Tooltip>
+              ) : (
+                <Avatar
+                  user={query.createdBy}
+                  tooltip={query.createdBy?.name}
+                  hasTooltip
+                />
+              )}
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell>
               <SavedEntityTable.CellTimeSince date={query.lastVisited} />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell>
+            <SavedEntityTable.Cell hasButton>
               <SavedEntityTable.CellActions
                 items={[
-                  {
-                    key: 'rename',
-                    label: t('Rename'),
-                    onAction: () => {
-                      openSaveQueryModal({
-                        organization,
-                        saveQuery: getHandleUpdateFromSavedQuery(query),
-                        name: query.name,
-                      });
-                    },
-                  },
+                  ...(query.isPrebuilt
+                    ? []
+                    : [
+                        {
+                          key: 'rename',
+                          label: t('Rename'),
+                          onAction: () => {
+                            trackAnalytics('trace_explorer.save_query_modal', {
+                              action: 'open',
+                              save_type: 'rename_query',
+                              ui_source: 'table',
+                              organization,
+                            });
+                            openSaveQueryModal({
+                              organization,
+                              saveQuery: getHandleUpdateFromSavedQuery(query),
+                              name: query.name,
+                              source: 'table',
+                            });
+                          },
+                        },
+                      ]),
                   {
                     key: 'duplicate',
                     label: t('Duplicate'),
@@ -229,20 +267,24 @@ export function SavedQueriesTable({
                       }
                     },
                   },
-                  {
-                    key: 'delete',
-                    label: t('Delete'),
-                    onAction: async () => {
-                      addLoadingMessage(t('Deleting query...'));
-                      try {
-                        await deleteQuery(query.id);
-                        addSuccessMessage(t('Query deleted'));
-                      } catch (error) {
-                        addErrorMessage(t('Unable to delete query'));
-                      }
-                    },
-                    priority: 'danger',
-                  },
+                  ...(query.isPrebuilt
+                    ? []
+                    : [
+                        {
+                          key: 'delete',
+                          label: t('Delete'),
+                          onAction: async () => {
+                            addLoadingMessage(t('Deleting query...'));
+                            try {
+                              await deleteQuery(query.id);
+                              addSuccessMessage(t('Query deleted'));
+                            } catch (error) {
+                              addErrorMessage(t('Unable to delete query'));
+                            }
+                          },
+                          priority: 'danger' as const,
+                        },
+                      ]),
                 ]}
               />
             </SavedEntityTable.Cell>
@@ -258,13 +300,7 @@ const SavedEntityTableWithColumns = styled(SavedEntityTable)`
   grid-template-columns:
     40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(0, 1fr)
     minmax(auto, 120px)
-    auto 60px;
-
-  button {
-    min-height: unset;
-    height: auto;
-    padding: ${space(0.5)} ${space(1)};
-  }
+    auto 48px;
 `;
 
 const StyledExploreParams = styled(ExploreParams)`
@@ -280,4 +316,13 @@ const StyledExploreParams = styled(ExploreParams)`
   div {
     flex-wrap: nowrap;
   }
+`;
+
+const TableHeading = styled('h2')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  margin-top: ${space(3)};
+  margin-bottom: ${space(1.5)};
 `;

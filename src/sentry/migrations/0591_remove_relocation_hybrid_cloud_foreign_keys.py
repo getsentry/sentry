@@ -4,6 +4,7 @@ from django.db import migrations
 
 import sentry.db.models.fields.bounded
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -19,8 +20,6 @@ class Migration(CheckedMigration):
     #   change, it's completely safe to run the operation after the code has deployed.
     is_post_deployment = False
 
-    allow_run_sql = True
-
     dependencies = [
         ("sentry", "0590_add_metadata_to_sentry_app"),
     ]
@@ -28,7 +27,7 @@ class Migration(CheckedMigration):
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     """
                     ALTER TABLE "sentry_relocation" ADD COLUMN "creator_id" bigint NOT NULL;
                     ALTER TABLE "sentry_relocation" ADD COLUMN "owner_id" bigint NOT NULL;

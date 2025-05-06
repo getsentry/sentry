@@ -68,7 +68,7 @@ class BuildOccurrenceFromResultTest(UptimeTestCase):
             detection_time=datetime.datetime.now(datetime.UTC),
             level="error",
             culprit="",
-            initial_issue_priority=None,
+            priority=None,
             assignee=None,
         )
 

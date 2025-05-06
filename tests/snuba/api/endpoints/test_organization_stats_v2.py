@@ -1,17 +1,19 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sentry.constants import DataCategory
 from sentry.testutils.cases import APITestCase, OutcomesSnubaTest
-from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.datetime import freeze_time, isoformat_z
+from sentry.utils.dates import floor_to_utc_day
 from sentry.utils.outcomes import Outcome
 
 
 class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
     endpoint = "sentry-api-0-organization-stats-v2"
 
+    _now = datetime.now(UTC).replace(hour=12, minute=27, second=28, microsecond=0)
+
     def setUp(self):
         super().setUp()
-        self.now = datetime(2021, 3, 14, 12, 27, 28, tzinfo=timezone.utc)
 
         self.login_as(user=self.user)
 
@@ -41,7 +43,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         self.store_outcomes(
             {
                 "org_id": self.org.id,
-                "timestamp": self.now - timedelta(hours=1),
+                "timestamp": self._now - timedelta(hours=1),
                 "project_id": self.project.id,
                 "outcome": Outcome.ACCEPTED,
                 "reason": "none",
@@ -53,7 +55,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         self.store_outcomes(
             {
                 "org_id": self.org.id,
-                "timestamp": self.now - timedelta(hours=1),
+                "timestamp": self._now - timedelta(hours=1),
                 "project_id": self.project.id,
                 "outcome": Outcome.ACCEPTED,
                 "reason": "none",
@@ -64,7 +66,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         self.store_outcomes(
             {
                 "org_id": self.org.id,
-                "timestamp": self.now - timedelta(hours=1),
+                "timestamp": self._now - timedelta(hours=1),
                 "project_id": self.project.id,
                 "outcome": Outcome.RATE_LIMITED,
                 "reason": "smart_rate_limit",
@@ -75,7 +77,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         self.store_outcomes(
             {
                 "org_id": self.org.id,
-                "timestamp": self.now - timedelta(hours=1),
+                "timestamp": self._now - timedelta(hours=1),
                 "project_id": self.project2.id,
                 "outcome": Outcome.RATE_LIMITED,
                 "reason": "smart_rate_limit",
@@ -88,7 +90,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         self.store_outcomes(
             {
                 "org_id": self.org.id,
-                "timestamp": self.now - timedelta(hours=1),
+                "timestamp": self._now - timedelta(hours=1),
                 "project_id": self.project.id,
                 "outcome": Outcome.ACCEPTED,
                 "reason": "none",
@@ -150,32 +152,36 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
 
     def test_no_end_param(self):
         response = self.do_request(
-            {"field": ["sum(quantity)"], "interval": "1d", "start": "2021-03-14T00:00:00Z"},
+            {
+                "field": ["sum(quantity)"],
+                "interval": "1d",
+                "start": floor_to_utc_day(self._now).isoformat(),
+            },
             status_code=400,
         )
 
         assert result_sorted(response.data) == {"detail": "start and end are both required"}
 
-    @freeze_time(datetime(2021, 3, 14, 12, 27, 28, tzinfo=timezone.utc))
+    @freeze_time(_now)
     def test_future_request(self):
         response = self.do_request(
             {
                 "field": ["sum(quantity)"],
                 "interval": "1h",
                 "category": ["error"],
-                "start": "2021-03-14T15:30:00",
-                "end": "2021-03-14T16:30:00",
+                "start": self._now.replace(hour=15, minute=30, second=0).isoformat(),
+                "end": self._now.replace(hour=16, minute=30, second=0).isoformat(),
             },
             status_code=200,
         )
 
         assert result_sorted(response.data) == {
             "intervals": [
-                "2021-03-14T12:00:00Z",
-                "2021-03-14T13:00:00Z",
-                "2021-03-14T14:00:00Z",
-                "2021-03-14T15:00:00Z",
-                "2021-03-14T16:00:00Z",
+                isoformat_z(self._now.replace(hour=12, minute=0, second=0)),
+                isoformat_z(self._now.replace(hour=13, minute=0, second=0)),
+                isoformat_z(self._now.replace(hour=14, minute=0, second=0)),
+                isoformat_z(self._now.replace(hour=15, minute=0, second=0)),
+                isoformat_z(self._now.replace(hour=16, minute=0, second=0)),
             ],
             "groups": [
                 {
@@ -184,8 +190,8 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                     "totals": {"sum(quantity)": 0},
                 }
             ],
-            "start": "2021-03-14T12:00:00Z",
-            "end": "2021-03-14T17:00:00Z",
+            "start": isoformat_z(self._now.replace(hour=12, minute=0, second=0)),
+            "end": isoformat_z(self._now.replace(hour=17, minute=0, second=0)),
         }
 
     def test_unknown_category(self):
@@ -242,7 +248,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             status_code=400,
         )
 
-    @freeze_time("2021-03-14T12:27:28.303Z")
+    @freeze_time(_now)
     def test_attachment_filter_only(self):
         response = self.do_request(
             {
@@ -259,7 +265,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             "detail": "if filtering by attachment no other category may be present"
         }
 
-    @freeze_time("2021-03-14T12:27:28.303Z")
+    @freeze_time(_now)
     def test_timeseries_interval(self):
         response = self.do_request(
             {
@@ -273,12 +279,15 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
 
         assert result_sorted(response.data) == {
-            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
+            "intervals": [
+                isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+                isoformat_z(floor_to_utc_day(self._now)),
+            ],
             "groups": [
                 {"by": {}, "series": {"sum(quantity)": [0, 6]}, "totals": {"sum(quantity)": 6}}
             ],
-            "start": "2021-03-13T00:00:00Z",
-            "end": "2021-03-15T00:00:00Z",
+            "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+            "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
         }
 
         response = self.do_request(
@@ -294,11 +303,11 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
 
         assert result_sorted(response.data) == {
             "intervals": [
-                "2021-03-13T12:00:00Z",
-                "2021-03-13T18:00:00Z",
-                "2021-03-14T00:00:00Z",
-                "2021-03-14T06:00:00Z",
-                "2021-03-14T12:00:00Z",
+                isoformat_z((self._now - timedelta(days=1)).replace(hour=12, minute=0, second=0)),
+                isoformat_z((self._now - timedelta(days=1)).replace(hour=18, minute=0, second=0)),
+                isoformat_z(self._now.replace(hour=0, minute=0, second=0)),
+                isoformat_z(self._now.replace(hour=6, minute=0, second=0)),
+                isoformat_z(self._now.replace(hour=12, minute=0, second=0)),
             ],
             "groups": [
                 {
@@ -307,11 +316,13 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                     "totals": {"sum(quantity)": 6},
                 }
             ],
-            "start": "2021-03-13T12:00:00Z",
-            "end": "2021-03-14T18:00:00Z",
+            "start": isoformat_z(
+                self._now.replace(hour=12, minute=0, second=0) - timedelta(days=1)
+            ),
+            "end": isoformat_z(self._now.replace(hour=18, minute=0, second=0)),
         }
 
-    @freeze_time("2021-03-14T12:27:28.303Z")
+    @freeze_time(_now)
     def test_user_org_total_all_accessible(self):
         response = self.do_request(
             {
@@ -326,15 +337,18 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
 
         assert result_sorted(response.data) == {
-            "start": "2021-03-13T00:00:00Z",
-            "end": "2021-03-15T00:00:00Z",
-            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
+            "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+            "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
+            "intervals": [
+                isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+                isoformat_z(floor_to_utc_day(self._now)),
+            ],
             "groups": [
                 {"by": {}, "series": {"sum(quantity)": [0, 7]}, "totals": {"sum(quantity)": 7}}
             ],
         }
 
-    @freeze_time("2021-03-14T12:27:28.303Z")
+    @freeze_time(_now)
     def test_user_no_proj_specific_access(self):
         response = self.do_request(
             {
@@ -362,12 +376,12 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
 
         assert result_sorted(response.data) == {
-            "start": "2021-03-13T00:00:00Z",
-            "end": "2021-03-15T00:00:00Z",
+            "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+            "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
             "groups": [],
         }
 
-    @freeze_time("2021-03-14T12:27:28.303Z")
+    @freeze_time(_now)
     def test_no_project_access(self):
         user = self.create_user(is_superuser=False)
         self.create_member(user=user, organization=self.organization, role="member", teams=[])
@@ -407,7 +421,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             "detail": "You do not have permission to perform this action."
         }
 
-    @freeze_time("2021-03-14T12:27:28.303Z")
+    @freeze_time(_now)
     def test_open_membership_semantics(self):
         self.org.flags.allow_joinleave = True
         self.org.save()
@@ -425,8 +439,8 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
 
         assert result_sorted(response.data) == {
-            "start": "2021-03-13T00:00:00Z",
-            "end": "2021-03-15T00:00:00Z",
+            "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+            "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
             "groups": [
                 {
                     "by": {"project": self.project.id},
@@ -439,7 +453,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             ],
         }
 
-    @freeze_time("2021-03-14T12:27:28.303Z")
+    @freeze_time(_now)
     def test_org_simple(self):
         response = self.do_request(
             {
@@ -453,7 +467,6 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
 
         assert result_sorted(response.data) == {
-            "end": "2021-03-15T00:00:00Z",
             "groups": [
                 {
                     "by": {
@@ -484,11 +497,16 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                     "totals": {"sum(quantity)": 1},
                 },
             ],
-            "intervals": ["2021-03-12T00:00:00Z", "2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
-            "start": "2021-03-12T00:00:00Z",
+            "intervals": [
+                isoformat_z(floor_to_utc_day(self._now) - timedelta(days=2)),
+                isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+                isoformat_z(floor_to_utc_day(self._now)),
+            ],
+            "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=2)),
+            "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
         }
 
-    @freeze_time("2021-03-14T12:27:28.303Z")
+    @freeze_time(_now)
     def test_staff_org_individual_category(self):
         staff_user = self.create_user(is_staff=True, is_superuser=True)
         self.login_as(user=staff_user, superuser=True)
@@ -532,17 +550,17 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             )
 
             assert result_sorted(response.data) == {
-                "start": "2021-03-12T00:00:00Z",
-                "end": "2021-03-15T00:00:00Z",
+                "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=2)),
+                "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
                 "intervals": [
-                    "2021-03-12T00:00:00Z",
-                    "2021-03-13T00:00:00Z",
-                    "2021-03-14T00:00:00Z",
+                    isoformat_z(floor_to_utc_day(self._now) - timedelta(days=2)),
+                    isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+                    isoformat_z(floor_to_utc_day(self._now)),
                 ],
                 "groups": [category_group_mapping[category]],
             }
 
-    @freeze_time("2021-03-14T12:27:28.303Z")
+    @freeze_time(_now)
     def test_org_multiple_fields(self):
         response = self.do_request(
             {
@@ -556,9 +574,13 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
 
         assert result_sorted(response.data) == {
-            "start": "2021-03-12T00:00:00Z",
-            "end": "2021-03-15T00:00:00Z",
-            "intervals": ["2021-03-12T00:00:00Z", "2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
+            "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=2)),
+            "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
+            "intervals": [
+                isoformat_z(floor_to_utc_day(self._now) - timedelta(days=2)),
+                isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+                isoformat_z(floor_to_utc_day(self._now)),
+            ],
             "groups": [
                 {
                     "by": {
@@ -591,7 +613,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             ],
         }
 
-    @freeze_time("2021-03-14T12:27:28.303Z")
+    @freeze_time(_now)
     def test_org_group_by_project(self):
         response = self.do_request(
             {
@@ -606,8 +628,8 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
 
         assert result_sorted(response.data) == {
-            "start": "2021-03-13T00:00:00Z",
-            "end": "2021-03-15T00:00:00Z",
+            "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+            "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
             "groups": [
                 {
                     "by": {"project": self.project.id},
@@ -620,7 +642,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             ],
         }
 
-    @freeze_time("2021-03-14T12:27:28.303Z")
+    @freeze_time(_now)
     def test_org_project_totals_per_project(self):
         response_per_group = self.do_request(
             {
@@ -652,7 +674,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         assert response_total.status_code == 200, response_total.content
         assert response_total.data["groups"][0]["totals"]["sum(times_seen)"] == per_group_total
 
-    @freeze_time("2021-03-14T12:27:28.303Z")
+    @freeze_time(_now)
     def test_project_filter(self):
         response = self.do_request(
             {
@@ -667,15 +689,18 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
 
         assert result_sorted(response.data) == {
-            "start": "2021-03-13T00:00:00Z",
-            "end": "2021-03-15T00:00:00Z",
-            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
+            "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+            "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
+            "intervals": [
+                isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+                isoformat_z(floor_to_utc_day(self._now)),
+            ],
             "groups": [
                 {"by": {}, "totals": {"sum(quantity)": 6}, "series": {"sum(quantity)": [0, 6]}}
             ],
         }
 
-    @freeze_time("2021-03-14T12:27:28.303Z")
+    @freeze_time(_now)
     def test_staff_project_filter(self):
         staff_user = self.create_user(is_staff=True, is_superuser=True)
         self.login_as(user=staff_user, superuser=True)
@@ -687,9 +712,12 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             "statsPeriod": "1d",
         }
         shared_data = {
-            "start": "2021-03-13T00:00:00Z",
-            "end": "2021-03-15T00:00:00Z",
-            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
+            "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+            "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
+            "intervals": [
+                isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+                isoformat_z(floor_to_utc_day(self._now)),
+            ],
         }
 
         # Test error category
@@ -736,7 +764,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             ],
         }
 
-    @freeze_time("2021-03-14T12:27:28.303Z")
+    @freeze_time(_now)
     def test_reason_filter(self):
         response = self.do_request(
             {
@@ -751,9 +779,12 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
 
         assert result_sorted(response.data) == {
-            "start": "2021-03-13T00:00:00Z",
-            "end": "2021-03-15T00:00:00Z",
-            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
+            "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+            "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
+            "intervals": [
+                isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+                isoformat_z(floor_to_utc_day(self._now)),
+            ],
             "groups": [
                 {
                     "by": {"category": "attachment"},
@@ -768,7 +799,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             ],
         }
 
-    @freeze_time("2021-03-14T12:27:28.303Z")
+    @freeze_time(_now)
     def test_outcome_filter(self):
         response = self.do_request(
             {
@@ -783,15 +814,18 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
 
         assert result_sorted(response.data) == {
-            "start": "2021-03-13T00:00:00Z",
-            "end": "2021-03-15T00:00:00Z",
-            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
+            "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+            "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
+            "intervals": [
+                isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+                isoformat_z(floor_to_utc_day(self._now)),
+            ],
             "groups": [
                 {"by": {}, "totals": {"sum(quantity)": 6}, "series": {"sum(quantity)": [0, 6]}}
             ],
         }
 
-    @freeze_time("2021-03-14T12:27:28.303Z")
+    @freeze_time(_now)
     def test_category_filter(self):
         response = self.do_request(
             {
@@ -805,15 +839,18 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
 
         assert result_sorted(response.data) == {
-            "start": "2021-03-13T00:00:00Z",
-            "end": "2021-03-15T00:00:00Z",
-            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
+            "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+            "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
+            "intervals": [
+                isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+                isoformat_z(floor_to_utc_day(self._now)),
+            ],
             "groups": [
                 {"by": {}, "totals": {"sum(quantity)": 6}, "series": {"sum(quantity)": [0, 6]}}
             ],
         }
 
-    @freeze_time("2021-03-14T12:27:28.303Z")
+    @freeze_time(_now)
     def test_minute_interval_sum_quantity(self):
         response = self.do_request(
             {
@@ -827,14 +864,14 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
 
         assert result_sorted(response.data) == {
-            "start": "2021-03-14T11:15:00Z",
-            "end": "2021-03-14T12:30:00Z",
+            "start": isoformat_z(self._now.replace(hour=11, minute=15, second=0)),
+            "end": isoformat_z(self._now.replace(hour=12, minute=30, second=0)),
             "intervals": [
-                "2021-03-14T11:15:00Z",
-                "2021-03-14T11:30:00Z",
-                "2021-03-14T11:45:00Z",
-                "2021-03-14T12:00:00Z",
-                "2021-03-14T12:15:00Z",
+                isoformat_z(self._now.replace(hour=11, minute=15, second=0)),
+                isoformat_z(self._now.replace(hour=11, minute=30, second=0)),
+                isoformat_z(self._now.replace(hour=11, minute=45, second=0)),
+                isoformat_z(self._now.replace(hour=12, minute=00, second=0)),
+                isoformat_z(self._now.replace(hour=12, minute=15, second=0)),
             ],
             "groups": [
                 {
@@ -845,7 +882,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             ],
         }
 
-    @freeze_time("2021-03-14T12:27:28.303Z")
+    @freeze_time(_now)
     def test_minute_interval_sum_times_seen(self):
         response = self.do_request(
             {
@@ -857,14 +894,14 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
         assert response.status_code == 200, response.content
         assert result_sorted(response.data) == {
-            "start": "2021-03-14T11:15:00Z",
-            "end": "2021-03-14T12:30:00Z",
+            "start": isoformat_z(self._now.replace(hour=11, minute=15, second=0)),
+            "end": isoformat_z(self._now.replace(hour=12, minute=30, second=0)),
             "intervals": [
-                "2021-03-14T11:15:00Z",
-                "2021-03-14T11:30:00Z",
-                "2021-03-14T11:45:00Z",
-                "2021-03-14T12:00:00Z",
-                "2021-03-14T12:15:00Z",
+                isoformat_z(self._now.replace(hour=11, minute=15, second=0)),
+                isoformat_z(self._now.replace(hour=11, minute=30, second=0)),
+                isoformat_z(self._now.replace(hour=11, minute=45, second=0)),
+                isoformat_z(self._now.replace(hour=12, minute=00, second=0)),
+                isoformat_z(self._now.replace(hour=12, minute=15, second=0)),
             ],
             "groups": [
                 {
@@ -875,7 +912,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             ],
         }
 
-    @freeze_time("2021-03-14T12:27:28.303Z")
+    @freeze_time(_now)
     def test_profile_duration_filter(self):
         """Test that profile_duration data is correctly filtered and returned"""
         response = self.do_request(
@@ -890,9 +927,12 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
 
         assert result_sorted(response.data) == {
-            "start": "2021-03-13T00:00:00Z",
-            "end": "2021-03-15T00:00:00Z",
-            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
+            "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+            "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
+            "intervals": [
+                isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+                isoformat_z(floor_to_utc_day(self._now)),
+            ],
             "groups": [
                 {
                     "by": {},
@@ -902,7 +942,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             ],
         }
 
-    @freeze_time("2021-03-14T12:27:28.303Z")
+    @freeze_time(_now)
     def test_profile_duration_groupby(self):
         """Test that profile_duration data is correctly grouped"""
         response = self.do_request(
@@ -918,9 +958,12 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         )
 
         assert result_sorted(response.data) == {
-            "start": "2021-03-13T00:00:00Z",
-            "end": "2021-03-15T00:00:00Z",
-            "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
+            "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+            "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
+            "intervals": [
+                isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+                isoformat_z(floor_to_utc_day(self._now)),
+            ],
             "groups": [
                 {
                     "by": {"category": "profile_duration"},

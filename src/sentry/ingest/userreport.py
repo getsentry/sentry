@@ -26,7 +26,6 @@ from sentry.models.userreport import UserReport
 from sentry.signals import user_feedback_received
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
-from sentry.utils.eventuser import EventUser
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.rollback_metrics import incr_rollback_metrics
 
@@ -44,6 +43,9 @@ def save_userreport(
     start_time: datetime | None = None,
 ) -> UserReport | None:
     with metrics.timer("sentry.ingest.userreport.save_userreport", tags={"referrer": source.value}):
+        if start_time is None:
+            start_time = timezone.now()
+
         if is_in_feedback_denylist(project.organization):
             metrics.incr(
                 "user_report.create_user_report.filtered",
@@ -55,7 +57,7 @@ def save_userreport(
                 key_id=None,
                 outcome=Outcome.RATE_LIMITED,
                 reason="feedback_denylist",
-                timestamp=start_time or timezone.now(),
+                timestamp=start_time,
                 event_id=None,  # Note report["event_id"] is id of the associated event, not the report itself.
                 category=DataCategory.USER_REPORT_V2,
                 quantity=1,
@@ -81,7 +83,7 @@ def save_userreport(
                 key_id=None,
                 outcome=Outcome.INVALID,
                 reason=display_reason,
-                timestamp=start_time or timezone.now(),
+                timestamp=start_time,
                 event_id=None,  # Note report["event_id"] is id of the associated event, not the report itself.
                 category=DataCategory.USER_REPORT_V2,
                 quantity=1,
@@ -92,9 +94,6 @@ def save_userreport(
             ):
                 raise BadRequest(display_reason)
             return None
-
-        if start_time is None:
-            start_time = timezone.now()
 
         # XXX(dcramer): enforce case insensitivity by coercing this to a lowercase string
         report["event_id"] = report["event_id"].lower()
@@ -109,6 +108,21 @@ def save_userreport(
             # if the event is more than 30 minutes old, we don't allow updates
             # as it might be abusive
             if event.datetime < start_time - timedelta(minutes=30):
+                metrics.incr(
+                    "user_report.create_user_report.filtered",
+                    tags={"reason": "event_too_old", "referrer": source.value},
+                )
+                track_outcome(
+                    org_id=project.organization_id,
+                    project_id=project.id,
+                    key_id=None,
+                    outcome=Outcome.INVALID,
+                    reason="Associated event is too old",
+                    timestamp=start_time,
+                    event_id=None,
+                    category=DataCategory.USER_REPORT_V2,
+                    quantity=1,
+                )
                 raise Conflict("Feedback for this event cannot be modified.")
 
             report["environment_id"] = event.get_environment().id
@@ -135,6 +149,21 @@ def save_userreport(
             # if the existing report was submitted more than 5 minutes ago, we dont
             # allow updates as it might be abusive (replay attacks)
             if existing_report.date_added < timezone.now() - timedelta(minutes=5):
+                metrics.incr(
+                    "user_report.create_user_report.filtered",
+                    tags={"reason": "duplicate_report", "referrer": source.value},
+                )
+                track_outcome(
+                    org_id=project.organization_id,
+                    project_id=project.id,
+                    key_id=None,
+                    outcome=Outcome.INVALID,
+                    reason="Duplicate report",
+                    timestamp=start_time,
+                    event_id=None,
+                    category=DataCategory.USER_REPORT_V2,
+                    quantity=1,
+                )
                 raise Conflict("Feedback for this event cannot be modified.")
 
             existing_report.update(
@@ -177,12 +206,6 @@ def save_userreport(
             # XXX(aliu): the update_user_reports task will still try to shim the report after a period, unless group_id or environment is set.
 
         return report_instance
-
-
-def find_event_user(event: Event | GroupEvent | None) -> EventUser | None:
-    if not event:
-        return None
-    return EventUser.from_event(event)
 
 
 def validate_user_report(

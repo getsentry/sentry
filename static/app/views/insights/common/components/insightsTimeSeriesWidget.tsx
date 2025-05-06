@@ -6,6 +6,7 @@ import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
@@ -47,8 +48,10 @@ export interface InsightsTimeSeriesWidgetProps
   interactiveTitle?: () => React.ReactNode;
   legendSelection?: LegendSelection | undefined;
   onLegendSelectionChange?: ((selection: LegendSelection) => void) | undefined;
+  pageFilters?: PageFilters;
   samples?: Samples;
   showLegend?: TimeSeriesWidgetVisualizationProps['showLegend'];
+  showReleaseAs?: 'line' | 'bubble';
   stacked?: boolean;
 }
 
@@ -151,30 +154,32 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
             {props.description && (
               <Widget.WidgetDescription description={props.description} />
             )}
-            <Button
-              size="xs"
-              aria-label={t('Open Full-Screen View')}
-              borderless
-              icon={<IconExpand />}
-              onClick={() => {
-                openInsightChartModal({
-                  title: props.title,
-                  children: (
-                    <ModalChartContainer>
-                      <TimeSeriesWidgetVisualization
-                        id={props.id}
-                        {...visualizationProps}
-                        {...enableReleaseBubblesProps}
-                        onZoom={() => {}}
-                        legendSelection={props.legendSelection}
-                        onLegendSelectionChange={props.onLegendSelectionChange}
-                        releases={releases ?? []}
-                      />
-                    </ModalChartContainer>
-                  ),
-                });
-              }}
-            />
+            {props.loaderSource !== 'releases-drawer' && (
+              <Button
+                size="xs"
+                aria-label={t('Open Full-Screen View')}
+                borderless
+                icon={<IconExpand />}
+                onClick={() => {
+                  openInsightChartModal({
+                    title: props.title,
+                    children: (
+                      <ModalChartContainer>
+                        <TimeSeriesWidgetVisualization
+                          id={props.id}
+                          {...visualizationProps}
+                          {...enableReleaseBubblesProps}
+                          onZoom={() => {}}
+                          legendSelection={props.legendSelection}
+                          onLegendSelectionChange={props.onLegendSelectionChange}
+                          releases={releases ?? []}
+                        />
+                      </ModalChartContainer>
+                    ),
+                  });
+                }}
+              />
+            )}
           </Widget.WidgetToolbar>
         }
       />
@@ -182,16 +187,19 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   );
 }
 
-const COMMON_COLORS = (theme: Theme): Record<string, string> => ({
-  'epm()': THROUGHPUT_COLOR(theme),
-  'count()': COUNT_COLOR(theme),
-  'avg(span.self_time)': AVG_COLOR(theme),
-  'http_response_rate(3)': HTTP_RESPONSE_3XX_COLOR,
-  'http_response_rate(4)': HTTP_RESPONSE_4XX_COLOR,
-  'http_response_rate(5)': HTTP_RESPONSE_5XX_COLOR,
-  'avg(messaging.message.receive.latency)': theme.chart.colors[2][1],
-  'avg(span.duration)': theme.chart.colors[2][2],
-});
+const COMMON_COLORS = (theme: Theme): Record<string, string> => {
+  const colors = theme.chart.getColorPalette(2);
+  return {
+    'epm()': THROUGHPUT_COLOR(theme),
+    'count()': COUNT_COLOR(theme),
+    'avg(span.self_time)': AVG_COLOR(theme),
+    'http_response_rate(3)': HTTP_RESPONSE_3XX_COLOR,
+    'http_response_rate(4)': HTTP_RESPONSE_4XX_COLOR,
+    'http_response_rate(5)': HTTP_RESPONSE_5XX_COLOR,
+    'avg(messaging.message.receive.latency)': colors[1],
+    'avg(span.duration)': colors[2],
+  };
+};
 
 const ChartContainer = styled('div')<{height?: string | number}>`
   min-height: 220px;
@@ -199,6 +207,6 @@ const ChartContainer = styled('div')<{height?: string | number}>`
     p.height ? (typeof p.height === 'string' ? p.height : `${p.height}px`) : '220px'};
 `;
 
-export const ModalChartContainer = styled('div')`
+const ModalChartContainer = styled('div')`
   height: 360px;
 `;

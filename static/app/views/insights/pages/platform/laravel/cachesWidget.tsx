@@ -5,13 +5,15 @@ import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import type {MultiSeriesEventsStats} from 'sentry/types/organization';
+import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {Release} from 'sentry/views/dashboards/widgets/common/types';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
@@ -21,53 +23,28 @@ import {
   SeriesColorIndicator,
   WidgetFooterTable,
 } from 'sentry/views/insights/pages/platform/laravel/styles';
-import {Toolbar} from 'sentry/views/insights/pages/platform/laravel/toolbar';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
+import {useReleaseBubbleProps} from 'sentry/views/insights/pages/platform/shared/getReleaseBubbleProps';
+import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {HighestCacheMissRateTransactionsWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
-function isCacheHitError(error: RequestError | null) {
-  return (
-    error?.responseJSON?.detail === 'Column cache.hit was not found in metrics indexer'
-  );
+function isCacheHitError(error: QueryError | null) {
+  return error?.message === 'Column cache.hit was not found in metrics indexer';
 }
-export function CachesWidget({query}: {query?: string}) {
+export function CachesWidget({query, releases}: {query?: string; releases?: Release[]}) {
   const theme = useTheme();
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams();
 
-  const cachesRequest = useApiQuery<{
-    data: Array<{
-      'cache_miss_rate()': number;
-      'count()': number;
-      'project.id': string;
-      transaction: string;
-    }>;
-  }>(
-    [
-      `/organizations/${organization.slug}/events/`,
-      {
-        query: {
-          ...pageFilterChartParams,
-          dataset: 'spans',
-          field: ['transaction', 'project.id', 'cache_miss_rate()', 'count()'],
-          query: `span.op:[cache.get_item,cache.get] ${query}`,
-          sort: '-cache_miss_rate()',
-          useRpc: 1,
-          per_page: 4,
-          referrer: Referrer.CACHE_CHART,
-        },
-      },
-    ],
+  const cachesRequest = useEAPSpans(
     {
-      staleTime: 0,
-      retry: (failureCount, error) => {
-        if (isCacheHitError(error)) {
-          return false;
-        }
-        return failureCount < 3;
-      },
-    }
+      fields: ['transaction', 'project.id', 'cache_miss_rate()', 'count()'],
+      sorts: [{field: 'cache_miss_rate()', kind: 'desc'}],
+      search: `span.op:[cache.get_item,cache.get] ${query}`,
+      limit: 4,
+    },
+    Referrer.CACHE_CHART
   );
 
   const timeSeriesRequest = useApiQuery<MultiSeriesEventsStats>(
@@ -81,11 +58,10 @@ export function CachesWidget({query}: {query?: string}) {
           yAxis: 'cache_miss_rate()',
           query:
             cachesRequest.data &&
-            `transaction:[${cachesRequest.data.data
+            `transaction:[${cachesRequest.data
               .map(item => `"${item.transaction}"`)
               .join(', ')}]`,
           sort: '-cache_miss_rate()',
-          useRpc: 1,
           topEvents: 4,
         },
       },
@@ -131,7 +107,7 @@ export function CachesWidget({query}: {query?: string}) {
   const hasData =
     !isCacheHitError(cachesRequest.error) &&
     cachesRequest.data &&
-    cachesRequest.data.data.length > 0 &&
+    cachesRequest.data.length > 0 &&
     timeSeries.length > 0;
 
   const colorPalette = theme.chart.getColorPalette(timeSeries.length - 2);
@@ -149,13 +125,14 @@ export function CachesWidget({query}: {query?: string}) {
           (ts, index) =>
             new Line(convertSeriesToTimeseries(ts), {color: colorPalette[index]})
         ),
+        ...useReleaseBubbleProps(releases),
       }}
     />
   );
 
   const footer = hasData && (
     <WidgetFooterTable columns={4}>
-      {cachesRequest.data?.data.map((item, index) => {
+      {cachesRequest.data?.map((item, index) => {
         const count = item['count()'];
         const cacheMissRate = item['cache_miss_rate()'];
         const missedCount = Math.floor(count * cacheMissRate);

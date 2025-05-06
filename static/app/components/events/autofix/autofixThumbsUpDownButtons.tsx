@@ -11,16 +11,12 @@ import {t} from 'sentry/locale';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import useOrganization from 'sentry/utils/useOrganization';
 
-export function useUpdateAutofixFeedback({
-  groupId,
-  runId,
-}: {
-  groupId: string;
-  runId: string;
-}) {
+function useUpdateAutofixFeedback({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi();
   const queryClient = useQueryClient();
+  const orgSlug = useOrganization().slug;
 
   return useMutation({
     mutationFn: (params: {
@@ -30,45 +26,51 @@ export function useUpdateAutofixFeedback({
         | 'solution_thumbs_up'
         | 'solution_thumbs_down';
     }) => {
-      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
-        method: 'POST',
-        data: {
-          run_id: runId,
-          payload: {
-            type: 'feedback',
-            action: params.action,
+      return api.requestPromise(
+        `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
+        {
+          method: 'POST',
+          data: {
+            run_id: runId,
+            payload: {
+              type: 'feedback',
+              action: params.action,
+            },
           },
-        },
-      });
+        }
+      );
     },
     onMutate: params => {
-      queryClient.setQueryData(makeAutofixQueryKey(groupId), (data: AutofixResponse) => {
-        if (!data?.autofix) {
-          return data;
-        }
+      queryClient.setQueryData(
+        makeAutofixQueryKey(orgSlug, groupId),
+        (data: AutofixResponse) => {
+          if (!data?.autofix) {
+            return data;
+          }
 
-        return {
-          ...data,
-          autofix: {
-            ...data.autofix,
-            feedback: params.action.includes('solution')
-              ? {
-                  ...data.autofix.feedback,
-                  solution_thumbs_up: params.action === 'solution_thumbs_up',
-                  solution_thumbs_down: params.action === 'solution_thumbs_down',
-                }
-              : {
-                  ...data.autofix.feedback,
-                  root_cause_thumbs_up: params.action === 'root_cause_thumbs_up',
-                  root_cause_thumbs_down: params.action === 'root_cause_thumbs_down',
-                },
-          },
-        };
-      });
+          return {
+            ...data,
+            autofix: {
+              ...data.autofix,
+              feedback: params.action.includes('solution')
+                ? {
+                    ...data.autofix.feedback,
+                    solution_thumbs_up: params.action === 'solution_thumbs_up',
+                    solution_thumbs_down: params.action === 'solution_thumbs_down',
+                  }
+                : {
+                    ...data.autofix.feedback,
+                    root_cause_thumbs_up: params.action === 'root_cause_thumbs_up',
+                    root_cause_thumbs_down: params.action === 'root_cause_thumbs_down',
+                  },
+            },
+          };
+        }
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(groupId),
+        queryKey: makeAutofixQueryKey(orgSlug, groupId),
       });
     },
     onError: () => {

@@ -240,6 +240,8 @@ def test_matcher_test_platform_java_threads() -> None:
                         "frames": [
                             {
                                 "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
+                                "abs_path": "NativeMethodAccessor.java",  # This is the correct path
+                                # Many of these "Impl" classes are actually generated at runtime by the JVM
                                 "filename": "NativeMethodAccessorImpl.java",
                             }
                         ]
@@ -252,12 +254,10 @@ def test_matcher_test_platform_java_threads() -> None:
 
     assert Matcher("path", "*.java").test(data, munged_data)
     assert Matcher("path", "jdk/internal/reflect/*.java").test(data, munged_data)
-    assert Matcher("path", "jdk/internal/*/NativeMethodAccessorImpl.java").test(data, munged_data)
+    assert Matcher("path", "jdk/internal/*/NativeMethodAccessor.java").test(data, munged_data)
     assert Matcher("codeowners", "*.java").test(data, munged_data)
     assert Matcher("codeowners", "jdk/internal/reflect/*.java").test(data, munged_data)
-    assert Matcher("codeowners", "jdk/internal/*/NativeMethodAccessorImpl.java").test(
-        data, munged_data
-    )
+    assert Matcher("codeowners", "jdk/internal/*/NativeMethodAccessor.java").test(data, munged_data)
     assert not Matcher("path", "*.js").test(data, munged_data)
     assert not Matcher("path", "*.jsx").test(data, munged_data)
     assert not Matcher("url", "*.py").test(data, munged_data)

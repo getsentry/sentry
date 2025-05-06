@@ -9,7 +9,7 @@ jest.mock('sentry/utils/localStorage');
 
 describe('PlatformSelector', function () {
   it('renders with iOS and Android options', function () {
-    render(<PlatformSelector />);
+    render(<PlatformSelector />, {deprecatedRouterMocks: true});
     expect(screen.getByRole('radiogroup', {name: 'Filter platform'})).toBeInTheDocument();
     expect(screen.getByRole('radio', {name: 'Android'})).toBeChecked();
     expect(screen.getByRole('radio', {name: 'iOS'})).not.toBeChecked();
@@ -17,7 +17,7 @@ describe('PlatformSelector', function () {
 
   it('updates url params on click', async function () {
     const router = RouterFixture();
-    render(<PlatformSelector />, {router});
+    render(<PlatformSelector />, {router, deprecatedRouterMocks: true});
     await userEvent.click(screen.getByRole('radio', {name: 'iOS'}));
 
     expect(router.push).toHaveBeenCalledWith({

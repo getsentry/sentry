@@ -13,12 +13,8 @@ import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 const LEGACY_PROFILING_BASE_PATHNAME = 'profiling';
 const PROFILING_BASE_PATHNAME = 'explore/profiling';
 
-export function generateProfilingRoute({
-  organization,
-}: {
-  organization: Organization;
-}): Path {
-  if (prefersStackedNav()) {
+function generateProfilingRoute({organization}: {organization: Organization}): Path {
+  if (prefersStackedNav(organization)) {
     return `/organizations/${organization.slug}/${PROFILING_BASE_PATHNAME}/`;
   }
 
@@ -34,35 +30,35 @@ export function generateProfileFlamechartRoute({
   profileId: Trace['id'];
   projectSlug: Project['slug'];
 }): string {
-  if (prefersStackedNav()) {
+  if (prefersStackedNav(organization)) {
     return `/organizations/${organization.slug}/${PROFILING_BASE_PATHNAME}/profile/${projectSlug}/${profileId}/flamegraph/`;
   }
 
   return `/organizations/${organization.slug}/${LEGACY_PROFILING_BASE_PATHNAME}/profile/${projectSlug}/${profileId}/flamegraph/`;
 }
 
-export function generateContinuousProfileFlamechartRoute({
+function generateContinuousProfileFlamechartRoute({
   organization,
   projectSlug,
 }: {
   organization: Organization;
   projectSlug: Project['slug'];
 }): string {
-  if (prefersStackedNav()) {
+  if (prefersStackedNav(organization)) {
     return `/organizations/${organization.slug}/${PROFILING_BASE_PATHNAME}/profile/${projectSlug}/flamegraph/`;
   }
 
   return `/organizations/${organization.slug}/${LEGACY_PROFILING_BASE_PATHNAME}/profile/${projectSlug}/flamegraph/`;
 }
 
-export function generateProfileDifferentialFlamegraphRoute({
+function generateProfileDifferentialFlamegraphRoute({
   organization,
   projectSlug,
 }: {
   organization: Organization;
   projectSlug: Project['slug'];
 }): string {
-  if (prefersStackedNav()) {
+  if (prefersStackedNav(organization)) {
     return `/organizations/${organization.slug}/${PROFILING_BASE_PATHNAME}/profile/${projectSlug}/differential-flamegraph/`;
   }
 
@@ -97,22 +93,6 @@ export function generateProfileDifferentialFlamegraphRouteWithQuery({
       breakpoint,
     },
   };
-}
-
-export function generateProfileDetailsRoute({
-  organization,
-  projectSlug,
-  profileId,
-}: {
-  organization: Organization;
-  profileId: Trace['id'];
-  projectSlug: Project['slug'];
-}): string {
-  if (prefersStackedNav()) {
-    return `/organizations/${organization.slug}/${PROFILING_BASE_PATHNAME}/profile/${projectSlug}/${profileId}/details/`;
-  }
-
-  return `/organizations/${organization.slug}/${LEGACY_PROFILING_BASE_PATHNAME}/profile/${projectSlug}/${profileId}/details/`;
 }
 
 export function generateProfilingRouteWithQuery({

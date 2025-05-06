@@ -27,7 +27,6 @@ def get_file_and_repo_matches(request: Request, organization: Organization) -> l
 def get_frame_info_from_request(request: Request) -> FrameInfo:
     frame = {
         "abs_path": request.GET.get("absPath"),
-        # Currently, the only required parameter, thus, avoiding the `get` method
         "filename": request.GET["stacktraceFilename"],
         "module": request.GET.get("module"),
     }

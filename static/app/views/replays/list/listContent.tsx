@@ -1,14 +1,14 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import ReplayRageClickSdkVersionBanner from 'sentry/components/replays/replayRageClickSdkVersionBanner';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
@@ -34,8 +34,12 @@ export default function ListContent() {
   });
 
   const {allMobileProj} = useAllMobileProj({replayPlatforms: true});
+  const [widgetIsOpen, setWidgetIsOpen] = useLocalStorageState(
+    `replay-dead-rage-widget-open`,
+    true
+  );
 
-  const [widgetIsOpen, setWidgetIsOpen] = useState(true);
+  const showDeadRageClickCards = !rageClicksSdkVersion.needsUpdate && !allMobileProj;
 
   useRouteAnalyticsParams({
     hasSessionReplay,
@@ -43,6 +47,7 @@ export default function ListContent() {
     hasRageClickMinSDK: !rageClicksSdkVersion.needsUpdate,
   });
 
+  // show loading
   if (hasSentReplays.fetching || rageClicksSdkVersion.isFetching) {
     return (
       <Fragment>
@@ -55,6 +60,7 @@ export default function ListContent() {
     );
   }
 
+  // show onboarding
   if (!hasSessionReplay || !hasSentReplays.hasSentOneReplay) {
     return (
       <Fragment>
@@ -67,33 +73,20 @@ export default function ListContent() {
     );
   }
 
-  if (rageClicksSdkVersion.needsUpdate && !allMobileProj) {
-    return (
-      <Fragment>
-        <FiltersContainer>
-          <ReplaysFilters />
-          <ReplaysSearch />
-        </FiltersContainer>
-        <ReplayRageClickSdkVersionBanner />
-        <ReplaysList />
-      </Fragment>
-    );
-  }
-
   return (
     <Fragment>
       <FiltersContainer>
         <ReplaysFilters />
         <SearchWrapper>
           <ReplaysSearch />
-          {!allMobileProj && (
+          {showDeadRageClickCards && (
             <Button onClick={() => setWidgetIsOpen(!widgetIsOpen)}>
               {widgetIsOpen ? t('Hide Widgets') : t('Show Widgets')}
             </Button>
           )}
         </SearchWrapper>
       </FiltersContainer>
-      {widgetIsOpen && !allMobileProj ? <DeadRageSelectorCards /> : null}
+      {widgetIsOpen && showDeadRageClickCards ? <DeadRageSelectorCards /> : null}
       <ReplaysList />
     </Fragment>
   );

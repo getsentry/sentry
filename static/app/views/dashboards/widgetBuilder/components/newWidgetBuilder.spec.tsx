@@ -11,12 +11,7 @@ import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/ne
 
 const {organization, projects, router} = initializeOrg({
   organization: {
-    features: [
-      'global-views',
-      'open-membership',
-      'dashboards-eap',
-      'dashboards-widget-builder-redesign',
-    ],
+    features: ['global-views', 'open-membership', 'dashboards-eap'],
   },
   projects: [
     {id: '1', slug: 'project-1', isMember: true},
@@ -88,7 +83,7 @@ describe('NewWidgetBuiler', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/spans/fields/',
+      url: '/organizations/org-slug/trace-items/attributes/',
       body: [],
     });
 
@@ -118,6 +113,7 @@ describe('NewWidgetBuiler', function () {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -184,6 +180,7 @@ describe('NewWidgetBuiler', function () {
       {
         router: chartsRouter,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -212,6 +209,7 @@ describe('NewWidgetBuiler', function () {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -245,6 +243,7 @@ describe('NewWidgetBuiler', function () {
       {
         router: chartsRouter,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -264,7 +263,11 @@ describe('NewWidgetBuiler', function () {
         openWidgetTemplates
         setOpenWidgetTemplates={jest.fn()}
       />,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(await screen.findByText('Add from Widget Library')).toBeInTheDocument();

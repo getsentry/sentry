@@ -402,7 +402,7 @@ function BaseChart({
     resolveColors ||
     (series.length
       ? theme.chart.getColorPalette(series.length)
-      : theme.chart.colors[theme.chart.colors.length - 1]);
+      : theme.chart.getColorPalette(theme.chart.colors.length - 1));
 
   const resolvedSeries = useMemo(() => {
     const previousPeriodColors =
@@ -702,7 +702,7 @@ function BaseChart({
 }
 
 // Tooltip styles shared for regular and portalled tooltips
-const getTooltipStyles = (p: {theme: Theme}) => css`
+export const getTooltipStyles = (p: {theme: Theme}) => css`
   /* Tooltip styling */
   .tooltip-series,
   .tooltip-footer {

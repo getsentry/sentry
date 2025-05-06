@@ -127,7 +127,7 @@ const MOST_TIME_PERIODS: readonly TimePeriod[] = [
  * TimeWindow determines data available in TimePeriod
  * If TimeWindow is small, lower TimePeriod to limit data points
  */
-export const AVAILABLE_TIME_PERIODS: Record<TimeWindow, readonly TimePeriod[]> = {
+const AVAILABLE_TIME_PERIODS: Record<TimeWindow, readonly TimePeriod[]> = {
   [TimeWindow.ONE_MINUTE]: [
     TimePeriod.SIX_HOURS,
     TimePeriod.ONE_DAY,
@@ -698,8 +698,6 @@ class TriggersChart extends PureComponent<Props, State> {
       );
     }
 
-    const useRpc = dataset === Dataset.EVENTS_ANALYTICS_PLATFORM;
-
     const baseProps = {
       api,
       organization,
@@ -714,8 +712,14 @@ class TriggersChart extends PureComponent<Props, State> {
       includePrevious: false,
       currentSeriesNames: [formattedAggregate || aggregate],
       partial: false,
-      useRpc,
     };
+
+    const isProgressiveLoadingEnabled = organization.features.includes(
+      'visibility-explore-progressive-loading'
+    );
+    const isUsingNormalSamplingMode = organization.features.includes(
+      'visibility-explore-progressive-loading-normal-sampling-mode'
+    );
 
     return (
       <Fragment>
@@ -749,14 +753,14 @@ class TriggersChart extends PureComponent<Props, State> {
           {...baseProps}
           period={period}
           dataLoadedCallback={onDataLoaded}
-          // Span alerts only need to do a best effort request and do not need
-          // preflight requests. A user needs to see the highest fidelity data possible
-          // to set up the alert.
           sampling={
-            organization.features.includes('visibility-explore-progressive-loading') &&
+            isUsingNormalSamplingMode &&
+            !isProgressiveLoadingEnabled &&
             dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
-              ? SAMPLING_MODE.BEST_EFFORT
-              : undefined
+              ? SAMPLING_MODE.NORMAL
+              : isProgressiveLoadingEnabled
+                ? SAMPLING_MODE.BEST_EFFORT
+                : undefined
           }
         >
           {({

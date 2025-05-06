@@ -23,10 +23,6 @@ import {WiderHovercard} from 'sentry/views/insights/common/components/tableCells
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {DeadRageSelectorItem} from 'sentry/views/replays/types';
 
-export interface UrlState {
-  widths: string[];
-}
-
 export function transformSelectorQuery(selector: string) {
   return selector
     .replaceAll('"', `\\"`)
@@ -190,7 +186,7 @@ export function SelectorLink({
   return (
     <StyledTextOverflow>
       <WiderHovercard position="right" body={hovercardContent}>
-        <Link
+        <StyledLink
           to={{
             pathname,
             query: {
@@ -202,7 +198,7 @@ export function SelectorLink({
           }}
         >
           <TextOverflow>{value}</TextOverflow>
-        </Link>
+        </StyledLink>
       </WiderHovercard>
     </StyledTextOverflow>
   );
@@ -226,6 +222,10 @@ const ClickCount = styled(TextOverflow)`
   gap: ${space(0.75)};
   align-items: center;
   justify-content: start;
+`;
+
+const StyledLink = styled(Link)`
+  min-width: 0;
 `;
 
 const StyledTextOverflow = styled(TextOverflow)`

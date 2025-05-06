@@ -69,6 +69,9 @@ export const EventDrawerBody = styled(DrawerBody)`
   overscroll-behavior: contain;
   /* Move the scrollbar to the left edge */
   scroll-margin: 0 ${space(2)};
+  display: flex;
+  gap: ${space(2)};
+  flex-direction: column;
   direction: rtl;
   * {
     direction: ltr;

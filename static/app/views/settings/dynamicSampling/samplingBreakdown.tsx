@@ -76,7 +76,7 @@ export function SamplingBreakdown({
 
   const getSpanRate = (spanCount: any) => (total === 0 ? 0 : spanCount / total);
   const otherRate = getSpanRate(otherSpanCount);
-  const palette = theme.chart.colors[ITEMS_TO_SHOW - 1]!;
+  const palette = theme.chart.getColorPalette(ITEMS_TO_SHOW - 1);
 
   return (
     <StyledPanel {...props}>

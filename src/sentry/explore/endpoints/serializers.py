@@ -89,6 +89,7 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
 
         return validate_project_ids(projects, self.context["params"]["project_id"])
 
+    # Avoid including any side-effecting logic here, since this logic is also used when generating prebuilt queries on first read
     def validate(self, data):
         query = {}
         query_keys = [

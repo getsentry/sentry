@@ -1,13 +1,10 @@
 import type {Theme} from '@emotion/react';
 import Color from 'color';
 
-export const COUNT_COLOR = (theme: Theme) => theme.chart.colors[0][0];
-export const THROUGHPUT_COLOR = (theme: Theme) => theme.chart.colors[3][3];
-export const TXN_THROUGHPUT_COLOR = (theme: Theme) => theme.chart.colors[3][2];
-export const P50_COLOR = (theme: Theme) => theme.chart.colors[3][1];
-export const P95_COLOR = (theme: Theme) => theme.chart.colors[0][0];
-export const AVG_COLOR = (theme: Theme) => theme.chart.colors[0][0];
-export const ERRORS_COLOR = (theme: Theme) => theme.chart.colors[5][3];
+export const COUNT_COLOR = (theme: Theme) => theme.chart.getColorPalette(0)[0];
+export const THROUGHPUT_COLOR = (theme: Theme) => theme.chart.getColorPalette(3)[3];
+export const TXN_THROUGHPUT_COLOR = (theme: Theme) => theme.chart.getColorPalette(3)[2];
+export const AVG_COLOR = (theme: Theme) => theme.chart.getColorPalette(0)[0];
 
 // TODO: Synchronize with `theme.tsx` or `CHART_PALETTE`
 export const HTTP_RESPONSE_3XX_COLOR = '#F2B712';

@@ -10,9 +10,10 @@ import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import FlagDetailsLink from 'sentry/views/issueDetails/groupFeatureFlags/flagDetailsLink';
+import SuspectTable from 'sentry/views/issueDetails/groupDistributions/suspectTable';
+import FlagDetailsLink from 'sentry/views/issueDetails/groupFeatureFlags/details/flagDetailsLink';
 import FlagDrawerCTA from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerCTA';
-import useGroupFlagDrawerData from 'sentry/views/issueDetails/groupFeatureFlags/useGroupFlagDrawerData';
+import useGroupFlagDrawerData from 'sentry/views/issueDetails/groupFeatureFlags/hooks/useGroupFlagDrawerData';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {
   Container,
@@ -37,6 +38,9 @@ export default function FlagDrawerContent({
   sortBy,
 }: Props) {
   const organization = useOrganization();
+
+  // If we're showing the suspect section at all
+  const enableSuspectFlags = organization.features.includes('feature-flag-suspect-flags');
 
   const {displayFlags, allGroupFlagCount, isPending, isError, refetch} =
     useGroupFlagDrawerData({
@@ -85,6 +89,13 @@ export default function FlagDrawerContent({
     </StyledEmptyStateWarning>
   ) : (
     <Fragment>
+      {enableSuspectFlags ? (
+        <SuspectTable
+          debugSuspectScores={debugSuspectScores}
+          environments={environments}
+          group={group}
+        />
+      ) : null}
       <Container>
         {displayFlags.map(flag => (
           <div key={flag.key}>

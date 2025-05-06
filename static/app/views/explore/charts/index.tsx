@@ -24,9 +24,15 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {WidgetExtrapolationFooter} from 'sentry/views/explore/charts/widgetExtrapolationFooter';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
-import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {
+  BaseVisualize,
+  Visualize,
+} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
-import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {
+  SAMPLING_MODE,
+  type SamplingMode,
+} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {CHART_HEIGHT, INGESTION_DELAY} from 'sentry/views/explore/settings';
 import {
@@ -40,7 +46,7 @@ interface ExploreChartsProps {
   confidences: Confidence[];
   dataset: DiscoverDatasets;
   query: string;
-  setVisualizes: (visualizes: Visualize[]) => void;
+  setVisualizes: (visualizes: BaseVisualize[]) => void;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   visualizes: Visualize[];
   hideContextMenu?: boolean;
@@ -62,7 +68,7 @@ export const EXPLORE_CHART_TYPE_OPTIONS = [
   },
 ];
 
-export const EXPLORE_CHART_GROUP = 'explore-charts_group';
+const EXPLORE_CHART_GROUP = 'explore-charts_group';
 
 export function ExploreCharts({
   canUsePreviousResults,
@@ -164,8 +170,12 @@ export function ExploreCharts({
 
   const handleChartTypeChange = useCallback(
     (chartType: ChartType, index: number) => {
-      const newVisualizes = visualizes.slice();
-      newVisualizes[index] = {...newVisualizes[index]!, chartType};
+      const newVisualizes = visualizes.map((visualize, i) => {
+        if (i === index) {
+          visualize = visualize.replace({chartType});
+        }
+        return visualize.toJSON();
+      });
       setVisualizes(newVisualizes);
     },
     [visualizes, setVisualizes]
@@ -193,16 +203,34 @@ export function ExploreCharts({
           );
 
           if (chartInfo.loading) {
+            const loadingMessage =
+              organization.features.includes(
+                'visibility-explore-progressive-loading-normal-sampling-mode'
+              ) &&
+              timeseriesResult.isFetching &&
+              samplingMode === SAMPLING_MODE.HIGH_ACCURACY
+                ? t(
+                    "Hey, we're scanning all the data we can to answer your query, so please wait a bit longer"
+                  )
+                : undefined;
             return (
               <Widget
                 key={index}
                 height={CHART_HEIGHT}
                 Title={Title}
-                Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
+                Visualization={
+                  <TimeSeriesWidgetVisualization.LoadingPlaceholder
+                    loadingMessage={loadingMessage}
+                    expectMessage
+                  />
+                }
                 revealActions="always"
                 Footer={
                   organization.features.includes(
                     'visibility-explore-progressive-loading'
+                  ) &&
+                  !organization.features.includes(
+                    'visibility-explore-progressive-loading-normal-sampling-mode'
                   ) && (
                     <WidgetExtrapolationFooter
                       samplingMode={undefined}
@@ -364,5 +392,4 @@ const ChartLabel = styled('div')`
 
 const ChartTitle = styled('div')`
   display: flex;
-  margin-left: ${space(2)};
 `;

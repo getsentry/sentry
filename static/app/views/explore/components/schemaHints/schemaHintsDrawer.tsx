@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
@@ -13,12 +13,16 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {prettifyTagKey} from 'sentry/utils/discover/fields';
+import {parseFunction, prettifyTagKey} from 'sentry/utils/discover/fields';
 import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {SchemaHintsPageParams} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
-import {addFilterToQuery} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {
+  addFilterToQuery,
+  formatHintName,
+  parseTagKey,
+} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 
 type SchemaHintsDrawerProps = SchemaHintsPageParams & {
   hints: Tag[];
@@ -39,7 +43,10 @@ function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDraw
 
   const selectedFilterKeys = useMemo(() => {
     const filterQuery = new MutableSearch(currentQuery);
-    const allKeys = filterQuery.getFilterKeys();
+    const allKeys = filterQuery
+      .getFilterKeys()
+      .map(parseTagKey)
+      .filter(Boolean) as string[];
     // When there is a filter with a negation, it stores the negation in the key.
     // To ensure all the keys are represented correctly in the drawer, we must
     // take these into account.
@@ -92,18 +99,21 @@ function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDraw
       if (
         filterQuery
           .getFilterKeys()
+          .map(parseTagKey)
           .some(key => key === hint.key || key === `!${hint.key}`)
       ) {
+        const keyToRemove =
+          hint.kind === FieldKind.FUNCTION
+            ? (filterQuery
+                .getFilterKeys()
+                .find(key => parseFunction(key)?.name === hint.key) ?? '')
+            : hint.key;
         // remove hint and/or negated hint if it exists
-        filterQuery.removeFilter(hint.key);
-        filterQuery.removeFilter(`!${hint.key}`);
+        filterQuery.removeFilter(keyToRemove);
+        filterQuery.removeFilter(`!${keyToRemove}`);
       } else {
         const hintFieldDefinition = getFieldDefinition(hint.key, 'span', hint.kind);
-        addFilterToQuery(
-          filterQuery,
-          hint,
-          hintFieldDefinition?.valueType === FieldValueType.BOOLEAN
-        );
+        addFilterToQuery(filterQuery, hint, hintFieldDefinition);
       }
 
       handleQueryChange(filterQuery);
@@ -111,7 +121,11 @@ function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDraw
         type: 'UPDATE_QUERY',
         query: filterQuery.formatString(),
         focusOverride: {
-          itemKey: `filter:${filterQuery.getFilterKeys().indexOf(hint.key)}`,
+          itemKey: `filter:${filterQuery
+            .getTokenKeys()
+            .filter(key => key !== undefined)
+            .map(parseTagKey)
+            .lastIndexOf(hint.key)}`,
           part: 'value',
         },
       });
@@ -136,7 +150,7 @@ function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDraw
     const hintType =
       hintFieldDefinition?.valueType === FieldValueType.BOOLEAN ? (
         <Badge type="default">{t('boolean')}</Badge>
-      ) : hint.kind === FieldKind.MEASUREMENT ? (
+      ) : hint.kind === FieldKind.MEASUREMENT || hint.kind === FieldKind.FUNCTION ? (
         <Badge type="success">{t('number')}</Badge>
       ) : (
         <Badge type="highlight">{t('string')}</Badge>
@@ -150,8 +164,8 @@ function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDraw
           onChange={() => handleCheckboxChange(hint)}
         >
           <CheckboxLabelContainer>
-            <Tooltip title={prettifyTagKey(hint.key)} showOnlyOnOverflow skipWrapper>
-              <CheckboxLabel>{prettifyTagKey(hint.key)}</CheckboxLabel>
+            <Tooltip title={formatHintName(hint)} showOnlyOnOverflow skipWrapper>
+              <CheckboxLabel>{formatHintName(hint)}</CheckboxLabel>
             </Tooltip>
             {hintType}
           </CheckboxLabelContainer>
@@ -161,21 +175,23 @@ function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDraw
   }
 
   return (
-    <Fragment>
+    <DrawerContainer>
       <DrawerHeader hideBar />
       <StyledDrawerBody>
         <HeaderContainer>
           <SchemaHintsHeader>{t('Filter Attributes')}</SchemaHintsHeader>
           <StyledInputGroup>
+            <InputGroup.LeadingItems disablePointerEvents>
+              <IconSearch size="sm" />
+            </InputGroup.LeadingItems>
             <SearchInput
               size="sm"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               aria-label={t('Search attributes')}
+              placeholder={t('Search')}
+              autoFocus
             />
-            <InputGroup.TrailingItems disablePointerEvents>
-              <IconSearch size="md" />
-            </InputGroup.TrailingItems>
           </StyledInputGroup>
         </HeaderContainer>
         <StyledMultipleCheckbox name={t('Filter keys')} value={selectedFilterKeys}>
@@ -196,7 +212,7 @@ function SchemaHintsDrawer({hints, searchBarDispatch, queryRef}: SchemaHintsDraw
           </ScrollContainer>
         </StyledMultipleCheckbox>
       </StyledDrawerBody>
-    </Fragment>
+    </DrawerContainer>
   );
 }
 
@@ -208,15 +224,17 @@ const SchemaHintsHeader = styled('h4')`
 `;
 
 const StyledDrawerBody = styled(DrawerBody)`
-  height: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 `;
 
 const HeaderContainer = styled('div')`
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
   margin-bottom: ${space(2)};
-  gap: ${space(1.5)};
+  gap: ${space(1)};
 `;
 
 const CheckboxLabelContainer = styled('div')`
@@ -305,5 +323,15 @@ const NoAttributesMessage = styled('div')`
 const StyledInputGroup = styled(InputGroup)`
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     max-width: 175px;
+  }
+`;
+
+const DrawerContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  > header {
+    flex-shrink: 0;
   }
 `;

@@ -1,7 +1,7 @@
 from unittest import mock
 
 from sentry.api.serializers import serialize
-from sentry.incidents.grouptype import MetricAlertFire
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.models.environment import Environment
 from sentry.snuba.dataset import Dataset
@@ -38,10 +38,10 @@ class ProjectDetectorIndexBaseTest(APITestCase):
 class ProjectDetectorIndexGetTest(ProjectDetectorIndexBaseTest):
     def test_simple(self):
         detector = self.create_detector(
-            project_id=self.project.id, name="Test Detector", type=MetricAlertFire.slug
+            project_id=self.project.id, name="Test Detector", type=MetricIssue.slug
         )
         detector_2 = self.create_detector(
-            project_id=self.project.id, name="Test Detector 2", type=MetricAlertFire.slug
+            project_id=self.project.id, name="Test Detector 2", type=MetricIssue.slug
         )
         response = self.get_success_response(self.organization.slug, self.project.slug)
         assert response.data == serialize([detector, detector_2])
@@ -49,6 +49,59 @@ class ProjectDetectorIndexGetTest(ProjectDetectorIndexBaseTest):
     def test_empty_result(self):
         response = self.get_success_response(self.organization.slug, self.project.slug)
         assert len(response.data) == 0
+
+    def test_invalid_sort_by(self):
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={"sortBy": "general_malaise"},
+        )
+        assert "sortBy" in response.data
+
+    def test_sort_by_name(self):
+        detector = self.create_detector(
+            project_id=self.project.id, name="A Test Detector", type=MetricIssue.slug
+        )
+        detector_2 = self.create_detector(
+            project_id=self.project.id, name="B Test Detector 2", type=MetricIssue.slug
+        )
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, qs_params={"sortBy": "-name"}
+        )
+        assert [d["name"] for d in response.data] == [
+            detector_2.name,
+            detector.name,
+        ]
+
+    def test_sort_by_connected_workflows(self):
+        workflow = self.create_workflow(
+            organization_id=self.organization.id,
+        )
+        workflow_2 = self.create_workflow(
+            organization_id=self.organization.id,
+        )
+        detector = self.create_detector(
+            project_id=self.project.id, name="Test Detector", type=MetricIssue.slug
+        )
+        detector_2 = self.create_detector(
+            project_id=self.project.id, name="Test Detector 2", type=MetricIssue.slug
+        )
+        self.create_detector_workflow(detector=detector, workflow=workflow)
+        self.create_detector_workflow(detector=detector, workflow=workflow_2)
+        response1 = self.get_success_response(
+            self.organization.slug, self.project.slug, qs_params={"sortBy": "-connectedWorkflows"}
+        )
+        assert [d["name"] for d in response1.data] == [
+            detector.name,
+            detector_2.name,
+        ]
+        response2 = self.get_success_response(
+            self.organization.slug, self.project.slug, qs_params={"sortBy": "connectedWorkflows"}
+        )
+        assert [d["name"] for d in response2.data] == [
+            detector_2.name,
+            detector.name,
+        ]
 
 
 @region_silo_test
@@ -59,7 +112,7 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
         super().setUp()
         self.valid_data = {
             "name": "Test Detector",
-            "detectorType": MetricAlertFire.slug,
+            "detectorType": MetricIssue.slug,
             "dataSource": {
                 "queryType": SnubaQuery.Type.ERROR.value,
                 "dataset": Dataset.Events.name.lower(),
@@ -136,7 +189,7 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
         detector = Detector.objects.get(id=response.data["id"])
         assert response.data == serialize([detector])[0]
         assert detector.name == "Test Detector"
-        assert detector.type == MetricAlertFire.slug
+        assert detector.type == MetricIssue.slug
         assert detector.project_id == self.project.id
 
         # Verify data source

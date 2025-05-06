@@ -400,7 +400,7 @@ def create_result_key(
     groupby = create_groupby_dict(result_row, fields, issues)
     groupby_values: list[str] = []
     for value in groupby:
-        groupby_values.extend(value.values())
+        groupby_values.append(value["value"])
     result = ",".join(groupby_values)
     # If the result would be identical to the other key, include the field name
     # only need the first field since this would only happen with a single field
@@ -418,9 +418,11 @@ def create_groupby_dict(
             issue_id = issues.get(result_row["issue.id"], "unknown")
             if issue_id is None:
                 issue_id = "unknown"
-            values.append({field: issue_id})
+            values.append({"key": field, "value": issue_id})
         elif field == "transaction.status":
-            values.append({field: SPAN_STATUS_CODE_TO_NAME.get(result_row[field], "unknown")})
+            values.append(
+                {"key": field, "value": SPAN_STATUS_CODE_TO_NAME.get(result_row[field], "unknown")}
+            )
         else:
             value = result_row.get(field)
             if isinstance(value, list):
@@ -428,7 +430,7 @@ def create_groupby_dict(
                     value = value[-1]
                 else:
                     value = ""
-            values.append({field: str(value)})
+            values.append({"key": field, "value": str(value)})
     return values
 
 

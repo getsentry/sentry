@@ -2,27 +2,27 @@ import * as Sentry from '@sentry/react';
 
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
   type ColumnValueType,
   CurrencyUnit,
   DurationUnit,
   fieldAlignment,
-  prettifyTagKey,
 } from 'sentry/utils/discover/fields';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import type {TableColumn} from 'sentry/views/discover/table/types';
+import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
+import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LogAttributesHumanLabel} from 'sentry/views/explore/logs/constants';
 import {
-  type LogAttributeItem,
   type LogAttributeUnits,
   type LogRowItem,
   type OurLogFieldKey,
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
+import type {PickableDays} from 'sentry/views/explore/utils';
 
 const {warn, fmt} = Sentry.logger;
 
@@ -133,23 +133,15 @@ export function logsFieldAlignment(...args: Parameters<typeof fieldAlignment>) {
   return fieldAlignment(...args);
 }
 
-function removePrefixes(key: string) {
-  return key.replace('log.', '').replace('sentry.', '');
-}
-
-export function prettifyAttributeName(name: string) {
-  return removePrefixes(prettifyTagKey(name));
-}
-
-export function adjustAliases(key: string) {
-  switch (key) {
+export function adjustAliases(attribute: TraceItemResponseAttribute) {
+  switch (attribute.name) {
     case 'sentry.project_id':
       warn(
-        fmt`Field ${key} is deprecated. Please use ${OurLogKnownFieldKey.PROJECT_ID} instead.`
+        fmt`Field ${attribute.name} is deprecated. Please use ${OurLogKnownFieldKey.PROJECT_ID} instead.`
       );
       return OurLogKnownFieldKey.PROJECT_ID; // Public alias since int<->string alias reversing is broken. Should be removed in the future.
     default:
-      return key;
+      return attribute.name;
   }
 }
 
@@ -165,7 +157,7 @@ export function getTableHeaderLabel(
   );
 }
 
-export function isLogAttributeUnit(unit: string | null): unit is LogAttributeUnits {
+function isLogAttributeUnit(unit: string | null): unit is LogAttributeUnits {
   return (
     unit === null ||
     Object.values(DurationUnit).includes(unit as DurationUnit) ||
@@ -195,31 +187,24 @@ export function getLogRowItem(
   };
 }
 
-export function getLogAttributeItem(
-  field: OurLogFieldKey,
-  value: OurLogsResponseItem[OurLogFieldKey] | null
-): LogAttributeItem {
-  return {
-    fieldKey: field,
-    value,
-  };
-}
-
-export function logRowItemToTableColumn(
-  item: LogRowItem
-): TableColumn<keyof TableDataRow> {
-  return {
-    key: item.fieldKey,
-    name: item.fieldKey,
-    column: {
-      field: item.fieldKey,
-      kind: 'field',
-    },
-    isSortable: false,
-    type: item.metaFieldType,
-  };
-}
-
 export function adjustLogTraceID(traceID: string) {
   return traceID.replace(/-/g, '');
+}
+
+export function logsPickableDays(organization: Organization): PickableDays {
+  const relativeOptions: Array<[string, React.ReactNode]> = [
+    ['1h', t('Last hour')],
+    ['24h', t('Last 24 hours')],
+    ['7d', t('Last 7 days')],
+  ];
+
+  if (organization.features.includes('visibility-explore-range-high')) {
+    relativeOptions.push(['14d', t('Last 14 days')]);
+  }
+
+  return {
+    defaultPeriod: '24h',
+    maxPickableDays: 14,
+    relativeOptions: Object.fromEntries(relativeOptions),
+  };
 }

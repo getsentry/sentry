@@ -21,14 +21,6 @@ export enum AutofixStepType {
   SOLUTION = 'solution',
 }
 
-export enum AutofixCodebaseIndexingStatus {
-  UP_TO_DATE = 'up_to_date',
-  INDEXING = 'indexing',
-  NOT_INDEXED = 'not_indexed',
-  OUT_OF_DATE = 'out_of_date',
-  ERRORED = 'errored',
-}
-
 export enum AutofixStatus {
   COMPLETED = 'COMPLETED',
   ERROR = 'ERROR',
@@ -38,22 +30,16 @@ export enum AutofixStatus {
   WAITING_FOR_USER_RESPONSE = 'WAITING_FOR_USER_RESPONSE',
 }
 
-export type AutofixPullRequestDetails = {
+type AutofixPullRequestDetails = {
   pr_number: number;
   pr_url: string;
 };
 
-export type AutofixOptions = {
+type AutofixOptions = {
   iterative_feedback?: boolean;
 };
 
-export type AutofixUpdateEndpointResponse = {
-  run_id: number;
-  message?: string;
-  status?: 'success' | 'error';
-};
-
-export type CodebaseState = {
+type CodebaseState = {
   is_readable: boolean | null;
   is_writeable: boolean | null;
   repo_external_id: string | null;
@@ -61,7 +47,7 @@ export type CodebaseState = {
 
 export type AutofixData = {
   codebases: Record<string, CodebaseState>;
-  created_at: string;
+  last_triggered_at: string;
   request: {
     repos: SeerRepoDefinition[];
   };
@@ -118,19 +104,26 @@ export interface CommentThreadMessage {
   isLoading?: boolean;
 }
 
-export type CodeSnippetContext = {
-  file_path: string;
-  repo_name: string;
-  snippet: string;
-  end_line?: number;
-  start_line?: number;
-};
-
 export type AutofixInsight = {
   insight: string;
   justification: string;
   change_diff?: FilePatch[];
+  markdown_snippets?: string;
+  sources?: InsightSources;
   type?: 'insight' | 'file_change';
+};
+
+export type InsightSources = {
+  breadcrumbs_used: boolean;
+  code_used_urls: string[];
+  connected_error_ids_used: string[];
+  diff_urls: string[];
+  http_request_used: boolean;
+  profile_ids_used: string[];
+  stacktrace_used: boolean;
+  thoughts: string;
+  trace_event_ids_used: string[];
+  event_trace_id?: string;
 };
 
 export interface AutofixDefaultStep extends BaseStep {
@@ -145,14 +138,14 @@ export type AutofixRootCauseSelection =
   | {custom_root_cause: string}
   | null;
 
-export interface AutofixRootCauseStep extends BaseStep {
+interface AutofixRootCauseStep extends BaseStep {
   causes: AutofixRootCauseData[];
   selection: AutofixRootCauseSelection;
   type: AutofixStepType.ROOT_CAUSE_ANALYSIS;
   termination_reason?: string;
 }
 
-export interface AutofixSolutionStep extends BaseStep {
+interface AutofixSolutionStep extends BaseStep {
   solution: AutofixSolutionTimelineEvent[];
   solution_selected: boolean;
   type: AutofixStepType.SOLUTION;
@@ -178,7 +171,7 @@ export interface AutofixChangesStep extends BaseStep {
   termination_reason?: string;
 }
 
-export type AutofixRelevantCodeFile = {
+type AutofixRelevantCodeFile = {
   file_path: string;
   repo_name: string;
 };
@@ -206,7 +199,7 @@ export type AutofixRootCauseData = {
   root_cause_reproduction?: AutofixTimelineEvent[];
 };
 
-export type EventMetadataWithAutofix = EventMetadata & {
+type EventMetadataWithAutofix = EventMetadata & {
   autofix?: AutofixData;
 };
 
@@ -254,16 +247,6 @@ export interface AutofixRepoDefinition {
   provider: string;
 }
 
-export interface Repository {
-  externalId: string;
-  id: string;
-  name: string;
-  provider?: {
-    id?: string;
-    name?: string;
-  };
-}
-
 export interface RepoSettings {
   branch: string;
   instructions: string;
@@ -280,6 +263,6 @@ export interface SeerRepoDefinition {
   provider_raw?: string;
 }
 
-export interface ProjectPreferences {
+export interface ProjectSeerPreferences {
   repositories: SeerRepoDefinition[];
 }

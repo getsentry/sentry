@@ -223,7 +223,6 @@ function getEventsRequest(
     cursor,
     referrer,
     dataset: DiscoverDatasets.SPANS_EAP,
-    useRpc: '1',
     ...queryExtras,
   };
 
@@ -294,8 +293,6 @@ function getSeriesRequest(
     referrer
   );
 
-  requestData.useRpc = true;
-
   // Filtering out all spans with op like 'ui.interaction*' which aren't
   // embedded under transactions. The trace view does not support rendering
   // such spans yet.
@@ -309,7 +306,7 @@ function getSeriesRequest(
 }
 
 // Filters the primary options in the sort by selector
-export function filterSeriesSortOptions(columns: Set<string>) {
+function filterSeriesSortOptions(columns: Set<string>) {
   return (option: FieldValueOption) => {
     if (option.value.kind === FieldValueKind.FUNCTION) {
       return true;

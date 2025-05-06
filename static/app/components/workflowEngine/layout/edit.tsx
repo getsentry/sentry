@@ -8,7 +8,7 @@ import {BreadcrumbsFromContext} from 'sentry/components/workflowEngine/layout/br
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-export interface WorkflowEngineEditLayoutProps {
+interface WorkflowEngineEditLayoutProps {
   /**
    * The main content for this page
    * Expected to include `<EditLayout.Chart>` and `<EditLayout.Panel>` components.
