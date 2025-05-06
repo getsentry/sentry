@@ -187,6 +187,9 @@ class ProjectOption(Model):
         app_label = "sentry"
         db_table = "sentry_projectoptions"
         unique_together = (("project", "key"),)
+        indexes = [
+            models.Index(fields=["key"]),
+        ]
 
     __repr__ = sane_repr("project_id", "key", "value")
 
