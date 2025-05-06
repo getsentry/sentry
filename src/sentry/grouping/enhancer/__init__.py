@@ -447,16 +447,39 @@ class Enhancements:
                     match_frames, rust_exception_data
                 )
             )
+            split_enhancement_misses: list[Any] = []
         else:
             category_and_in_app_results_split = category_and_in_app_results
 
-        for frame, (category, in_app) in zip(frames, category_and_in_app_results):
+        for i, frame, (category, in_app), (category_split, in_app_split) in zip(
+            range(len(frames)),
+            frames,
+            category_and_in_app_results,
+            category_and_in_app_results_split,
+        ):
             if in_app is not None:
                 # If the `in_app` value changes as a result of this call, the original value (in
                 # integer form) will be added to `frame.data` under the key "orig_in_app"
                 set_in_app(frame, in_app)
             if category is not None:
                 set_path(frame, "data", "category", value=category)
+
+            # If we're running the split enhancements experiment, track any places where the results
+            # are different from what we expect
+            if self.run_split_enhancements:
+                _check_split_enhancements_frame_category_and_in_app(
+                    i, category, category_split, in_app, in_app_split, split_enhancement_misses
+                )
+
+        if self.run_split_enhancements:
+            logger.info(
+                "grouping.split_enhancements.classifier_results",
+                extra=(
+                    {"outcome": "failure", "frames": frames, "misses": split_enhancement_misses}
+                    if split_enhancement_misses
+                    else {"outcome": "success"}
+                ),
+            )
 
     def assemble_stacktrace_component(
         self,
