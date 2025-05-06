@@ -67,7 +67,7 @@ def save_userreport(
                 raise PermissionDenied()
             return None
 
-        should_filter, metrics_reason, outcomes_reason = validate_user_report(
+        should_filter, metrics_reason, display_reason = validate_user_report(
             report, project.id, source=source
         )
         if should_filter:
@@ -80,7 +80,7 @@ def save_userreport(
                 project_id=project.id,
                 key_id=None,
                 outcome=Outcome.INVALID,
-                reason=outcomes_reason,
+                reason=display_reason,
                 timestamp=start_time or timezone.now(),
                 event_id=None,  # Note report["event_id"] is id of the associated event, not the report itself.
                 category=DataCategory.USER_REPORT_V2,
@@ -90,7 +90,7 @@ def save_userreport(
                 source == FeedbackCreationSource.USER_REPORT_DJANGO_ENDPOINT
                 or source == FeedbackCreationSource.CRASH_REPORT_EMBED_FORM
             ):
-                raise BadRequest(outcomes_reason)
+                raise BadRequest(display_reason)
             return None
 
         if start_time is None:
@@ -195,7 +195,7 @@ def validate_user_report(
 
     Reformatting: strips whitespace from comments and dashes from event_id.
 
-    Returns a tuple of (should_filter, metrics_reason, outcomes_reason). XXX: ensure metrics and outcome reasons have bounded cardinality.
+    Returns a tuple of (should_filter, metrics_reason, display_reason). XXX: ensure metrics and outcome reasons have bounded cardinality.
 
     At the moment we do not raise validation errors.
     """
