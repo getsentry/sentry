@@ -75,11 +75,6 @@ def delete_group_list(
         },
     )
 
-    countdown = 3600
-    # With ClickHouse light deletes we want to get rid of the long delay
-    if not error_ids:
-        countdown = 0
-
     Group.objects.filter(id__in=group_ids).exclude(
         status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
     ).update(status=GroupStatus.PENDING_DELETION, substatus=None)
@@ -107,8 +102,7 @@ def delete_group_list(
             "object_ids": group_ids,
             "transaction_id": str(transaction_id),
             "eventstream_state": eventstream_state,
-        },
-        countdown=countdown,
+        }
     )
 
 

@@ -3,8 +3,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -101,5 +102,83 @@ describe('attributesTree', () => {
     expect(screen.getByTestId('tree-key-test.attribute3')).toHaveTextContent(
       'attribute3'
     );
+  });
+
+  it('correctly renders cell actions', async () => {
+    const attributes: TraceItemResponseAttribute[] = [
+      {
+        type: 'str',
+        value: 'test value 1',
+        name: 'test.attribute1',
+      } as TraceItemResponseAttribute,
+      {
+        type: 'str',
+        value: 'test value 2',
+        name: 'test',
+      } as TraceItemResponseAttribute,
+      {
+        type: 'str',
+        value: 'test value 3',
+        name: 'test.some-inner-thing.value',
+      } as TraceItemResponseAttribute,
+    ];
+
+    render(
+      <ProviderWrapper>
+        <AttributesTree
+          attributes={attributes}
+          rendererExtra={{
+            theme,
+            location,
+            organization,
+          }}
+          getCustomActions={content => {
+            if (!content.originalAttribute) {
+              return [];
+            }
+
+            const items: MenuItemProps[] = [
+              {
+                key: 'visible action',
+                label: 'Visible Action',
+                onAction: () => null,
+              },
+              {
+                key: 'hidden-action',
+                label: 'Hidden Action',
+                hidden: true,
+                onAction: () => null,
+              },
+              {
+                key: 'disabled-action',
+                label: 'Disabled Action',
+                disabled: true,
+                onAction: () => null,
+              },
+            ];
+
+            return items;
+          }}
+        />
+      </ProviderWrapper>
+    );
+
+    const allTreeRows = await screen.findAllByTestId('attribute-tree-row');
+    expect(allTreeRows.length).toBeGreaterThan(0);
+    for (const row of allTreeRows) {
+      // test, test.row, test.deeply.nested.attribute
+      await userEvent.hover(row);
+      const actionsButton = within(row).queryByRole('button', {
+        name: 'Attribute Actions Menu',
+      });
+      if (actionsButton === null) {
+        expect(row?.textContent).toBe('some-inner-thing');
+        continue;
+      }
+      await userEvent.click(actionsButton);
+      expect(await within(row).findByText('Visible Action')).toBeInTheDocument();
+      expect(await within(row).findByText('Disabled Action')).toBeInTheDocument();
+      expect(within(row).queryByText('Hidden Action')).not.toBeInTheDocument();
+    }
   });
 });
