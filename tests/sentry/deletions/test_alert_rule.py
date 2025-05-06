@@ -49,7 +49,9 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
             project=self.project, group=group, user_id=self.user.id
         )
         IncidentGroupOpenPeriod.objects.create(
-            incident_id=incident.id, group_open_period=group_open_period
+            incident_id=incident.id,
+            incident_identifier=incident.identifier,
+            group_open_period=group_open_period,
         )
 
         detector = self.create_detector()
