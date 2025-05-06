@@ -42,7 +42,7 @@ export default function TestPreOnboardingPage() {
         <img src={testsAnalyticsSummary} />
         <div>
           <h2>{t('Say Goodbye to Flaky Tests')}</h2>
-          <StyledP
+          <p
             css={css`
               margin-bottom: ${space(1)};
             `}
@@ -53,7 +53,7 @@ export default function TestPreOnboardingPage() {
             <Link to="https://docs.codecov.com/docs/test-analytics">
               {t('Learn more')}
             </Link>
-          </StyledP>
+          </p>
           <ItalicP>
             {t(
               'No more staring at failing tests wondering, “Is it me, or is it just flaky?”'
@@ -135,10 +135,6 @@ export default function TestPreOnboardingPage() {
 const LayoutGap = styled('div')`
   display: grid;
   gap: ${space(2)};
-`;
-
-const StyledP = styled('p')`
-  margin-bottom: ${space(1)};
 `;
 
 const ItalicP = styled('p')`
