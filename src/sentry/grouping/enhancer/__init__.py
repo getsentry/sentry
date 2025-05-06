@@ -441,6 +441,15 @@ class Enhancements:
             match_frames, rust_exception_data
         )
 
+        if self.run_split_enhancements:
+            category_and_in_app_results_split = (
+                self.classifier_rust_enhancements.apply_modifications_to_frames(
+                    match_frames, rust_exception_data
+                )
+            )
+        else:
+            category_and_in_app_results_split = category_and_in_app_results
+
         for frame, (category, in_app) in zip(frames, category_and_in_app_results):
             if in_app is not None:
                 # If the `in_app` value changes as a result of this call, the original value (in
