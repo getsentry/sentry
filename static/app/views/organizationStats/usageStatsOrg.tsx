@@ -257,7 +257,7 @@ export function getChartProps({
   } as UsageChartProps;
 }
 
-export function ScoreCards({
+function ScoreCards({
   cardMetadata,
   loading,
 }: {
@@ -277,7 +277,7 @@ export function ScoreCards({
   ));
 }
 
-export function ChartContainer({children}: {children: React.ReactNode}) {
+function ChartContainer({children}: {children: React.ReactNode}) {
   return <ChartWrapper data-test-id="usage-stats-chart">{children}</ChartWrapper>;
 }
 
@@ -623,24 +623,20 @@ function UsageStatsOrganization({
     handleChangeState,
   ]);
 
-  return (
+  return typeof children === 'function' ? (
+    children({
+      usageChart: <UsageChart {...chartProps} />,
+      cardMetadata,
+      orgStats: orgStatsReponse,
+      handleOnDocsClick,
+      chartData,
+    })
+  ) : (
     <PageGrid>
-      {typeof children === 'function' ? (
-        children({
-          usageChart: <UsageChart {...chartProps} />,
-          cardMetadata,
-          orgStats: orgStatsReponse,
-          handleOnDocsClick,
-          chartData,
-        })
-      ) : (
-        <Fragment>
-          <ScoreCards cardMetadata={cardMetadata} loading={orgStatsReponse.isPending} />
-          <ChartContainer>
-            <UsageChart {...chartProps} />
-          </ChartContainer>
-        </Fragment>
-      )}
+      <ScoreCards cardMetadata={cardMetadata} loading={orgStatsReponse.isPending} />
+      <ChartContainer>
+        <UsageChart {...chartProps} />
+      </ChartContainer>
     </PageGrid>
   );
 }
@@ -728,3 +724,9 @@ function SpansStored({organization, acceptedStored}: SpansStoredProps) {
     </StyledTextWrapper>
   );
 }
+
+export const UsageStatsOrgComponents = {
+  PageGrid,
+  ChartContainer,
+  ScoreCards,
+};

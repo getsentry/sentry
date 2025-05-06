@@ -2,6 +2,7 @@ import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import Pagination from 'sentry/components/pagination';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {tct} from 'sentry/locale';
@@ -15,11 +16,10 @@ import withProjects from 'sentry/utils/withProjects';
 import type {UsageSeries} from 'sentry/views/organizationStats/types';
 import type {UsageStatsOrganizationProps} from 'sentry/views/organizationStats/usageStatsOrg';
 import UsageStatsOrganization, {
-  ChartContainer,
   getChartProps,
   getEndpointQuery,
   getEndpointQueryDatetime,
-  ScoreCards,
+  UsageStatsOrgComponents,
 } from 'sentry/views/organizationStats/usageStatsOrg';
 import {
   formatUsageWithUnits,
@@ -90,7 +90,7 @@ function ProjectDetails({
   });
 
   return (
-    <Fragment>
+    <ErrorBoundary mini>
       <SpikeProtectionHistoryTable
         onEnableSpikeProtection={() => reloadData()}
         key="spike-history"
@@ -108,7 +108,7 @@ function ProjectDetails({
           });
         }}
       />
-    </Fragment>
+    </ErrorBoundary>
   );
 }
 
@@ -154,6 +154,7 @@ function getStoredDefaultSpikes({
       });
     });
   }
+
   return actualSpikes;
 }
 
@@ -173,7 +174,7 @@ function getSpikeDetails({
 }) {
   const actualSpikes: SpikeDetails[] = [];
 
-  if (loading || !orgStats || !spikeThresholds || !spikesList) {
+  if (loading || !orgStats || !spikeThresholds) {
     return actualSpikes;
   }
 
@@ -184,7 +185,7 @@ function getSpikeDetails({
     ) as DataCategoryInfo;
 
     // Get the spikes from the db for the category
-    const storedSpikesGroup = spikesList.groups.find(
+    const storedSpikesGroup = spikesList?.groups.find(
       group => group.billing_metric === thresholdGroup.billing_metric
     );
     const storedSpikes: Spike[] = [];
@@ -255,7 +256,7 @@ function EnhancedUsageStatsOrganization({
       {
         query: {
           options: SPIKE_PROTECTION_OPTION_DISABLED,
-          query: `id:${projects[0]?.id}`,
+          query: `id:${project?.id}`,
         },
       },
     ],
@@ -327,19 +328,26 @@ function EnhancedUsageStatsOrganization({
       projectIds={projectIds}
       endpointQuery={newEndpointQuery}
       handleChangeState={handleChangeState}
+      clientDiscard={clientDiscard}
     >
       {usageStats => {
-        const loading =
-          usageStats.orgStats.isPending ||
-          projectWithSpikeProjectionOption.isPending ||
-          spikesList.isPending ||
-          spikeThresholds.isPending;
+        const loading = hasAccurateSpikes
+          ? usageStats.orgStats.isLoading ||
+            projectWithSpikeProjectionOption.isLoading ||
+            spikesList.isLoading ||
+            spikeThresholds.isLoading
+          : usageStats.orgStats.isLoading ||
+            projectWithSpikeProjectionOption.isLoading ||
+            spikesList.isLoading;
 
-        const error =
-          usageStats.orgStats.error ||
-          projectWithSpikeProjectionOption.error ||
-          spikesList.error ||
-          spikeThresholds.error;
+        const error = hasAccurateSpikes
+          ? usageStats.orgStats.error ||
+            projectWithSpikeProjectionOption.error ||
+            spikesList.error ||
+            spikeThresholds.error
+          : usageStats.orgStats.error ||
+            projectWithSpikeProjectionOption.error ||
+            spikesList.error;
 
         const shouldRenderRangeAlert = !loading && isSingleProject && !hasAccurateSpikes;
 
@@ -348,12 +356,14 @@ function EnhancedUsageStatsOrganization({
               loading,
               spikeThresholds: spikeThresholds.data,
               spikesList: spikesList.data,
+              orgStats: usageStats.orgStats.data,
             })
-          : getStoredDefaultSpikes({loading, spikesList: spikesList.data});
+          : getStoredDefaultSpikes({
+              loading,
+              spikesList: spikesList.data,
+            });
 
         const newSpikeThresholds = hasAccurateSpikes ? spikeThresholds.data : undefined;
-
-        const cardMetadataCopy = {...usageStats.cardMetadata};
 
         // don't count ongoing spikes
         const categorySpikes = (storedSpikes || ([] as SpikeDetails[])).filter(
@@ -365,30 +375,42 @@ function EnhancedUsageStatsOrganization({
           0
         );
 
-        cardMetadataCopy.rateLimited.trend = (
-          <DroppedFromSpikesStat>
-            {tct('[spikeDropped] across [spikeAmount] spike[spikePlural]', {
-              spikeDropped: formatUsageWithUnits(
-                spikeDropped,
-                dataCategory,
-                getFormatUsageOptions(dataCategory)
-              ),
-              spikeAmount: categorySpikes.length,
-              spikePlural: categorySpikes.length > 1 ? 's' : '',
-            })}
-          </DroppedFromSpikesStat>
-        );
-
-        const newCardMetadata = storedSpikes.length
-          ? cardMetadataCopy
-          : usageStats.cardMetadata;
+        const projectWithSpikeProjection = projectWithSpikeProjectionOption.data?.[0];
 
         return (
           <Fragment>
             {shouldRenderRangeAlert && <SpikeProtectionRangeLimitation />}
-            <ScoreCards cardMetadata={newCardMetadata} loading={loading} />
-            <Fragment>
-              <ChartContainer>
+            <UsageStatsOrgComponents.PageGrid>
+              <UsageStatsOrgComponents.ScoreCards
+                cardMetadata={
+                  storedSpikes.length
+                    ? {
+                        ...usageStats.cardMetadata,
+                        rateLimited: {
+                          ...usageStats.cardMetadata.rateLimited,
+                          trend: (
+                            <DroppedFromSpikesStat>
+                              {tct(
+                                '[spikeDropped] across [spikeAmount] spike[spikePlural]',
+                                {
+                                  spikeDropped: formatUsageWithUnits(
+                                    spikeDropped,
+                                    dataCategory,
+                                    getFormatUsageOptions(dataCategory)
+                                  ),
+                                  spikeAmount: categorySpikes.length,
+                                  spikePlural: categorySpikes.length > 1 ? 's' : '',
+                                }
+                              )}
+                            </DroppedFromSpikesStat>
+                          ),
+                        },
+                      }
+                    : usageStats.cardMetadata
+                }
+                loading={loading}
+              />
+              <UsageStatsOrgComponents.ChartContainer>
                 {isSingleProject && newSpikeThresholds && storedSpikes ? (
                   <SpikeProtectionUsageChart
                     {...getChartProps({
@@ -410,23 +432,23 @@ function EnhancedUsageStatsOrganization({
                 ) : (
                   usageStats.usageChart
                 )}
-              </ChartContainer>
-              {isSingleProject && project && (
-                <ProjectDetails
-                  reloadData={() => {
-                    usageStats.orgStats.refetch();
-                    projectWithSpikeProjectionOption.refetch();
-                    spikesList.refetch();
-                    spikeThresholds.refetch();
-                  }}
-                  dataCategoryInfo={dataCategoryInfo}
-                  loading={loading}
-                  spikeCursor={spikeCursor}
-                  project={project}
-                  storedSpikes={storedSpikes}
-                />
-              )}
-            </Fragment>
+              </UsageStatsOrgComponents.ChartContainer>
+            </UsageStatsOrgComponents.PageGrid>
+            {isSingleProject && projectWithSpikeProjection && (
+              <ProjectDetails
+                reloadData={() => {
+                  usageStats.orgStats.refetch();
+                  projectWithSpikeProjectionOption.refetch();
+                  spikesList.refetch();
+                  spikeThresholds.refetch();
+                }}
+                dataCategoryInfo={dataCategoryInfo}
+                loading={loading}
+                spikeCursor={spikeCursor}
+                project={projectWithSpikeProjection}
+                storedSpikes={storedSpikes}
+              />
+            )}
           </Fragment>
         );
       }}
