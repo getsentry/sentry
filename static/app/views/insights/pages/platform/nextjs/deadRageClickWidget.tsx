@@ -68,7 +68,7 @@ export function DeadRageClicksWidget({
 
   return (
     <Widget
-      Title={<Widget.WidgetTitle title={t('Dead Rage Clicks')} />}
+      Title={<Widget.WidgetTitle title={t('Rage & Dead Clicks')} />}
       Visualization={visualization}
       noVisualizationPadding
       Actions={
