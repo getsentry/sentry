@@ -16,6 +16,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -32,11 +33,7 @@ type Props = {
   dashboard: DashboardDetails;
   dashboardState: DashboardState;
   dashboards: DashboardListItem[];
-  onAddWidget: (dataset: DataSet) => void;
-  onAddWidgetFromNewWidgetBuilder: (
-    dataset: DataSet,
-    openWidgetTemplates: boolean
-  ) => void;
+  onAddWidget: (dataset: DataSet, openWidgetTemplates: boolean) => void;
   onCancel: () => void;
   onCommit: () => void;
   onDelete: () => void;
@@ -59,10 +56,9 @@ function Controls({
   onDelete,
   onCancel,
   onAddWidget,
-  onAddWidgetFromNewWidgetBuilder,
 }: Props) {
   const [isFavorited, setIsFavorited] = useState(dashboard.isFavorited);
-
+  const queryClient = useQueryClient();
   function renderCancelButton(label = t('Cancel')) {
     return (
       <Button
@@ -167,15 +163,22 @@ function Controls({
     {
       key: 'create-custom-widget',
       label: t('Create Custom Widget'),
-      onAction: () => onAddWidgetFromNewWidgetBuilder(defaultDataset, false),
+      onAction: () => onAddWidget(defaultDataset, false),
     },
     {
       key: 'from-widget-library',
       label: t('From Widget Library'),
-      onAction: () => onAddWidgetFromNewWidgetBuilder(defaultDataset, true),
+      onAction: () => onAddWidget(defaultDataset, true),
     },
   ];
 
+  const tooltipMessage = hasEditAccess
+    ? widgetLimitReached
+      ? tct('Max widgets ([maxWidgets]) per dashboard reached.', {
+          maxWidgets: MAX_WIDGETS,
+        })
+      : null
+    : t('You do not have permission to edit this dashboard');
   return (
     <StyledButtonBar gap={1} key="controls">
       <FeedbackWidgetButton />
@@ -214,6 +217,7 @@ function Controls({
                       setIsFavorited(!isFavorited);
                       await updateDashboardFavorite(
                         api,
+                        queryClient,
                         organization.slug,
                         dashboard.id,
                         !isFavorited
@@ -257,46 +261,22 @@ function Controls({
             </Button>
             {hasFeature ? (
               <Tooltip
-                title={tct('Max widgets ([maxWidgets]) per dashboard reached.', {
-                  maxWidgets: MAX_WIDGETS,
-                })}
-                disabled={!widgetLimitReached}
+                title={tooltipMessage}
+                disabled={!widgetLimitReached && hasEditAccess}
               >
-                {organization.features.includes('dashboards-widget-builder-redesign') ? (
-                  <DropdownMenu
-                    items={addWidgetDropdownItems}
-                    isDisabled={widgetLimitReached || !hasEditAccess}
-                    triggerLabel={t('Add Widget')}
-                    triggerProps={{
-                      'aria-label': t('Add Widget'),
-                      size: 'sm',
-                      showChevron: true,
-                      icon: <IconAdd isCircled size="sm" />,
-                      priority: 'primary',
-                    }}
-                    position="bottom-end"
-                  />
-                ) : (
-                  <Button
-                    data-test-id="add-widget-library"
-                    priority="primary"
-                    size="sm"
-                    disabled={widgetLimitReached || !hasEditAccess}
-                    icon={<IconAdd isCircled />}
-                    onClick={() => {
-                      trackAnalytics('dashboards_views.widget_library.opened', {
-                        organization,
-                      });
-                      onAddWidget(defaultDataset);
-                    }}
-                    title={
-                      !hasEditAccess &&
-                      t('You do not have permission to edit this dashboard')
-                    }
-                  >
-                    {t('Add Widget')}
-                  </Button>
-                )}
+                <DropdownMenu
+                  items={addWidgetDropdownItems}
+                  isDisabled={widgetLimitReached || !hasEditAccess}
+                  triggerLabel={t('Add Widget')}
+                  triggerProps={{
+                    'aria-label': t('Add Widget'),
+                    size: 'sm',
+                    showChevron: true,
+                    icon: <IconAdd isCircled size="sm" />,
+                    priority: 'primary',
+                  }}
+                  position="bottom-end"
+                />
               </Tooltip>
             ) : null}
           </Fragment>

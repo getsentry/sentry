@@ -1166,6 +1166,7 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
 @requires_snuba
 @pytest.mark.django_db
 @apply_feature_flag_on_cls("organizations:gen-ai-features")
+@patch("sentry.seer.autofix.get_seer_org_acknowledgement", return_value=True)
 class TestTriggerAutofix(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -1177,7 +1178,12 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix._call_autofix")
     @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
     def test_trigger_autofix_with_event_id(
-        self, mock_check_autofix_status, mock_call, mock_get_trace, mock_get_profile
+        self,
+        mock_check_autofix_status,
+        mock_call,
+        mock_get_trace,
+        mock_get_profile,
+        mock_get_seer_org_acknowledgement,
     ):
         """Tests triggering autofix with a specified event_id."""
         # Setup test data
@@ -1210,6 +1216,11 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
         assert response.status_code == 202
         assert response.data["run_id"] == "test-run-id"
 
+        # Verify the field is updated in the database
+        group.refresh_from_db()
+        assert group.seer_autofix_last_triggered is not None
+        assert isinstance(group.seer_autofix_last_triggered, datetime)
+
         # Verify the function calls
         mock_call.assert_called_once()
         call_kwargs = mock_call.call_args.kwargs
@@ -1230,7 +1241,11 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
     @patch("sentry.models.Group.get_latest_event")
     @patch("sentry.seer.autofix._get_serialized_event")
     def test_trigger_autofix_without_event_id_no_events(
-        self, mock_get_serialized_event, mock_get_latest_event, mock_get_recommended_event
+        self,
+        mock_get_serialized_event,
+        mock_get_latest_event,
+        mock_get_recommended_event,
+        mock_get_seer_org_acknowledgement,
     ):
         """Tests error handling when no event can be found for the group."""
         mock_get_recommended_event.return_value = None
@@ -1246,6 +1261,46 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
         assert response.status_code == 400
         assert (
             "Could not find an event for the issue, please try providing an event_id"
+            in response.data["detail"]
+        )
+        # Verify _get_serialized_event was not called since we have no event
+        mock_get_serialized_event.assert_not_called()
+
+
+@requires_snuba
+@pytest.mark.django_db
+@apply_feature_flag_on_cls("organizations:gen-ai-features")
+@patch("sentry.seer.autofix.get_seer_org_acknowledgement", return_value=False)
+class TestTriggerAutofixWithoutOrgAcknowledgement(APITestCase, SnubaTestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
+
+    @patch("sentry.models.Group.get_recommended_event_for_environments")
+    @patch("sentry.models.Group.get_latest_event")
+    @patch("sentry.seer.autofix._get_serialized_event")
+    def test_trigger_autofix_without_org_acknowledgement(
+        self,
+        mock_get_serialized_event,
+        mock_get_latest_event,
+        mock_get_recommended_event,
+        mock_get_seer_org_acknowledgement,
+    ):
+        """Tests error handling when no event can be found for the group."""
+        mock_get_recommended_event.return_value = None
+        mock_get_latest_event.return_value = None
+        # We should never reach _get_serialized_event since we have no event
+        mock_get_serialized_event.return_value = (None, None)
+
+        group = self.create_group()
+        user = Mock(spec=AnonymousUser)
+
+        response = trigger_autofix(group=group, user=user, instruction="Test instruction")
+
+        assert response.status_code == 403
+        assert (
+            "Seer has not been enabled for this organization. Please open an issue at sentry.io/issues and set up Seer."
             in response.data["detail"]
         )
         # Verify _get_serialized_event was not called since we have no event

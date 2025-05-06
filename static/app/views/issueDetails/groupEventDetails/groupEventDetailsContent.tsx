@@ -28,7 +28,7 @@ import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScree
 import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/screenshotDataSection';
 import {EventTagsDataSection} from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
-import {EventFeatureFlagList} from 'sentry/components/events/featureFlags/eventFeatureFlagList';
+import {EventFeatureFlagSection} from 'sentry/components/events/featureFlags/eventFeatureFlagSection';
 import {EventGroupingInfoSection} from 'sentry/components/events/groupingInfo/groupingInfoSection';
 import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
 import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
@@ -213,7 +213,7 @@ export function EventDetailsContent({
               lowerText.includes('langchain'))
           );
         }) ? (
-        <LazyLoad LazyComponent={LLMMonitoringSection} event={event} />
+        <LazyLoad LazyComponent={LLMMonitoringSection} />
       ) : null}
       {!hasStreamlinedUI && group.issueType === IssueType.UPTIME_DOMAIN_FAILURE && (
         <UptimeDataSection event={event} project={project} group={group} />
@@ -225,7 +225,8 @@ export function EventDetailsContent({
           project={project}
         />
       )}
-      {event.contexts?.metric_alert?.alert_rule_id && (
+      {(event.contexts?.metric_alert?.alert_rule_id ||
+        event?.occurrence?.evidenceData?.alertId) && (
         <MetricIssuesSection
           organization={organization}
           group={group}
@@ -434,7 +435,7 @@ export function EventDetailsContent({
       ) : null}
       <EventContexts group={group} event={event} />
       <ErrorBoundary mini message={t('There was a problem loading feature flags.')}>
-        <EventFeatureFlagList group={group} project={project} event={event} />
+        <EventFeatureFlagSection group={group} project={project} event={event} />
       </ErrorBoundary>
       <EventExtraData event={event} />
       <EventPackageData event={event} />

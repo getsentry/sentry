@@ -11,8 +11,10 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {SavedSearchType} from 'sentry/types/group';
 import EventView from 'sentry/utils/discover/eventView';
 import Results from 'sentry/views/discover/results';
-
-import {DEFAULT_EVENT_VIEW, getTransactionViews} from './data';
+import {
+  DEFAULT_EVENT_VIEW,
+  getTransactionViews,
+} from 'sentry/views/discover/results/data';
 
 const FIELDS = [
   {
@@ -262,6 +264,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -311,6 +314,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -374,6 +378,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -411,6 +416,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -448,6 +454,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -484,6 +491,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -526,6 +534,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -562,6 +571,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -604,6 +614,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -641,6 +652,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -708,6 +720,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -746,6 +759,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -823,6 +837,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -900,6 +915,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -981,6 +997,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1042,7 +1059,11 @@ describe('Results', function () {
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {router, organization}
+        {
+          router,
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       const projectPageFilter = await screen.findByTestId('page-filter-project-selector');
@@ -1085,7 +1106,11 @@ describe('Results', function () {
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {router, organization}
+        {
+          router,
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await waitFor(() => {
@@ -1120,6 +1145,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1157,6 +1183,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1195,7 +1222,11 @@ describe('Results', function () {
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {router, organization}
+        {
+          router,
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await waitFor(() =>
@@ -1261,7 +1292,11 @@ describe('Results', function () {
           location={router.location}
           router={router}
         />,
-        {router, organization}
+        {
+          router,
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await waitFor(() =>
@@ -1329,7 +1364,11 @@ describe('Results', function () {
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {router, organization}
+        {
+          router,
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await screen.findAllByText(getTransactionViews(organization)[0]!.name);
@@ -1381,7 +1420,11 @@ describe('Results', function () {
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {router, organization}
+        {
+          router,
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await waitFor(() => {
@@ -1415,7 +1458,11 @@ describe('Results', function () {
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {router, organization}
+        {
+          router,
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await waitFor(() => {
@@ -1459,7 +1506,11 @@ describe('Results', function () {
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {router, organization}
+        {
+          router,
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await waitFor(() => {
@@ -1497,7 +1548,11 @@ describe('Results', function () {
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {router, organization}
+        {
+          router,
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await waitFor(() => {
@@ -1538,6 +1593,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1616,6 +1672,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1708,6 +1765,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1831,6 +1889,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -1951,6 +2010,7 @@ describe('Results', function () {
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 

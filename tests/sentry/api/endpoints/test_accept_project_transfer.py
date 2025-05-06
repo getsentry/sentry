@@ -1,3 +1,4 @@
+from unittest.mock import patch
 from urllib.parse import urlencode
 from uuid import uuid4
 
@@ -139,7 +140,8 @@ class AcceptTransferProjectTest(APITestCase):
         assert p.organization_id == self.from_organization.id
         assert p.organization_id != rando_org.id
 
-    def test_transfers_project_to_correct_organization(self):
+    @patch("sentry.signals.project_transferred.send_robust")
+    def test_transfers_project_to_correct_organization(self, send_robust):
         self.login_as(self.owner)
         url_data = sign(
             salt=SALT,
@@ -157,8 +159,10 @@ class AcceptTransferProjectTest(APITestCase):
         p = Project.objects.get(id=self.project.id)
         assert p.organization_id == self.to_organization.id
         assert ProjectOption.objects.get_value(p, "sentry:project-transfer-transaction-id") is None
+        assert send_robust.called
 
-    def test_use_org_when_team_and_org_provided(self):
+    @patch("sentry.signals.project_transferred.send_robust")
+    def test_use_org_when_team_and_org_provided(self, send_robust):
         self.login_as(self.owner)
         url_data = sign(
             salt=SALT,
@@ -180,3 +184,4 @@ class AcceptTransferProjectTest(APITestCase):
         assert resp.status_code == 204
         p = Project.objects.get(id=self.project.id)
         assert p.organization_id == self.to_organization.id
+        assert send_robust.called

@@ -183,8 +183,9 @@ export declare namespace TraceTree {
 
   type Trace = TraceSplitResults<Transaction> | EAPTrace;
 
-  // Represents events that we render an individual row for in the trace waterfall.
-  type TraceEvent = Transaction | Span | TraceError | EAPSpan | EAPError;
+  // Represents events that we get from the trace endpoints and render an individual row for in the trace waterfall, on load.
+  // This excludes spans as they are rendered on-demand as the user zooms in.
+  type TraceEvent = Transaction | TraceError | EAPSpan | EAPError;
 
   type TraceError = TraceErrorType;
   type TraceErrorIssue = TraceError | EAPError;
@@ -252,6 +253,11 @@ export declare namespace TraceTree {
     project_slug: string | undefined;
     spans?: number;
   };
+
+  type OpsBreakdown = Array<{
+    count: number;
+    op: string;
+  }>;
 
   type Indicator = {
     duration: number;
@@ -366,7 +372,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         slug: value.project_slug,
       });
 
-      let parentNode;
+      let parentNode: TraceTreeNode<TraceTree.NodeValue>;
       if (isEAPTransaction(value)) {
         // For collapsed eap-transactions we still render the embedded eap-transactions as visible children.
         // We parent the eap-transactions under the closest collapsed eap-transaction node. Mimics the behavior
@@ -458,6 +464,26 @@ export class TraceTree extends TraceTreeEventDispatcher {
           if (closestEAPTransaction) {
             closestEAPTransaction.occurrences.add(occurence);
           }
+        }
+
+        function updateAncestorOpsBreakdown(
+          node: TraceTreeNode<TraceTree.EAPSpan>,
+          op: string
+        ) {
+          let current = node.parent;
+          while (current) {
+            const existing = current.eapSpanOpsBreakdown.find(b => b.op === op);
+            if (existing) {
+              existing.count++;
+            } else {
+              current.eapSpanOpsBreakdown.push({op, count: 1});
+            }
+            current = current.parent;
+          }
+        }
+
+        if (isEAPSpanNode(c)) {
+          updateAncestorOpsBreakdown(c, c.value.op);
         }
       }
 
@@ -2140,7 +2166,7 @@ function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
     const spanId = isEAPSpanNode(n) ? n.value.event_id : n.value.span_id;
     return `span-${spanId}`;
   }
-  if (isTraceNode(n)) {
+  if (isTraceNode(n) || isEAPTraceNode(n)) {
     return `trace-root`;
   }
 

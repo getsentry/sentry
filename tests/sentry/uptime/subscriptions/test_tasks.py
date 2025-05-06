@@ -21,7 +21,12 @@ from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.skips import requires_kafka
 from sentry.uptime.config_producer import get_partition_keys
-from sentry.uptime.models import UptimeStatus, UptimeSubscription, UptimeSubscriptionRegion
+from sentry.uptime.models import (
+    UptimeStatus,
+    UptimeSubscription,
+    UptimeSubscriptionRegion,
+    get_detector,
+)
 from sentry.uptime.subscriptions.regions import get_region_config
 from sentry.uptime.subscriptions.tasks import (
     SUBSCRIPTION_STATUS_MAX_AGE,
@@ -518,4 +523,11 @@ class BrokenMonitorCheckerTest(UptimeTestCase):
 
         proj_sub.refresh_from_db()
         assert proj_sub.status == expected_status
-        assert proj_sub.uptime_status == expected_uptime_status
+        assert proj_sub.uptime_subscription.uptime_status == expected_uptime_status
+
+        detector = get_detector(proj_sub.uptime_subscription)
+        assert detector
+        if expected_status == ObjectStatus.ACTIVE:
+            assert detector.enabled
+        else:
+            assert not detector.enabled

@@ -3,6 +3,9 @@ import type {PlatformKey} from 'sentry/types/project';
 
 export type FeatureFlagEventParameters = {
   'flags.cta_dismissed': {surface: string; type: string};
+  'flags.cta_read_more_clicked': {
+    surface: string;
+  };
   'flags.cta_rendered': {surface: string};
   'flags.drawer_details_rendered': {
     numLogs: number;
@@ -51,4 +54,5 @@ export const featureFlagEventMap: Record<FeatureFlagEventKey, string | null> = {
   'flags.table_rendered': 'Flag Table Rendered',
   'flags.view-all-clicked': 'Clicked View All Flags',
   'flags.view-setup-sidebar': 'Viewed Feature Flag Onboarding Sidebar',
+  'flags.cta_read_more_clicked': 'Clicked Read More in Feature Flag CTA',
 };

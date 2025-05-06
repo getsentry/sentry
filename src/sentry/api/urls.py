@@ -43,7 +43,6 @@ from sentry.api.endpoints.organization_unsubscribe import (
     OrganizationUnsubscribeIssue,
     OrganizationUnsubscribeProject,
 )
-from sentry.api.endpoints.organization_user_rollback import OrganizationRollbackUserEndpoint
 from sentry.api.endpoints.project_overview import ProjectOverviewEndpoint
 from sentry.api.endpoints.project_seer_preferences import ProjectSeerPreferencesEndpoint
 from sentry.api.endpoints.project_stacktrace_coverage import ProjectStacktraceCoverageEndpoint
@@ -65,6 +64,7 @@ from sentry.api.endpoints.seer_rpc import SeerRpcServiceEndpoint
 from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
+from sentry.api.endpoints.trace_explorer_ai_setup import TraceExplorerAISetup
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
 from sentry.data_secrecy.api.waive_data_secrecy import WaiveDataSecrecyEndpoint
@@ -610,13 +610,11 @@ from .endpoints.organization_trace import OrganizationTraceEndpoint
 from .endpoints.organization_traces import (
     OrganizationTracesEndpoint,
     OrganizationTraceSpansEndpoint,
-    OrganizationTracesStatsEndpoint,
 )
 from .endpoints.organization_user_details import OrganizationUserDetailsEndpoint
 from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.organization_user_teams import OrganizationUserTeamsEndpoint
 from .endpoints.organization_users import OrganizationUsersEndpoint
-from .endpoints.project_agnostic_rule_conditions import ProjectAgnosticRuleConditionsEndpoint
 from .endpoints.project_artifact_bundle_file_details import ProjectArtifactBundleFileDetailsEndpoint
 from .endpoints.project_artifact_bundle_files import ProjectArtifactBundleFilesEndpoint
 from .endpoints.project_commits import ProjectCommitsEndpoint
@@ -709,6 +707,7 @@ from .endpoints.team_release_count import TeamReleaseCountEndpoint
 from .endpoints.team_stats import TeamStatsEndpoint
 from .endpoints.team_time_to_resolution import TeamTimeToResolutionEndpoint
 from .endpoints.team_unresolved_issue_age import TeamUnresolvedIssueAgeEndpoint
+from .endpoints.trace_explorer_ai_query import TraceExplorerAIQuery
 from .endpoints.user_organizationintegrations import UserOrganizationIntegrationsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
 from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
@@ -1518,11 +1517,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-traces",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/traces-stats/$",
-        OrganizationTracesStatsEndpoint.as_view(),
-        name="sentry-api-0-organization-traces-stats",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/trace-items/attributes/$",
         OrganizationTraceItemAttributesEndpoint.as_view(),
         name="sentry-api-0-organization-trace-item-attributes",
@@ -2029,11 +2023,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-user-feedback",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/user-rollback/$",
-        OrganizationRollbackUserEndpoint.as_view(),
-        name="sentry-api-0-organization-user-rollback",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/user-teams/$",
         OrganizationUserTeamsEndpoint.as_view(),
         name="sentry-api-0-organization-user-teams",
@@ -2057,6 +2046,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/sentry-apps/$",
         OrganizationSentryAppsEndpoint.as_view(),
         name="sentry-api-0-organization-sentry-apps",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/trace-explorer-ai/setup/$",
+        TraceExplorerAISetup.as_view(),
+        name="sentry-api-0-trace-explorer-ai-setup",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/trace-explorer-ai/query/$",
+        TraceExplorerAIQuery.as_view(),
+        name="sentry-api-0-trace-explorer-ai-query",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/sentry-app-components/$",
@@ -2325,11 +2324,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^$",
         ProjectIndexEndpoint.as_view(),
         name="sentry-api-0-projects",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/rule-conditions/$",
-        ProjectAgnosticRuleConditionsEndpoint.as_view(),
-        name="sentry-api-0-project-agnostic-rule-conditions",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/$",

@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
+from sentry.api.helpers.group_index.update import handle_priority
 from sentry.constants import LOG_LEVELS_MAP, MAX_CULPRIT_LENGTH
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import (
@@ -30,6 +31,7 @@ from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
+from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
@@ -38,6 +40,7 @@ from sentry.ratelimits.sliding_windows import RequestedQuota
 from sentry.receivers import create_default_projects
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import PriorityLevel
 from sentry.utils import json
@@ -141,7 +144,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         event = self.store_event(data={}, project_id=self.project.id)
         occurrence = self.build_occurrence(
             event_id=event.event_id,
-            initial_issue_priority=PriorityLevel.HIGH,
+            priority=PriorityLevel.HIGH,
         )
         _, group_info = save_issue_occurrence(occurrence.to_dict(), event)
         assert group_info is not None
@@ -163,6 +166,32 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert group_info is not None
         assignee = GroupAssignee.objects.get(group=group_info.group)
         assert assignee.team_id == self.team.id
+
+    def test_issue_platform_handles_deprecated_initial_priority(self) -> None:
+        # test initial_issue_priority is handled
+        event = self.store_event(data={}, project_id=self.project.id)
+        occurrence = self.build_occurrence(
+            event_id=event.event_id,
+            assignee=f"team:{self.team.id}",
+            initial_issue_priority=PriorityLevel.MEDIUM,
+        )
+        _, group_info = save_issue_occurrence(occurrence.to_dict(), event)
+        assert group_info is not None
+        group = group_info.group
+        assert group.priority == PriorityLevel.MEDIUM
+
+        # test that the priority overrides the initial_issue_priority
+        Group.objects.all().delete()
+        occurrence = self.build_occurrence(
+            event_id=event.event_id,
+            assignee=f"team:{self.team.id}",
+            initial_issue_priority=PriorityLevel.MEDIUM,
+            priority=PriorityLevel.HIGH,
+        )
+        _, group_info = save_issue_occurrence(occurrence.to_dict(), event)
+        assert group_info is not None
+        group = group_info.group
+        assert group.priority == PriorityLevel.HIGH
 
 
 class ProcessOccurrenceDataTest(OccurrenceTestMixin, TestCase):
@@ -382,6 +411,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
                 slug = "test"
                 description = "Test"
                 category = GroupCategory.PROFILE.value
+                category_v2 = GroupCategory.MOBILE.value
                 noise_config = NoiseConfig(ignore_limit=2)
 
             event = self.store_event(data={}, project_id=self.project.id)
@@ -443,11 +473,63 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert group_info.group.priority == PriorityLevel.LOW
 
     def test_new_group_with_priority(self) -> None:
-        occurrence = self.build_occurrence(initial_issue_priority=PriorityLevel.HIGH)
+        occurrence = self.build_occurrence(priority=PriorityLevel.HIGH)
         event = self.store_event(data={}, project_id=self.project.id)
         group_info = save_issue_from_occurrence(occurrence, event, None)
         assert group_info is not None
         assert group_info.group.priority == PriorityLevel.HIGH
+
+    @with_feature("organizations:issue-open-periods")
+    def test_update_open_period(self) -> None:
+        fingerprint = ["some-fingerprint"]
+        occurrence = self.build_occurrence(
+            initial_issue_priority=PriorityLevel.MEDIUM,
+            fingerprint=fingerprint,
+        )
+        event = self.store_event(data={}, project_id=self.project.id)
+        group_info = save_issue_from_occurrence(occurrence, event, None)
+        assert group_info is not None
+        group = group_info.group
+        assert group.priority == PriorityLevel.MEDIUM
+        open_period = get_latest_open_period(group)
+        assert open_period is not None
+        assert open_period.data["highest_seen_priority"] == PriorityLevel.MEDIUM
+
+        new_event = self.store_event(data={}, project_id=self.project.id)
+        new_occurrence = self.build_occurrence(
+            fingerprint=["some-fingerprint"],
+            initial_issue_priority=PriorityLevel.HIGH,
+        )
+        with self.tasks():
+            updated_group_info = save_issue_from_occurrence(new_occurrence, new_event, None)
+        assert updated_group_info is not None
+        group.refresh_from_db()
+        assert group.priority == PriorityLevel.HIGH
+        open_period.refresh_from_db()
+        assert open_period.data["highest_seen_priority"] == PriorityLevel.HIGH
+
+    def test_group_with_priority_locked(self) -> None:
+        occurrence = self.build_occurrence(priority=PriorityLevel.HIGH)
+        event = self.store_event(data={}, project_id=self.project.id)
+        group_info = save_issue_from_occurrence(occurrence, event, None)
+        assert group_info is not None
+        group = group_info.group
+        assert group.priority == PriorityLevel.HIGH
+        assert group.priority_locked_at is None
+
+        handle_priority(
+            priority=PriorityLevel.LOW.to_str(),
+            group_list=[group],
+            acting_user=None,
+            project_lookup={self.project.id: self.project},
+        )
+
+        occurrence = self.build_occurrence(priority=PriorityLevel.HIGH)
+        event = self.store_event(data={}, project_id=self.project.id)
+        save_issue_from_occurrence(occurrence, event, None)
+        group.refresh_from_db()
+        assert group.priority == PriorityLevel.LOW
+        assert group.priority_locked_at is not None
 
 
 class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):
@@ -480,7 +562,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "metadata": {
                 "title": occurrence.issue_title,
                 "value": occurrence.subtitle,
-                "initial_priority": occurrence.initial_issue_priority,
+                "initial_priority": occurrence.priority,
             },
             "title": occurrence.issue_title,
             "location": event.location,
@@ -498,7 +580,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "title": occurrence.issue_title,
             "value": occurrence.subtitle,
             "dogs": "are great",
-            "initial_priority": occurrence.initial_issue_priority,
+            "initial_priority": occurrence.priority,
         }
 
     def test_populates_feedback_metadata(self) -> None:
@@ -524,7 +606,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "message": "test",
             "name": "Name Test",
             "source": "crash report widget",
-            "initial_priority": occurrence.initial_issue_priority,
+            "initial_priority": occurrence.priority,
         }
 
 

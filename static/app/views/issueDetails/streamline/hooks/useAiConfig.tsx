@@ -5,7 +5,17 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
-export const useAiConfig = (group: Group, project: Project) => {
+interface AiConfigResult {
+  areAiFeaturesAllowed: boolean;
+  hasAutofix: boolean;
+  hasGithubIntegration: boolean;
+  hasResources: boolean;
+  hasSummary: boolean;
+  isAutofixSetupLoading: boolean;
+  needsGenAiAcknowledgement: boolean;
+}
+
+export const useAiConfig = (group: Group, project: Project): AiConfigResult => {
   const organization = useOrganization();
   const {data: autofixSetupData, isPending: isAutofixSetupLoading} = useAutofixSetup({
     groupId: group.id,
@@ -22,19 +32,19 @@ export const useAiConfig = (group: Group, project: Project) => {
   const isAutofixEnabled = issueTypeConfig.autofix;
   const hasResources = !!issueTypeConfig.resources;
 
-  const hasGenAIConsent = autofixSetupData?.genAIConsent.ok ?? organization.genAIConsent;
-
-  const hasSummary = hasGenAIConsent && isSummaryEnabled && areAiFeaturesAllowed;
+  const hasSummary = Boolean(isSummaryEnabled && areAiFeaturesAllowed);
   const hasAutofix = isAutofixEnabled && areAiFeaturesAllowed && !isSampleError;
-  const hasGithubIntegration = autofixSetupData?.integration.ok;
+  const hasGithubIntegration = !!autofixSetupData?.integration.ok;
 
-  const needsGenAIConsent =
-    !hasGenAIConsent && (isSummaryEnabled || isAutofixEnabled) && areAiFeaturesAllowed;
+  const needsGenAiAcknowledgement =
+    !autofixSetupData?.setupAcknowledgement.userHasAcknowledged &&
+    (isSummaryEnabled || isAutofixEnabled) &&
+    areAiFeaturesAllowed;
 
   return {
     hasSummary,
     hasAutofix,
-    needsGenAIConsent,
+    needsGenAiAcknowledgement,
     hasResources,
     isAutofixSetupLoading,
     areAiFeaturesAllowed,

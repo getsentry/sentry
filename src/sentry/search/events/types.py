@@ -81,7 +81,7 @@ class EventsResponse(TypedDict):
     meta: EventsMeta
 
 
-SAMPLING_MODES = Literal["BEST_EFFORT", "PREFLIGHT"]
+SAMPLING_MODES = Literal["BEST_EFFORT", "PREFLIGHT", "NORMAL", "HIGHEST_ACCURACY"]
 
 
 @dataclass

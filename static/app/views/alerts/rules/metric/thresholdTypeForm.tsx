@@ -53,6 +53,10 @@ function ThresholdTypeForm({
     organization.features.includes('anomaly-detection-alerts') &&
     organization.features.includes('anomaly-detection-rollout');
 
+  const hasAnomalyDetectionForEAP = organization.features.includes(
+    'anomaly-detection-eap'
+  );
+
   let comparisonDeltaOptions = COMPARISON_DELTA_OPTIONS;
   if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
     // Don't allow comparisons over a week for span alerts
@@ -100,12 +104,16 @@ function ThresholdTypeForm({
     ],
   ];
 
-  if (hasAnomalyDetection && validAnomalyDetectionAlertTypes.has(alertType)) {
+  if (
+    hasAnomalyDetection &&
+    (validAnomalyDetectionAlertTypes.has(alertType) ||
+      (hasAnomalyDetectionForEAP && alertType === 'eap_metrics'))
+  ) {
     thresholdTypeChoices.push([
       AlertRuleComparisonType.DYNAMIC,
       <ComparisonContainer key="Dynamic">
         {t('Anomaly: whenever values are outside of expected bounds')}
-        <FeatureBadge
+        <StyledFeatureBadge
           type="beta"
           tooltipProps={{
             title: t('Anomaly detection is in beta and may produce unexpected results'),
@@ -152,6 +160,10 @@ const StyledRadioGroup = styled(RadioGroup)`
   & > label {
     height: 33px;
   }
+`;
+
+const StyledFeatureBadge = styled(FeatureBadge)`
+  margin-left: ${space(0.25)};
 `;
 
 export default ThresholdTypeForm;

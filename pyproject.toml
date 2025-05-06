@@ -62,6 +62,7 @@ warn_unused_configs = true
 warn_unused_ignores = true
 warn_redundant_casts = true
 enable_error_code = ["ignore-without-code", "redundant-self"]
+local_partial_types = true  # compat with dmypy
 
 [tool.django-stubs]
 django_settings_module = "sentry.conf.server_mypy"
@@ -115,7 +116,6 @@ module = [
     "sentry.api.endpoints.organization_events_meta",
     "sentry.api.endpoints.organization_events_spans_performance",
     "sentry.api.endpoints.organization_releases",
-    "sentry.api.endpoints.project_repo_path_parsing",
     "sentry.api.endpoints.project_rules_configuration",
     "sentry.api.paginator",
     "sentry.auth.helper",
@@ -129,7 +129,6 @@ module = [
     "sentry.integrations.github.client",
     "sentry.integrations.github.integration",
     "sentry.integrations.gitlab.issues",
-    "sentry.integrations.jira.integration",
     "sentry.integrations.pagerduty.actions.form",
     "sentry.integrations.pipeline",
     "sentry.integrations.slack.message_builder.notifications.issues",
@@ -143,8 +142,6 @@ module = [
     "sentry.notifications.notifications.activity.base",
     "sentry.plugins.config",
     "sentry.release_health.metrics_sessions_v2",
-    "sentry.rules.actions.integrations.create_ticket.utils",
-    "sentry.rules.history.preview",
     "sentry.search.events.builder.errors",
     "sentry.search.events.builder.metrics",
     "sentry.search.events.datasets.filter_aliases",
@@ -155,7 +152,6 @@ module = [
     "sentry.tasks.base",
     "sentry.testutils.cases",
     "sentry.web.frontend.auth_login",
-    "sentry_plugins.github.plugin",
     "sentry_plugins.jira.plugin",
     "tests.sentry.api.helpers.test_group_index",
     "tests.sentry.issues.test_utils",
@@ -182,6 +178,7 @@ module = [
     "sentry.api.event_search",
     "sentry.api.helpers.deprecation",
     "sentry.api.helpers.environments",
+    "sentry.api.helpers.group_index.delete",
     "sentry.api.helpers.group_index.update",
     "sentry.api.helpers.source_map_helper",
     "sentry.api.permissions",
@@ -267,6 +264,7 @@ module = [
     "sentry.issues.endpoints",
     "sentry.issues.endpoints.actionable_items",
     "sentry.issues.endpoints.group_activities",
+    "sentry.issues.endpoints.group_details",
     "sentry.issues.endpoints.group_event_details",
     "sentry.issues.endpoints.group_events",
     "sentry.issues.endpoints.group_notes",
@@ -314,7 +312,6 @@ module = [
     "sentry.issues.status_change",
     "sentry.issues.status_change_consumer",
     "sentry.issues.status_change_message",
-    "sentry.issues.streamline",
     "sentry.issues.update_inbox",
     "sentry.lang.java.processing",
     "sentry.llm.*",

@@ -47,7 +47,7 @@ type CodebaseState = {
 
 export type AutofixData = {
   codebases: Record<string, CodebaseState>;
-  created_at: string;
+  last_triggered_at: string;
   request: {
     repos: SeerRepoDefinition[];
   };
@@ -108,7 +108,22 @@ export type AutofixInsight = {
   insight: string;
   justification: string;
   change_diff?: FilePatch[];
+  markdown_snippets?: string;
+  sources?: InsightSources;
   type?: 'insight' | 'file_change';
+};
+
+export type InsightSources = {
+  breadcrumbs_used: boolean;
+  code_used_urls: string[];
+  connected_error_ids_used: string[];
+  diff_urls: string[];
+  http_request_used: boolean;
+  profile_ids_used: string[];
+  stacktrace_used: boolean;
+  thoughts: string;
+  trace_event_ids_used: string[];
+  event_trace_id?: string;
 };
 
 export interface AutofixDefaultStep extends BaseStep {
@@ -248,6 +263,6 @@ export interface SeerRepoDefinition {
   provider_raw?: string;
 }
 
-export interface ProjectPreferences {
+export interface ProjectSeerPreferences {
   repositories: SeerRepoDefinition[];
 }

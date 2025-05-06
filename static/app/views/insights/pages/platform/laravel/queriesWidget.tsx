@@ -8,12 +8,14 @@ import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {Release} from 'sentry/views/dashboards/widgets/common/types';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
+import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
@@ -23,29 +25,18 @@ import {
   SeriesColorIndicator,
   WidgetFooterTable,
 } from 'sentry/views/insights/pages/platform/laravel/styles';
-import {Toolbar} from 'sentry/views/insights/pages/platform/laravel/toolbar';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
+import {useReleaseBubbleProps} from 'sentry/views/insights/pages/platform/shared/getReleaseBubbleProps';
+import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 import {ModuleName} from 'sentry/views/insights/types';
 import {TimeSpentInDatabaseWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
-
-interface QueriesDiscoverQueryResponse {
-  data: Array<{
-    'avg(span.duration)': number;
-    'project.id': string;
-    'sentry.normalized_description': string;
-    'span.group': string;
-    'span.op': string;
-    'time_spent_percentage()': number;
-    transaction: string;
-  }>;
-}
 
 function getSeriesName(item: {'span.group': string; transaction: string}) {
   return `${item.transaction},${item['span.group']}`;
 }
 
-export function QueriesWidget({query}: {query?: string}) {
+export function QueriesWidget({query, releases}: {query?: string; releases?: Release[]}) {
   const theme = useTheme();
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({
@@ -54,30 +45,21 @@ export function QueriesWidget({query}: {query?: string}) {
 
   const fullQuery = `has:db.system ${query}`;
 
-  const queriesRequest = useApiQuery<QueriesDiscoverQueryResponse>(
-    [
-      `/organizations/${organization.slug}/events/`,
-      {
-        query: {
-          ...pageFilterChartParams,
-          dataset: 'spans',
-          field: [
-            'span.op',
-            'span.group',
-            'project.id',
-            'sentry.normalized_description',
-            'avg(span.duration)',
-            'transaction',
-          ],
-          query: fullQuery,
-          sort: '-avg(span.duration)',
-          per_page: 3,
-          useRpc: 1,
-          referrer: Referrer.QUERIES_CHART,
-        },
-      },
-    ],
-    {staleTime: 0}
+  const queriesRequest = useEAPSpans(
+    {
+      fields: [
+        'span.op',
+        'span.group',
+        'project.id',
+        'sentry.normalized_description',
+        'avg(span.duration)',
+        'transaction',
+      ],
+      sorts: [{field: 'avg(span.duration)', kind: 'desc'}],
+      search: fullQuery,
+      limit: 3,
+    },
+    Referrer.QUERIES_CHART
   );
 
   const timeSeriesRequest = useApiQuery<MultiSeriesEventsStats>(
@@ -89,10 +71,9 @@ export function QueriesWidget({query}: {query?: string}) {
           dataset: 'spans',
           field: ['transaction', 'span.group', 'avg(span.duration)'],
           yAxis: ['avg(span.duration)'],
-          query: `span.group:[${queriesRequest.data?.data.map(item => `"${item['span.group']}"`).join(',')}]`,
+          query: `span.group:[${queriesRequest.data?.map(item => `"${item['span.group']}"`).join(',')}]`,
           sort: '-avg(span.duration)',
           topEvents: 3,
-          useRpc: 1,
         },
       },
     ],
@@ -134,12 +115,12 @@ export function QueriesWidget({query}: {query?: string}) {
   const error = timeSeriesRequest.error || queriesRequest.error;
 
   const hasData =
-    queriesRequest.data && queriesRequest.data.data.length > 0 && timeSeries.length > 0;
+    queriesRequest.data && queriesRequest.data.length > 0 && timeSeries.length > 0;
 
   const colorPalette = theme.chart.getColorPalette(timeSeries.length - 2);
 
   const aliases = Object.fromEntries(
-    queriesRequest.data?.data.map(item => [
+    queriesRequest.data?.map(item => [
       getSeriesName(item),
       item['sentry.normalized_description'],
     ]) ?? []
@@ -161,13 +142,14 @@ export function QueriesWidget({query}: {query?: string}) {
               alias: aliases[ts.seriesName],
             })
         ),
+        ...useReleaseBubbleProps(releases),
       }}
     />
   );
 
   const footer = hasData && (
     <WidgetFooterTable>
-      {queriesRequest.data?.data.map((item, index) => (
+      {queriesRequest.data?.map((item, index) => (
         <Fragment key={item['sentry.normalized_description']}>
           <div>
             <SeriesColorIndicator

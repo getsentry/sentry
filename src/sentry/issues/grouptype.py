@@ -29,13 +29,42 @@ logger = logging.getLogger(__name__)
 
 class GroupCategory(IntEnum):
     ERROR = 1
+    """
+    Deprecated
+    Will be broken out into METRIC, DB_QUERY, HTTP_CLIENT, FRONTEND, MOBILE
+    """
     PERFORMANCE = 2
     PROFILE = 3  # deprecated, merging with PERFORMANCE
+    """
+    Deprecated
+    Cron types will move to the OUTAGE category
+    """
     CRON = 4
+    """
+    Deprecated
+    Replay types will move to the FRONTEND category
+    """
     REPLAY = 5
     FEEDBACK = 6
+    """
+    Deprecated
+    Uptime types will move to the OUTAGE category
+    """
     UPTIME = 7
+    """
+    Deprecated
+    Metric alert types will move to the METRIC category
+    """
     METRIC_ALERT = 8
+    TEST_NOTIFICATION = 9
+
+    # New issue categories (under the organizations:issue-taxonomy flag)
+    OUTAGE = 10
+    METRIC = 11
+    DB_QUERY = 12
+    HTTP_CLIENT = 13
+    FRONTEND = 14
+    MOBILE = 15
 
 
 GROUP_CATEGORIES_CUSTOM_EMAIL = (
@@ -69,6 +98,7 @@ class GroupTypeRegistry:
         self._registry[group_type.type_id] = group_type
         self._slug_lookup[group_type.slug] = group_type
         self._category_lookup[group_type.category].add(group_type.type_id)
+        self._category_lookup[group_type.category_v2].add(group_type.type_id)
 
     def all(self) -> list[type[GroupType]]:
         return list(self._registry.values())
@@ -160,6 +190,9 @@ class GroupType:
     slug: str
     description: str
     category: int
+    # New issue category mapping (under the organizations:issue-taxonomy flag)
+    # When GA'd, the original `category` will be removed and this will be renamed to `category`.
+    category_v2: int
     noise_config: NoiseConfig | None = None
     default_priority: int = PriorityLevel.MEDIUM
     # If True this group type should be released everywhere. If False, fall back to features to
@@ -271,6 +304,7 @@ class PerformanceSlowDBQueryGroupType(PerformanceGroupTypeDefaults, GroupType):
     slug = "performance_slow_db_query"
     description = "Slow DB Query"
     category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.DB_QUERY.value
     noise_config = NoiseConfig(ignore_limit=100)
     default_priority = PriorityLevel.LOW
     released = True
@@ -282,6 +316,7 @@ class PerformanceRenderBlockingAssetSpanGroupType(PerformanceGroupTypeDefaults, 
     slug = "performance_render_blocking_asset_span"
     description = "Large Render Blocking Asset"
     category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.FRONTEND.value
     default_priority = PriorityLevel.LOW
     released = True
     use_flagpole_for_all_features = True
@@ -293,8 +328,20 @@ class PerformanceNPlusOneGroupType(PerformanceGroupTypeDefaults, GroupType):
     slug = "performance_n_plus_one_db_queries"
     description = "N+1 Query"
     category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.DB_QUERY.value
     default_priority = PriorityLevel.LOW
     released = True
+
+
+@dataclass(frozen=True)
+class PerformanceNPlusOneExperimentalGroupType(PerformanceGroupTypeDefaults, GroupType):
+    type_id = 1906
+    slug = "performance_n_plus_one_db_queries_experimental"
+    description = "N+1 Query (Experimental)"
+    category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.DB_QUERY.value
+    default_priority = PriorityLevel.LOW
+    released = False
 
 
 @dataclass(frozen=True)
@@ -303,6 +350,7 @@ class PerformanceConsecutiveDBQueriesGroupType(PerformanceGroupTypeDefaults, Gro
     slug = "performance_consecutive_db_queries"
     description = "Consecutive DB Queries"
     category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.DB_QUERY.value
     noise_config = NoiseConfig(ignore_limit=15)
     default_priority = PriorityLevel.LOW
     released = True
@@ -314,6 +362,7 @@ class PerformanceFileIOMainThreadGroupType(PerformanceGroupTypeDefaults, GroupTy
     slug = "performance_file_io_main_thread"
     description = "File IO on Main Thread"
     category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.MOBILE.value
     default_priority = PriorityLevel.LOW
     released = True
 
@@ -324,6 +373,7 @@ class PerformanceConsecutiveHTTPQueriesGroupType(PerformanceGroupTypeDefaults, G
     slug = "performance_consecutive_http"
     description = "Consecutive HTTP"
     category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.HTTP_CLIENT.value
     noise_config = NoiseConfig(ignore_limit=5)
     default_priority = PriorityLevel.LOW
     released = True
@@ -335,16 +385,35 @@ class PerformanceNPlusOneAPICallsGroupType(GroupType):
     slug = "performance_n_plus_one_api_calls"
     description = "N+1 API Call"
     category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.HTTP_CLIENT.value
     default_priority = PriorityLevel.LOW
     released = True
 
 
 @dataclass(frozen=True)
+class PerformanceNPlusOneAPICallsExperimentalGroupType(GroupType):
+    type_id = 1910
+    slug = "performance_n_plus_one_api_calls_experimental"
+    description = "N+1 API Call (Experimental)"
+    category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.HTTP_CLIENT.value
+    default_priority = PriorityLevel.LOW
+    released = False
+
+
+@dataclass(frozen=True)
 class PerformanceMNPlusOneDBQueriesGroupType(PerformanceGroupTypeDefaults, GroupType):
+    """
+    This group type is only used for fingerprinting MN+1 DB Performance Issues.
+    No field other than `type_id` are referenced, so changes will not have an affect.
+    The MN+1 detector uses the PerformanceNPlusOneGroupType, so reference that GroupType instead.
+    """
+
     type_id = 1011
     slug = "performance_m_n_plus_one_db_queries"
     description = "MN+1 Query"
     category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.DB_QUERY.value
     default_priority = PriorityLevel.LOW
     released = True
 
@@ -355,6 +424,7 @@ class PerformanceUncompressedAssetsGroupType(PerformanceGroupTypeDefaults, Group
     slug = "performance_uncompressed_assets"
     description = "Uncompressed Asset"
     category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.FRONTEND.value
     noise_config = NoiseConfig(ignore_limit=100)
     default_priority = PriorityLevel.LOW
     released = True
@@ -366,6 +436,7 @@ class PerformanceDBMainThreadGroupType(PerformanceGroupTypeDefaults, GroupType):
     slug = "performance_db_main_thread"
     description = "DB on Main Thread"
     category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.MOBILE.value
     default_priority = PriorityLevel.LOW
     released = True
 
@@ -376,6 +447,7 @@ class PerformanceLargeHTTPPayloadGroupType(PerformanceGroupTypeDefaults, GroupTy
     slug = "performance_large_http_payload"
     description = "Large HTTP payload"
     category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.HTTP_CLIENT.value
     default_priority = PriorityLevel.LOW
     released = True
 
@@ -387,6 +459,7 @@ class PerformanceHTTPOverheadGroupType(PerformanceGroupTypeDefaults, GroupType):
     description = "HTTP/1.1 Overhead"
     noise_config = NoiseConfig(ignore_limit=20)
     category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.HTTP_CLIENT.value
     default_priority = PriorityLevel.LOW
     released = True
 
@@ -397,6 +470,7 @@ class PerformanceP95EndpointRegressionGroupType(GroupType):
     slug = "performance_p95_endpoint_regression"
     description = "Endpoint Regression"
     category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.METRIC.value
     enable_auto_resolve = False
     enable_escalation_detection = False
     default_priority = PriorityLevel.MEDIUM
@@ -411,6 +485,7 @@ class PerformanceStreamedSpansGroupTypeExperimental(GroupType):
     slug = "performance_streamed_spans_exp"
     description = "Streamed Spans (Experimental)"
     category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.METRIC.value
     enable_auto_resolve = False
     enable_escalation_detection = False
     default_priority = PriorityLevel.LOW
@@ -423,6 +498,7 @@ class ProfileFileIOGroupType(GroupType):
     slug = "profile_file_io_main_thread"
     description = "File I/O on Main Thread"
     category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.MOBILE.value
     default_priority = PriorityLevel.LOW
     released = True
 
@@ -433,6 +509,7 @@ class ProfileImageDecodeGroupType(GroupType):
     slug = "profile_image_decode_main_thread"
     description = "Image Decoding on Main Thread"
     category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.MOBILE.value
     default_priority = PriorityLevel.LOW
     released = True
 
@@ -443,6 +520,7 @@ class ProfileJSONDecodeType(GroupType):
     slug = "profile_json_decode_main_thread"
     description = "JSON Decoding on Main Thread"
     category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.MOBILE.value
     default_priority = PriorityLevel.LOW
     released = True
 
@@ -453,6 +531,7 @@ class ProfileRegexType(GroupType):
     slug = "profile_regex_main_thread"
     description = "Regex on Main Thread"
     category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.MOBILE.value
     released = True
     default_priority = PriorityLevel.LOW
 
@@ -463,6 +542,7 @@ class ProfileFrameDropType(GroupType):
     slug = "profile_frame_drop"
     description = "Frame Drop"
     category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.MOBILE.value
     noise_config = NoiseConfig(ignore_limit=2000)
     released = True
     default_priority = PriorityLevel.LOW
@@ -474,6 +554,7 @@ class ProfileFunctionRegressionType(GroupType):
     slug = "profile_function_regression"
     description = "Function Regression"
     category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.METRIC.value
     enable_auto_resolve = False
     released = True
     default_priority = PriorityLevel.MEDIUM
@@ -486,6 +567,7 @@ class MonitorIncidentType(GroupType):
     slug = "monitor_check_in_failure"
     description = "Crons Monitor Failed"
     category = GroupCategory.CRON.value
+    category_v2 = GroupCategory.OUTAGE.value
     released = True
     creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
     default_priority = PriorityLevel.HIGH
@@ -515,6 +597,7 @@ class ReplayRageClickType(ReplayGroupTypeDefaults, GroupType):
     slug = "replay_click_rage"
     description = "Rage Click Detected"
     category = GroupCategory.REPLAY.value
+    category_v2 = GroupCategory.FRONTEND.value
     default_priority = PriorityLevel.MEDIUM
     notification_config = NotificationConfig()
     released = True
@@ -526,6 +609,7 @@ class ReplayHydrationErrorType(ReplayGroupTypeDefaults, GroupType):
     slug = "replay_hydration_error"
     description = "Hydration Error Detected"
     category = GroupCategory.REPLAY.value
+    category_v2 = GroupCategory.FRONTEND.value
     default_priority = PriorityLevel.MEDIUM
     notification_config = NotificationConfig()
     released = True
@@ -537,6 +621,7 @@ class FeedbackGroup(GroupType):
     slug = "feedback"
     description = "Feedback"
     category = GroupCategory.FEEDBACK.value
+    category_v2 = GroupCategory.FEEDBACK.value
     creation_quota = Quota(3600, 60, 1000)  # 1000 per hour, sliding window of 60 seconds
     default_priority = PriorityLevel.MEDIUM
     notification_config = NotificationConfig(context=[])
@@ -552,6 +637,7 @@ class MetricIssuePOC(GroupType):
     slug = "metric_issue_poc"
     description = "Metric Issue POC"
     category = GroupCategory.METRIC_ALERT.value
+    category_v2 = GroupCategory.METRIC.value
     default_priority = PriorityLevel.HIGH
     enable_auto_resolve = False
     enable_escalation_detection = False

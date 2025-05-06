@@ -21,7 +21,7 @@ from sentry.search.events.constants import (
 )
 from sentry.search.events.types import SnubaParams
 from sentry.search.utils import DEVICE_CLASS
-from sentry.utils.validators import is_event_id, is_span_id
+from sentry.utils.validators import is_empty_string, is_event_id, is_span_id
 
 
 def validate_event_id(value: str | list[str]) -> bool:
@@ -45,7 +45,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="parent_span",
             internal_name="sentry.parent_span_id",
             search_type="string",
-            validator=is_span_id,
+            validator=[is_empty_string, is_span_id],
         ),
         ResolvedAttribute(
             public_alias="span.action",
@@ -234,17 +234,17 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="second",
         ),
         ResolvedAttribute(
-            public_alias="mobile.frames_slow",
+            public_alias="mobile.slow_frames",
             internal_name="frames.slow",
             search_type="number",
         ),
         ResolvedAttribute(
-            public_alias="mobile.frames_frozen",
+            public_alias="mobile.frozen_frames",
             internal_name="frames.frozen",
             search_type="number",
         ),
         ResolvedAttribute(
-            public_alias="mobile.frames_total",
+            public_alias="mobile.total_frames",
             internal_name="frames.total",
             search_type="number",
         ),
@@ -319,6 +319,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             internal_name="sentry.sampling_factor",
             search_type="number",
         ),
+        ResolvedAttribute(
+            public_alias="code.lineno",
+            internal_name="code.lineno",
+            search_type="number",
+        ),
         simple_sentry_field("browser.name"),
         simple_sentry_field("device.family"),
         simple_sentry_field("device.arch"),
@@ -368,6 +373,9 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         simple_sentry_field("user.id"),
         simple_sentry_field("user.ip"),
         simple_sentry_field("user.username"),
+        simple_sentry_field("os.name"),
+        simple_sentry_field("app_start_type"),
+        simple_sentry_field("ttid"),
         simple_measurements_field("app_start_cold", "millisecond"),
         simple_measurements_field("app_start_warm", "millisecond"),
         simple_measurements_field("frames_frozen"),

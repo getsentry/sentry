@@ -1,3 +1,4 @@
+import AutomationBuilderSelectField from 'sentry/components/workflowEngine/form/automationBuilderSelectField';
 import {tct} from 'sentry/locale';
 import {
   type Level,
@@ -5,11 +6,7 @@ import {
   LEVEL_MATCH_CHOICES,
   type MatchType,
 } from 'sentry/views/automations/components/actionFilters/constants';
-import {
-  InlineSelectControl,
-  selectControlStyles,
-  useDataConditionNodeContext,
-} from 'sentry/views/automations/components/dataConditionNodes';
+import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
 export default function LevelNode() {
   return tct("The event's level [match] [level]", {
@@ -21,8 +18,7 @@ export default function LevelNode() {
 function MatchField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
-    <InlineSelectControl
-      styles={selectControlStyles}
+    <AutomationBuilderSelectField
       name={`${condition_id}.comparison.match`}
       value={condition.comparison.match}
       options={LEVEL_MATCH_CHOICES}
@@ -38,8 +34,7 @@ function MatchField() {
 function LevelField() {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   return (
-    <InlineSelectControl
-      styles={selectControlStyles}
+    <AutomationBuilderSelectField
       name={`${condition_id}.comparison.level`}
       value={condition.comparison.level}
       options={LEVEL_CHOICES}

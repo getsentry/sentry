@@ -28,7 +28,6 @@ import {
   type SuggestedQuery,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 import {ToolbarHeader, ToolbarHeaderButton, ToolbarLabel, ToolbarSection} from './styles';
 
@@ -94,7 +93,7 @@ function ToolbarSuggestedQueriesInner({dismiss}: ToolbarSuggestedQueriesInnerPro
   }, [selection, projects]);
 
   return (
-    <ToolbarSection data-test-id="section-suggested-queries">
+    <StyledToolbarSection data-test-id="section-suggested-queries">
       <StyledPanel>
         <ToolbarHeader>
           <ToolbarLabel underlined={false}>{t('Suggested Queries')}</ToolbarLabel>
@@ -118,7 +117,7 @@ function ToolbarSuggestedQueriesInner({dismiss}: ToolbarSuggestedQueriesInnerPro
           ))}
         </SuggestedQueriesContainer>
       </StyledPanel>
-    </ToolbarSection>
+    </StyledToolbarSection>
   );
 }
 
@@ -176,8 +175,8 @@ function getSuggestedQueries(platforms: PlatformCategory[], maxQueries = 5) {
       query: 'span.op:[pageload,navigation]',
       sortBys: [{field: 'avg(measurements.lcp)', kind: 'desc'}],
       visualizes: [
-        {chartType: ChartType.LINE, yAxes: ['p50(measurements.lcp)']},
-        {chartType: ChartType.LINE, yAxes: ['avg(measurements.lcp)']},
+        {yAxes: ['p50(measurements.lcp)']},
+        {yAxes: ['avg(measurements.lcp)']},
       ],
     },
     {
@@ -196,8 +195,8 @@ function getSuggestedQueries(platforms: PlatformCategory[], maxQueries = 5) {
       query: 'span.op:[resource.css,resource.img,resource.script]',
       sortBys: [{field: 'p75(http.response_transfer_size)', kind: 'desc'}],
       visualizes: [
-        {chartType: ChartType.LINE, yAxes: ['p75(http.response_transfer_size)']},
-        {chartType: ChartType.LINE, yAxes: ['p90(http.response_transfer_size)']},
+        {yAxes: ['p75(http.response_transfer_size)']},
+        {yAxes: ['p90(http.response_transfer_size)']},
       ],
     },
     {
@@ -214,7 +213,7 @@ function getSuggestedQueries(platforms: PlatformCategory[], maxQueries = 5) {
       mode: Mode.AGGREGATE,
       query: 'span.op:[pageload,navigation]',
       sortBys: [{field: 'count(span.duration)', kind: 'desc'}],
-      visualizes: [{chartType: ChartType.LINE, yAxes: ['count(span.duration)']}],
+      visualizes: [{yAxes: ['count(span.duration)']}],
     },
   ];
 
@@ -233,10 +232,7 @@ function getSuggestedQueries(platforms: PlatformCategory[], maxQueries = 5) {
       mode: Mode.AGGREGATE,
       query: 'span.op:http.server',
       sortBys: [{field: 'p75(span.duration)', kind: 'desc'}],
-      visualizes: [
-        {chartType: ChartType.LINE, yAxes: ['p75(span.duration)']},
-        {chartType: ChartType.LINE, yAxes: ['p90(span.duration)']},
-      ],
+      visualizes: [{yAxes: ['p75(span.duration)']}, {yAxes: ['p90(span.duration)']}],
     },
     {
       title: t('Top Server Calls'),
@@ -252,7 +248,7 @@ function getSuggestedQueries(platforms: PlatformCategory[], maxQueries = 5) {
       mode: Mode.AGGREGATE,
       query: 'span.op:http.server',
       sortBys: [{field: 'count(span.duration)', kind: 'desc'}],
-      visualizes: [{chartType: ChartType.BAR, yAxes: ['count(span.duration)']}],
+      visualizes: [{yAxes: ['count(span.duration)']}],
     },
   ];
 
@@ -271,7 +267,7 @@ function getSuggestedQueries(platforms: PlatformCategory[], maxQueries = 5) {
       mode: Mode.AGGREGATE,
       query: 'span.op:ui.load',
       sortBys: [{field: 'count(span.duration)', kind: 'desc'}],
-      visualizes: [{chartType: ChartType.LINE, yAxes: ['count(span.duration)']}],
+      visualizes: [{yAxes: ['count(span.duration)']}],
     },
   ];
 
@@ -296,10 +292,7 @@ function getSuggestedQueries(platforms: PlatformCategory[], maxQueries = 5) {
       mode: Mode.AGGREGATE,
       query: '',
       sortBys: [{field: 'avg(span.duration)', kind: 'desc'}],
-      visualizes: [
-        {chartType: ChartType.LINE, yAxes: ['avg(span.duration)']},
-        {chartType: ChartType.LINE, yAxes: ['p50(span.duration)']},
-      ],
+      visualizes: [{yAxes: ['avg(span.duration)']}, {yAxes: ['p50(span.duration)']}],
     },
     {
       title: t('Database Latency'),
@@ -315,10 +308,7 @@ function getSuggestedQueries(platforms: PlatformCategory[], maxQueries = 5) {
       mode: Mode.AGGREGATE,
       query: 'span.op:db',
       sortBys: [{field: 'avg(span.duration)', kind: 'desc'}],
-      visualizes: [
-        {chartType: ChartType.LINE, yAxes: ['avg(span.duration)']},
-        {chartType: ChartType.LINE, yAxes: ['p50(span.duration)']},
-      ],
+      visualizes: [{yAxes: ['avg(span.duration)']}, {yAxes: ['p50(span.duration)']}],
     },
   ];
 
@@ -343,7 +333,12 @@ function getSuggestedQueries(platforms: PlatformCategory[], maxQueries = 5) {
   return queries;
 }
 
+const StyledToolbarSection = styled(ToolbarSection)`
+  margin-bottom: 0;
+`;
+
 const StyledPanel = styled(Panel)`
+  margin-bottom: 0;
   padding: ${space(2)};
   background: linear-gradient(
     269.35deg,
