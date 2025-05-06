@@ -23,10 +23,19 @@ import {RELEASES_DRAWER_FIELD_MAP} from './utils';
  * releases list or details.
  */
 export function ReleasesDrawer() {
-  const {rd, rdChart, rdEnd, rdEnv, rdStart, rdProject, rdRelease, rdReleaseProjectId} =
-    useLocationQuery({
-      fields: RELEASES_DRAWER_FIELD_MAP,
-    });
+  const {
+    rd,
+    rdChart,
+    rdEnd,
+    rdEnv,
+    rdSource,
+    rdStart,
+    rdProject,
+    rdRelease,
+    rdReleaseProjectId,
+  } = useLocationQuery({
+    fields: RELEASES_DRAWER_FIELD_MAP,
+  });
   const start = getDateFromTimestamp(rdStart);
   const end = getDateFromTimestamp(rdEnd);
   const defaultPageFilters = usePageFilters();
@@ -54,9 +63,10 @@ export function ReleasesDrawer() {
       trackAnalytics('releases.drawer_opened', {
         release: Boolean(rdRelease),
         organization: organization.id,
+        source: rdChart ?? rdSource ?? 'unknown',
       });
     }
-  }, [organization, rd, rdProject, rdRelease]);
+  }, [organization, rd, rdProject, rdRelease, rdSource, rdChart]);
 
   useEffect(() => {
     if (rd === 'show' && !rdRelease && !rdStart && !rdEnd) {
