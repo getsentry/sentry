@@ -172,6 +172,7 @@ def sync_prebuilt_queries(organization):
         queries_to_create = []
         queries_to_update = []
         for prebuilt_query in PREBUILT_SAVED_QUERIES:
+            # Ensure the prebuilt query is valid also provides mapping for some fields such as the dataset string `spans` into the int `0`
             serializer = ExploreSavedQuerySerializer(
                 data=prebuilt_query,
                 context={
