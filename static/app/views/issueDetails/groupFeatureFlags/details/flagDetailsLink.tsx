@@ -17,7 +17,10 @@ export default function FlagDetailsLink({
     <StyledLink
       to={{
         pathname: `${location.pathname}${tag.key}/`,
-        query: location.query,
+        query: {
+          ...location.query,
+          tab: 'flags',
+        },
       }}
     >
       {children}
