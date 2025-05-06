@@ -245,6 +245,7 @@ def sync_prebuilt_queries_starred(organization, user_id):
                     user_id=user_id,
                 ).values_list("explore_saved_query_id", flat=True)
             )
+            .order_by("prebuilt_id")  # Ensures prebuilt queries are starred in the correct order
             .values_list("id", flat=True)
         )
         for prebuilt_query_id in prebuilt_query_ids_without_starred_status:
