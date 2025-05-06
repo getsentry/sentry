@@ -72,7 +72,7 @@ export function EventUserFeedback({
                   project: selection.projects.length ? selection.projects[0] : -1,
                   query: `associated_event_id:${report.eventID}`,
                   referrer: 'feedback_list_page',
-                  statsPeriod: selection.datetime.period,
+                  statsPeriod: '90d',
                 },
               }}
             >
