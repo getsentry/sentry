@@ -123,7 +123,6 @@ function extractTranslationsFromFileContent(
       if (funcName && FUNCTION_NAMES.hasOwnProperty(funcName)) {
         const functionArgsInfo = FUNCTION_NAMES[funcName];
         const translate: Partial<GetTextTranslation> & {comments?: any} = {
-          // Adjusted type for comments
           msgid: '',
           msgstr: [''],
         };
@@ -281,7 +280,6 @@ async function main() {
   return numberOfTranslations;
 }
 
-// Only run main() if the script is executed directly
 const currentFilePath = fileURLToPath(import.meta.url);
 const scriptPath = resolve(process.argv[1]);
 
