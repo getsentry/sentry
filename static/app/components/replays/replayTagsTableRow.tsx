@@ -147,4 +147,14 @@ const StyledVersionContainer = styled('div')`
   display: flex;
   justify-content: flex-end;
   gap: ${space(0.75)};
+
+  .invisible-button {
+    visibility: hidden;
+  }
+
+  &:hover {
+    .invisible-button {
+      visibility: visible;
+    }
+  }
 `;
