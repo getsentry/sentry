@@ -5,7 +5,7 @@ from sentry.autofix.utils import AutofixStatus, get_autofix_state
 from sentry.models.group import Group
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
-from sentry.taskworker.namespaces import issues_tasks
+from sentry.taskworker.namespaces import ingest_errors_tasks, issues_tasks
 from sentry.taskworker.retry import Retry
 
 logger = logging.getLogger(__name__)
@@ -39,7 +39,7 @@ def check_autofix_status(run_id: int):
     name="sentry.tasks.autofix.start_seer_automation",
     max_retries=1,
     taskworker_config=TaskworkerConfig(
-        namespace=issues_tasks,
+        namespace=ingest_errors_tasks,
         retry=Retry(
             times=1,
         ),
