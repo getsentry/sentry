@@ -132,7 +132,10 @@ function AlertListItem({item}: {item: Incident}) {
         >
           <SentryAppLink
             to={{
-              url: alertDetailsLink({slug: organizationSlug} as Organization, item),
+              url: alertDetailsLink(
+                {slug: organizationSlug, features: []} as unknown as Organization,
+                item
+              ),
               query: {alert: item.identifier},
             }}
           >
