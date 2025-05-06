@@ -540,6 +540,8 @@ class Enhancements:
                     contributes_match_frames, rust_exception_data, contributes_rust_frames
                 )
             )
+
+            split_enhancement_misses: list[Any] = []
         else:
             # We need to give these values so the zip below will work, but we're not going to use
             # them if we're not running split enhancements, so we can just reuse the regular results
@@ -552,7 +554,8 @@ class Enhancements:
         frame_counts: Counter[str] = Counter()
 
         # Update frame components with results from rust
-        for frame, frame_component, rust_frame, in_app_rust_frame, contributes_rust_frame in zip(
+        for i, frame, frame_component, rust_frame, in_app_rust_frame, contributes_rust_frame in zip(
+            range(len(frames)),
             frames,
             frame_components,
             rust_frames,
@@ -598,6 +601,36 @@ class Enhancements:
             # Add this frame to our tally
             key = f"{"in_app" if frame_component.in_app else "system"}_{"contributing" if frame_component.contributes else "non_contributing"}_frames"
             frame_counts[key] += 1
+
+            if self.run_split_enhancements:
+                _check_split_enhancements_frame_contributes_and_hint(
+                    i,
+                    rust_frame,
+                    contributes_rust_frame,
+                    hint,
+                    split_in_app_hint,
+                    split_contributes_hint,
+                    split_enhancement_misses,
+                )
+
+        if self.run_split_enhancements:
+            _check_split_enhancements_stacktrace_contributes_and_hint(
+                rust_stacktrace_results, rust_stacktrace_results_split, split_enhancement_misses
+            )
+
+            logger.info(
+                "grouping.split_enhancements.contributes_results",
+                extra=(
+                    {
+                        "outcome": "failure",
+                        "variant": variant_name,
+                        "frames": frames,
+                        "misses": split_enhancement_misses,
+                    }
+                    if split_enhancement_misses
+                    else {"outcome": "success"}
+                ),
+            )
 
         # Because of the special case above, in which we ignore the rust-derived `contributes` value
         # for certain frames, it's possible for the rust-derived `contributes` value for the overall
