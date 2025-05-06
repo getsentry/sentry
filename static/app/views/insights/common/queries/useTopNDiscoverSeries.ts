@@ -172,7 +172,9 @@ const useTopNDiscoverSeries = <T extends string[]>(
 
   const seriesData = result.data ?? {};
 
-  if (!('data' in seriesData)) {
+  // Typically the response is an object, with the key being the series name and the value being the series data
+  // However, if there is no series returned, the response is just single series object (and hence the 'data' key is present in the object)
+  if (!seriesData?.data) {
     Object.keys(seriesData).forEach(seriesName => {
       const data = seriesData[seriesName]?.data ?? [];
       const meta = (seriesData[seriesName]?.meta ?? {}) as EventsMetaType;
