@@ -414,7 +414,9 @@ def fire_actions_for_groups(
                 action_filters.add(dcg)
 
         # process action filters
-        filtered_actions = filter_recently_fired_workflow_actions(action_filters, event_data)
+        filtered_actions = filter_recently_fired_workflow_actions(
+            action_filters, event_data, is_delayed_processing=True
+        )
 
         # process workflow_triggers
         workflows = set(Workflow.objects.filter(when_condition_group_id__in=workflow_triggers))
@@ -422,7 +424,7 @@ def fire_actions_for_groups(
         # create WorkflowFireHistory (updated in evaluate_workflows_action_filters)
         create_workflow_fire_histories(workflows, event_data)
         filtered_actions = filtered_actions.union(
-            evaluate_workflows_action_filters(workflows, event_data, is_delayed_processing=True)
+            evaluate_workflows_action_filters(workflows, event_data)
         )
 
         # temporary fetching of organization, so not passing in as parameter
