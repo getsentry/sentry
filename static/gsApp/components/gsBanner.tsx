@@ -44,7 +44,7 @@ import {
   openTrialEndingModal,
 } from 'getsentry/actionCreators/modal';
 import type {EventType} from 'getsentry/components/addEventsCTA';
-import AddEventsCTA, {TEMPORARY_EVENT_TYPES} from 'getsentry/components/addEventsCTA';
+import AddEventsCTA from 'getsentry/components/addEventsCTA';
 import ProductTrialAlert from 'getsentry/components/productTrial/productTrialAlert';
 import {makeLinkToOwnersAndBillingMembers} from 'getsentry/components/profiling/alerts';
 import withSubscription from 'getsentry/components/withSubscription';
@@ -91,18 +91,10 @@ enum ModalType {
  */
 const TRIAL_ENDING_DAY_WINDOW = 3;
 
-/**
- * BilledDataCategoryInfo objects for all categories that are billed or
- * are about to be billed.
- */
-// const BILLED_CATEGORIES = Object.values(BILLED_DATA_CATEGORY_INFO).filter(
-//   c => c.isBilledCategory || c.name in TEMPORARY_EVENT_TYPES
-// );
-
 function objectFromBilledCategories(callback: (c: BilledDataCategoryInfo) => any) {
   return Object.values(BILLED_DATA_CATEGORY_INFO).reduce(
     (acc, c) => {
-      if (c.isBilledCategory || TEMPORARY_EVENT_TYPES.includes(c.name)) {
+      if (c.isBilledCategory) {
         acc[c.name as EventType] = callback(c);
       }
       return acc;
@@ -643,20 +635,29 @@ class GSBanner extends Component<Props, State> {
 
   async checkPrompts() {
     const {api, organization, subscription} = this.props;
-    const category_overage_prompts = Object.values(BILLED_DATA_CATEGORY_INFO)
-      .filter(categoryInfo => categoryInfo.isBilledCategory)
-      .map(categoryInfo => `${snakeCase(categoryInfo.plural)}_overage_alert`);
-    const category_warning_prompts = Object.values(BILLED_DATA_CATEGORY_INFO)
-      .filter(categoryInfo => categoryInfo.isBilledCategory)
-      .map(categoryInfo => `${snakeCase(categoryInfo.plural)}_warning_alert`);
-    const category_product_trial_prompts = Object.values(BILLED_DATA_CATEGORY_INFO)
+
+    if (!subscription.planDetails) {
+      return;
+    }
+
+    const category_overage_prompts: string[] = [];
+    const category_warning_prompts: string[] = [];
+    const category_product_trial_prompts: string[] = [];
+
+    Object.values(BILLED_DATA_CATEGORY_INFO)
       .filter(
-        categoryInfo => categoryInfo.isBilledCategory && categoryInfo.canProductTrial
-      )
-      .map(
         categoryInfo =>
-          `${'snakeCasePlural' in categoryInfo ? categoryInfo.snakeCasePlural : categoryInfo.plural}_product_trial_alert`
-      );
+          categoryInfo.isBilledCategory &&
+          subscription.planDetails.categories.includes(categoryInfo.plural)
+      )
+      .forEach(categoryInfo => {
+        const snakeCasePlural = snakeCase(categoryInfo.plural);
+        category_overage_prompts.push(`${snakeCasePlural}_overage_alert`);
+        category_warning_prompts.push(`${snakeCasePlural}_warning_alert`);
+        if (categoryInfo.canProductTrial) {
+          category_product_trial_prompts.push(`${snakeCasePlural}_product_trial_alert`);
+        }
+      });
 
     try {
       const checkResults = await batchedPromptsCheck(
