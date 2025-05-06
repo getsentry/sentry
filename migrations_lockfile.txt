@@ -25,7 +25,7 @@ sentry: 0881_delete_single_prioritized_groupsearchviews
 
 social_auth: 0002_default_auto_field
 
-tempest: 0002_make_message_type_nullable
+tempest: 0003_tempest_encrypted_field_test_poc
 
 uptime: 0037_fix_drift_default_to_db_default
 

@@ -4,6 +4,7 @@ from django.db.models import UniqueConstraint
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
+from sentry.db.models.fields.encryption import EncryptedStringField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
@@ -48,3 +49,10 @@ class TempestCredentials(DefaultFieldsModel):
             "project_id": self.project.id,
             "client_id": self.client_id,
         }
+
+
+@region_silo_model
+class TestModel(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    encrypted_string = EncryptedStringField()

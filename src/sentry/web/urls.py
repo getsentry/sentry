@@ -15,6 +15,7 @@ from sentry.charts.endpoints import serve_chartcuterie_config
 from sentry.integrations.web.doc_integration_avatar import DocIntegrationAvatarPhotoView
 from sentry.integrations.web.organization_integration_setup import OrganizationIntegrationSetupView
 from sentry.sentry_apps.web.sentryapp_avatar import SentryAppAvatarPhotoView
+from sentry.tempest.endpoints.test_poc_endpoint import TestModelViewSet
 from sentry.toolbar.views.iframe_view import IframeView
 from sentry.toolbar.views.login_success_view import LoginSuccessView
 from sentry.users.web import accounts
@@ -112,6 +113,11 @@ if settings.DEBUG:
     ]
 
 urlpatterns += [
+    re_path(
+        r"^encrypted/test-poc/$",
+        TestModelViewSet.as_view(),
+        name="sentry-api-test-poc",
+    ),
     # warmup, used to initialize any connections / pre-load
     # the application so that user initiated requests are faster
     re_path(
