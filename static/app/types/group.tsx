@@ -95,11 +95,6 @@ export enum IssueCategory {
 
   // New issue categories (under the issue-taxonomy flag)
   OUTAGE = 'outage',
-  PERFORMANCE_REGRESSION = 'performance_regression',
-  USER_EXPERIENCE = 'user_experience',
-  RESPONSIVENESS = 'responsiveness',
-  PERFORMANCE_BEST_PRACTICE = 'performance_best_practice',
-
   METRIC = 'metric',
   FRONTEND = 'frontend',
   HTTP_CLIENT = 'http_client',
