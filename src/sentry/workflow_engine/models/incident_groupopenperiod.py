@@ -27,7 +27,8 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
         app_label = "workflow_engine"
         constraints = [
             models.CheckConstraint(
-                condition=Q(incident_identifier__isnull=False) & Q(incident_id__isnull=False),
+                condition=Q(incident_identifier__isnull=False) & Q(incident_id__isnull=False)
+                | Q(incident_identifier__isnull=True) & Q(incident_id__isnull=True),
                 name="inc_id_inc_identifier_together",
             ),
             models.UniqueConstraint(
