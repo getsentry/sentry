@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/react';
 
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
@@ -21,6 +22,7 @@ import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
+import type {PickableDays} from 'sentry/views/explore/utils';
 
 const {warn, fmt} = Sentry.logger;
 
@@ -187,4 +189,22 @@ export function getLogRowItem(
 
 export function adjustLogTraceID(traceID: string) {
   return traceID.replace(/-/g, '');
+}
+
+export function logsPickableDays(organization: Organization): PickableDays {
+  const relativeOptions: Array<[string, React.ReactNode]> = [
+    ['1h', t('Last hour')],
+    ['24h', t('Last 24 hours')],
+    ['7d', t('Last 7 days')],
+  ];
+
+  if (organization.features.includes('visibility-explore-range-high')) {
+    relativeOptions.push(['14d', t('Last 14 days')]);
+  }
+
+  return {
+    defaultPeriod: '24h',
+    maxPickableDays: 14,
+    relativeOptions: Object.fromEntries(relativeOptions),
+  };
 }

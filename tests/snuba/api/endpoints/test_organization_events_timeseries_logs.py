@@ -71,7 +71,7 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
         assert len(response.data["timeseries"]) == 1
         timeseries = response.data["timeseries"][0]
         assert len(timeseries["values"]) == 6
-        assert timeseries["yaxis"] == "count()"
+        assert timeseries["yAxis"] == "count()"
         assert timeseries["values"] == build_expected_timeseries(
             self.start,
             3_600_000,

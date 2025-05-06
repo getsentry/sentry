@@ -13,10 +13,11 @@ import {useTypingAnimation} from 'sentry/components/events/autofix/useTypingAnim
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {singleLineRenderer} from 'sentry/utils/marked';
+import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 
 function StreamContentText({stream}: {stream: string}) {
   const [displayedText, setDisplayedText] = useState('');
@@ -115,25 +116,30 @@ export function AutofixOutputStream({
 
   const displayedActiveLog = useTypingAnimation({
     text: activeLog,
-    speed: 100,
+    speed: 200,
     enabled: !!activeLog,
   });
 
+  const orgSlug = useOrganization().slug;
+
   const {mutate: send} = useMutation({
     mutationFn: (params: {message: string}) => {
-      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
-        method: 'POST',
-        data: {
-          run_id: runId,
-          payload: {
-            type: 'user_message',
-            text: params.message,
+      return api.requestPromise(
+        `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
+        {
+          method: 'POST',
+          data: {
+            run_id: runId,
+            payload: {
+              type: 'user_message',
+              text: params.message,
+            },
           },
-        },
-      });
+        }
+      );
     },
     onSuccess: _ => {
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(orgSlug, groupId)});
       addSuccessMessage('Thanks for the input.');
     },
     onError: () => {
@@ -237,7 +243,6 @@ const Wrapper = styled(motion.div)`
   flex-direction: column;
   align-items: flex-start;
   margin-bottom: ${space(1)};
-  margin-right: ${space(2)};
   gap: ${space(1)};
 `;
 
@@ -247,7 +252,6 @@ const ScaleContainer = styled(motion.div)`
   flex-direction: column;
   align-items: flex-start;
   transform-origin: top left;
-  padding-left: ${space(2)};
 `;
 
 const shimmer = keyframes`
@@ -314,7 +318,7 @@ const VerticalLine = styled('div')`
   width: 0;
   height: ${space(4)};
   border-left: 2px dashed ${p => p.theme.subText};
-  margin-left: 17px;
+  margin-left: 16px;
   margin-bottom: -1px;
 `;
 

@@ -58,7 +58,7 @@ import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {NewTabContextProvider} from 'sentry/views/issueList/utils/newTabContext';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 import {useSelectedSavedSearch} from 'sentry/views/issueList/utils/useSelectedSavedSearch';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 import IssueListFilters from './filters';
 import IssueListHeader from './header';
@@ -1096,7 +1096,7 @@ function IssueListOverview({
         )}
         {!prefersStackedNav &&
           (organization.features.includes('issue-stream-custom-views') &&
-          !organization.features.includes('issue-view-sharing') ? (
+          !organization.features.includes('enforce-stacked-navigation') ? (
             <ErrorBoundary message={'Failed to load custom tabs'} mini>
               <IssueViewsIssueListHeader
                 router={router}

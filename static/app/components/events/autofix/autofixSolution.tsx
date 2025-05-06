@@ -28,10 +28,11 @@ import {Timeline} from 'sentry/components/timeline';
 import {IconAdd, IconFix} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {singleLineRenderer} from 'sentry/utils/marked';
+import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import {Divider} from 'sentry/views/issueDetails/divider';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
@@ -39,28 +40,32 @@ import AutofixHighlightPopup from './autofixHighlightPopup';
 function useSelectSolution({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi();
   const queryClient = useQueryClient();
+  const orgSlug = useOrganization().slug;
 
   return useMutation({
     mutationFn: (params: {
       mode: 'all' | 'fix' | 'test';
       solution: AutofixSolutionTimelineEvent[];
     }) => {
-      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
-        method: 'POST',
-        data: {
-          run_id: runId,
-          payload: {
-            type: 'select_solution',
-            mode: params.mode,
-            solution: params.solution,
+      return api.requestPromise(
+        `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
+        {
+          method: 'POST',
+          data: {
+            run_id: runId,
+            payload: {
+              type: 'select_solution',
+              mode: params.mode,
+              solution: params.solution,
+            },
           },
-        },
-      });
+        }
+      );
     },
     onSuccess: (_, params) => {
       setApiQueryData<AutofixResponse>(
         queryClient,
-        makeAutofixQueryKey(groupId),
+        makeAutofixQueryKey(orgSlug, groupId),
         data => {
           if (!data?.autofix) {
             return data;

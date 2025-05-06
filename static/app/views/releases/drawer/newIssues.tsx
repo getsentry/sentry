@@ -18,7 +18,6 @@ export function NewIssues({release, projectId, withChart = false}: Props) {
   const organization = useOrganization();
   const location = useLocation();
   const {data: releaseDetails} = useReleaseDetails({release});
-  let queryFilterDescription;
   const path = `/organizations/${organization.slug}/issues/`;
   const queryParams = {
     ...getReleaseParams({
@@ -42,7 +41,6 @@ export function NewIssues({release, projectId, withChart = false}: Props) {
       queryParams={queryParams}
       query={`release:${releaseDetails?.versionInfo.version.raw}`}
       canSelectGroups={false}
-      queryFilterDescription={queryFilterDescription}
       withChart={withChart}
       renderEmptyMessage={renderEmptyMessage}
       withPagination
