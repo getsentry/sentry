@@ -217,11 +217,16 @@ function TableEntry({
           const items = metric[column.value].map(example => {
             return {
               value: getShortEventId(getProfileTargetId(example)),
-              onClick: () =>
+              onClick: () => {
+                const source =
+                  analyticsPageSource === 'performance_transaction'
+                    ? 'performance.transactions_summary.suspect_functions'
+                    : 'unknown';
                 trackAnalytics('profiling_views.go_to_flamegraph', {
                   organization,
-                  source: `${analyticsPageSource}.suspect_functions_table`,
-                }),
+                  source,
+                });
+              },
               target: generateProfileRouteFromProfileReference({
                 organization,
                 projectSlug: project?.slug || '',

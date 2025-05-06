@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useReducer, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -62,16 +62,94 @@ function decodeTab(tab: unknown): 'flamegraph' | 'transactions' {
   return validateTab(tab) ? tab : 'transactions';
 }
 
+type DataState = 'loading' | 'errored' | 'empty' | 'populated';
+
+type DataLoaded = {
+  flamegraphData: DataState;
+  transactionsTableData: DataState;
+  widget1Data: DataState;
+  widget2Data: DataState;
+};
+
+type DataStateAction = {
+  dataKey: keyof DataLoaded;
+  dataState: DataState;
+};
+
+function dataLoadedReducer(state: DataLoaded, action: DataStateAction) {
+  return {
+    ...state,
+    [action.dataKey]: action.dataState,
+  };
+}
+
+function useLandingAnalytics() {
+  const organization = useOrganization();
+
+  const [dataLoaded, dispatch] = useReducer(dataLoadedReducer, {
+    flamegraphData: 'loading',
+    transactionsTableData: 'loading',
+    widget1Data: 'loading',
+    widget2Data: 'loading',
+  });
+
+  const dispatchedAnalytics = useRef(false);
+
+  const dataState: DataState = useMemo(() => {
+    // if any thing on the page loads with data,
+    // we consider the page populated
+    if (
+      dataLoaded.flamegraphData === 'populated' ||
+      dataLoaded.transactionsTableData === 'populated' ||
+      dataLoaded.widget1Data === 'populated' ||
+      dataLoaded.widget2Data === 'populated'
+    ) {
+      return 'populated';
+    }
+
+    // if any thing on the page is still loading,
+    // we should wait before deciding the page is empty/errored
+    if (
+      dataLoaded.flamegraphData === 'loading' ||
+      dataLoaded.transactionsTableData === 'loading' ||
+      dataLoaded.widget1Data === 'loading' ||
+      dataLoaded.widget2Data === 'loading'
+    ) {
+      return 'loading';
+    }
+
+    // if everything on the page errors, we consider it errored
+    if (
+      dataLoaded.flamegraphData === 'errored' &&
+      dataLoaded.transactionsTableData === 'errored' &&
+      dataLoaded.widget1Data === 'errored' &&
+      dataLoaded.widget2Data === 'errored'
+    ) {
+      return 'errored';
+    }
+
+    return 'empty';
+  }, [dataLoaded]);
+
+  useEffect(() => {
+    if (!dispatchedAnalytics.current && dataState !== 'loading') {
+      dispatchedAnalytics.current = true;
+      trackAnalytics('profiling_views.landing', {
+        organization,
+        data: dataState,
+      });
+    }
+  }, [dataState, organization]);
+
+  return dispatch;
+}
+
 export default function ProfilingContent({location}: ProfilingContentProps) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
   const {projects} = useProjects();
 
-  useEffect(() => {
-    trackAnalytics('profiling_views.landing', {
-      organization,
-    });
-  }, [organization]);
+  useLandingAnalytics();
 
   const showOnboardingPanel = useMemo(() => {
     return shouldShowProfilingOnboardingPanel(selection, projects);
@@ -81,6 +159,9 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
 
   const onTabChange = useCallback(
     (newTab: 'flamegraph' | 'transactions') => {
+      trackAnalytics('profiling_views.landing.tab_change', {
+        organization,
+      });
       browserHistory.push({
         ...location,
         query: {
@@ -89,7 +170,7 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
         },
       });
     },
-    [location]
+    [location, organization]
   );
 
   return (

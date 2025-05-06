@@ -147,7 +147,7 @@ export function ProfilePreview({event, node}: SpanProfileProps) {
   function handleGoToProfile() {
     trackAnalytics('profiling_views.go_to_flamegraph', {
       organization,
-      source: 'performance.missing_instrumentation',
+      source: 'performance.trace_view.missing_instrumentation',
     });
   }
 

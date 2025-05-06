@@ -25,6 +25,7 @@ import {t, tct} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {EventsStatsSeries} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {getShortEventId} from 'sentry/utils/events';
@@ -75,6 +76,10 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
   widgetHeight,
 }: SlowestFunctionsWidgetProps<F>) {
   const location = useLocation();
+  const organization = useOrganization();
+
+  // strip the parenthesis to stay consistent in analytics
+  const analyticsSource = breakdownFunction.slice(0, -2);
 
   const [expandedIndex, setExpandedIndex] = useState(0);
 
@@ -91,6 +96,17 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
       });
     },
     [cursorName]
+  );
+
+  const paginationAnalyticsEvent = useCallback(
+    (direction: string) => {
+      trackAnalytics('profiling_views.landing.widget.pagination', {
+        organization,
+        direction,
+        source: analyticsSource,
+      });
+    },
+    [organization, analyticsSource]
   );
 
   const functionsQuery = useProfileFunctions<FunctionsField>({
@@ -155,6 +171,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
           pageLinks={functionsQuery.getResponseHeader?.('Link') ?? null}
           size="xs"
           onCursor={handleCursor}
+          paginationAnalyticsEvent={paginationAnalyticsEvent}
         />
       </HeaderContainer>
       <ContentContainer>
@@ -184,9 +201,14 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
               return (
                 <SlowestFunctionEntry
                   key={`${f['project.id']}-${f.package}-${f.function}`}
+                  analyticsSource={analyticsSource}
                   breakdownFunction={breakdownFunction}
                   isExpanded={i === expandedIndex}
                   setExpanded={() => {
+                    trackAnalytics('profiling_views.landing.widget.function_change', {
+                      organization,
+                      source: analyticsSource,
+                    });
                     const nextIndex = expandedIndex === i ? (i + 1) % l.length : i;
                     setExpandedIndex(nextIndex);
                   }}
@@ -205,6 +227,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
 }
 
 interface SlowestFunctionEntryProps<F extends BreakdownFunction> {
+  analyticsSource: string;
   breakdownFunction: BreakdownFunction;
   func: EventsResultsDataRow<FunctionsField>;
   isExpanded: boolean;
@@ -217,6 +240,7 @@ interface SlowestFunctionEntryProps<F extends BreakdownFunction> {
 const BARS = 10;
 
 function SlowestFunctionEntry<F extends BreakdownFunction>({
+  analyticsSource,
   breakdownFunction,
   func,
   isExpanded,
@@ -330,6 +354,12 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
             borderless: true,
             showChevron: false,
             size: 'xs',
+            onClick: () => {
+              trackAnalytics('profiling_views.landing.widget.open_list', {
+                organization,
+                source: analyticsSource,
+              });
+            },
           }}
           items={examples}
           menuTitle={t('Example Profiles')}
