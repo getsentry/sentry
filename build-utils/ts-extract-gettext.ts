@@ -8,27 +8,6 @@ import ts from 'typescript';
 import {po} from 'gettext-parser';
 import type {GetTextTranslation, GetTextTranslations} from 'gettext-parser';
 
-/**
- * Strips indentation from multi-line strings, particularly template literals.
- * It removes the minimal indentation shared across all non-empty lines.
- */
-function stripIndent(str: string | null | undefined): string {
-  // Original implementation might be too aggressive, let's keep the multi-line logic
-  // but ensure we handle potential undefined/null inputs gracefully.
-  if (typeof str !== 'string') {
-    return str || ''; // Return empty string for null/undefined
-  }
-  const match = str.match(/^[ \t]*(?=\S)/gm);
-  if (!match) {
-    return str.trim(); // Trim leading/trailing whitespace if no indentation detected
-  }
-
-  const indent = Math.min(...match.map(el => el.length));
-  const regexp = new RegExp(`^[ \t]{${indent}}`, 'gm');
-  // Replace indentation and trim the final result
-  return (indent > 0 ? str.replace(regexp, '') : str).trim();
-}
-
 const FUNCTION_NAMES: Record<string, string[]> = {
   gettext: ['msgid'],
   dgettext: ['domain', 'msgid'],
@@ -145,9 +124,6 @@ function extractTranslationsFromFileContent(
             }
 
             if (value !== null) {
-              if (name !== 'msgctxt') {
-                value = stripIndent(value);
-              }
               translate[name] = value;
             }
           }
