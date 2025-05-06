@@ -4312,19 +4312,26 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
                 self.create_span(
                     {
                         "description": "foo",
-                        "sentry_tags": {"ttid": "ttid", "app_start_type": "cold"},
+                        "sentry_tags": {
+                            "ttid": "ttid",
+                            "app_start_type": "cold",
+                            "os.name": "Android",
+                        },
                     },
                     start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
                     {
                         "description": "foo",
-                        "sentry_tags": {"ttid": "ttid", "app_start_type": "warm"},
+                        "sentry_tags": {"ttid": "ttid", "app_start_type": "warm", "os.name": "iOS"},
                     },
                     start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
-                    {"description": "foo", "sentry_tags": {"app_start_type": "cold"}},
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"app_start_type": "cold", "os.name": "Android"},
+                    },
                     start_ts=self.ten_mins_ago,
                 ),
             ],
@@ -4332,7 +4339,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         )
         response = self.do_request(
             {
-                "field": ["app_start_type", "ttid"],
+                "field": ["app_start_type", "ttid", "os.name"],
                 "query": "has:ttid",
                 "orderby": "app_start_type",
                 "project": self.project.id,
@@ -4346,8 +4353,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert len(data) == 2
         assert data[0]["app_start_type"] == "cold"
         assert data[0]["ttid"] == "ttid"
+        assert data[0]["os.name"] == "Android"
         assert data[1]["app_start_type"] == "warm"
         assert data[1]["ttid"] == "ttid"
+        assert data[1]["os.name"] == "iOS"
 
         assert meta["dataset"] == self.dataset
         assert meta["dataset"] == self.dataset
