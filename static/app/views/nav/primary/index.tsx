@@ -152,14 +152,22 @@ export function PrimaryNavigationItems() {
       <SidebarFooter>
         <ChonkOptInBanner collapsed="never" />
         <PrimaryNavigationHelp />
-        <PrimaryNavigationWhatsNew />
-        <Hook
-          name="sidebar:try-business"
-          organization={organization}
-          orientation="left"
-        />
-        <Hook name="sidebar:billing-status" organization={organization} />
-        <PrimaryNavigationServiceIncidents />
+        <ErrorBoundary customComponent={null}>
+          <PrimaryNavigationWhatsNew />
+        </ErrorBoundary>
+        <ErrorBoundary customComponent={null}>
+          <Hook
+            name="sidebar:try-business"
+            organization={organization}
+            orientation="left"
+          />
+        </ErrorBoundary>
+        <ErrorBoundary customComponent={null}>
+          <Hook name="sidebar:billing-status" organization={organization} />
+        </ErrorBoundary>
+        <ErrorBoundary customComponent={null}>
+          <PrimaryNavigationServiceIncidents />
+        </ErrorBoundary>
         <ErrorBoundary customComponent={null}>
           <PrimaryNavigationOnboarding />
         </ErrorBoundary>

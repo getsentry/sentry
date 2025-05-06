@@ -1,4 +1,5 @@
 import {Fragment, useRef} from 'react';
+import styled from '@emotion/styled';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
@@ -75,7 +76,7 @@ export function IssuesSecondaryNav() {
 function ConfigureSection({baseUrl}: {baseUrl: string}) {
   const hasWorkflowEngine = useWorkflowEngineFeatureGate();
   return (
-    <SecondaryNav.Section title={t('Configure')}>
+    <StickyBottomSection title={t('Configure')}>
       {hasWorkflowEngine ? (
         <Fragment>
           <SecondaryNav.Item
@@ -102,6 +103,12 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
           {t('Alerts')}
         </SecondaryNav.Item>
       )}
-    </SecondaryNav.Section>
+    </StickyBottomSection>
   );
 }
+
+const StickyBottomSection = styled(SecondaryNav.Section)`
+  position: sticky;
+  bottom: 0;
+  background: ${p => (p.theme.isChonk ? p.theme.background : p.theme.surface200)};
+`;

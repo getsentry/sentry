@@ -108,7 +108,7 @@ def encode_payload(message: dict[str, Any]) -> str:
 )
 def process_profile_task(
     profile: Profile | None = None,
-    payload: str | None = None,
+    payload: str | bytes | None = None,
     sampled: bool = True,
     **kwargs: Any,
 ) -> None:
@@ -116,7 +116,11 @@ def process_profile_task(
         return
 
     if payload:
-        message_dict = decode_payload(payload)
+        if isinstance(payload, str):  # It's been b64encoded for taskworker
+            message_dict = decode_payload(payload)
+        else:
+            message_dict = msgpack.unpackb(payload, use_list=False)
+
         profile = json.loads(message_dict["payload"], use_rapid_json=True)
 
         assert profile is not None

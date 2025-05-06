@@ -458,7 +458,7 @@ const BodySearch = styled(Layout.Body)`
   padding-bottom: ${space(1)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding-bottom: ${space(1)};
+    padding-bottom: ${space(2)};
   }
 `;
 
@@ -488,7 +488,7 @@ const ControlSection = styled('aside')<{expanded: boolean}>`
       p.expanded
         ? css`
             width: 338px; /* 300px for the toolbar + padding */
-            padding: ${space(1)} ${space(1)} ${space(1)} ${space(4)};
+            padding: ${space(2)} ${space(1)} ${space(1)} ${space(4)};
             border-right: 1px solid ${p.theme.border};
           `
         : css`
