@@ -162,6 +162,20 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
         ]
     )
 
+    # These are tasks that can be tightened to a project
+    TRANSFERABLE_TASKS = frozenset(
+        [
+            OnboardingTask.FIRST_PROJECT,
+            OnboardingTask.FIRST_EVENT,
+            OnboardingTask.SECOND_PLATFORM,
+            OnboardingTask.RELEASE_TRACKING,
+            OnboardingTask.ALERT_RULE,
+            OnboardingTask.FIRST_TRANSACTION,
+            OnboardingTask.SESSION_REPLAY,
+            OnboardingTask.SOURCEMAPS,
+        ]
+    )
+
     objects: ClassVar[OrganizationOnboardingTaskManager] = OrganizationOnboardingTaskManager()
 
     class Meta:
