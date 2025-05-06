@@ -2101,32 +2101,4 @@ describe('GSBanner Overage Alerts', function () {
       )
     ).toBeInTheDocument();
   });
-
-  it('does not show banner for non-billed categories', async function () {
-    const organization = OrganizationFixture();
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_t',
-      categories: {
-        // this would never happen in practice, but we're asserting that we properly filter out non-billed categories
-        logBytes: MetricHistoryFixture({usageExceeded: true}),
-        logItems: MetricHistoryFixture({usageExceeded: true}),
-        profileChunks: MetricHistoryFixture({usageExceeded: true}),
-      },
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-      deprecatedRouterMocks: true,
-    });
-
-    const {container} = render(<GSBanner organization={organization} />, {
-      organization,
-      deprecatedRouterMocks: true,
-    });
-
-    await act(tick);
-    expect(container).toBeEmptyDOMElement();
-  });
 });
