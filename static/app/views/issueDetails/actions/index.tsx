@@ -483,6 +483,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                   key: 'share',
                   label: t('Share'),
                   onAction: openShareModal,
+                  disabled,
                 },
                 {
                   key: group.isSubscribed ? 'unsubscribe' : 'subscribe',
