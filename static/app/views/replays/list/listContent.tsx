@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -8,6 +8,7 @@ import {space} from 'sentry/styles/space';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
@@ -33,7 +34,10 @@ export default function ListContent() {
   });
 
   const {allMobileProj} = useAllMobileProj({replayPlatforms: true});
-  const [widgetIsOpen, setWidgetIsOpen] = useState(true);
+  const [widgetIsOpen, setWidgetIsOpen] = useLocalStorageState(
+    `replay-dead-rage-widget-open`,
+    true
+  );
 
   const showDeadRageClickCards = !rageClicksSdkVersion.needsUpdate && !allMobileProj;
 
