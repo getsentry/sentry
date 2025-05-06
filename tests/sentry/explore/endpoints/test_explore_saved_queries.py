@@ -8,7 +8,6 @@ from sentry.testutils.helpers.datetime import before_now
 class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
     features = {
         "organizations:performance-trace-explorer": True,
-        "organizations:performance-default-explore-queries": True,
     }
 
     def setUp(self):

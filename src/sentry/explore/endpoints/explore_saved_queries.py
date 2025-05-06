@@ -297,18 +297,15 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         if not self.has_feature(organization, request):
             return self.respond(status=404)
 
-        if features.has(
-            "organizations:performance-default-explore-queries", organization, actor=request.user
-        ):
-            try:
-                # Adds prebuilt queries to the database if they don't exist.
-                # Updates them if they are outdated.
-                # Deletes old prebuilt queries from the database if they should no longer exist.
-                # Stars prebuilt queries for the user if it is the first time they are being fetched by the user.
-                sync_prebuilt_queries(organization)
-                sync_prebuilt_queries_starred(organization, request.user.id)
-            except Exception as err:
-                sentry_sdk.capture_exception(err)
+        try:
+            # Adds prebuilt queries to the database if they don't exist.
+            # Updates them if they are outdated.
+            # Deletes old prebuilt queries from the database if they should no longer exist.
+            # Stars prebuilt queries for the user if it is the first time they are being fetched by the user.
+            sync_prebuilt_queries(organization)
+            sync_prebuilt_queries_starred(organization, request.user.id)
+        except Exception as err:
+            sentry_sdk.capture_exception(err)
 
         queryset = (
             ExploreSavedQuery.objects.filter(organization=organization)
