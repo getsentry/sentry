@@ -230,7 +230,6 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
             },
             {"name": "project_id", "type": "int", "value": str(self.project.id)},
             {"name": "span.duration", "type": "int", "value": "1000"},
-            {"name": "event_id", "type": "str", "value": span_1["event_id"]},
             {"name": "parent_span", "type": "str", "value": span_1["parent_span_id"]},
             {"name": "profile.id", "type": "str", "value": span_1["profile_id"]},
             {"name": "raw_description", "type": "str", "value": "foo"},
@@ -238,6 +237,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
             {"name": "sdk.version", "type": "str", "value": "1.0"},
             {"name": "span.status", "type": "str", "value": "success"},
             {"name": "trace", "type": "str", "value": self.trace_uuid},
+            {"name": "transaction.event_id", "type": "str", "value": span_1["event_id"]},
             {"name": "transaction.span_id", "type": "str", "value": span_1["segment_id"]},
         ]
         assert trace_details_response.data["itemId"] == item_id

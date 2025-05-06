@@ -42,6 +42,7 @@ class TraceSummaryTest(TestCase, SnubaTestCase):
                 profiler_id="",
                 sdk_name="test_sdk",
                 is_transaction=True,
+                transaction_id="1" * 32,
             ),
             SerializedSpan(
                 description="db.query",
@@ -63,6 +64,7 @@ class TraceSummaryTest(TestCase, SnubaTestCase):
                 profiler_id="",
                 sdk_name="test_sdk",
                 is_transaction=False,
+                transaction_id="1" * 32,
             ),
         ]
 

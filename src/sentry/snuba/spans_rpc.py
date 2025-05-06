@@ -362,6 +362,7 @@ def run_trace_query(
         "span.op",
         "is_transaction",
         "transaction.span_id",
+        "transaction.event_id",
         "transaction",
         "precise.start_ts",
         "precise.finish_ts",

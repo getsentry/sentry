@@ -59,6 +59,7 @@ class SerializedSpan(SerializedEvent):
     profiler_id: str
     sdk_name: str
     is_transaction: bool
+    transaction_id: str
 
 
 @region_silo_endpoint
@@ -129,6 +130,7 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
                 errors=[self.serialize_rpc_issue(error) for error in event["errors"]],
                 occurrences=[self.serialize_rpc_issue(error) for error in event["occurrences"]],
                 event_id=event["id"],
+                transaction_id=event["transaction.event_id"],
                 project_id=event["project.id"],
                 project_slug=event["project.slug"],
                 profile_id=event["profile.id"],

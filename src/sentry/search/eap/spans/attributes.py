@@ -143,6 +143,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
+            public_alias="transaction.event_id",
+            internal_name="sentry.event_id",
+            search_type="string",
+        ),
+        ResolvedAttribute(
             public_alias="profile.id",
             internal_name="sentry.profile_id",
             search_type="string",
