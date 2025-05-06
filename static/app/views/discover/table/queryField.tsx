@@ -65,7 +65,6 @@ type Props = {
   fieldValue: QueryFieldValue;
   onChange: (fieldValue: QueryFieldValue) => void;
   className?: string;
-  disableParameterSelector?: boolean;
   disabled?: boolean;
   error?: string;
   /**
@@ -440,7 +439,6 @@ class _QueryField extends Component<Props> {
       fieldValue,
       useMenuPortal,
       theme,
-      disableParameterSelector,
     } = this.props;
 
     const inputs = parameters.map((descriptor: ParameterDescription, index: number) => {
@@ -485,7 +483,7 @@ class _QueryField extends Component<Props> {
             required={descriptor.required}
             onChange={this.handleFieldParameterChange}
             inFieldLabel={inFieldLabels ? t('Parameter: ') : undefined}
-            disabled={disabled || disableParameterSelector}
+            disabled={disabled}
             menuPortalTarget={portalProps.menuPortalTarget}
             styles={{
               ...portalProps.styles,
