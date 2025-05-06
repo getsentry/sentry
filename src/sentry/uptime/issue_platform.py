@@ -10,12 +10,12 @@ from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
-from sentry.uptime.models import ProjectUptimeSubscription, get_project_subscription
-from sentry.workflow_engine.models.detector import Detector
+from sentry.uptime.models import ProjectUptimeSubscription
 
 
-def create_issue_platform_occurrence(result: CheckResult, detector: Detector):
-    project_subscription = get_project_subscription(detector)
+def create_issue_platform_occurrence(
+    result: CheckResult, project_subscription: ProjectUptimeSubscription
+):
     occurrence = build_occurrence_from_result(result, project_subscription)
     event_data = build_event_data_for_occurrence(result, project_subscription, occurrence)
     produce_occurrence_to_kafka(
@@ -111,11 +111,10 @@ def build_event_data_for_occurrence(
     }
 
 
-def resolve_uptime_issue(detector: Detector):
+def resolve_uptime_issue(project_subscription: ProjectUptimeSubscription):
     """
     Sends an update to the issue platform to resolve the uptime issue for this monitor.
     """
-    project_subscription = get_project_subscription(detector)
     status_change = StatusChangeMessage(
         fingerprint=build_fingerprint_for_project_subscription(project_subscription),
         project_id=project_subscription.project_id,
