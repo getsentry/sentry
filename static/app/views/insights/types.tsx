@@ -245,6 +245,8 @@ export type SpanMetricsResponse = {
     'http_response_rate(3)': number;
     'http_response_rate(4)': number;
     'http_response_rate(5)': number;
+    'ttfd_contribution_rate()': number;
+    'ttid_contribution_rate()': number;
   } & {
     ['project']: string;
     ['project.id']: number;
