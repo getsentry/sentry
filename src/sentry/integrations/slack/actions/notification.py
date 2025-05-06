@@ -109,7 +109,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         lifecycle: EventLifecycle,
         new_notification_message_object: (
             NewIssueAlertNotificationMessage | NewNotificationActionNotificationMessage
-        ),
+        ) | None,
     ) -> str | None:
         """Send a message to Slack and handle any errors."""
         try:
@@ -130,16 +130,19 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     level="info",
                 )
 
-            new_notification_message_object.message_identifier = message_identifier
+            if new_notification_message_object:
+                new_notification_message_object.message_identifier = message_identifier
+
             return message_identifier
         except SlackApiError as e:
             # Record the error code and details from the exception
-            new_notification_message_object.error_code = e.response.status_code
-            new_notification_message_object.error_details = {
-                "msg": str(e),
-                "data": e.response.data,
-                "url": e.response.api_url,
-            }
+            if new_notification_message_object:
+                new_notification_message_object.error_code = e.response.status_code
+                new_notification_message_object.error_details = {
+                    "msg": str(e),
+                    "data": e.response.data,
+                    "url": e.response.api_url,
+                }
 
             log_params: dict[str, str | int] = {
                 "error": str(e),
@@ -232,12 +235,12 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         tags: set,
         integration: RpcIntegration,
         channel: str,
-        notification_uuid: str | None,
+        notification_uuid: str | None = None,
         notification_message_object: (
             NewIssueAlertNotificationMessage | NewNotificationActionNotificationMessage
-        ),
-        save_notification_method: Callable | None,
-        thread_ts: str | None,
+        ) | None = None,
+        save_notification_method: Callable | None = None,
+        thread_ts: str | None = None,
     ) -> None:
         """Common logic for sending Slack notifications."""
         rules = [f.rule for f in futures]
@@ -362,6 +365,15 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 "No action id found in the rule future",
             )
             return
+
+        if str(action_id) == "-1":
+            self._send_notification(
+                event=event,
+                futures=futures,
+                tags=tags,
+                integration=integration,
+                channel=channel,
+            )
 
         try:
             action = Action.objects.get(id=action_id)

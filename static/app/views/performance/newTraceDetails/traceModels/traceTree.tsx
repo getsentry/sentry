@@ -183,8 +183,9 @@ export declare namespace TraceTree {
 
   type Trace = TraceSplitResults<Transaction> | EAPTrace;
 
-  // Represents events that we render an individual row for in the trace waterfall.
-  type TraceEvent = Transaction | Span | TraceError | EAPSpan | EAPError;
+  // Represents events that we get from the trace endpoints and render an individual row for in the trace waterfall, on load.
+  // This excludes spans as they are rendered on-demand as the user zooms in.
+  type TraceEvent = Transaction | TraceError | EAPSpan | EAPError;
 
   type TraceError = TraceErrorType;
   type TraceErrorIssue = TraceError | EAPError;
@@ -2165,7 +2166,7 @@ function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
     const spanId = isEAPSpanNode(n) ? n.value.event_id : n.value.span_id;
     return `span-${spanId}`;
   }
-  if (isTraceNode(n)) {
+  if (isTraceNode(n) || isEAPTraceNode(n)) {
     return `trace-root`;
   }
 

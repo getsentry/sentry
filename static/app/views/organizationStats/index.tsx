@@ -24,7 +24,7 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {
-  type DataCategory,
+  DataCategory,
   DataCategoryExact,
   type DataCategoryInfo,
   type PageFilters,
@@ -38,7 +38,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import HeaderTabs from 'sentry/views/organizationStats/header';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
+import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 
 import type {ChartDataTransform} from './usageChart';
 import {CHART_OPTIONS_DATACATEGORY} from './usageChart';
@@ -260,41 +260,35 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
       'continuous-profiling-stats'
     );
 
-    // TODO(data categories): move features to DATA_CATEGORY_INFO so we don't need to manually check each one
     const options = CHART_OPTIONS_DATACATEGORY.filter(opt => {
       if (isSelfHostedErrorsOnly) {
-        return opt.value === DATA_CATEGORY_INFO.error.plural;
+        return opt.value === DataCategory.ERRORS;
       }
-      if (DATA_CATEGORY_INFO.replay.plural === opt.value) {
+      if (opt.value === DataCategory.REPLAYS) {
         return organization.features.includes('session-replay');
       }
-      if (DATA_CATEGORY_INFO.span.plural === opt.value) {
+      if (opt.value === DataCategory.SPANS) {
         return organization.features.includes('span-stats');
       }
-      if (DATA_CATEGORY_INFO.transaction.plural === opt.value) {
+      if (opt.value === DataCategory.TRANSACTIONS) {
         return !organization.features.includes('spans-usage-tracking');
       }
-      if (
-        DATA_CATEGORY_INFO.logItem.plural === opt.value ||
-        DATA_CATEGORY_INFO.logByte.plural === opt.value
-      ) {
+      if ([DataCategory.LOG_BYTE, DataCategory.LOG_ITEM].includes(opt.value)) {
         return organization.features.includes('ourlogs-stats');
       }
       if (
-        DATA_CATEGORY_INFO.profileDuration.plural === opt.value ||
-        DATA_CATEGORY_INFO.profileDurationUI.plural === opt.value
+        [DataCategory.PROFILE_DURATION, DataCategory.PROFILE_DURATION_UI].includes(
+          opt.value
+        )
       ) {
         return hasProfiling || hasProfilingStats;
       }
-      if (DATA_CATEGORY_INFO.profile.plural === opt.value) {
+      if (opt.value === DataCategory.PROFILES) {
         return !hasProfilingStats;
       }
       return true;
     }).map(opt => {
-      if (
-        (hasProfiling || hasProfilingStats) &&
-        DATA_CATEGORY_INFO.profile.plural === opt.value
-      ) {
+      if ((hasProfiling || hasProfilingStats) && opt.value === DataCategory.PROFILES) {
         return {...opt, label: `${opt.label} (legacy)`};
       }
       return opt;
@@ -355,7 +349,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
             {
               estimateLink: (
                 <ExternalLink
-                  href={getDocsLinkForEventType(DataCategoryExact.PROFILE_DURATION)} // TODO(continuous profiling): update link when docs are ready
+                  href={`${getPricingDocsLinkForEventType(DataCategoryExact.PROFILE_DURATION)}#how-can-i-estimate-usage-for-continuous-profiling-on-the-backend`}
                 />
               ),
             }

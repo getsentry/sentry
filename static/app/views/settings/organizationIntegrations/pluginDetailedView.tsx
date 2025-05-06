@@ -2,6 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import ContextPickerModal from 'sentry/components/contextPickerModal';
 import {Button} from 'sentry/components/core/button';
 import LoadingError from 'sentry/components/loadingError';
@@ -25,6 +26,7 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
 import {
   INSTALLED,
@@ -57,6 +59,8 @@ function PluginDetailedView() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const {integrationSlug} = useParams<{integrationSlug: string}>();
+
+  const {projects} = useProjects();
 
   const {data: plugins, isPending} = useApiQuery<PluginWithProjectList[]>(
     makePluginQueryKey({orgSlug: organization.slug, pluginSlug: integrationSlug}),
@@ -248,6 +252,10 @@ function PluginDetailedView() {
                 key={projectItem.projectId}
                 organization={organization}
                 plugin={plugin}
+                hasAccess={hasEveryAccess(['project:write'], {
+                  organization,
+                  project: projects.find(p => p.id === projectItem.projectId.toString()),
+                })}
                 projectItem={projectItem}
                 onResetConfiguration={handleResetConfiguration}
                 onPluginEnableStatusChange={handlePluginEnableStatus}
@@ -288,6 +296,7 @@ function PluginDetailedView() {
     organization,
     plugin,
     renderTopButton,
+    projects,
   ]);
 
   if (isPending) {

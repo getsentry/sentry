@@ -47,16 +47,11 @@ def delete_group_list(
     # delete the "smaller" groups first
     group_list.sort(key=lambda g: (g.times_seen, g.id))
     group_ids = []
-    error_group_found = False
+    error_ids = []
     for g in group_list:
         group_ids.append(g.id)
         if g.issue_category == GroupCategory.ERROR:
-            error_group_found = True
-
-    countdown = 3600
-    # With ClickHouse light deletes we want to get rid of the long delay
-    if not error_group_found:
-        countdown = 0
+            error_ids.append(g.id)
 
     Group.objects.filter(id__in=group_ids).exclude(
         status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
@@ -71,7 +66,7 @@ def delete_group_list(
     create_audit_entries(request, project, group_list, delete_type, transaction_id)
 
     # Tell seer to delete grouping records for these groups
-    call_delete_seer_grouping_records_by_hash(group_ids)
+    call_delete_seer_grouping_records_by_hash(error_ids)
 
     # Removing GroupHash rows prevents new events from associating to the groups
     # we just deleted.
@@ -86,8 +81,7 @@ def delete_group_list(
             "object_ids": group_ids,
             "transaction_id": str(transaction_id),
             "eventstream_state": eventstream_state,
-        },
-        countdown=countdown,
+        }
     )
 
 
