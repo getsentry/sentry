@@ -9,6 +9,7 @@ import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
 } from 'sentry/components/searchQueryBuilder/context';
+import {useOnChange} from 'sentry/components/searchQueryBuilder/hooks/useOnChange';
 import {PlainTextQueryInput} from 'sentry/components/searchQueryBuilder/plainTextQueryInput';
 import {TokenizedQueryGrid} from 'sentry/components/searchQueryBuilder/tokenizedQueryGrid';
 import {
@@ -25,8 +26,6 @@ import {space} from 'sentry/styles/space';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import PanelProvider from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
-import usePrevious from 'sentry/utils/usePrevious';
 
 export interface SearchQueryBuilderProps {
   /**
@@ -109,6 +108,10 @@ export interface SearchQueryBuilderProps {
    */
   recentSearches?: SavedSearchType;
   /**
+   * When true, will trigger the `onSearch` callback when the query changes.
+   */
+  searchOnChange?: boolean;
+  /**
    * When true, will display a visual indicator when there are unsaved changes.
    * This search is considered unsubmitted when query !== initialQuery.
    */
@@ -181,25 +184,20 @@ function SearchQueryBuilderUI({
   disabled = false,
   label,
   initialQuery,
-  onChange,
   onBlur,
   queryInterface = QueryInterfaceType.TOKENIZED,
   showUnsubmittedIndicator,
   trailingItems,
+  onChange,
+  searchOnChange,
 }: SearchQueryBuilderProps) {
   const {parsedQuery, query, dispatch, wrapperRef, actionBarRef, size} =
     useSearchQueryBuilder();
 
+  useOnChange({onChange, searchOnChange});
   useLayoutEffect(() => {
     dispatch({type: 'UPDATE_QUERY', query: initialQuery});
   }, [dispatch, initialQuery]);
-
-  const previousQuery = usePrevious(query);
-  useEffectAfterFirstRender(() => {
-    if (previousQuery !== query) {
-      onChange?.(query, {parsedQuery, queryIsValid: queryIsValid(parsedQuery)});
-    }
-  }, [onChange, query, previousQuery, parsedQuery]);
 
   const {width: actionBarWidth} = useDimensions({elementRef: actionBarRef});
 
