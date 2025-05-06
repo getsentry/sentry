@@ -1,5 +1,7 @@
+import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {useSpanTransactionMetrics} from 'sentry/views/insights/common/queries/useSpanTransactionMetrics';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanMetricsField, type SubregionCode} from 'sentry/views/insights/types';
 
 const {HTTP_RESPONSE_CONTENT_LENGTH, RESOURCE_RENDER_BLOCKING_STATUS} = SpanMetricsField;
@@ -18,18 +20,58 @@ export const useResourcePagesQuery = (
     subregions?: SubregionCode[];
   }
 ) => {
-  return useSpanTransactionMetrics(
+  const search = new MutableSearch('');
+  const filters = {
+    'span.group': groupId,
+    ...(renderBlockingStatus
+      ? {[RESOURCE_RENDER_BLOCKING_STATUS]: renderBlockingStatus}
+      : {}),
+    ...(subregions
+      ? {[SpanMetricsField.USER_GEO_SUBREGION]: `[${subregions.join(',')}]`}
+      : {}),
+  };
+
+  const sorts = [sort];
+
+  const finalSorts: Sort[] = sorts?.length
+    ? sorts
+    : [
+        {
+          field: 'time_spent_percentage',
+          kind: 'desc',
+        },
+      ];
+
+  Object.entries(filters).forEach(([key, value]) => {
+    if (!defined(value)) {
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      search.addFilterValues(key, value);
+    } else {
+      search.addFilterValue(key, value);
+    }
+  });
+
+  return useSpanMetrics(
     {
-      'span.group': groupId,
-      ...(renderBlockingStatus
-        ? {[RESOURCE_RENDER_BLOCKING_STATUS]: renderBlockingStatus}
-        : {}),
-      ...(subregions
-        ? {[SpanMetricsField.USER_GEO_SUBREGION]: `[${subregions.join(',')}]`}
-        : {}),
+      cursor,
+      limit: 25,
+      sorts: finalSorts,
+      search,
+      fields: [
+        'transaction',
+        'transaction.method',
+        'epm()',
+        `sum(span.self_time)`,
+        `avg(span.self_time)`,
+        'time_spent_percentage()',
+        'http_response_count(5)',
+        `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
+        RESOURCE_RENDER_BLOCKING_STATUS,
+      ],
     },
-    [sort],
-    cursor,
-    [`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`, RESOURCE_RENDER_BLOCKING_STATUS]
+    referrer
   );
 };
