@@ -36,7 +36,7 @@ export type TracePreferencesState = {
   missing_instrumentation: boolean;
 };
 
-type StoredTracePreferences = {
+export type StoredTracePreferences = {
   autogroup: TracePreferencesState['autogroup'];
   drawer_layout: TraceLayoutPreferences;
   missing_instrumentation: boolean;
@@ -88,8 +88,8 @@ export function storeTraceViewPreferences(
 
 function isPreferenceState(parsed: any): parsed is StoredTracePreferences {
   return (
-    'drawerLayout' in parsed &&
-    'missingInstrumentation' in parsed &&
+    'drawer_layout' in parsed &&
+    'missing_instrumentation' in parsed &&
     'autogroup' in parsed
   );
 }
