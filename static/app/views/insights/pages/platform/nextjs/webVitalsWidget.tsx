@@ -25,7 +25,7 @@ const FIELDS: EAPSpanProperty[] = [
   'performance_score(measurements.score.lcp)',
   'performance_score(measurements.score.fcp)',
   'performance_score(measurements.score.cls)',
-  `performance_score(measurements.score.inp)`,
+  'performance_score(measurements.score.inp)',
   'performance_score(measurements.score.ttfb)',
   'performance_score(measurements.score.total)',
   'count()',
@@ -34,7 +34,7 @@ const FIELDS: EAPSpanProperty[] = [
   'count_scores(measurements.score.fcp)',
   'count_scores(measurements.score.cls)',
   'count_scores(measurements.score.ttfb)',
-  `count_scores(measurements.score.inp)`,
+  'count_scores(measurements.score.inp)',
   'p75(measurements.lcp)',
   'p75(measurements.fcp)',
   'p75(measurements.cls)',
@@ -202,8 +202,8 @@ function WebVitalsWidgetVisualization({
         text={text}
         width={260}
         height={220}
-        y={45}
-        x={50}
+        y={46}
+        x={52}
         size={130}
         radiusPadding={20}
         labelHeightPadding={-5}
