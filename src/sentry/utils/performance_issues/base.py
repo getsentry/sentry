@@ -20,6 +20,7 @@ class DetectorType(Enum):
     SLOW_DB_QUERY = "slow_db_query"
     RENDER_BLOCKING_ASSET_SPAN = "render_blocking_assets"
     N_PLUS_ONE_DB_QUERIES = "n_plus_one_db"
+    N_PLUS_ONE_DB_CLIENT = "n_plus_one_db_client"
     N_PLUS_ONE_API_CALLS = "n_plus_one_api_calls"
     CONSECUTIVE_DB_OP = "consecutive_db"
     CONSECUTIVE_HTTP_OP = "consecutive_http"
@@ -36,6 +37,7 @@ class DetectorType(Enum):
 # Detector and the corresponding system option must be added to this list to have issues created.
 DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.N_PLUS_ONE_DB_QUERIES: "performance.issues.n_plus_one_db.problem-creation",
+    DetectorType.N_PLUS_ONE_DB_CLIENT: "performance.issues.n_plus_one_db_client.problem-creation",
     DetectorType.CONSECUTIVE_DB_OP: "performance.issues.consecutive_db.problem-creation",
     DetectorType.CONSECUTIVE_HTTP_OP: "performance.issues.consecutive_http.problem-creation",
     DetectorType.LARGE_HTTP_PAYLOAD: "performance.issues.large_http_payload.problem-creation",

@@ -485,6 +485,18 @@ class PerformanceStreamedSpansGroupTypeExperimental(GroupType):
     default_priority = PriorityLevel.LOW
 
 
+@dataclass(frozen=True)
+class PerformanceNPlusOneDBClientGroupType(PerformanceGroupTypeDefaults, GroupType):
+    type_id = 1020
+    slug = "performance_n_plus_one_db_client"
+    # UI should still display regular N+1 title, even if detected separately.
+    description = "N+1 Query"
+    category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.PERFORMANCE_BEST_PRACTICE.value
+    default_priority = PriorityLevel.LOW
+    released = False
+
+
 # 2000 was ProfileBlockingFunctionMainThreadType
 @dataclass(frozen=True)
 class ProfileFileIOGroupType(GroupType):
