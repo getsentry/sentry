@@ -44,7 +44,6 @@ from sentry.uptime.models import (
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
-    get_detector,
 )
 from sentry.uptime.types import ProjectUptimeSubscriptionMode
 from sentry.utils import json
@@ -69,9 +68,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             uptime_subscription=self.subscription,
             owner=self.user,
         )
-        detector = get_detector(self.subscription)
-        assert detector
-        self.detector = detector
 
     def send_result(
         self, result: CheckResult, consumer: ProcessingStrategy[KafkaPayload] | None = None
@@ -163,7 +159,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         assert self.project_subscription.uptime_subscription.uptime_status == UptimeStatus.FAILED
 
     def test_does_nothing_when_missing_project_subscription(self):
-        self.detector.delete()
+        self.project_subscription.delete()
 
         result = self.create_uptime_result(
             self.subscription.subscription_id,
@@ -492,7 +488,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
     def test_skip_already_processed(self):
         result = self.create_uptime_result(self.subscription.subscription_id)
         _get_cluster().set(
-            build_last_update_key(self.detector),
+            build_last_update_key(self.project_subscription),
             int(result["scheduled_check_time_ms"]),
         )
         with (
@@ -595,20 +591,13 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         self.project_subscription.update(
             mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING
         )
-        self.detector.update(
-            config={
-                **self.detector.config,
-                "mode": ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING.value,
-            }
-        )
-
         result = self.create_uptime_result(
             self.subscription.subscription_id,
             status=CHECKSTATUS_FAILURE,
             scheduled_check_time=datetime.now() - timedelta(minutes=5),
         )
         redis = _get_cluster()
-        key = build_onboarding_failure_key(self.detector)
+        key = build_onboarding_failure_key(self.project_subscription)
         assert redis.get(key) is None
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
@@ -708,21 +697,13 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
             date_added=datetime.now(timezone.utc) - timedelta(minutes=5),
         )
-        self.detector.update(
-            config={
-                **self.detector.config,
-                "mode": ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING.value,
-            },
-            date_added=datetime.now(timezone.utc)
-            - (ONBOARDING_MONITOR_PERIOD + timedelta(minutes=5)),
-        )
         result = self.create_uptime_result(
             self.subscription.subscription_id,
             status=CHECKSTATUS_SUCCESS,
             scheduled_check_time=datetime.now() - timedelta(minutes=5),
         )
         redis = _get_cluster()
-        key = build_onboarding_failure_key(self.detector)
+        key = build_onboarding_failure_key(self.project_subscription)
         assert redis.get(key) is None
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
@@ -756,15 +737,6 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             date_added=datetime.now(timezone.utc)
             - (ONBOARDING_MONITOR_PERIOD + timedelta(minutes=5)),
         )
-        self.detector.update(
-            config={
-                **self.detector.config,
-                "mode": ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING.value,
-            },
-            date_added=datetime.now(timezone.utc)
-            - (ONBOARDING_MONITOR_PERIOD + timedelta(minutes=5)),
-        )
-
         uptime_subscription = self.project_subscription.uptime_subscription
         result = self.create_uptime_result(
             self.subscription.subscription_id,
@@ -772,7 +744,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             scheduled_check_time=datetime.now() - timedelta(minutes=2),
         )
         redis = _get_cluster()
-        key = build_onboarding_failure_key(self.detector)
+        key = build_onboarding_failure_key(self.project_subscription)
         assert redis.get(key) is None
         with (
             mock.patch("sentry.uptime.consumers.results_consumer.metrics") as consumer_metrics,
