@@ -277,10 +277,6 @@ export default typescript.config([
               message: 'Do not import gsApp into sentry',
             },
             {
-              group: ['sentry/components/devtoolbar/*'],
-              message: 'Do not depend on toolbar internals',
-            },
-            {
               group: ['sentry/utils/theme*', 'sentry/utils/theme'],
               importNames: ['lightTheme', 'darkTheme', 'default'],
               message:
@@ -764,46 +760,6 @@ export default typescript.config([
     },
   },
   {
-    name: 'files/devtoolbar',
-    files: ['static/app/components/devtoolbar/**/*.{ts,tsx}'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              group: ['admin/*'],
-              message: 'Do not import gsAdmin into sentry',
-            },
-            {
-              group: ['getsentry/*'],
-              message: 'Do not import gsApp into sentry',
-            },
-            {
-              group: ['sentry/utils/theme*', 'sentry/utils/theme'],
-              importNames: ['lightTheme', 'darkTheme', 'default'],
-              message:
-                "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
-            },
-          ],
-          paths: [
-            ...restrictedImportPaths,
-            {
-              name: 'sentry/components/button',
-              message:
-                "Cannot depend on Button from inside the toolbar. Button depends on analytics tracking which isn't avaialble in the toolbar context",
-            },
-            {
-              name: 'sentry/utils/queryClient',
-              message:
-                'Import from `@tanstack/react-query` and `./hooks/useFetchApiData` or `./hooks/useFetchInfiniteApiData` instead.',
-            },
-          ],
-        },
-      ],
-    },
-  },
-  {
     name: 'files/sentry-test',
     files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
     rules: {
@@ -819,10 +775,6 @@ export default typescript.config([
             {
               group: ['getsentry/*'],
               message: 'Do not import gsApp into sentry',
-            },
-            {
-              group: ['sentry/components/devtoolbar/*'],
-              message: 'Do not depend on toolbar internals',
             },
             {
               group: ['sentry/utils/theme*', 'sentry/utils/theme'],
@@ -880,10 +832,6 @@ export default typescript.config([
               message: 'Do not import gsAdmin into gsApp',
             },
             {
-              group: ['sentry/components/devtoolbar/*'],
-              message: 'Do not depend on toolbar internals',
-            },
-            {
               group: ['sentry/utils/theme*', 'sentry/utils/theme'],
               importNames: ['lightTheme', 'darkTheme', 'default'],
               message:
@@ -911,10 +859,6 @@ export default typescript.config([
         'error',
         {
           patterns: [
-            {
-              group: ['sentry/components/devtoolbar/*'],
-              message: 'Do not depend on toolbar internals',
-            },
             {
               group: ['sentry/utils/theme*', 'sentry/utils/theme'],
               importNames: ['lightTheme', 'darkTheme', 'default'],
