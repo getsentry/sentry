@@ -392,5 +392,4 @@ const ChartLabel = styled('div')`
 
 const ChartTitle = styled('div')`
   display: flex;
-  margin-left: ${space(2)};
 `;

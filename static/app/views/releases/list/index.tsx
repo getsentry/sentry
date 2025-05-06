@@ -580,6 +580,7 @@ class ReleasesList extends DeprecatedAsyncComponent<Props, State> {
               {this.shouldShowQuickstart ? null : (
                 <SortAndFilterWrapper>
                   <StyledSearchQueryBuilder
+                    searchOnChange={organization.features.includes('ui-search-on-change')}
                     onSearch={this.handleSearch}
                     initialQuery={this.getQuery() || ''}
                     filterKeys={this.filterKeys}
