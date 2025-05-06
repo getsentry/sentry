@@ -514,6 +514,13 @@ function multiSelectTokenValue(
       return updateFilterMultipleValues(state, action.token, newValues);
     }
     default: {
+      if (
+        tokenValue.type === Token.VALUE_TEXT &&
+        tokenValue.contains &&
+        tokenValue.value === action.value
+      ) {
+        return updateFilterMultipleValues(state, action.token, ['']);
+      }
       if (tokenValue.text === action.value) {
         return updateFilterMultipleValues(state, action.token, ['']);
       }
