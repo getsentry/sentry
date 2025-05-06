@@ -402,7 +402,9 @@ class GroupDetailsEndpoint(GroupEndpoint):
         from sentry.utils import snuba
 
         try:
-            delete_group_list(request, group.project, [group], "delete")
+            delete_group_list(
+                request, group.project.organization_id, group.project, [group], "delete"
+            )
 
             metrics.incr(
                 "group.update.http_response",
