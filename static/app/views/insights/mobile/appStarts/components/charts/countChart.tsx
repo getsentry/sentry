@@ -103,7 +103,7 @@ export function CountChart({chartHeight}: Props) {
       pageFilter.selection
     ),
     enabled: !isReleasesLoading,
-    referrer: 'api.starfish.mobile-startup-series',
+    referrer: 'api.starfish.mobile-startup-series-1',
     initialData: {},
   });
 
