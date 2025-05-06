@@ -25,7 +25,7 @@ class BuildDetectorFingerprintComponentTest(UptimeTestCase):
     def test_build_detector_fingerprint_component(self):
         project_subscription = self.create_project_uptime_subscription()
         detector = get_detector(project_subscription.uptime_subscription)
-        assert detector is not None
+        assert detector
 
         fingerprint_component = build_detector_fingerprint_component(detector)
         assert fingerprint_component == f"uptime-detector:{detector.id}"
@@ -35,7 +35,7 @@ class BuildFingerprintForProjectSubscriptionTest(UptimeTestCase):
     def test_build_fingerprint_for_project_subscription(self):
         project_subscription = self.create_project_uptime_subscription()
         detector = get_detector(project_subscription.uptime_subscription)
-        assert detector is not None
+        assert detector
 
         fingerprint = build_fingerprint_for_project_subscription(detector, project_subscription)
         expected_fingerprint = [
@@ -77,7 +77,7 @@ class BuildOccurrenceFromResultTest(UptimeTestCase):
         result = self.create_uptime_result()
         project_subscription = self.create_project_uptime_subscription()
         detector = get_detector(project_subscription.uptime_subscription)
-        assert detector is not None
+        assert detector
 
         assert build_occurrence_from_result(
             result, detector, project_subscription
@@ -113,7 +113,7 @@ class BuildEventDataForOccurrenceTest(UptimeTestCase):
         result = self.create_uptime_result()
         project_subscription = self.create_project_uptime_subscription()
         detector = get_detector(project_subscription.uptime_subscription)
-        assert detector is not None
+        assert detector
 
         event_id = uuid.uuid4()
         occurrence = IssueOccurrence(
