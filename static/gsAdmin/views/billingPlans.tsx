@@ -6,7 +6,6 @@ import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import {IconDownload} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DataCategory} from 'sentry/types/core';
 import useApi from 'sentry/utils/useApi';
@@ -309,9 +308,7 @@ function PlanDetailsSection({
         <h3 id={planTypeId} style={{margin: 0}}>
           {planTierIdFormatted} {planNameFormatted} Plan
         </h3>
-        <Badge type={notLive ? 'warning' : 'new'}>
-          {notLive ? t('NOT LIVE') : t('LIVE')}
-        </Badge>
+        <Badge type={notLive ? 'warning' : 'new'}>{notLive ? 'NOT LIVE' : 'LIVE'}</Badge>
       </div>
 
       {/* Pricing Table */}
@@ -381,7 +378,7 @@ function PriceTiersTable({
 
   const disabled = data_categories_disabled.includes(dataCategory);
 
-  const badgeText = notLive ? t('NOT LIVE') : disabled ? t('DISABLED') : t('LIVE');
+  const badgeText = notLive ? 'NOT LIVE' : disabled ? 'DISABLED' : 'LIVE';
   const badgeType = notLive || disabled ? 'warning' : 'new';
 
   return (

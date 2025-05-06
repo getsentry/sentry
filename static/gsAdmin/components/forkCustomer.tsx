@@ -2,7 +2,6 @@ import {Component, Fragment} from 'react';
 
 import {Client} from 'sentry/api';
 import SelectField from 'sentry/components/forms/fields/selectField';
-import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {
@@ -69,10 +68,10 @@ class ForkCustomerAction extends Component<Props> {
       <Fragment>
         <SelectField
           name="regionUrl"
-          label={t('Duplicate into Region')}
-          help={t(
+          label={'Duplicate into Region'}
+          help={
             "Choose which region to duplicate this organization's low volume metadata into. This will kick off a SAAS->SAAS relocation job, but the source organization will not be affected."
-          )}
+          }
           choices={regionChoices}
           inline={false}
           stacked
