@@ -28,7 +28,7 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
     );
 
     expect(screen.getByRole('heading', {name: 'Quick Links'})).toBeInTheDocument();
-    expect(screen.getAllByRole('link')).toHaveLength(3);
+    expect(screen.getAllByRole('link')).toHaveLength(2);
 
     const userFeedback = screen.getByRole('link', {name: 'User Feedback'});
     const keyTransactions = screen.getByRole('link', {name: 'View Transactions'});
