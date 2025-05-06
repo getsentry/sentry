@@ -351,7 +351,7 @@ def disable_uptime_detector(detector: Detector):
 
     if uptime_subscription.uptime_status == UptimeStatus.FAILED:
         # Resolve the issue so that we don't see it in the ui anymore
-        resolve_uptime_issue(uptime_monitor)
+        resolve_uptime_issue(detector)
 
     # We set the status back to ok here so that if we re-enable we'll start
     # from a good state

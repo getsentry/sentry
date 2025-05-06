@@ -746,7 +746,7 @@ class DisableProjectUptimeSubscriptionTest(UptimeTestCase):
                 self.create_uptime_result(
                     subscription_id=proj_sub.uptime_subscription.subscription_id
                 ),
-                proj_sub,
+                detector,
             )
             hashed_fingerprint = md5(str(proj_sub.id).encode("utf-8")).hexdigest()
             assert Group.objects.filter(
