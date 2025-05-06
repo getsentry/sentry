@@ -225,14 +225,11 @@ def get_attribute_names(*, org_id: int, project_ids: list[int], stats_period: st
         fields_resp = snuba_rpc.attribute_names_rpc(req)
 
         parsed_fields = [
-            {
-                "key": as_attribute_key(
-                    attr.name,
-                    "string" if attr_type == AttributeKey.Type.TYPE_STRING else "number",
-                    SupportedTraceItemType.SPANS,
-                )["key"],
-                "type": attr_type,
-            }
+            as_attribute_key(
+                attr.name,
+                "string" if attr_type == AttributeKey.Type.TYPE_STRING else "number",
+                SupportedTraceItemType.SPANS,
+            )["key"]
             for attr in fields_resp.attributes
             if attr.name and can_expose_attribute(attr.name, SupportedTraceItemType.SPANS)
         ]
@@ -243,7 +240,7 @@ def get_attribute_names(*, org_id: int, project_ids: list[int], stats_period: st
 
 def get_attribute_values(
     *,
-    fields: list[dict[str, Any]],
+    fields: list[str],
     org_id: int,
     project_ids: list[int],
     stats_period: str,
@@ -272,8 +269,8 @@ def get_attribute_values(
     )
 
     for field in fields:
-        if field["type"] == AttributeKey.Type.TYPE_STRING:
-            resolved_column, _ = resolver.resolve_attribute(field["key"])
+        resolved_field, _ = resolver.resolve_attribute(field)
+        if resolved_field.proto_definition.type == AttributeKey.Type.TYPE_STRING:
 
             req = TraceItemAttributeValuesRequest(
                 meta=RequestMeta(
@@ -285,12 +282,12 @@ def get_attribute_values(
                     end_timestamp=end_time_proto,
                     trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
                 ),
-                key=resolved_column.proto_definition,
+                key=resolved_field.proto_definition,
                 limit=limit,
             )
 
             values_response = snuba_rpc.attribute_values_rpc(req)
-            values[field["key"]] = [value for value in values_response.values]
+            values[field] = [value for value in values_response.values]
 
     return {"values": values}
 

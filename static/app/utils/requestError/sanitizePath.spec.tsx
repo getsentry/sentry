@@ -102,13 +102,6 @@ describe('sanitizePath', function () {
       ],
 
       [
-        // XXX: This should probably be an organization endpoint...
-        // ProjectAgnosticRuleConditionsEndpoint
-        '/projects/sentry/rule-conditions/',
-        '/projects/{orgSlug}/rule-conditions/',
-      ],
-
-      [
         // TeamReleaseCountEndpoint
         '/teams/sentry/search-and-storage/release-count/',
         '/teams/{orgSlug}/{teamSlug}/release-count/',

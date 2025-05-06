@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useTraceItemAttributeValues} from 'sentry/views/explore/hooks/useTraceItemAttributeValues';
 import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -61,6 +62,7 @@ export function useSearchQueryBuilderProps({
   projects,
   supportedAggregates = [],
 }: TraceItemSearchQueryBuilderProps) {
+  const organization = useOrganization();
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
   const functionTags = useFunctionTags(itemType, supportedAggregates);
   const filterKeySections = useFilterKeySections(itemType, stringAttributes);
@@ -75,6 +77,7 @@ export function useSearchQueryBuilderProps({
   });
 
   return {
+    searchOnChange: organization.features.includes('ui-search-on-change'),
     placeholder: placeholderText,
     filterKeys: filterTags,
     initialQuery,

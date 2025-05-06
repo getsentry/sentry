@@ -117,6 +117,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               to: {
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`,
+                hash: undefined,
               },
             },
             {
@@ -135,6 +136,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               to: {
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`,
+                hash: undefined,
               },
               hidden: !issueTypeConfig.pages.replays.enabled,
             },
@@ -152,6 +154,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               to: {
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`,
+                hash: undefined,
               },
               hidden: !issueTypeConfig.pages.attachments.enabled,
             },
@@ -166,6 +169,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               to: {
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.USER_FEEDBACK]}`,
+                hash: undefined,
               },
               hidden: !issueTypeConfig.pages.userFeedback.enabled,
             },

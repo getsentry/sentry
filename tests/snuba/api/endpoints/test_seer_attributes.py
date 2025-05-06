@@ -1,7 +1,5 @@
 from uuid import uuid4
 
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
-
 from sentry.api.endpoints.seer_rpc import get_attribute_names, get_attribute_values
 from sentry.testutils.cases import BaseSpansTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -36,22 +34,10 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         )
         assert result == {
             "fields": [
-                {
-                    "key": "span.description",
-                    "type": AttributeKey.Type.TYPE_STRING,
-                },
-                {
-                    "key": "transaction",
-                    "type": AttributeKey.Type.TYPE_STRING,
-                },
-                {
-                    "key": "project",
-                    "type": AttributeKey.Type.TYPE_STRING,
-                },
-                {
-                    "key": "span.duration",
-                    "type": AttributeKey.Type.TYPE_DOUBLE,
-                },
+                "span.description",
+                "transaction",
+                "project",
+                "span.duration",
             ]
         }
 

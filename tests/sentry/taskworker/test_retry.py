@@ -14,6 +14,15 @@ class RuntimeChildError(RuntimeError):
     """Dummy exception for instanceof tests"""
 
 
+def test_initial_state__defaults() -> None:
+    retry = Retry(times=2)
+    proto = retry.initial_state()
+
+    assert proto.attempts == 0
+    assert proto.max_attempts == 2
+    assert proto.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DISCARD
+
+
 def test_initial_state__discard() -> None:
     retry = Retry(times=1, times_exceeded=LastAction.Discard)
     proto = retry.initial_state()

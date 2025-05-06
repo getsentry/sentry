@@ -66,6 +66,7 @@ export default function ReleaseTableSearch() {
 
   return (
     <StyledSearchQueryBuilder
+      searchOnChange={organization.features.includes('ui-search-on-change')}
       onSearch={handleSearch}
       initialQuery={getQuery() || ''}
       filterKeys={filterKeys}
