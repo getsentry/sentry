@@ -16,6 +16,7 @@ from sentry.uptime.issue_platform import (
     create_issue_platform_occurrence,
     resolve_uptime_issue,
 )
+from sentry.uptime.models import get_detector
 
 
 @freeze_time()
@@ -26,7 +27,9 @@ class CreateIssuePlatformOccurrenceTest(UptimeTestCase):
         mock_uuid.uuid4.side_effect = cycle([uuid.uuid4(), uuid.uuid4()])
         result = self.create_uptime_result()
         project_subscription = self.create_project_uptime_subscription()
-        create_issue_platform_occurrence(result, project_subscription)
+        detector = get_detector(project_subscription.uptime_subscription)
+        assert detector
+        create_issue_platform_occurrence(result, detector)
         assert mock_produce_occurrence_to_kafka.call_count == 1
         assert mock_produce_occurrence_to_kafka.call_args_list[0][0] == ()
         call_kwargs = mock_produce_occurrence_to_kafka.call_args_list[0][1]
@@ -118,12 +121,14 @@ class ResolveUptimeIssueTest(UptimeTestCase):
         project_subscription = self.create_project_uptime_subscription(
             uptime_subscription=subscription
         )
+        detector = get_detector(project_subscription.uptime_subscription)
+        assert detector
         result = self.create_uptime_result(subscription.subscription_id)
         with self.feature(UptimeDomainCheckFailure.build_ingest_feature_name()):
-            create_issue_platform_occurrence(result, project_subscription)
+            create_issue_platform_occurrence(result, detector)
         hashed_fingerprint = md5(str(project_subscription.id).encode("utf-8")).hexdigest()
         group = Group.objects.get(grouphash__hash=hashed_fingerprint)
         assert group.status == GroupStatus.UNRESOLVED
-        resolve_uptime_issue(project_subscription)
+        resolve_uptime_issue(detector)
         group.refresh_from_db()
         assert group.status == GroupStatus.RESOLVED
