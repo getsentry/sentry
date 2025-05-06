@@ -1029,6 +1029,15 @@ def process_rules(job: PostProcessJob) -> None:
         # objects back and forth isn't super efficient
         callback_and_futures = rp.apply()
 
+        if features.has(
+            "organizations:workflow-engine-process-workflows", group_event.project.organization
+        ):
+            metrics.incr(
+                "post_process.process_rules.fired_rules",
+                amount=rp.triggered_rules,
+                tags={"event_type": rp.event.group.type},
+            )
+
         # TODO(cathy): add opposite of the FF organizations:workflow-engine-trigger-actions
         for callback, futures in callback_and_futures:
             has_alert = True

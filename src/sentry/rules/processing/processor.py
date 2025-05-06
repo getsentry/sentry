@@ -221,6 +221,7 @@ class RuleProcessor:
         self.is_new_group_environment = is_new_group_environment
         self.has_reappeared = has_reappeared
         self.has_escalated = has_escalated
+        self.triggered_rules = 0
 
         self.grouped_futures: MutableMapping[
             str, tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
@@ -387,6 +388,8 @@ class RuleProcessor:
 
         if not updated:
             return
+
+        self.triggered_rules += 1
 
         if randrange(10) == 0:
             analytics.record(
