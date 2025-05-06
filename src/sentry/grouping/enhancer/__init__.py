@@ -126,16 +126,46 @@ def make_rust_exception_data(
     )
 
 
+def _can_use_hint(
+    variant_name: str,
+    frame_component: FrameGroupingComponent,
+    hint: str | None,
+    desired_hint_type: Literal["in-app", "contributes"] | None = None,
+) -> bool:
+    # Prevent clobbering an existing hint with no hint
+    if hint is None:
+        return False
+
+    frame_type = "in-app" if frame_component.in_app else "system"
+    hint_type = "contributes" if "ignored" in hint else "in-app"
+
+    # Don't use the hint if we've specifically asked for something different
+    if desired_hint_type and hint_type != desired_hint_type:
+        return False
+
+    # System frames can't contribute to the app variant, no matter what +/-group rules say, so we
+    # ignore the hint if it's about contributing since it's irrelevant
+    if variant_name == "app" and frame_type == "system" and hint_type == "contributes":
+        return False
+
+    # Similarly, we don't need hints about marking frames in or out of app in the system stacktrace
+    # because such changes don't actually have an effect there
+    if variant_name == "system" and hint_type == "in-app":
+        return False
+
+    return True
+
+
 def get_hint_for_frame(
     variant_name: str,
     frame: dict[str, Any],
     frame_component: FrameGroupingComponent,
     rust_frame: RustFrame,
+    desired_hint_type: Literal["in-app", "contributes"] | None = None,
 ) -> str | None:
     """
     Determine a hint to use for the frame, handling special-casing and precedence.
     """
-    frame_type = "in-app" if frame_component.in_app else "system"
     client_in_app = get_path(frame, "data", "client_in_app")
     rust_in_app = frame["in_app"]
     rust_hint = rust_frame.hint
@@ -143,38 +173,33 @@ def get_hint_for_frame(
         None if rust_hint is None else "in-app" if rust_hint.startswith("marked") else "contributes"
     )
     incoming_hint = frame_component.hint
-    use_rust_hint = True
 
-    if variant_name == "app":
-        default_hint = "non app frame" if not frame_component.in_app else frame_component.hint
+    # TODO: We can switch this to `desired_hint_type == "in-app"` once we're only using split
+    # enhancements. For now, we need to also include the case where `desired_hint_type` is None. (At
+    # that point we can also change the type of the parameter to be a required string.)
+    if variant_name == "app" and desired_hint_type != "contributes":
+        default_in_app_hint = "non app frame" if not frame_component.in_app else None
         client_in_app_hint = (
             f"marked {"in-app" if client_in_app else "out of app"} by the client"
-            if client_in_app is not None
+            # Only create the hint if it's going to match the eventual outcome. Otherwise, we might
+            # fall back to the client hint even though the client in-app value got overridden.
+            if client_in_app is not None and client_in_app == rust_in_app
             else None
         )
-        incoming_hint = client_in_app_hint or default_hint
+        incoming_hint = client_in_app_hint or default_in_app_hint or incoming_hint
 
-    # Prevent clobbering an existing hint with no hint
-    if rust_hint is None:
-        use_rust_hint = False
-
-    # System frames can't contribute to the app variant, no matter what +/-group rules say, so we
-    # ignore the rust hint if it's about contributing since it's irrelevant
-    elif variant_name == "app" and frame_type == "system" and rust_hint_type == "contributes":
-        use_rust_hint = False
-
-    # Similarly, we don't need hints about marking frames in or out of app in the system stacktrace
-    # because such changes don't actually have an effect there
-    elif variant_name == "system" and rust_hint_type == "in-app":
-        use_rust_hint = False
+    can_use_rust_hint = _can_use_hint(variant_name, frame_component, rust_hint, desired_hint_type)
+    can_use_incoming_hint = _can_use_hint(
+        variant_name, frame_component, incoming_hint, desired_hint_type
+    )
 
     # We don't want the rust enhancer taking credit for changing things if we know the value didn't
     # actually change. (This only happens with in-app hints, not contributes hints, because of the
     # weird (a.k.a. wrong) second condition in the rust enhancer's version of `in_app_changed`.)
-    elif variant_name == "app" and rust_hint_type == "in-app" and rust_in_app == client_in_app:
-        use_rust_hint = False
+    if variant_name == "app" and rust_hint_type == "in-app" and rust_in_app == client_in_app:
+        can_use_rust_hint = False
 
-    return rust_hint if use_rust_hint else incoming_hint
+    return rust_hint if can_use_rust_hint else incoming_hint if can_use_incoming_hint else None
 
 
 def _split_rules(
