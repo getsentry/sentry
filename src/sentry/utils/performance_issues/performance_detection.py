@@ -17,6 +17,9 @@ from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_DETECTION
 from sentry.utils import metrics
 from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.event_frames import get_sdk_name
+from sentry.utils.performance_issues.detectors.experiments.n_plus_one_db_span_detector import (
+    NPlusOneDBSpanExperimentalDetector,
+)
 from sentry.utils.safe import get_path
 
 from .base import DetectorType, PerformanceDetector
@@ -327,6 +330,7 @@ DETECTOR_CLASSES: list[type[PerformanceDetector]] = [
     SlowDBQueryDetector,
     RenderBlockingAssetSpanDetector,
     NPlusOneDBSpanDetector,
+    NPlusOneDBSpanExperimentalDetector,
     FileIOMainThreadDetector,
     NPlusOneAPICallsDetector,
     NPlusOneAPICallsExperimentalDetector,
