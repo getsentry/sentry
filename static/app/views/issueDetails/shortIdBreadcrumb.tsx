@@ -126,8 +126,6 @@ const Wrapper = styled('div')`
   display: flex;
   gap: ${space(1)};
   align-items: center;
-  /* hardcoded height avoids layout shift on button hover */
-  height: 36px;
 `;
 
 const StyledShortId = styled(ShortId)`
