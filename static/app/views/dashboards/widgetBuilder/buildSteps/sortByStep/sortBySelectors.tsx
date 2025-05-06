@@ -27,6 +27,7 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/utils';
 import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
 import {QueryField} from 'sentry/views/discover/table/queryField';
+import type {FieldValue} from 'sentry/views/discover/table/types';
 
 import {CUSTOM_EQUATION_VALUE} from '.';
 
@@ -82,22 +83,21 @@ export function SortBySelectors({
     setShowCustomEquation(isSortingByEquation);
   }, [values.sortBy, values.sortDirection]);
 
-  const queryFieldOptions = useMemo(() => {
-    const options = datasetConfig.getTimeseriesSortOptions!(
-      organization,
-      widgetQuery,
-      tags
-    );
-    if (widgetType === WidgetType.SPANS && options['measurement:span.duration']) {
-      // Re-map the span duration measurement label so we can simply render
-      // `spans` in the parameter UI
-      options['measurement:span.duration'] = {
-        ...options['measurement:span.duration'],
-        label: t('spans'),
-      };
+  const timeseriesSortOptions = useMemo(() => {
+    let options: Record<string, SelectValue<FieldValue>> = {};
+    if (displayType !== DisplayType.TABLE) {
+      options = datasetConfig.getTimeseriesSortOptions!(organization, widgetQuery, tags);
+      if (widgetType === WidgetType.SPANS && options['measurement:span.duration']) {
+        // Re-map the span duration measurement label so we can simply render
+        // `spans` in the parameter UI
+        options['measurement:span.duration'] = {
+          ...options['measurement:span.duration'],
+          label: t('spans'),
+        };
+      }
     }
     return options;
-  }, [datasetConfig, organization, tags, widgetQuery, widgetType]);
+  }, [datasetConfig, organization, tags, widgetQuery, widgetType, displayType]);
 
   return (
     <Wrapper>
@@ -158,7 +158,7 @@ export function SortBySelectors({
                   ? explodeField({field: CUSTOM_EQUATION_VALUE})
                   : explodeField({field: values.sortBy})
             }
-            fieldOptions={queryFieldOptions}
+            fieldOptions={timeseriesSortOptions}
             filterPrimaryOptions={
               datasetConfig.filterSeriesSortOptions
                 ? datasetConfig.filterSeriesSortOptions(columnSet)
