@@ -414,6 +414,8 @@ def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
     aligned_timeseries = align_timeseries(snql_result=snql_result, rpc_result=rpc_result)
     is_close, mismatches, all_zeros = assert_timeseries_close(aligned_timeseries, alert_rule)
 
+    sentry_sdk.set_tag("aggregate", snuba_query.aggregate)
+
     if all_zeros:
         with sentry_sdk.isolation_scope() as scope:
             scope.set_tag("mismatch_type", MismatchType.INSUFFICIENT_DATA.value)
