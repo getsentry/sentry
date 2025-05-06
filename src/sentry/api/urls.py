@@ -615,7 +615,6 @@ from .endpoints.organization_user_details import OrganizationUserDetailsEndpoint
 from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.organization_user_teams import OrganizationUserTeamsEndpoint
 from .endpoints.organization_users import OrganizationUsersEndpoint
-from .endpoints.project_agnostic_rule_conditions import ProjectAgnosticRuleConditionsEndpoint
 from .endpoints.project_artifact_bundle_file_details import ProjectArtifactBundleFileDetailsEndpoint
 from .endpoints.project_artifact_bundle_files import ProjectArtifactBundleFilesEndpoint
 from .endpoints.project_commits import ProjectCommitsEndpoint
@@ -2325,11 +2324,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^$",
         ProjectIndexEndpoint.as_view(),
         name="sentry-api-0-projects",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/rule-conditions/$",
-        ProjectAgnosticRuleConditionsEndpoint.as_view(),
-        name="sentry-api-0-project-agnostic-rule-conditions",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/$",
