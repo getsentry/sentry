@@ -422,7 +422,7 @@ def fire_actions_for_groups(
         # create WorkflowFireHistory (updated in evaluate_workflows_action_filters)
         create_workflow_fire_histories(workflows, event_data)
         filtered_actions = filtered_actions.union(
-            evaluate_workflows_action_filters(workflows, event_data)
+            evaluate_workflows_action_filters(workflows, event_data, is_delayed_processing=True)
         )
 
         # temporary fetching of organization, so not passing in as parameter
