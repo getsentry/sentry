@@ -22,6 +22,7 @@ import DisabledQuickTrace from 'getsentry/components/features/disabledQuickTrace
 import DisabledRateLimits from 'getsentry/components/features/disabledRateLimits';
 import DisabledRelay from 'getsentry/components/features/disabledRelay';
 import DisabledSelectorItems from 'getsentry/components/features/disabledSelectorItems';
+import ExploreDateRangeQueryLimitFooter from 'getsentry/components/features/exploreDateRangeQueryLimitFooter';
 import InsightsDateRangeQueryLimitFooter from 'getsentry/components/features/insightsDateRangeQueryLimitFooter';
 import InsightsUpsellPage from 'getsentry/components/features/insightsUpsellPage';
 import PerformanceNewProjectPrompt from 'getsentry/components/features/performanceNewProjectPrompt';
@@ -207,6 +208,8 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:continuous-profiling-beta-banner': () => ContinuousProfilingBetaAlertBanner,
   'component:continuous-profiling-beta-sdk-banner': () =>
     ContinuousProfilingBetaSDKAlertBanner,
+  'component:explore-date-range-query-limit-footer': () =>
+    ExploreDateRangeQueryLimitFooter,
   /**
    * Augment the datetime picker based on plan retention days. Includes upsell interface
    */

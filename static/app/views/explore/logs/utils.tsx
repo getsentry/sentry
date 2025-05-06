@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {t} from 'sentry/locale';
@@ -192,7 +193,7 @@ export function adjustLogTraceID(traceID: string) {
 }
 
 export function logsPickableDays(organization: Organization): PickableDays {
-  const relativeOptions: Array<[string, React.ReactNode]> = [
+  const relativeOptions: Array<[string, ReactNode]> = [
     ['1h', t('Last hour')],
     ['24h', t('Last 24 hours')],
     ['7d', t('Last 7 days')],
@@ -205,6 +206,13 @@ export function logsPickableDays(organization: Organization): PickableDays {
   return {
     defaultPeriod: '24h',
     maxPickableDays: 14,
-    relativeOptions: Object.fromEntries(relativeOptions),
+    relativeOptions: ({
+      arbitraryOptions,
+    }: {
+      arbitraryOptions: Record<string, ReactNode>;
+    }) => ({
+      ...arbitraryOptions,
+      ...Object.fromEntries(relativeOptions),
+    }),
   };
 }
