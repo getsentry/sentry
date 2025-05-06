@@ -4,19 +4,18 @@ import Link from 'sentry/components/links/link';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
-export default function FlagDetailsLink({
-  tag,
-  children,
-}: {
+interface Props {
   children: React.ReactNode;
-  tag: GroupTag;
-}) {
+  flag: GroupTag;
+}
+
+export default function FlagDetailsLink({flag, children}: Props) {
   const location = useLocation();
 
   return (
     <StyledLink
       to={{
-        pathname: `${location.pathname}${tag.key}/`,
+        pathname: `${location.pathname}${flag.key}/`,
         query: {
           ...location.query,
           tab: 'flags',

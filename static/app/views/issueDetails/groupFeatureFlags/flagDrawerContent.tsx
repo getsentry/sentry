@@ -87,7 +87,7 @@ export default function FlagDrawerContent({
     <Container>
       {displayFlags.map(flag => (
         <div key={flag.key}>
-          <FlagDetailsLink tag={flag} key={flag.key}>
+          <FlagDetailsLink flag={flag} key={flag.key}>
             <TagDistribution tag={flag} key={flag.key} />
           </FlagDetailsLink>
           {debugSuspectScores && <DebugSuspectScore {...flag.suspect} />}

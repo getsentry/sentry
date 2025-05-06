@@ -86,7 +86,7 @@ export default function SuspectTable({debugSuspectScores, environments, group}: 
           return (
             <TagValueRow key={flag.key}>
               {/* TODO: why is flag.name transformed to TitleCase? */}
-              <FlagDetailsLink tag={flag}>
+              <FlagDetailsLink flag={flag}>
                 <Tooltip
                   title={flag.key}
                   showOnlyOnOverflow
