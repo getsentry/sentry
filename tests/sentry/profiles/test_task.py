@@ -1065,6 +1065,7 @@ def test_track_latest_sdk_with_payload(
         "received": "2024-01-02T03:04:05",
         "payload": json.dumps(profile),
     }
+    payload: str | bytes
     if should_encode:
         payload = encode_payload(kafka_payload)
     else:
