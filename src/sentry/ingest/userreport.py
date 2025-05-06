@@ -9,9 +9,10 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import IntegrityError, router
 from django.utils import timezone
+from rest_framework import status
 
 from sentry import eventstore, options
-from sentry.api.exceptions import BadRequest
+from sentry.api.exceptions import BadRequest, SentryAPIException
 from sentry.constants import DataCategory
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.feedback.lib.types import UserReportDict
@@ -60,6 +61,11 @@ def save_userreport(
                 category=DataCategory.USER_REPORT_V2,
                 quantity=1,
             )
+            if (
+                source == FeedbackCreationSource.USER_REPORT_DJANGO_ENDPOINT
+                or source == FeedbackCreationSource.CRASH_REPORT_EMBED_FORM
+            ):
+                raise SentryAPIException(code=status.HTTP_403_FORBIDDEN)
             return None
 
         should_filter, metrics_reason, outcomes_reason = validate_user_report(
@@ -81,7 +87,10 @@ def save_userreport(
                 category=DataCategory.USER_REPORT_V2,
                 quantity=1,
             )
-            if source == FeedbackCreationSource.USER_REPORT_DJANGO_ENDPOINT:
+            if (
+                source == FeedbackCreationSource.USER_REPORT_DJANGO_ENDPOINT
+                or source == FeedbackCreationSource.CRASH_REPORT_EMBED_FORM
+            ):
                 raise BadRequest(outcomes_reason)
             return None
 
