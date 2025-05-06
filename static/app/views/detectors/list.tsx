@@ -12,9 +12,6 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-// import { ActionType } from 'sentry/types/workflowEngine/actions';
-// import { DataConditionGroupLogicType } from 'sentry/types/workflowEngine/dataConditions';
-// import type { Detector } from 'sentry/types/workflowEngine/detectors';
 import DetectorListTable from 'sentry/views/detectors/components/detectorListTable';
 import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 
@@ -48,11 +45,7 @@ function TableHeader() {
 function Actions() {
   return (
     <Fragment>
-      <LinkButton
-        to="/issues/monitors/new"
-        priority="primary"
-        icon={<IconAdd isCircled />}
-      >
+      <LinkButton to="/issues/monitors/new" priority="primary" icon={<IconAdd />}>
         {t('Create Monitor')}
       </LinkButton>
     </Fragment>
