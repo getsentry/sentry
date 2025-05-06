@@ -33,8 +33,13 @@ class VertexProvider(LlmModelBase):
         content = f"{prompt} {message}" if prompt else message
 
         payload = {
-            "instances": [{"content": content}],
-            "parameters": {
+            "contents": {
+                "role": "user",
+                "parts": [
+                    {"text": content},
+                ],
+            },
+            "generationConfig": {
                 "candidateCount": self.candidate_count,
                 "maxOutputTokens": max_output_tokens,
                 "temperature": temperature,
@@ -47,7 +52,7 @@ class VertexProvider(LlmModelBase):
             "Content-Type": "application/json",
         }
         vertex_url = self.provider_config["options"]["url"]
-        vertex_url += usecase_config["options"]["model"] + ":predict"
+        vertex_url += usecase_config["options"]["model"] + ":generateContent"
 
         response = requests.post(vertex_url, headers=headers, json=payload)
 
