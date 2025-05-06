@@ -299,14 +299,14 @@ def test_sentry_wrapped_not_detected(mock_sdk_crash_reporter, mock_random, store
         exception={
             "values": [
                 get_exception(
-                    frames=get_frames()
-                    + [
+                    frames=[
+                        *get_frames(),
                         {
                             "function": "sentryWrapped",
                             "module": "@sentry/browser/src/helpers",
                             "filename": "@sentry/browser/src/helpers.ts",
                             "abs_path": "app:///@sentry/browser/src/helpers.ts",
-                        }
+                        },
                     ],
                 ),
             ]
@@ -331,8 +331,8 @@ def test_sentry_wrapped_end_detected(mock_sdk_crash_reporter, mock_random, store
         exception={
             "values": [
                 get_exception(
-                    frames=get_frames()
-                    + [
+                    frames=[
+                        *get_frames(),
                         {
                             # sentryWrappedPostfix is not related to sentryWrapped and should be detected
                             # if this causes a crash, it could be a bug in the SDK
@@ -340,7 +340,7 @@ def test_sentry_wrapped_end_detected(mock_sdk_crash_reporter, mock_random, store
                             "module": "@sentry/browser/src/helpers",
                             "filename": "@sentry/browser/src/helpers.ts",
                             "abs_path": "app:///@sentry/browser/src/helpers.ts",
-                        }
+                        },
                     ],
                 ),
             ]
