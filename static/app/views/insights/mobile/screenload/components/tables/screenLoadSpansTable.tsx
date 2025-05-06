@@ -110,6 +110,7 @@ export function ScreenLoadSpansTable({
       cursor,
       search: queryStringPrimary,
       sorts: [sort],
+      limit: 25,
       fields: [
         PROJECT_ID,
         SPAN_OP,
