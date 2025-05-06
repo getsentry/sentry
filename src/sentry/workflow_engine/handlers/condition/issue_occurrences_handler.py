@@ -30,5 +30,9 @@ class IssueOccurrencesConditionHandler(DataConditionHandler[WorkflowEventData]):
 
         # This value is slightly delayed due to us batching writes to times_seen. We attempt to work
         # around this by including pending updates from buffers to improve accuracy.
-        issue_occurrences: int = group.times_seen_with_pending
+        try:
+            issue_occurrences: int = group.times_seen_with_pending
+        except AssertionError:
+            # This is a fallback for when times_seen_pending has not yet been set
+            issue_occurrences = group.times_seen
         return bool(issue_occurrences >= value)

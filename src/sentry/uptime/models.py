@@ -7,6 +7,10 @@ from django.conf import settings
 from django.db import models
 from django.db.models import Count, Q
 from django.db.models.functions import Now
+from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
+    CHECKSTATUS_FAILURE,
+    CHECKSTATUS_SUCCESS,
+)
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
@@ -28,9 +32,16 @@ from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION, ProjectUptimeSubscriptionMode
 from sentry.utils.function_cache import cache_func, cache_func_for_models
 from sentry.utils.json import JSONEncoder
-from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
+from sentry.workflow_engine.models import (
+    Condition,
+    DataCondition,
+    DataConditionGroup,
+    DataSource,
+    DataSourceDetector,
+    Detector,
+)
 from sentry.workflow_engine.registry import data_source_type_registry
-from sentry.workflow_engine.types import DataSourceTypeHandler
+from sentry.workflow_engine.types import DataSourceTypeHandler, DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
 
@@ -363,6 +374,24 @@ def create_detector_from_project_subscription(project_sub: ProjectUptimeSubscrip
         organization=project_sub.project.organization,
         source_id=str(project_sub.uptime_subscription_id),
     )
+    condition_group = DataConditionGroup.objects.create(
+        organization=project_sub.project.organization,
+    )
+    # TODO(epurkhiser): Should we be creating a new data condition + group for
+    # every uptime detector, or is there an intention to be able to re-use the
+    # groups for multiple detectors?
+    DataCondition.objects.create(
+        comparison=CHECKSTATUS_FAILURE,
+        type=Condition.EQUAL,
+        condition_result=DetectorPriorityLevel.HIGH,
+        condition_group=condition_group,
+    )
+    DataCondition.objects.create(
+        comparison=CHECKSTATUS_SUCCESS,
+        type=Condition.EQUAL,
+        condition_result=DetectorPriorityLevel.OK,
+        condition_group=condition_group,
+    )
     env = project_sub.environment.name if project_sub.environment else None
     detector = Detector.objects.create(
         type=UptimeDomainCheckFailure.slug,
@@ -374,6 +403,7 @@ def create_detector_from_project_subscription(project_sub: ProjectUptimeSubscrip
             "environment": env,
             "mode": project_sub.mode,
         },
+        workflow_condition_group=condition_group,
     )
     DataSourceDetector.objects.create(data_source=data_source, detector=detector)
 
