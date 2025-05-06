@@ -99,6 +99,16 @@ function extractTranslationsFromFileContent(
   baseDirectory: string
 ): void {
   const relativePath = path.relative(baseDirectory, filePath);
+
+  // Unused files that have translations, but we can ignore
+  const ignoredFiles = ['static/app/locale.spec.tsx'];
+  if (ignoredFiles.includes(relativePath)) {
+    return;
+  }
+
+  const isSpecFile = /\.spec\.(js|ts|jsx|tsx)$/i.test(filePath);
+  const isGsAdminFile = /\/gsAdmin\//.test(filePath);
+
   const sourceFile = ts.createSourceFile(
     path.basename(filePath),
     code,
@@ -177,41 +187,47 @@ function extractTranslationsFromFileContent(
           translate.comments.translator = translatorComment;
         }
 
-        const msgctxt = translate.msgctxt ?? '';
-        const currentContext = (gettextData.translations[msgctxt] =
-          gettextData.translations[msgctxt] ?? {});
+        if (isSpecFile || isGsAdminFile) {
+          // Log translations for spec files and gsAdmin files instead of adding them to the PO file
+          const reference = translate.comments?.reference;
+          console.log(`[UNUSED TRANSLATION WARNING] ${reference}`);
+        } else {
+          const msgctxt = translate.msgctxt ?? '';
+          const currentContext = (gettextData.translations[msgctxt] =
+            gettextData.translations[msgctxt] ?? {});
 
-        const finalTranslateEntry = translate as GetTextTranslation;
+          const finalTranslateEntry = translate as GetTextTranslation;
 
-        if (currentContext[finalTranslateEntry.msgid]) {
-          const existingEntry = currentContext[finalTranslateEntry.msgid];
-          const newRef = finalTranslateEntry.comments?.reference;
-          if (newRef) {
-            let currentRefs = (existingEntry.comments?.reference || '')
-              .split(`\n`)
-              .filter(Boolean);
-            if (!currentRefs.includes(newRef)) {
-              currentRefs.push(newRef);
+          if (currentContext[finalTranslateEntry.msgid]) {
+            const existingEntry = currentContext[finalTranslateEntry.msgid];
+            const newRef = finalTranslateEntry.comments?.reference;
+            if (newRef) {
+              let currentRefs = (existingEntry.comments?.reference || '')
+                .split(`\n`)
+                .filter(Boolean);
+              if (!currentRefs.includes(newRef)) {
+                currentRefs.push(newRef);
+                if (!existingEntry.comments) {
+                  existingEntry.comments = {};
+                }
+                existingEntry.comments.reference = currentRefs.sort().join(`\n`);
+              }
+            }
+            if (
+              translate.comments?.translator &&
+              !existingEntry.comments?.translator?.includes(translate.comments.translator)
+            ) {
               if (!existingEntry.comments) {
                 existingEntry.comments = {};
               }
-              existingEntry.comments.reference = currentRefs.sort().join(`\n`);
+              existingEntry.comments.translator =
+                (existingEntry.comments.translator
+                  ? existingEntry.comments.translator + `\n`
+                  : '') + translate.comments.translator;
             }
+          } else {
+            currentContext[finalTranslateEntry.msgid] = finalTranslateEntry;
           }
-          if (
-            translate.comments?.translator &&
-            !existingEntry.comments?.translator?.includes(translate.comments.translator)
-          ) {
-            if (!existingEntry.comments) {
-              existingEntry.comments = {};
-            }
-            existingEntry.comments.translator =
-              (existingEntry.comments.translator
-                ? existingEntry.comments.translator + `\n`
-                : '') + translate.comments.translator;
-          }
-        } else {
-          currentContext[finalTranslateEntry.msgid] = finalTranslateEntry;
         }
       }
     }
