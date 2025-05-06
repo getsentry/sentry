@@ -267,7 +267,13 @@ export function EventGraph({
 
   const handleReleaseLineClick = useCallback(
     (release: ReleaseMetaBasic) => {
-      navigate(makeReleaseDrawerPathname({location, release: release.version}));
+      navigate(
+        makeReleaseDrawerPathname({
+          location,
+          release: release.version,
+          source: 'issue-details',
+        })
+      );
     },
     [location, navigate]
   );

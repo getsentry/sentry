@@ -162,7 +162,13 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           props.releases,
           function onReleaseClick(release: Release) {
             if (organization.features.includes('release-bubbles-ui')) {
-              navigate(makeReleaseDrawerPathname({location, release: release.version}));
+              navigate(
+                makeReleaseDrawerPathname({
+                  location,
+                  release: release.version,
+                  source: 'time-series-widget',
+                })
+              );
               return;
             }
             navigate(

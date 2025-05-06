@@ -83,6 +83,7 @@ function Version({
               location,
               release: version,
               projectId: releaseDetailProjectId,
+              source: 'release-version-link',
             })
           : {
               pathname: makeReleasesPathname({
