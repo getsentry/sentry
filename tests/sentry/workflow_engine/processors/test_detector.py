@@ -379,7 +379,15 @@ class TestEvaluate(BaseDetectorHandlerTest):
                 event_data=event_data,
             )
         }
-        self.assert_updates(handler, "val1", 2, {}, True, DetectorPriorityLevel.HIGH)
+
+        self.assert_updates(
+            handler,
+            "val1",
+            2,
+            handler.test_get_empty_counter_state(),
+            True,
+            DetectorPriorityLevel.HIGH,
+        )
 
     def test_above_below_threshold(self):
         handler = self.build_handler()
@@ -468,7 +476,14 @@ class TestEvaluate(BaseDetectorHandlerTest):
                 event_data=event_data,
             )
         }
-        self.assert_updates(handler, "val1", 2, {}, True, DetectorPriorityLevel.HIGH)
+        self.assert_updates(
+            handler,
+            "val1",
+            2,
+            handler.test_get_empty_counter_state(),
+            True,
+            DetectorPriorityLevel.HIGH,
+        )
         # This detector is already triggered, so no status change occurred. Should be no result
         assert handler.evaluate(DataPacket("1", {"dedupe": 3, "group_vals": {"val1": 200}})) == {}
 
@@ -501,7 +516,14 @@ class TestEvaluate(BaseDetectorHandlerTest):
                 event_data=event_data,
             )
         }
-        self.assert_updates(handler, "val1", 2, {}, True, DetectorPriorityLevel.HIGH)
+        self.assert_updates(
+            handler,
+            "val1",
+            2,
+            handler.test_get_empty_counter_state(),
+            True,
+            DetectorPriorityLevel.HIGH,
+        )
         with mock.patch(
             "sentry.workflow_engine.handlers.detector.stateful.metrics"
         ) as mock_metrics:
@@ -509,7 +531,9 @@ class TestEvaluate(BaseDetectorHandlerTest):
             mock_metrics.incr.assert_called_once_with(
                 "workflow_engine.detector.skipping_already_processed_update"
             )
-        self.assert_updates(handler, "val1", None, None, None, None)
+        self.assert_updates(
+            handler, "val1", None, handler.test_get_empty_counter_state(), None, None
+        )
 
 
 @freeze_time()
