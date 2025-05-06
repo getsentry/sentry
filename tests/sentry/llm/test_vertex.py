@@ -22,7 +22,26 @@ def test_complete_prompt(set_sentry_option):
             return_value=type(
                 "obj",
                 (object,),
-                {"status_code": 200, "json": lambda x: {"predictions": [{"content": ""}]}},
+                {
+                    "status_code": 200,
+                    "json": lambda x: {
+                        "candidates": [
+                            {
+                                "content": {
+                                    "role": "model",
+                                    "parts": [
+                                        {
+                                            "text": "hellogemini",
+                                            "finishReason": "STOP",
+                                            "avgLogprobs": -4.491923997799556e-06,
+                                        }
+                                    ],
+                                    "modelVersion": "vertex-1.0",
+                                }
+                            }
+                        ]
+                    },
+                },
             )(),
         ),
     ):
@@ -33,4 +52,4 @@ def test_complete_prompt(set_sentry_option):
             temperature=0.0,
             max_output_tokens=1024,
         )
-    assert res == ""
+    assert res == "hellogemini"
