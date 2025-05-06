@@ -121,7 +121,6 @@ class TestSyncStatusOutbound(TestCase):
         sync_status_outbound(self.group.id, external_issue_id=external_issue.id)
 
         #  SLOs SYNC_STATUS_OUTBOUND (halt)
-        # breakpoint()
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
         )
