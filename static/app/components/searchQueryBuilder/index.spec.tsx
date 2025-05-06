@@ -865,14 +865,14 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
 
       // New token should be added with the correct key and default value
-      expect(screen.getByLabelText('browser.name:""')).toBeInTheDocument();
+      expect(screen.getByRole('row', {name: 'browser.name:""'})).toBeInTheDocument();
       // onChange should not be called until exiting edit mode
       expect(mockOnChange).not.toHaveBeenCalled();
 
-      await userEvent.click(await screen.findByLabelText('Firefox'));
+      await userEvent.click(await screen.findByRole('option', {name: 'Firefox'}));
 
       // New token should have a value
-      expect(screen.getByLabelText('browser.name:Firefox')).toBeInTheDocument();
+      expect(screen.getByRole('row', {name: 'browser.name:Firefox'})).toBeInTheDocument();
 
       // Now we call onChange
       expect(mockOnChange).toHaveBeenCalledTimes(1);
@@ -920,7 +920,7 @@ describe('SearchQueryBuilder', function () {
       ).toBeInTheDocument();
 
       // Should have a filter token "browser.name:foo"
-      expect(screen.getByLabelText('browser.name:foo')).toBeInTheDocument();
+      expect(screen.getByRole('row', {name: 'browser.name:foo'})).toBeInTheDocument();
     });
 
     it('can add parens by typing', async function () {
@@ -974,7 +974,9 @@ describe('SearchQueryBuilder', function () {
 
       // Clicking it should add the filter and put focus at the end
       await userEvent.click(suggestionItem);
-      expect(await screen.findByLabelText('browser.name:Firefox')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('row', {name: 'browser.name:Firefox'})
+      ).toBeInTheDocument();
       expect(getLastInput()).toHaveFocus();
     });
 
@@ -2203,7 +2205,9 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(screen.getByRole('option', {name: 'duration'}));
 
         // Should start with the > operator and a value of 10ms
-        expect(await screen.findByLabelText('duration:>10ms')).toBeInTheDocument();
+        expect(
+          await screen.findByRole('row', {name: 'duration:>10ms'})
+        ).toBeInTheDocument();
       });
 
       it('duration filters have the correct operator options', async function () {
@@ -2338,7 +2342,9 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(screen.getByRole('option', {name: 'size'}));
 
         // Should start with the > operator and a value of 10ms
-        expect(await screen.findByLabelText('size:>10bytes')).toBeInTheDocument();
+        expect(
+          await screen.findByRole('row', {name: 'size:>10bytes'})
+        ).toBeInTheDocument();
       });
 
       it('size filters have the correct operator options', async function () {
@@ -2471,7 +2477,7 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(screen.getByRole('option', {name: 'rate'}));
 
         // Should start with the > operator and a value of 50%
-        expect(await screen.findByLabelText('rate:>0.5')).toBeInTheDocument();
+        expect(await screen.findByRole('row', {name: 'rate:>0.5'})).toBeInTheDocument();
       });
 
       it('percentage filters have the correct operator options', async function () {
@@ -2972,9 +2978,9 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(screen.getByRole('option', {name: 'count_if(...)'}));
 
         expect(
-          await screen.findByLabelText(
-            'count_if(transaction.duration,greater,300ms):>100'
-          )
+          await screen.findByRole('row', {
+            name: 'count_if(transaction.duration,greater,300ms):>100',
+          })
         ).toBeInTheDocument();
       });
 
