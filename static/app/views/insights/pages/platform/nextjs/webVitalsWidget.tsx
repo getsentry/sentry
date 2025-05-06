@@ -203,7 +203,7 @@ function WebVitalsWidgetVisualization({
         width={260}
         height={220}
         y={46}
-        x={52}
+        x={60}
         size={130}
         radiusPadding={20}
         labelHeightPadding={-5}
