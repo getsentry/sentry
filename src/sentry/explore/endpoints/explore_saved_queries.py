@@ -31,7 +31,9 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.explore.endpoints.bases import ExploreSavedQueryPermission
 from sentry.explore.endpoints.serializers import ExploreSavedQuerySerializer
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryStarred
+from sentry.locks import locks
 from sentry.search.utils import tokenize_query
+from sentry.utils.locking import UnableToAcquireLock
 
 PREBUILT_SAVED_QUERIES = [
     {
@@ -302,12 +304,21 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
             "organizations:performance-default-explore-queries", organization, actor=request.user
         ):
             try:
-                # Adds prebuilt queries to the database if they don't exist.
-                # Updates them if they are outdated.
-                # Deletes old prebuilt queries from the database if they should no longer exist.
-                # Stars prebuilt queries for the user if it is the first time they are being fetched by the user.
-                sync_prebuilt_queries(organization)
-                sync_prebuilt_queries_starred(organization, request.user.id)
+                lock = locks.get(
+                    f"explore:sync_prebuilt_queries:{organization.id}:{request.user.id}",
+                    duration=10,
+                    name="sync_prebuilt_queries",
+                )
+                with lock.acquire():
+                    # Adds prebuilt queries to the database if they don't exist.
+                    # Updates them if they are outdated.
+                    # Deletes old prebuilt queries from the database if they should no longer exist.
+                    # Stars prebuilt queries for the user if it is the first time they are being fetched by the user.
+                    sync_prebuilt_queries(organization)
+                    sync_prebuilt_queries_starred(organization, request.user.id)
+            except UnableToAcquireLock:
+                # Another process is already syncing the prebuilt queries. We can skip syncing this time.
+                pass
             except Exception as err:
                 sentry_sdk.capture_exception(err)
 
