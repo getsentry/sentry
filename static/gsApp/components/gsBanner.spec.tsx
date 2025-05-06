@@ -1481,7 +1481,7 @@ describe('GSBanner Overage Alerts', function () {
 
     expect(
       await screen.findByTestId(
-        'overage-banner-error-transaction-replay-attachment-monitorSeat'
+        'overage-banner-error-transaction-attachment-replay-monitorSeat'
       )
     ).toBeInTheDocument();
 
@@ -1601,7 +1601,7 @@ describe('GSBanner Overage Alerts', function () {
 
     expect(
       await screen.findByTestId(
-        'overage-banner-error-transaction-replay-attachment-monitorSeat-span-profileDuration'
+        'overage-banner-error-transaction-attachment-replay-span-monitorSeat-profileDuration'
       )
     ).toBeInTheDocument();
 
@@ -2047,7 +2047,7 @@ describe('GSBanner Overage Alerts', function () {
 
     expect(
       await screen.findByTestId(
-        'overage-banner-error-transaction-attachment-monitorSeat-span-uptime'
+        'overage-banner-error-transaction-attachment-span-monitorSeat-uptime'
       )
     ).toBeInTheDocument();
   });
@@ -2097,7 +2097,7 @@ describe('GSBanner Overage Alerts', function () {
 
     expect(
       await screen.findByTestId(
-        'overage-banner-error-transaction-attachment-monitorSeat-span-uptime'
+        'overage-banner-error-transaction-attachment-span-monitorSeat-uptime'
       )
     ).toBeInTheDocument();
   });
