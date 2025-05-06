@@ -2234,7 +2234,7 @@ def migrate_remaining_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchema
             )
             sentry_sdk.capture_exception(e)
 
-    backfill_key = "backfill_workflow_engine_remaining_issue_alerts_take_2"
+    backfill_key = "backfill_workflow_engine_remaining_issue_alerts_take_3"
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
     progress_id = int(redis_client.get(backfill_key) or 0)
 
