@@ -279,6 +279,7 @@ export default function FeedbackSearch() {
 
   return (
     <SearchQueryBuilder
+      searchOnChange={organization.features.includes('ui-search-on-change')}
       initialQuery={decodeScalar(locationQuery.query, '')}
       fieldDefinitionGetter={getFeedbackFieldDefinition}
       filterKeys={filterKeys}

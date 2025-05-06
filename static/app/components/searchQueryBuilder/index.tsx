@@ -214,7 +214,7 @@ function SearchQueryBuilderUI({
       <PanelProvider>
         <SearchIndicator
           initialQuery={initialQuery}
-          showUnsubmittedIndicator={showUnsubmittedIndicator}
+          showUnsubmittedIndicator={showUnsubmittedIndicator && !searchOnChange}
         />
         {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
           <PlainTextQueryInput label={label} />
