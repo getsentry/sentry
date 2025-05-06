@@ -1,5 +1,10 @@
 from unittest import mock
 
+from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
+    CHECKSTATUS_FAILURE,
+    CHECKSTATUS_SUCCESS,
+)
+
 from sentry.testutils.cases import UptimeTestCase
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import (
@@ -9,7 +14,8 @@ from sentry.uptime.models import (
     get_top_hosting_provider_names,
 )
 from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION, ProjectUptimeSubscriptionMode
-from sentry.workflow_engine.models.data_source_detector import DataSourceDetector
+from sentry.workflow_engine.models import Condition, DataSourceDetector
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
 class GetActiveMonitorCountForOrgTest(UptimeTestCase):
@@ -117,9 +123,8 @@ class CreateDetectorTest(UptimeTestCase):
     def test_simple(self):
         monitor = self.create_project_uptime_subscription()
         detector = get_detector(monitor.uptime_subscription)
-
-        assert get_detector(monitor.uptime_subscription) == detector
         assert detector
+
         assert detector.name == monitor.name
         assert detector.owner_user_id == monitor.owner_user_id
         assert detector.owner_team == monitor.owner_team
@@ -127,3 +132,16 @@ class CreateDetectorTest(UptimeTestCase):
         assert monitor.environment
         assert detector.config["environment"] == monitor.environment.name
         assert detector.config["mode"] == monitor.mode
+
+        condition_group = detector.workflow_condition_group
+        assert condition_group
+
+        conditions = condition_group.conditions.all()
+        assert len(conditions) == 2
+        failure_condition, success_condition = conditions
+        assert failure_condition.comparison == CHECKSTATUS_FAILURE
+        assert failure_condition.type == Condition.EQUAL
+        assert failure_condition.condition_result == DetectorPriorityLevel.HIGH
+        assert success_condition.comparison == CHECKSTATUS_SUCCESS
+        assert success_condition.type == Condition.EQUAL
+        assert success_condition.condition_result == DetectorPriorityLevel.OK
