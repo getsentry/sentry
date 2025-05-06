@@ -16,7 +16,7 @@ from django.utils.translation import gettext_lazy as _
 from sentry import features, options
 from sentry.constants import ObjectStatus
 from sentry.http import safe_urlopen, safe_urlread
-from sentry.identity.github.provider import GitHubIdentityProvider, get_user_info
+from sentry.identity.github.provider import GitHubIdentityProvider
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -582,8 +582,9 @@ class OAuthLoginView(PipelineView):
                     self.active_organization,
                     error_short=GitHubInstallationError.MISSING_TOKEN,
                 )
+            client = GithubSetupApiClient(access_token=payload["access_token"])
+            authenticated_user_info = client.get_user_info()
 
-            authenticated_user_info = get_user_info(payload["access_token"])
             if "login" not in authenticated_user_info:
                 lifecycle.record_failure(GitHubInstallationError.MISSING_LOGIN)
                 return error(

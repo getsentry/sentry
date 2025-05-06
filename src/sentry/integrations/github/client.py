@@ -40,6 +40,8 @@ logger = logging.getLogger("sentry.integrations.github")
 # many requests left for other features that need to reach Github
 MINIMUM_REQUESTS = 200
 
+JWT_AUTH_ROUTES = ("/app/installations", "access_tokens")
+
 
 class GithubRateLimitInfo:
     def __init__(self, info: dict[str, int]) -> None:
@@ -65,14 +67,18 @@ class GithubSetupApiClient(IntegrationProxyClient):
     base_url = "https://api.github.com"
     integration_name = "github_setup"
 
-    def __init__(self, verify_ssl: bool = True):
+    def __init__(self, access_token: str | None = None, verify_ssl: bool = True):
         super().__init__(verify_ssl=verify_ssl)
         self.jwt = get_jwt()
+        self.access_token = access_token
 
     @control_silo_function
     def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
+        if any(url in prepared_request.path_url for url in JWT_AUTH_ROUTES):
+            prepared_request.headers["Authorization"] = f"Bearer {self.jwt}"
+        else:
+            prepared_request.headers["Authorization"] = f"token {self.access_token}"
 
-        prepared_request.headers["Authorization"] = f"Bearer {self.jwt}"
         prepared_request.headers["Accept"] = "application/vnd.github+json"
         return prepared_request
 
@@ -81,6 +87,9 @@ class GithubSetupApiClient(IntegrationProxyClient):
         https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-an-installation-for-the-authenticated-app
         """
         return self.get(f"/app/installations/{installation_id}")
+
+    def get_user_info(self):
+        return self.get("/user")
 
 
 class GithubProxyClient(IntegrationProxyClient):
@@ -148,11 +157,7 @@ class GithubProxyClient(IntegrationProxyClient):
         }
 
         # Only certain routes are authenticated with JWTs....
-        should_use_jwt = (
-            "/app/installations" in prepared_request.path_url
-            or "access_tokens" in prepared_request.path_url
-        )
-        if should_use_jwt:
+        if any(url in prepared_request.path_url for url in JWT_AUTH_ROUTES):
             jwt = self._get_jwt()
             logger.info("token.jwt", extra=logger_extra)
             return jwt
