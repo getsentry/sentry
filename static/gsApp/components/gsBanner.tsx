@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import Cookies from 'js-cookie';
 import every from 'lodash/every';
+import snakeCase from 'lodash/snakeCase';
 import moment from 'moment-timezone';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -664,16 +665,10 @@ class GSBanner extends Component<Props, State> {
     const {api, organization, subscription} = this.props;
     const category_overage_prompts = Object.values(BILLED_DATA_CATEGORY_INFO)
       .filter(categoryInfo => categoryInfo.isBilledCategory)
-      .map(
-        categoryInfo =>
-          `${'snakeCasePlural' in categoryInfo ? categoryInfo.snakeCasePlural : categoryInfo.plural}_overage_alert`
-      );
+      .map(categoryInfo => `${snakeCase(categoryInfo.plural)}_overage_alert`);
     const category_warning_prompts = Object.values(BILLED_DATA_CATEGORY_INFO)
       .filter(categoryInfo => categoryInfo.isBilledCategory)
-      .map(
-        categoryInfo =>
-          `${'snakeCasePlural' in categoryInfo ? categoryInfo.snakeCasePlural : categoryInfo.plural}_warning_alert`
-      );
+      .map(categoryInfo => `${snakeCase(categoryInfo.plural)}_warning_alert`);
     const category_product_trial_prompts = Object.values(BILLED_DATA_CATEGORY_INFO)
       .filter(
         categoryInfo => categoryInfo.isBilledCategory && categoryInfo.canProductTrial
@@ -1335,7 +1330,7 @@ class GSBanner extends Component<Props, State> {
     return productPath.categories
       .map((category: DataCategory) => {
         const categoryInfo = getCategoryInfoFromPlural(category);
-        const categorySnakeCase = categoryInfo?.snakeCasePlural ?? category;
+        const categorySnakeCase = snakeCase(category);
         const isDismissed =
           this.state.productTrialDismissed[categoryInfo?.name as EventType];
         const trial = getProductTrial(subscription.productTrials ?? null, category);

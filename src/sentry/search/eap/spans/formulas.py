@@ -633,6 +633,7 @@ SPAN_FORMULA_DEFINITIONS = {
     ),
     "failure_rate_if": FormulaDefinition(
         default_search_type="percentage",
+        infer_search_type_from_arguments=False,
         arguments=[
             AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
             ValueArgumentDefinition(argument_types={"string"}),

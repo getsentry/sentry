@@ -75,7 +75,7 @@ from sentry.auth.superuser import COOKIE_SECURE as SU_COOKIE_SECURE
 from sentry.auth.superuser import SUPERUSER_ORG_ID, Superuser
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.event_manager import EventManager
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.issues.grouptype import (
     NoiseConfig,
@@ -790,6 +790,9 @@ class RuleTestCase(TestCase):
     def get_event(self):
         return self.event
 
+    def get_group_event(self):
+        return GroupEvent.from_event(self.event, self.event.group)
+
     def get_rule(self, **kwargs):
         kwargs.setdefault("project", self.project)
         kwargs.setdefault("data", {})
@@ -1150,7 +1153,7 @@ class SnubaTestCase(BaseTestCase):
         if is_eap:
             assert (
                 requests.post(
-                    settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert",
+                    settings.SENTRY_SNUBA + "/tests/entities/eap_items_span/insert",
                     data=json.dumps([span]),
                 ).status_code
                 == 200
@@ -1169,7 +1172,7 @@ class SnubaTestCase(BaseTestCase):
         if is_eap:
             assert (
                 requests.post(
-                    settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert",
+                    settings.SENTRY_SNUBA + "/tests/entities/eap_items_span/insert",
                     data=json.dumps(spans),
                 ).status_code
                 == 200
@@ -2250,7 +2253,7 @@ class ProfilesSnubaTestCase(
         if is_eap:
             assert (
                 requests.post(
-                    settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert",
+                    settings.SENTRY_SNUBA + "/tests/entities/eap_items_span/insert",
                     data=json.dumps([span]),
                 ).status_code
                 == 200
@@ -2269,7 +2272,7 @@ class ProfilesSnubaTestCase(
         if is_eap:
             assert (
                 requests.post(
-                    settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert",
+                    settings.SENTRY_SNUBA + "/tests/entities/eap_items_span/insert",
                     data=json.dumps(spans),
                 ).status_code
                 == 200
@@ -2309,7 +2312,8 @@ class ReplaysSnubaTestCase(TestCase):
 class UptimeCheckSnubaTestCase(TestCase):
     def store_uptime_check(self, uptime_check):
         response = requests.post(
-            settings.SENTRY_SNUBA + "/tests/entities/uptime_checks/insert", json=[uptime_check]
+            settings.SENTRY_SNUBA + "/tests/entities/uptime_checks/insert",
+            json=[uptime_check],
         )
         assert response.status_code == 200
 
@@ -3309,7 +3313,6 @@ class OurLogTestCase(BaseTestCase):
         timestamp: datetime | None = None,
         attributes: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-
         if organization is None:
             organization = self.organization
         if project is None:

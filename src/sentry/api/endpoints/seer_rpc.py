@@ -231,7 +231,6 @@ def get_attribute_names(*, org_id: int, project_ids: list[int], stats_period: st
                     "string" if attr_type == AttributeKey.Type.TYPE_STRING else "number",
                     SupportedTraceItemType.SPANS,
                 )["key"],
-                # "name": attr.name,
                 "type": attr_type,
             }
             for attr in fields_resp.attributes
@@ -273,24 +272,25 @@ def get_attribute_values(
     )
 
     for field in fields:
-        resolved_column, _ = resolver.resolve_attribute(field["key"])
+        if field["type"] == AttributeKey.Type.TYPE_STRING:
+            resolved_column, _ = resolver.resolve_attribute(field["key"])
 
-        req = TraceItemAttributeValuesRequest(
-            meta=RequestMeta(
-                organization_id=org_id,
-                cogs_category="events_analytics_platform",
-                referrer="seer_rpc",
-                project_ids=project_ids,
-                start_timestamp=start_time_proto,
-                end_timestamp=end_time_proto,
-                trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
-            ),
-            key=resolved_column.proto_definition,
-            limit=limit,
-        )
+            req = TraceItemAttributeValuesRequest(
+                meta=RequestMeta(
+                    organization_id=org_id,
+                    cogs_category="events_analytics_platform",
+                    referrer="seer_rpc",
+                    project_ids=project_ids,
+                    start_timestamp=start_time_proto,
+                    end_timestamp=end_time_proto,
+                    trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+                ),
+                key=resolved_column.proto_definition,
+                limit=limit,
+            )
 
-        values_response = snuba_rpc.attribute_values_rpc(req)
-        values[field["key"]] = [value for value in values_response.values]
+            values_response = snuba_rpc.attribute_values_rpc(req)
+            values[field["key"]] = [value for value in values_response.values]
 
     return {"values": values}
 

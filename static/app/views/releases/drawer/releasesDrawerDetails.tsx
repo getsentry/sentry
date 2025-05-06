@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
-import {Badge} from 'sentry/components/core/badge';
 import {LinkButton} from 'sentry/components/core/button';
 import {
   EventDrawerBody,
@@ -23,7 +22,6 @@ import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {CommitsFilesSection} from 'sentry/views/releases/drawer/commitsFilesSection';
 import {DeploysCard} from 'sentry/views/releases/drawer/deploysCard';
-import {FoldSection, SectionDivider} from 'sentry/views/releases/drawer/foldSection';
 import {GeneralCard} from 'sentry/views/releases/drawer/generalCard';
 import {NewIssues} from 'sentry/views/releases/drawer/newIssues';
 import {ReleasesDrawerFields} from 'sentry/views/releases/drawer/utils';
@@ -129,20 +127,23 @@ export function ReleasesDrawerDetails({
           </LinkButton>
         </HeaderToolbar>
       </EventNavigator>
+
       <EventDrawerBody>
         <div>
-          <FoldSection title={t('Details')} sectionKey={'details'}>
-            <Details>
-              <GeneralCard
-                isMetaError={isMetaError}
-                projectSlug={projectSlug}
-                release={release}
-                releaseMeta={releaseMeta}
-              />
+          <Title>{t('Details')}</Title>
+          <Details>
+            <GeneralCard
+              isMetaError={isMetaError}
+              projectSlug={projectSlug}
+              release={release}
+              releaseMeta={releaseMeta}
+            />
 
-              <DeploysCard release={release} projectSlug={projectSlug} />
-            </Details>
-          </FoldSection>
+            <DeploysCard release={release} projectSlug={projectSlug} />
+          </Details>
+
+          <Title>{t('New Issues')}</Title>
+          <NewIssues projectId={projectId} release={release} />
 
           <CommitsFilesSection
             isLoadingMeta={isLoadingMeta}
@@ -151,21 +152,6 @@ export function ReleasesDrawerDetails({
             projectSlug={projectSlug}
             release={release}
           />
-          <SectionDivider />
-
-          <FoldSection
-            sectionKey="issues"
-            title={
-              <TitleWithBadge>
-                <span>{t('New Issues')}</span>
-                <Badge type="default">
-                  {isLoadingMeta ? '-' : (releaseMeta?.newGroups ?? '0')}
-                </Badge>
-              </TitleWithBadge>
-            }
-          >
-            <NewIssues projectId={projectId} release={release} />
-          </FoldSection>
         </div>
       </EventDrawerBody>
     </EventDrawerContainer>
@@ -178,8 +164,10 @@ const Details = styled('div')`
   gap: ${space(3)};
   align-items: start;
 `;
-const TitleWithBadge = styled('div')`
-  display: flex;
+const Title = styled('div')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: ${p => p.theme.fontWeightBold};
+  margin-bottom: ${space(1)};
 `;
 
 const ReleaseWithPlatform = styled('div')`

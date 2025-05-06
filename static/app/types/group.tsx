@@ -99,6 +99,12 @@ export enum IssueCategory {
   USER_EXPERIENCE = 'user_experience',
   RESPONSIVENESS = 'responsiveness',
   PERFORMANCE_BEST_PRACTICE = 'performance_best_practice',
+
+  METRIC = 'metric',
+  FRONTEND = 'frontend',
+  HTTP_CLIENT = 'http_client',
+  DB_QUERY = 'db_query',
+  MOBILE = 'mobile',
 }
 
 export enum IssueType {

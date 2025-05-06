@@ -2,9 +2,10 @@ import {ScrollRestoration} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import DemoHeader from 'sentry/components/demo/demoHeader';
-import {useFeatureFlagOnboardingDrawer} from 'sentry/components/events/featureFlags/featureFlagOnboardingSidebar';
+import {useFeatureFlagOnboardingDrawer} from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingSidebar';
 import {useFeedbackOnboardingDrawer} from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Footer from 'sentry/components/footer';
+import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {usePerformanceOnboardingDrawer} from 'sentry/components/performanceOnboarding/sidebar';
 import {useProfilingOnboardingDrawer} from 'sentry/components/profiling/profilingOnboardingSidebar';
@@ -59,7 +60,9 @@ function OrganizationLayout({children}: Props) {
   return (
     <SentryDocumentTitle noSuffix title={organization?.name ?? 'Sentry'}>
       <OrganizationContainer>
-        <App organization={organization}>{children}</App>
+        <GlobalDrawer>
+          <App organization={organization}>{children}</App>
+        </GlobalDrawer>
       </OrganizationContainer>
       <ScrollRestoration />
     </SentryDocumentTitle>
