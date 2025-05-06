@@ -23,8 +23,8 @@ import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 export interface SpanInsight {
   explanation: string;
-  span_id: string;
-  span_op: string;
+  spanId: string;
+  spanOp: string;
 }
 
 export interface TraceSummaryData {
