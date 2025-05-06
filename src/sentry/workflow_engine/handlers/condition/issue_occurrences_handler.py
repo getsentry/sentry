@@ -34,5 +34,5 @@ class IssueOccurrencesConditionHandler(DataConditionHandler[WorkflowEventData]):
             issue_occurrences: int = group.times_seen_with_pending
         except AssertionError:
             # This is a fallback for when times_seen_pending has not yet been set
-            issue_occurrences: int = group.times_seen
+            issue_occurrences = group.times_seen
         return bool(issue_occurrences >= value)
