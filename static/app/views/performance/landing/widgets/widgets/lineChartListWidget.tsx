@@ -293,7 +293,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           removeTransactionOpFilter({eventView, mutableSearch, useEap});
           eventView.query = mutableSearch.formatString();
         } else if (isSlowestType || isFramesType) {
-          eventView.additionalConditions.setFilterValues('epm()', ['>0.01']);
+          eventView.additionalConditions.setFilterValues('count()', ['>1']);
           extraQueryParams = {
             ...extraQueryParams,
             ...metricsQueryParams,
@@ -488,6 +488,14 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             eventView.query = mutableSearch.formatString();
           } else {
             eventView.fields = [{field: 'transaction'}, {field}];
+          }
+
+          if (useEap) {
+            eventView.dataset = DiscoverDatasets.SPANS_EAP_RPC;
+            extraQueryParams = {
+              ...extraQueryParams,
+              ...spanQueryParams,
+            };
           }
 
           return (
