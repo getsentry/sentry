@@ -7,6 +7,7 @@ from copy import deepcopy
 from datetime import datetime
 from typing import Any
 
+import google.auth
 import jsonschema
 import orjson
 import sentry_sdk
@@ -576,6 +577,16 @@ def get_sources_for_project(project):
     for key, source in settings.SENTRY_BUILTIN_SOURCES.items():
         if key not in builtin_sources:
             continue
+
+        if source.get("type") == "gcs":
+            if features.has("organizations:gcp-bearer-token-authentication", organization):
+                # For GCS we want to fetch an auth token and pass it down to symbolicator for authorization.
+                credentials, project_id = google.auth.default(
+                    scopes=["https://www.googleapis.com/auth/devstorage.read_only"]
+                )
+
+                if credentials.token is not None:
+                    source["bearer_token"] = credentials.token
 
         # special internal alias type expands to more than one item.  This
         # is used to make `apple` expand to `ios`/`macos` and other
