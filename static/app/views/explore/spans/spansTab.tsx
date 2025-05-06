@@ -455,10 +455,10 @@ function checkIsAllowedSelection(
 const BodySearch = styled(Layout.Body)`
   flex-grow: 0;
   border-bottom: 1px solid ${p => p.theme.border};
-  padding-bottom: ${space(1)};
+  padding-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding-bottom: ${space(1)};
+    padding-bottom: ${space(2)};
   }
 `;
 
@@ -487,8 +487,8 @@ const ControlSection = styled('aside')<{expanded: boolean}>`
     ${p =>
       p.expanded
         ? css`
-            width: 338px; /* 300px for the toolbar + padding */
-            padding: ${space(1)} ${space(1)} ${space(1)} ${space(4)};
+            width: 343px; /* 300px for the toolbar + padding */
+            padding: ${space(2)} ${space(1.5)} ${space(1)} ${space(4)};
             border-right: 1px solid ${p.theme.border};
           `
         : css`
@@ -511,7 +511,7 @@ const ContentSection = styled('section')<{expanded: boolean}>`
     ${p =>
       p.expanded
         ? css`
-            padding: ${space(1)} ${space(4)} ${space(3)} ${space(1)};
+            padding: ${space(1)} ${space(4)} ${space(3)} ${space(1.5)};
           `
         : css`
             padding: ${space(1)} ${space(4)} ${space(3)} ${space(4)};
@@ -551,7 +551,7 @@ const ChevronButton = styled(Button)<{expanded: boolean}>`
   ${p =>
     p.expanded
       ? css`
-          margin-left: -9px;
+          margin-left: -13px;
         `
       : css`
           margin-left: -31px;

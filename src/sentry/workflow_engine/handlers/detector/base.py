@@ -10,20 +10,25 @@ from sentry.issues.grouptype import GroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.types.actor import Actor
-from sentry.workflow_engine.models import DataConditionGroup, DataPacket, Detector
+from sentry.workflow_engine.models import Condition, DataConditionGroup, DataPacket, Detector
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
+
 
 PacketT = TypeVar("PacketT")
 EvidenceValueT = TypeVar("EvidenceValueT")
 
 
 @dataclass
-class EvidenceData(Generic[EvidenceValueT]):
+class EvidenceData(Generic[EvidenceValueT, PacketT]):
     value: EvidenceValueT
     detector_id: int
+    data_source_ids: list[int]
     data_condition_ids: list[int]
+    data_condition_type: Condition
+    # Represents the actual value that we are comparing against
+    data_condition_comparison_value: PacketT
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)

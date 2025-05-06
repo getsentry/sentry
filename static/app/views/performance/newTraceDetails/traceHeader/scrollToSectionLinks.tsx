@@ -13,7 +13,7 @@ import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/
 
 export const enum TraceContextSectionKeys {
   TAGS = 'trace-context-tags',
-  WEB_VITALS = 'trace-context-web-vitals',
+  VITALS = 'trace-context-web-vitals',
   LOGS = 'trace-context-logs',
   PROFILES = 'trace-context-profiles',
   SUMMARY = 'trace-context-summary',
@@ -21,7 +21,7 @@ export const enum TraceContextSectionKeys {
 
 const sectionLabels: Partial<Record<TraceContextSectionKeys, string>> = {
   [TraceContextSectionKeys.TAGS]: t('Tags'),
-  [TraceContextSectionKeys.WEB_VITALS]: t('Web Vitals'),
+  [TraceContextSectionKeys.VITALS]: t('Vitals'),
   [TraceContextSectionKeys.LOGS]: t('Logs'),
   [TraceContextSectionKeys.PROFILES]: t('Profiles'),
   [TraceContextSectionKeys.SUMMARY]: t('Summary'),
@@ -78,10 +78,7 @@ function ScrollToSectionLinks({
     <StyledScrollCarousel gap={1} aria-label={t('Jump to:')}>
       <div aria-hidden>{t('Jump to:')}</div>
       {hasVitals && (
-        <SectionLink
-          sectionKey={TraceContextSectionKeys.WEB_VITALS}
-          location={location}
-        />
+        <SectionLink sectionKey={TraceContextSectionKeys.VITALS} location={location} />
       )}
       {hasTags && (
         <SectionLink sectionKey={TraceContextSectionKeys.TAGS} location={location} />
