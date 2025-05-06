@@ -480,6 +480,11 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             ? []
             : [
                 {
+                  key: 'share',
+                  label: t('Share'),
+                  onAction: openShareModal,
+                },
+                {
                   key: group.isSubscribed ? 'unsubscribe' : 'subscribe',
                   className: 'hidden-sm hidden-md hidden-lg',
                   label: group.isSubscribed ? t('Unsubscribe') : t('Subscribe'),
