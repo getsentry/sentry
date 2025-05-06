@@ -6,6 +6,7 @@ from os.path import join
 from typing import Any
 from unittest.mock import patch
 
+import msgpack
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
@@ -13,6 +14,7 @@ from django.urls import reverse
 from sentry.constants import DataCategory
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.models.files.file import File
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectsdk import EventType, ProjectSDK
 from sentry.models.release import Release
@@ -25,6 +27,7 @@ from sentry.profiles.task import (
     _process_symbolicator_results_for_sample,
     _set_frames_platform,
     _symbolicate_profile,
+    encode_payload,
     process_profile_task,
 )
 from sentry.profiles.utils import Profile
@@ -1022,6 +1025,60 @@ def test_unknown_sdk(
             event_type=EventType.PROFILE_CHUNK.value,
             sdk_name=sdk_name,
             sdk_version="0.0.0",
+        )
+        is not None
+    )
+
+
+@patch("sentry.profiles.task._push_profile_to_vroom")
+@patch("sentry.profiles.task._symbolicate_profile")
+@patch("sentry.models.projectsdk.get_sdk_index")
+@pytest.mark.parametrize(
+    ["should_encode"],
+    [
+        (True,),
+        (False,),
+    ],
+)
+@django_db_all
+def test_track_latest_sdk_with_payload(
+    get_sdk_index: Any,
+    _symbolicate_profile: Any,
+    _push_profile_to_vroom: Any,
+    should_encode: bool,
+    organization: Organization,
+    project: Project,
+    request: Any,
+) -> None:
+    _push_profile_to_vroom.return_value = True
+    _symbolicate_profile.return_value = True
+    get_sdk_index.return_value = {
+        "sentry.python": {},
+    }
+    profile = request.getfixturevalue("sample_v1_profile")
+    profile["organization_id"] = organization.id
+    profile["project_id"] = project.id
+
+    kafka_payload = {
+        "organization_id": organization.id,
+        "project_id": project.id,
+        "received": "2024-01-02T03:04:05",
+        "payload": json.dumps(profile),
+    }
+    if should_encode:
+        payload = encode_payload(kafka_payload)
+    else:
+        payload = msgpack.packb(kafka_payload)
+
+    with Feature("organizations:profiling-sdks"):
+        process_profile_task(payload=payload)
+
+    assert (
+        ProjectSDK.objects.get(
+            project=project,
+            event_type=EventType.PROFILE.value,
+            sdk_name="sentry.python",
+            sdk_version="2.23.0",
         )
         is not None
     )
