@@ -2102,6 +2102,63 @@ describe('GSBanner Overage Alerts', function () {
     ).toBeInTheDocument();
   });
 
+  it('checks prompts for all billed categories on plan', async function () {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
+    });
+    subscription.planDetails.categories = [...subscription.planDetails.categories];
+    const promptsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+
+    render(<GSBanner organization={organization} />, {
+      organization,
+      deprecatedRouterMocks: true,
+    });
+    await act(tick);
+
+    const overagePrompts = [];
+    const warningPrompts = [];
+    const productTrialPrompts = [];
+    for (const category of [
+      'errors',
+      'attachments',
+      'replays',
+      'spans',
+      'monitor_seats',
+      'profile_duration',
+      'profile_duration_ui',
+      'uptime',
+    ]) {
+      overagePrompts.push(`${category}_overage_alert`);
+      warningPrompts.push(`${category}_warning_alert`);
+      if (
+        ['profile_duration', 'replays', 'spans', 'profile_duration_ui'].includes(category)
+      ) {
+        productTrialPrompts.push(`${category}_product_trial_alert`);
+      }
+    }
+
+    expect(promptsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/prompts-activity/`,
+      expect.objectContaining({
+        query: {
+          feature: [
+            'deactivated_member_alert',
+            ...overagePrompts,
+            ...warningPrompts,
+            ...productTrialPrompts,
+          ],
+          organization_id: organization.id,
+        },
+      })
+    );
+  });
+
   it('does not show banner for non-billed categories', async function () {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
