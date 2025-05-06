@@ -8,7 +8,7 @@ import {
   getBoostrapTeamsQueryOptions,
   getBootstrapOrganizationQueryOptions,
   getBootstrapProjectsQueryOptions,
-} from 'sentry/bootstrap/bootstrapRequests';
+} from 'sentry/bootstrap/bootstrapRequestOptions';
 import {Alert} from 'sentry/components/core/alert';
 import {Button, LinkButton} from 'sentry/components/core/button';
 import SecretField from 'sentry/components/forms/fields/secretField';
