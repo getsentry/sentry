@@ -12,6 +12,7 @@ import {
 } from 'sentry/components/events/featureFlags/eventFeatureFlagDrawer';
 import FeatureFlagSettingsButton from 'sentry/components/events/featureFlags/featureFlagSettingsButton';
 import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
+import FlagActionDropdown from 'sentry/components/events/featureFlags/flagActionDropdown';
 import {
   FlagControlOptions,
   ORDER_BY_OPTIONS,
@@ -159,17 +160,19 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
         item: {
           key: f.flag,
           subject: f.flag,
-          value: suspectFlagNames.has(f.flag) ? (
+          value: (
             <ValueWrapper>
               {f.result.toString()}
-              <SuspectLabel>{t('Suspect')}</SuspectLabel>
+              {suspectFlagNames.has(f.flag) && (
+                <SuspectLabel>{t('Suspect')}</SuspectLabel>
+              )}
+              <FlagActionDropdown
+                flag={f.flag}
+                result={f.result}
+                generateAction={generateAction}
+              />
             </ValueWrapper>
-          ) : (
-            f.result.toString()
           ),
-          action: {
-            link: generateAction({key: `flags["${f.flag}"]`, value: f.result.toString()}),
-          },
         },
         isSuspectFlag: suspectFlagNames.has(f.flag),
       };
@@ -344,4 +347,14 @@ const SuspectLabel = styled('div')`
 const ValueWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
+
+  .invisible {
+    visibility: hidden;
+  }
+  &:hover,
+  &:active {
+    .invisible .flag-button {
+      visibility: visible;
+    }
+  }
 `;
