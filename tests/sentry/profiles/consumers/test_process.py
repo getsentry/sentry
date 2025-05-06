@@ -10,7 +10,7 @@ from arroyo.types import BrokerValue, Message, Partition, Topic
 from django.utils import timezone
 
 from sentry.profiles.consumers.process.factory import ProcessProfileStrategyFactory
-from sentry.profiles.task import _prepare_frames_from_profile, encode_payload
+from sentry.profiles.task import _prepare_frames_from_profile
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
 
@@ -33,40 +33,6 @@ class TestProcessProfileConsumerStrategy(TestCase):
             "payload": json.dumps({"platform": "android", "profile": ""}),
         }
         payload = msgpack.packb(message_dict)
-
-        processing_strategy.submit(
-            Message(
-                BrokerValue(
-                    KafkaPayload(
-                        b"key",
-                        payload,
-                        [],
-                    ),
-                    Partition(Topic("profiles"), 1),
-                    1,
-                    datetime.now(),
-                )
-            )
-        )
-        processing_strategy.poll()
-        processing_strategy.join(1)
-        processing_strategy.terminate()
-
-        process_profile_task.assert_called_with(payload=payload, sampled=True)
-
-    @patch("sentry.profiles.consumers.process.factory.process_profile_task.delay")
-    def test_encoded_profile_to_celery(self, process_profile_task):
-        processing_strategy = self.processing_factory().create_with_partitions(
-            commit=Mock(), partitions=None
-        )
-        message_dict = {
-            "organization_id": 1,
-            "project_id": 1,
-            "key_id": 1,
-            "received": int(timezone.now().timestamp()),
-            "payload": json.dumps({"platform": "android", "profile": ""}),
-        }
-        payload = encode_payload(message_dict)
 
         processing_strategy.submit(
             Message(
