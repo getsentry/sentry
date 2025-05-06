@@ -23,7 +23,7 @@ export const ISSUE_TAXONOMY_CONFIG: Record<
     label: t('Errors & Outages'),
     key: 'errors-outages',
     description: t(
-      'Issues that break functionality, such as application errors, failed jobs, or downtime incidents.'
+      'Issues that break functionality such as application errors, failed jobs, or downtime incidents.'
     ),
   },
   [IssueTaxonomy.BREACHED_METRICS]: {
