@@ -67,6 +67,8 @@ export function ToolbarSaveAs() {
       ? projects[0]
       : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
+  const {data: savedQuery, isLoading: isLoadingSavedQuery} = useGetSavedQuery(id);
+
   const alertsUrls = visualizeYAxes.map((yAxis, index) => {
     const func = parseFunction(yAxis);
     const label = func ? prettifyParsedFunction(func) : yAxis;
@@ -94,9 +96,11 @@ export function ToolbarSaveAs() {
 
   const items: MenuItemProps[] = [];
 
-  if (defined(id)) {
+  // Explicitly check for false to account for loading state
+  if (defined(id) && savedQuery?.isPrebuilt === false) {
     items.push({
       key: 'update-query',
+      textValue: t('Existing Query'),
       label: <span>{t('Existing Query')}</span>,
       onAction: async () => {
         try {
@@ -118,6 +122,7 @@ export function ToolbarSaveAs() {
   items.push({
     key: 'save-query',
     label: <span>{t('A New Query')}</span>,
+    textValue: t('A New Query'),
     onAction: () => {
       trackAnalytics('trace_explorer.save_query_modal', {
         action: 'open',
@@ -137,6 +142,7 @@ export function ToolbarSaveAs() {
     items.push({
       key: 'create-alert',
       label: t('An Alert for'),
+      textValue: t('An Alert for'),
       children: alertsUrls ?? [],
       disabled: !alertsUrls || alertsUrls.length === 0,
       isSubmenu: true,
@@ -200,10 +206,8 @@ export function ToolbarSaveAs() {
     });
   }
 
-  const {data: savedQuery, isLoading: isLoadingSavedQuery} = useGetSavedQuery(id);
-
   const shouldHighlightSaveButton = useMemo(() => {
-    if (isLoadingSavedQuery || savedQuery === undefined) {
+    if (isLoadingSavedQuery || savedQuery === undefined || savedQuery?.isPrebuilt) {
       return false;
     }
     // The non comparison trace explorer view only supports a single query
@@ -213,11 +217,14 @@ export function ToolbarSaveAs() {
     // Compares editable fields from saved query with location params to check for changes
     const hasChangesArray = [
       !valueIsEqual(query, singleQuery?.query),
-      !valueIsEqual(groupBys, singleQuery?.groupby),
+      !valueIsEqual(
+        groupBys,
+        (singleQuery?.groupby?.length ?? 0) === 0 ? [''] : singleQuery?.groupby
+      ),
       !valueIsEqual(locationSortByString, singleQuery?.orderby),
       !valueIsEqual(fields, singleQuery?.fields),
       !valueIsEqual(
-        visualizes.map(({chartType, yAxes}) => ({chartType, yAxes})),
+        visualizes.map(visualize => visualize.toJSON()),
         singleQuery?.visualize,
         true
       ),
@@ -291,6 +298,7 @@ export function ToolbarSaveAs() {
               groupBys,
               fields,
               sortBys,
+              chartType: visualizes[0]!.chartType,
             })}
           >{`${t('Compare Queries')}`}</LinkButton>
         )}

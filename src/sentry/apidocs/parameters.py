@@ -419,6 +419,23 @@ class DetectorParams:
         description="The ID of the detector you'd like to query.",
     )
 
+    SORT = OpenApiParameter(
+        name="sortBy",
+        location="query",
+        required=False,
+        type=str,
+        description="""The property to sort results by. If not specified, the results are sorted by id.
+
+Available fields are:
+- `name`
+- `id`
+- `type`
+- `connectedWorkflows`
+
+Prefix with `-` to sort in descending order.
+        """,
+    )
+
 
 class WorkflowParams:
     WORKFLOW_ID = OpenApiParameter(
@@ -427,6 +444,25 @@ class WorkflowParams:
         required=True,
         type=int,
         description="The ID of the workflow you'd like to query.",
+    )
+
+    SORT_BY = OpenApiParameter(
+        name="sortBy",
+        location="query",
+        required=False,
+        type=str,
+        description="""The field to sort results by. If not specified, the results are sorted by id.
+
+Available fields are:
+- `name`
+- `id`
+- `dateCreated`
+- `dateUpdated`
+- `connectedDetectors`
+- `actions`
+
+Prefix with `-` to sort in descending order.
+    """,
     )
 
 

@@ -102,6 +102,7 @@ class OnDemandBudgets extends Component<Props> {
           onClick={() =>
             openEditCreditCard({
               organization,
+              subscription,
               onSuccess: (data: Subscription) => {
                 SubscriptionStore.set(organization.slug, data);
               },
@@ -144,12 +145,7 @@ class OnDemandBudgets extends Component<Props> {
               <DetailTitle>
                 {getPlanCategoryName({plan: subscription.planDetails, category})}
               </DetailTitle>
-              <Amount>
-                {
-                  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                  formatCurrency(onDemandBudgets.budgets[category] ?? 0)
-                }
-              </Amount>
+              <Amount>{formatCurrency(onDemandBudgets.budgets[category] ?? 0)}</Amount>
             </Category>
           ))}
         </PerCategoryBudgetContainer>

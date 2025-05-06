@@ -70,8 +70,8 @@ import {
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {getSupportedAndOmittedTags} from 'sentry/views/alerts/wizard/options';
 import {
-  SpanTagsContext,
   SpanTagsProvider,
+  useSpanTags,
 } from 'sentry/views/explore/contexts/spanTagsContext';
 import {hasEAPAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
@@ -630,22 +630,14 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 >
                   {({onChange, onBlur, initialData, value}: any) => {
                     return alertType === 'eap_metrics' ? (
-                      <SpanTagsContext.Consumer>
-                        {tags => (
-                          <EAPSpanSearchQueryBuilder
-                            numberTags={tags?.number ?? {}}
-                            stringTags={tags?.string ?? {}}
-                            initialQuery={value ?? ''}
-                            searchSource="alerts"
-                            onSearch={(query, {parsedQuery}) => {
-                              onFilterSearch(query, parsedQuery);
-                              onChange(query, {});
-                            }}
-                            supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
-                            projects={[parseInt(project.id, 10)]}
-                          />
-                        )}
-                      </SpanTagsContext.Consumer>
+                      <EAPSpanSearchQueryBuilderWithContext
+                        initialQuery={value ?? ''}
+                        onSearch={(query, {parsedQuery}) => {
+                          onFilterSearch(query, parsedQuery);
+                          onChange(query, {});
+                        }}
+                        project={project}
+                      />
                     ) : (
                       <SearchContainer>
                         <SearchQueryBuilder
@@ -759,6 +751,32 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       </Fragment>
     );
   }
+}
+
+interface EAPSpanSearchQueryBuilderWithContextProps {
+  initialQuery: string;
+  onSearch: (query: string, isQueryValid: any) => void;
+  project: Project;
+}
+
+function EAPSpanSearchQueryBuilderWithContext({
+  initialQuery,
+  onSearch,
+  project,
+}: EAPSpanSearchQueryBuilderWithContextProps) {
+  const {tags: numberTags} = useSpanTags('number');
+  const {tags: stringTags} = useSpanTags('string');
+  return (
+    <EAPSpanSearchQueryBuilder
+      numberTags={numberTags}
+      stringTags={stringTags}
+      initialQuery={initialQuery}
+      searchSource="alerts"
+      onSearch={onSearch}
+      supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
+      projects={[parseInt(project.id, 10)]}
+    />
+  );
 }
 
 const StyledListTitle = styled('div')`

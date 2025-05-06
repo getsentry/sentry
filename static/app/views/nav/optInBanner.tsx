@@ -65,7 +65,7 @@ const TranslucentBackgroundPanel = styled(Panel)<{isDarkMode: boolean}>`
   background: rgba(245, 243, 247, ${p => (p.isDarkMode ? 0.05 : 0.1)});
   border: 1px solid rgba(245, 243, 247, ${p => (p.isDarkMode ? 0.1 : 0.15)});
   padding: ${space(1)};
-  color: ${p => (p.isDarkMode ? p.theme.textColor : '#ebe6ef')};
+  color: ${p => (p.theme.isChonk || p.isDarkMode ? p.theme.textColor : '#ebe6ef')};
 
   margin-bottom: ${space(1)};
 `;

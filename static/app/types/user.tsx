@@ -1,6 +1,5 @@
 import type {UserEnrolledAuthenticator} from './auth';
 import type {Avatar, Scope} from './core';
-import type {UserExperiments} from './experiments';
 
 /**
  * Avatars are a more primitive version of User.
@@ -36,7 +35,6 @@ export interface User extends Omit<AvatarUser, 'options'> {
     id: string;
     is_verified: boolean;
   }>;
-  experiments: Partial<UserExperiments>;
   flags: {newsletter_consent_prompt: boolean};
   has2fa: boolean;
   hasPasswordAuth: boolean;
@@ -56,7 +54,7 @@ export interface User extends Omit<AvatarUser, 'options'> {
     prefersChonkUI: boolean;
     prefersIssueDetailsStreamlinedUI: boolean | null;
     prefersNextjsInsightsOverview: boolean;
-    prefersStackedNavigation: boolean;
+    prefersStackedNavigation: boolean | null;
     quickStartDisplay: QuickStartDisplay;
     stacktraceOrder: number;
     theme: 'system' | 'light' | 'dark';

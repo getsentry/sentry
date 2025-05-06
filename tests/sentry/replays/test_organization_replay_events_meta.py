@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytest
 from django.urls import reverse
@@ -28,16 +28,33 @@ class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin
         event_id_a = "a" * 32
         event_id_b = "b" * 32
 
+        min_ago_ms = self.min_ago + timedelta(milliseconds=123)
         event_a = self.store_event(
-            data={"event_id": event_id_a, "timestamp": self.min_ago.isoformat()},
+            data={
+                "event_id": event_id_a,
+                "timestamp": min_ago_ms.isoformat(),
+            },
             project_id=self.project_1.id,
         )
         event_b = self.store_event(
-            data={"event_id": event_id_b, "timestamp": self.min_ago.isoformat()},
+            data={
+                "event_id": event_id_b,
+                "timestamp": min_ago_ms.isoformat(),
+            },
             project_id=self.project_2.id,
         )
-        self.store_event(data={"timestamp": self.min_ago.isoformat()}, project_id=self.project_1.id)
-        self.store_event(data={"timestamp": self.min_ago.isoformat()}, project_id=self.project_1.id)
+        self.store_event(
+            data={
+                "timestamp": min_ago_ms.isoformat(),
+            },
+            project_id=self.project_1.id,
+        )
+        self.store_event(
+            data={
+                "timestamp": min_ago_ms.isoformat(),
+            },
+            project_id=self.project_1.id,
+        )
 
         query = {"query": f"id:[{event_id_a}, {event_id_b}]"}
         with self.feature(self.features):
@@ -51,7 +68,7 @@ class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin
                 "issue.id": event_a.group.id,
                 "issue": event_a.group.qualified_short_id,
                 "project.name": self.project_1.slug,
-                "timestamp": self.min_ago.isoformat(),
+                "timestamp": min_ago_ms.isoformat(),
                 "title": "<unlabeled event>",
             },
             {
@@ -61,7 +78,7 @@ class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin
                 "issue.id": event_b.group.id,
                 "issue": event_b.group.qualified_short_id,
                 "project.name": self.project_2.slug,
-                "timestamp": self.min_ago.isoformat(),
+                "timestamp": min_ago_ms.isoformat(),
                 "title": "<unlabeled event>",
             },
         ]

@@ -29,6 +29,7 @@ import {PrimaryNavigationServiceIncidents} from 'sentry/views/nav/primary/servic
 import {PrimaryNavigationWhatsNew} from 'sentry/views/nav/primary/whatsNew';
 import {NavTourElement, StackedNavigationTour} from 'sentry/views/nav/tour/tour';
 import {NavLayout, PrimaryNavGroup} from 'sentry/views/nav/types';
+import {UserDropdown} from 'sentry/views/nav/userDropdown';
 
 function SidebarBody({children}: {children: React.ReactNode}) {
   const {layout} = useNavContext();
@@ -151,20 +152,27 @@ export function PrimaryNavigationItems() {
       <SidebarFooter>
         <ChonkOptInBanner collapsed="never" />
         <PrimaryNavigationHelp />
-
-        <SeparatorItem />
-
-        <PrimaryNavigationWhatsNew />
-        <Hook
-          name="sidebar:try-business"
-          organization={organization}
-          orientation="left"
-        />
-        <Hook name="sidebar:billing-status" organization={organization} />
-        <PrimaryNavigationServiceIncidents />
+        <ErrorBoundary customComponent={null}>
+          <PrimaryNavigationWhatsNew />
+        </ErrorBoundary>
+        <ErrorBoundary customComponent={null}>
+          <Hook
+            name="sidebar:try-business"
+            organization={organization}
+            orientation="left"
+          />
+        </ErrorBoundary>
+        <ErrorBoundary customComponent={null}>
+          <Hook name="sidebar:billing-status" organization={organization} />
+        </ErrorBoundary>
+        <ErrorBoundary customComponent={null}>
+          <PrimaryNavigationServiceIncidents />
+        </ErrorBoundary>
         <ErrorBoundary customComponent={null}>
           <PrimaryNavigationOnboarding />
         </ErrorBoundary>
+        <SeparatorItem hasMargin />
+        <UserDropdown />
       </SidebarFooter>
     </Fragment>
   );

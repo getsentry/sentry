@@ -38,7 +38,6 @@ class Migration(CheckedMigration):
         ("uptime", "0033_uptime_backfill_to_detectors"),
     ]
 
-    operations = []
     operations = [
         migrations.RunPython(
             code=backfill_uptime_status,

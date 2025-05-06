@@ -2,12 +2,13 @@ import {Fragment, type MouseEventHandler} from 'react';
 import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonLabel} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {linkStyles} from 'sentry/components/links/styles';
+import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -17,9 +18,10 @@ import {withChonk} from 'sentry/utils/theme/withChonk';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
-import {isLinkActive, makeLinkPropsFromTo} from 'sentry/views/nav/utils';
+import {isLinkActive} from 'sentry/views/nav/utils';
 
 interface SidebarItemLinkProps {
   analyticsKey: string;
@@ -35,7 +37,7 @@ interface SidebarItemDropdownProps {
   items: MenuItemProps[];
   label: string;
   children?: React.ReactNode;
-  forceLabel?: boolean;
+  disableTooltip?: boolean;
   onOpen?: MouseEventHandler<HTMLButtonElement>;
 }
 
@@ -58,13 +60,26 @@ interface SidebarItemProps extends React.HTMLAttributes<HTMLLIElement> {
   children: React.ReactNode;
   label: string;
   showLabel: boolean;
+  disableTooltip?: boolean;
 }
 
-export function SidebarItem({children, label, showLabel, ...props}: SidebarItemProps) {
+export function SidebarItem({
+  children,
+  label,
+  showLabel,
+  disableTooltip,
+  ...props
+}: SidebarItemProps) {
   const {layout} = useNavContext();
   return (
-    <IconDefaultsProvider legacySize={layout === NavLayout.MOBILE ? '14px' : '21px'}>
-      <Tooltip title={label} disabled={showLabel} position="right" skipWrapper delay={0}>
+    <IconDefaultsProvider legacySize={layout === NavLayout.MOBILE ? '16px' : '21px'}>
+      <Tooltip
+        title={label}
+        disabled={showLabel || disableTooltip}
+        position="right"
+        skipWrapper
+        delay={0}
+      >
         <SidebarListItem {...props}>{children}</SidebarListItem>
       </Tooltip>
     </IconDefaultsProvider>
@@ -76,22 +91,27 @@ export function SidebarMenu({
   children,
   analyticsKey,
   label,
-  forceLabel,
   onOpen,
+  disableTooltip,
 }: SidebarItemDropdownProps) {
   const theme = useTheme();
   const organization = useOrganization();
   const {layout} = useNavContext();
 
-  const showLabel = forceLabel || layout === NavLayout.MOBILE;
+  const showLabel = layout === NavLayout.MOBILE;
 
   return (
     <DropdownMenu
       position={layout === NavLayout.MOBILE ? 'bottom' : 'right-end'}
       shouldApplyMinWidth={false}
+      minMenuWidth={200}
       trigger={(props, isOpen) => {
         return (
-          <SidebarItem label={label} showLabel={showLabel}>
+          <SidebarItem
+            label={label}
+            showLabel={showLabel}
+            disableTooltip={disableTooltip}
+          >
             <NavButton
               {...props}
               aria-label={showLabel ? undefined : label}
@@ -127,14 +147,13 @@ export function SidebarLink({
   const organization = useOrganization();
   const location = useLocation();
   const isActive = isLinkActive(normalizeUrl(activeTo, location), location.pathname);
-  const linkProps = makeLinkPropsFromTo(to);
-
   const {layout} = useNavContext();
 
   return (
     <SidebarItem label={label} showLabel>
       <NavLink
-        {...linkProps}
+        to={to}
+        state={{source: SIDEBAR_NAVIGATION_SOURCE}}
         onClick={() => recordPrimaryItemClick(analyticsKey, organization)}
         aria-selected={isActive}
         aria-current={isActive ? 'page' : undefined}
@@ -164,6 +183,7 @@ export function SidebarButton({
   onClick,
   label,
 }: SidebarButtonProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const {layout} = useNavContext();
   const showLabel = layout === NavLayout.MOBILE;
@@ -180,7 +200,7 @@ export function SidebarButton({
           onClick?.(e);
         }}
       >
-        <InteractionStateLayer />
+        {theme.isChonk ? null : <InteractionStateLayer />}
         {children}
         {showLabel ? label : null}
       </NavButton>
@@ -188,9 +208,15 @@ export function SidebarButton({
   );
 }
 
-export function SeparatorItem() {
+export function SeparatorItem({
+  className,
+  hasMargin,
+}: {
+  className?: string;
+  hasMargin?: boolean;
+}) {
   return (
-    <SeparatorListItem aria-hidden>
+    <SeparatorListItem aria-hidden className={className} hasMargin={hasMargin}>
       <Separator />
     </SeparatorListItem>
   );
@@ -202,10 +228,15 @@ const SidebarListItem = styled('li')`
   justify-content: center;
 `;
 
-const SeparatorListItem = styled('li')`
+const SeparatorListItem = styled('li')<{hasMargin?: boolean}>`
   list-style: none;
   width: 100%;
   padding: 0 ${space(1.5)};
+  ${p =>
+    p.hasMargin &&
+    css`
+      margin: ${space(0.5)} 0;
+    `}
 `;
 
 const Separator = styled('hr')`
@@ -251,8 +282,6 @@ const baseNavItemStyles = (p: {isMobile: boolean; theme: Theme}) => css`
     padding: ${space(1)} 0;
     min-height: 42px;
     width: 46px;
-    letter-spacing: -0.02em;
-    font-size: 10px;
   `}
 `;
 
@@ -295,6 +324,7 @@ const NavLinkLabel = styled('div')`
   justify-content: center;
   font-size: ${p => p.theme.fontSizeExtraSmall};
   font-weight: ${p => p.theme.fontWeightBold};
+  letter-spacing: -0.05em;
 `;
 
 const ChonkNavLink = chonkStyled(Link, {
@@ -381,9 +411,10 @@ const StyledNavLink = styled(Link, {
   ${p =>
     !p.isMobile &&
     css`
-      width: 56px;
-      padding-top: ${space(0.75)};
-      padding-bottom: ${space(1.5)};
+      width: ${PRIMARY_SIDEBAR_WIDTH - 8}px;
+      padding-top: ${space(0.5)};
+      padding-bottom: ${space(1)};
+      gap: ${space(0.5)};
 
       &:hover {
         ${NavLinkIconContainer} {
@@ -429,13 +460,13 @@ const ChonkNavButton = styled(Button, {
   width: ${p => (p.isMobile ? '100%' : '44px')};
   padding: ${p => (p.isMobile ? `${space(1)} ${space(3)}` : undefined)};
 
-  ${ButtonLabel} {
-    gap: ${space(1)};
+  svg {
+    margin-right: ${p => (p.isMobile ? space(1) : undefined)};
+  }
 
-    /* Disable interactionstatelayer hover */
-    [data-isl] {
-      display: none;
-    }
+  /* Disable interactionstatelayer hover */
+  [data-isl] {
+    display: none;
   }
 `;
 

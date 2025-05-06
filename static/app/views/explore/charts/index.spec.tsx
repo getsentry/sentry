@@ -14,7 +14,7 @@ describe('ExploreCharts', () => {
       data: {
         'count(span.duration)': [
           {
-            data: [{timestamp: '2021-01-01', value: 123.0}],
+            values: [{timestamp: '2021-01-01', value: 123.0}],
             field: 'count(span.duration)',
             meta: {type: 'duration', unit: DurationUnit.MILLISECOND},
           },

@@ -1,26 +1,22 @@
 import {openConfirmModal} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 
-const NEW_VIEW_PAGE_REGEX = /\/issues\/views\/new\/?$/;
-
-/**
- * Returns true if the current path is the "New View" page
- * /issues/views/new/
- */
-export function isNewViewPage(pathname: string) {
-  return NEW_VIEW_PAGE_REGEX.test(pathname);
-}
-
 export function canEditIssueView({
   groupSearchView,
+  organization,
   user,
 }: {
   groupSearchView: GroupSearchView;
+  organization: Organization;
   user: User;
 }) {
-  // TODO: Allow org admins to edit issue views
+  if (organization.access.includes('org:write')) {
+    return true;
+  }
+
   return user.id === groupSearchView.createdBy.id;
 }
 

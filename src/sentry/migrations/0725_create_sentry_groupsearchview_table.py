@@ -9,6 +9,7 @@ import sentry.db.models.fields.bounded
 import sentry.db.models.fields.foreignkey
 import sentry.db.models.fields.hybrid_cloud_foreign_key
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -25,8 +26,6 @@ class Migration(CheckedMigration):
     # Once deployed, run these manually via: https://develop.sentry.dev/database-migrations/#migration-deployment
 
     is_post_deployment = False
-
-    allow_run_sql = True
 
     dependencies = [
         ("sentry", "0724_discover_saved_query_dataset"),
@@ -67,17 +66,19 @@ class Migration(CheckedMigration):
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql="""
                         CREATE UNIQUE INDEX CONCURRENTLY "sentry_issueviews_unique_view_position_per_org_user" ON "sentry_groupsearchview" ("user_id", "organization_id", "position");
                     """,
                     hints={"tables": ["sentry_groupsearchview"]},
+                    use_statement_timeout=False,
                 ),
-                migrations.RunSQL(
+                SafeRunSQL(
                     sql="""
                         ALTER TABLE "sentry_groupsearchview" ADD CONSTRAINT "sentry_issueviews_unique_view_position_per_org_user" UNIQUE USING INDEX "sentry_issueviews_unique_view_position_per_org_user" DEFERRABLE INITIALLY DEFERRED;
                     """,
                     hints={"tables": ["sentry_groupsearchview"]},
+                    use_statement_timeout=False,
                 ),
             ],
             state_operations=[

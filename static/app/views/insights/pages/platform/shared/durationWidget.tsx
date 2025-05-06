@@ -7,6 +7,7 @@ import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {Release} from 'sentry/views/dashboards/widgets/common/types';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -16,11 +17,18 @@ import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDisco
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {ModalChartContainer} from 'sentry/views/insights/pages/platform/laravel/styles';
-import {Toolbar} from 'sentry/views/insights/pages/platform/laravel/toolbar';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
+import {useReleaseBubbleProps} from 'sentry/views/insights/pages/platform/shared/getReleaseBubbleProps';
+import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 
-export function DurationWidget({query}: {query?: string}) {
+export function DurationWidget({
+  query,
+  releases,
+}: {
+  query?: string;
+  releases?: Release[];
+}) {
   const theme = useTheme();
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams();
@@ -37,7 +45,6 @@ export function DurationWidget({query}: {query?: string}) {
           yAxis: ['avg(span.duration)', 'p95(span.duration)'],
           orderby: 'avg(span.duration)',
           partial: 1,
-          useRpc: 1,
           query: fullQuery,
           referrer: Referrer.DURATION_CHART,
         },
@@ -86,6 +93,7 @@ export function DurationWidget({query}: {query?: string}) {
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
         plottables,
+        ...useReleaseBubbleProps(releases),
       }}
     />
   );

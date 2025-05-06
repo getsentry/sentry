@@ -2,7 +2,6 @@ import {ActorFixture} from 'sentry-fixture/actor';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TagsFixture} from 'sentry-fixture/tags';
 import {TeamFixture} from 'sentry-fixture/team';
 
@@ -39,7 +38,6 @@ describe('StreamlinedGroupHeader', () => {
       name: 'Leander',
     }),
   });
-  const router = RouterFixture();
 
   describe('JS Project Error Issue', () => {
     const defaultProps = {
@@ -83,7 +81,6 @@ describe('StreamlinedGroupHeader', () => {
         />,
         {
           organization,
-          router,
         }
       );
 
@@ -119,7 +116,9 @@ describe('StreamlinedGroupHeader', () => {
           project={project}
           event={null}
         />,
-        {organization, router}
+        {
+          organization,
+        }
       );
       expect(
         await screen.findByRole('button', {name: 'Manage issue experience'})
@@ -136,7 +135,6 @@ describe('StreamlinedGroupHeader', () => {
         />,
         {
           organization,
-          router,
         }
       );
 

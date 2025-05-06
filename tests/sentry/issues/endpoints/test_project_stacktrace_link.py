@@ -93,6 +93,18 @@ class BaseProjectStacktraceLink(APITestCase):
 
         self.login_as(self.user)
 
+    def _create_code_mapping(
+        self, stack_root: str, source_root: str, automatically_generated: bool = False
+    ) -> RepositoryProjectPathConfig:
+        return super().create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root=stack_root,
+            source_root=source_root,
+            automatically_generated=automatically_generated,
+        )
+
     def expected_configurations(
         self, code_mapping: RepositoryProjectPathConfig
     ) -> Mapping[str, Any]:
@@ -116,17 +128,11 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
 
     def setUp(self) -> None:
         BaseProjectStacktraceLink.setUp(self)
-        self.code_mapping1 = self.create_code_mapping(
-            organization_integration=self.oi,
-            project=self.project,
-            repo=self.repo,
+        self.code_mapping1 = self._create_code_mapping(
             stack_root="usr/src/getsentry/",
             source_root="",
         )
-        self.code_mapping2 = self.create_code_mapping(
-            organization_integration=self.oi,
-            project=self.project,
-            repo=self.repo,
+        self.code_mapping2 = self._create_code_mapping(
             stack_root="sentry/",
             source_root="src/sentry/",
             automatically_generated=True,  # Created by the automation
@@ -216,31 +222,19 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
 class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
     def setUp(self) -> None:
         BaseProjectStacktraceLink.setUp(self)
-        self.android_code_mapping = self.create_code_mapping(
-            organization_integration=self.oi,
-            project=self.project,
-            repo=self.repo,
+        self.android_code_mapping = self._create_code_mapping(
             stack_root="usr/src/getsentry/",
             source_root="src/getsentry/",
         )
-        self.flutter_code_mapping = self.create_code_mapping(
-            organization_integration=self.oi,
-            project=self.project,
-            repo=self.repo,
+        self.flutter_code_mapping = self._create_code_mapping(
             stack_root="a/b/",
             source_root="",
         )
-        self.cocoa_code_mapping_filename = self.create_code_mapping(
-            organization_integration=self.oi,
-            project=self.project,
-            repo=self.repo,
+        self.cocoa_code_mapping_filename = self._create_code_mapping(
             stack_root="AppDelegate",
             source_root="src/AppDelegate",
         )
-        self.cocoa_code_mapping_abs_path = self.create_code_mapping(
-            organization_integration=self.oi,
-            project=self.project,
-            repo=self.repo,
+        self.cocoa_code_mapping_abs_path = self._create_code_mapping(
             stack_root="/Users/user/code/SwiftySampleProject/",
             source_root="src/",
         )
@@ -254,6 +248,7 @@ class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
             self.project.slug,
             qs_params={
                 "file": "file.java",
+                "absPath": "file.java",
                 "module": "usr.src.getsentry.file",
                 "platform": "java",
             },
@@ -374,74 +369,32 @@ class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
 class ProjectStacktraceLinkTestMultipleMatches(BaseProjectStacktraceLink):
     def setUp(self) -> None:
         BaseProjectStacktraceLink.setUp(self)
-        # Created by the user, not well defined stack root
-        self.code_mapping1 = self.create_code_mapping(
-            organization_integration=self.oi,
-            project=self.project,
-            repo=self.repo,
-            stack_root="",
-            source_root="",
-            automatically_generated=False,
-        )
-        # Created by automation, not as well defined stack root
-        self.code_mapping2 = self.create_code_mapping(
-            organization_integration=self.oi,
-            project=self.project,
-            repo=self.repo,
-            stack_root="usr/src/getsentry/src/",
-            source_root="",
-            automatically_generated=True,
-        )
-        # Created by the user, well defined stack root
-        self.code_mapping3 = self.create_code_mapping(
-            organization_integration=self.oi,
-            project=self.project,
-            repo=self.repo,
-            stack_root="usr/src/getsentry/",
-            source_root="",
-            automatically_generated=False,
-        )
-        # Created by the user, not as well defined stack root
-        self.code_mapping4 = self.create_code_mapping(
-            organization_integration=self.oi,
-            project=self.project,
-            repo=self.repo,
-            stack_root="usr/src/",
-            source_root="",
-            automatically_generated=False,
-        )
-        # Created by automation, well defined stack root
-        self.code_mapping5 = self.create_code_mapping(
-            organization_integration=self.oi,
-            project=self.project,
-            repo=self.repo,
-            stack_root="usr/src/getsentry/src/sentry/",
-            source_root="",
-            automatically_generated=True,
-        )
-        self.code_mappings = [
-            self.code_mapping1,
-            self.code_mapping2,
-            self.code_mapping3,
-            self.code_mapping4,
-            self.code_mapping5,
-        ]
-
-        self.filepath = "usr/src/getsentry/src/sentry/src/sentry/utils/safe.py"
 
     def test_multiple_code_mapping_matches(self) -> None:
+        """
+        Test that the code mapping that is user generated and has the most defined stack
+        root of the user generated code mappings is chosen
+        """
+        prefix = "/usr/src/getsentry"
+        src_path = "src/sentry/utils/safe.py"
+        filepath = f"{prefix}/src/sentry/{src_path}"
+
+        # All of these code mappings would match filepath
+        self._create_code_mapping("", "", False)
+        self._create_code_mapping(f"{prefix}/src/", "", True)
+        cm = self._create_code_mapping(prefix, "", False)
+        self._create_code_mapping("/usr/src/", "", False)
+        self._create_code_mapping(f"{prefix}/src/sentry/", "", True)
+
         with patch.object(
             ExampleIntegration,
             "get_stacktrace_link",
-            return_value="https://github.com/usr/src/getsentry/src/sentry/src/sentry/utils/safe.py",
+            return_value=f"https://github.com/getsentry/sentry/{src_path}",
         ):
             response = self.get_success_response(
-                self.organization.slug, self.project.slug, qs_params={"file": self.filepath}
+                self.organization.slug, self.project.slug, qs_params={"file": filepath}
             )
             # Assert that the code mapping that is user generated and has the most defined stack
             # trace of the user generated code mappings is chosen
-            assert response.data["config"] == self.expected_configurations(self.code_mapping3)
-            assert (
-                response.data["sourceUrl"]
-                == "https://github.com/usr/src/getsentry/src/sentry/src/sentry/utils/safe.py"
-            )
+            assert response.data["config"] == self.expected_configurations(cm)
+            assert response.data["sourceUrl"] == f"https://github.com/getsentry/sentry/{src_path}"

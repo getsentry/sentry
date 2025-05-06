@@ -282,7 +282,7 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
             y_axes=[self.aggregate],
             groupby=[],
             referrer=referrer,
-            sampling_mode=None,
+            sampling_mode="NORMAL",
         )
 
         return rpc_request

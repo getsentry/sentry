@@ -33,8 +33,13 @@ class VertexProvider(LlmModelBase):
         content = f"{prompt} {message}" if prompt else message
 
         payload = {
-            "instances": [{"content": content}],
-            "parameters": {
+            "contents": {
+                "role": "user",
+                "parts": [
+                    {"text": content},
+                ],
+            },
+            "generationConfig": {
                 "candidateCount": self.candidate_count,
                 "maxOutputTokens": max_output_tokens,
                 "temperature": temperature,
@@ -47,7 +52,7 @@ class VertexProvider(LlmModelBase):
             "Content-Type": "application/json",
         }
         vertex_url = self.provider_config["options"]["url"]
-        vertex_url += usecase_config["options"]["model"] + ":predict"
+        vertex_url += usecase_config["options"]["model"] + ":generateContent"
 
         response = requests.post(vertex_url, headers=headers, json=payload)
 
@@ -58,7 +63,7 @@ class VertexProvider(LlmModelBase):
             )
             raise VertexRequestFailed(f"Response {response.status_code}: {response.text}")
 
-        return response.json()["predictions"][0]["content"]
+        return response.json()["candidates"][0]["content"]["parts"][0]["text"]
 
     def _get_access_token(self) -> str:
         # https://stackoverflow.com/questions/53472429/how-to-get-a-gcp-bearer-token-programmatically-with-python
