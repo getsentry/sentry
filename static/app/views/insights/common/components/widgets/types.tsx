@@ -19,6 +19,11 @@ export interface LoadableChartWidgetProps {
   id?: string;
 
   /**
+   * The source where this widget was loaded via `<ChartWidgetLoader>` component
+   */
+  loaderSource?: 'releases-drawer';
+
+  /**
    * PageFilters-like object that will override the main PageFilters e.g. in
    * Releases Drawer, we have a smaller timeframe to show a smaller amount of
    * releases.

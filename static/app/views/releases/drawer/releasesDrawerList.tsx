@@ -134,6 +134,7 @@ export function ReleasesDrawerList({chart, pageFilters}: ReleasesDrawerListProps
               height={chartHeight}
               pageFilters={pageFilters}
               showReleaseAs="line"
+              loaderSource="releases-drawer"
             />
           </div>
         ) : null}
