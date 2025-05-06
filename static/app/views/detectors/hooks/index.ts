@@ -24,7 +24,7 @@ export function useDetectorsQuery(
 }
 
 export const makeDetectorQueryKey = (orgSlug: string, detectorId = ''): [url: string] => [
-  `/organizations/${orgSlug}/detectors/${detectorId}`,
+  `/organizations/${orgSlug}/detectors/${detectorId ? `${detectorId}/` : ''}`,
 ];
 
 export function useCreateDetector(detector: Detector) {
