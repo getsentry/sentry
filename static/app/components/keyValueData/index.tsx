@@ -41,7 +41,7 @@ export interface KeyValueDataContentProps {
   expandLeft?: boolean;
   /**
    * Used for the feature flag section.
-   * If true, then the row will be highlighted in red.
+   * If true, then the row will be highlighted in yellow.
    */
   isSuspectFlag?: boolean;
   /**
