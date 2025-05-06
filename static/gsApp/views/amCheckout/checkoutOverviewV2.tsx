@@ -28,7 +28,12 @@ type Props = {
   discountInfo?: Promotion['discountInfo'];
 };
 
-function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) {
+function CheckoutOverviewV2({
+  activePlan,
+  formData,
+  onUpdate: _onUpdate,
+  organization,
+}: Props) {
   const shortInterval = useMemo(() => {
     return utils.getShortInterval(activePlan.billingInterval);
   }, [activePlan.billingInterval]);
@@ -46,6 +51,7 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
   );
 
   const hasSeerEnabled = formData.seerEnabled === true;
+  const hasSeerFeature = organization.features.includes('seer-billing');
 
   const seerCents = 2000;
   const seerPrice = utils.displayPrice({cents: seerCents});
@@ -75,23 +81,25 @@ function CheckoutOverviewV2({activePlan, formData, onUpdate: _onUpdate}: Props) 
 
   const renderSeerSummary = () => {
     return (
-      <PanelChild data-test-id="seer-summary">
-        <SpaceBetweenRow style={{alignItems: 'start'}}>
-          <Column>
-            <div style={{display: 'flex', alignItems: 'center', gap: space(1)}}>
-              <Title>
-                {t('Sentry AI Agent')}
-                &nbsp;&nbsp;
-                <QuestionTooltip size="xs" title={t('Additional Seer information.')} />
-              </Title>
-            </div>
-          </Column>
-          <Column minWidth="150px" alignItems="end">
-            <Title>{`${seerPrice}/mo`}</Title>
-            <Description>Additional usage billed separately</Description>
-          </Column>
-        </SpaceBetweenRow>
-      </PanelChild>
+      hasSeerFeature && (
+        <PanelChild data-test-id="seer-summary">
+          <SpaceBetweenRow style={{alignItems: 'start'}}>
+            <Column>
+              <div style={{display: 'flex', alignItems: 'center', gap: space(1)}}>
+                <Title>
+                  {t('Sentry AI Agent')}
+                  &nbsp;&nbsp;
+                  <QuestionTooltip size="xs" title={t('Additional Seer information.')} />
+                </Title>
+              </div>
+            </Column>
+            <Column minWidth="150px" alignItems="end">
+              <Title>{`+${seerPrice}/mo`}</Title>
+              <Description>Additional usage billed separately</Description>
+            </Column>
+          </SpaceBetweenRow>
+        </PanelChild>
+      )
     );
   };
 

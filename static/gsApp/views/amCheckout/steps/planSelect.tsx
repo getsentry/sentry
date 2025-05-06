@@ -10,7 +10,8 @@ import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';
-import {IconAdd, IconSubtract, IconWarning} from 'sentry/icons';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {IconAdd, IconCheckmark, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
@@ -34,6 +35,7 @@ import PlanSelectRow from 'getsentry/views/amCheckout/steps/planSelectRow';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 import {formatPrice, getDiscountedPrice} from 'getsentry/views/amCheckout/utils';
+import * as utils from 'getsentry/views/amCheckout/utils';
 
 export type PlanContent = {
   description: React.ReactNode;
@@ -139,6 +141,7 @@ function PlanSelect({
   const {data: promotionData, refetch} = usePromotionTriggerCheck(organization);
 
   const [seerIsEnabled, setSeerIsEnabled] = useState(Boolean(formData.seerEnabled));
+  const hasSeerFeature = organization.features.includes('seer-billing');
 
   const discountInfo = promotion?.discountInfo;
   let trailingItems: React.ReactNode = null;
@@ -244,37 +247,43 @@ function PlanSelect({
   };
 
   const renderSeer = () => {
+    const seerPrice = utils.displayPrice({cents: 2000});
+
     return (
-      <StepFooter data-test-id="footer-seer">
-        <SeerContainer>
-          <SeerHeader>
-            <SeerIcon size="md" />
-            Seer AI Agent
-            <FeatureBadge type="new" variant="badge" />
-          </SeerHeader>
-          <SeerDescription>Insights and solutions to fix bugs faster</SeerDescription>
-          <FeatureList>
-            <FeatureItem>
-              Root Cause Analysis: Propose solutions for your toughest problems
-            </FeatureItem>
-            <FeatureItem>Autofix PRs: Code up solutions on your behalf</FeatureItem>
-            <FeatureItem>AI Issue Priority</FeatureItem>
-          </FeatureList>
-          <ButtonWrapper>
-            <Button
-              priority={'default'}
-              icon={seerIsEnabled ? <IconSubtract /> : <IconAdd />}
-              onClick={() => {
-                setSeerIsEnabled(!seerIsEnabled);
-                onUpdate({...formData, seerEnabled: !seerIsEnabled});
-              }}
-              data-test-id="seer-toggle-button"
-            >
-              {seerIsEnabled ? t('Disable') : t('Enable')}
-            </Button>
-          </ButtonWrapper>
-        </SeerContainer>
-      </StepFooter>
+      hasSeerFeature && (
+        <StepFooter data-test-id="footer-seer">
+          <SeerContainer>
+            <SeerHeader>
+              <SeerIcon size="lg" />
+              Add Seer, our AI Agent
+              <FeatureBadge type="new" variant="badge" />
+            </SeerHeader>
+            <SeerDescription>Insights and solutions to fix bugs faster</SeerDescription>
+            <FeatureList>
+              <FeatureItem>Root Cause Analysis</FeatureItem>
+              <FeatureItem>Autofix PRs</FeatureItem>
+              <FeatureItem>AI Issue Priority</FeatureItem>
+            </FeatureList>
+            <ButtonWrapper>
+              <Button
+                priority={'default'}
+                icon={seerIsEnabled ? <IconCheckmark /> : <IconAdd />}
+                onClick={() => {
+                  setSeerIsEnabled(!seerIsEnabled);
+                  onUpdate({...formData, seerEnabled: !seerIsEnabled});
+                }}
+                data-test-id="seer-toggle-button"
+              >
+                {seerIsEnabled ? t('Added to plan') : t('%s/mo', seerPrice)}
+              </Button>
+            </ButtonWrapper>
+            <div>
+              Extra usage requires PAYG{' '}
+              <QuestionTooltip size="xs" title={t('Additional Seer information.')} />
+            </div>
+          </SeerContainer>
+        </StepFooter>
+      )
     );
   };
 
@@ -390,11 +399,13 @@ const FooterWarningWrapper = styled('div')`
   gap: ${space(1)};
 `;
 
-const SeerHeader = styled('h3')`
+const SeerHeader = styled('div')`
   margin: 0;
   gap: ${space(1)};
   display: flex;
   align-items: center;
+  font-weight: 900;
+  font-size: large;
 `;
 
 const SeerContainer = styled('div')`

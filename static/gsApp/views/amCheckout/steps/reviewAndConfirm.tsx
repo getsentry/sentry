@@ -145,6 +145,8 @@ function ReviewAndConfirm({
     );
   }
 
+  const hasSeerFeature = organization.features.includes('seer-billing');
+
   return (
     <Panel>
       <StepHeader
@@ -166,6 +168,7 @@ function ReviewAndConfirm({
             subscription={subscription}
             formData={formData}
             seerCents={seerCents}
+            hasSeerFeature={hasSeerFeature}
           />
         </StyledPanelBody>
       )}
@@ -254,9 +257,11 @@ function ReviewAndConfirmHeader({
 function ReviewAndConfirmItems({
   previewData,
   formData,
+  hasSeerFeature,
   seerCents,
 }: Pick<State, 'previewData'> & {
   formData: StepPropsWithApi['formData'];
+  hasSeerFeature: boolean;
   seerCents: number;
 }) {
   if (!previewData) {
@@ -301,7 +306,7 @@ function ReviewAndConfirmItems({
         </PreviewItem>
       )}
 
-      {formData.seerEnabled && (
+      {hasSeerFeature && formData.seerEnabled && (
         <PreviewItem key="seer">
           <Title>
             <div>{t('Seer AI Agent')}</div>
@@ -322,9 +327,11 @@ function ReviewAndConfirmBody({
   subscription,
   formData,
   seerCents,
+  hasSeerFeature,
 }: Pick<State, 'cardActionError' | 'loading' | 'loadError' | 'previewData'> & {
   formData: StepPropsWithApi['formData'];
   hasPartnerMigrationFeature: boolean;
+  hasSeerFeature: boolean;
   seerCents: number;
   subscription: Subscription;
 }) {
@@ -362,6 +369,7 @@ function ReviewAndConfirmBody({
       <ReviewAndConfirmItems
         previewData={previewData}
         formData={formData}
+        hasSeerFeature={hasSeerFeature}
         seerCents={seerCents}
       />
       <PreviewTotal>
