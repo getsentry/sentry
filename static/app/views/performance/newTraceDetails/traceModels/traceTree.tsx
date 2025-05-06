@@ -41,7 +41,10 @@ import {
   isTransactionNode,
   shouldAddMissingInstrumentationSpan,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
-import {collectTraceMeasurements} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree.measurements';
+import {
+  collectTraceMeasurements,
+  type RENDERABLE_MEASUREMENTS,
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree.measurements';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {isRootEvent} from 'sentry/views/performance/traceDetails/utils';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
@@ -167,6 +170,7 @@ export declare namespace TraceTree {
     start_timestamp: number;
     transaction: string;
     description?: string;
+    measurements?: Record<string, number>;
   };
 
   // Raw node values
@@ -265,7 +269,7 @@ export declare namespace TraceTree {
     measurement: Measurement;
     poor: boolean;
     start: number;
-    type: 'cls' | 'fcp' | 'fp' | 'lcp' | 'ttfb';
+    type: keyof typeof RENDERABLE_MEASUREMENTS;
     score?: number;
   };
 
@@ -498,6 +502,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       if (c.value && 'measurements' in c.value) {
         tree.indicators = tree.indicators.concat(
           collectTraceMeasurements(
+            tree,
             c,
             c.space[0],
             c.value.measurements,
@@ -724,6 +729,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       ) {
         tree.indicators = tree.indicators.concat(
           collectTraceMeasurements(
+            tree,
             node,
             baseTraceNode.space[0],
             node.value.measurements,
