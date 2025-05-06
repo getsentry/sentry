@@ -97,7 +97,14 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     installation = integration.get_installation(organization_id=organization.id)
     assert isinstance(installation, CommitContextIntegration)
 
-    open_pr_comment_workflow = installation.get_open_pr_comment_workflow()
+    # TODO(jianyuan): Remove this once we have implemented the new open_pr_comment_workflow for GH Enterprise
+    try:
+        open_pr_comment_workflow = installation.get_open_pr_comment_workflow()
+    except NotImplementedError:
+        logger.info(
+            _open_pr_comment_log(integration_name=integration_name, suffix="not_implemented")
+        )
+        return
 
     # CREATING THE COMMENT
 
