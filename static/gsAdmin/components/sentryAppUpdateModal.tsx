@@ -7,7 +7,6 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import Form from 'sentry/components/forms/form';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {tct} from 'sentry/locale';
 import type {IntegrationFeature} from 'sentry/types/integrations';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -128,13 +127,7 @@ function SentryAppUpdateModal(props: Props) {
             {...fieldProps}
             name="popularity"
             label="New popularity"
-            help={tct(
-              'Higher values will be more prominent on the integration directory. Only values between [POPULARITY_MIN] and [POPULARITY_MAX] are permitted.',
-              {
-                POPULARITY_MIN,
-                POPULARITY_MAX,
-              }
-            )}
+            help={`Higher values will be more prominent on the integration directory. Only values between ${POPULARITY_MIN} and ${POPULARITY_MAX} are permitted.`}
             onChange={onPopularityChange}
             defaultValue={sentryAppData.popularity}
           />

@@ -11,13 +11,14 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 
 from sentry.uptime.detectors.ranking import _get_cluster
 from sentry.uptime.detectors.tasks import set_failed_url
-from sentry.uptime.models import ProjectUptimeSubscription, get_detector
+from sentry.uptime.models import UptimeSubscription, get_project_subscription
 from sentry.uptime.subscriptions.subscriptions import (
     delete_uptime_detector,
     update_project_uptime_subscription,
 )
 from sentry.uptime.types import ProjectUptimeSubscriptionMode
 from sentry.utils import metrics
+from sentry.workflow_engine.models.detector import Detector
 
 logger = logging.getLogger(__name__)
 
@@ -36,28 +37,28 @@ ONBOARDING_FAILURE_REDIS_TTL = ONBOARDING_MONITOR_PERIOD
 AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL = timedelta(minutes=1)
 
 
-def build_onboarding_failure_key(project_subscription: ProjectUptimeSubscription) -> str:
-    return f"project-sub-onboarding_failure:{project_subscription.id}"
+def build_onboarding_failure_key(detector: Detector) -> str:
+    return f"project-sub-onboarding_failure:detector:{detector.id}"
 
 
 def handle_onboarding_result(
-    project_subscription: ProjectUptimeSubscription,
+    detector: Detector,
+    uptime_subscription: UptimeSubscription,
     result: CheckResult,
     metric_tags: dict[str, str],
 ):
     if result["status"] == CHECKSTATUS_FAILURE:
         redis = _get_cluster()
-        key = build_onboarding_failure_key(project_subscription)
+        key = build_onboarding_failure_key(detector)
         pipeline = redis.pipeline()
         pipeline.incr(key)
         pipeline.expire(key, ONBOARDING_FAILURE_REDIS_TTL)
         failure_count = pipeline.execute()[0]
         if failure_count >= ONBOARDING_FAILURE_THRESHOLD:
             # If we've hit too many failures during the onboarding period we stop monitoring
-            if detector := get_detector(project_subscription.uptime_subscription):
-                delete_uptime_detector(detector)
+            delete_uptime_detector(detector)
             # Mark the url as failed so that we don't attempt to auto-detect it for a while
-            set_failed_url(project_subscription.uptime_subscription.url)
+            set_failed_url(uptime_subscription.url)
             redis.delete(key)
             status_reason = "unknown"
             if result["status_reason"]:
@@ -70,19 +71,20 @@ def handle_onboarding_result(
             logger.info(
                 "uptime_onboarding_failed",
                 extra={
-                    "project_id": project_subscription.project_id,
-                    "url": project_subscription.uptime_subscription.url,
+                    "project_id": detector.project_id,
+                    "url": uptime_subscription.url,
                     **result,
                 },
             )
     elif result["status"] == CHECKSTATUS_SUCCESS:
-        assert project_subscription.date_added is not None
+        assert detector.date_added is not None
         scheduled_check_time = datetime.fromtimestamp(
             result["scheduled_check_time_ms"] / 1000, timezone.utc
         )
-        if scheduled_check_time - ONBOARDING_MONITOR_PERIOD > project_subscription.date_added:
+        if scheduled_check_time - ONBOARDING_MONITOR_PERIOD > detector.date_added:
             # If we've had mostly successes throughout the onboarding period then we can graduate the subscription
             # to active.
+            project_subscription = get_project_subscription(detector)
             update_project_uptime_subscription(
                 project_subscription,
                 interval_seconds=int(AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL.total_seconds()),
@@ -96,8 +98,8 @@ def handle_onboarding_result(
             logger.info(
                 "uptime_onboarding_graduated",
                 extra={
-                    "project_id": project_subscription.project_id,
-                    "url": project_subscription.uptime_subscription.url,
+                    "project_id": detector.project_id,
+                    "url": uptime_subscription.url,
                     **result,
                 },
             )
