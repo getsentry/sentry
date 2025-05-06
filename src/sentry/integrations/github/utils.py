@@ -4,10 +4,11 @@ import calendar
 import datetime
 import logging
 import time
+from typing import Any
 
 from rest_framework.response import Response
 
-from sentry import options
+from sentry import http, options
 from sentry.utils import jwt
 
 logger = logging.getLogger(__name__)
@@ -54,3 +55,37 @@ def get_next_link(response: Response) -> str | None:
             return link[start:end]
 
     return None
+
+
+def get_user_info(access_token):
+    with http.build_session() as session:
+        resp = session.get(
+            "https://api.github.com/user",
+            headers={
+                "Accept": "application/vnd.github.machine-man-preview+json",
+                "Authorization": f"token {access_token}",
+            },
+        )
+        resp.raise_for_status()
+    return resp.json()
+
+
+# For use prior to making the Integration object
+def get_pre_integration_installation_info(installation_id: str) -> dict[str, Any]:
+    """
+    https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-an-installation-for-the-authenticated-app
+    """
+    from sentry.integrations.github.utils import get_jwt
+
+    token = get_jwt()
+
+    with http.build_session() as session:
+        resp = session.get(
+            f"https://api.github.com/app/installations/{installation_id}",
+            headers={
+                "Accept": "application/vnd.github.machine-man-preview+json",
+                "Authorization": f"Bearer {token}",
+            },
+        )
+        resp.raise_for_status()
+    return resp.json()

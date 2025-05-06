@@ -227,7 +227,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         """
         return self.get_cached(f"/repos/{repo}/commits/{sha}")
 
-    def get_installation_info(self, installation_id: int) -> Any:
+    def get_installation_info(self, installation_id: int | str) -> Any:
         """
         https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-an-installation-for-the-authenticated-app
         """
@@ -572,7 +572,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
 class GitHubApiClient(GitHubBaseClient):
     def __init__(
         self,
-        integration: Integration,
+        integration: Integration | RpcIntegration,
         org_integration_id: int | None = None,
         verify_ssl: bool = True,
         logging_context: Mapping[str, Any] | None = None,
