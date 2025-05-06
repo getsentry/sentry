@@ -55,7 +55,7 @@ const autofixAutomatingTuningField: FieldObject = {
   },
   saveOnBlur: true,
   showTickLabels: true,
-  saveMessage: t('Autofix automation tuning updated'),
+  saveMessage: t('Automatic Seer settings updated'),
 };
 
 const seerFormGroups: JsonFormObject[] = [
