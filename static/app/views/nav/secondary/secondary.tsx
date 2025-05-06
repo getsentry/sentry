@@ -88,16 +88,18 @@ SecondaryNav.Body = function SecondaryNavBody({children}: {children: ReactNode})
 SecondaryNav.Section = function SecondaryNavSection({
   title,
   children,
+  className,
   trailingItems,
 }: {
   children: ReactNode;
+  className?: string;
   title?: ReactNode;
   trailingItems?: ReactNode;
 }) {
   const {layout} = useNavContext();
 
   return (
-    <Section>
+    <Section className={className} data-nav-section>
       <SectionSeparator />
       {title && (
         <SectionTitle layout={layout}>
@@ -178,7 +180,6 @@ const Header = styled('div')`
 `;
 
 const Body = styled('div')<{layout: NavLayout}>`
-  padding: ${space(1)};
   overflow-y: auto;
 
   ${p =>
@@ -189,8 +190,19 @@ const Body = styled('div')<{layout: NavLayout}>`
 `;
 
 const Section = styled('div')`
-  & + & {
-    hr {
+  padding: 0 ${space(1)};
+
+  &:first-child {
+    padding-top: ${space(1)};
+  }
+
+  &:last-child {
+    padding-bottom: ${space(1)};
+  }
+
+  /* Hide separators if there is not a previous section */
+  [data-nav-section] + & {
+    > hr {
       display: block;
     }
   }

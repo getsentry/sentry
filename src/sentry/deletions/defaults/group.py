@@ -211,11 +211,12 @@ class IssuePlatformEventsDeletionTask(EventsBaseDeletionTask):
             current_batch: list[int] = []
             current_batch_rows = 0
 
-            # Get times_seen for each group
-            group_times_seen = {g.id: g.times_seen for g in groups}
+            # Deterministic sort for sanity, and for very large deletions we'll
+            # delete the "smaller" groups first
+            groups.sort(key=lambda g: (g.times_seen, g.id))
 
             for group in groups:
-                times_seen = group_times_seen.get(group.id, 0)
+                times_seen = group.times_seen
 
                 # If adding this group would exceed the limit, create a request with the current batch
                 if current_batch_rows + times_seen > self.max_rows_to_delete:

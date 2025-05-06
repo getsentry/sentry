@@ -83,8 +83,9 @@ describe('IntegrationCodeMappings', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('shows the paths', () => {
-    render(<IntegrationCodeMappings organization={org} integration={integration} />);
+  it('shows the paths', async () => {
+    render(<IntegrationCodeMappings integration={integration} />);
+    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
     for (const repo of repos) {
       expect(screen.getByText(repo.name)).toBeInTheDocument();
@@ -108,7 +109,8 @@ describe('IntegrationCodeMappings', function () {
         defaultBranch,
       }),
     });
-    render(<IntegrationCodeMappings organization={org} integration={integration} />);
+    render(<IntegrationCodeMappings integration={integration} />);
+    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     const {waitForModalToHide} = renderGlobalModal();
 
     await userEvent.click(screen.getByRole('button', {name: 'Add Code Mapping'}));
@@ -166,7 +168,8 @@ describe('IntegrationCodeMappings', function () {
         defaultBranch,
       }),
     });
-    render(<IntegrationCodeMappings organization={org} integration={integration} />);
+    render(<IntegrationCodeMappings integration={integration} />);
+    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     const {waitForModalToHide} = renderGlobalModal();
 
     await userEvent.click(screen.getAllByRole('button', {name: 'edit'})[0]!);
@@ -206,7 +209,8 @@ describe('IntegrationCodeMappings', function () {
         ],
       },
     });
-    render(<IntegrationCodeMappings organization={org} integration={integration} />);
+    render(<IntegrationCodeMappings integration={integration} />);
+    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     renderGlobalModal();
 
     await userEvent.click(screen.getByRole('button', {name: 'Add Code Mapping'}));
