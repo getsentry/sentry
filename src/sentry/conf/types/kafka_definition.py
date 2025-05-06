@@ -67,6 +67,7 @@ class Topic(Enum):
     BUFFERED_SEGMENTS = "buffered-segments"
     BUFFERED_SEGMENTS_DLQ = "buffered-segments-dlq"
     TASKWORKER = "taskworker"
+    TASKWORKER_INGEST = "taskworker-ingest"
 
 
 class ConsumerDefinition(TypedDict, total=False):
