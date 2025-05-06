@@ -97,10 +97,10 @@ export function EventSamplesTable({
 
     if (column.key === profileIdKey) {
       const profileTarget =
-        defined(row['project.name']) && defined(row[profileIdKey])
+        defined(row.project) && defined(row[profileIdKey])
           ? generateProfileFlamechartRoute({
               organization,
-              projectSlug: row['project.name'],
+              projectSlug: row.project,
               profileId: String(row[profileIdKey]),
             })
           : null;

@@ -112,7 +112,7 @@ export function ScreenLoadEventSamples({
       'id',
       'trace',
       'timestamp',
-      'project.name',
+      'project',
       'profile.id',
       'measurements.time_to_initial_display',
       'measurements.time_to_full_display',
