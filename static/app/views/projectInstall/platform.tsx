@@ -13,7 +13,6 @@ import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/s
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {platformProductAvailability} from 'sentry/components/onboarding/productSelection';
 import {setPageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
-import Redirect from 'sentry/components/redirect';
 import {performance as performancePlatforms} from 'sentry/data/platformCategories';
 import type {Platform} from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
@@ -31,7 +30,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {GettingStartedWithProjectContext} from 'sentry/views/projects/gettingStartedWithProjectContext';
-import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {OtherPlatformsInfo} from './otherPlatformsInfo';
 import {PlatformDocHeader} from './platformDocHeader';
@@ -43,7 +41,7 @@ const ProductUnavailableCTAHook = HookOrDefault({
 type Props = {
   currentPlatformKey: PlatformKey;
   platform: PlatformIntegration | undefined;
-  project: Project | undefined;
+  project: Project;
 };
 
 export function ProjectInstallPlatform({
@@ -142,17 +140,6 @@ export function ProjectInstallPlatform({
     },
     [navigate, organization.slug, project?.id]
   );
-
-  if (!project) {
-    return (
-      <Redirect
-        to={makeProjectsPathname({
-          path: `/new/`,
-          organization,
-        })}
-      />
-    );
-  }
 
   if (!platform.id && platform.key !== 'other') {
     return <NotFound />;
