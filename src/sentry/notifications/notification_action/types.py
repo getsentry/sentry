@@ -134,6 +134,7 @@ class BaseIssueAlertHandler(ABC):
             "actions": [cls.build_rule_action_blob(action, detector.project.organization.id)],
         }
 
+        label = detector.name
         # We need to pass the legacy rule id when the workflow-engine-ui-links feature flag is disabled
         # This is so we can build the old link to the rule
         if not features.has(
@@ -160,6 +161,18 @@ class BaseIssueAlertHandler(ABC):
 
                 data["actions"][0]["legacy_rule_id"] = alert_rule_workflow.rule_id
 
+                # Get the legacy rule label
+                try:
+                    rule = Rule.objects.get(id=alert_rule_workflow.rule_id)
+                    label = rule.label
+                except Rule.DoesNotExist:
+                    logger.exception(
+                        "Rule not found when querying for AlertRuleWorkflow",
+                        extra={"rule_id": alert_rule_workflow.rule_id},
+                    )
+                    # We shouldn't fail badly here since we can still send the notification, so just set it to the rule id
+                    label = f"Rule {alert_rule_workflow.rule_id}"
+
         # In the new UI, we need this for to build the link to the new rule in the notification action
         else:
             data["actions"][0]["workflow_id"] = job.workflow_id
@@ -168,7 +181,7 @@ class BaseIssueAlertHandler(ABC):
             id=action.id,
             project=detector.project,
             environment_id=environment_id,
-            label=detector.name,
+            label=label,
             data=dict(data),
             status=ObjectStatus.ACTIVE,
             source=RuleSource.ISSUE,
