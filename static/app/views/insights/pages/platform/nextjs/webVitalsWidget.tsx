@@ -146,7 +146,7 @@ export function WebVitalsWidget({query}: {query?: string}) {
     <WidgetVisualizationStates
       isLoading={isLoading}
       error={error}
-      isEmpty={false}
+      isEmpty={isEmpty}
       VisualizationType={WebVitalsWidgetVisualization}
       visualizationProps={{
         projectScore: data?.projectScore!,
