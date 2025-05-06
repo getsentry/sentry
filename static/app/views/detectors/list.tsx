@@ -57,7 +57,7 @@ function Actions() {
       <LinkButton
         to={`${makeMonitorBasePathname(organization.slug)}new/`}
         priority="primary"
-        icon={<IconAdd isCircled />}
+        icon={<IconAdd />}
       >
         {t('Create Monitor')}
       </LinkButton>
