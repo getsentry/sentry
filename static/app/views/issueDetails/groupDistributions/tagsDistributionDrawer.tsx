@@ -63,7 +63,7 @@ export default function TagsDistributionDrawer({
         ) : null}
       </EventNavigator>
       <EventDrawerBody>
-        {enableSuspectFlags ? (
+        {!tagKey && enableSuspectFlags ? (
           <SuspectTable
             debugSuspectScores={false}
             environments={environments}

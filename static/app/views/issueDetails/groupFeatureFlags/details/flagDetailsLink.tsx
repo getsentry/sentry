@@ -18,7 +18,7 @@ export default function FlagDetailsLink({flag, children}: Props) {
         pathname: `${location.pathname}${flag.key}/`,
         query: {
           ...location.query,
-          tab: 'flags',
+          tab: 'featureFlags',
         },
       }}
     >

@@ -125,7 +125,7 @@ export default function FlagsDistributionDrawer({group, organization, setTab}: P
         )}
       </EventNavigator>
       <EventDrawerBody>
-        {enableSuspectFlags ? (
+        {!tagKey && enableSuspectFlags ? (
           <SuspectTable
             debugSuspectScores={debugSuspectScores}
             environments={environments}
