@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import type {Vital} from 'sentry/utils/performance/vitals/types';
@@ -18,7 +19,13 @@ import {
   STATUS_TEXT,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
+import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
+import {isEAPTraceNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {
+  TRACE_VIEW_MOBILE_VITALS,
+  TRACE_VIEW_WEB_VITALS,
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree.measurements';
 import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
 
 type Props = {
@@ -29,24 +36,62 @@ type Props = {
 
 export function TraceContextVitals({rootEventResults, tree, logs}: Props) {
   const {hasVitals} = useTraceContextSections({tree, rootEventResults, logs});
+  const traceNode = tree.root.children[0];
 
-  if (!hasVitals) {
+  // TODO Abdullah Khan: Ignoring loading/error states for now
+  if (!hasVitals || !rootEventResults.data || !traceNode) {
     return null;
   }
 
-  const allVitals = Array.from(tree.vitals.values()).flat();
-  return allVitals.map(vital => {
+  const vitalsToDisplay = tree.vital_types.has('web')
+    ? TRACE_VIEW_WEB_VITALS
+    : TRACE_VIEW_MOBILE_VITALS;
+
+  const isEAPTrace = isEAPTraceNode(traceNode);
+  const collectedVitals =
+    isEAPTrace && tree.vital_types.has('mobile')
+      ? getMobileVitalsFromRootEventResults(rootEventResults.data)
+      : Array.from(tree.vitals.values()).flat();
+
+  return vitalsToDisplay.map(vitalKey => {
     const vitalDetails =
-      VITAL_DETAILS[`measurements.${vital.key}` as keyof typeof VITAL_DETAILS];
+      VITAL_DETAILS[`measurements.${vitalKey}` as keyof typeof VITAL_DETAILS];
+    const vital = collectedVitals.find(v => v.key === vitalKey);
+
     return (
       <VitalPill
-        key={vital?.key}
+        key={vitalKey}
         vital={vitalDetails}
         score={vital?.score}
         meterValue={vital?.measurement.value}
       />
     );
   });
+}
+
+function getMobileVitalsFromRootEventResults(
+  data: TraceRootEventQueryResults['data']
+): TraceTree.CollectedVital[] {
+  if (!data || !isTraceItemDetailsResponse(data)) {
+    return [];
+  }
+
+  return data.attributes
+    .map(attribute => {
+      const vitalKey = attribute.name.replace('measurements.', '');
+      if (
+        TRACE_VIEW_MOBILE_VITALS.includes(vitalKey) &&
+        typeof attribute.value === 'number'
+      ) {
+        return {
+          key: vitalKey,
+          measurement: {value: attribute.value},
+          score: undefined,
+        };
+      }
+      return undefined;
+    })
+    .filter(defined);
 }
 
 function defaultVitalValueFormatter(vital: Vital, value: number) {
@@ -106,7 +151,7 @@ const VitalPillContainer = styled('div')`
   flex-grow: 1;
   max-width: 20%;
   height: 30px;
-  margin-bottom: ${space(1)};
+  margin: ${space(1)} 0;
 `;
 
 const VitalPillName = styled('div')<{status: PerformanceScore}>`

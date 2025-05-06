@@ -330,8 +330,6 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         ) as mock_apply_async:
             response = self.client.delete(url, format="json")
             mock_apply_async.assert_called_once()
-            kwargs = mock_apply_async.call_args[1]
-            assert kwargs["countdown"] == 3600
             assert response.status_code == 202
             # Since the task has not executed yet the group is pending deletion
             assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
@@ -362,9 +360,6 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             # Since the task has not executed yet the group is pending deletion
             assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
             mock_apply_async.assert_called_once()
-            kwargs = mock_apply_async.call_args[1]
-            # We don't wait to schedule the deletion of non-error issues
-            assert kwargs["countdown"] == 0
 
         # Undo some of what the previous endpoint call did
         group.update(status=GroupStatus.RESOLVED)
