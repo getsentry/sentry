@@ -27,9 +27,11 @@ export default function FlagDetailsLink({
 
 const StyledLink = styled(Link)`
   border-radius: ${p => p.theme.borderRadius};
-  display: block;
 
-  &:hover h5 {
+  ${p => p.theme.overflowEllipsis}
+  width: auto;
+
+  &:hover [data-underline-on-hover='true'] {
     text-decoration: underline;
   }
 `;

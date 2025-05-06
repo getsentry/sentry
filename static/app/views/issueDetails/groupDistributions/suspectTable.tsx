@@ -12,8 +12,8 @@ import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import toRoundedPercent from 'sentry/utils/number/toRoundedPercent';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import FlagDetailsLink from 'sentry/views/issueDetails/groupFeatureFlags/details/flagDetailsLink';
 import useGroupFlagDrawerData from 'sentry/views/issueDetails/groupFeatureFlags/hooks/useGroupFlagDrawerData';
-import {TagBar} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 
 interface Props {
   debugSuspectScores: boolean;
@@ -73,9 +73,9 @@ export default function SuspectTable({debugSuspectScores, environments, group}: 
   }
 
   return (
-    <Alert type="warning">
+    <GradientBox>
       <TagHeader>
-        {t('Suspect')}
+        {t('Suspect Flags')}
         {debugThresholdInput}
       </TagHeader>
 
@@ -83,38 +83,45 @@ export default function SuspectTable({debugSuspectScores, environments, group}: 
         {susFlags.map(flag => {
           const topValue = flag.topValues[0];
 
-          const pct =
-            topValue?.value === 'true'
-              ? (flag.suspect.baselinePercent ?? 0)
-              : 100 - (flag.suspect.baselinePercent ?? 0);
-          const projPercentage = Math.round(pct * 100);
-          const displayProjPercent =
-            projPercentage < 1 ? '<1%' : `${projPercentage.toFixed(0)}%`;
-
           return (
             <TagValueRow key={flag.key}>
               {/* TODO: why is flag.name transformed to TitleCase? */}
-              <Tooltip title={flag.key} showOnlyOnOverflow>
-                <Name>{flag.key}</Name>
-              </Tooltip>
-              <TagBar percentage={((topValue?.count ?? 0) / flag.totalValues) * 100} />
+              <FlagDetailsLink tag={flag}>
+                <Tooltip
+                  title={flag.key}
+                  showOnlyOnOverflow
+                  data-underline-on-hover="true"
+                >
+                  {flag.key}
+                </Tooltip>
+              </FlagDetailsLink>
               <RightAligned>
                 {toRoundedPercent((topValue?.count ?? 0) / flag.totalValues)}
               </RightAligned>
               <span>{topValue?.value}</span>
-              <Subtext>vs</Subtext>
-              <RightAligned>
-                <Subtext>{t('%s in project', displayProjPercent)}</Subtext>
-              </RightAligned>
             </TagValueRow>
           );
         })}
       </TagValueGrid>
-    </Alert>
+    </GradientBox>
   );
 }
 
-const TagHeader = styled('h5')`
+const GradientBox = styled('div')`
+  border: 1px solid ${p => p.theme.border};
+  background: ${p => p.theme.background};
+  background: linear-gradient(
+    90deg,
+    ${p => p.theme.backgroundSecondary}00 0%,
+    ${p => p.theme.backgroundSecondary}FF 70%,
+    ${p => p.theme.backgroundSecondary}FF 100%
+  );
+  border-radius: ${p => p.theme.borderRadius};
+  color: ${p => p.theme.textColor};
+  padding: ${space(1)};
+`;
+
+const TagHeader = styled('h4')`
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -150,15 +157,6 @@ const TagValueRow = styled('li')`
   }
 `;
 
-const Name = styled('div')`
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-`;
-
-const Subtext = styled('span')`
-  color: ${p => p.theme.subText};
-`;
 const RightAligned = styled('span')`
   text-align: right;
 `;
