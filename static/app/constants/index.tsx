@@ -537,10 +537,10 @@ export const DATA_CATEGORY_INFO = {
     apiName: 'seer_autofix',
     plural: DataCategory.SEER_AUTOFIX,
     displayName: 'issue fix run',
-    titleName: t('Issue Fix Run'),
+    titleName: t('Issue Fix Runs'),
     productName: t('Seer'),
     uid: 27,
-    isBilledCategory: false, // TODO(Seer): change to True for launch
+    isBilledCategory: true,
     statsInfo: {
       ...DEFAULT_STATS_INFO,
       showInternalStats: false, // TODO(Seer): update this for launch
@@ -551,10 +551,10 @@ export const DATA_CATEGORY_INFO = {
     apiName: 'seer_scanner',
     plural: DataCategory.SEER_SCANNER,
     displayName: 'issue triage run',
-    titleName: t('Issue Triage Run'),
+    titleName: t('Issue Triage Runs'),
     productName: t('Seer'),
     uid: 28,
-    isBilledCategory: false, // TODO(Seer): change to True for launch
+    isBilledCategory: true,
     statsInfo: {
       ...DEFAULT_STATS_INFO,
       showInternalStats: false, // TODO(Seer): update this for launch

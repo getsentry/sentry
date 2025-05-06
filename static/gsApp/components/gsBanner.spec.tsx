@@ -2035,6 +2035,8 @@ describe('GSBanner Overage Alerts', function () {
         attachments: MetricHistoryFixture({usageExceeded: true}),
         monitorSeats: MetricHistoryFixture({usageExceeded: true}),
         uptime: MetricHistoryFixture({usageExceeded: true}),
+        seerAutofix: MetricHistoryFixture({usageExceeded: true}),
+        seerScanner: MetricHistoryFixture({usageExceeded: true}),
       },
       canSelfServe: true,
     });
@@ -2047,7 +2049,7 @@ describe('GSBanner Overage Alerts', function () {
 
     expect(
       await screen.findByTestId(
-        'overage-banner-error-transaction-attachment-span-monitorSeat-uptime'
+        'overage-banner-error-transaction-attachment-span-monitorSeat-uptime-seerAutofix-seerScanner'
       )
     ).toBeInTheDocument();
   });
@@ -2085,6 +2087,8 @@ describe('GSBanner Overage Alerts', function () {
         attachments: MetricHistoryFixture({sentUsageWarning: true}),
         monitorSeats: MetricHistoryFixture({sentUsageWarning: true}),
         uptime: MetricHistoryFixture({sentUsageWarning: true}),
+        seerAutofix: MetricHistoryFixture({sentUsageWarning: true}),
+        seerScanner: MetricHistoryFixture({sentUsageWarning: true}),
       },
       canSelfServe: true,
     });
@@ -2097,7 +2101,7 @@ describe('GSBanner Overage Alerts', function () {
 
     expect(
       await screen.findByTestId(
-        'overage-banner-error-transaction-attachment-span-monitorSeat-uptime'
+        'overage-banner-error-transaction-attachment-span-monitorSeat-uptime-seerAutofix-seerScanner'
       )
     ).toBeInTheDocument();
   });
