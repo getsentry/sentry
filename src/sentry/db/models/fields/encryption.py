@@ -1,39 +1,28 @@
-import tink
+import pickle
+
+from cryptography.fernet import MultiFernet
 from django.db import models
-from tink import aead, cleartext_keyset_handle, tink_config
 
 __all__ = ("EncryptedStringField",)
 
 
-def init_tink():
-    """Initialize Tink and register all AEAD key types."""
-    try:
-        tink_config.register()
-    except Exception:
-        pass
-
-
-def _get_keyset_handle():
-    """ """
-    init_tink()  # TODO: this needs to be done once per process
-    # keyset_path = settings.get("KEYSET_PATH", "/tmp/keyset.key")
-    keyset_path = "/tmp/keyset.key"
-    with open(keyset_path, "rb") as keyset_file:
-        keyset_data = keyset_file.read()
-        keyset_handle = cleartext_keyset_handle.read(tink.BinaryKeysetReader(keyset_data))
-    return keyset_handle
+def _get_fernet_object() -> MultiFernet:
+    keys_path = "/tmp/multi_fernet.bin"
+    with open(keys_path, "rb") as f:
+        unpickled_fernet = pickle.load(f)
+    # test if it works
+    # unpickled_fernet = MultiFernet([Fernet(Fernet.generate_key()) for _ in range(3)])
+    return unpickled_fernet
 
 
 def _encrypt_value(value: str) -> bytes:
-    keyset_handle = _get_keyset_handle()
-    aead_primitive = keyset_handle.primitive(aead.Aead)
-    return aead_primitive.encrypt(value.encode("utf-8"), b"")
+    fernet = _get_fernet_object()
+    return fernet.encrypt(value.encode("utf-8"))
 
 
 def _decrypt_value(value: bytes) -> str:
-    keyset_handle = _get_keyset_handle()
-    aead_primitive = keyset_handle.primitive(aead.Aead)
-    return aead_primitive.decrypt(value, b"").decode("utf-8")
+    fernet = _get_fernet_object()
+    return fernet.decrypt(value).decode("utf-8")
 
 
 class EncryptedStringField(models.BinaryField):
