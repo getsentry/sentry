@@ -5,7 +5,6 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
-import {t} from 'sentry/locale';
 import useApi from 'sentry/utils/useApi';
 
 import type {Subscription} from 'getsentry/types';
@@ -60,11 +59,11 @@ function RefundVercelRequestModal({
       <Body>
         <div>Send request to Vercel to initiate a refund for a given invoice.</div>
         <br />
-        <Form onSubmit={onSubmit} submitLabel={t('Send Request')} onCancel={closeModal}>
+        <Form onSubmit={onSubmit} submitLabel={'Send Request'} onCancel={closeModal}>
           <TextField
             label="Invoice GUID"
             name="invoice_guid"
-            placeholder={t('invoice guid')}
+            placeholder={'invoice guid'}
             onChange={(value: string) => {
               setGuid(value);
             }}
@@ -73,7 +72,7 @@ function RefundVercelRequestModal({
           <TextField
             label="Reason"
             name="reason"
-            placeholder={t('reason for refund')}
+            placeholder={'reason for refund'}
             onChange={(value: string) => {
               setReason(value);
             }}

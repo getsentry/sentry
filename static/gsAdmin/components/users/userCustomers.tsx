@@ -1,6 +1,5 @@
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
-import {t} from 'sentry/locale';
 
 import {AddToOrgModal, RemoveFromOrgModal} from 'admin/components/addOrRemoveOrgModal';
 import CustomerGrid from 'admin/components/customerGrid';
@@ -38,10 +37,10 @@ function UserCustomers({userId}: Props) {
               marginRight: 8,
             }}
           >
-            {t('Add to Org')}
+            Add to Org
           </Button>
           <Button priority="default" size="sm" onClick={openRemoveFromOrgModal}>
-            {t('Remove from Org')}
+            Remove from Org
           </Button>
         </div>
       }

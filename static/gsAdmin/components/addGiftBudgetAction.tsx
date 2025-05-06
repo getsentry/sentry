@@ -8,7 +8,6 @@ import InputField from 'sentry/components/forms/fields/inputField';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -101,7 +100,7 @@ function AddGiftBudgetModal({
         ) : (
           <div />
         )}
-        <Form onSubmit={onSubmit} submitLabel={t('Confirm')} onCancel={closeModal}>
+        <Form onSubmit={onSubmit} submitLabel={'Confirm'} onCancel={closeModal}>
           {reservedBudgetOptions.map(budget => (
             <BudgetCard
               key={budget.id}

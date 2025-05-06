@@ -8,7 +8,6 @@ import type {ResponseMeta} from 'sentry/api';
 import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -675,7 +674,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
                           )
                         }
                       >
-                        {tct('Allow Trial', {categoryName})}
+                        Allow Trial
                       </Button>
                       <Button
                         size="xs"
@@ -686,7 +685,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
                           )
                         }
                       >
-                        {tct('Start Trial', {categoryName})}
+                        Start Trial
                       </Button>
                       <Button
                         size="xs"
@@ -697,7 +696,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
                           )
                         }
                       >
-                        {tct('Stop Trial', {categoryName})}
+                        Stop Trial
                       </Button>
                     </TrialActions>
                   </DetailLabel>
