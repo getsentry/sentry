@@ -18,7 +18,7 @@ describe('QueryFilterBuilder', () => {
   let organization: Organization;
   beforeEach(() => {
     organization = OrganizationFixture({
-      features: ['dashboards-widget-builder-redesign'],
+      features: [],
     });
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
     jest.mocked(useSpanTags).mockReturnValue({tags: {}, isLoading: false});
