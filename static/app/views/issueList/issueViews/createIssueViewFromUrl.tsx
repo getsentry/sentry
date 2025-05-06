@@ -25,7 +25,7 @@ export function createIssueViewFromUrl({query}: {query: Query}): IssueViewParams
     timeFilters: {
       start: decodeScalar(normalizedTimeFilters.start) ?? null,
       end: decodeScalar(normalizedTimeFilters.end) ?? null,
-      period: decodeScalar(normalizedTimeFilters.period) ?? null,
+      period: decodeScalar(normalizedTimeFilters.statsPeriod) ?? null,
       utc: decodeBoolean(normalizedTimeFilters.utc) ?? null,
     },
   };

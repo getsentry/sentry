@@ -262,6 +262,7 @@ DETAILED_PROJECT = {
     "tempestFetchScreenshots": False,
     "tempestFetchDumps": False,
     "isDynamicallySampled": True,
+    "autofixAutomationTuning": "off",
     "highlightTags": [],
     "highlightContext": {},
     "highlightPreset": {"tags": [], "context": {}},

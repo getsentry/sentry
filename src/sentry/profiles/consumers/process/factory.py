@@ -1,4 +1,3 @@
-from base64 import b64encode
 from collections.abc import Iterable, Mapping
 
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -16,9 +15,7 @@ def process_message(message: Message[KafkaPayload]) -> None:
     sampled = is_sampled(message.payload.headers)
 
     if sampled or options.get("profiling.profile_metrics.unsampled_profiles.enabled"):
-        process_profile_task.delay(
-            payload=b64encode(message.payload.value).decode("utf-8"), sampled=sampled
-        )
+        process_profile_task.delay(payload=message.payload.value, sampled=sampled)
 
 
 class ProcessProfileStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
