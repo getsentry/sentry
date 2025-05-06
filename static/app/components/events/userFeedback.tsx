@@ -48,24 +48,7 @@ export function EventUserFeedback({
         author={{type: 'user', user}}
         header={
           <Items>
-            <ActivityAuthor>
-              <Link
-                to={{
-                  pathname: makeFeedbackPathname({
-                    path: '/',
-                    organization,
-                  }),
-                  query: {
-                    project: selection.projects.length ? selection.projects[0] : -1,
-                    query: `associated_event_id:${report.eventID}`,
-                    referrer: 'feedback_list_page',
-                    statsPeriod: selection.datetime.period,
-                  },
-                }}
-              >
-                {report.name}
-              </Link>
-            </ActivityAuthor>
+            <ActivityAuthor>{report.name}</ActivityAuthor>
             <CopyButton
               aria-label={label}
               borderless
@@ -79,12 +62,29 @@ export function EventUserFeedback({
               {report.email}
             </CopyButton>
 
+            <StyledLink
+              to={{
+                pathname: makeFeedbackPathname({
+                  path: '/',
+                  organization,
+                }),
+                query: {
+                  project: selection.projects.length ? selection.projects[0] : -1,
+                  query: `associated_event_id:${report.eventID}`,
+                  referrer: 'feedback_list_page',
+                  statsPeriod: selection.datetime.period,
+                },
+              }}
+            >
+              {'View full feedback'}
+            </StyledLink>
+
             {report.eventID && showEventLink && (
-              <ViewEventLink
+              <StyledLink
                 to={`/organizations/${orgSlug}/issues/${issueId}/events/${report.eventID}/?referrer=user-feedback`}
               >
                 {t('View event')}
-              </ViewEventLink>
+              </StyledLink>
             )}
           </Items>
         }
@@ -117,7 +117,7 @@ const CopyButton = styled(Button)`
 
 const StyledIconCopy = styled(IconCopy)``;
 
-const ViewEventLink = styled(Link)`
+const StyledLink = styled(Link)`
   font-weight: ${p => p.theme.fontWeightNormal};
   font-size: 0.9em;
 `;
