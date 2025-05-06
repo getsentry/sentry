@@ -131,6 +131,7 @@ type SpanStringFields =
   | 'span.status_code'
   | 'span.ai.pipeline.group'
   | 'project'
+  | 'http.request.method'
   | 'messaging.destination.name'
   | 'user'
   | 'user.display'

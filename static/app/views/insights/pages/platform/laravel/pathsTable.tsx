@@ -64,7 +64,7 @@ const EMPTY_ARRAY: never[] = [];
 const PER_PAGE = 10;
 
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
-  {key: 'request.method', name: t('Method'), width: 90},
+  {key: 'http.request.method', name: t('Method'), width: 90},
   {key: 'transaction', name: t('Path'), width: COL_WIDTH_UNDEFINED},
   {key: 'count()', name: t('Requests'), width: 112},
   {key: 'failure_rate()', name: t('Error Rate'), width: 124},
@@ -125,7 +125,7 @@ export function PathsTable({
     let columns = [...defaultColumnOrder];
 
     if (!showHttpMethodColumn) {
-      columns = columns.filter(column => column.key !== 'request.method');
+      columns = columns.filter(column => column.key !== 'http.request.method');
     }
 
     if (!showUsersColumn) {
@@ -141,7 +141,7 @@ export function PathsTable({
       search: `transaction.op:http.server is_transaction:True ${query}`,
       sorts: [{field: sortField, kind: sortOrder}],
       fields: [
-        'request.method',
+        'http.request.method',
         'project.id',
         'transaction',
         'avg(span.duration)',
@@ -197,7 +197,7 @@ export function PathsTable({
     );
 
     return transactionsRequest.data.map(transaction => ({
-      method: transaction['request.method'],
+      method: transaction['http.request.method'],
       transaction: transaction.transaction,
       requests: transaction['count()'],
       avg: transaction['avg(span.duration)'],
@@ -316,7 +316,7 @@ const BodyCell = memo(function BodyCell({
   const errorRateColor = getCellColor(dataRow.errorRate, errorRateColorThreshold);
 
   switch (column.key) {
-    case 'request.method':
+    case 'http.request.method':
       return dataRow.method;
     case 'transaction':
       return (
