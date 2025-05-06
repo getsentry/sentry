@@ -470,6 +470,7 @@ def fire_rules(
                 extra={
                     "group_to_groupevent": serialized_groups,
                     "project_id": project_id,
+                    "rule_id": rule.id,
                 },
             )
         for group, groupevent in group_to_groupevent.items():
@@ -534,6 +535,8 @@ def fire_rules(
                     extra={
                         "total": len(callback_and_futures),
                         "not_sent": not_sent,
+                        "project_id": project_id,
+                        "rule_id": rule.id,
                     },
                 )
 
