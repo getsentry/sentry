@@ -30,7 +30,7 @@ function useEventMarklineSeries({
     ? MarkLine({
         animation: false,
         lineStyle: {
-          color: theme.pink200,
+          color: theme.isChonk ? theme.tokens.graphics.promotion : theme.pink200,
           type: 'solid',
         },
         label: {
