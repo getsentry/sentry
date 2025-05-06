@@ -9,6 +9,7 @@ import sentry_sdk
 from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.eventstore.models import GroupEvent
+from sentry.incidents.grouptype import MetricIssueEvidenceData
 from sentry.incidents.models.incident import TriggerStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
@@ -16,8 +17,7 @@ from sentry.incidents.typings.metric_detector import (
     NotificationContext,
     OpenPeriodContext,
 )
-from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.models.group import GroupStatus
+from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource
@@ -307,12 +307,16 @@ class BaseMetricAlertHandler(ABC):
         return NotificationContext.from_action_model(action)
 
     @classmethod
-    def build_alert_context(cls, detector: Detector, occurrence: IssueOccurrence) -> AlertContext:
-        return AlertContext.from_workflow_engine_models(detector, occurrence)
+    def build_alert_context(
+        cls, detector: Detector, evidence_data: MetricIssueEvidenceData, group_status: GroupStatus
+    ) -> AlertContext:
+        return AlertContext.from_workflow_engine_models(detector, evidence_data, group_status)
 
     @classmethod
-    def build_metric_issue_context(cls, event: GroupEvent) -> MetricIssueContext:
-        return MetricIssueContext.from_group_event(event)
+    def build_metric_issue_context(
+        cls, group: Group, evidence_data: MetricIssueEvidenceData, priority_level: int | None
+    ) -> MetricIssueContext:
+        return MetricIssueContext.from_group_event(group, evidence_data, priority_level)
 
     @classmethod
     def build_open_period_context(cls, event: GroupEvent) -> OpenPeriodContext:
@@ -352,9 +356,14 @@ class BaseMetricAlertHandler(ABC):
             if not event.occurrence:
                 raise ValueError("Event occurrence is required for alert context")
 
+            evidence_data = MetricIssueEvidenceData(**event.occurrence.evidence_data)
+
             notification_context = cls.build_notification_context(action)
-            alert_context = cls.build_alert_context(detector, event.occurrence)
-            metric_issue_context = cls.build_metric_issue_context(event)
+            alert_context = cls.build_alert_context(detector, evidence_data, event.group.status)
+
+            metric_issue_context = cls.build_metric_issue_context(
+                event.group, evidence_data, event.occurrence.priority
+            )
             open_period_context = cls.build_open_period_context(event)
 
             trigger_status = cls.get_trigger_status(event)

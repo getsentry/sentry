@@ -10,7 +10,7 @@ from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.snuba.models import SnubaQuery
+from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import EventType
 from sentry.utils.registry import AlreadyRegisteredError
@@ -79,6 +79,19 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
             aggregate="count()",
             time_window=60,
             resolution=60,
+            **kwargs,
+        )
+
+    def create_snuba_query_subscription(
+        self, project_id: int | None = None, snuba_query_id: int | None = None, **kwargs
+    ):
+        if snuba_query_id is None:
+            snuba_query_id = self.create_snuba_query().id
+        if project_id is None:
+            project_id = self.project.id
+        return QuerySubscription.objects.create(
+            project_id=project_id,
+            snuba_query_id=snuba_query_id,
             **kwargs,
         )
 
