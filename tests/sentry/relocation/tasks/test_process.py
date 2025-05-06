@@ -5,7 +5,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import pytest
 from django.core.files.storage import Storage
@@ -136,7 +136,7 @@ class RelocationTaskTestCase(TestCase):
             file=self.file,
             kind=RelocationFile.Kind.RAW_USER_DATA.value,
         )
-        self.uuid = UUID(str(self.relocation.uuid))
+        self.uuid = str(self.relocation.uuid)
 
     @cached_property
     def file(self):
@@ -251,7 +251,7 @@ class UploadingStartTest(RelocationTaskTestCase):
                 latest_task=OrderedTask.UPLOADING_START.name,
                 provenance=Relocation.Provenance.SAAS_TO_SAAS,
             )
-            self.uuid = UUID(str(self.relocation.uuid))
+            self.uuid = str(self.relocation.uuid)
 
     @override_settings(
         SENTRY_MONOLITH_REGION=REQUESTING_TEST_REGION, SENTRY_REGION=REQUESTING_TEST_REGION
@@ -1638,7 +1638,7 @@ class ValidatingPollTest(RelocationTaskTestCase):
         assert relocation.failure_reason == ERR_VALIDATING_INTERNAL
 
 
-def mock_invalid_finding(storage: Storage, uuid: UUID):
+def mock_invalid_finding(storage: Storage, uuid: str):
     storage.save(
         f"runs/{uuid}/findings/import-baseline-config.json",
         BytesIO(

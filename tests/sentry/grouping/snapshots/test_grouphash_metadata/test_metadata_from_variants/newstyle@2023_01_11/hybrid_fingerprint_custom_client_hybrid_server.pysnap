@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:38.265612+00:00'
+created: '2025-04-25T21:24:35.418030+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -35,84 +35,84 @@ contributing variants:
       app*
         exception*
           stacktrace*
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "sentry.tasks.base"
               function*
                 "_wrapped"
               context-line*
                 "result = func(*args, **kwargs)"
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "sentry.tasks.store"
               function*
                 "process_event"
               context-line*
                 "return _do_process_event(cache_key, start_time, event_id, process_event)"
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "sentry.tasks.store"
               function*
                 "_do_process_event"
               context-line*
                 "new_data = process_stacktraces(data)"
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "sentry.stacktraces"
               function*
                 "process_stacktraces"
               context-line*
                 "if processor.preprocess_step(processing_task):"
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "sentry.lang.native.plugin"
               function*
                 "preprocess_step"
               context-line*
                 "referenced_images=referenced_images,"
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "sentry.lang.native.symbolizer"
               function*
                 "__init__"
               context-line*
                 "with_conversion_errors=True)"
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "sentry.models.debugfile"
               function*
                 "get_symcaches"
               context-line*
                 "symcaches = self._load_cachefiles_via_fs(project, cachefiles, SymCache)"
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "sentry.models.debugfile"
               function*
                 "_load_cachefiles_via_fs"
               context-line*
                 "model.cache_file.save_to(cachefile_path)"
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "sentry.models.file"
               function*
                 "save_to"
               context-line*
                 "delete=False).detach_tempfile()"
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "sentry.models.file"
               function*
                 "_get_chunked_blob"
               context-line*
                 "delete=delete"
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "sentry.models.file"
               function*
                 "__init__"
               context-line*
                 "self._prefetch(prefetch_to, delete)"
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "sentry.models.file"
               function*

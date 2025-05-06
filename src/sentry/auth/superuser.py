@@ -15,7 +15,7 @@ import ipaddress
 import logging
 from collections.abc import Container
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, TypeIs
 
 import orjson
 from django.conf import settings
@@ -34,6 +34,7 @@ from sentry.auth.system import is_system_auth
 from sentry.data_secrecy.data_secrecy_logic import should_allow_superuser_access
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcUserOrganizationContext
+from sentry.types.request import _HttpRequestWithUser
 from sentry.users.models.user import User
 from sentry.utils import metrics
 from sentry.utils.auth import has_completed_sso
@@ -139,7 +140,7 @@ def superuser_has_permission(
     return request.method == "GET" or request.method == "OPTIONS"
 
 
-def is_active_superuser(request: HttpRequest) -> bool:
+def is_active_superuser(request: HttpRequest) -> TypeIs[_HttpRequestWithUser]:
     if is_system_auth(getattr(request, "auth", None)):
         return True
     su = getattr(request, "superuser", None) or Superuser(request)

@@ -8,7 +8,6 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {encodeSort} from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
@@ -53,7 +52,6 @@ export function getExploreUrl({
   const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
   const {environments, projects} = selection ?? {};
   const queryParams = {
-    dataset: DiscoverDatasets.SPANS_EAP_RPC,
     project: projects,
     environment: environments,
     statsPeriod,
@@ -105,7 +103,7 @@ export function getExploreUrlFromSavedQueryUrl({
           start: savedQuery.start ?? null,
           utc: null,
         },
-        environments: savedQuery.environment,
+        environments: savedQuery.environment ?? [],
         projects: savedQuery.projects,
       },
     });
@@ -115,7 +113,9 @@ export function getExploreUrlFromSavedQueryUrl({
     ...savedQuery,
     ...savedQuery.query[0],
     groupBy:
-      savedQuery.query[0].groupby.length === 0 ? [''] : savedQuery.query[0].groupby,
+      (savedQuery.query[0].groupby?.length ?? 0) === 0
+        ? ['']
+        : savedQuery.query[0].groupby,
     query: savedQuery.query[0].query,
     title: savedQuery.name,
     mode: savedQuery.query[0].mode,
@@ -127,7 +127,7 @@ export function getExploreUrlFromSavedQueryUrl({
         start: savedQuery.start ?? null,
         utc: null,
       },
-      environments: savedQuery.environment,
+      environments: savedQuery.environment ?? [],
       projects: savedQuery.projects,
     },
   });
@@ -151,7 +151,6 @@ function getExploreMultiQueryUrl({
   const {start, end, period: statsPeriod, utc} = selection.datetime;
   const {environments, projects} = selection;
   const queryParams = {
-    dataset: DiscoverDatasets.SPANS_EAP_RPC,
     project: projects,
     environment: environments,
     statsPeriod,
@@ -238,14 +237,16 @@ export function viewSamplesTarget(
   });
 }
 
-export type MaxPickableDays = 7 | 14 | 30;
-export type DefaultPeriod = '7d' | '14d' | '30d';
+type MaxPickableDays = 7 | 14 | 30;
+type DefaultPeriod = '24h' | '7d' | '14d' | '30d';
 
-export function limitMaxPickableDays(organization: Organization): {
+export interface PickableDays {
   defaultPeriod: DefaultPeriod;
   maxPickableDays: MaxPickableDays;
   relativeOptions: Record<string, React.ReactNode>;
-} {
+}
+
+export function limitMaxPickableDays(organization: Organization): PickableDays {
   const defaultPeriods: Record<MaxPickableDays, DefaultPeriod> = {
     7: '7d',
     14: '14d',

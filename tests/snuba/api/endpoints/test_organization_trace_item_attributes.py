@@ -2,11 +2,21 @@ from unittest import mock
 from uuid import uuid4
 
 from django.urls import reverse
+from rest_framework.exceptions import ErrorDetail
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.types import SupportedTraceItemType
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase, OurLogTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
+
+
+# temporary helper to rewrite snake case to camel tests in the tests
+# eventually, we should just use camel case
+def snake_to_camel_query(query):
+    query["itemType"] = query.pop("item_type")
+    query["attributeType"] = query.pop("attribute_type")
+    if "substring_match" in query:
+        query["substringMatch"] = query.pop("substring_match")
 
 
 class OrganizationTraceItemAttributesEndpointTestBase(APITestCase, SnubaTestCase):
@@ -48,9 +58,12 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
     def test_invalid_item_type(self):
         response = self.do_request(query={"item_type": "invalid"})
         assert response.status_code == 400, response.content
-        assert "item_type" in response.data
-        assert response.data["item_type"][0].code == "invalid_choice"
-        assert '"invalid" is not a valid choice.' in str(response.data["item_type"][0])
+        # This error message doesn't quite make sense because we're trying
+        # to transition from snake case to camel case
+        assert response.data == {
+            "itemType": [ErrorDetail(string="This field is required.", code="required")],
+            "attributeType": [ErrorDetail(string="This field is required.", code="required")],
+        }
 
     def test_no_projects(self):
         response = self.do_request(query={"item_type": SupportedTraceItemType.LOGS.value})
@@ -166,6 +179,36 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         assert keys == {"severity", "message", "project", "sentry.item_type2"}
 
 
+class OrganizationTraceItemAttributesEndpointLogsCamelCaseTest(
+    OrganizationTraceItemAttributesEndpointLogsTest
+):
+    def do_request(self, query=None, features=None, **kwargs):
+        if query is None:
+            query = {}
+        if "item_type" not in query:
+            query["item_type"] = self.item_type.value
+        if "attribute_type" not in query:
+            query["attribute_type"] = "string"
+
+        snake_to_camel_query(query)
+
+        if features is None:
+            features = self.feature_flags
+
+        with self.feature(features):
+            url = reverse(self.viewname, kwargs={"organization_id_or_slug": self.organization.slug})
+            return self.client.get(url, query, format="json", **kwargs)
+
+    def test_invalid_item_type(self):
+        response = self.do_request(query={"item_type": "invalid"})
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "itemType": [
+                ErrorDetail(string='"invalid" is not a valid choice.', code="invalid_choice")
+            ],
+        }
+
+
 class OrganizationTraceItemAttributesEndpointSpansTest(
     OrganizationTraceItemAttributesEndpointTestBase, BaseSpansTestCase
 ):
@@ -179,9 +222,12 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
     def test_invalid_item_type(self):
         response = self.do_request(query={"item_type": "invalid"})
         assert response.status_code == 400, response.content
-        assert "item_type" in response.data
-        assert response.data["item_type"][0].code == "invalid_choice"
-        assert '"invalid" is not a valid choice.' in str(response.data["item_type"][0])
+        # This error message doesn't quite make sense because we're trying
+        # to transition from snake case to camel case
+        assert response.data == {
+            "itemType": [ErrorDetail(string="This field is required.", code="required")],
+            "attributeType": [ErrorDetail(string="This field is required.", code="required")],
+        }
 
     def test_no_projects(self):
         response = self.do_request(query={"item_type": SupportedTraceItemType.LOGS.value})
@@ -274,6 +320,36 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         ]
 
 
+class OrganizationTraceItemAttributesEndpointSpansCamelCaseTest(
+    OrganizationTraceItemAttributesEndpointSpansTest
+):
+    def do_request(self, query=None, features=None, **kwargs):
+        if query is None:
+            query = {}
+        if "item_type" not in query:
+            query["item_type"] = self.item_type.value
+        if "attribute_type" not in query:
+            query["attribute_type"] = "string"
+
+        snake_to_camel_query(query)
+
+        if features is None:
+            features = self.feature_flags
+
+        with self.feature(features):
+            url = reverse(self.viewname, kwargs={"organization_id_or_slug": self.organization.slug})
+            return self.client.get(url, query, format="json", **kwargs)
+
+    def test_invalid_item_type(self):
+        response = self.do_request(query={"item_type": "invalid"})
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "itemType": [
+                ErrorDetail(string='"invalid" is not a valid choice.', code="invalid_choice")
+            ],
+        }
+
+
 class OrganizationTraceItemAttributeValuesEndpointBaseTest(APITestCase, SnubaTestCase):
     feature_flags: dict[str, bool]
     item_type: SupportedTraceItemType
@@ -314,6 +390,21 @@ class OrganizationTraceItemAttributeValuesEndpointLogsTest(
         response = self.do_request(features={}, key="test.attribute")
         assert response.status_code == 404, response.content
 
+    def test_invalid_item_type(self):
+        response = self.do_request(query={"item_type": "invalid"})
+        assert response.status_code == 400, response.content
+        # This error message doesn't quite make sense because we're trying
+        # to transition from snake case to camel case
+        assert response.data == {
+            "itemType": [ErrorDetail(string="This field is required.", code="required")],
+            "attributeType": [ErrorDetail(string="This field is required.", code="required")],
+        }
+
+    def test_no_projects(self):
+        response = self.do_request()
+        assert response.status_code == 200, response.content
+        assert response.data == []
+
     def test_attribute_values(self):
         logs = [
             self.create_ourlog(
@@ -347,6 +438,40 @@ class OrganizationTraceItemAttributeValuesEndpointLogsTest(
         assert all(item["key"] == "test1" for item in response.data)
 
 
+class OrganizationTraceItemAttributeValuesEndpointLogsCamelCaseTest(
+    OrganizationTraceItemAttributeValuesEndpointLogsTest
+):
+    def do_request(self, query=None, features=None, key=None, **kwargs):
+        if query is None:
+            query = {}
+
+        if "item_type" not in query:
+            query["item_type"] = self.item_type.value
+        if "attribute_type" not in query:
+            query["attribute_type"] = "string"
+
+        snake_to_camel_query(query)
+
+        if features is None:
+            features = self.feature_flags
+
+        with self.feature(features):
+            url = reverse(
+                self.viewname,
+                kwargs={"organization_id_or_slug": self.organization.slug, "key": key},
+            )
+            return self.client.get(url, query, format="json", **kwargs)
+
+    def test_invalid_item_type(self):
+        response = self.do_request(query={"item_type": "invalid"})
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "itemType": [
+                ErrorDetail(string='"invalid" is not a valid choice.', code="invalid_choice")
+            ],
+        }
+
+
 class OrganizationTraceItemAttributeValuesEndpointSpansTest(
     OrganizationTraceItemAttributeValuesEndpointBaseTest, BaseSpansTestCase
 ):
@@ -360,12 +485,15 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
     def test_invalid_item_type(self):
         response = self.do_request(query={"item_type": "invalid"})
         assert response.status_code == 400, response.content
-        assert "item_type" in response.data
-        assert response.data["item_type"][0].code == "invalid_choice"
-        assert '"invalid" is not a valid choice.' in str(response.data["item_type"][0])
+        # This error message doesn't quite make sense because we're trying
+        # to transition from snake case to camel case
+        assert response.data == {
+            "itemType": [ErrorDetail(string="This field is required.", code="required")],
+            "attributeType": [ErrorDetail(string="This field is required.", code="required")],
+        }
 
     def test_no_projects(self):
-        response = self.do_request(query={"item_type": SupportedTraceItemType.LOGS.value})
+        response = self.do_request()
         assert response.status_code == 200, response.content
         assert response.data == []
 
@@ -992,3 +1120,37 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
 
         response = self.do_request(key="tag")
         assert response.status_code == 400, response.data
+
+
+class OrganizationTraceItemAttributeValuesEndpointSpansCamelCaseTest(
+    OrganizationTraceItemAttributeValuesEndpointSpansTest
+):
+    def do_request(self, query=None, features=None, key=None, **kwargs):
+        if query is None:
+            query = {}
+
+        if "item_type" not in query:
+            query["item_type"] = self.item_type.value
+        if "attribute_type" not in query:
+            query["attribute_type"] = "string"
+
+        snake_to_camel_query(query)
+
+        if features is None:
+            features = self.feature_flags
+
+        with self.feature(features):
+            url = reverse(
+                self.viewname,
+                kwargs={"organization_id_or_slug": self.organization.slug, "key": key},
+            )
+            return self.client.get(url, query, format="json", **kwargs)
+
+    def test_invalid_item_type(self):
+        response = self.do_request(query={"item_type": "invalid"})
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "itemType": [
+                ErrorDetail(string='"invalid" is not a valid choice.', code="invalid_choice")
+            ],
+        }

@@ -11,10 +11,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
-import {
-  getFieldRenderer,
-  type RenderFunctionBaggage,
-} from 'sentry/utils/discover/fieldRenderers';
+import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
@@ -73,6 +70,8 @@ interface AttributesFieldRender<RendererExtra extends RenderFunctionBaggage> {
 interface AttributesTreeProps<RendererExtra extends RenderFunctionBaggage>
   extends AttributesFieldRender<RendererExtra> {
   attributes: TraceItemResponseAttribute[];
+  // If provided, locks the number of columns to this number. If not provided, the number of columns will be dynamic based on width.
+  columnCount?: number;
   config?: AttributesTreeRowConfig;
   getAdjustedAttributeKey?: (attribute: TraceItemResponseAttribute) => string;
   getCustomActions?: (content: AttributesTreeContent) => MenuItemProps[];
@@ -183,6 +182,7 @@ function getAttributesTreeRows<RendererExtra extends RenderFunctionBaggage>({
         uniqueKey: `${uniqueKey}-${i}`,
         renderers,
         rendererExtra,
+        getCustomActions,
       });
       return rows.concat(branchRows);
     },
@@ -304,14 +304,15 @@ export function AttributesTree<RendererExtra extends RenderFunctionBaggage>(
   props: AttributesTreeProps<RendererExtra>
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const columnCount = useIssueDetailsColumnCount(containerRef);
+  const widthBasedColumnCount = useIssueDetailsColumnCount(containerRef);
+  const columnCount = props.columnCount ?? widthBasedColumnCount;
   return (
     <TreeContainer
       ref={containerRef}
       columnCount={columnCount}
       data-test-id="fields-tree"
     >
-      <AttributesTreeColumns columnCount={columnCount} {...props} />
+      <AttributesTreeColumns {...props} columnCount={columnCount} />
     </TreeContainer>
   );
 }
@@ -445,7 +446,6 @@ function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>({
   content,
   renderers = {},
   rendererExtra: renderExtra,
-  theme,
 }: {
   content: AttributesTreeContent;
   config?: AttributesTreeRowConfig;
@@ -458,12 +458,7 @@ function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>({
   // Check if we have a custom renderer for this attribute
   const attributeKey = originalAttribute.original_attribute_key;
   const renderer = renderers[attributeKey];
-  const basicRenderer = getFieldRenderer(attributeKey, {}, false);
 
-  const basicRendered = basicRenderer(
-    {[attributeKey]: content.value},
-    {...renderExtra, theme}
-  );
   const defaultValue = <span>{String(content.value)}</span>;
 
   if (config?.disableRichValue) {
@@ -473,7 +468,7 @@ function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>({
   if (renderer) {
     return renderer({
       item: getAttributeItem(attributeKey, content.value),
-      basicRendered,
+      basicRendered: defaultValue,
       extra: renderExtra,
     });
   }
@@ -486,7 +481,7 @@ function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>({
           openNavigateToExternalLinkModal({linkText: String(content.value)});
         }}
       >
-        {basicRendered}
+        {defaultValue}
       </ExternalLink>
     </AttributeLinkText>
   ) : (
@@ -532,7 +527,7 @@ const TreeContainer = styled('div')<{columnCount: number}>`
 
 const TreeColumn = styled('div')`
   display: grid;
-  grid-template-columns: minmax(auto, 175px) 1fr;
+  grid-template-columns: minmax(min-content, max-content) auto;
   grid-column-gap: ${space(3)};
   &:first-child {
     margin-left: -${space(1)};

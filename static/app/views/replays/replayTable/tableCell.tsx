@@ -26,7 +26,6 @@ import type {ValidSize} from 'sentry/styles/space';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getShortEventId} from 'sentry/utils/events';
@@ -34,6 +33,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
@@ -53,10 +53,12 @@ function generateAction({
   value,
   edit,
   location,
+  navigate,
 }: {
   edit: EditType;
   key: string;
   location: Location<ReplayListLocationQuery>;
+  navigate: ReturnType<typeof useNavigate>;
   value: string;
 }) {
   const search = new MutableSearch(decodeScalar(location.query.query) || '');
@@ -65,7 +67,7 @@ function generateAction({
     edit === 'set' ? search.setFilterValues(key, [value]) : search.removeFilter(key);
 
   const onAction = () => {
-    browserHistory.push({
+    navigate({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -87,6 +89,8 @@ function OSBrowserDropdownFilter({
   version: string | null;
 }) {
   const location = useLocation<ReplayListLocationQuery>();
+  const navigate = useNavigate();
+
   return (
     <DropdownMenu
       items={[
@@ -107,6 +111,7 @@ function OSBrowserDropdownFilter({
                       value: name ?? '',
                       edit: 'set',
                       location,
+                      navigate,
                     }),
                   },
                   {
@@ -117,6 +122,7 @@ function OSBrowserDropdownFilter({
                       value: name ?? '',
                       edit: 'remove',
                       location,
+                      navigate,
                     }),
                   },
                 ],
@@ -140,6 +146,7 @@ function OSBrowserDropdownFilter({
                       value: version ?? '',
                       edit: 'set',
                       location,
+                      navigate,
                     }),
                   },
                   {
@@ -150,6 +157,7 @@ function OSBrowserDropdownFilter({
                       value: version ?? '',
                       edit: 'remove',
                       location,
+                      navigate,
                     }),
                   },
                 ],
@@ -192,6 +200,8 @@ function NumericDropdownFilter({
   triggerOverlay?: boolean;
 }) {
   const location = useLocation<ReplayListLocationQuery>();
+  const navigate = useNavigate();
+
   return (
     <DropdownMenu
       items={[
@@ -203,6 +213,7 @@ function NumericDropdownFilter({
             value: formatter(val),
             edit: 'set',
             location,
+            navigate,
           }),
         },
         {
@@ -213,6 +224,7 @@ function NumericDropdownFilter({
             value: '>' + formatter(val),
             edit: 'set',
             location,
+            navigate,
           }),
         },
         {
@@ -223,6 +235,7 @@ function NumericDropdownFilter({
             value: '<' + formatter(val),
             edit: 'set',
             location,
+            navigate,
           }),
         },
         {
@@ -233,6 +246,7 @@ function NumericDropdownFilter({
             value: formatter(val),
             edit: 'remove',
             location,
+            navigate,
           }),
         },
       ]}

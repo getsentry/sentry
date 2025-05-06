@@ -320,6 +320,7 @@ class OrganizationExamples:
                 "githubPRBot": True,
                 "githubOpenPRBot": True,
                 "githubNudgeInvite": True,
+                "gitlabPRBot": True,
                 "aggregatedDataConsent": False,
                 "issueAlertsThreadFlag": True,
                 "metricAlertsThreadFlag": True,

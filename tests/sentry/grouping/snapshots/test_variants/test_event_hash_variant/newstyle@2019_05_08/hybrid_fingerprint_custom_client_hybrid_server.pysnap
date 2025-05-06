@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:46:51.998316+00:00'
+created: '2025-04-25T21:22:36.130473+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,7 +10,7 @@ app:
     app*
       exception*
         stacktrace*
-          frame*
+          frame* (marked in-app by the client)
             module*
               "sentry.tasks.base"
             filename (module takes precedence)
@@ -19,7 +19,7 @@ app:
               "_wrapped"
             context-line*
               "result = func(*args, **kwargs)"
-          frame*
+          frame* (marked in-app by the client)
             module*
               "sentry.tasks.store"
             filename (module takes precedence)
@@ -28,7 +28,7 @@ app:
               "process_event"
             context-line*
               "return _do_process_event(cache_key, start_time, event_id, process_event)"
-          frame*
+          frame* (marked in-app by the client)
             module*
               "sentry.tasks.store"
             filename (module takes precedence)
@@ -37,7 +37,7 @@ app:
               "_do_process_event"
             context-line*
               "new_data = process_stacktraces(data)"
-          frame*
+          frame* (marked in-app by the client)
             module*
               "sentry.stacktraces"
             filename (module takes precedence)
@@ -46,7 +46,7 @@ app:
               "process_stacktraces"
             context-line*
               "if processor.preprocess_step(processing_task):"
-          frame*
+          frame* (marked in-app by the client)
             module*
               "sentry.lang.native.plugin"
             filename (module takes precedence)
@@ -55,7 +55,7 @@ app:
               "preprocess_step"
             context-line*
               "referenced_images=referenced_images,"
-          frame*
+          frame* (marked in-app by the client)
             module*
               "sentry.lang.native.symbolizer"
             filename (module takes precedence)
@@ -64,7 +64,7 @@ app:
               "__init__"
             context-line*
               "with_conversion_errors=True)"
-          frame*
+          frame* (marked in-app by the client)
             module*
               "sentry.models.debugfile"
             filename (module takes precedence)
@@ -73,7 +73,7 @@ app:
               "get_symcaches"
             context-line*
               "symcaches = self._load_cachefiles_via_fs(project, cachefiles, SymCache)"
-          frame*
+          frame* (marked in-app by the client)
             module*
               "sentry.models.debugfile"
             filename (module takes precedence)
@@ -82,7 +82,7 @@ app:
               "_load_cachefiles_via_fs"
             context-line*
               "model.cache_file.save_to(cachefile_path)"
-          frame*
+          frame* (marked in-app by the client)
             module*
               "sentry.models.file"
             filename (module takes precedence)
@@ -91,7 +91,7 @@ app:
               "save_to"
             context-line*
               "delete=False).detach_tempfile()"
-          frame*
+          frame* (marked in-app by the client)
             module*
               "sentry.models.file"
             filename (module takes precedence)
@@ -100,7 +100,7 @@ app:
               "_get_chunked_blob"
             context-line*
               "delete=delete"
-          frame*
+          frame* (marked in-app by the client)
             module*
               "sentry.models.file"
             filename (module takes precedence)
@@ -109,7 +109,7 @@ app:
               "__init__"
             context-line*
               "self._prefetch(prefetch_to, delete)"
-          frame*
+          frame* (marked in-app by the client)
             module*
               "sentry.models.file"
             filename (module takes precedence)
@@ -118,7 +118,7 @@ app:
               "_prefetch"
             context-line*
               "exe.submit(fetch_file, idx.offset, idx.blob.getfile)"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "concurrent.futures._base"
             filename (module takes precedence)
@@ -127,7 +127,7 @@ app:
               "__exit__"
             context-line*
               "self.shutdown(wait=True)"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "concurrent.futures.thread"
             filename (module takes precedence)
@@ -136,7 +136,7 @@ app:
               "shutdown"
             context-line*
               "t.join(sys.maxint)"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "threading"
             filename (module takes precedence)
@@ -145,7 +145,7 @@ app:
               "join"
             context-line*
               "self.__block.wait(delay)"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "threading"
             filename (module takes precedence)
@@ -154,7 +154,7 @@ app:
               "wait"
             context-line*
               "_sleep(delay)"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "billiard.pool"
             filename (module takes precedence)

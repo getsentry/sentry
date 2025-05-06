@@ -31,6 +31,7 @@ class TestDetectorSerializer(TestCase):
             "dateUpdated": detector.date_updated,
             "dataSources": None,
             "conditionGroup": None,
+            "connectedWorkflows": [],
             "config": default_detector_config_data[MetricIssue.slug],
         }
 
@@ -79,6 +80,10 @@ class TestDetectorSerializer(TestCase):
             source_id=str(subscription.id),
         )
         data_source.detectors.set([detector])
+        workflow = self.create_workflow(
+            organization=self.organization,
+        )
+        self.create_detector_workflow(detector=detector, workflow=workflow)
 
         result = serialize(detector)
         assert result == {
@@ -131,6 +136,7 @@ class TestDetectorSerializer(TestCase):
                     }
                 ],
             },
+            "connectedWorkflows": [str(workflow.id)],
             "config": default_detector_config_data[MetricIssue.slug],
         }
 

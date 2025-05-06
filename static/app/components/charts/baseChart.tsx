@@ -702,7 +702,7 @@ function BaseChart({
 }
 
 // Tooltip styles shared for regular and portalled tooltips
-const getTooltipStyles = (p: {theme: Theme}) => css`
+export const getTooltipStyles = (p: {theme: Theme}) => css`
   /* Tooltip styling */
   .tooltip-series,
   .tooltip-footer {

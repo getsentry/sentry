@@ -208,7 +208,7 @@ class SnubaProtocolEventStream(EventStream):
             raise ValueError("expected groups to delete!")
 
         state = {
-            "transaction_id": uuid4().hex,
+            "transaction_id": str(uuid4().hex),
             "project_id": project_id,
             "group_ids": list(group_ids),
             "datetime": json.datetime_to_str(datetime.now(tz=timezone.utc)),

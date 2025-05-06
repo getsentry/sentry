@@ -22,7 +22,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import marked from 'sentry/utils/marked';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import testableTransition from 'sentry/utils/testableTransition';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -164,7 +164,13 @@ function AutofixSummary({
           organization,
           group_id: group.id,
         });
-        navigate(seerLink);
+        navigate({
+          ...seerLink,
+          query: {
+            ...seerLink.query,
+            scrollTo: 'root_cause',
+          },
+        });
       },
       copyTitle: t('Copy root cause as Markdown'),
       copyText: rootCauseCopyText,
@@ -183,7 +189,13 @@ function AutofixSummary({
                 organization,
                 group_id: group.id,
               });
-              navigate(seerLink);
+              navigate({
+                ...seerLink,
+                query: {
+                  ...seerLink.query,
+                  scrollTo: 'solution',
+                },
+              });
             },
             copyTitle: t('Copy solution as Markdown'),
             copyText: solutionCopyText,
@@ -204,7 +216,13 @@ function AutofixSummary({
                 organization,
                 group_id: group.id,
               });
-              navigate(seerLink);
+              navigate({
+                ...seerLink,
+                query: {
+                  ...seerLink.query,
+                  scrollTo: 'code_changes',
+                },
+              });
             },
           },
         ]
@@ -253,20 +271,18 @@ function AutofixSummary({
                       <React.Fragment>
                         {card.insightElement}
                         {card.insight && (
-                          <div
+                          <MarkedText
                             onClick={e => {
                               // Stop propagation if the click is directly on a link
                               if ((e.target as HTMLElement).tagName === 'A') {
                                 e.stopPropagation();
                               }
                             }}
-                            dangerouslySetInnerHTML={{
-                              __html: marked(
-                                card.isLoading
-                                  ? card.insight.replace(/\*\*/g, '')
-                                  : card.insight
-                              ),
-                            }}
+                            text={
+                              card.isLoading
+                                ? card.insight.replace(/\*\*/g, '')
+                                : card.insight
+                            }
                           />
                         )}
                       </React.Fragment>

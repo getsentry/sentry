@@ -120,6 +120,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         name_prefix: str = "test",
         workflow_triggers: DataConditionGroup | None = None,
         detector_type: str = MetricIssue.slug,
+        project: Project | None = None,
         **kwargs,
     ) -> tuple[Workflow, Detector, DetectorWorkflow, DataConditionGroup]:
         """
@@ -146,7 +147,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         detector = self.create_detector(
             name=f"{name_prefix}_detector",
             type=detector_type,
-            project=self.project,
+            project=project if project else self.project,
         )
 
         detector_workflow = self.create_detector_workflow(

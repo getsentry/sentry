@@ -21,9 +21,6 @@ import {
 
 export function useAddCompareQueryToDashboard(query: ReadableExploreQueryParts) {
   const organization = useOrganization();
-  const hasWidgetBuilderRedesign = organization.features.includes(
-    'dashboards-widget-builder-redesign'
-  );
   const {selection} = usePageFilters();
   const location = useLocation();
   const router = useRouter(); // required for handleAddQueryToDashboard
@@ -33,17 +30,11 @@ export function useAddCompareQueryToDashboard(query: ReadableExploreQueryParts) 
   const mode = getQueryMode(groupBys);
   const sortBys = query.sortBys;
   const qs = query.query;
-  const queryFields = query.fields;
 
   const getEventView = useCallback(() => {
     let fields: any;
     if (mode === Mode.SAMPLES) {
-      if (hasWidgetBuilderRedesign) {
-        // TODO: Handle the fields for the widget builder if we've selected the samples mode
-        fields = [];
-      } else {
-        fields = queryFields.filter(Boolean);
-      }
+      fields = [];
     } else {
       fields = [
         ...new Set([...groupBys, ...yAxes, ...sortBys.map(sort => sort.field)]),
@@ -65,16 +56,7 @@ export function useAddCompareQueryToDashboard(query: ReadableExploreQueryParts) 
     const newEventView = EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
     newEventView.dataset = DiscoverDatasets.SPANS_EAP_RPC;
     return newEventView;
-  }, [
-    groupBys,
-    hasWidgetBuilderRedesign,
-    mode,
-    qs,
-    queryFields,
-    selection,
-    sortBys,
-    yAxes,
-  ]);
+  }, [groupBys, mode, qs, selection, sortBys, yAxes]);
 
   const addToDashboard = useCallback(() => {
     const eventView = getEventView();

@@ -25,7 +25,7 @@ import {useDeleteGroupSearchView} from 'sentry/views/issueList/mutations/useDele
 import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
 import {makeFetchGroupSearchViewKey} from 'sentry/views/issueList/queries/useFetchGroupSearchView';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 type LeftNavViewsHeaderProps = {
   selectedProjectIds: number[];
@@ -36,7 +36,9 @@ function PageTitle({title}: {title: ReactNode}) {
   const organization = useOrganization();
   const {data: groupSearchView} = useSelectedGroupSearchView();
   const user = useUser();
-  const hasIssueViewSharing = organization.features.includes('issue-view-sharing');
+  const hasIssueViewSharing = organization.features.includes(
+    'enforce-stacked-navigation'
+  );
 
   if (
     hasIssueViewSharing &&
@@ -87,7 +89,7 @@ function IssueViewStarButton() {
     },
   });
 
-  if (!organization.features.includes('issue-view-sharing') || !groupSearchView) {
+  if (!organization.features.includes('enforce-stacked-navigation') || !groupSearchView) {
     return null;
   }
 
@@ -134,7 +136,7 @@ function IssueViewEditMenu() {
   const {mutate: deleteIssueView} = useDeleteGroupSearchView();
   const navigate = useNavigate();
 
-  if (!organization.features.includes('issue-view-sharing') || !groupSearchView) {
+  if (!organization.features.includes('enforce-stacked-navigation') || !groupSearchView) {
     return null;
   }
 
@@ -234,6 +236,7 @@ const StyledLayoutTitle = styled('div')`
 `;
 
 const Actions = styled('div')`
+  align-items: center;
   display: flex;
   gap: ${space(1)};
 `;

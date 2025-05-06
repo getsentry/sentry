@@ -29,6 +29,7 @@ import {ModuleName} from 'sentry/views/insights/types';
 import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {OverviewWrapper} from 'sentry/views/issueList/overviewWrapper';
+import {IssueTaxonomy} from 'sentry/views/issueList/taxonomies';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import OrganizationLayout from 'sentry/views/organizationLayout';
 import {OrganizationStatsWrapper} from 'sentry/views/organizationStats/organizationStatsWrapper';
@@ -526,6 +527,11 @@ function buildRoutes() {
         path="data-forwarding/"
         name={t('Data Forwarding')}
         component={make(() => import('sentry/views/settings/projectDataForwarding'))}
+      />
+      <Route
+        path="seer/"
+        name={t('Seer')}
+        component={make(() => import('sentry/views/settings/projectSeer/index'))}
       />
       <Route
         path="user-feedback/"
@@ -2207,16 +2213,16 @@ function buildRoutes() {
     <Route path="/issues/" withOrgPath>
       <IndexRoute component={errorHandler(OverviewWrapper)} />
       <Route
-        path="errors-outages/"
+        path={`${IssueTaxonomy.ERRORS_AND_OUTAGES}/`}
         component={make(() => import('sentry/views/issueList/pages/errorsOutages'))}
       />
       <Route
-        path="metrics/"
-        component={make(() => import('sentry/views/issueList/pages/metrics'))}
+        path={`${IssueTaxonomy.BREACHED_METRICS}/`}
+        component={make(() => import('sentry/views/issueList/pages/breachedMetrics'))}
       />
       <Route
-        path="best-practices/"
-        component={make(() => import('sentry/views/issueList/pages/bestPractices'))}
+        path={`${IssueTaxonomy.WARNINGS}/`}
+        component={make(() => import('sentry/views/issueList/pages/warnings'))}
       />
       <Route
         path="views/"

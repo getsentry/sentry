@@ -24,6 +24,7 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {
+  DataCategory,
   DataCategoryExact,
   type DataCategoryInfo,
   type PageFilters,
@@ -220,7 +221,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
     nextState: {
       clientDiscard?: boolean;
       cursor?: string;
-      dataCategory?: DataCategoryInfo['plural'];
+      dataCategory?: DataCategory;
       query?: string;
       sort?: string;
       transform?: ChartDataTransform;
@@ -261,38 +262,33 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
 
     const options = CHART_OPTIONS_DATACATEGORY.filter(opt => {
       if (isSelfHostedErrorsOnly) {
-        return opt.value === DATA_CATEGORY_INFO.error.plural;
+        return opt.value === DataCategory.ERRORS;
       }
-      if (DATA_CATEGORY_INFO.replay.plural === opt.value) {
+      if (opt.value === DataCategory.REPLAYS) {
         return organization.features.includes('session-replay');
       }
-      if (DATA_CATEGORY_INFO.span.plural === opt.value) {
+      if (opt.value === DataCategory.SPANS) {
         return organization.features.includes('span-stats');
       }
-      if (DATA_CATEGORY_INFO.transaction.plural === opt.value) {
+      if (opt.value === DataCategory.TRANSACTIONS) {
         return !organization.features.includes('spans-usage-tracking');
       }
-      if (
-        DATA_CATEGORY_INFO.logItem.plural === opt.value ||
-        DATA_CATEGORY_INFO.logByte.plural === opt.value
-      ) {
+      if ([DataCategory.LOG_BYTE, DataCategory.LOG_ITEM].includes(opt.value)) {
         return organization.features.includes('ourlogs-stats');
       }
       if (
-        DATA_CATEGORY_INFO.profileDuration.plural === opt.value ||
-        DATA_CATEGORY_INFO.profileDurationUI.plural === opt.value
+        [DataCategory.PROFILE_DURATION, DataCategory.PROFILE_DURATION_UI].includes(
+          opt.value
+        )
       ) {
         return hasProfiling || hasProfilingStats;
       }
-      if (DATA_CATEGORY_INFO.profile.plural === opt.value) {
+      if (opt.value === DataCategory.PROFILES) {
         return !hasProfilingStats;
       }
       return true;
     }).map(opt => {
-      if (
-        (hasProfiling || hasProfilingStats) &&
-        DATA_CATEGORY_INFO.profile.plural === opt.value
-      ) {
+      if ((hasProfiling || hasProfilingStats) && opt.value === DataCategory.PROFILES) {
         return {...opt, label: `${opt.label} (legacy)`};
       }
       return opt;
@@ -306,7 +302,9 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
             triggerProps={{prefix: t('Category')}}
             value={this.dataCategory}
             options={options}
-            onChange={opt => this.setStateOnUrl({dataCategory: String(opt.value)})}
+            onChange={opt =>
+              this.setStateOnUrl({dataCategory: opt.value as DataCategory})
+            }
           />
           <DatePageFilter />
         </PageFilterBar>

@@ -37,10 +37,10 @@ def get_suspect_flag_scores(
     baseline_count = query_error_counts(org_id, project_id, start, end, envs, group_id=None)
 
     keyed_scores = keyed_kl_score(
-        a=baseline,
-        b=outliers,
-        total_a=baseline_count,
-        total_b=outliers_count,
+        baseline,
+        outliers,
+        total_baseline=baseline_count,
+        total_outliers=outliers_count,
     )
 
     baseline_percent_dict: defaultdict[str, float] = defaultdict(int)

@@ -3,13 +3,11 @@ import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import {LinkButton} from 'sentry/components/core/button';
+import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import type {EventTransaction} from 'sentry/types/event';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
 
@@ -61,23 +59,23 @@ function SectionLink({
 }
 
 function ScrollToSectionLinks({
-  rootEvent,
+  rootEventResults,
   tree,
   logs,
 }: {
   logs: OurLogsResponseItem[];
-  rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
+  rootEventResults: TraceRootEventQueryResults;
   tree: TraceTree;
 }) {
   const location = useLocation();
   const {hasVitals, hasProfiles, hasLogs, hasTags} = useTraceContextSections({
     tree,
-    rootEvent,
+    rootEventResults,
     logs,
   });
 
   return hasVitals || hasTags || hasProfiles || hasLogs ? (
-    <Wrapper>
+    <StyledScrollCarousel gap={1} aria-label={t('Jump to:')}>
       <div aria-hidden>{t('Jump to:')}</div>
       {hasVitals && (
         <SectionLink
@@ -99,18 +97,14 @@ function ScrollToSectionLinks({
       <Feature features={['single-trace-summary']}>
         <SectionLink sectionKey={TraceContextSectionKeys.SUMMARY} location={location} />
       </Feature>
-    </Wrapper>
+    </StyledScrollCarousel>
   ) : null;
 }
 
-const Wrapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  flex-direction: row;
+const StyledScrollCarousel = styled(ScrollCarousel)`
   align-items: center;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
-  white-space: nowrap;
 `;
 
 const StyledLinkButton = styled(LinkButton)`

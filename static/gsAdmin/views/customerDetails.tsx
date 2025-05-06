@@ -37,10 +37,8 @@ import CustomerPlatforms from 'admin/components/customers/customerPlatforms';
 import CustomerPolicies from 'admin/components/customers/customerPolicies';
 import CustomerProjects from 'admin/components/customers/customerProjects';
 import {CustomerStats} from 'admin/components/customers/customerStats';
-import {
-  CustomerStatsFilters,
-  DataType,
-} from 'admin/components/customers/customerStatsFilters';
+import type {DataType} from 'admin/components/customers/customerStatsFilters';
+import {CustomerStatsFilters} from 'admin/components/customers/customerStatsFilters';
 import OrganizationStatus from 'admin/components/customers/organizationStatus';
 import PendingChanges from 'admin/components/customers/pendingChanges';
 import deleteBillingMetricHistory from 'admin/components/deleteBillingMetricHistory';
@@ -103,11 +101,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
   }
 
   get activeDataType(): DataType {
-    if (Object.values(DataType).includes(this.props.location.query.dataType)) {
-      return this.props.location.query.dataType as DataType;
-    }
-
-    return DataType.ERRORS;
+    return (this.props.location.query.dataType as DataType) ?? 'error';
   }
 
   get userPermissions() {

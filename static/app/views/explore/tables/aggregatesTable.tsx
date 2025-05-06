@@ -40,6 +40,7 @@ import {
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
+import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
 import {TOP_EVENTS_LIMIT, useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {viewSamplesTarget} from 'sentry/views/explore/utils';
 
@@ -83,6 +84,11 @@ export function AggregatesTable({
   const numberOfRowsNeedingColor = Math.min(result.data?.length ?? 0, TOP_EVENTS_LIMIT);
 
   const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 2); // -2 because getColorPalette artificially adds 1, I'm not sure why
+
+  const paginationAnalyticsEvent = usePaginationAnalytics(
+    'aggregates',
+    result.data?.length ?? 0
+  );
 
   return (
     <Fragment>
@@ -207,7 +213,10 @@ export function AggregatesTable({
           )}
         </TableBody>
       </Table>
-      <Pagination pageLinks={result.pageLinks} />
+      <Pagination
+        pageLinks={result.pageLinks}
+        paginationAnalyticsEvent={paginationAnalyticsEvent}
+      />
     </Fragment>
   );
 }

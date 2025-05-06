@@ -11,7 +11,7 @@ import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {singleLineRenderer} from 'sentry/utils/marked';
+import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props

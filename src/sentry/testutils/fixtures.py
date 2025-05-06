@@ -771,8 +771,6 @@ class Fixtures:
             project = self.project
         if env is None:
             env = self.environment
-        if uptime_status_update_date is None:
-            uptime_status_update_date = timezone.now()
 
         if uptime_subscription is None:
             uptime_subscription = self.create_uptime_subscription(
@@ -787,8 +785,6 @@ class Fixtures:
             mode,
             name,
             Actor.from_object(owner) if owner else None,
-            uptime_status,
-            uptime_status_update_date,
             id,
         )
         # TODO(epurkhiser): Dual create a detector as well, can be removed

@@ -1,13 +1,8 @@
-import {Fragment} from 'react';
-
 import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useGetSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {PREBUILT_QUERIES} from 'sentry/views/explore/savedQueries/prebuiltQueries';
-import {getExploreUrl} from 'sentry/views/explore/utils';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {ExploreSavedQueryNavItems} from 'sentry/views/nav/secondary/sections/explore/exploreSavedQueryNavItems';
@@ -27,13 +22,6 @@ export function ExploreSecondaryNav() {
     perPage: MAX_STARRED_QUERIES_DISPLAYED,
   });
 
-  const hasDefaultExploreQueries = organization.features.includes(
-    'performance-default-explore-queries'
-  );
-
-  const locationIsPrebuiltQuery =
-    location.query.id === undefined && defined(location.query.title);
-
   return (
     <SecondaryNav>
       <SecondaryNav.Header>
@@ -45,10 +33,7 @@ export function ExploreSecondaryNav() {
             <SecondaryNav.Item
               to={`${baseUrl}/traces/`}
               analyticsItemName="explore_traces"
-              isActive={
-                !locationIsPrebuiltQuery &&
-                isLinkActive(`${baseUrl}/traces/`, location.pathname)
-              }
+              isActive={isLinkActive(`${baseUrl}/traces/`, location.pathname)}
             >
               {t('Traces')}
             </SecondaryNav.Item>
@@ -91,31 +76,6 @@ export function ExploreSecondaryNav() {
           </SecondaryNav.Item>
         </SecondaryNav.Section>
         <Feature features={['performance-trace-explorer', 'performance-view']}>
-          {hasDefaultExploreQueries && (
-            <Fragment>
-              <SecondaryNav.Section>
-                {PREBUILT_QUERIES.map((query, index) => (
-                  <SecondaryNav.Item
-                    to={getExploreUrl({
-                      ...query.query[0], // We only have single query in prebuilt queries for the moment
-                      groupBy: query.query[0].groupby,
-                      sort: query.query[0].orderby,
-                      field: query.query[0].fields,
-                      title: query.name,
-                      organization,
-                    })}
-                    isActive={
-                      location.query.id === undefined && // Check id so we know it's not a user saved query
-                      location.query.title === query.name
-                    }
-                    key={index}
-                  >
-                    {query.name}
-                  </SecondaryNav.Item>
-                ))}
-              </SecondaryNav.Section>
-            </Fragment>
-          )}
           <SecondaryNav.Section title={t('Starred Queries')}>
             {starredQueries && starredQueries.length > 0 && (
               <ExploreSavedQueryNavItems queries={starredQueries} />

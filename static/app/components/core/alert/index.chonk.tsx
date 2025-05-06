@@ -125,6 +125,7 @@ function generateAlertBackground(
 export const TrailingItems = chonkStyled('div')<ChonkAlertProps>`
   display: grid;
   grid-auto-flow: column;
+  grid-auto-columns: max-content;
   grid-template-rows: 100%;
   gap: ${p => p.theme.space.md};
   font-size: ${p => p.theme.fontSizeMedium};

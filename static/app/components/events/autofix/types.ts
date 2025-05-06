@@ -248,6 +248,6 @@ export interface SeerRepoDefinition {
   provider_raw?: string;
 }
 
-export interface ProjectPreferences {
+export interface ProjectSeerPreferences {
   repositories: SeerRepoDefinition[];
 }

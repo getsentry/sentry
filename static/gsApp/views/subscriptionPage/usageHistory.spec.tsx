@@ -665,9 +665,7 @@ describe('Subscription > UsageHistory', () => {
         name: /spans/i,
       })
     ).toBeInTheDocument();
-    expect(screen.getByText('N/A')).toBeInTheDocument();
-    expect(screen.queryByText(/accepted spans/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/stored spans/i)).not.toBeInTheDocument();
+    expect(screen.getAllByText('N/A')).toHaveLength(2);
     expect(mockCall).toHaveBeenCalled();
   });
 
@@ -712,7 +710,7 @@ describe('Subscription > UsageHistory', () => {
         name: /stored spans/i,
       })
     ).toBeInTheDocument();
-    expect(screen.getAllByText('N/A')).toHaveLength(2);
+    expect(screen.getAllByText('N/A')).toHaveLength(4);
     expect(mockCall).toHaveBeenCalled();
   });
 

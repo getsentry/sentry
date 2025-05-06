@@ -658,6 +658,91 @@ class GitLabBlameForFilesTest(GitLabClientTest):
 
 
 @control_silo_test
+class GitLabGetMergeCommitShaFromCommitTest(GitLabClientTest):
+    @responses.activate
+    def test_merge_commit_sha(self):
+        merge_commit_sha = "123"
+        commit_sha = "123"
+        responses.add(
+            responses.GET,
+            url=f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/commits/{commit_sha}/merge_requests",
+            json=[
+                {
+                    "state": "merged",
+                    "merge_commit_sha": merge_commit_sha,
+                    "squash_commit_sha": None,
+                }
+            ],
+            status=200,
+        )
+
+        sha = self.gitlab_client.get_merge_commit_sha_from_commit(repo=self.repo, sha=commit_sha)
+        assert sha == merge_commit_sha
+
+    @responses.activate
+    def test_squash_commit_sha(self):
+        squash_commit_sha = "123"
+        commit_sha = "123"
+        responses.add(
+            responses.GET,
+            url=f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/commits/{commit_sha}/merge_requests",
+            json=[
+                {
+                    "state": "merged",
+                    "merge_commit_sha": None,
+                    "squash_commit_sha": squash_commit_sha,
+                }
+            ],
+            status=200,
+        )
+
+        sha = self.gitlab_client.get_merge_commit_sha_from_commit(repo=self.repo, sha=commit_sha)
+        assert sha == squash_commit_sha
+
+    @responses.activate
+    def test_no_merge_requests(self):
+        commit_sha = "123"
+        responses.add(
+            responses.GET,
+            url=f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/commits/{commit_sha}/merge_requests",
+            json=[],
+            status=200,
+        )
+
+        sha = self.gitlab_client.get_merge_commit_sha_from_commit(repo=self.repo, sha=commit_sha)
+        assert sha is None
+
+    @responses.activate
+    def test_open_merge_request(self):
+        commit_sha = "123"
+        responses.add(
+            responses.GET,
+            url=f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/commits/{commit_sha}/merge_requests",
+            json=[{"state": "opened"}],
+            status=200,
+        )
+
+        sha = self.gitlab_client.get_merge_commit_sha_from_commit(repo=self.repo, sha=commit_sha)
+        assert sha is None
+
+    @responses.activate
+    def test_multiple_merged_requests(self):
+        commit_sha = "123"
+        responses.add(
+            responses.GET,
+            url=f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/commits/{commit_sha}/merge_requests",
+            json=[
+                {"state": "merged"},
+                {"state": "merged"},
+            ],
+            status=200,
+        )
+
+        sha = self.gitlab_client.get_merge_commit_sha_from_commit(repo=self.repo, sha=commit_sha)
+        assert sha is None
+
+
+@control_silo_test
 class GitLabUnhappyPathTest(GitLabClientTest):
     @pytest.mark.skip("Feature is temporarily disabled")
     @responses.activate

@@ -42,6 +42,7 @@ import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceD
 import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import {useTraceState} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
@@ -338,6 +339,8 @@ function EAPSpanNodeDetails({
 
   const avgSpanDuration = useAvgSpanDuration(node.value, location);
 
+  const traceState = useTraceState();
+
   if (isPending) {
     return <LoadingIndicator />;
   }
@@ -347,6 +350,11 @@ function EAPSpanNodeDetails({
   }
 
   const attributes = data?.attributes;
+  const columnCount =
+    traceState.preferences.layout === 'drawer left' ||
+    traceState.preferences.layout === 'drawer right'
+      ? 1
+      : undefined;
 
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -381,6 +389,7 @@ function EAPSpanNodeDetails({
               disableCollapsePersistence
             >
               <AttributesTree
+                columnCount={columnCount}
                 attributes={attributes}
                 rendererExtra={{
                   theme,

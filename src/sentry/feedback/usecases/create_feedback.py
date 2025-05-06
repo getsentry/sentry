@@ -132,7 +132,9 @@ def fix_for_issue_platform(event_data: dict[str, Any]) -> dict[str, Any]:
     ret_event["platform"] = event_data.get("platform", "other")
     ret_event["level"] = event_data.get("level", "info")
 
-    ret_event["environment"] = event_data.get("environment", "production")
+    environment = event_data.get("environment")
+    ret_event["environment"] = environment or "production"
+
     release_value = event_data.get("release")
     if release_value:
         ret_event["release"] = release_value

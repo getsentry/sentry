@@ -33,8 +33,8 @@ export default function useFetchFeedbackData({feedbackId}: Props) {
   );
 
   const tags = useMemo(
-    () => hydrateFeedbackTags(eventData, issueData),
-    [eventData, issueData]
+    () => hydrateFeedbackTags(eventData, issueData, organization),
+    [eventData, issueData, organization]
   );
 
   const {markAsRead} = useMutateFeedback({

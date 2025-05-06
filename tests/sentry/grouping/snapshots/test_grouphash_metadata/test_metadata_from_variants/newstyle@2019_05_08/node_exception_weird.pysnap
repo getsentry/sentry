@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:16.167354+00:00'
+created: '2025-04-25T21:24:20.779206+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -30,38 +30,38 @@ contributing variants:
       app*
         exception*
           stacktrace*
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "hub"
               function* (trimmed javascript function)
                 "withScope"
               context-line*
                 "*/"
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "onunhandledrejection.ts"
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "hub.ts"
               function* (trimmed javascript function)
                 "captureException"
               context-line*
                 "if (maxBreadcrumbs <= 0) {"
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "hub"
               function* (trimmed javascript function)
                 "invokeClient"
               context-line*
                 "* @returns Scope, the new cloned scope"
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "baseclient.ts"
               function* (trimmed javascript function)
                 "captureException"
               context-line*
                 "promisedEvent"
-            frame*
+            frame* (marked in-app by the client)
               module*
                 "backend.ts"
               function* (trimmed javascript function)

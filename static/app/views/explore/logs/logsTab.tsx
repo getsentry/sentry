@@ -43,14 +43,10 @@ import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
 import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePersistentLogsPageParameters';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import type {DefaultPeriod, MaxPickableDays} from 'sentry/views/explore/utils';
+import type {PickableDays} from 'sentry/views/explore/utils';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
-type LogsTabProps = {
-  defaultPeriod: DefaultPeriod;
-  maxPickableDays: MaxPickableDays;
-  relativeOptions: Record<string, React.ReactNode>;
-};
+type LogsTabProps = PickableDays;
 
 export function LogsTabContent({
   defaultPeriod,

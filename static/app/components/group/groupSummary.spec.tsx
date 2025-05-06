@@ -54,7 +54,7 @@ describe('GroupSummary', function () {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
-      url: `/issues/${mockGroup.id}/autofix/setup/`,
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       method: 'GET',
       body: AutofixSetupFixture({
         setupAcknowledgement: {

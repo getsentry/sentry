@@ -19,6 +19,7 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {space} from 'sentry/styles/space';
 import type {
   EChartClickHandler,
   EChartDataZoomHandler,
@@ -639,11 +640,24 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   );
 }
 
-function LoadingPanel() {
+function LoadingPanel({
+  loadingMessage,
+  expectMessage,
+}: {
+  // If we expect that a message will be provided, we can render a non-visible element that will
+  // be replaced with the message to prevent layout shift.
+  expectMessage?: boolean;
+  loadingMessage?: string;
+}) {
   return (
     <LoadingPlaceholder>
       <LoadingMask visible />
       <LoadingIndicator mini />
+      {(expectMessage || loadingMessage) && (
+        <LoadingMessage visible={Boolean(loadingMessage)}>
+          {loadingMessage}
+        </LoadingMessage>
+      )}
     </LoadingPlaceholder>
   );
 }
@@ -694,8 +708,15 @@ const LoadingPlaceholder = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
+  flex-direction: column;
+  gap: ${space(1)};
 
   padding: ${Y_GUTTER} ${X_GUTTER};
+`;
+
+const LoadingMessage = styled('div')<{visible: boolean}>`
+  opacity: ${p => (p.visible ? 1 : 0)};
+  height: ${p => p.theme.fontSizeSmall};
 `;
 
 const LoadingMask = styled(TransparentLoadingMask)`

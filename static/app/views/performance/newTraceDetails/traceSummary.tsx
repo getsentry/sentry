@@ -10,7 +10,7 @@ import {IconStats} from 'sentry/icons/iconStats';
 import {IconTelescope} from 'sentry/icons/iconTelescope';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import marked from 'sentry/utils/marked';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
@@ -131,11 +131,7 @@ function TraceSummaryContent({traceSlug}: {traceSlug: string}) {
         </StyledIcon>
         <SectionTitle>Overview</SectionTitle>
       </SectionTitleWrapper>
-      <SectionContent
-        dangerouslySetInnerHTML={{
-          __html: marked(traceContent.data?.summary ?? ''),
-        }}
-      />
+      <SectionContent text={traceContent.data?.summary ?? ''} />
 
       <SectionTitleWrapper>
         <StyledIcon>
@@ -143,11 +139,7 @@ function TraceSummaryContent({traceSlug}: {traceSlug: string}) {
         </StyledIcon>
         <SectionTitle>Key Observations</SectionTitle>
       </SectionTitleWrapper>
-      <SectionContent
-        dangerouslySetInnerHTML={{
-          __html: marked(traceContent.data?.keyObservations ?? ''),
-        }}
-      />
+      <SectionContent text={traceContent.data?.keyObservations ?? ''} />
 
       <SectionTitleWrapper>
         <StyledIcon>
@@ -155,11 +147,7 @@ function TraceSummaryContent({traceSlug}: {traceSlug: string}) {
         </StyledIcon>
         <SectionTitle>Performance Characteristics</SectionTitle>
       </SectionTitleWrapper>
-      <SectionContent
-        dangerouslySetInnerHTML={{
-          __html: marked(traceContent.data?.performanceCharacteristics ?? ''),
-        }}
-      />
+      <SectionContent text={traceContent.data?.performanceCharacteristics ?? ''} />
 
       <SectionTitleWrapper>
         <StyledIcon>
@@ -167,11 +155,7 @@ function TraceSummaryContent({traceSlug}: {traceSlug: string}) {
         </StyledIcon>
         <SectionTitle>Suggested Investigations</SectionTitle>
       </SectionTitleWrapper>
-      <SectionContent
-        dangerouslySetInnerHTML={{
-          __html: marked(traceContent.data?.suggestedInvestigations ?? ''),
-        }}
-      />
+      <SectionContent text={traceContent.data?.suggestedInvestigations ?? ''} />
 
       {openFeedbackForm && (
         <FeedbackButtonContainer>
@@ -223,7 +207,7 @@ const SectionTitle = styled('h6')`
   margin: 0;
 `;
 
-const SectionContent = styled('div')`
+const SectionContent = styled(MarkedText)`
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeMedium};
   line-height: 1.4;

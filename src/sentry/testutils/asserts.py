@@ -153,3 +153,15 @@ def assert_many_halt_metrics(mock_record, messages_or_errors):
             assert isinstance(halt.args[1], type(error_msg))
         else:
             assert halt.args[1] == error_msg
+
+
+# Given messages_or_errors need to align 1:1 to the calls :bufo-big-eyes:
+def assert_many_failure_metrics(mock_record, messages_or_errors):
+    failures = (
+        call for call in mock_record.mock_calls if call.args[0] == EventLifecycleOutcome.FAILURE
+    )
+    for failure, error_msg in zip(failures, messages_or_errors):
+        if isinstance(error_msg, Exception):
+            assert isinstance(failure.args[1], type(error_msg))
+        else:
+            assert failure.args[1] == error_msg

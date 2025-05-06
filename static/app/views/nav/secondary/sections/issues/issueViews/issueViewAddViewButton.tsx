@@ -63,7 +63,7 @@ export function IssueViewAddViewButton() {
     }
   };
 
-  if (organization.features.includes('issue-view-sharing')) {
+  if (organization.features.includes('enforce-stacked-navigation')) {
     return null;
   }
 

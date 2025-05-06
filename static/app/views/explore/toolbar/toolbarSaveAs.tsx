@@ -67,6 +67,8 @@ export function ToolbarSaveAs() {
       ? projects[0]
       : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
+  const {data: savedQuery, isLoading: isLoadingSavedQuery} = useGetSavedQuery(id);
+
   const alertsUrls = visualizeYAxes.map((yAxis, index) => {
     const func = parseFunction(yAxis);
     const label = func ? prettifyParsedFunction(func) : yAxis;
@@ -94,7 +96,8 @@ export function ToolbarSaveAs() {
 
   const items: MenuItemProps[] = [];
 
-  if (defined(id)) {
+  // Explicitly check for false to account for loading state
+  if (defined(id) && savedQuery?.isPrebuilt === false) {
     items.push({
       key: 'update-query',
       textValue: t('Existing Query'),
@@ -203,10 +206,8 @@ export function ToolbarSaveAs() {
     });
   }
 
-  const {data: savedQuery, isLoading: isLoadingSavedQuery} = useGetSavedQuery(id);
-
   const shouldHighlightSaveButton = useMemo(() => {
-    if (isLoadingSavedQuery || savedQuery === undefined) {
+    if (isLoadingSavedQuery || savedQuery === undefined || savedQuery?.isPrebuilt) {
       return false;
     }
     // The non comparison trace explorer view only supports a single query
@@ -216,7 +217,10 @@ export function ToolbarSaveAs() {
     // Compares editable fields from saved query with location params to check for changes
     const hasChangesArray = [
       !valueIsEqual(query, singleQuery?.query),
-      !valueIsEqual(groupBys, singleQuery?.groupby),
+      !valueIsEqual(
+        groupBys,
+        (singleQuery?.groupby?.length ?? 0) === 0 ? [''] : singleQuery?.groupby
+      ),
       !valueIsEqual(locationSortByString, singleQuery?.orderby),
       !valueIsEqual(fields, singleQuery?.fields),
       !valueIsEqual(

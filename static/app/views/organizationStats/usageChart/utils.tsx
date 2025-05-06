@@ -1,7 +1,7 @@
 import moment from 'moment-timezone';
 
 import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
-import type {DataCategoryInfo, IntervalPeriod} from 'sentry/types/core';
+import type {DataCategory, IntervalPeriod} from 'sentry/types/core';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {formatUsageWithUnits} from 'sentry/views/organizationStats/utils';
@@ -81,7 +81,7 @@ export function getXAxisDates(
   return range;
 }
 
-export function getTooltipFormatter(dataCategory: DataCategoryInfo['plural']) {
+export function getTooltipFormatter(dataCategory: DataCategory) {
   return (val = 0) => formatUsageWithUnits(val, dataCategory, {useUnitScaling: true});
 }
 

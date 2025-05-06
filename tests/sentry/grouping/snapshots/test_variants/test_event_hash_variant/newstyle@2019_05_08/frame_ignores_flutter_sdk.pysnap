@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:46:49.523847+00:00'
+created: '2025-04-25T21:22:30.080042+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -9,7 +9,7 @@ app:
   component:
     app*
       stacktrace*
-        frame*
+        frame* (marked in-app by the client)
           module*
             "opt/hostedtoolcache/flutter/2.5.0-stable/x64/packages/flutter/lib/src/gestures/binding"
           filename (ignored because frame points to a URL)

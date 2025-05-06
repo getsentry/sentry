@@ -71,7 +71,9 @@ export function IssueViewNavItemContent({
   const organization = useOrganization();
   const {projects} = useProjects();
 
-  const hasIssueViewSharing = organization.features.includes('issue-view-sharing');
+  const hasIssueViewSharing = organization.features.includes(
+    'enforce-stacked-navigation'
+  );
 
   const controls = useDragControls();
 
@@ -261,6 +263,7 @@ const StyledSecondaryNavItem = styled(SecondaryNav.Item, {
 })<{hasIssueViewSharing: boolean}>`
   position: relative;
   padding-right: ${space(0.5)};
+  gap: 0;
 
   /* Hide the ellipsis menu if the item is not hovered */
   :not(:hover) {

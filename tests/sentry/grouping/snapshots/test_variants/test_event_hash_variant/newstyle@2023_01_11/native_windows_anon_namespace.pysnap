@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:17.554825+00:00'
+created: '2025-04-25T21:22:12.392747+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,27 +10,27 @@ app:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace (ignored because it contains no in-app frames)
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "exe_common.inl"
             function*
               "__scrt_common_main_seh"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "exe_common.inl"
             function*
               "invoke_main"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "main.cpp"
             function*
               "main"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "main.cpp"
             function*
               "`anonymous namespace'::start"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "main.cpp"
             function*

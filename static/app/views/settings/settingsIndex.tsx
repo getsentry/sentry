@@ -53,13 +53,12 @@ function SettingsIndex(props: SettingsIndexProps) {
 
   const supportLinkProps = {
     isSelfHosted,
-    organizationSettingsUrl,
   };
 
   // For the new navigation, we are removing this page. The default base route should
   // be the organization settings page.
   // When GAing, this page should be removed and the redirect should be moved to routes.tsx.
-  if (organization && prefersStackedNav()) {
+  if (organization && prefersStackedNav(organization)) {
     return (
       <Redirect
         to={normalizeUrl(
@@ -74,7 +73,7 @@ function SettingsIndex(props: SettingsIndexProps) {
       <HomePanelHeader>
         <HomeLinkIcon to="/settings/account/">
           <UserAvatar user={user} size={HOME_ICON_SIZE} />
-          {t('My Account')}
+          <HomeLinkLabel>{t('My Account')}</HomeLinkLabel>
         </HomeLinkIcon>
       </HomePanelHeader>
 
@@ -102,35 +101,44 @@ function SettingsIndex(props: SettingsIndexProps) {
   const orgSettings = (
     <GridPanel>
       <HomePanelHeader>
-        <HomeLinkIcon to={organizationSettingsUrl}>
-          {organization ? (
+        {organization ? (
+          <HomeLinkIcon to={organizationSettingsUrl}>
             <OrganizationAvatar organization={organization} size={HOME_ICON_SIZE} />
-          ) : (
+            <HomeLinkLabel>{organization.slug}</HomeLinkLabel>
+          </HomeLinkIcon>
+        ) : (
+          <HomeLinkIcon to="/organizations/new/">
             <HomeIconContainer color="green300">
               <IconStack size="lg" />
             </HomeIconContainer>
-          )}
-          <OrganizationName>
-            {organization ? organization.slug : t('No Organization')}
-          </OrganizationName>
-        </HomeLinkIcon>
+            <HomeLinkLabel>{t('Create an Organization')}</HomeLinkLabel>
+          </HomeLinkIcon>
+        )}
       </HomePanelHeader>
 
       <HomePanelBody>
         <h3>{t('Quick links')}:</h3>
-        <ul>
+        {organization ? (
+          <ul>
+            <li>
+              <HomeLink to={`${organizationSettingsUrl}projects/`}>
+                {t('Projects')}
+              </HomeLink>
+            </li>
+            <li>
+              <HomeLink to={`${organizationSettingsUrl}teams/`}>{t('Teams')}</HomeLink>
+            </li>
+            <li>
+              <HomeLink to={`${organizationSettingsUrl}members/`}>
+                {t('Members')}
+              </HomeLink>
+            </li>
+          </ul>
+        ) : (
           <li>
-            <HomeLink to={`${organizationSettingsUrl}projects/`}>
-              {t('Projects')}
-            </HomeLink>
+            <HomeLink to="/organizations/new/">{t('Create an organization')}</HomeLink>
           </li>
-          <li>
-            <HomeLink to={`${organizationSettingsUrl}teams/`}>{t('Teams')}</HomeLink>
-          </li>
-          <li>
-            <HomeLink to={`${organizationSettingsUrl}members/`}>{t('Members')}</HomeLink>
-          </li>
-        </ul>
+        )}
       </HomePanelBody>
     </GridPanel>
   );
@@ -142,7 +150,7 @@ function SettingsIndex(props: SettingsIndexProps) {
           <HomeIconContainer color="pink300">
             <IconDocs size="lg" />
           </HomeIconContainer>
-          {t('Documentation')}
+          <HomeLinkLabel>{t('Documentation')}</HomeLinkLabel>
         </ExternalHomeLinkIcon>
       </HomePanelHeader>
 
@@ -176,7 +184,7 @@ function SettingsIndex(props: SettingsIndexProps) {
           <HomeIconContainer color="activeText">
             <IconSupport size="lg" />
           </HomeIconContainer>
-          {t('Support')}
+          <HomeLinkLabel>{t('Support')}</HomeLinkLabel>
         </SupportLink>
       </HomePanelHeader>
 
@@ -210,26 +218,30 @@ function SettingsIndex(props: SettingsIndexProps) {
           <HomeIconContainer>
             <IconLock size="lg" locked />
           </HomeIconContainer>
-          {t('API Keys')}
+          <HomeLinkLabel>{t('API Keys')}</HomeLinkLabel>
         </HomeLinkIcon>
       </HomePanelHeader>
 
       <HomePanelBody>
         <h3>{t('Quick links')}:</h3>
         <ul>
-          <li>
-            <HomeLink to={`${organizationSettingsUrl}auth-tokens/`}>
-              {t('Organization Auth Tokens')}
-            </HomeLink>
-          </li>
+          {organizationSettingsUrl && (
+            <li>
+              <HomeLink to={`${organizationSettingsUrl}auth-tokens/`}>
+                {t('Organization Auth Tokens')}
+              </HomeLink>
+            </li>
+          )}
           <li>
             <HomeLink to={LINKS.API}>{t('User Auth Tokens')}</HomeLink>
           </li>
-          <li>
-            <HomeLink to={`${organizationSettingsUrl}developer-settings/`}>
-              {t('Custom Integrations')}
-            </HomeLink>
-          </li>
+          {organizationSettingsUrl && (
+            <li>
+              <HomeLink to={`${organizationSettingsUrl}developer-settings/`}>
+                {t('Custom Integrations')}
+              </HomeLink>
+            </li>
+          )}
           <li>
             <ExternalHomeLink href={LINKS.DOCUMENTATION_API}>
               {t('Documentation')}
@@ -274,7 +286,7 @@ const HomePanelHeader = styled(PanelHeader)`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   align-items: center;
   text-transform: unset;
-  padding: ${space(4)};
+  padding: ${space(4)} ${space(4)} 0;
 `;
 
 const HomePanelBody = styled(PanelBody)`
@@ -342,27 +354,20 @@ const ExternalHomeLinkIcon = styled(ExternalLink)`
 
 interface SupportLinkProps extends Omit<LinkProps, 'ref' | 'to'> {
   isSelfHosted: boolean;
-  organizationSettingsUrl: string;
   icon?: boolean;
 }
 
-function SupportLink({
-  isSelfHosted,
-  icon,
-  organizationSettingsUrl,
-  ...props
-}: SupportLinkProps) {
+function SupportLink({isSelfHosted, icon, ...props}: SupportLinkProps) {
   if (isSelfHosted) {
     const SelfHostedLink = icon ? ExternalHomeLinkIcon : ExternalHomeLink;
     return <SelfHostedLink href={LINKS.FORUM} {...props} />;
   }
 
   const SelfHostedLink = icon ? HomeLinkIcon : HomeLink;
-  return <SelfHostedLink to={`${organizationSettingsUrl}support`} {...props} />;
+  return <SelfHostedLink to="https://sentry.zendesk.com/hc/en-us" {...props} />;
 }
 
-const OrganizationName = styled('div')`
-  line-height: 1.1em;
-
+const HomeLinkLabel = styled('div')`
+  padding-bottom: ${space(4)};
   ${p => p.theme.overflowEllipsis};
 `;

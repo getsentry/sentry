@@ -27,10 +27,9 @@ import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DatasetSource} from 'sentry/utils/discover/types';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
+import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
 import type {Position} from './layoutUtils';
@@ -47,12 +46,11 @@ import {
   getDefaultWidgetHeight,
   getMobileLayout,
   getNextAvailablePosition,
-  METRIC_WIDGET_MIN_SIZE,
   pickDefinedStoreKeys,
 } from './layoutUtils';
 import SortableWidget from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
-import {DashboardWidgetSource, WidgetType} from './types';
+import {WidgetType} from './types';
 import {connectDashboardCharts, getDashboardFiltersFromURL} from './utils';
 import type WidgetLegendSelectionState from './widgetLegendSelectionState';
 
@@ -97,11 +95,7 @@ type Props = {
   handleChangeSplitDataset?: (widget: Widget, index: number) => void;
   isPreview?: boolean;
   newWidget?: Widget;
-  onAddWidget?: (dataset?: DataSet) => void;
-  onAddWidgetFromNewWidgetBuilder?: (
-    dataset: DataSet,
-    openWidgetTemplates?: boolean
-  ) => void;
+  onAddWidget?: (dataset: DataSet, openWidgetTemplates?: boolean) => void;
   onEditWidget?: (widget: Widget) => void;
   onSetNewWidget?: () => void;
   paramDashboardId?: string;
@@ -229,54 +223,6 @@ class Dashboard extends Component<Props, State> {
     loadOrganizationTags(api, organization.slug, selection);
   }
 
-  handleStartAdd = (dataset?: DataSet) => {
-    const {
-      organization,
-      router,
-      location,
-      paramDashboardId,
-      handleAddMetricWidget,
-      onAddWidget,
-    } = this.props;
-
-    if (dataset === DataSet.METRICS) {
-      handleAddMetricWidget?.({...this.addWidgetLayout, ...METRIC_WIDGET_MIN_SIZE});
-      return;
-    }
-
-    if (!organization.features.includes('dashboards-widget-builder-redesign')) {
-      if (paramDashboardId) {
-        router.push(
-          normalizeUrl({
-            pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/new/`,
-            query: {
-              ...location.query,
-              source: DashboardWidgetSource.DASHBOARDS,
-              dataset,
-            },
-          })
-        );
-        return;
-      }
-
-      router.push(
-        normalizeUrl({
-          pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
-          query: {
-            ...location.query,
-            source: DashboardWidgetSource.DASHBOARDS,
-            dataset,
-          },
-        })
-      );
-
-      return;
-    }
-
-    onAddWidget?.();
-    return;
-  };
-
   handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
     const {isEditingDashboard, onUpdate, handleUpdateWidgetList} = this.props;
 
@@ -379,7 +325,7 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleEditWidget = (index: number) => () => {
-    const {organization, router, location, paramDashboardId, onEditWidget} = this.props;
+    const {organization, onEditWidget} = this.props;
     const widget = this.props.dashboard.widgets[index]!;
 
     trackAnalytics('dashboards_views.widget.edit', {
@@ -391,34 +337,7 @@ class Dashboard extends Component<Props, State> {
       return;
     }
 
-    if (organization.features.includes('dashboards-widget-builder-redesign')) {
-      onEditWidget?.(widget);
-      return;
-    }
-
-    if (paramDashboardId) {
-      router.push(
-        normalizeUrl({
-          pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/${index}/edit/`,
-          query: {
-            ...location.query,
-            source: DashboardWidgetSource.DASHBOARDS,
-          },
-        })
-      );
-      return;
-    }
-
-    router.push(
-      normalizeUrl({
-        pathname: `/organizations/${organization.slug}/dashboards/new/widget/${index}/edit/`,
-        query: {
-          ...location.query,
-          source: DashboardWidgetSource.DASHBOARDS,
-        },
-      })
-    );
-
+    onEditWidget?.(widget);
     return;
   };
 
@@ -568,13 +487,8 @@ class Dashboard extends Component<Props, State> {
 
   render() {
     const {layouts, isMobile} = this.state;
-    const {
-      isEditingDashboard,
-      dashboard,
-      widgetLimitReached,
-      isPreview,
-      onAddWidgetFromNewWidgetBuilder,
-    } = this.props;
+    const {isEditingDashboard, dashboard, widgetLimitReached, isPreview, onAddWidget} =
+      this.props;
     const {widgets} = dashboard;
 
     const columnDepths = calculateColumnDepths(layouts[DESKTOP]!);
@@ -615,10 +529,7 @@ class Dashboard extends Component<Props, State> {
             key={ADD_WIDGET_BUTTON_DRAG_ID}
             data-grid={this.addWidgetLayout}
           >
-            <AddWidget
-              onAddWidget={this.handleStartAdd}
-              onAddWidgetFromNewWidgetBuilder={onAddWidgetFromNewWidgetBuilder}
-            />
+            <AddWidget onAddWidget={onAddWidget} />
           </AddWidgetWrapper>
         )}
       </GridLayout>

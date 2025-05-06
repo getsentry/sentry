@@ -57,6 +57,11 @@ function CustomerHistory({orgId, ...props}: Props) {
           ? DataCategory.SPANS_INDEXED in row.planDetails.planCategories
           : false;
 
+        const displayOptions = {
+          capitalize: false,
+          hadCustomDynamicSampling: shouldUseDynamicSamplingNames,
+        };
+
         if (row.hasReservedBudgets) {
           reservedBudgets.forEach(budget => {
             const categoryNames: string[] = [];
@@ -66,7 +71,7 @@ function CustomerHistory({orgId, ...props}: Props) {
                 getPlanCategoryName({
                   plan: row.planDetails,
                   category: category as DataCategory,
-                  hadCustomDynamicSampling: shouldUseDynamicSamplingNames,
+                  ...displayOptions,
                 })
               );
             });
@@ -106,7 +111,7 @@ function CustomerHistory({orgId, ...props}: Props) {
                       {getPlanCategoryName({
                         plan: row.planDetails,
                         category,
-                        hadCustomDynamicSampling: shouldUseDynamicSamplingNames,
+                        ...displayOptions,
                       })}
                     </DisplayName>
                   </div>
@@ -135,7 +140,7 @@ function CustomerHistory({orgId, ...props}: Props) {
                       {getPlanCategoryName({
                         plan: row.planDetails,
                         category,
-                        hadCustomDynamicSampling: shouldUseDynamicSamplingNames,
+                        ...displayOptions,
                       })}
                     </DisplayName>
                   </div>
@@ -162,7 +167,7 @@ function CustomerHistory({orgId, ...props}: Props) {
                     {getPlanCategoryName({
                       plan: row.planDetails,
                       category,
-                      hadCustomDynamicSampling: shouldUseDynamicSamplingNames,
+                      ...displayOptions,
                     })}
                   </DisplayName>
                   {reservedBudgetMetricHistories[category] && (
@@ -192,7 +197,6 @@ const UsageColumn = styled('div')`
 `;
 
 const DisplayName = styled('span')`
-  text-transform: lowercase;
   margin-left: ${space(0.5)};
 `;
 

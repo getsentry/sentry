@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Button} from 'sentry/components/core/button';
-import ReplayClipPreviewPlayer from 'sentry/components/events/eventReplay/replayClipPreviewPlayer';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
@@ -23,6 +22,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import GroupReplaysPlayer from 'sentry/views/issueDetails/groupReplays/groupReplaysPlayer';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import ReplayTable from 'sentry/views/replays/replayTable';
@@ -141,12 +141,12 @@ function GroupReplaysTableInner({
   overlayContent?: React.ReactNode;
 }) {
   const orgSlug = organization.slug;
-  const replayReaderData = useLoadReplayReader({
+  const readerResult = useLoadReplayReader({
     orgSlug,
     replaySlug,
     group,
   });
-  const {fetching, replay} = replayReaderData;
+  const {fetching, replay} = readerResult;
 
   return (
     <ReplayContextProvider
@@ -155,11 +155,9 @@ function GroupReplaysTableInner({
       replay={replay}
       autoStart
     >
-      <ReplayClipPreviewPlayer
-        replayReaderResult={replayReaderData}
+      <GroupReplaysPlayer
+        replayReaderResult={readerResult}
         overlayContent={overlayContent}
-        orgSlug={orgSlug}
-        showNextAndPrevious
         handleForwardClick={
           replays && selectedReplayIndex + 1 < replays.length
             ? () => {
@@ -174,8 +172,7 @@ function GroupReplaysTableInner({
               }
             : undefined
         }
-        analyticsContext={'replay_tab'}
-        isLarge
+        analyticsContext="replay_tab"
       />
       {children}
     </ReplayContextProvider>

@@ -156,7 +156,8 @@ describe('ExploreToolbar', function () {
   });
 
   it('allows changing visualizes', async function () {
-    let fields, visualizes: any;
+    let fields!: string[];
+    let visualizes: any;
     function Component() {
       fields = useExploreFields();
       visualizes = useExploreVisualizes();
@@ -236,7 +237,8 @@ describe('ExploreToolbar', function () {
   });
 
   it('allows changing visualizes equations', async function () {
-    let fields, visualizes: any;
+    let fields!: string[];
+    let visualizes: any;
     function Component() {
       fields = useExploreFields();
       visualizes = useExploreVisualizes();
@@ -348,7 +350,7 @@ describe('ExploreToolbar', function () {
       </PageParamsProvider>
     );
 
-    let options;
+    let options: HTMLElement[];
     const section = screen.getByTestId('section-group-by');
 
     expect(groupBys).toEqual(['']);
@@ -605,14 +607,15 @@ describe('ExploreToolbar', function () {
     const section = screen.getByTestId('section-save-as');
 
     await userEvent.click(within(section).getByText(/Save as/));
-    await userEvent.hover(within(section).getByText('An Alert for'));
-    await userEvent.click(screen.getByText('count(spans)'));
+    await userEvent.hover(
+      within(section).getByRole('menuitemradio', {name: 'An Alert for'})
+    );
+    await userEvent.click(
+      await within(section).findByRole('menuitemradio', {name: 'count(spans)'})
+    );
     expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/alerts/new/metric/',
-      query: expect.objectContaining({
-        aggregate: 'count(span.duration)',
-        dataset: 'events_analytics_platform',
-      }),
+      pathname:
+        '/organizations/org-slug/alerts/new/metric/?aggregate=count%28span.duration%29&dataset=events_analytics_platform&eventTypes=transaction&interval=1h&project=proj-slug&query=&statsPeriod=7d',
     });
   });
 
@@ -658,41 +661,13 @@ describe('ExploreToolbar', function () {
                 aggregates: ['count(span.duration)'],
                 columns: [],
                 conditions: '',
-                fields: ['count(span.duration)'],
+                fields: [],
                 name: '',
-                orderby: '-timestamp',
+                orderby: '',
               },
             ],
             title: 'Custom Widget',
             widgetType: 'spans',
-          }),
-          widgetAsQueryParams: expect.objectContaining({
-            dataset: 'spans',
-            defaultTableColumns: [
-              'id',
-              'span.op',
-              'span.description',
-              'span.duration',
-              'transaction',
-              'timestamp',
-            ],
-            defaultTitle: 'Custom Widget',
-            defaultWidgetQuery:
-              'name=&aggregates=count(span.duration)&columns=&fields=count(span.duration)&conditions=&orderby=-timestamp',
-            displayType: 'bar',
-            end: undefined,
-            field: [
-              'id',
-              'span.op',
-              'span.description',
-              'span.duration',
-              'transaction',
-              'timestamp',
-            ],
-            limit: undefined,
-            source: 'traceExplorer',
-            start: undefined,
-            statsPeriod: '14d',
           }),
         })
       );

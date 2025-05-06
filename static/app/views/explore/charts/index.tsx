@@ -29,7 +29,10 @@ import type {
   Visualize,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
-import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {
+  SAMPLING_MODE,
+  type SamplingMode,
+} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {CHART_HEIGHT, INGESTION_DELAY} from 'sentry/views/explore/settings';
 import {
@@ -200,12 +203,27 @@ export function ExploreCharts({
           );
 
           if (chartInfo.loading) {
+            const loadingMessage =
+              organization.features.includes(
+                'visibility-explore-progressive-loading-normal-sampling-mode'
+              ) &&
+              timeseriesResult.isFetching &&
+              samplingMode === SAMPLING_MODE.HIGH_ACCURACY
+                ? t(
+                    "Hey, we're scanning all the data we can to answer your query, so please wait a bit longer"
+                  )
+                : undefined;
             return (
               <Widget
                 key={index}
                 height={CHART_HEIGHT}
                 Title={Title}
-                Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
+                Visualization={
+                  <TimeSeriesWidgetVisualization.LoadingPlaceholder
+                    loadingMessage={loadingMessage}
+                    expectMessage
+                  />
+                }
                 revealActions="always"
                 Footer={
                   organization.features.includes(

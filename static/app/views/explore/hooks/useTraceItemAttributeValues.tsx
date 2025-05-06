@@ -49,12 +49,12 @@ function traceItemAttributeValuesQueryKey({
   type?: 'string' | 'number';
 }): ApiQueryKey {
   const query: Record<string, string | string[] | number[]> = {
-    item_type: traceItemType,
-    attribute_type: type,
+    itemType: traceItemType,
+    attributeType: type,
   };
 
   if (search) {
-    query.query = search;
+    query.substringMatch = search;
   }
 
   if (projectIds?.length) {
