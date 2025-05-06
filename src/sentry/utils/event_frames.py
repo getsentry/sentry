@@ -43,37 +43,23 @@ class SdkFrameMunger:
 
 
 def java_frame_munger(frame: EventFrame) -> str | None:
-    if not frame.filename or not frame.module:
-        return None
-
-    if "$" in frame.module:
-        path = frame.module.split("$")[0].replace(".", "/")
-        if frame.abs_path and frame.abs_path.count(".") == 1:
-            # Append extension
-            path = path + "." + frame.abs_path.split(".")[-1]
-        return path
-
-    if "/" not in str(frame.filename) and frame.module:
-        # Replace the last module segment with the filename, as the
-        # terminal element in a module path is the class
-        module = frame.module.split(".")
-        module[-1] = frame.filename
-        return "/".join(module)
-    return None
-
-
-def java_new_logic_frame_munger(frame: EventFrame) -> str | None:
+    stacktrace_path = None
     if not frame.module or not frame.abs_path:
         return None
 
-    from sentry.issues.auto_source_code_config.code_mapping import get_path_from_module
+    from sentry.issues.auto_source_code_config.code_mapping import (
+        DoesNotFollowJavaPackageNamingConvention,
+        get_path_from_module,
+    )
 
     try:
         _, stacktrace_path = get_path_from_module(frame.module, frame.abs_path)
+    except DoesNotFollowJavaPackageNamingConvention:
+        pass
     except Exception:
         # Report but continue
         logger.exception("Investigate. Error munging java frame")
-        return None
+
     return stacktrace_path
 
 
@@ -84,6 +70,11 @@ def cocoa_frame_munger(frame: EventFrame) -> str | None:
     rel_path = package_relative_path(frame.abs_path, frame.package)
     if rel_path:
         return rel_path
+
+    logger.warning(
+        "sentry.issues.frame_munging.failure",
+        extra={"platform": "cocoa", "frame": frame},
+    )
     return None
 
 
@@ -127,7 +118,6 @@ def package_relative_path(abs_path: str | None, package: str | None) -> str | No
 
 PLATFORM_FRAME_MUNGER: dict[str, SdkFrameMunger] = {
     "java": SdkFrameMunger(java_frame_munger),
-    "java-new-logic": SdkFrameMunger(java_new_logic_frame_munger),
     "cocoa": SdkFrameMunger(cocoa_frame_munger),
     "other": SdkFrameMunger(flutter_frame_munger, True, {"sentry.dart.flutter"}),
 }
