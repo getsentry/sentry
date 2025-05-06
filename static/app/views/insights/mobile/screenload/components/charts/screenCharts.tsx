@@ -32,6 +32,7 @@ import {
   OUTPUT_TYPE,
   YAXIS_COLUMNS,
 } from 'sentry/views/insights/mobile/screenload/constants';
+import type {TableData} from 'sentry/views/insights/mobile/screenload/utils';
 import {transformDeviceClassEvents} from 'sentry/views/insights/mobile/screenload/utils';
 
 export enum YAxis {
@@ -186,7 +187,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
     yAxes,
     primaryRelease,
     secondaryRelease,
-    data: deviceClassEvents,
+    data: deviceClassEvents as TableData | undefined,
     theme,
   });
 

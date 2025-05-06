@@ -4,9 +4,18 @@ import Color from 'color';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import type {TableData} from 'sentry/utils/discover/discoverQuery';
+import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {YAxis} from 'sentry/views/insights/mobile/screenload/constants';
 import {YAXIS_COLUMNS} from 'sentry/views/insights/mobile/screenload/constants';
+import type {MetricsResponse} from 'sentry/views/insights/types';
+
+type TableDataRow = Record<string, string | number> &
+  Pick<MetricsResponse, 'device.class'>;
+
+export type TableData = {
+  data: TableDataRow[];
+  meta?: MetaType;
+};
 
 export function isCrossPlatform(project: Project) {
   return project.platform && ['react-native', 'flutter'].includes(project.platform);
@@ -115,7 +124,7 @@ export function transformDeviceClassEvents({
 
   if (defined(data)) {
     data.data?.forEach(row => {
-      const deviceClass = row['device.class']!;
+      const deviceClass = row['device.class'];
       const index = deviceClassIndex[deviceClass];
 
       const release = row.release;
