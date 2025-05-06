@@ -1,16 +1,12 @@
-import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
-import EventView from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {
   PRIMARY_RELEASE_COLOR,
@@ -19,10 +15,9 @@ import {
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import MiniChartPanel from 'sentry/views/insights/common/components/miniChartPanel';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import {useTopNSpanMetricsSeries} from 'sentry/views/insights/common/queries/useTopNDiscoverSeries';
 import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils/centerTruncate';
-import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
-import {useEventsStatsQuery} from 'sentry/views/insights/common/utils/useEventsStatsQuery';
 import {COLD_START_TYPE} from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {SpanMetricsField} from 'sentry/views/insights/types';
@@ -68,7 +63,6 @@ interface Props {
 }
 
 function StartDurationWidget({additionalFilters, chartHeight}: Props) {
-  const pageFilter = usePageFilters();
   const location = useLocation();
   const {
     primaryRelease,
@@ -92,39 +86,30 @@ function StartDurationWidget({additionalFilters, chartHeight}: Props) {
   const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
 
   const {
-    data: series,
+    data,
     isPending: isSeriesLoading,
     error: seriesError,
-  } = useEventsStatsQuery({
-    eventView: EventView.fromNewQueryWithPageFilters(
-      {
-        name: '',
-        topEvents: '2',
-        fields: ['release', 'avg(span.duration)'],
-        yAxis: ['avg(span.duration)'],
-        query: queryString,
-        dataset: DiscoverDatasets.SPANS_METRICS,
-        version: 2,
-        interval: getInterval(
-          pageFilter.selection.datetime,
-          STARFISH_CHART_INTERVAL_FIDELITY
-        ),
-      },
-      pageFilter.selection
-    ),
-    enabled: !isReleasesLoading,
-    referrer: 'api.starfish.mobile-startup-series',
-    initialData: {},
-  });
+  } = useTopNSpanMetricsSeries(
+    {
+      yAxis: ['avg(span.duration)'],
+      fields: ['release', 'avg(span.duration)'],
+      topN: 2,
+      search: queryString,
+      enabled: !isReleasesLoading,
+    },
+    'api.starfish.mobile-startup-series'
+  );
+
+  const series = data[0] ?? {};
 
   // The expected response is a multi series response, but if there is no data
   // then we get an object representing a single series with all empty values
   // (i.e without being grouped by release)
-  const hasReleaseData = series && !('data' in series);
+  const hasReleaseData = series && data.length > 0;
 
   // Only transform the data is we know there's at least one release
   const transformedSeries = hasReleaseData
-    ? Object.values(transformData(series, primaryRelease)).sort((releaseA, _releaseB) =>
+    ? data.sort((releaseA, _releaseB) =>
         releaseA.seriesName === primaryRelease ? -1 : 1
       )
     : [];
