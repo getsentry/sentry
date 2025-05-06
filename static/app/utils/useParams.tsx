@@ -24,6 +24,7 @@ type ParamKeys =
   | 'groupId'
   | 'id'
   | 'installationId'
+  | 'detectorId'
   | 'integrationSlug'
   | 'issueId'
   | 'memberId'
