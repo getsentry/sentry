@@ -10,6 +10,7 @@ from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import CreateSubscr
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
 
 from sentry import features
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.entity_subscription import (
     get_entity_key_from_query_builder,
@@ -31,6 +32,10 @@ logger = logging.getLogger(__name__)
 
 
 SUBSCRIPTION_STATUS_MAX_AGE = timedelta(minutes=10)
+
+
+class SubscriptionError(Exception):
+    pass
 
 
 @instrumented_task(
@@ -227,28 +232,34 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
         )
         query_string = build_query_strings(subscription, snuba_query).query_string
         if entity_subscription.dataset == Dataset.EventsAnalyticsPlatform:
-            rpc_time_series_request = entity_subscription.build_rpc_request(
-                query=query_string,
-                project_ids=[subscription.project_id],
-                environment=snuba_query.environment,
-                params={
-                    "organization_id": subscription.project.organization_id,
-                    "project_id": [subscription.project_id],
-                },
-            )
+            try:
+                rpc_time_series_request = entity_subscription.build_rpc_request(
+                    query=query_string,
+                    project_ids=[subscription.project_id],
+                    environment=snuba_query.environment,
+                    params={
+                        "organization_id": subscription.project.organization_id,
+                        "project_id": [subscription.project_id],
+                    },
+                )
+            except (InvalidSearchQuery, IncompatibleMetricsQuery) as e:
+                raise SubscriptionError(e)
             return _create_rpc_in_snuba(
                 subscription, snuba_query, rpc_time_series_request, entity_subscription
             )
         else:
-            snql_query = entity_subscription.build_query_builder(
-                query=query_string,
-                project_ids=[subscription.project_id],
-                environment=snuba_query.environment,
-                params={
-                    "organization_id": subscription.project.organization_id,
-                    "project_id": [subscription.project_id],
-                },
-            ).get_snql_query()
+            try:
+                snql_query = entity_subscription.build_query_builder(
+                    query=query_string,
+                    project_ids=[subscription.project_id],
+                    environment=snuba_query.environment,
+                    params={
+                        "organization_id": subscription.project.organization_id,
+                        "project_id": [subscription.project_id],
+                    },
+                ).get_snql_query()
+            except (InvalidSearchQuery, IncompatibleMetricsQuery) as e:
+                raise SubscriptionError(e)
 
             return _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscription)
 

@@ -1,7 +1,9 @@
 from datetime import timedelta
+from unittest import mock
 
 import pytest
 
+from sentry.exceptions import InvalidSearchQuery
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import (
@@ -12,6 +14,7 @@ from sentry.snuba.subscriptions import (
     update_snuba_query,
     update_snuba_subscription,
 )
+from sentry.snuba.tasks import SubscriptionError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_kafka, requires_snuba
 
@@ -109,6 +112,27 @@ class CreateSnubaQueryTest(TestCase):
         assert snuba_query.resolution == int(resolution.total_seconds())
         assert snuba_query.environment is None
         assert snuba_query.event_types == []
+
+    @mock.patch("sentry.search.events.builder.metrics.MetricsQueryBuilder")
+    def test_handle_querybuilder_errors(self, mock_builder):
+        mock_builder.side_effect = InvalidSearchQuery("some error")
+        query_type = SnubaQuery.Type.CRASH_RATE
+        dataset = Dataset.Metrics
+        query = ""
+        aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
+        time_window = timedelta(minutes=10)
+        resolution = timedelta(minutes=1)
+
+        with pytest.raises(SubscriptionError):
+            create_snuba_query(
+                query_type,
+                dataset,
+                query,
+                aggregate,
+                time_window,
+                resolution,
+                None,
+            )
 
 
 class CreateSnubaSubscriptionTest(TestCase):
