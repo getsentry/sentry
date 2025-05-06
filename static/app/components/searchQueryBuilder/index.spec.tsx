@@ -605,9 +605,11 @@ describe('SearchQueryBuilder', function () {
 
   describe('mouse interactions', function () {
     it('can remove a token by clicking the delete button', async function () {
+      const mockOnChange = jest.fn();
       render(
         <SearchQueryBuilder
           {...defaultProps}
+          onChange={mockOnChange}
           initialQuery="browser.name:firefox custom_tag_name:123"
         />
       );
@@ -634,6 +636,9 @@ describe('SearchQueryBuilder', function () {
 
       // Custom tag token should still be present
       expect(screen.getByRole('row', {name: 'custom_tag_name:123'})).toBeInTheDocument();
+
+      // onChange should have been called with the updated query
+      expect(mockOnChange).toHaveBeenCalledWith('custom_tag_name:123', expect.anything());
     });
 
     it('can modify the operator by clicking into it', async function () {
@@ -792,7 +797,10 @@ describe('SearchQueryBuilder', function () {
 
   describe('new search tokens', function () {
     it('can add an unsupported filter key and value', async function () {
-      render(<SearchQueryBuilder {...defaultProps} />);
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder {...defaultProps} onChange={mockOnChange} initialQuery="" />
+      );
       await userEvent.click(getLastInput());
 
       // Typing "foo", then " a:b" should add the "foo" text followed by a new token "a:b"
@@ -802,10 +810,17 @@ describe('SearchQueryBuilder', function () {
       );
       expect(screen.getByRole('row', {name: 'foo'})).toBeInTheDocument();
       expect(screen.getByRole('row', {name: 'a:b'})).toBeInTheDocument();
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalledWith('foo a:b', expect.anything());
+      });
+
+      expect(mockOnChange).toHaveBeenCalledTimes(1);
     });
 
     it('adds default value for filter when typing <filter>:', async function () {
-      render(<SearchQueryBuilder {...defaultProps} />);
+      const mockOnChange = jest.fn();
+      render(<SearchQueryBuilder {...defaultProps} onChange={mockOnChange} />);
       await userEvent.click(getLastInput());
 
       // Typing `is:` and escaping should result in `is:unresolved`
@@ -814,6 +829,9 @@ describe('SearchQueryBuilder', function () {
         'is:{escape}'
       );
       expect(await screen.findByRole('row', {name: 'is:unresolved'})).toBeInTheDocument();
+
+      expect(mockOnChange).toHaveBeenCalledTimes(1);
+      expect(mockOnChange).toHaveBeenCalledWith('is:unresolved', expect.anything());
     });
 
     it('does not automatically create a filter if the user intends to wrap in quotes', async function () {
@@ -840,18 +858,28 @@ describe('SearchQueryBuilder', function () {
     });
 
     it('can add a new token by clicking a key suggestion', async function () {
-      render(<SearchQueryBuilder {...defaultProps} />);
+      const mockOnChange = jest.fn();
+      render(<SearchQueryBuilder {...defaultProps} onChange={mockOnChange} />);
 
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
       await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
 
       // New token should be added with the correct key and default value
       expect(screen.getByLabelText('browser.name:""')).toBeInTheDocument();
+      // onChange should not be called until exiting edit mode
+      expect(mockOnChange).not.toHaveBeenCalled();
 
       await userEvent.click(await screen.findByLabelText('Firefox'));
 
       // New token should have a value
       expect(screen.getByLabelText('browser.name:Firefox')).toBeInTheDocument();
+
+      // Now we call onChange
+      expect(mockOnChange).toHaveBeenCalledTimes(1);
+      expect(mockOnChange).toHaveBeenCalledWith(
+        'browser.name:Firefox',
+        expect.anything()
+      );
     });
 
     it('can add free text by typing', async function () {
@@ -1623,10 +1651,12 @@ describe('SearchQueryBuilder', function () {
       });
 
       it('can modify operator for filter with multiple values', async function () {
+        const mockOnChange = jest.fn();
         render(
           <SearchQueryBuilder
             {...defaultProps}
             initialQuery="browser.name:[firefox,chrome]"
+            onChange={mockOnChange}
           />
         );
 
@@ -1653,6 +1683,15 @@ describe('SearchQueryBuilder', function () {
             screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
           ).getByText('is not')
         ).toBeInTheDocument();
+
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith(
+            '!browser.name:[firefox,chrome]',
+            expect.anything()
+          );
+        });
+
+        expect(mockOnChange).toHaveBeenCalledTimes(1);
       });
 
       it('can modify the value by clicking into it (multi-select)', async function () {
@@ -1691,8 +1730,13 @@ describe('SearchQueryBuilder', function () {
       });
 
       it('can modify the key by clicking into it', async function () {
+        const mockOnChange = jest.fn();
         render(
-          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:firefox"
+            onChange={mockOnChange}
+          />
         );
 
         await userEvent.click(
@@ -1711,11 +1755,25 @@ describe('SearchQueryBuilder', function () {
           ).toBeInTheDocument();
         });
         expect(getLastInput()).toHaveFocus();
+
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith(
+            'custom_tag_name:firefox',
+            expect.anything()
+          );
+        });
+
+        expect(mockOnChange).toHaveBeenCalledTimes(1);
       });
 
       it('resets the filter value when changing filter key to a different type', async function () {
+        const mockOnChange = jest.fn();
         render(
-          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:firefox"
+            onChange={mockOnChange}
+          />
         );
 
         await userEvent.click(
@@ -1733,11 +1791,19 @@ describe('SearchQueryBuilder', function () {
         });
         // Filter value should have focus
         expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+
+        // Because we are changing the filter value, we don't want to call onChange
+        expect(mockOnChange).not.toHaveBeenCalled();
       });
 
       it('keeps focus inside value when multi-selecting with checkboxes', async function () {
+        const mockOnChange = jest.fn();
         render(
-          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:firefox"
+            onChange={mockOnChange}
+          />
         );
 
         await userEvent.click(
@@ -1754,6 +1820,7 @@ describe('SearchQueryBuilder', function () {
         // - Commit an empty string as the filter value
         // - Input value should be cleared
         // - Keep focus inside the input
+        // - Not call onChange
         await userEvent.click(
           await screen.findByRole('checkbox', {name: 'Toggle firefox'})
         );
@@ -1766,11 +1833,13 @@ describe('SearchQueryBuilder', function () {
           );
         });
         expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+        expect(mockOnChange).not.toHaveBeenCalled();
 
         // Toggling on the "Chrome" option should:
         // - Commit the value "Chrome" to the filter
         // - Input value should be "Chrome,"
         // - Keep focus inside the input
+        // - Still not call onChange
         await userEvent.click(
           await screen.findByRole('checkbox', {name: 'Toggle Chrome'})
         );
@@ -1783,11 +1852,26 @@ describe('SearchQueryBuilder', function () {
           );
         });
         expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+        expect(mockOnChange).not.toHaveBeenCalled();
+
+        // Clicking outside of the input should call onChange
+        await userEvent.click(document.body);
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith(
+            'browser.name:Chrome',
+            expect.anything()
+          );
+        });
       });
 
       it('keeps focus inside value when multi-selecting with ctrl+enter', async function () {
+        const mockOnChange = jest.fn();
         render(
-          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:firefox"
+            onChange={mockOnChange}
+          />
         );
 
         await userEvent.click(
@@ -1807,11 +1891,27 @@ describe('SearchQueryBuilder', function () {
           );
         });
         expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+
+        // onChange should not be called until exiting edit mode
+        expect(mockOnChange).not.toHaveBeenCalled();
+
+        await userEvent.keyboard('{Escape}');
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith(
+            'browser.name:[firefox,Chrome]',
+            expect.anything()
+          );
+        });
       });
 
       it('keeps focus inside value when multi-selecting with ctrl+click', async function () {
+        const mockOnChange = jest.fn();
         render(
-          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:firefox"
+            onChange={mockOnChange}
+          />
         );
 
         const user = userEvent.setup();
@@ -1832,6 +1932,17 @@ describe('SearchQueryBuilder', function () {
           );
         });
         expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+
+        // onChange should not be called until exiting edit mode
+        expect(mockOnChange).not.toHaveBeenCalled();
+
+        await userEvent.keyboard('{Escape}');
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith(
+            'browser.name:[firefox,Chrome]',
+            expect.anything()
+          );
+        });
       });
 
       it('collapses many selected options', async function () {

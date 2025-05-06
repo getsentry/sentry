@@ -26,11 +26,29 @@ import {
 import {getKeyName, stringifyToken} from 'sentry/components/searchSyntax/utils';
 
 type QueryBuilderState = {
+  /**
+   * This may lag the `query` value in the cases where:
+   * 1. The filter has been created, but no value has been entered yet.
+   * 2. A free text value has been typed, but the user has not blurred the input or pressed enter.
+   */
+  committedQuery: string;
+  /**
+   * There are certain cases where we want to move the cursor to a different location after
+   * a state change. useApplyFocusOverride reads this value and focuses the selected item.
+   */
   focusOverride: FocusOverride | null;
+  /**
+   * The current query value.
+   * This is the basic source of truth for what is currently being displayed.
+   */
   query: string;
 };
 
 type ClearAction = {type: 'CLEAR'};
+
+type CommitQueryAction = {
+  type: 'COMMIT_QUERY';
+};
 
 type UpdateQueryAction = {
   query: string;
@@ -89,11 +107,6 @@ type MultiSelectFilterValueAction = {
   value: string;
 };
 
-type DeleteLastMultiSelectFilterValueAction = {
-  token: TokenResult<Token.FILTER>;
-  type: 'DELETE_LAST_MULTI_SELECT_FILTER_VALUE';
-};
-
 type UpdateAggregateArgsAction = {
   token: AggregateFilter;
   type: 'UPDATE_AGGREGATE_ARGS';
@@ -102,6 +115,7 @@ type UpdateAggregateArgsAction = {
 
 export type QueryBuilderActions =
   | ClearAction
+  | CommitQueryAction
   | UpdateQueryAction
   | ResetFocusOverrideAction
   | DeleteTokenAction
@@ -112,8 +126,7 @@ export type QueryBuilderActions =
   | UpdateFilterOpAction
   | UpdateTokenValueAction
   | UpdateAggregateArgsAction
-  | MultiSelectFilterValueAction
-  | DeleteLastMultiSelectFilterValueAction;
+  | MultiSelectFilterValueAction;
 
 function removeQueryTokensFromQuery(
   query: string,
@@ -144,7 +157,7 @@ function deleteQueryTokens(
   };
 }
 
-function modifyFilterOperator(
+function modifyFilterOperatorQuery(
   query: string,
   token: TokenResult<Token.FILTER>,
   newOperator: TermOperator
@@ -160,6 +173,23 @@ function modifyFilterOperator(
   newToken.negated = isNotEqual;
 
   return replaceQueryToken(query, token, stringifyToken(newToken));
+}
+
+function modifyFilterOperator(
+  state: QueryBuilderState,
+  action: UpdateFilterOpAction
+): QueryBuilderState {
+  const newQuery = modifyFilterOperatorQuery(state.query, action.token, action.op);
+
+  if (newQuery === state.query) {
+    return state;
+  }
+
+  return {
+    ...state,
+    query: newQuery,
+    committedQuery: newQuery,
+  };
 }
 
 function modifyFilterOperatorDate(
@@ -301,9 +331,18 @@ function updateFreeText(
 ): QueryBuilderState {
   const newQuery = replaceTokensWithPadding(state.query, action.tokens, action.text);
 
+  if (newQuery === state.query) {
+    return state;
+  }
+
+  // Only update the committed query if we aren't in the middle of creating a filter
+  const committedQuery =
+    action.focusOverride?.part === 'value' ? state.committedQuery : newQuery;
+
   return {
     ...state,
     query: newQuery,
+    committedQuery,
     focusOverride:
       action.focusOverride === undefined ? state.focusOverride : action.focusOverride,
   };
@@ -325,10 +364,19 @@ function replaceTokensWithText(
 ): QueryBuilderState {
   const newQuery = replaceTokensWithPadding(state.query, tokens, text);
 
+  if (newQuery === state.query) {
+    return state;
+  }
+
+  // Only update the committed query if we aren't in the middle of creating a filter
+  const committedQuery =
+    incomingFocusOverride?.part === 'value' ? state.committedQuery : newQuery;
+
   if (incomingFocusOverride) {
     return {
       ...state,
       query: newQuery,
+      committedQuery,
       focusOverride: incomingFocusOverride,
     };
   }
@@ -347,6 +395,7 @@ function replaceTokensWithText(
   return {
     ...state,
     query: newQuery,
+    committedQuery: newQuery,
     focusOverride,
   };
 }
@@ -412,24 +461,6 @@ function multiSelectTokenValue(
   }
 }
 
-function deleteLastMultiSelectTokenValue(
-  state: QueryBuilderState,
-  action: DeleteLastMultiSelectFilterValueAction
-) {
-  const tokenValue = action.token.value;
-
-  switch (tokenValue.type) {
-    case Token.VALUE_TEXT_LIST:
-    case Token.VALUE_NUMBER_LIST: {
-      const newValues = tokenValue.items.slice(0, -1).map(item => item.value?.text ?? '');
-
-      return updateFilterMultipleValues(state, action.token, newValues);
-    }
-    default:
-      return updateFilterMultipleValues(state, action.token, ['']);
-  }
-}
-
 function updateAggregateArgs(
   state: QueryBuilderState,
   action: UpdateAggregateArgsAction,
@@ -471,6 +502,23 @@ function updateAggregateArgs(
   };
 }
 
+function updateFilterKey(
+  state: QueryBuilderState,
+  action: UpdateFilterKeyAction
+): QueryBuilderState {
+  const newQuery = replaceQueryToken(state.query, action.token.key, action.key);
+
+  if (newQuery === state.query) {
+    return state;
+  }
+
+  return {
+    ...state,
+    query: newQuery,
+    committedQuery: newQuery,
+  };
+}
+
 export function useQueryBuilderState({
   initialQuery,
   getFieldDefinition,
@@ -480,7 +528,11 @@ export function useQueryBuilderState({
   getFieldDefinition: FieldDefinitionGetter;
   initialQuery: string;
 }) {
-  const initialState: QueryBuilderState = {query: initialQuery, focusOverride: null};
+  const initialState: QueryBuilderState = {
+    query: initialQuery,
+    committedQuery: initialQuery,
+    focusOverride: null,
+  };
 
   const reducer: Reducer<QueryBuilderState, QueryBuilderActions> = useCallback(
     (state, action): QueryBuilderState => {
@@ -493,14 +545,24 @@ export function useQueryBuilderState({
           return {
             ...state,
             query: '',
+            committedQuery: '',
             focusOverride: {
               itemKey: `${Token.FREE_TEXT}:0`,
             },
+          };
+        case 'COMMIT_QUERY':
+          if (state.query === state.committedQuery) {
+            return state;
+          }
+          return {
+            ...state,
+            committedQuery: state.query,
           };
         case 'UPDATE_QUERY':
           return {
             ...state,
             query: action.query,
+            committedQuery: action.query,
             focusOverride: action.focusOverride ?? null,
           };
         case 'RESET_FOCUS_OVERRIDE':
@@ -526,15 +588,9 @@ export function useQueryBuilderState({
             getFieldDefinition,
           });
         case 'UPDATE_FILTER_KEY':
-          return {
-            ...state,
-            query: replaceQueryToken(state.query, action.token.key, action.key),
-          };
+          return updateFilterKey(state, action);
         case 'UPDATE_FILTER_OP':
-          return {
-            ...state,
-            query: modifyFilterOperator(state.query, action.token, action.op),
-          };
+          return modifyFilterOperator(state, action);
         case 'UPDATE_TOKEN_VALUE':
           return {
             ...state,
@@ -544,8 +600,6 @@ export function useQueryBuilderState({
           return updateAggregateArgs(state, action, {getFieldDefinition});
         case 'TOGGLE_FILTER_VALUE':
           return multiSelectTokenValue(state, action);
-        case 'DELETE_LAST_MULTI_SELECT_FILTER_VALUE':
-          return deleteLastMultiSelectTokenValue(state, action);
         default:
           return state;
       }
