@@ -2,6 +2,7 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {OurlogsDrawer} from 'sentry/components/events/ourlogs/ourlogsDrawer';
 import useDrawer from 'sentry/components/globalDrawer';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -14,36 +15,53 @@ import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   LogsPageParamsProvider,
-  type LogsPageParamsProviderProps,
+  useLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
-import {LogsIssueDrawer} from 'sentry/views/explore/logs/logsIssueDrawer';
 import {LogsTable} from 'sentry/views/explore/logs/logsTable';
-import {
-  useExploreLogsTable,
-  type UseExploreLogsTableResult,
-} from 'sentry/views/explore/logs/useLogsQuery';
+import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-export function LogsIssuesSection({
-  initialCollapse,
-  limitToTraceId,
+export function OurlogsSection({
   event,
   project,
   group,
 }: {
   event: Event;
   group: Group;
-  initialCollapse: boolean;
   project: Project;
-} & Omit<LogsPageParamsProviderProps, 'children' | 'analyticsPageSource'>) {
+}) {
+  return (
+    <LogsPageParamsProvider
+      analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
+      isTableFrozen
+      blockRowExpanding
+      limitToTraceId={event.contexts?.trace?.trace_id}
+    >
+      <OurlogsSectionContent event={event} group={group} project={project} />
+    </LogsPageParamsProvider>
+  );
+}
+
+function OurlogsSectionContent({
+  event,
+  project,
+  group,
+}: {
+  event: Event;
+  group: Group;
+  project: Project;
+}) {
   const organization = useOrganization();
   const feature = organization.features.includes('ourlogs-enabled');
   const tableData = useExploreLogsTable({enabled: feature, limit: 10});
+  const logsSearch = useLogsSearch();
+  const abbreviatedTableData = {...tableData, data: (tableData.data ?? []).slice(0, 5)};
   const {openDrawer} = useDrawer();
 
+  const limitToTraceId = event.contexts?.trace?.trace_id;
   const onOpenLogsDrawer = useCallback(() => {
     trackAnalytics('logs.issue_details.drawer_opened', {
       organization,
@@ -56,7 +74,7 @@ export function LogsIssuesSection({
           limitToTraceId={limitToTraceId}
         >
           <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-            <LogsIssueDrawer group={group} event={event} project={project} />
+            <OurlogsDrawer group={group} event={event} project={project} />
           </TraceItemAttributeProvider>
         </LogsPageParamsProvider>
       ),
@@ -74,7 +92,7 @@ export function LogsIssuesSection({
     // We may change this in the future if we have a trace-group or we generate trace sids for these issue types.
     return null;
   }
-  if (tableData?.data?.length === 0) {
+  if (!tableData || (tableData.data?.length === 0 && logsSearch.isEmpty())) {
     // Like breadcrumbs, we don't show the logs section if there are no logs.
     return null;
   }
@@ -84,53 +102,40 @@ export function LogsIssuesSection({
       type={SectionKey.LOGS}
       title={t('Logs')}
       data-test-id="logs-data-section"
-      initialCollapse={initialCollapse}
     >
-      <LogsPageParamsProvider
-        analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
-        isTableFrozen
-        blockRowExpanding
-        limitToTraceId={limitToTraceId}
-      >
-        <LogsSectionContent tableData={tableData} openDrawer={onOpenLogsDrawer} />
-      </LogsPageParamsProvider>
+      <LogContentWrapper onClick={() => onOpenLogsDrawer()}>
+        <LogsTable
+          showHeader={false}
+          allowPagination={false}
+          tableData={abbreviatedTableData}
+        />
+        {tableData.data?.length > 5 ? (
+          <div>
+            <Button
+              icon={<IconChevron direction="right" />}
+              aria-label={t('View more')}
+              size="md"
+              onClick={() => onOpenLogsDrawer()}
+            >
+              {t('View more')}
+            </Button>
+          </div>
+        ) : null}
+      </LogContentWrapper>
     </InterimSection>
   );
 }
 
-function LogsSectionContent({
-  tableData,
-  openDrawer,
-}: {
-  openDrawer: () => void;
-  tableData: UseExploreLogsTableResult;
-}) {
-  const abbreviatedTableData = {...tableData, data: (tableData.data ?? []).slice(0, 5)};
-  return (
-    <LogContentWrapper>
-      <LogsTable
-        showHeader={false}
-        allowPagination={false}
-        tableData={abbreviatedTableData}
-      />
-      {tableData.data?.length > 5 ? (
-        <div>
-          <Button
-            icon={<IconChevron direction="right" />}
-            aria-label={t('View more')}
-            size="md"
-            onClick={() => openDrawer()}
-          >
-            {t('View more')}
-          </Button>
-        </div>
-      ) : null}
-    </LogContentWrapper>
-  );
-}
-
-const LogContentWrapper = styled('div')`
+const LogContentWrapper = styled('button')`
+  all: unset;
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
+  pointer-events: auto;
+  cursor: pointer;
+
+  * {
+    pointer-events: none !important;
+    cursor: inherit !important;
+  }
 `;

@@ -1,4 +1,4 @@
-import {useCallback, useLayoutEffect} from 'react';
+import {useCallback, useLayoutEffect, useState} from 'react';
 import type {Location} from 'history';
 
 import type {CursorHandler} from 'sentry/components/pagination';
@@ -36,9 +36,14 @@ interface LogsPageParams {
   readonly fields: string[];
   readonly isTableFrozen: boolean | undefined;
   readonly search: MutableSearch;
+  /**
+   * On frozen pages (like the issues page), we don't want to store the search in the URL
+   * Instead, use a useState in the context, so that it's dropped if you navigate away or refresh.
+   */
+  readonly setSearchForFrozenPages: (val: MutableSearch) => void;
   readonly sortBys: Sort[];
   /**
-   * The base search, which doesn't appear in the URL or the search bar, used for adding traceid etc..
+   * The base search, which doesn't appear in the URL or the search bar, used for adding traceid etc.
    */
   readonly baseSearch?: MutableSearch;
   /**
@@ -76,7 +81,11 @@ export function LogsPageParamsProvider({
 }: LogsPageParamsProviderProps) {
   const location = useLocation();
   const logsQuery = decodeLogsQuery(location);
-  const search = new MutableSearch(logsQuery);
+
+  // on embedded pages with search bars, use a useState instead of a URL parameter
+  const [searchForFrozenPages, setSearchForFrozenPages] = useState(new MutableSearch(''));
+
+  const search = isTableFrozen ? searchForFrozenPages : new MutableSearch(logsQuery);
   let baseSearch: MutableSearch | undefined = undefined;
   if (limitToSpanId && limitToTraceId) {
     baseSearch = baseSearch ?? new MutableSearch('');
@@ -103,6 +112,7 @@ export function LogsPageParamsProvider({
       value={{
         fields,
         search,
+        setSearchForFrozenPages,
         sortBys,
         cursor,
         isTableFrozen,
@@ -184,24 +194,19 @@ export function useLogsBaseSearch(): MutableSearch | undefined {
   return baseSearch;
 }
 
-export function useSetLogsQuery() {
-  const setPageParams = useSetLogsPageParams();
-  return useCallback(
-    (query: string) => {
-      setPageParams({search: new MutableSearch(query)});
-    },
-    [setPageParams]
-  );
-}
-
 export function useSetLogsSearch() {
   const setPageParams = useSetLogsPageParams();
-  return useCallback(
+  const {setSearchForFrozenPages, isTableFrozen} = useLogsPageParams();
+  const setPageParamsCallback = useCallback(
     (search: MutableSearch) => {
       setPageParams({search});
     },
     [setPageParams]
   );
+  if (isTableFrozen) {
+    return setSearchForFrozenPages;
+  }
+  return setPageParamsCallback;
 }
 
 export function useLogsIsTableFrozen() {
