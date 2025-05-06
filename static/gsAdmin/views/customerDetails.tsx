@@ -135,9 +135,9 @@ export default function CustomerDetails() {
         data: params,
       }),
     onMutate: () => addLoadingMessage('Saving changes\u2026'),
-    onSuccess: data => {
+    onSuccess: (data, variables, _) => {
       addSuccessMessage(
-        `Customer account has been updated with ${JSON.stringify(data)}.`
+        `Customer account has been updated with ${JSON.stringify(variables)}.`
       );
       setApiQueryData(queryClient, SUBSCRIPTION_QUERY_KEY, data);
     },
