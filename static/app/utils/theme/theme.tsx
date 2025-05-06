@@ -260,7 +260,6 @@ const generateTokens = (colors: Colors) => ({
   border: {
     primary: colors.gray200, // theme.border
     muted: colors.gray100, // theme.innerBorder
-    // fwe
     accent: colors.purple300, // theme.focusBorder
     promotion: colors.pink400, // new
     danger: colors.red200, // theme.errorFocus
