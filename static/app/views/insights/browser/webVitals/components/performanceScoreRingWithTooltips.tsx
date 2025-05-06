@@ -335,7 +335,6 @@ function calculateLabelCoordinates(
   Object.keys(weights).forEach((key, index) => {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     results[key] = {
-      // Padding hack for now since ttfb label is longer than the others
       x: coordinates[index]!.x,
       y: coordinates[index]!.y,
     };
