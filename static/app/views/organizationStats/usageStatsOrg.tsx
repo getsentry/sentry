@@ -1,5 +1,5 @@
 import type {MouseEvent as ReactMouseEvent} from 'react';
-import {Fragment, useCallback, useMemo} from 'react';
+import React, {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
@@ -164,13 +164,22 @@ export function getChartProps({
   loading: boolean;
   clientDiscard?: boolean;
   dataError?: Error;
-}): UsageChartProps {
-  const hasError = error || !!dataError;
-  const chartErrors: any = dataError ? {...error, data: dataError} : error; // TODO(ts): AsyncComponent
+}): UsageChartProps & {
+  footer: React.ReactNode;
+  title: React.ReactNode;
+} {
+  const errors: Record<string, Error> | undefined =
+    error || dataError
+      ? {
+          ...(error ? {error} : {}),
+          ...(dataError ? {data: dataError} : {}),
+        }
+      : undefined;
+
   return {
     isLoading: loading,
-    isError: hasError,
-    errors: chartErrors,
+    isError: Boolean(error || !!dataError),
+    errors,
     title: (
       <Fragment>
         {t('Project(s) Stats')}
@@ -254,7 +263,7 @@ export function getChartProps({
         handleChangeState({clientDiscard: selected[name]});
       }
     },
-  } as UsageChartProps;
+  };
 }
 
 function ScoreCards({
