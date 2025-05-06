@@ -1,3 +1,5 @@
+from typing import Any
+
 from sentry.constants import ObjectStatus
 from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
 from sentry.models.repository import Repository
@@ -28,7 +30,7 @@ class RepositoryDeletionTask(ModelDeletionTask[Repository]):
     def get_child_relations(self, instance: Repository) -> list[BaseRelation]:
         return _get_repository_child_relations(instance)
 
-    def delete_instance(self, instance: Repository) -> None:
+    def delete_instance(self, instance: Repository, **kwargs: Any) -> None:
         # TODO: child_relations should also send pending_delete so we
         # don't have to do this here.
         pending_delete.send(sender=type(instance), instance=instance, actor=self.get_actor())
