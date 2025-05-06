@@ -8,6 +8,7 @@ from typing import Any
 from sentry_sdk import set_tag, set_user
 
 from sentry import eventstore
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration.model import RpcOrganizationIntegration
@@ -66,22 +67,8 @@ def process_event(
         "event_id": event_id,
     }
 
-    try:
-        event = eventstore.backend.get_event_by_id(project_id, event_id, group_id)
-        if event is None:
-            logger.error("Event not found.", extra=extra)
-            metrics.incr(
-                key=f"{METRIC_PREFIX}.failure",
-                tags={"reason": "event_not_found"},
-                sample_rate=1.0,
-            )
-            return [], []
-    except Exception:
-        metrics.incr(
-            key=f"{METRIC_PREFIX}.failure",
-            tags={"reason": "event_fetching_exception"},
-            sample_rate=1.0,
-        )
+    event = fetch_event(project_id, event_id, group_id, extra)
+    if event is None:
         return [], []
 
     platform = event.platform
@@ -111,6 +98,27 @@ def process_event(
         pass
 
     return code_mappings, in_app_stack_trace_rules
+
+
+def fetch_event(
+    project_id: int, event_id: str, group_id: int, extra: dict[str, Any]
+) -> GroupEvent | Event | None:
+    try:
+        event = eventstore.backend.get_event_by_id(project_id, event_id, group_id)
+        if event is None:
+            logger.error("Event not found.", extra=extra)
+            metrics.incr(
+                key=f"{METRIC_PREFIX}.failure", tags={"reason": "event_not_found"}, sample_rate=1.0
+            )
+            return None
+    except Exception:
+        metrics.incr(
+            key=f"{METRIC_PREFIX}.failure",
+            tags={"reason": "event_fetching_exception"},
+            sample_rate=1.0,
+        )
+        return None
+    return event
 
 
 def process_error(error: ApiError, extra: dict[str, Any]) -> None:
