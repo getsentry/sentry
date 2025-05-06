@@ -58,6 +58,18 @@ class ExploreSavedQueryStarredEndpoint(OrganizationEndpoint):
         except ExploreSavedQuery.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
+        # When unstarring a prebuilt query, we don't delete the starred row from the table.
+        # This is because prebuilt queries are lazily starred by default for all users when
+        # fetching saved queries for the first time. We need the starred row to exist to
+        # prevent the initial lazy-starring from happening again.
+        if query.prebuilt_id is not None:
+            if ExploreSavedQueryStarred.objects.updated_starred_query(
+                organization, request.user.id, query, bool(is_starred)
+            ):
+                return Response(status=status.HTTP_200_OK)
+            else:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+
         if is_starred:
             if ExploreSavedQueryStarred.objects.insert_starred_query(
                 organization, request.user.id, query
