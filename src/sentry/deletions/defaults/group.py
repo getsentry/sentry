@@ -78,9 +78,9 @@ class EventsBaseDeletionTask(BaseDeletionTask[Group]):
 
     def set_group_and_project_ids(self) -> None:
         group_ids = []
-        self.project_groups = defaultdict(list)
+        self.project_groups = defaultdict(list[Group])
         for group in self.groups:
-            self.project_groups[group.project_id].append(group.id)
+            self.project_groups[group.project_id].append(group)
             group_ids.append(group.id)
         self.group_ids = group_ids
         self.project_ids = list(self.project_groups.keys())
@@ -205,26 +205,25 @@ class IssuePlatformEventsDeletionTask(EventsBaseDeletionTask):
 
     def delete_events_from_snuba(self) -> None:
         requests = []
-        for project_id, group_ids in self.project_groups.items():
+        for project_id, groups in self.project_groups.items():
             # Split group_ids into batches where the sum of times_seen is less than max_rows_to_delete
             current_batch: list[int] = []
             current_batch_rows = 0
 
             # Get times_seen for each group
-            groups = Group.objects.filter(id__in=group_ids).values("id", "times_seen")
-            group_times_seen = {g["id"]: g["times_seen"] for g in groups}
+            group_times_seen = {g.id: g.times_seen for g in groups}
 
-            for group_id in group_ids:
-                times_seen = group_times_seen.get(group_id, 0)
+            for group in groups:
+                times_seen = group_times_seen.get(group.id, 0)
 
                 # If adding this group would exceed the limit, create a request with the current batch
                 if current_batch_rows + times_seen > self.max_rows_to_delete:
                     requests.append(self.delete_request(project_id, current_batch))
                     # We now start a new batch
-                    current_batch = [group_id]
+                    current_batch = [group.id]
                     current_batch_rows = times_seen
                 else:
-                    current_batch.append(group_id)
+                    current_batch.append(group.id)
                     current_batch_rows += times_seen
 
             # Add the final batch if it's not empty
