@@ -5,14 +5,13 @@ import random
 import uuid
 from datetime import datetime, timedelta
 
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.validators import validate_email
 from django.db import IntegrityError, router
 from django.utils import timezone
-from rest_framework import status
 
 from sentry import eventstore, options
-from sentry.api.exceptions import BadRequest, SentryAPIException
+from sentry.api.exceptions import BadRequest
 from sentry.constants import DataCategory
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.feedback.lib.types import UserReportDict
@@ -65,7 +64,7 @@ def save_userreport(
                 source == FeedbackCreationSource.USER_REPORT_DJANGO_ENDPOINT
                 or source == FeedbackCreationSource.CRASH_REPORT_EMBED_FORM
             ):
-                raise SentryAPIException(code=status.HTTP_403_FORBIDDEN)
+                raise PermissionDenied()
             return None
 
         should_filter, metrics_reason, outcomes_reason = validate_user_report(
