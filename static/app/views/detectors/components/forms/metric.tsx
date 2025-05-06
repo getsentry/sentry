@@ -307,6 +307,7 @@ const AggregateField = styled(SelectField)`
   padding-top: 0;
   padding-left: 0;
   padding-right: 0;
+  border-bottom: none;
 
   > div {
     padding-left: 0;
@@ -317,6 +318,7 @@ const DirectionField = styled(SelectField)`
   width: 16ch;
   padding: 0;
   margin: 0;
+  border-bottom: none;
 
   > div {
     padding-left: 0;
@@ -326,7 +328,7 @@ const DirectionField = styled(SelectField)`
 const MonitorKindField = styled(SegmentedRadioField)`
   padding-left: 0;
   padding-block: ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border-bottom: none;
   max-width: 840px;
 
   > div {
