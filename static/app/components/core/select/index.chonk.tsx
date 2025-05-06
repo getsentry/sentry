@@ -271,7 +271,7 @@ export const ChonkCheckWrap = chonkStyled('div')<{
   justify-content: center;
   align-items: center;
   width: 1em;
-  height: 1.2em;
+  height: 1.4em;
 
   ${p =>
     p.isMultiple
