@@ -73,7 +73,7 @@ function ProjectDetails({
 }: ProjectDetailsProps) {
   const navigate = useNavigate();
 
-  const spikesForDataCategory = [...storedSpikes].filter(
+  const spikesForDataCategory = storedSpikes.filter(
     spike => spike.dataCategory === dataCategoryInfo.name
   );
 
