@@ -19,7 +19,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
-import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
+import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {replayPlayerTimestampEmitter} from 'sentry/utils/replays/replayPlayerTimestampEmitter';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -426,14 +426,14 @@ export function Trace({
           ? trace.indicators.map((indicator, i) => {
               const status =
                 indicator.score === undefined
-                  ? 'none'
+                  ? 'None'
                   : STATUS_TEXT[scoreToStatus(indicator.score)];
-              const webvital = indicator.label.toLowerCase() as WebVitals;
+              const vital = indicator.type as WebVitals;
 
               const defaultFormatter = (value: number) =>
                 getFormattedDuration(value / 1000);
               const formatter =
-                WEB_VITALS_METERS_CONFIG[webvital]?.formatter ?? defaultFormatter;
+                WEB_VITALS_METERS_CONFIG[vital]?.formatter ?? defaultFormatter;
 
               return (
                 <Fragment key={i}>
@@ -445,9 +445,10 @@ export function Trace({
                     <Tooltip
                       title={
                         <div>
-                          {WEB_VITAL_DETAILS[`measurements.${webvital}`]?.name}
+                          {VITAL_DETAILS[`measurements.${vital}`]?.name}
                           <br />
-                          {formatter(indicator.measurement.value)} - {status}
+                          {formatter(indicator.measurement.value)}
+                          {status !== 'None' && ` - ${status}`}
                         </div>
                       }
                     >
@@ -948,6 +949,19 @@ const TraceStylingWrapper = styled('div')`
 
       &.dark {
         background-color: rgb(63 17 20);
+      }
+    }
+
+    &.None {
+      color: ${p => p.theme.subText};
+      border: 1px solid ${p => p.theme.border};
+
+      &.light {
+        background-color: rgb(245 245 245);
+      }
+
+      &.dark {
+        background-color: rgb(60 59 59);
       }
     }
 
