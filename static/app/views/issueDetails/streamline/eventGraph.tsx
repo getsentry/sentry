@@ -267,7 +267,13 @@ export function EventGraph({
 
   const handleReleaseLineClick = useCallback(
     (release: ReleaseMetaBasic) => {
-      navigate(makeReleaseDrawerPathname({location, release: release.version}));
+      navigate(
+        makeReleaseDrawerPathname({
+          location,
+          release: release.version,
+          source: 'issue-details',
+        })
+      );
     },
     [location, navigate]
   );
@@ -429,7 +435,7 @@ export function EventGraph({
     data: flagSeries.type === 'line' ? ['Feature Flags', 'Releases'] : ['Releases'],
     selected: legendSelected,
     zlevel: 10,
-    inactiveColor: theme.gray200,
+    inactiveColor: theme.isChonk ? theme.tokens.content.muted : theme.gray200,
   });
 
   const onLegendSelectChanged = useMemo(

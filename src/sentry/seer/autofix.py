@@ -742,7 +742,10 @@ def trigger_autofix(
         return _respond_with_error("AI Autofix is not enabled for this project.", 403)
 
     if not get_seer_org_acknowledgement(org_id=group.organization.id):
-        return _respond_with_error("AI Autofix has not been acknowledged by the organization.", 403)
+        return _respond_with_error(
+            "Seer has not been enabled for this organization. Please open an issue at sentry.io/issues and set up Seer.",
+            403,
+        )
 
     if event_id is None:
         event: Event | GroupEvent | None = group.get_recommended_event_for_environments()

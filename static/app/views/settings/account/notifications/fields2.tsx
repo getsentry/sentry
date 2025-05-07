@@ -6,7 +6,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
+import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 
 export const NOTIFICATION_SETTING_FIELDS = {
   alerts: {
@@ -152,7 +152,9 @@ const CATEGORY_QUOTA_FIELDS = Object.values(DATA_CATEGORY_INFO)
         `Receive notifications about your [displayName] quotas. [learnMore:Learn more]`,
         {
           displayName: categoryInfo.displayName,
-          learnMore: <ExternalLink href={getDocsLinkForEventType(categoryInfo.name)} />,
+          learnMore: (
+            <ExternalLink href={getPricingDocsLinkForEventType(categoryInfo.name)} />
+          ),
         }
       ),
       choices: [
