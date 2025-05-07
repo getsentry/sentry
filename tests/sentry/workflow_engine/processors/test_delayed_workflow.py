@@ -828,12 +828,14 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         )
 
         wfh.refresh_from_db()
+        assert wfh.has_passed_filters is True
         assert wfh.has_fired_actions is True
 
         assert WorkflowFireHistory.objects.filter(
             workflow=self.workflow1,
             group_id=self.group1.id,
             event_id=self.event1.event_id,
+            has_passed_filters=True,
             has_fired_actions=True,
         ).exists()
 

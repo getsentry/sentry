@@ -6,6 +6,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.workflow_engine.models import Action, DataConditionGroup, WorkflowFireHistory
 from sentry.workflow_engine.models.action_group_status import ActionGroupStatus
 from sentry.workflow_engine.processors.action import (
+    WorkflowFireHistoryUpdates,
     filter_recently_fired_workflow_actions,
     update_workflow_fire_histories,
 )
@@ -69,7 +70,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
             status.refresh_from_db()
             assert status.date_updated == timezone.now()
 
-    def test_update_workflow_fire_histories(self):
+    def test_update_workflow_fire_histories_has_fired_actions(self):
         WorkflowFireHistory.objects.create(
             workflow=self.workflow,
             group=self.group,
@@ -80,13 +81,45 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         actions = Action.objects.all()
         assert actions.count() == 1
 
-        update_workflow_fire_histories(actions, self.event_data)
+        update_workflow_fire_histories(
+            actions,
+            self.event_data,
+            WorkflowFireHistoryUpdates(has_passed_filters=True, has_fired_actions=True),
+        )
         assert (
             WorkflowFireHistory.objects.filter(
                 workflow=self.workflow,
                 group=self.group,
                 event_id=self.group_event.event_id,
                 has_fired_actions=True,
+            ).count()
+            == 1
+        )
+
+    def test_update_workflow_fire_histories_has_passed_filters(self):
+        WorkflowFireHistory.objects.create(
+            workflow=self.workflow,
+            group=self.group,
+            event_id=self.group_event.event_id,
+            has_passed_filters=None,
+            has_fired_actions=False,
+        )
+
+        actions = Action.objects.all()
+        assert actions.count() == 1
+
+        update_workflow_fire_histories(
+            actions,
+            self.event_data,
+            WorkflowFireHistoryUpdates(has_passed_filters=True, has_fired_actions=False),
+        )
+        assert (
+            WorkflowFireHistory.objects.filter(
+                workflow=self.workflow,
+                group=self.group,
+                event_id=self.group_event.event_id,
+                has_passed_filters=True,
+                has_fired_actions=False,
             ).count()
             == 1
         )
