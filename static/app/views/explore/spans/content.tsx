@@ -23,6 +23,7 @@ import {
   useExploreTitle,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
+import {TraceExploreAiQueryContextProvider} from 'sentry/views/explore/contexts/traceExploreAiQueryContext';
 import {SpansTabContent, SpansTabOnboarding} from 'sentry/views/explore/spans/spansTab';
 import {
   EXPLORE_SPANS_TOUR_GUIDE_KEY,
@@ -71,7 +72,9 @@ function SpansTabWrapper({children}: SpansTabContextProps) {
     <SpansTabTourProvider>
       <SpansTabTourTrigger />
       <PageParamsProvider>
-        <ExploreTagsProvider>{children}</ExploreTagsProvider>
+        <TraceExploreAiQueryContextProvider>
+          <ExploreTagsProvider>{children}</ExploreTagsProvider>
+        </TraceExploreAiQueryContextProvider>
       </PageParamsProvider>
     </SpansTabTourProvider>
   );
