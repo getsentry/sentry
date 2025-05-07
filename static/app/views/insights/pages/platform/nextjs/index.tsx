@@ -11,8 +11,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
-import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {DeadRageClicksWidget} from 'sentry/views/insights/pages/platform/nextjs/deadRageClickWidget';
+import SSRTreeWidget from 'sentry/views/insights/pages/platform/nextjs/ssrTreeWidget';
 import {WebVitalsWidget} from 'sentry/views/insights/pages/platform/nextjs/webVitalsWidget';
 import {DurationWidget} from 'sentry/views/insights/pages/platform/shared/durationWidget';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
@@ -34,10 +34,6 @@ const spanOperationOptions: Array<SelectOption<SpanOperation>> = [
   {value: 'pageload', label: t('Pageloads')},
   {value: 'navigation', label: t('Navigations')},
 ];
-
-function PlaceholderWidget() {
-  return <Widget Title={<Widget.WidgetTitle title="Placeholder Widget" />} />;
-}
 
 export function NextJsOverviewPage({
   performanceType,
@@ -113,7 +109,7 @@ export function NextJsOverviewPage({
           <DeadRageClicksWidget query={query} releases={releases} />
         </QueriesContainer>
         <CachesContainer>
-          <PlaceholderWidget />
+          <SSRTreeWidget />
         </CachesContainer>
       </WidgetGrid>
       <ControlsWrapper>
