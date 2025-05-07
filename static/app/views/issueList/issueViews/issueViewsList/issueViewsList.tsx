@@ -347,7 +347,7 @@ export default function IssueViewsList() {
               />
               <SortDropdown />
             </FilterSortBar>
-            <TableHeading>{t('My Views')}</TableHeading>
+            <TableHeading>{t('Created by Me')}</TableHeading>
             <IssueViewSection
               createdBy={GroupSearchViewCreatedBy.ME}
               limit={20}
