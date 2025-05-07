@@ -257,6 +257,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'feature-disabled:relay': p => <DisabledRelay {...p} />,
   'feature-disabled:rate-limits': p => <DisabledRateLimits {...p} />,
   'feature-disabled:sso-basic': p => <DisabledAuthProvider {...p} />,
+  'feature-disabled:sso-saml2': p => <DisabledAuthProvider {...p} />,
   'feature-disabled:custom-inbound-filters': p => <DisabledCustomInboundFilters {...p} />,
   'feature-disabled:discover2-sidebar-item': p =>
     typeof p.children === 'function' ? p.children(p) : p.children,
