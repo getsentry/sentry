@@ -214,7 +214,6 @@ function EAPBackendOverviewPage() {
         'p95(span.duration)',
         'failure_rate()',
         'count_unique(user)',
-        'time_spent_percentage(span.duration)',
         'sum(span.duration)',
       ],
     },
@@ -284,7 +283,7 @@ function EAPBackendOverviewPage() {
                   </TripleRowWidgetWrapper>
                 </ModuleLayout.Full>
                 <ModuleLayout.Full>
-                  <BackendOverviewTable response={response} sort={sorts[0]} />
+                  <BackendOverviewTable response={response} sort={sorts[1]} />
                 </ModuleLayout.Full>
               </Fragment>
             )}
