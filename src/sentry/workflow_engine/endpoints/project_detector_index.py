@@ -99,7 +99,7 @@ class ProjectDetectorIndexEndpoint(ProjectEndpoint):
         if sort_by.db_field_name == "connected_workflows":
             queryset = queryset.annotate(connected_workflows=Count("detectorworkflow"))
 
-        queryset = queryset.order_by(sort_by.db_order_by)
+        queryset = queryset.order_by(*sort_by.db_order_by)
 
         return self.paginate(
             request=request,
