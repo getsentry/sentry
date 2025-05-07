@@ -30,8 +30,8 @@ EnqueuedAction = tuple[DataConditionGroup, list[DataCondition]]
 
 
 class WorkflowFireHistoryUpdates(TypedDict):
-    has_passed_filters: bool | None
-    has_fired_actions: bool | None
+    has_passed_filters: bool
+    has_fired_actions: bool
 
 
 def get_action_last_updated_statuses(now: datetime, actions: BaseQuerySet[Action], group: Group):
