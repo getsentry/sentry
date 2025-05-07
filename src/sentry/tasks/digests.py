@@ -49,7 +49,7 @@ def schedule_digests() -> None:
     silo_mode=SiloMode.REGION,
     taskworker_config=TaskworkerConfig(
         namespace=digests_tasks,
-        processing_deadline_duration=20,
+        processing_deadline_duration=30,
     ),
 )
 def deliver_digest(
