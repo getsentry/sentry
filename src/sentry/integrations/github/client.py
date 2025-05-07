@@ -75,11 +75,12 @@ class GithubSetupApiClient(IntegrationProxyClient):
 
     @control_silo_function
     def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
-        if any(url in prepared_request.path_url for url in JWT_AUTH_ROUTES):
-            prepared_request.headers["Authorization"] = f"Bearer {self.jwt}"
-        else:
-            prepared_request.headers["Authorization"] = f"token {self.access_token}"
+        token = self.access_token
 
+        if any(url in prepared_request.path_url for url in JWT_AUTH_ROUTES):
+            token = self.jwt
+
+        prepared_request.headers["Authorization"] = f"Bearer {token}"
         prepared_request.headers["Accept"] = "application/vnd.github+json"
         return prepared_request
 

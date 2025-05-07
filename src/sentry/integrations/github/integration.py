@@ -426,7 +426,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
     setup_dialog_config = {"width": 1030, "height": 1000}
 
     @property
-    def client(self):
+    def client(self) -> GithubSetupApiClient:
         return GithubSetupApiClient()
 
     def post_install(
