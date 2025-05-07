@@ -64,8 +64,15 @@ export function IssuesSecondaryNav() {
             </SecondaryNav.Section>
           </Fragment>
         )}
+        {organization.features.includes('enforce-stacked-navigation') && (
+          <SecondaryNav.Section>
+            <SecondaryNav.Item to={`${baseUrl}/views/`} end>
+              {t('All Views')}
+            </SecondaryNav.Item>
+          </SecondaryNav.Section>
+        )}
         {organization.features.includes('issue-stream-custom-views') && (
-          <IssueViewNavItems sectionRef={sectionRef} baseUrl={baseUrl} />
+          <IssueViewNavItems sectionRef={sectionRef} />
         )}
         <ConfigureSection baseUrl={baseUrl} />
       </SecondaryNav.Body>
