@@ -51,7 +51,7 @@ class OrganizationInsightsTreeEndpoint(OrganizationEventsEndpoint):
                 path = match.group(2)
                 path_components = path.strip("/").split("/")
                 if not path_components or (len(path_components) == 1 and path_components[0] == ""):
-                    path_components = ["/"]  # Handle root path case
+                    path_components = []  # Handle root path case
 
             else:
                 component_type = None

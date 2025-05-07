@@ -106,7 +106,7 @@ class OrganizationInsightsTreeEndpointTest(
         root_route_idx = span_descriptions.index("Page Server Component (/)")
         element = response.data["data"][root_route_idx]
         assert element["function.nextjs.component_type"] == "Page Server Component"
-        assert element["function.nextjs.path"] == ["/"]
+        assert element["function.nextjs.path"] == []
 
         unparameterized_route_idx = span_descriptions.index(
             "Page.generateMetadata (/app/dashboard/)"
