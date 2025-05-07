@@ -342,8 +342,8 @@ describe('NotificationSettingsByType', function () {
       screen.getByText('Continuous Profile Hours', {exact: true})
     ).toBeInTheDocument();
     expect(screen.getByText('UI Profile Hours', {exact: true})).toBeInTheDocument();
-    expect(screen.getByText('Issue Fix Runs')).toBeInTheDocument();
-    expect(screen.getByText('Issue Triage Runs')).toBeInTheDocument();
+    expect(screen.getByText('Issue Fixes')).toBeInTheDocument();
+    expect(screen.getByText('Issue Scans')).toBeInTheDocument();
     expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
 
     const editSettingMock = MockApiClient.addMockResponse({
@@ -402,8 +402,8 @@ describe('NotificationSettingsByType', function () {
       screen.getByText('Continuous Profile Hours', {exact: true})
     ).toBeInTheDocument();
     expect(screen.getByText('UI Profile Hours', {exact: true})).toBeInTheDocument();
-    expect(screen.getByText('Issue Fix Runs')).toBeInTheDocument();
-    expect(screen.getByText('Issue Triage Runs')).toBeInTheDocument();
+    expect(screen.getByText('Issue Fixes')).toBeInTheDocument();
+    expect(screen.getByText('Issue Scans')).toBeInTheDocument();
   });
 
   it('spend notifications on org with am1 org only', async function () {
@@ -433,8 +433,8 @@ describe('NotificationSettingsByType', function () {
     ).not.toBeInTheDocument();
     expect(screen.queryByText('UI Profile Hours', {exact: true})).not.toBeInTheDocument();
     expect(screen.queryByText('Spans')).not.toBeInTheDocument();
-    expect(screen.getByText('Issue Fix Runs')).toBeInTheDocument();
-    expect(screen.getByText('Issue Triage Runs')).toBeInTheDocument();
+    expect(screen.getByText('Issue Fixes')).toBeInTheDocument();
+    expect(screen.getByText('Issue Scans')).toBeInTheDocument();
   });
 
   it('spend notifications on org with am3 without spend visibility notifications', async function () {
@@ -459,8 +459,8 @@ describe('NotificationSettingsByType', function () {
     ).toBeInTheDocument();
     expect(screen.getByText('UI Profile Hours', {exact: true})).toBeInTheDocument();
     expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
-    expect(screen.getByText('Issue Fix Runs')).toBeInTheDocument();
-    expect(screen.getByText('Issue Triage Runs')).toBeInTheDocument();
+    expect(screen.getByText('Issue Fixes')).toBeInTheDocument();
+    expect(screen.getByText('Issue Scans')).toBeInTheDocument();
 
     const editSettingMock = MockApiClient.addMockResponse({
       url: `/users/me/notification-options/`,
@@ -520,7 +520,7 @@ describe('NotificationSettingsByType', function () {
     ).not.toBeInTheDocument();
     expect(screen.queryByText('UI Profile Hours', {exact: true})).not.toBeInTheDocument();
     expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
-    expect(screen.queryByText('Issue Fix Runs')).not.toBeInTheDocument();
-    expect(screen.queryByText('Issue Triage Runs')).not.toBeInTheDocument();
+    expect(screen.queryByText('Issue Fixes')).not.toBeInTheDocument();
+    expect(screen.queryByText('Issue Scans')).not.toBeInTheDocument();
   });
 });
