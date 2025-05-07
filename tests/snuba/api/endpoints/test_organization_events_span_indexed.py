@@ -3006,6 +3006,12 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsSpanIndexedEndp
         assert len(data) == 1
         assert data[0]["avg_compare(span.self_time, release, foo, bar)"] == -0.9
         assert meta["dataset"] == self.dataset
+        assert meta["fields"] == {
+            "avg_compare(span.self_time, release, foo, bar)": "percentage",
+        }
+        assert meta["units"] == {
+            "avg_compare(span.self_time, release, foo, bar)": None,
+        }
 
     def test_avg_if_invalid_param(self):
         self.store_spans(
