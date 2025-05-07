@@ -109,9 +109,7 @@ function IntegrationExternalUserMappings(props: Props) {
       });
   };
 
-  const defaultUserOptions = () => {
-    return sentryNamesMapper(initialResults).map(sentryNameToOption);
-  };
+  const defaultUserOptions = sentryNamesMapper(initialResults).map(sentryNameToOption);
 
   const openMembersModal = (mapping?: ExternalActorMappingOrSuggestion) => {
     openModal(({Body, Header, closeModal}) => (
@@ -123,7 +121,7 @@ function IntegrationExternalUserMappings(props: Props) {
             integration={integration}
             dataEndpoint={DATA_ENDPOINT}
             getBaseFormEndpoint={() => BASE_FORM_ENDPOINT}
-            defaultOptions={defaultUserOptions()}
+            defaultOptions={defaultUserOptions}
             mapping={mapping}
             sentryNamesMapper={sentryNamesMapper}
             onCancel={closeModal}
@@ -145,7 +143,7 @@ function IntegrationExternalUserMappings(props: Props) {
         mappings={mappings()}
         dataEndpoint={DATA_ENDPOINT}
         getBaseFormEndpoint={() => BASE_FORM_ENDPOINT}
-        defaultOptions={defaultUserOptions()}
+        defaultOptions={defaultUserOptions}
         sentryNamesMapper={sentryNamesMapper}
         onCreate={openMembersModal}
         onDelete={handleDelete}
