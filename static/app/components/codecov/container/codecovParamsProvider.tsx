@@ -41,8 +41,8 @@ export default function CodecovQueryParamsProvider({children}: CodecovProviderPr
     const branch =
       typeof location.query.branch === 'string' ? location.query.branch : null;
     const codecovPeriod =
-      typeof location.query.codcovPeriod === 'string'
-        ? location.query.codcovPeriod
+      typeof location.query.codecovPeriod === 'string'
+        ? location.query.codecovPeriod
         : null;
 
     setLocalStorageState({repository, integratedOrg, branch, codecovPeriod});

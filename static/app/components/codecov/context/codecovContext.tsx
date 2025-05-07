@@ -5,7 +5,7 @@ export type CodecovContextData = {
   codecovPeriod: string | null;
   integratedOrg: string | null;
   repository: string | null;
-  updateSelectorData: (value: Record<string, string | null>) => void;
+  updateSelectorData: (value: Record<string, string>) => void;
 };
 
 export const CodecovContext = createContext<CodecovContextData | undefined>(undefined);
