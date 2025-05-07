@@ -620,3 +620,5 @@ export const USE_REACT_QUERY_DEVTOOL = process.env.USE_REACT_QUERY_DEVTOOL;
 export const DEFAULT_ERROR_JSON = {
   detail: t('Unknown error. Please try again.'),
 };
+
+export const SEER_MONTHLY_PRICE_CENTS = 2000;

@@ -11,6 +11,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {SEER_MONTHLY_PRICE_CENTS} from 'sentry/constants';
 import {IconAdd, IconCheckmark, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -247,8 +248,6 @@ function PlanSelect({
   };
 
   const renderSeer = () => {
-    const seerPrice = utils.displayPrice({cents: 2000});
-
     return (
       hasSeerFeature && (
         <StepFooter data-test-id="footer-seer">
@@ -274,7 +273,9 @@ function PlanSelect({
                 }}
                 data-test-id="seer-toggle-button"
               >
-                {seerIsEnabled ? t('Added to plan') : t('%s/mo', seerPrice)}
+                {seerIsEnabled
+                  ? t('Added to plan')
+                  : t('%s/mo', utils.displayPrice({cents: SEER_MONTHLY_PRICE_CENTS}))}
               </Button>
             </ButtonWrapper>
             <div>

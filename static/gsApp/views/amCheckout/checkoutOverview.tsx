@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Tag} from 'sentry/components/core/badge/tag';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
+import {SEER_MONTHLY_PRICE_CENTS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -182,15 +183,13 @@ class CheckoutOverview extends Component<Props> {
       return null;
     }
 
-    const seerPrice = utils.displayPrice({cents: 2000});
-
     return (
       <DetailItem key="seer" data-test-id="seer">
         <div>
           <DetailTitle>{t('Seer: Sentry AI Enhancements')}</DetailTitle>
           {t('Surface insights and propose solutions to fix bugs faster.')}
         </div>
-        <DetailPrice>{`${seerPrice}/mo`}</DetailPrice>
+        <DetailPrice>{`${utils.displayPrice({cents: SEER_MONTHLY_PRICE_CENTS})}/mo`}</DetailPrice>
       </DetailItem>
     );
   }

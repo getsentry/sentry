@@ -5,6 +5,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 import {Tag} from 'sentry/components/core/badge/tag';
 import Panel from 'sentry/components/panels/panel';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {SEER_MONTHLY_PRICE_CENTS} from 'sentry/constants';
 import {IconLock, IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -53,9 +54,6 @@ function CheckoutOverviewV2({
   const hasSeerEnabled = formData.seerEnabled === true;
   const hasSeerFeature = organization.features.includes('seer-billing');
 
-  const seerCents = 2000;
-  const seerPrice = utils.displayPrice({cents: seerCents});
-
   const renderPlanDetails = () => {
     return (
       <PanelChild>
@@ -94,7 +92,7 @@ function CheckoutOverviewV2({
               </div>
             </Column>
             <Column minWidth="150px" alignItems="end">
-              <Title>{`+${seerPrice}/mo`}</Title>
+              <Title>{`+${utils.displayPrice({cents: SEER_MONTHLY_PRICE_CENTS})}/mo`}</Title>
               <Description>Additional usage billed separately</Description>
             </Column>
           </SpaceBetweenRow>
