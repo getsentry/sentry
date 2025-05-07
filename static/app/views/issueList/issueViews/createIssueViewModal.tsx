@@ -9,6 +9,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssueViewQueryParams';
 import {useCreateGroupSearchView} from 'sentry/views/issueList/mutations/useCreateGroupSearchView';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -43,7 +44,10 @@ export function CreateIssueViewModal({
   } = useCreateGroupSearchView({
     onSuccess: (data, variables) => {
       navigate(
-        normalizeUrl(`/organizations/${organization.slug}/issues/views/${data.id}/`)
+        normalizeUrl({
+          pathname: `/organizations/${organization.slug}/issues/views/${data.id}/`,
+          query: getIssueViewQueryParams({view: data}),
+        })
       );
 
       trackAnalytics('issue_views.save_as.created', {
