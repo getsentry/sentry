@@ -47,6 +47,18 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             workflow_two.name,
         ]
 
+    def test_sort_by_duplicated_name(self):
+        self.create_workflow(organization_id=self.organization.id, name="Name")
+        self.create_workflow(organization_id=self.organization.id, name="Name")
+        self.create_workflow(organization_id=self.organization.id, name="Name")
+
+        response1 = self.get_success_response(self.organization.slug, qs_params={"sortBy": "name"})
+        assert len(response1.data) == 3
+        response2 = self.get_success_response(self.organization.slug, qs_params={"sortBy": "-name"})
+        assert [w["id"] for w in response2.data] == list(
+            reversed([w["id"] for w in response1.data])
+        )
+
     def test_sort_by_connected_detectors(self):
         workflow = self.create_workflow(
             organization_id=self.organization.id, name="A Test Workflow"

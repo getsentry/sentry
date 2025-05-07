@@ -47,7 +47,7 @@ const onboarding: OnboardingConfig = {
           code: <code />,
         }
       ),
-      configurations: getPythonInstallConfig({packageName: "'sentry-sdk[pymongo]'"}),
+      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[pymongo]'}),
     },
   ],
   configure: (params: Params) => [

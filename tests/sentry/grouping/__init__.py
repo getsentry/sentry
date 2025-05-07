@@ -91,6 +91,8 @@ class GroupingInput:
         grouping_config["enhancements"] = Enhancements.from_rules_text(
             self.data.get("_grouping", {}).get("enhancements", ""),
             bases=Enhancements.from_base64_string(grouping_config["enhancements"]).bases,
+            # Version 3 to run split enhancements on newstyle configs
+            version=3 if not config_name.startswith("legacy") else 2,
         ).base64_string
         fingerprinting_config = FingerprintingRules.from_json(
             {"rules": self.data.get("_fingerprinting_rules", [])},

@@ -24,11 +24,11 @@ from sentry.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.identity.services.identity.service import identity_service
 from sentry.integrations.base import IntegrationDomain
-from sentry.integrations.github.tasks.open_pr_comment import open_pr_comment_workflow
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.services.repository.service import repository_service
+from sentry.integrations.source_code_management.tasks import open_pr_comment_workflow
 from sentry.integrations.source_code_management.webhook import SCMWebhook
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.scope import clear_tags_and_context
@@ -557,7 +557,8 @@ class PullRequestEventWebhook(GitHubWebhook):
                 },
             )
 
-            if action == "opened" and created:
+            # TODO(jianyuan): Remove self.provider == "github" once we have implemented the new open_pr_comment_workflow for GH Enterprise
+            if action == "opened" and created and self.provider == "github":
                 if not OrganizationOption.objects.get_value(
                     organization=organization,
                     key="sentry:github_open_pr_bot",

@@ -67,7 +67,7 @@ export function InsightsSecondaryNav() {
         {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.INSIGHTS].label}
       </SecondaryNav.Header>
       <SecondaryNav.Body>
-        <SecondaryNav.Section>
+        <SecondaryNav.Section id="insights-main">
           <SecondaryNav.Item
             isActive={
               !isProjectDetailsRedirectActive &&
@@ -101,7 +101,17 @@ export function InsightsSecondaryNav() {
             {AI_SIDEBAR_LABEL}
           </SecondaryNav.Item>
         </SecondaryNav.Section>
+        <SecondaryNav.Section id="insights-projects-all">
+          <SecondaryNav.Item
+            to={`${baseUrl}/projects/`}
+            end
+            analyticsItemName="insights_projects_all"
+          >
+            {t('All Projects')}
+          </SecondaryNav.Item>
+        </SecondaryNav.Section>
         <SecondaryNav.Section
+          id="insights-starred-projects"
           title={displayStarredProjects ? t('Starred Projects') : t('Projects')}
           trailingItems={
             <AddProjectButtonLink
@@ -140,13 +150,6 @@ export function InsightsSecondaryNav() {
               {project.slug}
             </SecondaryNav.Item>
           ))}
-          <SecondaryNav.Item
-            to={`${baseUrl}/projects/`}
-            end
-            analyticsItemName="insights_projects_all"
-          >
-            {t('All Projects')}
-          </SecondaryNav.Item>
         </SecondaryNav.Section>
       </SecondaryNav.Body>
     </SecondaryNav>

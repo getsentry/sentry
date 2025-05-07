@@ -10,31 +10,32 @@ import type {
 import {AlternativeConfiguration} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
-export function getPythonInstallSnippet({
+function getPythonInstallSnippet({
   packageName,
-  packageManager = 'pip',
   minimumVersion,
 }: {
   packageName: string;
   minimumVersion?: string;
-  packageManager?: 'pip' | 'uv';
 }) {
+  // We are using consistent double quotes here for all package managers after aligning with the Python SDK team.
+  // Not using quotes may lead to some shells interpreting the square brackets, and using double quotes over single quotes is a convention.
   const versionedPackage = minimumVersion
-    ? `${packageName}>=${minimumVersion}`
-    : packageName;
+    ? `"${packageName}>=${minimumVersion}"`
+    : `"${packageName}"`;
 
   const upgradeFlag = minimumVersion ? '--upgrade ' : '';
 
   const packageManagerCommands = {
     uv: `uv add ${upgradeFlag}${versionedPackage}`,
     pip: `pip install ${upgradeFlag}${versionedPackage}`,
+    poetry: `poetry add ${versionedPackage}`,
   };
 
-  return packageManagerCommands[packageManager].trim();
+  return packageManagerCommands;
 }
 
 export function getPythonInstallConfig({
-  packageName = "'sentry-sdk'",
+  packageName = 'sentry-sdk',
   description,
   minimumVersion,
 }: {
@@ -42,6 +43,7 @@ export function getPythonInstallConfig({
   minimumVersion?: string;
   packageName?: string;
 } = {}): Configuration[] {
+  const packageManagerCommands = getPythonInstallSnippet({packageName, minimumVersion});
   return [
     {
       description,
@@ -51,35 +53,25 @@ export function getPythonInstallConfig({
           label: 'pip',
           value: 'pip',
           language: 'bash',
-          code: getPythonInstallSnippet({
-            packageName,
-            packageManager: 'pip',
-            minimumVersion,
-          }),
+          code: packageManagerCommands.pip,
         },
         {
           label: 'uv',
           value: 'uv',
           language: 'bash',
-          code: getPythonInstallSnippet({
-            packageName,
-            packageManager: 'uv',
-            minimumVersion,
-          }),
+          code: packageManagerCommands.uv,
+        },
+        {
+          label: 'poetry',
+          value: 'poetry',
+          language: 'bash',
+          code: packageManagerCommands.poetry,
         },
       ],
     },
   ];
 }
 
-export function getPythonProfilingMinVersionMessage() {
-  return tct(
-    'You need a minimum version [code:2.24.1] of the [code:sentry-python] SDK for the profiling feature.',
-    {
-      code: <code />,
-    }
-  );
-}
 export function getPythonAiocontextvarsConfig({
   description,
 }: {
@@ -93,7 +85,7 @@ export function getPythonAiocontextvarsConfig({
   );
 
   return getPythonInstallConfig({
-    packageName: "'aiocontextvars'",
+    packageName: 'aiocontextvars',
     description: description ?? defaultDescription,
   });
 }

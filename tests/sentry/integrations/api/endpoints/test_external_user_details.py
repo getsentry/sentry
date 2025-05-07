@@ -17,6 +17,13 @@ class ExternalUserDetailsTest(APITestCase):
         self.get_success_response(self.organization.slug, self.external_user.id, method="delete")
         assert not ExternalActor.objects.filter(id=str(self.external_user.id)).exists()
 
+    def test_manager_can_delete(self):
+        manager_user = self.create_user()
+        self.create_member(organization=self.organization, user=manager_user, role="manager")
+        self.login_as(user=manager_user)
+        self.get_success_response(self.organization.slug, self.external_user.id, method="delete")
+        assert not ExternalActor.objects.filter(id=str(self.external_user.id)).exists()
+
     def test_basic_update(self):
         with self.feature({"organizations:integrations-codeowners": True}):
             data = {"externalName": "@new_username"}
