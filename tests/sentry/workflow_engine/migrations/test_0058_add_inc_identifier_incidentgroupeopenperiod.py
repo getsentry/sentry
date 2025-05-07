@@ -16,8 +16,8 @@ from sentry.workflow_engine.models import IncidentGroupOpenPeriod
 )
 class AddIncidentIdentifierTest(TestMigrations):
     app = "workflow_engine"
-    migrate_from = "0056_workflow_fire_history_passed_filters_column"
-    migrate_to = "0057_add_inc_identifier_incidentgroupopenperiod"
+    migrate_from = "0057_workflowengine_rename_column"
+    migrate_to = "0058_add_inc_identifier_incidentgroupopenperiod"
 
     def setUp(self):
         return super().setUp()
