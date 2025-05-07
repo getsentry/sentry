@@ -1,6 +1,6 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
-import {logger} from '@sentry/core';
+import {PlatformIcon} from 'platformicons';
 
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button';
@@ -13,15 +13,13 @@ import {
   Header,
   NavigationCrumbs,
 } from 'sentry/components/events/eventDrawer';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {PlatformList} from 'sentry/components/platformList';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -33,7 +31,6 @@ import {GeneralCard} from 'sentry/views/releases/drawer/generalCard';
 import {NewIssues} from 'sentry/views/releases/drawer/newIssues';
 import {ReleasesDrawerFields} from 'sentry/views/releases/drawer/utils';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
-import {useReleaseDetails} from 'sentry/views/releases/utils/useReleaseDetails';
 import {useReleaseMeta} from 'sentry/views/releases/utils/useReleaseMeta';
 
 interface ReleasesDrawerDetailsProps {
@@ -45,9 +42,8 @@ interface ReleasesDrawerContentProps {
   isLoadingMeta: boolean;
   isMetaError: boolean;
   project: ReturnType<typeof useProjectFromId>;
-  projectId: string;
+  projectId: string | undefined;
   release: string;
-  releaseDetailsQuery: ReturnType<typeof useReleaseDetails>;
   releaseMeta: ReturnType<typeof useReleaseMeta>['data'];
 }
 
@@ -58,20 +54,31 @@ function ReleasesDrawerContent({
   releaseMeta,
   isMetaError,
   isLoadingMeta,
-  releaseDetailsQuery,
 }: ReleasesDrawerContentProps) {
   const organization = useOrganization();
+  const location = useLocation();
 
   return (
     <Fragment>
       <EventNavigator>
         <HeaderToolbar>
           <ReleaseWithPlatform>
-            <PlatformList
-              platforms={releaseDetailsQuery.data?.projects?.map(
-                ({platform}) => platform
-              )}
-            />
+            <SelectableProjectBadges>
+              {releaseMeta?.projects?.map(releaseProject => (
+                <SelectableProjectBadge
+                  key={releaseProject.id}
+                  to={{
+                    pathname: location.pathname,
+                    query: {
+                      ...location.query,
+                      [ReleasesDrawerFields.RELEASE_PROJECT_ID]: releaseProject.id,
+                    },
+                  }}
+                >
+                  <PlatformIcon size={16} platform={releaseProject.platform} />
+                </SelectableProjectBadge>
+              ))}
+            </SelectableProjectBadges>
             {formatVersion(release)}
           </ReleaseWithPlatform>
 
@@ -130,27 +137,14 @@ function ReleasesDrawerContent({
 
 function EnsureSingleProject({
   releaseMeta,
+  onProjectSelect,
 }: {
+  onProjectSelect: (selectedProjectId: string) => void;
   releaseMeta: NonNullable<ReturnType<typeof useReleaseMeta>['data']>;
 }) {
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const handleProjectSelect = (selectedProjectId: string) => {
-    navigate(
-      {
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          [ReleasesDrawerFields.RELEASE_PROJECT_ID]: selectedProjectId,
-        },
-      },
-      {replace: true}
-    );
-  };
   const projectOptions = (releaseMeta.projects ?? []).map(project => ({
     value: String(project.id),
-    label: project.slug,
+    label: <ProjectBadge project={project} disableLink />,
   }));
 
   return (
@@ -166,7 +160,7 @@ function EnsureSingleProject({
           placeholder={t('Select a project')}
           onChange={(option: {value: string} | null) => {
             if (option?.value) {
-              handleProjectSelect(option.value);
+              onProjectSelect(option.value);
             }
           }}
           isClearable={false}
@@ -182,53 +176,50 @@ export function ReleasesDrawerDetails({
   projectId: projectIdProp,
 }: ReleasesDrawerDetailsProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const {
     isLoading: isLoadingMeta,
     isError: isMetaError,
     data: releaseMeta,
   } = useReleaseMeta({release});
-  const {[ReleasesDrawerFields.RELEASE_PROJECT_ID]: releaseProjectIdParam} =
-    useLocationQuery({
-      fields: {
-        [ReleasesDrawerFields.RELEASE_PROJECT_ID]: decodeScalar,
-      },
-    });
-
+  const projectsFromMeta = releaseMeta?.projects ?? [];
   const hasMultipleProjects =
-    !projectIdProp &&
-    // !releaseProjectIdParam &&
-    !isLoadingMeta &&
-    (releaseMeta?.projects?.length ?? 0) > 1;
+    !projectIdProp && !isLoadingMeta && projectsFromMeta.length > 1;
 
-  const releaseDetailsQuery = useReleaseDetails(
-    {release},
-    {enabled: !hasMultipleProjects}
-  );
-
+  // projectId is either explicitly defined in the URL, or if there is a single project in release meta
   const projectId =
     projectIdProp ||
-    releaseProjectIdParam ||
     (hasMultipleProjects
       ? undefined
-      : releaseMeta?.projects?.[0]?.id
-        ? String(releaseMeta.projects[0]?.id)
+      : projectsFromMeta[0]?.id
+        ? String(projectsFromMeta[0]?.id)
         : undefined);
 
   const project = useProjectFromId({
     project_id: projectId,
   });
 
-  useEffect(() => {
-    if (releaseMeta?.projects?.length && releaseMeta.projects.length > 1) {
-      logger.debug('ReleaseDrawer: release is in multiple projects');
-    }
-  }, [releaseMeta?.projects]);
-
   const {
     [ReleasesDrawerFields.RELEASE]: _release,
     [ReleasesDrawerFields.RELEASE_PROJECT_ID]: _releaseProjectId,
     ...locationQueryWithoutRelease
   } = location.query;
+
+  const handleProjectSelect = useCallback(
+    (selectedProjectId: string) => {
+      navigate(
+        {
+          pathname: location.pathname,
+          query: {
+            ...location.query,
+            [ReleasesDrawerFields.RELEASE_PROJECT_ID]: selectedProjectId,
+          },
+        },
+        {replace: true}
+      );
+    },
+    [location, navigate]
+  );
 
   const crumbs = [
     {
@@ -245,33 +236,48 @@ export function ReleasesDrawerDetails({
     {label: formatVersion(release)},
   ];
 
+  const showContent =
+    // there is a project id in the url, so display content which has placeholders when releaseMeta is loading
+    projectIdProp ||
+    // otherwise, we need to wait for releaseMeta to load and make sure there is only one project
+    (!isLoadingMeta &&
+      !isMetaError &&
+      projectsFromMeta.length === 1 &&
+      projectsFromMeta[0] &&
+      projectId);
+
+  // show project select if releaseMeta is loaded and there are multiple projects in the release
+  const showProjectSelect = releaseMeta && hasMultipleProjects;
+
   return (
     <EventDrawerContainer>
       <EventDrawerHeader>
         <NavigationCrumbs crumbs={crumbs} />
       </EventDrawerHeader>
-      {isLoadingMeta ? (
+      {showContent ? (
+        <ReleasesDrawerContent
+          release={release}
+          projectId={projectIdProp || projectId}
+          project={project}
+          releaseMeta={releaseMeta}
+          isMetaError={isMetaError}
+          isLoadingMeta={isLoadingMeta}
+        />
+      ) : isLoadingMeta ? (
         <LoadingIndicator />
-      ) : isMetaError && !project ? (
+      ) : showProjectSelect ? (
+        <EnsureSingleProject
+          releaseMeta={releaseMeta}
+          onProjectSelect={handleProjectSelect}
+        />
+      ) : project || isMetaError ? (
+        <EventDrawerBody>
+          <Alert type="error">{t('Release not found')}</Alert>
+        </EventDrawerBody>
+      ) : (
         <EventDrawerBody>
           <Alert type="error">{t('Project not found')}</Alert>
         </EventDrawerBody>
-      ) : releaseMeta ? (
-        projectId ? (
-          <ReleasesDrawerContent
-            release={release}
-            projectId={projectId}
-            project={project}
-            releaseMeta={releaseMeta}
-            isMetaError={isMetaError}
-            isLoadingMeta={isLoadingMeta}
-            releaseDetailsQuery={releaseDetailsQuery}
-          />
-        ) : (
-          <EnsureSingleProject releaseMeta={releaseMeta} />
-        )
-      ) : (
-        <div>Error</div>
       )}
     </EventDrawerContainer>
   );
@@ -294,6 +300,18 @@ const ReleaseWithPlatform = styled('div')`
   display: flex;
   gap: ${space(1)};
   align-items: center;
+`;
+
+const SelectableProjectBadges = styled('div')`
+  display: flex;
+  & > :not(:first-child) {
+    margin-left: -${space(0.5)};
+  }
+`;
+
+const SelectableProjectBadge = styled(Link)`
+  display: flex;
+  cursor: pointer;
 `;
 
 const HeaderToolbar = styled(Header)`
