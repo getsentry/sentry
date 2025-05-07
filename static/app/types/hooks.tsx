@@ -253,6 +253,7 @@ export type FeatureDisabledHooks = {
   'feature-disabled:relay': FeatureDisabledHook;
   'feature-disabled:replay-sidebar-item': FeatureDisabledHook;
   'feature-disabled:sso-basic': FeatureDisabledHook;
+  'feature-disabled:sso-saml2': FeatureDisabledHook;
 };
 
 /**
