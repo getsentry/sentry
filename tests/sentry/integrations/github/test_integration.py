@@ -34,6 +34,7 @@ from sentry.integrations.source_code_management.commit_context import (
     SourceLineInfo,
 )
 from sentry.integrations.source_code_management.repo_trees import RepoAndBranch, RepoTree
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
@@ -42,7 +43,11 @@ from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
-from sentry.testutils.asserts import assert_failure_metric
+from sentry.testutils.asserts import (
+    assert_count_of_metric,
+    assert_failure_metric,
+    assert_success_metric,
+)
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.integrations import get_installation_of_type
@@ -1265,8 +1270,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
     @with_feature("organizations:github-multi-org")
     @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch.object(PipelineView, "render_react_view", return_value=HttpResponse())
-    def test_github_installation_calls_ui(self, mock_render):
+    def test_github_installation_calls_ui(self, mock_render, mock_record):
         self._setup_with_existing_installations()
         installations = [
             {
@@ -1308,9 +1314,13 @@ class GitHubIntegrationTest(IntegrationTestCase):
             props={"installation_info": installations},
         )
 
+        # SLO assertions
+        assert_success_metric(mock_record)
+
     @with_feature("organizations:github-multi-org")
     @responses.activate
-    def test_github_installation_stores_chosen_installation(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_github_installation_stores_chosen_installation(self, mock_record):
         self._setup_with_existing_installations()
         chosen_installation_id = "1"
 
@@ -1382,9 +1392,13 @@ class GitHubIntegrationTest(IntegrationTestCase):
             organization_id=self.organization.id, integration=integration
         ).exists()
 
+        # SLO assertions
+        assert_success_metric(mock_record)
+
     @with_feature("organizations:github-multi-org")
     @responses.activate
-    def test_github_installation_fails_on_invalid_installation(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_github_installation_fails_on_invalid_installation(self, mock_record):
         self._setup_with_existing_installations()
 
         # Initiate the OAuthView
@@ -1435,11 +1449,27 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert b'window.opener.postMessage({"success":false' in resp.content
 
         # SLO assertions
-        # assert_failure_metric(mock_record, GitHubInstallationError.INSTALLATION_EXISTS)
+
+        # OAuth_login (success): redirect to log into GH ->
+        # organization_select (success): redirect to UI selection page->
+        # OAuth_login (success): we returned the UI redirect so work back up callstack ->
+        # organization_select (failure): given installation_id was invalid
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=4
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=3
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
+        )
+
+        assert_failure_metric(mock_record, GitHubInstallationError.INVALID_INSTALLATION)
 
     @with_feature("organizations:github-multi-org")
     @responses.activate
-    def test_github_installation_skips_chosen_installation(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_github_installation_skips_chosen_installation(self, mock_record):
         self._setup_with_existing_installations()
 
         # Initiate the OAuthView
@@ -1499,6 +1529,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert OrganizationIntegration.objects.filter(
             organization_id=self.organization.id, integration=integration
         ).exists()
+
+        # SLO assertions
+        assert_success_metric(mock_record)
 
     @with_feature("organizations:github-multi-org")
     @responses.activate
