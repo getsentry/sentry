@@ -39,19 +39,25 @@ class StatefulGroupingDetectorHandler(
     DetectorHandler[PacketT],
     abc.ABC,
 ):
+    """
+    StatefulDetectorHandler is a partial handler implementation that supports
+    maintaining state across individual detector evaluations. This includes
+    capabilities to:
+
+    - De-duplication already processed packets by tracking already-seen
+      `dedup_value`s. Override the `get_dedupe_value` method to return the
+      value from the DataPacket that should be used to uniquely identify the
+      packet. Future packets with the same identifier will not be processed.
+
+    - Track's thresholds to transition between DetectorPriorityLevel's. This
+      can be configured by overriding the `get_priority_transition_thresholds`.
+    """
+
     def __init__(self, detector: Detector):
         super().__init__(detector)
         self.dedupe_updates: dict[DetectorGroupKey, int] = {}
-        self.counter_updates: dict[DetectorGroupKey, dict[str, int | None]] = {}
         self.state_updates: dict[DetectorGroupKey, tuple[bool, DetectorPriorityLevel]] = {}
-
-    @property
-    @abc.abstractmethod
-    def counter_names(self) -> list[str]:
-        """
-        The names of counters that this detector is going to keep track of.
-        """
-        pass
+        self.threshold_incrs: dict[DetectorGroupKey, DetectorPriorityLevel] = {}
 
     @abc.abstractmethod
     def get_dedupe_value(self, data_packet: DataPacket[PacketT]) -> int:
@@ -86,6 +92,16 @@ class StatefulGroupingDetectorHandler(
         """
         return [f"{self.detector.id}{':' + group_key if group_key is not None else ''}"]
 
+    @property
+    def priority_transition_thresholds(self) -> dict[DetectorPriorityLevel, int]:
+        """
+        Configures how many evaluations of a specific DetectorPriorityLevel
+        must occur consecutively in order for the transition to take place.
+        DetectorPriorityLevel's that do not need thresholds may be omitted or
+        set to zero.
+        """
+        return {}
+
     def get_state_data(
         self, group_keys: list[DetectorGroupKey]
     ) -> dict[DetectorGroupKey, DetectorStateData]:
@@ -94,33 +110,38 @@ class StatefulGroupingDetectorHandler(
         Returns a dict keyed by each group_key with the fetched `DetectorStateData`.
         If data isn't currently stored, falls back to default values.
         """
-        group_key_detectors = self.bulk_get_detector_state(group_keys)
-        dedupe_keys = [self.build_dedupe_value_key(gk) for gk in group_keys]
-        pipeline = get_redis_client().pipeline()
+        client = get_redis_client()
 
-        for dk in dedupe_keys:
-            pipeline.get(dk)
+        # Get dedupe values for each group key
+        pipeline = client.pipeline()
+        for dedupe_key in [self.build_dedupe_value_key(gk) for gk in group_keys]:
+            pipeline.get(dedupe_key)
 
         group_key_dedupe_values = {
             gk: int(dv) if dv else 0 for gk, dv in zip(group_keys, pipeline.execute())
         }
 
-        pipeline.reset()
-        counter_updates = {}
+        # Get current threshold counts for each group key
+        pipeline = client.pipeline()
+        threshold_counts: dict[DetectorGroupKey, dict[DetectorPriorityLevel, int]] = {}
+        priority_levels = self.priority_transition_thresholds.keys()
 
-        if self.counter_names:
-            counter_keys = [
-                self.build_counter_value_key(gk, name)
+        if priority_levels:
+            threshold_count_keys = [
+                self.build_priority_thresholds_count_key(gk, priority_level)
                 for gk in group_keys
-                for name in self.counter_names
+                for priority_level in priority_levels
             ]
-            for ck in counter_keys:
+            for ck in threshold_count_keys:
                 pipeline.get(ck)
-            vals = [int(val) if val is not None else val for val in pipeline.execute()]
-            counter_updates = {
-                gk: dict(zip(self.counter_names, values))
-                for gk, values in zip(group_keys, chunked(vals, len(self.counter_names)))
+            vals = [int(val) if val is not None else 0 for val in pipeline.execute()]
+            threshold_counts = {
+                gk: dict(zip(priority_levels, values))
+                for gk, values in zip(group_keys, chunked(vals, len(priority_levels)))
             }
+
+        # Get DetectorState object data
+        group_key_detectors = self.bulk_get_detector_state(group_keys)
 
         results = {}
         for gk in group_keys:
@@ -134,7 +155,7 @@ class StatefulGroupingDetectorHandler(
                     else DetectorPriorityLevel.OK
                 ),
                 dedupe_value=group_key_dedupe_values[gk],
-                counter_updates=counter_updates.get(gk, {}),
+                threshold_counts=threshold_counts.get(gk, {}),
             )
         return results
 
@@ -183,10 +204,6 @@ class StatefulGroupingDetectorHandler(
             metrics.incr("workflow_engine.detector.skipping_invalid_condition_group")
             return None
 
-        # TODO: We need to handle tracking consecutive evaluations before emitting a result here. We're able to
-        # store these in `DetectorStateData.counter_updates`, but we don't have anywhere to set the required
-        # thresholds at the moment. Probably should be a field on the Detector? Could also be on the condition
-        # level, but usually we want to set this at a higher level.
         # TODO 2: Validate that we will never have slow conditions here.
         new_status = DetectorPriorityLevel.OK
         (is_group_condition_met, condition_results), _ = process_data_condition_group(
@@ -202,8 +219,17 @@ class StatefulGroupingDetectorHandler(
 
             new_status = max(new_status, *validated_condition_results)
 
-        # TODO: We'll increment and change these later, but for now they don't change so just pass an empty dict
-        self.enqueue_counter_update(group_key, {})
+        # Check and update priority thresholds
+        thresholds = self.priority_transition_thresholds
+        status_threshold = thresholds.get(new_status, 0)
+        current_count = state_data.threshold_counts.get(new_status, 0)
+
+        self.enqueue_threshold_incr(group_key, new_status)
+
+        # Nothing to do if we haven't met the status threshold yet
+        if status_threshold and status_threshold > current_count + 1:
+            metrics.incr("workflow_engine.detector.priority_threshold_not_met")
+            return None
 
         if state_data.status != new_status:
             is_active = new_status != DetectorPriorityLevel.OK
@@ -254,25 +280,25 @@ class StatefulGroupingDetectorHandler(
     def enqueue_dedupe_update(self, group_key: DetectorGroupKey, dedupe_value: int):
         self.dedupe_updates[group_key] = dedupe_value
 
-    def enqueue_counter_update(
-        self, group_key: DetectorGroupKey, counter_updates: dict[str, int | None]
-    ):
-        self.counter_updates[group_key] = counter_updates
-
     def enqueue_state_update(
         self, group_key: DetectorGroupKey, is_active: bool, priority: DetectorPriorityLevel
     ):
         self.state_updates[group_key] = (is_active, priority)
+
+    def enqueue_threshold_incr(self, group_key: DetectorGroupKey, priority: DetectorPriorityLevel):
+        self.threshold_incrs[group_key] = priority
 
     def build_dedupe_value_key(self, group_key: DetectorGroupKey) -> str:
         if group_key is None:
             group_key = ""
         return f"{self.detector.id}:{group_key}:dedupe_value"
 
-    def build_counter_value_key(self, group_key: DetectorGroupKey, counter_name: str) -> str:
+    def build_priority_thresholds_count_key(
+        self, group_key: DetectorGroupKey, level: DetectorPriorityLevel
+    ) -> str:
         if group_key is None:
             group_key = ""
-        return f"{self.detector.id}:{group_key}:{counter_name}"
+        return f"{self.detector.id}:{group_key}:priority_threshold_count:{level}"
 
     def bulk_get_detector_state(
         self, group_keys: list[DetectorGroupKey]
@@ -301,23 +327,27 @@ class StatefulGroupingDetectorHandler(
         self._bulk_commit_redis_state()
 
     def _bulk_commit_redis_state(self):
-        pipeline = get_redis_client().pipeline()
+        client = get_redis_client()
+
+        # Update dedupe values
+        pipeline = client.pipeline()
         if self.dedupe_updates:
             for group_key, dedupe_value in self.dedupe_updates.items():
                 pipeline.set(self.build_dedupe_value_key(group_key), dedupe_value, ex=REDIS_TTL)
-
-        if self.counter_updates:
-            for group_key, counter_updates in self.counter_updates.items():
-                for counter_name, counter_value in counter_updates.items():
-                    key_name = self.build_counter_value_key(group_key, counter_name)
-                    if counter_value is None:
-                        pipeline.delete(key_name)
-                    else:
-                        pipeline.set(key_name, counter_value, ex=REDIS_TTL)
-
         pipeline.execute()
         self.dedupe_updates.clear()
-        self.counter_updates.clear()
+
+        # Update priority threshold incr values
+        priority_thresholds = self.priority_transition_thresholds
+        if priority_thresholds:
+            pipeline = client.pipeline()
+            for group_key, priority_to_incr in self.threshold_incrs.items():
+                # Reset priority threshold values that are not being incremented
+                for priority in set(priority_thresholds.keys()) - {priority_to_incr}:
+                    pipeline.delete(self.build_priority_thresholds_count_key(group_key, priority))
+                pipeline.incr(self.build_priority_thresholds_count_key(group_key, priority_to_incr))
+            pipeline.execute()
+            self.threshold_incrs.clear()
 
     def _bulk_commit_detector_state(self):
         # TODO: We should already have these loaded from earlier, figure out how to cache and reuse

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, override
 from unittest import mock
 
 from sentry.issues.grouptype import GroupCategory, GroupType
@@ -48,7 +48,23 @@ def status_change_comparator(self: StatusChangeMessage, other: StatusChangeMessa
 
 
 class MockDetectorStateHandler(StatefulGroupingDetectorHandler[dict, int | None]):
-    counter_names = ["test1", "test2"]
+    def __init__(
+        self,
+        detector: Detector,
+        transition_tresholds: dict[DetectorPriorityLevel, int] | None = None,
+    ):
+        super().__init__(detector)
+        if transition_tresholds is None:
+            transition_tresholds = {
+                DetectorPriorityLevel.OK: 1,
+                DetectorPriorityLevel.HIGH: 1,
+            }
+        self.transition_tresholds = transition_tresholds
+
+    @property
+    @override
+    def priority_transition_thresholds(self) -> dict[DetectorPriorityLevel, int]:
+        return self.transition_tresholds
 
     def get_dedupe_value(self, data_packet: DataPacket[dict]) -> int:
         return data_packet.packet.get("dedupe", 0)
@@ -159,21 +175,24 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
         return detector
 
     def build_handler(
-        self, detector: Detector | None = None, detector_type=None
+        self,
+        detector: Detector | None = None,
+        detector_type: str | None = None,
+        priority_transition_thresholds: dict[DetectorPriorityLevel, int] | None = None,
     ) -> MockDetectorStateHandler:
         if detector is None:
             detector = self.create_detector_and_conditions(detector_type)
-        return MockDetectorStateHandler(detector)
+        return MockDetectorStateHandler(detector, priority_transition_thresholds)
 
-    def assert_updates(self, handler, group_key, dedupe_value, counter_updates, active, priority):
+    def assert_updates(self, handler, group_key, dedupe_value, threshold_incr, active, priority):
         if dedupe_value is not None:
             assert handler.dedupe_updates.get(group_key) == dedupe_value
         else:
             assert group_key not in handler.dedupe_updates
-        if counter_updates is not None:
-            assert handler.counter_updates.get(group_key) == counter_updates
+        if threshold_incr is not None:
+            assert handler.threshold_incrs.get(group_key) == threshold_incr
         else:
-            assert group_key not in handler.counter_updates
+            assert group_key not in handler.threshold_incrs
         if active is not None or priority is not None:
             assert handler.state_updates.get(group_key) == (active, priority)
         else:
