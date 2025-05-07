@@ -22,12 +22,17 @@ type Props = {
 
 function TimelineTooltip({enabled = true, labelText}: Props) {
   const labelRef = useRef<HTMLDivElement>(null);
+  const portalRef = useRef<HTMLElement | null>(null);
   const [position, setPosition] = useState({x: 100, y: FIXED_Y_POSITION});
   const [isVisible, setIsVisible] = useState(true);
 
+  useEffect(() => {
+    portalRef.current = document.getElementById('replay-timeline-player');
+  }, []);
+
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      const portal = document.getElementById('replay-timeline-player');
+      const portal = portalRef.current;
 
       if (portal) {
         const containerRect = portal.getBoundingClientRect();
@@ -69,6 +74,10 @@ function TimelineTooltip({enabled = true, labelText}: Props) {
 
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, [enabled, handleMouseMove]);
+
+  if (!portalRef.current) {
+    return null;
+  }
 
   return createPortal(
     <CursorLabel
