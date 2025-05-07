@@ -22,6 +22,7 @@ from sentry import features, options
 from sentry.grouping.component import FrameGroupingComponent, StacktraceGroupingComponent
 from sentry.models.project import Project
 from sentry.stacktraces.functions import set_in_app
+from sentry.utils import metrics
 from sentry.utils.safe import get_path, set_path
 
 from .exceptions import InvalidEnhancerConfig
@@ -714,26 +715,34 @@ class Enhancements:
     @classmethod
     def from_base64_string(cls, base64_string: str | bytes) -> Enhancements:
         """Convert a base64 string into an `Enhancements` object"""
-        bytes_str = (
-            base64_string.encode("ascii", "ignore")
-            if isinstance(base64_string, str)
-            else base64_string
-        )
-        padded_bytes = bytes_str + b"=" * (4 - (len(bytes_str) % 4))
-        try:
-            compressed_pickle = base64.urlsafe_b64decode(padded_bytes)
 
-            if compressed_pickle.startswith(b"\x28\xb5\x2f\xfd"):
-                pickled = zstandard.decompress(compressed_pickle)
-            else:
-                pickled = zlib.decompress(compressed_pickle)
+        with metrics.timer("grouping.enhancements.creation") as metrics_timer_tags:
+            bytes_str = (
+                base64_string.encode("ascii", "ignore")
+                if isinstance(base64_string, str)
+                else base64_string
+            )
+            padded_bytes = bytes_str + b"=" * (4 - (len(bytes_str) % 4))
+            try:
+                compressed_pickle = base64.urlsafe_b64decode(padded_bytes)
 
-            rust_enhancements = get_rust_enhancements("config_structure", pickled)
-            config_structure = msgpack.loads(pickled, raw=False)
+                if compressed_pickle.startswith(b"\x28\xb5\x2f\xfd"):
+                    pickled = zstandard.decompress(compressed_pickle)
+                else:
+                    pickled = zlib.decompress(compressed_pickle)
 
-            return cls._from_config_structure(config_structure, rust_enhancements)
-        except (LookupError, AttributeError, TypeError, ValueError) as e:
-            raise ValueError("invalid stack trace rule config: %s" % e)
+                rust_enhancements = get_rust_enhancements("config_structure", pickled)
+                config_structure = msgpack.loads(pickled, raw=False)
+
+                metrics_timer_tags.update(
+                    # The first entry in the config structure is the enhancements version
+                    {"split": config_structure[0] == 3, "source": "base64_string"}
+                )
+
+                return cls._from_config_structure(config_structure, rust_enhancements)
+
+            except (LookupError, AttributeError, TypeError, ValueError) as e:
+                raise ValueError("invalid stack trace rule config: %s" % e)
 
     @classmethod
     @sentry_sdk.tracing.trace
@@ -745,17 +754,19 @@ class Enhancements:
         version: int | None = None,
     ) -> Enhancements:
         """Create an `Enhancements` object from a text blob containing stacktrace rules"""
-        rust_enhancements = get_rust_enhancements("config_string", rules_text)
 
-        rules = parse_enhancements(rules_text)
+        with metrics.timer("grouping.enhancements.creation") as metrics_timer_tags:
+            metrics_timer_tags.update({"split": version == 3, "source": "rules_text"})
 
-        return Enhancements(
-            rules,
-            rust_enhancements=rust_enhancements,
-            version=version,
-            bases=bases,
-            id=id,
-        )
+            rust_enhancements = get_rust_enhancements("config_string", rules_text)
+            rules = parse_enhancements(rules_text)
+            return Enhancements(
+                rules,
+                rust_enhancements=rust_enhancements,
+                version=version,
+                bases=bases,
+                id=id,
+            )
 
 
 def _load_configs() -> dict[str, Enhancements]:
