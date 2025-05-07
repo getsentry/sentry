@@ -22,14 +22,12 @@ type Props = {
 
 function TimelineTooltip({enabled = true, labelText}: Props) {
   const labelRef = useRef<HTMLDivElement>(null);
-  const portalRef = useRef<HTMLElement | null>(null);
   const [position, setPosition] = useState({x: 100, y: FIXED_Y_POSITION});
   const [isVisible, setIsVisible] = useState(true);
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
       const portal = document.getElementById('replay-timeline-player');
-      portalRef.current = portal;
 
       if (portal) {
         const containerRect = portal.getBoundingClientRect();
