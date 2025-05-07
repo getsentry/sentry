@@ -7,6 +7,7 @@ import zlib
 from collections import Counter
 from collections.abc import Sequence
 from functools import cached_property
+from random import random
 from typing import Any, Literal
 
 import msgpack
@@ -17,7 +18,9 @@ from sentry_ophio.enhancers import Cache as RustCache
 from sentry_ophio.enhancers import Component as RustFrame
 from sentry_ophio.enhancers import Enhancements as RustEnhancements
 
+from sentry import features, options
 from sentry.grouping.component import FrameGroupingComponent, StacktraceGroupingComponent
+from sentry.models.project import Project
 from sentry.stacktraces.functions import set_in_app
 from sentry.utils.safe import get_path, set_path
 
@@ -377,6 +380,22 @@ def _check_split_enhancements_stacktrace_contributes_and_hint(
                 rust_stacktrace_results_split.hint,
             )
         )
+
+
+def get_enhancements_version(project: Project, grouping_config_id: str) -> int:
+    """
+    Decide whether the Enhancements should be version 2 (status quo) or version 3 (split enhancements).
+    """
+    if grouping_config_id.startswith("legacy"):
+        return 2
+
+    if not features.has("organizations:run-split-enhancements", project.organization):
+        return 2
+
+    if random() < options.get("grouping.split_enhancements.sample_rate"):
+        return 3
+
+    return 2
 
 
 class Enhancements:
