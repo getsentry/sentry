@@ -189,48 +189,9 @@ export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
     };
   }
 
-  // make new enum that contains all the operators and the new ones
-  // change all the places that accept the old enum to use the new one
-  // add contains to the special case for text (here)
-  // change the reducer (modifyFilterOperator in useQueryBuilderState) to use the new enum
-  // if the value is contains do things (i.e. wrap in the stars)
-  // if the value is wrapped in stars parse it out and switch to the `contains` operator from `is` operator
-
   const keyLabel = token.key.text;
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const opLabel = OP_LABELS[operator] ?? operator;
-
-  // special case for text, and add in contains option
-  if (token.filter === FilterType.TEXT || token.filter === FilterType.TEXT_IN) {
-    let isContains = false;
-    if (token.value.type === Token.VALUE_TEXT) {
-      isContains = token.value.contains;
-    } else if (token.value.type === Token.VALUE_TEXT_LIST) {
-      isContains = token.value.items.every(item => item.value?.contains);
-    }
-
-    return {
-      operator,
-      label: isContains ? <OpLabel>contains</OpLabel> : <OpLabel>{opLabel}</OpLabel>,
-      options: [
-        {
-          value: TermOperatorNew.DEFAULT,
-          label: <FilterKeyOperatorLabel keyLabel="is" includeKeyLabel />,
-          textValue: 'is',
-        },
-        {
-          value: TermOperatorNew.NOT_EQUAL,
-          label: <FilterKeyOperatorLabel keyLabel="is not" includeKeyLabel />,
-          textValue: 'is not',
-        },
-        {
-          value: TermOperatorNew.CONTAINS,
-          label: <FilterKeyOperatorLabel keyLabel="contains" includeKeyLabel />,
-          textValue: 'contains',
-        },
-      ],
-    };
-  }
 
   return {
     operator,

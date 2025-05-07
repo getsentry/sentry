@@ -1,4 +1,4 @@
-import {type TermOperatorNew} from 'sentry/components/searchQueryBuilder/types';
+import {TermOperatorNew} from 'sentry/components/searchQueryBuilder/types';
 import {
   type AggregateFilter,
   allOperators,
@@ -38,9 +38,19 @@ export function getValidOpsForFilter(
   filterToken: TokenResult<Token.FILTER>
 ): readonly TermOperatorNew[] {
   const fieldDefinition = getFieldDefinition(filterToken.key.text);
+  const isTextFilter =
+    filterToken.filter === FilterType.TEXT || filterToken.filter === FilterType.TEXT_IN;
 
   if (fieldDefinition?.allowComparisonOperators) {
-    return allOperators as unknown as TermOperatorNew[];
+    const validOps = new Set<TermOperatorNew>(
+      allOperators as unknown as TermOperatorNew[]
+    );
+
+    if (isTextFilter) {
+      validOps.add(TermOperatorNew.CONTAINS);
+    }
+
+    return [...validOps];
   }
 
   // If the token is invalid we want to use the possible expected types as our filter type
@@ -60,6 +70,11 @@ export function getValidOpsForFilter(
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     allValidTypes.flatMap(type => filterTypeConfig[type].validOps)
   );
+
+  // Special case for text, add contains operator
+  if (isTextFilter) {
+    validOps.add(TermOperatorNew.CONTAINS);
+  }
 
   return [...validOps];
 }
