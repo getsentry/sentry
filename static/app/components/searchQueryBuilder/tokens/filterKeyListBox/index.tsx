@@ -28,6 +28,7 @@ import {IconSeer} from 'sentry/icons/iconSeer';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import {useTraceExploreAiQueryContext} from 'sentry/views/explore/contexts/traceExploreAiQueryContext';
 
@@ -79,6 +80,10 @@ function FeedbackFooter() {
   const {searchSource} = useSearchQueryBuilder();
   const openForm = useFeedbackForm();
   const traceExploreAiQueryContext = useTraceExploreAiQueryContext();
+  const organization = useOrganization();
+
+  const areAiFeaturesAllowed =
+    !organization.hideAiFeatures && organization.features.includes('gen-ai-features');
 
   if (!openForm) {
     return null;
@@ -87,7 +92,7 @@ function FeedbackFooter() {
   return (
     <SectionedOverlayFooter>
       <Feature features="organizations:gen-ai-explore-traces">
-        {traceExploreAiQueryContext ? (
+        {traceExploreAiQueryContext && areAiFeaturesAllowed ? (
           <Button
             priority="primary"
             size="xs"

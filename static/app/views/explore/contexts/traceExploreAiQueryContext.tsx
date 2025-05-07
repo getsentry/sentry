@@ -10,6 +10,7 @@ import {
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import useDrawer from 'sentry/components/globalDrawer';
@@ -87,6 +88,22 @@ function formatQueryTokens(result: any) {
         {result.group_by.map((groupBy: string) => (
           <ExploreGroupBys key={groupBy}>{groupBy}</ExploreGroupBys>
         ))}
+      </Token>
+    );
+  }
+  if (result.stats_period && result.stats_period.length > 0) {
+    tokens.push(
+      <Token key="statsPeriod">
+        <ExploreParamTitle>{t('Stats Period')}</ExploreParamTitle>
+        <ExploreGroupBys key={result.stats_period}>{result.stats_period}</ExploreGroupBys>
+      </Token>
+    );
+  }
+  if (result.sort && result.sort.length > 0) {
+    tokens.push(
+      <Token key="sort">
+        <ExploreParamTitle>{t('Sort')}</ExploreParamTitle>
+        <ExploreGroupBys key={result.sort}>{result.sort}</ExploreGroupBys>
       </Token>
     );
   }
@@ -191,7 +208,12 @@ export function AiQueryDrawer() {
       <DrawerHeader hideBar />
       <StyledDrawerBody>
         <HeaderContainer>
-          <AiQueryHeader>{t('Seer Says...')}</AiQueryHeader>
+          <StyledHeaderContainer>
+            <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+              <AiQueryHeader>{t('Seer Says...')}</AiQueryHeader>
+              <FeatureBadge type="alpha" />
+            </div>
+          </StyledHeaderContainer>
           <form onSubmit={handleSubmit}>
             <StyledInputGroup>
               <InputGroup.LeadingItems disablePointerEvents>
@@ -266,18 +288,16 @@ export function TraceExploreAiQueryContextProvider({
   const client = useApi();
 
   useEffect(() => {
-    if (organization.features.includes('organizations:gen-ai-explore-traces')) {
-      client.requestPromise(
-        `/api/0/organizations/${organization.slug}/trace-explorer-ai/setup/`,
-        {
-          method: 'POST',
-          data: {
-            org_id: organization.id,
-            project_ids: pageFilters.selection.projects,
-          },
-        }
-      );
-    }
+    client.requestPromise(
+      `/api/0/organizations/${organization.slug}/trace-explorer-ai/setup/`,
+      {
+        method: 'POST',
+        data: {
+          org_id: organization.id,
+          project_ids: pageFilters.selection.projects,
+        },
+      }
+    );
   }, [
     client,
     organization.features,
@@ -413,4 +433,10 @@ const StyledParamsContainer = styled('div')`
   gap: ${space(1)};
   border-top: 1px solid ${p => p.theme.border};
   border-bottom: 1px solid ${p => p.theme.border};
+`;
+
+const StyledHeaderContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
 `;
