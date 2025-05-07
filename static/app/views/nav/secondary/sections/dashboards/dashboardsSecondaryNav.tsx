@@ -32,7 +32,7 @@ export function DashboardsSecondaryNav() {
       <SecondaryNav.Body>
         <SecondaryNav.Section>
           <SecondaryNav.Item to={`${baseUrl}/`} end analyticsItemName="dashboards_all">
-            {t('All')}
+            {t('All Dashboards')}
           </SecondaryNav.Item>
         </SecondaryNav.Section>
         <SecondaryNav.Section title={t('Starred Dashboards')}>

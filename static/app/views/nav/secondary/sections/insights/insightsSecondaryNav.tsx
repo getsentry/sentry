@@ -101,6 +101,15 @@ export function InsightsSecondaryNav() {
             {AI_SIDEBAR_LABEL}
           </SecondaryNav.Item>
         </SecondaryNav.Section>
+        <SecondaryNav.Section>
+          <SecondaryNav.Item
+            to={`${baseUrl}/projects/`}
+            end
+            analyticsItemName="insights_projects_all"
+          >
+            {t('All Projects')}
+          </SecondaryNav.Item>
+        </SecondaryNav.Section>
         <SecondaryNav.Section
           title={displayStarredProjects ? t('Starred Projects') : t('Projects')}
           trailingItems={
@@ -140,13 +149,6 @@ export function InsightsSecondaryNav() {
               {project.slug}
             </SecondaryNav.Item>
           ))}
-          <SecondaryNav.Item
-            to={`${baseUrl}/projects/`}
-            end
-            analyticsItemName="insights_projects_all"
-          >
-            {t('All Projects')}
-          </SecondaryNav.Item>
         </SecondaryNav.Section>
       </SecondaryNav.Body>
     </SecondaryNav>
