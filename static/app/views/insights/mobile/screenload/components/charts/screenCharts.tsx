@@ -33,7 +33,6 @@ import {
   YAXIS_COLUMNS,
 } from 'sentry/views/insights/mobile/screenload/constants';
 import {transformDeviceClassEvents} from 'sentry/views/insights/mobile/screenload/utils';
-import type {MetricsProperty} from 'sentry/views/insights/types';
 
 export enum YAxis {
   WARM_START = 0,
@@ -47,17 +46,22 @@ export enum YAxis {
 }
 
 type Props = {
-  yAxes: YAxis[];
   additionalFilters?: string[];
   chartHeight?: number;
 };
 
-export function ScreenCharts({yAxes, additionalFilters}: Props) {
+const yAxes = [YAxis.TTID, YAxis.TTFD, YAxis.COUNT];
+
+export function ScreenCharts({additionalFilters}: Props) {
   const theme = useTheme();
   const useEap = useInsightsEap();
   const pageFilter = usePageFilters();
   const {isProjectCrossPlatform, selectedPlatform: platform} = useCrossPlatformProject();
-  const yAxisCols = yAxes.map(val => YAXIS_COLUMNS[val]) as MetricsProperty[];
+  const yAxisCols = [
+    'avg(measurements.time_to_initial_display)',
+    'avg(measurements.time_to_full_display)',
+    'count()',
+  ] as const;
 
   const {
     primaryRelease,
