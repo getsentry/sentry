@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sentry_sdk
 from django.db import router, transaction
-from django.db.models import Case, Count, Exists, IntegerField, OuterRef, Subquery, When
+from django.db.models import Case, Count, Exists, F, IntegerField, OuterRef, Subquery, When
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -30,7 +30,11 @@ from sentry.apidocs.parameters import (
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.explore.endpoints.bases import ExploreSavedQueryPermission
 from sentry.explore.endpoints.serializers import ExploreSavedQuerySerializer
-from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryStarred
+from sentry.explore.models import (
+    ExploreSavedQuery,
+    ExploreSavedQueryLastVisited,
+    ExploreSavedQueryStarred,
+)
 from sentry.locks import locks
 from sentry.search.utils import tokenize_query
 from sentry.utils.locking import UnableToAcquireLock
@@ -336,6 +340,15 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
                 else:
                     queryset = queryset.none()
 
+        last_visited_query = Subquery(
+            ExploreSavedQueryLastVisited.objects.filter(
+                organization=organization,
+                user_id=request.user.id,
+                explore_saved_query_id=OuterRef("id"),
+            ).values("last_visited")[:1]
+        )
+        queryset = queryset.annotate(user_last_visited=last_visited_query)
+
         order_by: list[Case | str] = []
 
         sort_by_list = request.query_params.getlist("sortBy")
@@ -359,7 +372,11 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
                     order_by.append("visits" if desc else "-visits")
 
                 elif sort_by == "recentlyViewed":
-                    order_by.append("last_visited" if desc else "-last_visited")
+                    order_by.append(
+                        F("user_last_visited").asc(nulls_last=True)
+                        if desc
+                        else F("user_last_visited").desc(nulls_last=True)
+                    )
 
                 elif sort_by == "myqueries":
                     order_by.append(

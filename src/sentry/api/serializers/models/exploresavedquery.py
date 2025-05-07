@@ -94,7 +94,7 @@ class ExploreSavedQueryModelSerializer(Serializer):
             "expired": False,
             "dateAdded": obj.date_added,
             "dateUpdated": obj.date_updated,
-            "lastVisited": obj.last_visited,
+            "lastVisited": obj.user_last_visited,
             "createdBy": attrs.get("created_by"),
             "starred": attrs.get("starred"),
             "position": attrs.get("position"),
