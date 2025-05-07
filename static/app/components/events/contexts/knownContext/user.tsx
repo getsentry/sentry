@@ -114,7 +114,7 @@ export function getUserContextData({
           default:
             return {
               key: ctxKey,
-              subject: ctxKey,
+              subject: `data.${ctxKey}`,
               value: data[ctxKey],
               meta: meta?.[ctxKey]?.[''],
             };

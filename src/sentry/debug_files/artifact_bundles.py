@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import sentry_sdk
 from django.conf import settings
 from django.db import router
-from django.db.models import Count
+from django.db.models import Count, Exists, OuterRef
 from django.utils import timezone
 from rediscluster import RedisCluster
 
@@ -443,16 +443,30 @@ def get_artifact_bundles_containing_url(
     """
     return set(
         ArtifactBundle.objects.filter(
-            releaseartifactbundle__organization_id=project.organization.id,
-            releaseartifactbundle__release_name=release_name,
-            releaseartifactbundle__dist_name=dist_name,
-            projectartifactbundle__project_id=project.id,
-            artifactbundleindex__organization_id=project.organization.id,
-            artifactbundleindex__url__icontains=url,
+            Exists(
+                ArtifactBundleIndex.objects.filter(
+                    artifact_bundle_id=OuterRef("pk"),
+                    organization_id=project.organization.id,
+                    url__icontains=url,
+                )
+            ),
+            Exists(
+                ProjectArtifactBundle.objects.filter(
+                    artifact_bundle_id=OuterRef("pk"),
+                    project_id=project.id,
+                )
+            ),
+            Exists(
+                ReleaseArtifactBundle.objects.filter(
+                    artifact_bundle_id=OuterRef("pk"),
+                    organization_id=project.organization.id,
+                    release_name=release_name,
+                    dist_name=dist_name,
+                )
+            ),
         )
         .values_list("id", "date_added")
-        .order_by("-date_last_modified", "-id")
-        .distinct("date_last_modified", "id")[:MAX_BUNDLES_QUERY]
+        .order_by("-date_last_modified", "-id")[:MAX_BUNDLES_QUERY]
     )
 
 
