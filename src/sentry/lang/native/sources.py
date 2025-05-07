@@ -13,6 +13,8 @@ import orjson
 import sentry_sdk
 from django.conf import settings
 from django.urls import reverse
+from google.auth import impersonated_credentials
+from google.auth.transport import Request
 from rediscluster import RedisCluster
 
 from sentry import features, options
@@ -578,15 +580,29 @@ def get_sources_for_project(project):
         if key not in builtin_sources:
             continue
 
-        if source.get("type") == "gcs":
-            if features.has("organizations:gcp-bearer-token-authentication", organization):
-                # For GCS we want to fetch an auth token and pass it down to symbolicator for authorization.
-                credentials, project_id = google.auth.default(
-                    scopes=["https://www.googleapis.com/auth/devstorage.read_only"]
+        if features.has("organizations:gcp-bearer-token-authentication", organization):
+            if source.get("type") == "gcs":
+                # Fetch the regular credentials for GCP
+                source_credentials, _ = google.auth.default()
+
+                # Impersonate the service account to give the token for symbolicator a proper scope
+                target_credentials = impersonated_credentials.Credentials(
+                    source_credentials=source_credentials,
+                    target_principal=source.get("client_email"),
+                    target_scopes=["https://www.googleapis.com/auth/cloud-platform"],
+                    lifetime=3600,
                 )
 
-                if credentials.token is not None:
-                    source["bearer_token"] = credentials.token
+                target_credentials.refresh(Request())
+
+                if target_credentials.token is not None:
+                    source["bearer_token"] = target_credentials.token
+
+                    # Remove other credentials if we have a token
+                    if "client_email" in source:
+                        del source["client_email"]
+                    if "private_key" in source:
+                        del source["private_key"]
 
         # special internal alias type expands to more than one item.  This
         # is used to make `apple` expand to `ios`/`macos` and other
