@@ -2108,6 +2108,40 @@ describe('SearchQueryBuilder', function () {
         ).toBeInTheDocument();
       });
 
+      it('includes contains operator', async function () {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="browser.name:foo" />);
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+        );
+        expect(await screen.findByRole('option', {name: 'contains'})).toBeInTheDocument();
+      });
+
+      it('does not include contains operator when allowWildcard is false', async function () {
+        const filterKeys = {
+          [FieldKey.ISSUE_PRIORITY]: {
+            key: FieldKey.ISSUE_PRIORITY,
+            name: '',
+            allowAllOperators: false,
+            allowWildcard: false,
+          },
+        };
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            filterKeys={filterKeys}
+            filterKeySections={[]}
+            initialQuery="issue.priority:foo"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit operator for filter: issue.priority'})
+        );
+        expect(await screen.findByRole('option', {name: 'is'})).toBeInTheDocument();
+        expect(screen.queryByRole('option', {name: 'contains'})).not.toBeInTheDocument();
+      });
+
       it('wraps text values in stars when contains is selected', async function () {
         render(<SearchQueryBuilder {...defaultProps} initialQuery="browser.name:foo" />);
 
