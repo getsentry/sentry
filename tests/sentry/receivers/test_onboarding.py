@@ -5,6 +5,7 @@ import pytest
 from django.utils import timezone
 
 from sentry import onboarding_tasks
+from sentry.analytics import record
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationonboardingtask import (
     OnboardingTask,
@@ -1278,7 +1279,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             == 1
         )
 
-    @patch("sentry.analytics.record")
+    @patch("sentry.analytics.record", wraps=record)
     def test_tasks_are_transferred_when_project_is_transferred(self, record_analytics):
         """
         Test that onboarding tasks are transferred when a project is transferred
