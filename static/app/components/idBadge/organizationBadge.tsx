@@ -20,7 +20,7 @@ function OrganizationBadge({
     <BaseBadge
       displayName={
         <BadgeDisplayName hideOverflow={hideOverflow}>
-          {organization.slug}
+          {organization.name}
         </BadgeDisplayName>
       }
       organization={organization}
