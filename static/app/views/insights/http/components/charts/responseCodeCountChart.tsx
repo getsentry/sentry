@@ -1,4 +1,6 @@
 import {t} from 'sentry/locale';
+// TODO(release-drawer): Only used in httpSamplesPanel, should be easy to move data fetching in here
+// eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 

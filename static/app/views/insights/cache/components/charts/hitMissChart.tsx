@@ -1,3 +1,5 @@
+// TODO(release-drawer): Only used in cache/components/samplePanel
+// eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';

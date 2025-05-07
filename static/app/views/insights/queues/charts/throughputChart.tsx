@@ -2,6 +2,8 @@ import {useTheme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
+// Our loadable chart widgets use this to render, so this import is ok
+// eslint-disable-next-line no-restricted-imports
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {renameDiscoverSeries} from 'sentry/views/insights/common/utils/renameDiscoverSeries';
 import {useProcessQueuesTimeSeriesQuery} from 'sentry/views/insights/queues/queries/useProcessQueuesTimeSeriesQuery';
