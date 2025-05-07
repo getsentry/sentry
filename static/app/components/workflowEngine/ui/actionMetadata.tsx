@@ -38,11 +38,11 @@ export const ActionMetadata: Partial<
     icon: <PluginIcon pluginId="msteams" size={ICON_SIZE} />,
   },
   [ActionType.OPSGENIE]: {
-    name: t('Ops Genie'),
+    name: t('Opsgenie'),
     icon: <PluginIcon pluginId="opsgenie" size={ICON_SIZE} />,
   },
   [ActionType.PAGERDUTY]: {
-    name: t('Pager Duty'),
+    name: t('Pagerduty'),
     icon: <PluginIcon pluginId="pagerduty" size={ICON_SIZE} />,
   },
   [ActionType.PLUGIN]: {
