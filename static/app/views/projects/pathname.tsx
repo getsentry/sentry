@@ -13,7 +13,7 @@ export function makeProjectsPathname({
   path: '/' | `/${string}/`;
 }) {
   return normalizeUrl(
-    prefersStackedNav()
+    prefersStackedNav(organization)
       ? `/organizations/${organization.slug}/${PROJECTS_BASE_PATHNAME}${path}`
       : `/organizations/${organization.slug}/${LEGACY_PROJECTS_BASE_PATHNAME}${path}`
   );

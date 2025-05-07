@@ -89,7 +89,7 @@ export function IssueViewNavItems({sectionRef, baseUrl}: IssueViewNavItemsProps)
           />
         ))}
       </Reorder.Group>
-      {organization.features.includes('issue-view-sharing') && (
+      {organization.features.includes('enforce-stacked-navigation') && (
         <SecondaryNav.Item to={`${baseUrl}/views/`} end>
           {t('All Views')}
         </SecondaryNav.Item>

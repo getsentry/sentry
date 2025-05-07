@@ -282,9 +282,14 @@ describe('ChartWidgetLoader - unmocked imports', () => {
     // We only need to check that the dynamic import completes for these tests as that means ChartWidgetLoader is able to load all widgets
     expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
 
-    await waitFor(() => {
-      expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
+      },
+      {
+        timeout: 2000,
+      }
+    );
 
     expect(TimeSeriesWidgetVisualization).toHaveBeenCalledWith(
       expect.objectContaining({

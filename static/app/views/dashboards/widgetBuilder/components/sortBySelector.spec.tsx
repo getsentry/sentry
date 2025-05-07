@@ -34,7 +34,7 @@ const mockUseNavigate = jest.mocked(useNavigate);
 describe('WidgetBuilderSortBySelector', function () {
   beforeEach(function () {
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/spans/fields/',
+      url: '/organizations/org-slug/trace-items/attributes/',
       body: [],
     });
   });

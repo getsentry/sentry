@@ -14,7 +14,7 @@ const LEGACY_PROFILING_BASE_PATHNAME = 'profiling';
 const PROFILING_BASE_PATHNAME = 'explore/profiling';
 
 function generateProfilingRoute({organization}: {organization: Organization}): Path {
-  if (prefersStackedNav()) {
+  if (prefersStackedNav(organization)) {
     return `/organizations/${organization.slug}/${PROFILING_BASE_PATHNAME}/`;
   }
 
@@ -30,7 +30,7 @@ export function generateProfileFlamechartRoute({
   profileId: Trace['id'];
   projectSlug: Project['slug'];
 }): string {
-  if (prefersStackedNav()) {
+  if (prefersStackedNav(organization)) {
     return `/organizations/${organization.slug}/${PROFILING_BASE_PATHNAME}/profile/${projectSlug}/${profileId}/flamegraph/`;
   }
 
@@ -44,7 +44,7 @@ function generateContinuousProfileFlamechartRoute({
   organization: Organization;
   projectSlug: Project['slug'];
 }): string {
-  if (prefersStackedNav()) {
+  if (prefersStackedNav(organization)) {
     return `/organizations/${organization.slug}/${PROFILING_BASE_PATHNAME}/profile/${projectSlug}/flamegraph/`;
   }
 
@@ -58,7 +58,7 @@ function generateProfileDifferentialFlamegraphRoute({
   organization: Organization;
   projectSlug: Project['slug'];
 }): string {
-  if (prefersStackedNav()) {
+  if (prefersStackedNav(organization)) {
     return `/organizations/${organization.slug}/${PROFILING_BASE_PATHNAME}/profile/${projectSlug}/differential-flamegraph/`;
   }
 

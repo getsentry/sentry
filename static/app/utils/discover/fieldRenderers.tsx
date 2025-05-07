@@ -57,6 +57,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
+import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
 import {ResponseStatusCodeCell} from 'sentry/views/insights/common/components/tableCells/responseStatusCodeCell';
 import {StarredSegmentCell} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
@@ -378,6 +379,7 @@ type SpecialFields = {
   issue: SpecialField;
   'issue.id': SpecialField;
   minidump: SpecialField;
+  'performance_score(measurements.score.total)': SpecialField;
   'profile.id': SpecialField;
   project: SpecialField;
   release: SpecialField;
@@ -401,6 +403,11 @@ const DownloadCount = styled('span')`
 const RightAlignedContainer = styled('span')`
   margin-left: auto;
   margin-right: 0;
+`;
+
+const CenterAlignedContainer = styled('span')`
+  text-align: center;
+  width: 100%;
 `;
 
 /**
@@ -826,6 +833,20 @@ const SPECIAL_FIELDS: SpecialFields = {
         )}
       </Container>
     ),
+  },
+  'performance_score(measurements.score.total)': {
+    sortField: 'performance_score(measurements.score.total)',
+    renderFunc: data => {
+      const score = data['performance_score(measurements.score.total)'];
+      if (typeof score !== 'number') {
+        return <Container>{emptyValue}</Container>;
+      }
+      return (
+        <CenterAlignedContainer>
+          <PerformanceBadge score={Math.round(score * 100)} />
+        </CenterAlignedContainer>
+      );
+    },
   },
 };
 

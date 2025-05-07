@@ -1,7 +1,8 @@
-import {Fragment, useCallback, useEffect} from 'react';
+import {Fragment, useCallback, useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion, type MotionProps} from 'framer-motion';
+import snakeCase from 'lodash/snakeCase';
 import moment from 'moment-timezone';
 
 import type {PromptData} from 'sentry/actionCreators/prompts';
@@ -16,12 +17,12 @@ import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import type {Color} from 'sentry/utils/theme';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import {SidebarButton} from 'sentry/views/nav/primary/components';
 import {
   PrimaryButtonOverlay,
   usePrimaryButtonOverlay,
 } from 'sentry/views/nav/primary/primaryButtonOverlay';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
 import useSubscription from 'getsentry/hooks/useSubscription';
@@ -168,8 +169,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
     }, [] as DataCategory[]);
   const promptsToCheck = exceededCategories
     .map(category => {
-      const categoryInfo = getCategoryInfoFromPlural(category);
-      return `${categoryInfo?.snakeCasePlural ?? category}_overage_alert`;
+      return `${snakeCase(category)}_overage_alert`;
     })
     .filter(Boolean);
 
@@ -220,6 +220,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
     return Object.values(isPromptDismissed).every(Boolean);
   }, [isPromptDismissed]);
 
+  const hasAutoOpenedAlertRef = useRef(false);
   useEffect(() => {
     // auto open the alert if it hasn't been explicitly dismissed, and
     // either it has been more than a day since the last shown date,
@@ -237,11 +238,13 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
       .utc()
       .isAfter(moment(lastShownDate).utc());
     if (
+      !hasAutoOpenedAlertRef.current &&
       !hasSnoozedAllPrompts() &&
       (daysSinceLastShown >= 1 ||
         currentCategories !== lastShownCategories ||
         lastShownBeforeCurrentPeriod)
     ) {
+      hasAutoOpenedAlertRef.current = true;
       overlayState.open();
       localStorage.setItem(
         `billing-status-last-shown-categories-${organization.id}`,

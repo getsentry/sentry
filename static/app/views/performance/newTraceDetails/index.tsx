@@ -73,8 +73,12 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
 
   const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);
   const trace = useTrace({traceSlug, timestamp: queryParams.timestamp});
-  const rootEvent = useTraceRootEvent(trace.data ?? null);
   const tree = useTraceTree({traceSlug, trace, meta, replay: null});
+  const rootEventResults = useTraceRootEvent({
+    tree,
+    logs: logsTableData?.logsData?.data,
+    traceId: traceSlug,
+  });
 
   const traceWaterfallModels = useTraceWaterfallModels();
   const traceWaterfallScroll = useTraceWaterfallScroll({
@@ -92,7 +96,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
         <NoProjectMessage organization={organization}>
           <TraceExternalLayout>
             <TraceMetaDataHeader
-              rootEventResults={rootEvent}
+              rootEventResults={rootEventResults}
               tree={tree}
               metaResults={meta}
               organization={organization}
@@ -107,7 +111,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
                 meta={meta}
                 replay={null}
                 source="performance"
-                rootEvent={rootEvent}
+                rootEventResults={rootEventResults}
                 traceSlug={traceSlug}
                 traceEventView={traceEventView}
                 organization={organization}
@@ -118,7 +122,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
               <TraceContextPanel
                 traceSlug={traceSlug}
                 tree={tree}
-                rootEvent={rootEvent}
+                rootEventResults={rootEventResults}
                 onScrollToNode={traceWaterfallScroll.onScrollToNode}
                 logs={logsTableData.logsData?.data}
               />

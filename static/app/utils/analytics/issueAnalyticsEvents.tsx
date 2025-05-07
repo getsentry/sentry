@@ -316,6 +316,7 @@ export type IssueEventParameters = {
   };
   'issue_views.renamed_view': Record<string, unknown>;
   'issue_views.reordered_views': Record<string, unknown>;
+  'issue_views.reset.clicked': Record<string, unknown>;
   'issue_views.save.clicked': Record<string, unknown>;
   'issue_views.save_as.clicked': Record<string, unknown>;
   'issue_views.save_as.created': {
@@ -505,6 +506,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_views.reordered_views': 'Issue Views: Views Reordered',
   'issue_views.add_view.clicked': 'Issue Views: Add View Clicked',
   'issue_views.save_as.clicked': 'Issue Views: Save As Clicked',
+  'issue_views.reset.clicked': 'Issue Views: Reset Clicked',
   'issue_views.save_as.created': 'Issue Views: Save As New View Created',
   'issue_views.save.clicked': 'Issue Views: Save Clicked',
   'issue_views.add_view.custom_query_saved':
