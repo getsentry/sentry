@@ -95,11 +95,10 @@ class DetectorStateData:
     # processed and all workflows have been done, this value will be used by the stateful detector to prevent
     # reprocessing
     dedupe_value: int
-    # Stateful detectors allow various counts to be tracked. We need to update these after we process workflows, so
-    # include the updates in the state.
-    # This dictionary is in the format {counter_name: counter_value, ...}
-    # If a counter value is `None` it means to unset the value
-    counter_updates: dict[str, int | None]
+    # Stateful detectors can track thresholds for DetectorPriorityLevel
+    # transitions. This dictionary maps the count of consecutive evauations for
+    # each DetectorPriorityLevel.
+    threshold_counts: dict[DetectorPriorityLevel, int]
 
 
 class DetectorHandler(abc.ABC, Generic[PacketT]):
