@@ -206,7 +206,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
         """
         Use this method when testing state updates that have been executed by evaluate
         """
-        saved_state = handler.get_state_data([group_key])
+        saved_state = handler.state_manager.get_state_data([group_key])
         state_data = saved_state.get(group_key)
 
         if not state_data:

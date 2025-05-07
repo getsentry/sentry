@@ -1,5 +1,6 @@
 import abc
 import dataclasses
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Generic
 from uuid import uuid4
@@ -47,6 +48,7 @@ class DetectorStateData:
     counter_updates: dict[str, int | None]
 
 
+# TODO - refactor the `DetectorGroup` information out of this layer.
 class DetectorStateManager:
     """
     Move the SQL + Redis state here, out of the `StatefulGroupingDetectorHandler`.
@@ -58,9 +60,15 @@ class DetectorStateManager:
     counter_names: list[str] = []
     detector: Detector
 
-    def __init__(self, detector: Detector, counter_names: list[str]):
+    def __init__(
+        self,
+        detector: Detector,
+        counter_names: list[str],
+        key_builder: Callable[[str, str], str] | None = None,
+    ):
         self.detector = detector
         self.counter_names = counter_names
+        self.key_builder = key_builder
 
     def enqueue_dedupe_update(self, group_key: DetectorGroupKey, dedupe_value: int):
         self.dedupe_updates[group_key] = dedupe_value
@@ -110,6 +118,128 @@ class DetectorStateManager:
             for detector_state in self.detector.detectorstate_set.filter(query_filter)
         }
 
+    def _build_key(self, group_key: DetectorGroupKey, post_fix: str) -> str:
+        if self.key_builder and group_key:
+            return self.key_builder(group_key, post_fix)
+
+        return f"{self.detector.id}:{post_fix}"
+
+    def commit_state_updates(self):
+        self._bulk_commit_detector_state()
+        self._bulk_commit_redis_state()
+
+    def _bulk_commit_dedupe_values(self, pipeline):
+        for group_key, dedupe_value in self.dedupe_updates.items():
+            pipeline.set(self._build_key(group_key, "dedupe_value"), dedupe_value, ex=REDIS_TTL)
+
+    def _bulk_commit_counter_updates(self, pipeline):
+        for group_key, counter_updates in self.counter_updates.items():
+            for counter_name, counter_value in counter_updates.items():
+                key_name = self._build_key(group_key, counter_name)
+
+                if counter_value is None:
+                    pipeline.delete(key_name)
+                else:
+                    pipeline.set(key_name, counter_value, ex=REDIS_TTL)
+
+    def _bulk_commit_redis_state(self, key: DetectorGroupKey | None = None):
+        pipeline = get_redis_client().pipeline()
+        if self.dedupe_updates:
+            self._bulk_commit_dedupe_values(pipeline)
+
+        if self.counter_updates:
+            self._bulk_commit_counter_updates(pipeline)
+
+        pipeline.execute()
+
+        self.dedupe_updates.clear()
+        self.counter_updates.clear()
+
+    def _bulk_commit_detector_state(self):
+        # TODO: We should already have these loaded from earlier, figure out how to cache and reuse
+        detector_state_lookup = self.bulk_get_detector_state(
+            [update for update in self.state_updates.keys()]
+        )
+        created_detector_states = []
+        updated_detector_states = []
+
+        for group_key, (is_triggered, priority) in self.state_updates.items():
+            detector_state = detector_state_lookup.get(group_key)
+            if not detector_state:
+                created_detector_states.append(
+                    DetectorState(
+                        detector_group_key=group_key,
+                        detector=self.detector,
+                        is_triggered=is_triggered,
+                        state=priority,
+                    )
+                )
+            elif is_triggered != detector_state.is_triggered or priority != detector_state.state:
+                detector_state.is_triggered = is_triggered
+                detector_state.state = priority
+                updated_detector_states.append(detector_state)
+
+        if created_detector_states:
+            DetectorState.objects.bulk_create(created_detector_states)
+
+        if updated_detector_states:
+            DetectorState.objects.bulk_update(updated_detector_states, ["is_triggered", "state"])
+
+        self.state_updates.clear()
+
+    def get_state_data(
+        self, group_keys: list[DetectorGroupKey]
+    ) -> dict[DetectorGroupKey, DetectorStateData]:
+        """
+        Fetches state data associated with this detector for the associated `group_keys`.
+        Returns a dict keyed by each group_key with the fetched `DetectorStateData`.
+        If data isn't currently stored, falls back to default values.
+        """
+        group_key_detectors = self.bulk_get_detector_state(group_keys)
+        dedupe_lookup_keys = [
+            self._build_key(group_key, "dedupe_value") for group_key in group_keys
+        ]
+        dedupe_keys = self.get_dedupe_keys(dedupe_lookup_keys)
+        pipeline = get_redis_client().pipeline()
+
+        group_key_dedupe_values = {
+            group_key: int(dedupe_value) if dedupe_value else 0
+            for group_key, dedupe_value in zip(group_keys, dedupe_keys)
+        }
+
+        counter_updates = {}
+
+        if self.counter_names:
+            counter_keys = [
+                self._build_key(group_key, counter_name)
+                for group_key in group_keys
+                for counter_name in self.counter_names
+            ]
+            for counter_key in counter_keys:
+                pipeline.get(counter_key)
+            values = [int(value) if value is not None else value for value in pipeline.execute()]
+
+            counter_updates = {
+                group_key: dict(zip(self.counter_names, values))
+                for group_key, values in zip(group_keys, chunked(values, len(self.counter_names)))
+            }
+
+        results = {}
+        for group_key in group_keys:
+            detector_state = group_key_detectors.get(group_key)
+            results[group_key] = DetectorStateData(
+                group_key=group_key,
+                is_triggered=detector_state.is_triggered if detector_state else False,
+                status=(
+                    DetectorPriorityLevel(int(detector_state.state))
+                    if detector_state
+                    else DetectorPriorityLevel.OK
+                ),
+                dedupe_value=group_key_dedupe_values[group_key],
+                counter_updates=counter_updates.get(group_key, {}),
+            )
+        return results
+
 
 class StatefulGroupingDetectorHandler(
     Generic[DataPacketType, DataPacketEvaluationType],
@@ -118,7 +248,17 @@ class StatefulGroupingDetectorHandler(
 ):
     def __init__(self, detector: Detector):
         super().__init__(detector)
-        self.state_manager = DetectorStateManager(detector, self.counter_names)
+        self.state_manager = DetectorStateManager(
+            detector,
+            self.counter_names,
+            key_builder=self.build_key_for_group,
+        )
+
+    def build_key_for_group(self, group_key: DetectorGroupKey, post_fix: str | None = None) -> str:
+        """
+        Builds a key for the given group key. This is used to store the state of the detector in Redis.
+        """
+        return f"{self.detector.id}{':' + group_key if group_key is not None else ''}:{post_fix}"
 
     @property
     @abc.abstractmethod
@@ -148,57 +288,6 @@ class StatefulGroupingDetectorHandler(
         """
         return [f"{self.detector.id}{':' + group_key if group_key is not None else ''}"]
 
-    def get_state_data(
-        self, group_keys: list[DetectorGroupKey]
-    ) -> dict[DetectorGroupKey, DetectorStateData]:
-        """
-        Fetches state data associated with this detector for the associated `group_keys`.
-        Returns a dict keyed by each group_key with the fetched `DetectorStateData`.
-        If data isn't currently stored, falls back to default values.
-        """
-        group_key_detectors = self.state_manager.bulk_get_detector_state(group_keys)
-        dedupe_lookup_keys = [self.build_dedupe_value_key(group_key) for group_key in group_keys]
-        dedupe_keys = self.state_manager.get_dedupe_keys(dedupe_lookup_keys)
-        pipeline = get_redis_client().pipeline()
-
-        group_key_dedupe_values = {
-            group_key: int(dedupe_value) if dedupe_value else 0
-            for group_key, dedupe_value in zip(group_keys, dedupe_keys)
-        }
-
-        counter_updates = {}
-
-        if self.counter_names:
-            counter_keys = [
-                self.build_counter_value_key(group_key, name)
-                for group_key in group_keys
-                for name in self.counter_names
-            ]
-            for counter_key in counter_keys:
-                pipeline.get(counter_key)
-            values = [int(value) if value is not None else value for value in pipeline.execute()]
-
-            counter_updates = {
-                group_key: dict(zip(self.counter_names, values))
-                for group_key, values in zip(group_keys, chunked(values, len(self.counter_names)))
-            }
-
-        results = {}
-        for group_key in group_keys:
-            detector_state = group_key_detectors.get(group_key)
-            results[group_key] = DetectorStateData(
-                group_key=group_key,
-                is_triggered=detector_state.is_triggered if detector_state else False,
-                status=(
-                    DetectorPriorityLevel(int(detector_state.state))
-                    if detector_state
-                    else DetectorPriorityLevel.OK
-                ),
-                dedupe_value=group_key_dedupe_values[group_key],
-                counter_updates=counter_updates.get(group_key, {}),
-            )
-        return results
-
     def evaluate(
         self, data_packet: DataPacket[DataPacketType]
     ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
@@ -209,7 +298,7 @@ class StatefulGroupingDetectorHandler(
         """
         dedupe_value = self.extract_dedupe_value(data_packet)
         group_values = self.extract_group_values(data_packet)
-        all_state_data = self.get_state_data(list(group_values.keys()))
+        all_state_data = self.state_manager.get_state_data(list(group_values.keys()))
         results = {}
         for group_key, group_value in group_values.items():
             result = self.evaluate_group_key_value(
@@ -218,7 +307,7 @@ class StatefulGroupingDetectorHandler(
             if result:
                 results[result.group_key] = result
 
-        self.commit_state_updates()
+        self.state_manager.commit_state_updates()
         return results
 
     def evaluate_group_key_value(
@@ -316,76 +405,3 @@ class StatefulGroupingDetectorHandler(
             result=result,
             event_data=event_data,
         )
-
-    def build_dedupe_value_key(self, group_key: DetectorGroupKey) -> str:
-        if group_key is None:
-            group_key = ""
-        return f"{self.detector.id}:{group_key}:dedupe_value"
-
-    def build_counter_value_key(self, group_key: DetectorGroupKey, counter_name: str) -> str:
-        if group_key is None:
-            group_key = ""
-        return f"{self.detector.id}:{group_key}:{counter_name}"
-
-    # TODO move the remainig methods into the state manager
-    def commit_state_updates(self):
-        self._bulk_commit_detector_state()
-        self._bulk_commit_redis_state()
-
-    def _bulk_commit_redis_state(self):
-        pipeline = get_redis_client().pipeline()
-        dedupe_updates = self.state_manager.dedupe_updates
-        stored_counter_updates = self.state_manager.counter_updates
-
-        if dedupe_updates:
-            for group_key, dedupe_value in dedupe_updates.items():
-                pipeline.set(self.build_dedupe_value_key(group_key), dedupe_value, ex=REDIS_TTL)
-
-        if stored_counter_updates:
-            for group_key, counter_updates in stored_counter_updates.items():
-                for counter_name, counter_value in counter_updates.items():
-                    key_name = self.build_counter_value_key(group_key, counter_name)
-                    if counter_value is None:
-                        pipeline.delete(key_name)
-                    else:
-                        pipeline.set(key_name, counter_value, ex=REDIS_TTL)
-
-        pipeline.execute()
-
-        # TODO - move this into state manager as `.clear()`
-        self.state_manager.dedupe_updates.clear()
-        self.state_manager.counter_updates.clear()
-
-    def _bulk_commit_detector_state(self):
-        # TODO: We should already have these loaded from earlier, figure out how to cache and reuse
-        state_updates = self.state_manager.state_updates
-
-        detector_state_lookup = self.state_manager.bulk_get_detector_state(
-            [update for update in state_updates.keys()]
-        )
-        created_detector_states = []
-        updated_detector_states = []
-
-        for group_key, (is_triggered, priority) in state_updates.items():
-            detector_state = detector_state_lookup.get(group_key)
-            if not detector_state:
-                created_detector_states.append(
-                    DetectorState(
-                        detector_group_key=group_key,
-                        detector=self.detector,
-                        is_triggered=is_triggered,
-                        state=priority,
-                    )
-                )
-            elif is_triggered != detector_state.is_triggered or priority != detector_state.state:
-                detector_state.is_triggered = is_triggered
-                detector_state.state = priority
-                updated_detector_states.append(detector_state)
-
-        if created_detector_states:
-            DetectorState.objects.bulk_create(created_detector_states)
-
-        if updated_detector_states:
-            DetectorState.objects.bulk_update(updated_detector_states, ["is_triggered", "state"])
-
-        self.state_manager.state_updates.clear()

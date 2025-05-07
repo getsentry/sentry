@@ -53,6 +53,9 @@ class MetricAlertDetectorHandler(StatefulGroupingDetectorHandler[QuerySubscripti
     def extract_dedupe_value(self, data_packet: DataPacket[QuerySubscriptionUpdate]) -> int:
         return int(data_packet.packet.get("timestamp", datetime.now(UTC)).timestamp())
 
+    def extract_value(self, data_packet: DataPacket[QuerySubscriptionUpdate]) -> int:
+        return data_packet.packet["values"]["value"]
+
     def extract_group_values(
         self, data_packet: DataPacket[MetricDetectorUpdate]
     ) -> dict[DetectorGroupKey, int]:
