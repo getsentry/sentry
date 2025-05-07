@@ -46,8 +46,8 @@ export function getValidOpsForFilter(
       allOperators as unknown as TermOperatorNew[]
     );
 
-    if (isTextFilter) {
-      validOps.add(TermOperatorNew.CONTAINS);
+    if (isTextFilter && fieldDefinition?.allowWildcard === false) {
+      validOps.delete(TermOperatorNew.CONTAINS);
     }
 
     return [...validOps];
@@ -72,7 +72,7 @@ export function getValidOpsForFilter(
   );
 
   // Special case for text, add contains operator
-  if (isTextFilter) {
+  if (isTextFilter && fieldDefinition?.allowWildcard !== false) {
     validOps.add(TermOperatorNew.CONTAINS);
   }
 
