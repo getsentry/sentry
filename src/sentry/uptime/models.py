@@ -371,9 +371,6 @@ def create_detector_from_project_subscription(project_sub: ProjectUptimeSubscrip
     condition_group = DataConditionGroup.objects.create(
         organization=project_sub.project.organization,
     )
-    # TODO(epurkhiser): Should we be creating a new data condition + group for
-    # every uptime detector, or is there an intention to be able to re-use the
-    # groups for multiple detectors?
     DataCondition.objects.create(
         comparison=CHECKSTATUS_FAILURE,
         type=Condition.EQUAL,
