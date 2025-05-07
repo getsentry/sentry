@@ -1,4 +1,6 @@
 import gc
+import logging
+import random
 from datetime import datetime
 from itertools import chain
 from typing import Any
@@ -10,6 +12,8 @@ from django.db import models
 from django.utils.safestring import SafeString
 
 from sentry.utils import metrics
+
+logger = logging.getLogger("celery.pickle")
 
 # XXX: Pickle parameters are not allowed going forward
 LEGACY_PICKLE_TASKS: frozenset[str] = frozenset([])
@@ -98,13 +102,21 @@ class SentryTask(Task):
 
     def apply_async(self, *args, **kwargs):
         self._add_metadata(kwargs)
-        # If intended detect bad uses of pickle and make the tasks fail in tests.  This should
-        # in theory pick up a lot of bad uses without accidentally failing tasks in prod.
-        if (
-            settings.CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE
-            and self.name not in LEGACY_PICKLE_TASKS
-        ):
+        # If there is a bad use of pickle create a sentry exception to be found and fixed later.
+        # If this is running in tests, instead raise the exception and fail outright.
+        try:
             good_use_of_pickle_or_bad_use_of_pickle(self, args, kwargs)
+        except TypeError:
+            if (
+                settings.CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE
+                and self.name not in LEGACY_PICKLE_TASKS
+            ):
+                raise
+            else:
+                if random.random() <= settings.CELERY_PICKLE_ERROR_REPORT_SAMPLE_RATE:
+                    logger.exception(
+                        "Task args contain unserializable objects",
+                    )
 
         with metrics.timer("jobs.delay", instance=self.name):
             return Task.apply_async(self, *args, **kwargs)
