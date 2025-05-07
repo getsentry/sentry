@@ -457,6 +457,11 @@ function getReleasesRequest(
   });
 }
 
+/**
+ * This is the maximum number of data points that can be returned by the metrics API.
+ * Should be kept in sync with MAX_POINTS constant in backend
+ * @file src/sentry/snuba/metrics/utils.py
+ */
 const MAX_POINTS = 10000;
 
 /**
