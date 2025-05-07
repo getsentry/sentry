@@ -6,6 +6,7 @@ import moment from 'moment-timezone';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Button} from 'sentry/components/core/button';
+import ExternalLink from 'sentry/components/links/externalLink';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
@@ -937,48 +938,109 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
   story('Deep-Linking', () => (
     <div>
       <p>
-        As part of the work to add Release bubbles, we needed to be able to deep-link to
-        the Release flyout drawer, which includes the chart where the Release Bubble was
-        initially clicked on. We decided to handle this by using a unique id per each
-        chart in the application. This allows us to be able to render a chart from a
-        single string in the URL parameters.
+        Deep-linking to a chart works by mapping a unique ID to a self-contained component
+        that renders a chart and handles all the data-fetching required to do so. The{' '}
+        <ExternalLink href="https://github.com/getsentry/sentry/blob/master/static/app/components/charts/chartWidgetLoader.tsx">
+          <JSXNode name="ChartWidgetLoader" />
+        </ExternalLink>{' '}
+        component is where this mapping occurs and handles loading the module and
+        rendering the component.
       </p>
 
-      <p>
-        Please take a look at{' '}
-        <code>static/app/views/insights/common/components/widgets</code> for examples.
-        Here are the following guidelines if you are rendering a chart that uses{' '}
-        <JSXNode name="TimeSeriesWidgetVisualization" />:
-      </p>
+      <p>The following are the required steps in order to deep-link to a chart:</p>
 
       <ul>
         <li>
-          Components should be self-contained (e.g. they should not need to accept any
-          additional props and should manage their own data-fetching)
+          Create a new component in{' '}
+          <ExternalLink href="https://github.com/getsentry/sentry/tree/master/static/app/views/insights/common/components/widgets">
+            <code>static/app/views/insights/common/components/widgets</code>
+          </ExternalLink>
+          . These currently are only used in Insights, but we can move them to a more
+          common location if they are useful elsewhere. We want a specific location so
+          that we can enforce lint rules.
         </li>
         <li>
-          Components should be placed in{' '}
-          <code>static/app/views/insights/common/components/widgets</code>
+          Components need to be self-contained: they should not accept any additional
+          props beyond <code>LoadableChartWidgetProps</code> and should manage their own
+          data-fetching
         </li>
         <li>
-          Components should have a unique <code>id</code> prop that should also match the
-          filename
+          Components need to pass a unique <code>id</code> prop to{' '}
+          <JSXNode name="TimeSeriesWidgetVisualization" />. This <code>id</code> should
+          also match the filename.
         </li>
         <li>
           Components need to be a <code>default</code> export
         </li>
         <li>
           Component must be manually mapped in{' '}
-          <code>app/components/charts/chartWidgetLoader</code> - this is because we want
-          these paths to be statically analyzable
+          <ExternalLink href="https://github.com/getsentry/sentry/blob/master/static/app/components/charts/chartWidgetLoader.tsx">
+            <JSXNode name="ChartWidgetLoader" />
+          </ExternalLink>{' '}
+          so that these paths are statically analyzable
         </li>
       </ul>
 
       <p>
+        Here's an example component, it would be in a file named{' '}
+        <code>databaseLandingDurationChartWidget.tsx</code>. Also, in{' '}
+        <ExternalLink href="https://github.com/getsentry/sentry/blob/master/static/app/components/charts/chartWidgetLoader.tsx">
+          <JSXNode name="ChartWidgetLoader" />
+        </ExternalLink>
+        , be sure to also map its id to a a function that dynamically imports the
+        component.
+      </p>
+
+      <CodeSnippet language="tsx">
+        {`
+// In the file static/app/views/insights/common/components/widgets/databaseLandingDurationChartWidget.tsx
+export default function DatabaseLandingDurationChartWidget(
+  props: LoadableChartWidgetProps
+) {
+  const {isPending, data, error} = useDatabaseLandingDurationQuery();
+
+
+  // Note that id matches the filename
+  // it also needs to spread props to the underlying component
+  return (
+    <InsightsLineChartWidget
+      {...props}
+      id="databaseLandingDurationChartWidget"
+      title={getDurationChartTitle('db')}
+      series={[data[\`\${DEFAULT_DURATION_AGGREGATE}(span.self_time)\`]]}
+      isLoading={isPending}
+      error={error}
+    />
+  );
+}
+
+
+// In static/app/components/charts/chartWidgetLoader.tsx, add this to the CHART_MAP table
+{
+  "databaseLandingDurationChartWidget": () => import('sentry/views/insights/common/components/widgets/databaseLandingDurationChartWidget')
+}
+`}
+      </CodeSnippet>
+
+      <p>
+        Please take a look at{' '}
+        <ExternalLink href="https://github.com/getsentry/sentry/tree/master/static/app/views/insights/common/components/widgets">
+          <code>static/app/views/insights/common/components/widgets</code>
+        </ExternalLink>{' '}
+        for more examples.
+      </p>
+
+      <p>
         Note that there are lint rules to disallow importing of insights chart widget
         comopnents, as well as automated testing on all components in the root of the{' '}
-        <code>widgets/</code> directory to ensure that{' '}
-        <JSXNode name="ChartWidgetLoader" /> is able to load them all.
+        <ExternalLink href="https://github.com/getsentry/sentry/tree/master/static/app/views/insights/common/components/widgets">
+          <code>widgets/</code>
+        </ExternalLink>{' '}
+        directory to ensure that{' '}
+        <ExternalLink href="https://github.com/getsentry/sentry/blob/master/static/app/components/charts/chartWidgetLoader.tsx">
+          <JSXNode name="ChartWidgetLoader" />
+        </ExternalLink>{' '}
+        is able to load them all.
       </p>
     </div>
   ));
