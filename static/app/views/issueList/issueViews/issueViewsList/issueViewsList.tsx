@@ -26,6 +26,7 @@ import {
   DEFAULT_ENVIRONMENTS,
   DEFAULT_TIME_FILTERS,
 } from 'sentry/views/issueList/issueViews/issueViews';
+import AllViewsWelcomeBanner from 'sentry/views/issueList/issueViews/issueViewsList/allViewsWelcomeBanner';
 import {IssueViewsTable} from 'sentry/views/issueList/issueViews/issueViewsList/issueViewsTable';
 import {useCreateGroupSearchView} from 'sentry/views/issueList/mutations/useCreateGroupSearchView';
 import {useDeleteGroupSearchView} from 'sentry/views/issueList/mutations/useDeleteGroupSearchView';
@@ -347,6 +348,7 @@ export default function IssueViewsList() {
               />
               <SortDropdown />
             </FilterSortBar>
+            <AllViewsWelcomeBanner />
             <TableHeading>{t('Created by Me')}</TableHeading>
             <IssueViewSection
               createdBy={GroupSearchViewCreatedBy.ME}
