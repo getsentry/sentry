@@ -160,12 +160,7 @@ export default function SSRTreeWidget() {
   return (
     <Widget
       Title={<Widget.WidgetTitle title={t('File Tree')} />}
-      Visualization={
-        <Fragment>
-          <Divider />
-          {visualization}
-        </Fragment>
-      }
+      Visualization={<VisualizationWrapper>{visualization}</VisualizationWrapper>}
       noVisualizationPadding
       revealActions="always"
       Actions={
@@ -266,9 +261,10 @@ function TreeNodeRenderer({item, indent = 0}: {item: TreeNode; indent?: number})
 TreeWidgetVisualization.LoadingPlaceholder =
   TimeSeriesWidgetVisualization.LoadingPlaceholder;
 
-const Divider = styled('div')`
+const VisualizationWrapper = styled('div')`
   margin-top: ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.innerBorder};
+  overflow-y: auto;
 `;
 
 const HeaderCell = styled('div')`
@@ -305,8 +301,6 @@ const TreeGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr min-content;
   font-size: ${p => p.theme.codeFontSize};
-  overflow-y: auto;
-  max-height: 100%;
 
   & > * {
     padding: ${space(0.25)};
@@ -331,5 +325,5 @@ const TreeGrid = styled('div')`
 
 const ModalPanel = styled(Panel)`
   max-height: min(50vh, 500px);
-  overflow: hidden;
+  overflow-y: auto;
 `;
