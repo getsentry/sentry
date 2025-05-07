@@ -62,6 +62,10 @@ ingest_transactions_tasks = taskregistry.create_namespace(
     app_feature="transactions",
 )
 
+ingest_attachments_tasks = taskregistry.create_namespace(
+    "ingest.attachments", app_feature="attachments"
+)
+
 ingest_errors_tasks = taskregistry.create_namespace("ingest.errors", app_feature="errors")
 
 issues_tasks = taskregistry.create_namespace("issues", app_feature="issueplatform")
