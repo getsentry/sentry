@@ -1,7 +1,7 @@
 import abc
 import dataclasses
 from datetime import UTC, datetime, timedelta
-from typing import Any, Generic
+from typing import Generic
 from uuid import uuid4
 
 from django.conf import settings
@@ -18,8 +18,6 @@ from sentry.workflow_engine.handlers.detector.base import (
     DataPacketType,
     DetectorEvaluationResult,
     DetectorHandler,
-    DetectorOccurrence,
-    EventData,
 )
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
@@ -389,33 +387,3 @@ class StatefulGroupingDetectorHandler(
             DetectorState.objects.bulk_update(updated_detector_states, ["is_triggered", "state"])
 
         self.state_manager.state_updates.clear()
-
-    # TODO move to DetectorHandler base
-    @abc.abstractmethod
-    def extract_dedupe_value(self, data_packet: DataPacket[DataPacketType]) -> int:
-        """
-        Extracts the deduplication value from a passed data packet. This duplication
-        value is used to determine if we've already processed data to this point or not.
-
-        This is normally a timestamp, but could be any sortable value; (e.g. a sequence number, timestamp, etc).
-        """
-        pass
-
-    # TODO - move to detector handler base
-    @abc.abstractmethod
-    def create_occurrence(
-        self,
-        # data_packet: DataPacketType, # TODO - having access to all the data being evaluated seems good
-        # data_conditions: list[DataCondition], # TODO - list of the failing conditions might be nice
-        value: Any,
-        priority: DetectorPriorityLevel,
-    ) -> tuple[DetectorOccurrence, EventData]:
-        """
-        This method provides the value that was evaluated against, the data packet that was
-        used to get the data, and the condition(s) that are failing.
-
-        To implement this, you will need to create a new `DetectorOccurrence` object,
-        to represent the issue that was detected. Additionally, you can return any
-        event_data to associate with the occurrence.
-        """
-        pass

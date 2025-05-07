@@ -6,8 +6,8 @@ from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.testutils.abstract import Abstract
-from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.handlers.detector import (
+    DataPacketEvaluationType,
     DetectorEvaluationResult,
     DetectorHandler,
     DetectorOccurrence,
@@ -20,9 +20,9 @@ from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
 
 
 def build_mock_occurrence_and_event(
-    handler: StatefulGroupingDetectorHandler,
-    group_key: DetectorGroupKey,
-    new_status: PriorityLevel,
+    handler: DetectorHandler,
+    value: DataPacketEvaluationType,
+    priority: DetectorPriorityLevel,
 ) -> tuple[DetectorOccurrence, dict[str, Any]]:
     assert handler.detector.group_type is not None
     return (
@@ -60,9 +60,9 @@ class MockDetectorStateHandler(StatefulGroupingDetectorHandler[dict, int | None]
         return data_packet.packet.get("group_vals", {})
 
     def create_occurrence(
-        self, group_key: DetectorGroupKey, new_status: PriorityLevel
+        self, value: DataPacketEvaluationType, priority: DetectorPriorityLevel
     ) -> tuple[DetectorOccurrence, dict[str, Any]]:
-        return build_mock_occurrence_and_event(self, group_key, new_status)
+        return build_mock_occurrence_and_event(self, value, priority)
 
 
 class BaseDetectorHandlerTest(BaseGroupTypeTest):
@@ -93,6 +93,14 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
                 return {None: DetectorEvaluationResult(None, True, DetectorPriorityLevel.HIGH)}
 
+            def create_occurrence(
+                self, value: DataPacketEvaluationType, priority: DetectorPriorityLevel
+            ) -> tuple[DetectorOccurrence, dict[str, Any]]:
+                return build_mock_occurrence_and_event(self, value, priority)
+
+            def extract_dedupe_value(self, data_packet: DataPacket[dict]) -> int:
+                return data_packet.packet.get("dedupe", 0)
+
         class MockDetectorWithUpdateHandler(DetectorHandler[dict]):
             def evaluate(
                 self, data_packet: DataPacket[dict]
@@ -109,6 +117,14 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
                         None, True, DetectorPriorityLevel.HIGH, status_change
                     )
                 }
+
+            def create_occurrence(
+                self, value: DataPacketEvaluationType, priority: DetectorPriorityLevel
+            ) -> tuple[DetectorOccurrence, dict[str, Any]]:
+                return build_mock_occurrence_and_event(self, value, priority)
+
+            def extract_dedupe_value(self, data_packet: DataPacket[dict]) -> int:
+                return data_packet.packet.get("dedupe", 0)
 
         class HandlerGroupType(GroupType):
             type_id = 2

@@ -111,3 +111,32 @@ class DetectorHandler(abc.ABC, Generic[DataPacketType]):
         self, data_packet: DataPacket[DataPacketType]
     ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
         pass
+
+    @abc.abstractmethod
+    def extract_dedupe_value(self, data_packet: DataPacket[DataPacketType]) -> int:
+        """
+        Extracts the deduplication value from a passed data packet. This duplication
+        value is used to determine if we've already processed data to this point or not.
+
+        This is normally a timestamp, but could be any sortable value; (e.g. a sequence number, timestamp, etc).
+        """
+        pass
+
+    # TODO - move to detector handler base
+    @abc.abstractmethod
+    def create_occurrence(
+        self,
+        # data_packet: DataPacketType, # TODO - having access to all the data being evaluated seems good
+        # data_conditions: list[DataCondition], # TODO - list of the failing conditions might be nice
+        value: DataPacketEvaluationType,
+        priority: DetectorPriorityLevel,
+    ) -> tuple[DetectorOccurrence, EventData]:
+        """
+        This method provides the value that was evaluated against, the data packet that was
+        used to get the data, and the condition(s) that are failing.
+
+        To implement this, you will need to create a new `DetectorOccurrence` object,
+        to represent the issue that was detected. Additionally, you can return any
+        event_data to associate with the occurrence.
+        """
+        pass
