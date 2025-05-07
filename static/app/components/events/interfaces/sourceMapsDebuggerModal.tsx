@@ -499,6 +499,14 @@ export function SourceMapsDebuggerModal({
     ).tab;
   });
 
+  const hideReleasesTab = sourceResolutionResults.sdkDebugIdSupport === 'full';
+
+  const hideHostingPubliclyTab =
+    !sourceResolutionResults.hasScrapingData ||
+    isReactNativeSDK({sdkName: sourceResolutionResults.sdkName});
+
+  const hideAllTabs = hideReleasesTab && hideHostingPubliclyTab;
+
   return (
     <Fragment>
       <Header closeButton>
@@ -552,9 +560,13 @@ export function SourceMapsDebuggerModal({
             />
           )}
           <p>
-            {t(
-              "Secondly, let's go through a checklist to help you troubleshoot why source maps aren't showing up. There are a few ways to configure them:"
-            )}
+            {hideAllTabs
+              ? t(
+                  "Secondly, let's go through a checklist to help you troubleshoot why source maps aren't showing up."
+                )
+              : t(
+                  "Secondly, let's go through a checklist to help you troubleshoot why source maps aren't showing up. There are a few ways to configure them:"
+                )}
           </p>
           <Tabs<'debug-ids' | 'release' | 'fetching'>
             value={activeTab}
@@ -566,7 +578,7 @@ export function SourceMapsDebuggerModal({
                 textValue={`${t('Debug IDs')} (${
                   sourceResolutionResults.debugIdProgress
                 }/4)`}
-                hidden={sourceResolutionResults.sdkDebugIdSupport === 'not-supported'}
+                hidden={hideAllTabs}
               >
                 <StyledProgressRing
                   progressColor={
@@ -588,6 +600,7 @@ export function SourceMapsDebuggerModal({
                 textValue={`${t('Releases')} (${
                   sourceResolutionResults.releaseProgress
                 }/4)`}
+                hidden={hideReleasesTab}
               >
                 <StyledProgressRing
                   progressColor={
@@ -605,10 +618,7 @@ export function SourceMapsDebuggerModal({
                 textValue={`${t('Hosting Publicly')} (${
                   sourceResolutionResults.scrapingProgress
                 }/4)`}
-                hidden={
-                  !sourceResolutionResults.hasScrapingData ||
-                  isReactNativeSDK({sdkName: sourceResolutionResults.sdkName})
-                }
+                hidden={hideHostingPubliclyTab}
               >
                 <StyledProgressRing
                   progressColor={
@@ -624,18 +634,20 @@ export function SourceMapsDebuggerModal({
             </TabList>
             <StyledTabPanels>
               <TabPanels.Item key="debug-ids">
-                <p>
-                  {tct(
-                    '[link:Debug IDs] are a way of matching your source files to source maps. Follow all of the steps below to get a readable stack trace:',
-                    {
-                      link: defined(sourceMapsDocLinks.debugIds) ? (
-                        <ExternalLinkWithIcon href={sourceMapsDocLinks.debugIds} />
-                      ) : (
-                        <Fragment />
-                      ),
-                    }
-                  )}
-                </p>
+                <DebuggerSection title={t('Debug IDs')}>
+                  <p>
+                    {tct(
+                      '[link:Debug IDs] are a way of matching your source files to source maps. Follow all of the steps below to get a readable stack trace:',
+                      {
+                        link: defined(sourceMapsDocLinks.debugIds) ? (
+                          <ExternalLinkWithIcon href={sourceMapsDocLinks.debugIds} />
+                        ) : (
+                          <Fragment />
+                        ),
+                      }
+                    )}
+                  </p>
+                </DebuggerSection>
                 <CheckList>
                   <InstalledSdkChecklistItem
                     setActiveTab={setActiveTab}
