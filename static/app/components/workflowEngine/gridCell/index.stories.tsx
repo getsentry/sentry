@@ -2,10 +2,7 @@ import {Fragment} from 'react';
 
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
-import {
-  type Action,
-  ActionCell,
-} from 'sentry/components/workflowEngine/gridCell/actionCell';
+import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
 import {
   ConnectionCell,
   type ConnectionCellProps,
@@ -25,9 +22,10 @@ import {
   type UserCellProps,
 } from 'sentry/components/workflowEngine/gridCell/userCell';
 import storyBook from 'sentry/stories/storyBook';
+import {ActionType} from 'sentry/types/workflowEngine/actions';
 
 type ExampleAutomation = {
-  action: Action[];
+  actions: ActionType[];
   creator: UserCellProps['user'];
   linkedItems: ConnectionCellProps;
   openIssues: number;
@@ -44,7 +42,7 @@ export default storyBook('Grid Cell Components', story => {
         projectId: '1',
         link: '/issues/monitors/1',
       },
-      action: ['slack'],
+      actions: [ActionType.SLACK],
       timeAgo: new Date(),
       linkedItems: {
         ids: ['abc123'],
@@ -61,7 +59,7 @@ export default storyBook('Grid Cell Components', story => {
         details: ['transaction.duration', '2s warn, 2.5s critical threshold'],
         link: '/issues/monitors/2',
       },
-      action: ['discord'],
+      actions: [ActionType.DISCORD],
       timeAgo: new Date(Date.now() - 2 * 60 * 60 * 1000),
       linkedItems: {
         ids: ['abc123', 'def456', 'ghi789'],
@@ -78,7 +76,7 @@ export default storyBook('Grid Cell Components', story => {
         details: ['Every hour'],
         link: '/issues/monitors/3',
       },
-      action: ['email'],
+      actions: [ActionType.EMAIL],
       timeAgo: new Date(Date.now() - 25 * 60 * 60 * 1000),
       linkedItems: {
         ids: ['abc123', 'def456'],
@@ -95,7 +93,7 @@ export default storyBook('Grid Cell Components', story => {
         link: '/issues/monitors/4',
         disabled: true,
       },
-      action: ['slack', 'discord', 'email'],
+      actions: [ActionType.SLACK, ActionType.DISCORD, ActionType.EMAIL],
       creator: 'sentry',
       type: 'errors',
       timeAgo: null,
@@ -116,7 +114,7 @@ export default storyBook('Grid Cell Components', story => {
   ];
 
   const actionTable: Array<GridColumnOrder<keyof ExampleAutomation>> = [
-    {key: 'action', name: 'Action', width: 200},
+    {key: 'actions', name: 'Actions', width: 200},
   ];
 
   const timeAgoTable: Array<GridColumnOrder<keyof ExampleAutomation>> = [
@@ -152,8 +150,8 @@ export default storyBook('Grid Cell Components', story => {
             disabled={dataRow.title.disabled}
           />
         );
-      case 'action':
-        return <ActionCell actions={dataRow.action} />;
+      case 'actions':
+        return <ActionCell actions={dataRow.actions} />;
       case 'type':
         return <TypeCell type={dataRow.type} />;
       case 'creator':
