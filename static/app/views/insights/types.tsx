@@ -536,6 +536,7 @@ export enum MetricsFields {
   TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
   TIME_TO_FULL_DISPLAY = 'measurements.time_to_full_display',
   RELEASE = 'release',
+  DEVICE_CLASS = 'device.class',
 }
 
 type MetricsNumberFields =
@@ -571,7 +572,8 @@ type MetricsStringFields =
   | MetricsFields.USER_DISPLAY
   | MetricsFields.PROFILE_ID
   | MetricsFields.RELEASE
-  | MetricsFields.TIMESTAMP;
+  | MetricsFields.TIMESTAMP
+  | MetricsFields.DEVICE_CLASS;
 
 export type MetricsResponse = {
   [Property in MetricsNumberFields as `${Aggregate}(${Property})`]: number;
