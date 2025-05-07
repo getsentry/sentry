@@ -1142,7 +1142,7 @@ class SnubaTestCase(BaseTestCase):
         )
 
     def store_span(self, span, is_eap=False):
-        self.store_spans([span])
+        self.store_spans([span], is_eap=is_eap)
 
     def store_spans(self, spans, is_eap=False):
         for span in spans:
