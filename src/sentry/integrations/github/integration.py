@@ -4,7 +4,7 @@ import logging
 import re
 from collections.abc import Callable, Mapping
 from enum import StrEnum
-from typing import Any
+from typing import Any, TypedDict
 from urllib.parse import parse_qsl
 
 from django.http.request import HttpRequest
@@ -141,6 +141,12 @@ ERR_INTEGRATION_INVALID_INSTALLATION_REQUEST = _(
 ERR_INTEGRATION_PENDING_DELETION = _(
     "It seems that your Sentry organization has an installation pending deletion. Please wait ~15min for the uninstall to complete and try again."
 )
+
+
+class GithubInstallationInfo(TypedDict):
+    installation_id: int
+    github_organization: str
+    avatar_url: str
 
 
 def build_repository_query(metadata: Mapping[str, Any], name: str, query: str) -> bytes:
@@ -628,7 +634,9 @@ def get_owner_github_organizations(access_token: str) -> list[str]:
     ]
 
 
-def get_eligible_multi_org_installations(access_token: str, owner_orgs: list[str]) -> list[str]:
+def get_eligible_multi_org_installations(
+    access_token: str, owner_orgs: list[str]
+) -> list[GithubInstallationInfo]:
     installed_orgs = get_user_info_installations(access_token)
 
     return [
@@ -759,6 +767,12 @@ class GithubOrganizationSelection(PipelineView):
 
         if "chosen_installation_id" in request.GET:
             chosen_installation_id = request.GET["chosen_installation_id"]
+
+            # Verify that the given GH installation belongs to the person installing the pipeline
+            assert int(chosen_installation_id) in [
+                installation["installation_id"] for installation in installation_info
+            ]
+
             if chosen_installation_id == "-1":
                 return pipeline.next_step()
 
