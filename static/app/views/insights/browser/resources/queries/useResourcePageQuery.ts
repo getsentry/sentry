@@ -72,6 +72,6 @@ export const useResourcePagesQuery = (
         RESOURCE_RENDER_BLOCKING_STATUS,
       ],
     },
-    referrer
+    'api.insights.resource-page-query'
   );
 };
