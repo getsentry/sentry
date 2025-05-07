@@ -5,6 +5,7 @@ import pytest
 from django.utils import timezone
 
 from sentry import onboarding_tasks
+from sentry.analytics import record
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationonboardingtask import (
     OnboardingTask,
@@ -154,7 +155,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             organization=project.organization, name=DEFAULT_RULE_LABEL
         ).exists()
 
-    @patch("sentry.analytics.record")
+    @patch("sentry.analytics.record", wraps=record)
     def test_project_created_with_origin(self, record_analytics):
         project = self.create_project()
         project_created.send(
@@ -179,7 +180,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             origin="ui",
         )
 
-    @patch("sentry.analytics.record")
+    @patch("sentry.analytics.record", wraps=record)
     def test_first_event_received(self, record_analytics):
         now = timezone.now()
 
@@ -347,7 +348,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
-    @patch("sentry.analytics.record")
+    @patch("sentry.analytics.record", wraps=record)
     def test_first_event_without_minified_stack_trace_received(self, record_analytics):
         """
         Test that an analytics event is NOT recorded when
@@ -372,7 +373,7 @@ class OrganizationOnboardingTaskTest(TestCase):
                 url="http://localhost:3000",
             )
 
-    @patch("sentry.analytics.record")
+    @patch("sentry.analytics.record", wraps=record)
     def test_first_event_with_minified_stack_trace_received(self, record_analytics):
         """
         Test that an analytics event is recorded when
@@ -426,7 +427,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             url=url,
         )
 
-    @patch("sentry.analytics.record")
+    @patch("sentry.analytics.record", wraps=record)
     def test_analytic_triggered_only_once_if_multiple_events_with_minified_stack_trace_received(
         self, record_analytics
     ):
@@ -486,7 +487,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         assert count == 1
 
-    @patch("sentry.analytics.record")
+    @patch("sentry.analytics.record", wraps=record)
     def test_old_project_sending_minified_stack_trace_event(self, record_analytics):
         """
         Test that an analytics event is NOT recorded when
@@ -550,7 +551,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         assert count == 0
 
-    @patch("sentry.analytics.record")
+    @patch("sentry.analytics.record", wraps=record)
     def test_first_event_without_sourcemaps_received(self, record_analytics):
         """
         Test that an analytics event is NOT recorded when
@@ -582,7 +583,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         assert count == 0
 
-    @patch("sentry.analytics.record")
+    @patch("sentry.analytics.record", wraps=record)
     def test_first_event_with_sourcemaps_received(self, record_analytics):
         """
         Test that an analytics event is recorded when
@@ -627,7 +628,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             url=url,
         )
 
-    @patch("sentry.analytics.record")
+    @patch("sentry.analytics.record", wraps=record)
     def test_analytic_triggered_only_once_if_multiple_events_with_sourcemaps_received(
         self, record_analytics
     ):
@@ -679,7 +680,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         assert count == 1
 
-    @patch("sentry.analytics.record")
+    @patch("sentry.analytics.record", wraps=record)
     def test_old_project_sending_sourcemap_event(self, record_analytics):
         """
         Test that an analytics event is NOT recorded when
@@ -730,7 +731,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         assert count == 0
 
-    @patch("sentry.analytics.record")
+    @patch("sentry.analytics.record", wraps=record)
     def test_real_time_notifications_added(self, record_analytics):
         integration_id = self.create_integration("slack", 123).id
         integration_added.send(
@@ -755,7 +756,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             provider="slack",
         )
 
-    @patch("sentry.analytics.record")
+    @patch("sentry.analytics.record", wraps=record)
     def test_source_code_management_added(self, record_analytics):
         integration_id = self.create_integration("github", 123).id
         integration_added.send(
@@ -839,7 +840,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             status=OnboardingTaskStatus.COMPLETE,
         ).exists()
 
-    @patch("sentry.analytics.record")
+    @patch("sentry.analytics.record", wraps=record)
     def test_new_onboarding_complete(self, record_analytics):
         """
         Test the new quick start happy path (without source maps)
@@ -1121,7 +1122,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             referrer="onboarding_tasks",
         )
 
-    @patch("sentry.analytics.record")
+    @patch("sentry.analytics.record", wraps=record)
     def test_source_maps_as_required_task(self, record_analytics):
         """
         Test the new quick start happy path (with source maps)
@@ -1160,7 +1161,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         member_joined.send(
             organization_member_id=member.id,
             organization_id=self.organization.id,
-            user_id=member.user_id,
+            user_id=user.id,
             sender=None,
         )
 
@@ -1278,7 +1279,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             == 1
         )
 
-    @patch("sentry.analytics.record")
+    @patch("sentry.analytics.record", wraps=record)
     def test_tasks_are_transferred_when_project_is_transferred(self, record_analytics):
         """
         Test that onboarding tasks are transferred when a project is transferred
