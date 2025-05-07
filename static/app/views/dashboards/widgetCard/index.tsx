@@ -1,4 +1,4 @@
-import {useCallback, useContext, useState} from 'react';
+import {useContext, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
@@ -14,7 +14,6 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Confidence, Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
@@ -41,7 +40,6 @@ import {DEFAULT_RESULTS_LIMIT} from 'sentry/views/dashboards/widgetBuilder/utils
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {WidgetViewerContext} from 'sentry/views/dashboards/widgetViewer/widgetViewerContext';
-import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import {getMenuOptions, useIndexedEventsWarning} from './widgetCardContextMenu';
@@ -98,7 +96,6 @@ type Props = WithRouterProps & {
 
 type Data = {
   confidence?: Confidence;
-  isProgressivelyLoading?: boolean;
   isSampled?: boolean | null;
   pageLinks?: string;
   sampleCount?: number;
@@ -113,15 +110,12 @@ function WidgetCard(props: Props) {
   const {setData: setWidgetViewerData} = useContext(WidgetViewerContext);
 
   const onDataFetched = (newData: Data) => {
-    const {isProgressivelyLoading, ...rest} = newData;
+    const {...rest} = newData;
     if (props.onDataFetched && rest.tableResults) {
       props.onDataFetched(rest.tableResults);
     }
 
     setData(prevData => ({...prevData, ...rest}));
-    if (defined(isProgressivelyLoading)) {
-      setIsProgressivelyLoading(isProgressivelyLoading);
-    }
   };
 
   const {
@@ -170,13 +164,6 @@ function WidgetCard(props: Props) {
   const discoverSplitAlert = useDiscoverSplitAlert({widget, onSetTransactionsDataset});
   const sessionDurationWarning = hasSessionDuration ? SESSION_DURATION_ALERT_TEXT : null;
   const spanTimeRangeWarning = useTimeRangeWarning({widget});
-  const [isProgressivelyLoading, setIsProgressivelyLoading] = useState(false);
-
-  const handleProgressiveLoadingStart = useCallback(() => {
-    if (organization.features.includes('visibility-explore-progressive-loading')) {
-      setIsProgressivelyLoading(true);
-    }
-  }, [organization.features]);
 
   const onFullScreenViewClick = () => {
     if (!isWidgetViewerPath(location.pathname)) {
@@ -267,11 +254,6 @@ function WidgetCard(props: Props) {
           borderless={props.borderless}
           revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
           noVisualizationPadding
-          titleBadges={getProgressiveLoadingIndicator(
-            organization.features.includes('visibility-explore-progressive-loading') &&
-              isProgressivelyLoading,
-            widget.displayType === DisplayType.TABLE ? 'table' : 'chart'
-          )}
         >
           <WidgetCardChartContainer
             location={location}
@@ -293,7 +275,6 @@ function WidgetCard(props: Props) {
             widgetLegendState={widgetLegendState}
             showConfidenceWarning={showConfidenceWarning}
             minTableColumnWidth={minTableColumnWidth}
-            onDataFetchStart={handleProgressiveLoadingStart}
           />
         </WidgetFrame>
       </VisuallyCompleteWithData>

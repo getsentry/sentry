@@ -453,9 +453,6 @@ export default function MetricChart({
     ]
   );
 
-  const isProgressiveLoadingEnabled = organization.features.includes(
-    'visibility-explore-progressive-loading'
-  );
   const isUsingNormalSamplingMode = organization.features.includes(
     'visibility-explore-progressive-loading-normal-sampling-mode'
   );
@@ -467,13 +464,9 @@ export default function MetricChart({
       timePeriod,
       referrer: 'api.alerts.alert-rule-chart',
       samplingMode:
-        isUsingNormalSamplingMode &&
-        !isProgressiveLoadingEnabled &&
-        rule.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
+        isUsingNormalSamplingMode && rule.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
           ? SAMPLING_MODE.NORMAL
-          : isProgressiveLoadingEnabled
-            ? SAMPLING_MODE.BEST_EFFORT
-            : undefined,
+          : undefined,
     },
     {enabled: !shouldUseSessionsStats}
   );

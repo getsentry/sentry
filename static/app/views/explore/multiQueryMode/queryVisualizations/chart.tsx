@@ -31,7 +31,6 @@ import {WidgetExtrapolationFooter} from 'sentry/views/explore/charts/widgetExtra
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
-import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useAddCompareQueryToDashboard} from 'sentry/views/explore/multiQueryMode/hooks/useAddCompareQueryToDashboard';
 import {DEFAULT_TOP_EVENTS} from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTimeseries';
 import {
@@ -51,7 +50,6 @@ interface MultiQueryChartProps {
   mode: Mode;
   query: ReadableExploreQueryParts;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
-  samplingMode?: SamplingMode;
 }
 
 export function MultiQueryModeChart({
@@ -60,7 +58,6 @@ export function MultiQueryModeChart({
   mode,
   timeseriesResult,
   canUsePreviousResults,
-  samplingMode,
 }: MultiQueryChartProps) {
   const theme = useTheme();
 
@@ -172,22 +169,6 @@ export function MultiQueryModeChart({
         Title={Title}
         Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
         revealActions="always"
-        Footer={
-          organization.features.includes('visibility-explore-progressive-loading') &&
-          !organization.features.includes(
-            'visibility-explore-progressive-loading-normal-sampling-mode'
-          ) && (
-            <WidgetExtrapolationFooter
-              samplingMode={undefined}
-              sampleCount={0}
-              isSampled={null}
-              confidence={undefined}
-              topEvents={undefined}
-              dataScanned={undefined}
-              dataset={DiscoverDatasets.SPANS_EAP}
-            />
-          )
-        }
       />
     );
   }
@@ -345,7 +326,6 @@ export function MultiQueryModeChart({
           confidence={confidence}
           topEvents={isTopN ? numSeries : undefined}
           dataScanned={dataScanned}
-          samplingMode={samplingMode}
           dataset={DiscoverDatasets.SPANS_EAP}
         />
       }

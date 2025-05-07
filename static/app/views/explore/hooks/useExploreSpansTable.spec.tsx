@@ -73,7 +73,7 @@ describe('useExploreTimeseries', () => {
       url: '/organizations/org-slug/events/',
       match: [
         function (_url: string, options: Record<string, any>) {
-          return options.query.sampling === undefined;
+          return options.query.sampling === SAMPLING_MODE.HIGH_ACCURACY;
         },
       ],
       method: 'GET',
@@ -119,8 +119,9 @@ describe('useExploreTimeseries', () => {
     expect(mockHighAccuracyRequest).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
       expect.objectContaining({
-        query: expect.not.objectContaining({
-          sampling: expect.anything(),
+        query: expect.objectContaining({
+          sampling: SAMPLING_MODE.HIGH_ACCURACY,
+          query: 'test value !transaction.span_id:00',
         }),
       })
     );

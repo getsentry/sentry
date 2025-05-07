@@ -225,24 +225,6 @@ export function ExploreCharts({
                   />
                 }
                 revealActions="always"
-                Footer={
-                  organization.features.includes(
-                    'visibility-explore-progressive-loading'
-                  ) &&
-                  !organization.features.includes(
-                    'visibility-explore-progressive-loading-normal-sampling-mode'
-                  ) && (
-                    <WidgetExtrapolationFooter
-                      samplingMode={undefined}
-                      sampleCount={0}
-                      isSampled={null}
-                      confidence={undefined}
-                      topEvents={undefined}
-                      dataScanned={undefined}
-                      dataset={dataset}
-                    />
-                  )
-                }
               />
             );
           }
@@ -360,7 +342,6 @@ export function ExploreCharts({
                     topEvents ? Math.min(topEvents, chartInfo.data.length) : undefined
                   }
                   dataScanned={chartInfo.dataScanned}
-                  samplingMode={samplingMode}
                   dataset={dataset}
                 />
               }
