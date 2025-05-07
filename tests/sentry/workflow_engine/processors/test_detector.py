@@ -389,6 +389,23 @@ class TestEvaluate(BaseDetectorHandlerTest):
             DetectorPriorityLevel.HIGH,
         )
 
+    def test_metric_issue(self):
+        from sentry.incidents.grouptype import MetricAlertDetectorHandler
+        from sentry.incidents.utils.types import MetricDetectorUpdate
+
+        detector = self.create_detector_and_conditions("handler_with_state")
+        handler = MetricAlertDetectorHandler(detector)
+
+        packet = MetricDetectorUpdate(
+            entity="entity",
+            subscription_id=1,
+            values={"value": 5},
+            timestamp=datetime.now(UTC),
+        )
+        data_packet = DataPacket[MetricDetectorUpdate](source_id=str(1), packet=packet)
+        result = handler.evaluate(data_packet)
+        assert result
+
     def test_above_below_threshold(self):
         handler = self.build_handler()
         assert handler.evaluate(DataPacket("1", {"dedupe": 1, "group_vals": {"val1": 0}})) == {}

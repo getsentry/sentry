@@ -11,6 +11,7 @@ from sentry.incidents.utils.types import MetricDetectorUpdate, QuerySubscription
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.models.organization import Organization
 from sentry.ratelimits.sliding_windows import Quota
+from sentry.types.actor import parse_and_validate_actor
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.handlers.detector import (
     DetectorOccurrence,
@@ -26,22 +27,42 @@ COMPARISON_DELTA_CHOICES.append(None)
 
 @dataclass
 class MetricIssueEvidenceData(EvidenceData):
-    alert_id: int
+    alert_id: int  # is this supposed to be detector id?
 
 
 class MetricAlertDetectorHandler(StatefulGroupingDetectorHandler[QuerySubscriptionUpdate, int]):
     def create_occurrence(
         self, group_key: DetectorGroupKey, new_status: PriorityLevel
     ) -> tuple[DetectorOccurrence, dict[str, Any]]:
-        # Returning a placeholder for now, this may require us passing more info
-        occurrence = DetectorOccurrence(
-            issue_title="Some Issue Title",
-            subtitle="An Issue Subtitle",
-            type=MetricIssue,
-            level="error",
-            culprit="Some culprit",
-        )
-        return occurrence, {}
+
+        try:
+            assignee = parse_and_validate_actor(
+                self.detector.created_by_id, self.detector.project.organization_id
+            )
+        except Exception:
+            assignee = None
+
+        # XXX: can we pass data_packet through here? we need the aggregate value and the source ids to generate the title
+        # title = construct_title(incident.alert_rule, incident.status)
+        # TODO rewrite construct_title to not take incident data
+        title_level = "Critical" if new_status == PriorityLevel.HIGH else "Warning"
+        title = f"{title_level}: 100 events in the last 5 mins"
+
+        return (
+            DetectorOccurrence(
+                issue_title=self.detector.name,
+                subtitle=title,
+                resource_id=None,
+                evidence_data={},  # what's supposed to be in here?
+                evidence_display=[],  # do we need this?
+                type=MetricIssue,
+                level="error",
+                culprit="",
+                priority=new_status,
+                assignee=assignee,
+            ),
+            {},
+        )  # what's the dict supposed to be?
 
     @property
     def counter_names(self) -> list[str]:
@@ -54,11 +75,10 @@ class MetricAlertDetectorHandler(StatefulGroupingDetectorHandler[QuerySubscripti
     def extract_group_values(
         self, data_packet: DataPacket[MetricDetectorUpdate]
     ) -> dict[DetectorGroupKey, int]:
+        # TODO what should the DetectorGroupKey be?
         return {None: data_packet.packet["values"]["value"]}
 
 
-# Example GroupType and detector handler for metric alerts. We don't create these issues yet, but we'll use something
-# like these when we're sending issues as alerts
 @dataclass(frozen=True)
 class MetricIssue(GroupType):
     type_id = 8001
@@ -70,6 +90,7 @@ class MetricIssue(GroupType):
     default_priority = PriorityLevel.HIGH
     enable_auto_resolve = False
     enable_escalation_detection = False
+    enable_status_change_workflow_notifications = False
     detector_settings = DetectorSettings(
         handler=MetricAlertDetectorHandler,
         validator=MetricAlertsDetectorValidator,
