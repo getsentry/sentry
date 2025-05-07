@@ -11,9 +11,8 @@ from sentry.workflow_engine.handlers.detector import (
     DetectorEvaluationResult,
     DetectorHandler,
     DetectorOccurrence,
-    StatefulDetectorHandler,
+    StatefulGroupingDetectorHandler,
 )
-from sentry.workflow_engine.handlers.detector.stateful import StatefulGroupingDetectorHandler
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel, DetectorSettings
@@ -171,7 +170,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
 
     def assert_updates(
         self,
-        handler: StatefulDetectorHandler | None,
+        handler: StatefulGroupingDetectorHandler,
         group_key: DetectorGroupKey | None,
         dedupe_value: int | None,
         counter_updates: dict[str, Any] | None,
@@ -201,7 +200,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
 
     def assert_pending_updates(
         self,
-        handler: StatefulDetectorHandler,
+        handler: StatefulGroupingDetectorHandler,
         group_key: DetectorGroupKey | None,
         dedupe_value: int | None,
         counter_updates: dict[str, Any] | None,
