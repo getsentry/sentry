@@ -6,6 +6,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.workflow_engine.models import Action, DataConditionGroup, WorkflowFireHistory
 from sentry.workflow_engine.models.action_group_status import ActionGroupStatus
 from sentry.workflow_engine.processors.action import (
+    WorkflowFireHistoryUpdates,
     filter_recently_fired_workflow_actions,
     update_workflow_fire_histories,
 )
@@ -80,7 +81,11 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         actions = Action.objects.all()
         assert actions.count() == 1
 
-        update_workflow_fire_histories(actions, self.event_data, has_fired_actions=True)
+        update_workflow_fire_histories(
+            actions,
+            self.event_data,
+            WorkflowFireHistoryUpdates(has_passed_filters=True, has_fired_actions=True),
+        )
         assert (
             WorkflowFireHistory.objects.filter(
                 workflow=self.workflow,
@@ -103,7 +108,11 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         actions = Action.objects.all()
         assert actions.count() == 1
 
-        update_workflow_fire_histories(actions, self.event_data, has_passed_filters=True)
+        update_workflow_fire_histories(
+            actions,
+            self.event_data,
+            WorkflowFireHistoryUpdates(has_passed_filters=True, has_fired_actions=False),
+        )
         assert (
             WorkflowFireHistory.objects.filter(
                 workflow=self.workflow,
