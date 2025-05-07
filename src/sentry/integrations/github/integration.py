@@ -792,8 +792,8 @@ class GithubOrganizationSelection(PipelineView):
             installation_info.append(
                 {
                     "installation_id": "-1",
-                    "github_organization": "Install integration on a new GitHub organization",
-                    "avatar_url": "https://raw.githubusercontent.com/getsentry/sentry/526f08eeaafa3a830f70671ad473afd7b9b05a0f/src/sentry/static/sentry/images/logos/sentry-avatar.png",
+                    "github_organization": "Integrate with a new GitHub organization",
+                    "avatar_url": "https://a.slack-edge.com/production-standard-emoji-assets/14.0/apple-medium/2795.png",
                 }
             )
 
