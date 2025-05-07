@@ -1,7 +1,21 @@
 from django.core.exceptions import PermissionDenied
 
-from sentry import options
+from sentry import http, options
 from sentry.identity.oauth2 import OAuth2Provider
+
+
+def get_user_info(access_token):
+    with http.build_session() as session:
+        resp = session.get(
+            "https://api.github.com/user",
+            headers={
+                "Accept": "application/vnd.github.machine-man-preview+json",
+                "Authorization": f"token {access_token}",
+            },
+        )
+        resp.raise_for_status()
+    return resp.json()
+
 
 # GitHub has 2 types of apps -- GitHub apps and OAuth apps. SSO is implemented
 # using OAuth App, but signup and integrations use the github app. When github
@@ -25,14 +39,11 @@ class GitHubIdentityProvider(OAuth2Provider):
         return options.get("github-app.client-secret")
 
     def build_identity(self, data):
-        from sentry.integrations.github.client import GithubSetupApiClient
-
         data = data["data"]
         access_token = data.get("access_token")
         if not access_token:
             raise PermissionDenied()
-        client = GithubSetupApiClient(access_token=access_token)
-        user = client.get_user_info()
+        user = get_user_info(access_token)
 
         return {
             "type": "github",
