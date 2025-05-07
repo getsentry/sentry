@@ -67,31 +67,23 @@ import {Onboarding} from 'sentry/views/performance/onboarding';
 // eslint-disable-next-line no-restricted-imports
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
-interface SpansTabOnboardingProps extends PickableDays {
+interface SpansTabOnboardingProps {
+  datePageFilterProps: PickableDays;
   organization: Organization;
   project: Project;
 }
 
 export function SpansTabOnboarding({
-  defaultPeriod,
-  maxPickableDays,
+  datePageFilterProps,
   organization,
   project,
-  relativeOptions,
 }: SpansTabOnboardingProps) {
   return (
     <Layout.Body>
       <PageFilterBar condensed>
         <ProjectPageFilter />
         <EnvironmentPageFilter />
-        <DatePageFilter
-          defaultPeriod={defaultPeriod}
-          maxPickableDays={maxPickableDays}
-          relativeOptions={({arbitraryOptions}) => ({
-            ...arbitraryOptions,
-            ...relativeOptions,
-          })}
-        />
+        <DatePageFilter {...datePageFilterProps} />
       </PageFilterBar>
       <OnboardingContentSection>
         <Onboarding project={project} organization={organization} />
@@ -100,13 +92,11 @@ export function SpansTabOnboarding({
   );
 }
 
-interface SpanTabProps extends PickableDays {}
+interface SpanTabProps {
+  datePageFilterProps: PickableDays;
+}
 
-export function SpansTabContent({
-  defaultPeriod,
-  maxPickableDays,
-  relativeOptions,
-}: SpanTabProps) {
+export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
   useVisitExplore();
 
   const organization = useOrganization();
@@ -115,11 +105,7 @@ export function SpansTabContent({
   return (
     <Fragment>
       <BodySearch>
-        <SpanTabSearchSection
-          defaultPeriod={defaultPeriod}
-          maxPickableDays={maxPickableDays}
-          relativeOptions={relativeOptions}
-        />
+        <SpanTabSearchSection datePageFilterProps={datePageFilterProps} />
       </BodySearch>
       <BodyContent>
         <SpanTabControlSection
@@ -127,7 +113,7 @@ export function SpansTabContent({
           controlSectionExpanded={controlSectionExpanded}
         />
         <SpanTabContentSection
-          maxPickableDays={maxPickableDays}
+          maxPickableDays={datePageFilterProps.maxPickableDays}
           organization={organization}
           setControlSectionExpanded={setControlSectionExpanded}
           controlSectionExpanded={controlSectionExpanded}
@@ -147,13 +133,11 @@ function useVisitExplore() {
   }, [id, visitQuery]);
 }
 
-interface SpanTabSearchSectionProps extends PickableDays {}
+interface SpanTabSearchSectionProps {
+  datePageFilterProps: PickableDays;
+}
 
-function SpanTabSearchSection({
-  defaultPeriod,
-  maxPickableDays,
-  relativeOptions,
-}: SpanTabSearchSectionProps) {
+function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) {
   const mode = useExploreMode();
   const fields = useExploreFields();
   const query = useExploreQuery();
@@ -217,14 +201,7 @@ function SpanTabSearchSection({
             <StyledPageFilterBar condensed>
               <ProjectPageFilter />
               <EnvironmentPageFilter />
-              <DatePageFilter
-                defaultPeriod={defaultPeriod}
-                maxPickableDays={maxPickableDays}
-                relativeOptions={({arbitraryOptions}) => ({
-                  ...arbitraryOptions,
-                  ...relativeOptions,
-                })}
-              />
+              <DatePageFilter {...datePageFilterProps} />
             </StyledPageFilterBar>
             <EAPSpanSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
           </FilterSection>
@@ -455,7 +432,7 @@ function checkIsAllowedSelection(
 const BodySearch = styled(Layout.Body)`
   flex-grow: 0;
   border-bottom: 1px solid ${p => p.theme.border};
-  padding-bottom: ${space(1)};
+  padding-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding-bottom: ${space(2)};
@@ -487,8 +464,8 @@ const ControlSection = styled('aside')<{expanded: boolean}>`
     ${p =>
       p.expanded
         ? css`
-            width: 338px; /* 300px for the toolbar + padding */
-            padding: ${space(2)} ${space(1)} ${space(1)} ${space(4)};
+            width: 343px; /* 300px for the toolbar + padding */
+            padding: ${space(2)} ${space(1.5)} ${space(1)} ${space(4)};
             border-right: 1px solid ${p.theme.border};
           `
         : css`
@@ -511,7 +488,7 @@ const ContentSection = styled('section')<{expanded: boolean}>`
     ${p =>
       p.expanded
         ? css`
-            padding: ${space(1)} ${space(4)} ${space(3)} ${space(1)};
+            padding: ${space(1)} ${space(4)} ${space(3)} ${space(1.5)};
           `
         : css`
             padding: ${space(1)} ${space(4)} ${space(3)} ${space(4)};
@@ -551,7 +528,7 @@ const ChevronButton = styled(Button)<{expanded: boolean}>`
   ${p =>
     p.expanded
       ? css`
-          margin-left: -9px;
+          margin-left: -13px;
         `
       : css`
           margin-left: -31px;

@@ -226,6 +226,7 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
 
             self.delete_bulk(queryset)
             remaining = remaining - len(queryset)
+
         # We have more work to do as we didn't run out of rows to delete.
         return True
 

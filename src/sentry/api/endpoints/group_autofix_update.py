@@ -46,7 +46,9 @@ class GroupAutofixUpdateEndpoint(GroupAiEndpoint):
         if not get_seer_org_acknowledgement(org_id=group.organization.id):
             return Response(
                 status=403,
-                data={"error": "AI Autofix has not been acknowledged by the organization."},
+                data={
+                    "error": "Seer has not been enabled for this organization. Please open an issue at sentry.io/issues and set up Seer."
+                },
             )
 
         path = "/v1/automation/autofix/update"

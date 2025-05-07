@@ -149,6 +149,7 @@ type SpanStringFields =
   | 'span.status_code'
   | 'span.ai.pipeline.group'
   | 'project'
+  | 'http.request.method'
   | 'messaging.destination.name'
   | 'user'
   | 'user.display'
@@ -190,6 +191,7 @@ type CounterConditionalAggregate =
 
 type ConditionalAggregate =
   | `avg_if`
+  | `division_if`
   | `count_op`
   | `failure_rate_if`
   | 'trace_status_rate'
@@ -290,7 +292,8 @@ export type EAPSpanResponse = {
     [Property in ConditionalAggregate as
       | `${Property}(${string})`
       | `${Property}(${string},${string})`
-      | `${Property}(${string},${string},${string})`]: number;
+      | `${Property}(${string},${string},${string})`
+      | `${Property}(${string},${string},${string},${string})`]: number;
   } & {
     [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
   } & {

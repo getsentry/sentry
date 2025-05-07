@@ -47,7 +47,10 @@ def schedule_digests() -> None:
     name="sentry.tasks.digests.deliver_digest",
     queue="digests.delivery",
     silo_mode=SiloMode.REGION,
-    taskworker_config=TaskworkerConfig(namespace=digests_tasks),
+    taskworker_config=TaskworkerConfig(
+        namespace=digests_tasks,
+        processing_deadline_duration=20,
+    ),
 )
 def deliver_digest(
     key: str,

@@ -46,8 +46,7 @@ export function PlatformLandingPageLayout({
 }) {
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
-  const {defaultPeriod, maxPickableDays, relativeOptions} =
-    limitMaxPickableDays(organization);
+  const datePageFilterProps = limitMaxPickableDays(organization);
 
   const showOnboarding = onboardingProject !== undefined;
 
@@ -86,14 +85,7 @@ export function PlatformLandingPageLayout({
                 <PageFilterBar condensed>
                   <ProjectPageFilter resetParamsOnChange={['starred']} />
                   <EnvironmentPageFilter />
-                  <DatePageFilter
-                    maxPickableDays={maxPickableDays}
-                    defaultPeriod={defaultPeriod}
-                    relativeOptions={({arbitraryOptions}) => ({
-                      ...arbitraryOptions,
-                      ...relativeOptions,
-                    })}
-                  />
+                  <DatePageFilter {...datePageFilterProps} />
                 </PageFilterBar>
                 {!showOnboarding && (
                   <StyledTransactionNameSearchBar

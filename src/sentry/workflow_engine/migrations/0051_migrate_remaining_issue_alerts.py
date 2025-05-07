@@ -2204,9 +2204,9 @@ def migrate_remaining_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchema
 
                 data = rule.data
                 user_id = None
-                created_activity = RuleActivity.objects.filter(rule=rule, type=1).first()  # created
+                created_activity = list(RuleActivity.objects.filter(rule=rule, type=1))  # created
                 if created_activity:
-                    user_id = getattr(created_activity, "user_id")
+                    user_id = getattr(created_activity[0], "user_id")
 
                 conditions, filters = split_conditions_and_filters(data["conditions"])
                 action_match = data.get("action_match") or "all"
@@ -2234,7 +2234,7 @@ def migrate_remaining_issue_alerts(apps: Apps, schema_editor: BaseDatabaseSchema
             )
             sentry_sdk.capture_exception(e)
 
-    backfill_key = "backfill_workflow_engine_remaining_issue_alerts_take_2"
+    backfill_key = "backfill_workflow_engine_remaining_issue_alerts_take_3"
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
     progress_id = int(redis_client.get(backfill_key) or 0)
 

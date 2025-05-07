@@ -854,3 +854,12 @@ class Columns(Enum):
         discover_name="contexts[ota_updates.update_id]",
         alias="ota_updates.update_id",
     )
+
+    TIMESTAMP_MS = Column(
+        group_name="events.timestamp_ms",
+        event_name="timestamp_ms",
+        transaction_name=None,
+        discover_name="timestamp_ms",
+        issue_platform_name=None,
+        alias="timestamp_ms",
+    )
