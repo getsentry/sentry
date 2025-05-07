@@ -81,9 +81,11 @@ export enum SpanFields {
   RAW_DOMAIN = 'raw_domain',
   PROJECT = 'project',
   MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH = 'measurements.http.response_content_length',
+  MEASUREMENTS_TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
   SPAN_DESCRIPTION = 'span.description',
   SPAN_GROUP = 'span.group',
   SPAN_OP = 'span.op',
+  RELEASE = 'release',
 }
 
 type WebVitalsMeasurements =
@@ -122,6 +124,7 @@ type SpanNumberFields =
   | SpanFields.FROZEN_FRAMES_RATE
   | SpanFields.SLOW_FRAMES_RATE
   | SpanFields.MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH
+  | SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY
   | DiscoverNumberFields;
 
 type SpanStringFields =
@@ -149,6 +152,7 @@ type SpanStringFields =
   | 'span.status_code'
   | 'span.ai.pipeline.group'
   | 'project'
+  | 'http.request.method'
   | 'messaging.destination.name'
   | 'user'
   | 'user.display'
@@ -182,6 +186,7 @@ export type Aggregate =
 type CounterConditionalAggregate =
   | `sum_if`
   | `avg_if`
+  | `count_if`
   | `p50_if`
   | `p75_if`
   | `p90_if`
@@ -190,6 +195,7 @@ type CounterConditionalAggregate =
 
 type ConditionalAggregate =
   | `avg_if`
+  | `division_if`
   | `count_op`
   | `failure_rate_if`
   | 'trace_status_rate'
@@ -245,6 +251,8 @@ export type SpanMetricsResponse = {
     'http_response_rate(3)': number;
     'http_response_rate(4)': number;
     'http_response_rate(5)': number;
+    'ttfd_contribution_rate()': number;
+    'ttid_contribution_rate()': number;
   } & {
     ['project']: string;
     ['project.id']: number;
@@ -256,7 +264,10 @@ export type SpanMetricsResponse = {
       | `${Property}(${string},${string},${string})`]: number;
   } & {
     [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
+  } & {
+    [Property in SpanNumberFields as `avg_compare(${Property},${string},${string},${string})`]: number;
   };
+
 export type MetricsFilters = {
   [Property in SpanStringFields as `${Property}`]?: string | string[];
 };
@@ -285,13 +296,18 @@ export type EAPSpanResponse = {
     [Property in ConditionalAggregate as
       | `${Property}(${string})`
       | `${Property}(${string},${string})`
-      | `${Property}(${string},${string},${string})`]: number;
+      | `${Property}(${string},${string},${string})`
+      | `${Property}(${string},${string},${string},${string})`]: number;
   } & {
     [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
   } & {
     [Property in SpanFields as `count_unique(${Property})`]: number;
   } & {
     [Property in SpanNumberFields as `${CounterConditionalAggregate}(${Property},${string},${string})`]: number;
+  } & {
+    [Property in SpanNumberFields as `avg_compare(${Property},${string},${string},${string})`]: number;
+  } & {
+    [Property in SpanFields as `count_if(${Property},${string})`]: number;
   };
 
 export type EAPSpanProperty = keyof EAPSpanResponse;

@@ -10,20 +10,24 @@ from sentry.issues.grouptype import GroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.types.actor import Actor
-from sentry.workflow_engine.models import DataConditionGroup, DataPacket, Detector
+from sentry.workflow_engine.models import Condition, DataConditionGroup, DataPacket, Detector
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
 
-PacketT = TypeVar("PacketT")
-EvidenceValueT = TypeVar("EvidenceValueT")
+DataPacketType = TypeVar("DataPacketType")
+DataPacketEvaluationType = TypeVar("DataPacketEvaluationType")
 
 
 @dataclass
-class EvidenceData(Generic[EvidenceValueT]):
-    value: EvidenceValueT
+class EvidenceData(Generic[DataPacketEvaluationType]):
+    value: DataPacketEvaluationType
     detector_id: int
+    data_source_ids: list[int]
     data_condition_ids: list[int]
+    data_condition_type: Condition
+    # Represents the actual value that we are comparing against
+    data_condition_comparison_value: DataPacketEvaluationType
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
@@ -70,10 +74,11 @@ class DetectorOccurrence:
 
 @dataclasses.dataclass(frozen=True)
 class DetectorEvaluationResult:
+    # TODO - Should group key live at this level?
     group_key: DetectorGroupKey
     # TODO: Are these actually necessary? We're going to produce the occurrence in the detector, so we probably don't
     # need to know the other results externally
-    is_active: bool
+    is_triggered: bool
     priority: DetectorPriorityLevel
     # TODO: This is only temporarily optional. We should always have a value here if returning a result
     result: IssueOccurrence | StatusChangeMessage | None = None
@@ -81,23 +86,7 @@ class DetectorEvaluationResult:
     event_data: dict[str, Any] | None = None
 
 
-@dataclasses.dataclass(frozen=True)
-class DetectorStateData:
-    group_key: DetectorGroupKey
-    active: bool
-    status: DetectorPriorityLevel
-    # Stateful detectors always process data packets in order. Once we confirm that a data packet has been fully
-    # processed and all workflows have been done, this value will be used by the stateful detector to prevent
-    # reprocessing
-    dedupe_value: int
-    # Stateful detectors allow various counts to be tracked. We need to update these after we process workflows, so
-    # include the updates in the state.
-    # This dictionary is in the format {counter_name: counter_value, ...}
-    # If a counter value is `None` it means to unset the value
-    counter_updates: dict[str, int | None]
-
-
-class DetectorHandler(abc.ABC, Generic[PacketT]):
+class DetectorHandler(abc.ABC, Generic[DataPacketType]):
     def __init__(self, detector: Detector):
         self.detector = detector
         if detector.workflow_condition_group_id is not None:
@@ -117,9 +106,6 @@ class DetectorHandler(abc.ABC, Generic[PacketT]):
 
     @abc.abstractmethod
     def evaluate(
-        self, data_packet: DataPacket[PacketT]
+        self, data_packet: DataPacket[DataPacketType]
     ) -> dict[DetectorGroupKey, DetectorEvaluationResult]:
-        pass
-
-    def commit_state_updates(self):
         pass

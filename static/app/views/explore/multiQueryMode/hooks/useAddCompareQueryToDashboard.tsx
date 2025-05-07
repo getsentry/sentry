@@ -14,6 +14,8 @@ import {MAX_NUM_Y_AXES} from 'sentry/views/dashboards/widgetBuilder/buildSteps/y
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
+import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {CHART_TYPE_TO_DISPLAY_TYPE} from 'sentry/views/explore/hooks/useAddToDashboard';
 import {
   getQueryMode,
   type ReadableExploreQueryParts,
@@ -51,12 +53,14 @@ export function useAddCompareQueryToDashboard(query: ReadableExploreQueryParts) 
       version: 2,
       dataset: DiscoverDatasets.SPANS_EAP_RPC,
       yAxis: yAxes,
+      display:
+        CHART_TYPE_TO_DISPLAY_TYPE[query.chartType || determineDefaultChartType(yAxes)],
     };
 
     const newEventView = EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
     newEventView.dataset = DiscoverDatasets.SPANS_EAP_RPC;
     return newEventView;
-  }, [groupBys, mode, qs, selection, sortBys, yAxes]);
+  }, [groupBys, mode, qs, query.chartType, selection, sortBys, yAxes]);
 
   const addToDashboard = useCallback(() => {
     const eventView = getEventView();
