@@ -14,6 +14,7 @@ from django.utils import timezone
 from urllib3.response import HTTPResponse
 
 from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
+from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
@@ -384,6 +385,13 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     def test_removed_project(self):
         message = self.build_subscription_update(self.sub)
         self.project.delete()
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            SubscriptionProcessor(self.sub).process_update(message)
+        self.metrics.incr.assert_called_once_with("incidents.alert_rules.ignore_deleted_project")
+
+    def test_pending_deletion_project(self):
+        message = self.build_subscription_update(self.sub)
+        self.project.update(status=ObjectStatus.DELETION_IN_PROGRESS)
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             SubscriptionProcessor(self.sub).process_update(message)
         self.metrics.incr.assert_called_once_with("incidents.alert_rules.ignore_deleted_project")
