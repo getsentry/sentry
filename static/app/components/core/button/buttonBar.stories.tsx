@@ -77,8 +77,8 @@ export default storyBook('ButtonBar', (story, APIReference) => {
         </ButtonBar>
 
         <p>
-          If a <JSXNode name="ButtonBar" /> has only one button, it will render the button
-          directly without the button bar wrapper.
+          <JSXNode name="ButtonBar" />s can have a single button in which case it looks
+          like a button.
         </p>
         <ButtonBar>
           <Button>One Lonely Button</Button>
