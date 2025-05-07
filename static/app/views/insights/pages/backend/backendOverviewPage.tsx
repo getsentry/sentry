@@ -17,7 +17,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
-import {decodeSorts} from 'sentry/utils/queryString';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -30,6 +30,7 @@ import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {
   BackendOverviewTable,
@@ -92,6 +93,7 @@ function EAPBackendOverviewPage() {
   const onboardingProject = useOnboardingProject();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
 
   const withStaticFilters = canUseMetricsData(organization);
   const eventView = generateBackendPerformanceEventView(
@@ -203,6 +205,7 @@ function EAPBackendOverviewPage() {
     {
       search: existingQuery,
       sorts,
+      cursor,
       fields: [
         'is_starred_transaction',
         'request.method',
