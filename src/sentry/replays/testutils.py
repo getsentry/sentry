@@ -207,6 +207,9 @@ def mock_replay(
                                 "family": kwargs.pop("device_family", "iPhone"),
                                 "model": kwargs.pop("device_model", "13 Pro"),
                             },
+                            "ota_updates": {
+                                "channel": kwargs.pop("ota_updates_channel", "test-channel"),
+                            },
                         },
                         "request": {
                             "url": "Doesn't matter not ingested.",
