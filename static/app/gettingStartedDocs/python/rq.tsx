@@ -101,7 +101,7 @@ const onboarding: OnboardingConfig = {
       description: tct('Install [code:sentry-sdk] from PyPI with the [code:rq] extra:', {
         code: <code />,
       }),
-      configurations: getPythonInstallConfig({packageName: "'sentry-sdk[rq]'"}),
+      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[rq]'}),
     },
   ],
   configure: (params: Params) => [

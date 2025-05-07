@@ -139,7 +139,7 @@ export function TrafficWidget({
             }}
             onOpenFullScreen={() => {
               openInsightChartModal({
-                title: t('Requests'),
+                title,
                 children: <ModalChartContainer>{visualization}</ModalChartContainer>,
               });
             }}

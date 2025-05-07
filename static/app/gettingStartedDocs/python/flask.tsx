@@ -74,7 +74,7 @@ const onboarding: OnboardingConfig = {
           code: <code />,
         }
       ),
-      configurations: getPythonInstallConfig({packageName: "'sentry-sdk[flask]'"}),
+      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[flask]'}),
     },
   ],
   configure: (params: Params) => [
