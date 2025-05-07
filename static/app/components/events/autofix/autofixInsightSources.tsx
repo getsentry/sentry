@@ -146,13 +146,13 @@ function AutofixInsightSources({sources, title}: AutofixInsightSourcesProps) {
         key={`trace-${id}`}
         onClick={() => {
           if (sources.event_trace_id) {
-            window.open(`/trace/${sources.event_trace_id}?node=txn-${id}`, '_blank');
+            window.open(`trace/${sources.event_trace_id}?node=txn-${id}`, '_blank');
           }
         }}
         size="xs"
         icon={<IconSpan size="xs" />}
       >
-        {t('Trace: %s', id.substring(0, 8))}
+        {t('Trace: %s', id.substring(0, 7))}
       </SourceCard>
     );
   });
@@ -165,10 +165,10 @@ function AutofixInsightSources({sources, title}: AutofixInsightSourcesProps) {
         size="xs"
         icon={<IconProfiling size="xs" />}
         onClick={() =>
-          window.open(`/explore/profiling/profile/${id}/flamegraph`, '_blank')
+          window.open(`explore/profiling/profile/${id}/flamegraph`, '_blank')
         }
       >
-        {t('Profile: %s', id.substring(0, 8))}
+        {t('Profile: %s', id.substring(0, 7))}
       </SourceCard>
     );
   });
@@ -181,12 +181,12 @@ function AutofixInsightSources({sources, title}: AutofixInsightSourcesProps) {
         size="xs"
         onClick={() => {
           if (sources.event_trace_id) {
-            window.open(`/trace/${sources.event_trace_id}?node=error-${id}`, '_blank');
+            window.open(`trace/${sources.event_trace_id}?node=error-${id}`, '_blank');
           }
         }}
         icon={<IconFatal size="xs" />}
       >
-        {t('Error: %s', id.substring(0, 8))}
+        {t('Error: %s', id.substring(0, 7))}
       </SourceCard>
     );
   });
