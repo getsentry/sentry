@@ -132,7 +132,9 @@ class AlertRuleIndexMixin(Endpoint):
         if not features.has("organizations:performance-view", organization):
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
 
-        if "latestIncident" in request.GET.get("expand") and not is_frontend_request(request):
+        if "latestIncident" in request.GET.getlist("expand", []) and not is_frontend_request(
+            request
+        ):
             logger.info(
                 "organization_alert_rule_index.passed_latest_incident",
                 extra={"organization": organization.id},
