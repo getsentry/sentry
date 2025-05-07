@@ -16,6 +16,7 @@ import {
   getEquation,
   isEquation,
   isEquationAlias,
+  parseFunction,
 } from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
@@ -89,9 +90,10 @@ export function SortBySelectors({
     let options: Record<string, SelectValue<FieldValue>> = {};
     if (displayType !== DisplayType.TABLE) {
       options = datasetConfig.getTimeseriesSortOptions!(organization, widgetQuery, tags);
+      const parsedFunction = parseFunction(values.sortBy);
       if (
         widgetType === WidgetType.SPANS &&
-        values.sortBy.startsWith('count(') &&
+        parsedFunction?.name === 'count' &&
         options['measurement:span.duration']
       ) {
         // Re-map the span duration measurement label so we can simply render
