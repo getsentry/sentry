@@ -93,7 +93,7 @@ function ToolbarSuggestedQueriesInner({dismiss}: ToolbarSuggestedQueriesInnerPro
   }, [selection, projects]);
 
   return (
-    <ToolbarSection data-test-id="section-suggested-queries">
+    <StyledToolbarSection data-test-id="section-suggested-queries">
       <StyledPanel>
         <ToolbarHeader>
           <ToolbarLabel underlined={false}>{t('Suggested Queries')}</ToolbarLabel>
@@ -117,7 +117,7 @@ function ToolbarSuggestedQueriesInner({dismiss}: ToolbarSuggestedQueriesInnerPro
           ))}
         </SuggestedQueriesContainer>
       </StyledPanel>
-    </ToolbarSection>
+    </StyledToolbarSection>
   );
 }
 
@@ -333,7 +333,12 @@ function getSuggestedQueries(platforms: PlatformCategory[], maxQueries = 5) {
   return queries;
 }
 
+const StyledToolbarSection = styled(ToolbarSection)`
+  margin-bottom: 0;
+`;
+
 const StyledPanel = styled(Panel)`
+  margin-bottom: 0;
   padding: ${space(2)};
   background: linear-gradient(
     269.35deg,

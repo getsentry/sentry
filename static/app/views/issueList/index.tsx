@@ -17,8 +17,8 @@ import usePrevious from 'sentry/utils/usePrevious';
 import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssueViewQueryParams';
 import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import {useUpdateGroupSearchViewLastVisited} from 'sentry/views/nav/secondary/sections/issues/issueViews/useUpdateGroupSearchViewLastVisited';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 type Props = {
   children: React.ReactNode;
@@ -117,7 +117,9 @@ function IssueViewWrapper({children}: Props) {
 
 function IssueListContainer({children, title = t('Issues')}: Props) {
   const organization = useOrganization();
-  const hasIssueViewSharing = organization.features.includes('issue-view-sharing');
+  const hasIssueViewSharing = organization?.features.includes(
+    'enforce-stacked-navigation'
+  );
 
   return (
     <SentryDocumentTitle title={title} orgSlug={organization.slug}>

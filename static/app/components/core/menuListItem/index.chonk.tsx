@@ -71,8 +71,12 @@ export const ChonkInnerWrap = chonkStyled('div', {
     font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};
 
     &,
-    &:hover {
+    &:hover,
+    &:focus,
+    &:focus-visible {
       color: ${getTextColor};
+      box-shadow: none;
+      outline: none;
     }
     ${p => p.disabled && `cursor: default;`}
 

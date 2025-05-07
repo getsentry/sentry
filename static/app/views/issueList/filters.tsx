@@ -12,6 +12,7 @@ import IssueListSortOptions from 'sentry/views/issueList/actions/sortOptions';
 import {IssueSearchWithSavedSearches} from 'sentry/views/issueList/issueSearchWithSavedSearches';
 import {IssueViewSaveButton} from 'sentry/views/issueList/issueViews/issueViewSaveButton';
 import type {IssueSortOptions} from 'sentry/views/issueList/utils';
+import {useHasIssueViewSharing} from 'sentry/views/nav/usePrefersStackedNav';
 
 interface Props {
   onSearch: (query: string) => void;
@@ -24,7 +25,7 @@ function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
   const organization = useOrganization();
 
   const hasIssueViews = organization.features.includes('issue-stream-custom-views');
-  const hasIssueViewSharing = organization.features.includes('issue-view-sharing');
+  const hasIssueViewSharing = useHasIssueViewSharing();
 
   return (
     <FiltersContainer hasIssueViewSharing={hasIssueViewSharing}>

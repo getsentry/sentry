@@ -23,7 +23,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import withSubscription from 'getsentry/components/withSubscription';
-import {GIGABYTE, UNLIMITED, UNLIMITED_ONDEMAND} from 'getsentry/constants';
+import {
+  GIGABYTE,
+  RESERVED_BUDGET_QUOTA,
+  UNLIMITED,
+  UNLIMITED_ONDEMAND,
+} from 'getsentry/constants';
 import type {
   BillingHistory,
   BillingMetricHistory,
@@ -331,12 +336,14 @@ function UsageHistoryRow({history, subscription}: RowProps) {
                       </td>
                     )}
                     <td>
-                      {usagePercentage(
-                        metricHistory.category === DataCategory.ATTACHMENTS
-                          ? metricHistory.usage / GIGABYTE
-                          : metricHistory.usage,
-                        metricHistory.prepaid
-                      )}
+                      {metricHistory.reserved === RESERVED_BUDGET_QUOTA
+                        ? 'N/A'
+                        : usagePercentage(
+                            metricHistory.category === DataCategory.ATTACHMENTS
+                              ? metricHistory.usage / GIGABYTE
+                              : metricHistory.usage,
+                            metricHistory.prepaid
+                          )}
                     </td>
                   </tr>
                 ))}

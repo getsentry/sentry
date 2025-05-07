@@ -70,6 +70,14 @@ Sentry.init({
   // Here, we'll capture profiles for 100% of transactions.
   profilesSampleRate: 1.0,`
       : ''
+  }${
+    params.isReplaySelected
+      ? `
+  // Record Session Replays for 10% of Sessions and 100% of Errors
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
+  integrations: [Sentry.mobileReplayIntegration()],`
+      : ''
   }
 });`;
 

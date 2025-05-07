@@ -174,7 +174,7 @@ describe('Dashboards > IssueWidgetCard', function () {
     await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
 
-    expect(screen.getByRole('link', {name: 'Open in Issues'})).toHaveAttribute(
+    expect(screen.getByRole('menuitemradio', {name: 'Open in Issues'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/?environment=prod&project=1&query=event.type%3Adefault&sort=freq&statsPeriod=14d'
     );

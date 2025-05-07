@@ -310,8 +310,8 @@ export default class ReplayReader {
   private _errorBeforeReplayStart = false;
 
   private _applyClipWindow = (clipWindow: ClipWindow, eventTimestampMs?: number) => {
-    let clipStartTimestampMs;
-    let clipEndTimestampMs;
+    let clipStartTimestampMs: number;
+    let clipEndTimestampMs: number;
     const replayStart = this._replayRecord.started_at.getTime();
     const replayEnd = this._replayRecord.finished_at.getTime();
 

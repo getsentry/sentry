@@ -60,9 +60,9 @@ function SpansWidgetQueries(props: SpansWidgetQueriesProps) {
 
   const getConfidenceInformation = useCallback(
     (result: SeriesResult) => {
-      let seriesConfidence;
-      let seriesSampleCount;
-      let seriesIsSampled;
+      let seriesConfidence: Confidence | null;
+      let seriesSampleCount: number | undefined;
+      let seriesIsSampled: boolean | null;
 
       if (isEventsStats(result)) {
         seriesConfidence = determineSeriesConfidence(result);

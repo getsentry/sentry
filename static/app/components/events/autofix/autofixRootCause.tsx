@@ -29,6 +29,7 @@ import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import {Divider} from 'sentry/views/issueDetails/divider';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
@@ -71,6 +72,7 @@ const cardAnimationProps: AnimationProps = {
 function useSelectCause({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi();
   const queryClient = useQueryClient();
+  const orgSlug = useOrganization().slug;
 
   return useMutation({
     mutationFn: (
@@ -83,31 +85,34 @@ function useSelectCause({groupId, runId}: {groupId: string; runId: string}) {
             customRootCause: string;
           }
     ) => {
-      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
-        method: 'POST',
-        data:
-          'customRootCause' in params
-            ? {
-                run_id: runId,
-                payload: {
-                  type: 'select_root_cause',
-                  custom_root_cause: params.customRootCause,
+      return api.requestPromise(
+        `/organizations/${orgSlug}/issues/${groupId}/autofix/update/`,
+        {
+          method: 'POST',
+          data:
+            'customRootCause' in params
+              ? {
+                  run_id: runId,
+                  payload: {
+                    type: 'select_root_cause',
+                    custom_root_cause: params.customRootCause,
+                  },
+                }
+              : {
+                  run_id: runId,
+                  payload: {
+                    type: 'select_root_cause',
+                    cause_id: params.causeId,
+                    instruction: params.instruction,
+                  },
                 },
-              }
-            : {
-                run_id: runId,
-                payload: {
-                  type: 'select_root_cause',
-                  cause_id: params.causeId,
-                  instruction: params.instruction,
-                },
-              },
-      });
+        }
+      );
     },
     onSuccess: (_, params) => {
       setApiQueryData<AutofixResponse>(
         queryClient,
-        makeAutofixQueryKey(groupId),
+        makeAutofixQueryKey(orgSlug, groupId),
         data => {
           if (!data?.autofix) {
             return data;

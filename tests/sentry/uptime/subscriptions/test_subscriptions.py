@@ -746,7 +746,7 @@ class DisableProjectUptimeSubscriptionTest(UptimeTestCase):
                 self.create_uptime_result(
                     subscription_id=proj_sub.uptime_subscription.subscription_id
                 ),
-                proj_sub,
+                detector,
             )
             hashed_fingerprint = md5(str(proj_sub.id).encode("utf-8")).hexdigest()
             assert Group.objects.filter(
@@ -759,7 +759,7 @@ class DisableProjectUptimeSubscriptionTest(UptimeTestCase):
 
         proj_sub.refresh_from_db()
         assert proj_sub.status == ObjectStatus.DISABLED
-        assert proj_sub.uptime_status == UptimeStatus.OK
+        assert proj_sub.uptime_subscription.uptime_status == UptimeStatus.OK
         assert proj_sub.uptime_subscription.status == UptimeSubscription.Status.DISABLED.value
         mock_remove_seat.assert_called_with(DataCategory.UPTIME, proj_sub)
 

@@ -1,24 +1,31 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
-import {BACKEND_LANDING_TITLE} from 'sentry/views/insights/pages/backend/settings';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {CachesWidget} from 'sentry/views/insights/pages/platform/laravel/cachesWidget';
 import {JobsWidget} from 'sentry/views/insights/pages/platform/laravel/jobsWidget';
-import {PathsTable} from 'sentry/views/insights/pages/platform/laravel/pathsTable';
 import {QueriesWidget} from 'sentry/views/insights/pages/platform/laravel/queriesWidget';
 import {DurationWidget} from 'sentry/views/insights/pages/platform/shared/durationWidget';
 import {IssuesWidget} from 'sentry/views/insights/pages/platform/shared/issuesWidget';
 import {PlatformLandingPageLayout} from 'sentry/views/insights/pages/platform/shared/layout';
+import {PathsTable} from 'sentry/views/insights/pages/platform/shared/pathsTable';
 import {TrafficWidget} from 'sentry/views/insights/pages/platform/shared/trafficWidget';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 export function LaravelOverviewPage() {
   const organization = useOrganization();
+  const pageFilters = usePageFilters();
+  const {releases: releasesWithDate} = useReleaseStats(pageFilters.selection);
+  const releases =
+    releasesWithDate?.map(({date, version}) => ({
+      timestamp: date,
+      version,
+    })) ?? [];
 
   useEffect(() => {
     trackAnalytics('laravel-insights.page-view', {
@@ -30,7 +37,7 @@ export function LaravelOverviewPage() {
   const {query, setTransactionFilter} = useTransactionNameQuery();
 
   return (
-    <PlatformLandingPageLayout headerTitle={BACKEND_LANDING_TITLE}>
+    <PlatformLandingPageLayout performanceType={'backend'}>
       <WidgetGrid>
         <RequestsContainer>
           <TrafficWidget
@@ -38,22 +45,23 @@ export function LaravelOverviewPage() {
             trafficSeriesName={t('Requests')}
             baseQuery={'span.op:http.server'}
             query={query}
+            releases={releases}
           />
         </RequestsContainer>
         <IssuesContainer>
           <IssuesWidget query={query} />
         </IssuesContainer>
         <DurationContainer>
-          <DurationWidget query={query} />
+          <DurationWidget query={query} releases={releases} />
         </DurationContainer>
         <JobsContainer>
-          <JobsWidget query={query} />
+          <JobsWidget query={query} releases={releases} />
         </JobsContainer>
         <QueriesContainer>
-          <QueriesWidget query={query} />
+          <QueriesWidget query={query} releases={releases} />
         </QueriesContainer>
         <CachesContainer>
-          <CachesWidget query={query} />
+          <CachesWidget query={query} releases={releases} />
         </CachesContainer>
       </WidgetGrid>
       <PathsTable handleAddTransactionFilter={setTransactionFilter} query={query} />
@@ -114,12 +122,6 @@ const IssuesContainer = styled('div')`
     min-width: 0;
     overflow-y: auto;
     margin-bottom: 0 !important;
-  }
-
-  & ${PanelHeader} {
-    position: sticky;
-    top: 0;
-    z-index: ${p => p.theme.zIndex.header};
   }
 `;
 

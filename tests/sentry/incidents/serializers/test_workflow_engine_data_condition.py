@@ -3,71 +3,20 @@ from sentry.incidents.endpoints.serializers.workflow_engine_data_condition impor
     WorkflowEngineDataConditionSerializer,
 )
 from sentry.incidents.endpoints.utils import translate_data_condition_type
-from sentry.incidents.models.alert_rule import (
-    AlertRule,
-    AlertRuleThresholdType,
-    AlertRuleTrigger,
-    AlertRuleTriggerAction,
-)
-from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import freeze_time
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_alert_rule,
     migrate_metric_action,
     migrate_metric_data_conditions,
     migrate_resolve_threshold_data_condition,
 )
+from tests.sentry.incidents.serializers.test_workflow_engine_base import TestWorklowEngineSerializer
 
 
-@freeze_time("2018-12-11 03:21:34")
-class TestDataConditionSerializer(TestCase):
+class TestDataConditionSerializer(TestWorklowEngineSerializer):
     def setUp(self) -> None:
-        self.alert_rule = self.create_alert_rule()
-        self.critical_trigger = self.create_alert_rule_trigger(
-            alert_rule=self.alert_rule, label="critical"
-        )
-        self.critical_trigger_action = self.create_alert_rule_trigger_action(
-            alert_rule_trigger=self.critical_trigger
-        )
-        self.warning_trigger = self.create_alert_rule_trigger(
-            alert_rule=self.alert_rule, label="warning"
-        )
-        self.warning_trigger_action = self.create_alert_rule_trigger_action(
-            alert_rule_trigger=self.warning_trigger
-        )
-        _, _, _, self.detector, _, _, _, _ = migrate_alert_rule(self.alert_rule)
-        self.critical_detector_trigger, _ = migrate_metric_data_conditions(self.critical_trigger)
-        self.warning_detector_trigger, _ = migrate_metric_data_conditions(self.warning_trigger)
-        self.critical_action, _, _ = migrate_metric_action(self.critical_trigger_action)
-        self.warning_action, _, _ = migrate_metric_action(self.warning_trigger_action)
-        self.resolve_trigger_data_condition = migrate_resolve_threshold_data_condition(
-            self.alert_rule
-        )
-        self.expected_actions = [
-            {
-                "id": str(self.critical_trigger_action.id),
-                "alertRuleTriggerId": str(self.critical_trigger.id),
-                "type": "email",
-                "targetType": "user",
-                "targetIdentifier": str(self.user.id),
-                "inputChannelId": None,
-                "integrationId": None,
-                "sentryAppId": None,
-                "dateCreated": self.critical_trigger_action.date_added,
-                "desc": f"Send a notification to {self.user.email}",
-                "priority": self.critical_action.data.get("priority"),
-            },
-        ]
-        self.expected_trigger = {
-            "id": str(self.critical_trigger.id),
-            "alertRuleId": str(self.alert_rule.id),
-            "label": "critical",
-            "thresholdType": AlertRuleThresholdType.ABOVE.value,
-            "alertThreshold": self.critical_detector_trigger.comparison,
-            "resolveThreshold": AlertRuleThresholdType.BELOW,
-            "dateCreated": self.critical_trigger.date_added,
-            "actions": self.expected_actions,
-        }
+        super().setUp()
+        self.add_warning_trigger()
 
     def create_rule_triggers_and_actions(
         self,
@@ -102,7 +51,7 @@ class TestDataConditionSerializer(TestCase):
             self.user,
             WorkflowEngineDataConditionSerializer(),
         )
-        assert serialized_data_condition == self.expected_trigger
+        assert serialized_data_condition == self.expected_triggers[0]
 
     def test_warning_trigger(self) -> None:
         serialized_data_condition = serialize(
@@ -110,21 +59,7 @@ class TestDataConditionSerializer(TestCase):
             self.user,
             WorkflowEngineDataConditionSerializer(),
         )
-        expected_actions = self.expected_actions.copy()
-        expected_actions[0]["id"] = str(self.warning_trigger_action.id)
-        expected_actions[0]["alertRuleTriggerId"] = str(self.warning_trigger.id)
-
-        expected_trigger = self.expected_trigger.copy()
-        expected_trigger["actions"] = expected_actions
-        expected_trigger["alertThreshold"] = translate_data_condition_type(
-            self.detector.config.get("comparison_delta"),
-            self.resolve_trigger_data_condition.type,
-            self.warning_detector_trigger.comparison,
-        )
-        expected_trigger["id"] = str(self.warning_trigger.id)
-        expected_trigger["alertRuleId"] = str(self.alert_rule.id)
-        expected_trigger["label"] = "warning"
-        assert serialized_data_condition == expected_trigger
+        assert serialized_data_condition == self.expected_triggers[1]
 
     def test_multiple_actions(self) -> None:
         self.critical_trigger_action_2 = self.create_alert_rule_trigger_action(
@@ -136,7 +71,7 @@ class TestDataConditionSerializer(TestCase):
             self.user,
             WorkflowEngineDataConditionSerializer(),
         )
-        expected_actions = self.expected_actions.copy()
+        expected_actions = self.expected_critical_action.copy()
         actions_2 = {
             "id": str(self.critical_trigger_action_2.id),
             "alertRuleTriggerId": str(self.critical_trigger.id),
@@ -151,7 +86,7 @@ class TestDataConditionSerializer(TestCase):
             "priority": self.critical_action.data.get("priority"),
         }
         expected_actions.append(actions_2)
-        expected_trigger = self.expected_trigger.copy()
+        expected_trigger = self.expected_triggers[0].copy()
         expected_trigger["actions"] = expected_actions
         assert serialized_data_condition == expected_trigger
 
@@ -173,11 +108,11 @@ class TestDataConditionSerializer(TestCase):
             self.user,
             WorkflowEngineDataConditionSerializer(),
         )
-        expected_actions = self.expected_actions.copy()
+        expected_actions = self.expected_critical_action.copy()
         expected_actions[0]["id"] = str(comparison_delta_trigger_action.id)
         expected_actions[0]["alertRuleTriggerId"] = str(comparison_delta_trigger.id)
 
-        expected_trigger = self.expected_trigger.copy()
+        expected_trigger = self.expected_triggers[0].copy()
         expected_trigger["actions"] = expected_actions
         expected_trigger["alertThreshold"] = translate_data_condition_type(
             detector.config.get("comparison_delta"),
