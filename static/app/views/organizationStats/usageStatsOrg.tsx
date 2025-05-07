@@ -349,15 +349,18 @@ function UsageStatsOrganization({
   endpointQuery,
 }: UsageStatsOrganizationProps) {
   const router = useRouter();
-  const orgStatsQuery =
-    endpointQuery ??
-    getEndpointQuery({
-      dataCategoryApiName,
-      dataDatetime,
-      organization,
-      projectIds,
-      endpointQueryDatetime: getEndpointQueryDatetime(dataDatetime),
-    });
+  const orgStatsQuery = useMemo(() => {
+    return (
+      endpointQuery ??
+      getEndpointQuery({
+        dataCategoryApiName,
+        dataDatetime,
+        organization,
+        projectIds,
+        endpointQueryDatetime: getEndpointQueryDatetime(dataDatetime),
+      })
+    );
+  }, [endpointQuery, dataCategoryApiName, dataDatetime, organization, projectIds]);
 
   const orgStatsReponse = useApiQuery<UsageSeries | undefined>(
     [
