@@ -526,6 +526,7 @@ class GitHubInstallationError(StrEnum):
     INSTALLATION_EXISTS = "Github installed on another Sentry organization."
     USER_MISMATCH = "Authenticated user is not the same as who installed the app."
     MISSING_INTEGRATION = "Integration does not exist."
+    INVALID_INSTALLATION = "User does not have access to given installation"
 
 
 def record_event(event: IntegrationPipelineViewType):
@@ -770,49 +771,55 @@ class GitHubInstallation(PipelineView):
 
 class GithubOrganizationSelection(PipelineView):
     def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
-        self.active_user_organization = determine_active_organization(request)
+        with record_event(
+            IntegrationPipelineViewType.ORGANIZATION_SELECTION
+        ).capture() as lifecycle:
+            self.active_user_organization = determine_active_organization(request)
 
-        if self.active_user_organization.organization is None or not features.has(
-            "organizations:github-multi-org",
-            organization=self.active_user_organization.organization,
-            actor=request.user,
-        ):
-            return pipeline.next_step()
-
-        installation_info = pipeline.fetch_state("existing_installation_info") or []
-
-        if len(installation_info) == 0:
-            return pipeline.next_step()
-
-        if "chosen_installation_id" in request.GET:
-            chosen_installation_id = request.GET["chosen_installation_id"]
-
-            # Verify that the given GH installation belongs to the person installing the pipeline
-            if not (
-                chosen_installation_id
-                in [installation["installation_id"] for installation in installation_info]
+            if self.active_user_organization.organization is None or not features.has(
+                "organizations:github-multi-org",
+                organization=self.active_user_organization.organization,
+                actor=request.user,
             ):
-                return error(
-                    request,
-                    self.active_user_organization,
-                    error_short=GitHubInstallationError.USER_MISMATCH,
-                )
-            if chosen_installation_id == "-1":
                 return pipeline.next_step()
 
-            pipeline.bind_state("chosen_installation", chosen_installation_id)
-            return pipeline.next_step()
+            installation_info = pipeline.fetch_state("existing_installation_info") or []
 
-        # add an option for users to install on a new GH organization
-        installation_info.append(
-            {
-                "installation_id": "-1",
-                "github_organization": "Install integration on a new GitHub organization",
-                "avatar_url": "https://raw.githubusercontent.com/getsentry/sentry/526f08eeaafa3a830f70671ad473afd7b9b05a0f/src/sentry/static/sentry/images/logos/sentry-avatar.png",
-            }
-        )
-        return self.render_react_view(
-            request=request,
-            pipeline_name="githubInstallationSelect",
-            props={"installation_info": installation_info},
-        )
+            if len(installation_info) == 0:
+                return pipeline.next_step()
+
+            if "chosen_installation_id" in request.GET:
+                chosen_installation_id = request.GET["chosen_installation_id"]
+
+                # Verify that the given GH installation belongs to the person installing the pipeline
+                installation_ids = [
+                    installation["installation_id"] for installation in installation_info
+                ]
+                if chosen_installation_id not in installation_ids:
+                    lifecycle.record_failure(
+                        failure_reason=GitHubInstallationError.INVALID_INSTALLATION
+                    )
+                    return error(
+                        request,
+                        self.active_user_organization,
+                        error_short=GitHubInstallationError.INVALID_INSTALLATION,
+                    )
+                if chosen_installation_id == "-1":
+                    return pipeline.next_step()
+
+                pipeline.bind_state("chosen_installation", chosen_installation_id)
+                return pipeline.next_step()
+
+            # add an option for users to install on a new GH organization
+            installation_info.append(
+                {
+                    "installation_id": "-1",
+                    "github_organization": "Install integration on a new GitHub organization",
+                    "avatar_url": "https://raw.githubusercontent.com/getsentry/sentry/526f08eeaafa3a830f70671ad473afd7b9b05a0f/src/sentry/static/sentry/images/logos/sentry-avatar.png",
+                }
+            )
+            return self.render_react_view(
+                request=request,
+                pipeline_name="githubInstallationSelect",
+                props={"installation_info": installation_info},
+            )
