@@ -42,9 +42,13 @@ There are quite a few places which need to be updated when adding a new performa
 - [ ] Update `get_detection_settings()` (in [performance_detection.py](./performance_detection.py))
   - [ ] Add a key for your `DetectorType`, with a value of an empty dictionary
   - [ ] If your value is not customizable, add it to the dictionary
-  - [ ] If it is customizable, access it via `settings[key_name]` - [ ] Then add it to [project_performance_issue_settings.py](../../api/endpoints/project_performance_issue_settings.py), either `InternalProjectOptions` or `ConfigurableThresholds` - [ ] In the same file, Add it to the map, either `internal_only_project_settings_to_group_map` or `configurable_thresholds_to_internal_settings_map` - [ ] In the same file, Add a serializer field to `ProjectPerformanceIssueSettingsSerializer` to allow it to be validated from the inbound API.
-        static/app/views/settings/projectPerformance/projectPerformance.tsx
-        /Users/leander/dev/sentry/static/app/views/settings/projectPerformance/projectPerformance.tsx - [ ] (Optional) The frontend file (`projectPerformance.tsx`) should add the new field. - [ ] Then, to set a default value, register an option in [defaults.py](../../options/defaults.py) - [ ] And finally, respect that default value by modifying `get_merged_settings()` in [performance_detection.py](./performance_detection.py)
+  - [ ] If it is customizable, access it via `settings[key_name]`
+    - [ ] Then add it to [project_performance_issue_settings.py](../../api/endpoints/project_performance_issue_settings.py), either `InternalProjectOptions` or `ConfigurableThresholds`
+    - [ ] In the same file, Add it to the map, either `internal_only_project_settings_to_group_map` or `configurable_thresholds_to_internal_settings_map`
+    - [ ] In the same file, Add a serializer field to `ProjectPerformanceIssueSettingsSerializer` to allow it to be validated from the inbound API.
+    - [ ] (Optional) The frontend file (`projectPerformance.tsx`) should add the new field.
+    - [ ] Then, to set a default value, register an option in [defaults.py](../../options/defaults.py)
+    - [ ] And finally, respect that default value by modifying `get_merged_settings()` in [performance_detection.py](./performance_detection.py)
 - [ ] Setup for the `PerformanceDetector` subclass
   - [ ] Update the `type` and `settings_key` attributes with the new `DetectorType`
   - [ ] (Optional) Implement `is_event_eligible()` to allow early exits.
