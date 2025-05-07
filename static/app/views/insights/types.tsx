@@ -73,6 +73,19 @@ export enum SpanFields {
   IS_STARRED_TRANSACTION = 'is_starred_transaction',
   SPAN_DURATION = 'span.duration',
   USER = 'user',
+  MOBILE_FROZEN_FRAMES = 'mobile.frozen_frames',
+  MOBILE_TOTAL_FRAMES = 'mobile.total_frames',
+  MOBILE_SLOW_FRAMES = 'mobile.slow_frames',
+  FROZEN_FRAMES_RATE = 'measurements.frames_frozen_rate',
+  SLOW_FRAMES_RATE = 'measurements.frames_slow_rate',
+  RAW_DOMAIN = 'raw_domain',
+  PROJECT = 'project',
+  MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH = 'measurements.http.response_content_length',
+  MEASUREMENTS_TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
+  SPAN_DESCRIPTION = 'span.description',
+  SPAN_GROUP = 'span.group',
+  SPAN_OP = 'span.op',
+  RELEASE = 'release',
 }
 
 type WebVitalsMeasurements =
@@ -105,10 +118,18 @@ type SpanNumberFields =
   | SpanMetricsField.MOBILE_TOTAL_FRAMES
   | SpanMetricsField.MOBILE_SLOW_FRAMES
   | SpanMetricsField.SPAN_DURATION
+  | SpanFields.MOBILE_FROZEN_FRAMES
+  | SpanFields.MOBILE_TOTAL_FRAMES
+  | SpanFields.MOBILE_SLOW_FRAMES
+  | SpanFields.FROZEN_FRAMES_RATE
+  | SpanFields.SLOW_FRAMES_RATE
+  | SpanFields.MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH
+  | SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY
   | DiscoverNumberFields;
 
 type SpanStringFields =
   | SpanMetricsField.RESOURCE_RENDER_BLOCKING_STATUS
+  | SpanFields.RAW_DOMAIN
   | 'id'
   | 'span_id'
   | 'span.op'
@@ -131,6 +152,7 @@ type SpanStringFields =
   | 'span.status_code'
   | 'span.ai.pipeline.group'
   | 'project'
+  | 'http.request.method'
   | 'messaging.destination.name'
   | 'user'
   | 'user.display'
@@ -164,6 +186,7 @@ export type Aggregate =
 type CounterConditionalAggregate =
   | `sum_if`
   | `avg_if`
+  | `count_if`
   | `p50_if`
   | `p75_if`
   | `p90_if`
@@ -172,6 +195,7 @@ type CounterConditionalAggregate =
 
 type ConditionalAggregate =
   | `avg_if`
+  | `division_if`
   | `count_op`
   | `failure_rate_if`
   | 'trace_status_rate'
@@ -227,6 +251,8 @@ export type SpanMetricsResponse = {
     'http_response_rate(3)': number;
     'http_response_rate(4)': number;
     'http_response_rate(5)': number;
+    'ttfd_contribution_rate()': number;
+    'ttid_contribution_rate()': number;
   } & {
     ['project']: string;
     ['project.id']: number;
@@ -238,7 +264,10 @@ export type SpanMetricsResponse = {
       | `${Property}(${string},${string},${string})`]: number;
   } & {
     [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
+  } & {
+    [Property in SpanNumberFields as `avg_compare(${Property},${string},${string},${string})`]: number;
   };
+
 export type MetricsFilters = {
   [Property in SpanStringFields as `${Property}`]?: string | string[];
 };
@@ -267,13 +296,18 @@ export type EAPSpanResponse = {
     [Property in ConditionalAggregate as
       | `${Property}(${string})`
       | `${Property}(${string},${string})`
-      | `${Property}(${string},${string},${string})`]: number;
+      | `${Property}(${string},${string},${string})`
+      | `${Property}(${string},${string},${string},${string})`]: number;
   } & {
     [SpanMetricsField.USER_GEO_SUBREGION]: SubregionCode;
   } & {
     [Property in SpanFields as `count_unique(${Property})`]: number;
   } & {
     [Property in SpanNumberFields as `${CounterConditionalAggregate}(${Property},${string},${string})`]: number;
+  } & {
+    [Property in SpanNumberFields as `avg_compare(${Property},${string},${string},${string})`]: number;
+  } & {
+    [Property in SpanFields as `count_if(${Property},${string})`]: number;
   };
 
 export type EAPSpanProperty = keyof EAPSpanResponse;

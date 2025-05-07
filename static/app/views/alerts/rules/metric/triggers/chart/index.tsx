@@ -698,8 +698,6 @@ class TriggersChart extends PureComponent<Props, State> {
       );
     }
 
-    const useRpc = dataset === Dataset.EVENTS_ANALYTICS_PLATFORM;
-
     const baseProps = {
       api,
       organization,
@@ -714,7 +712,6 @@ class TriggersChart extends PureComponent<Props, State> {
       includePrevious: false,
       currentSeriesNames: [formattedAggregate || aggregate],
       partial: false,
-      useRpc,
     };
 
     const isProgressiveLoadingEnabled = organization.features.includes(

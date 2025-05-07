@@ -75,7 +75,7 @@ from sentry.auth.superuser import COOKIE_SECURE as SU_COOKIE_SECURE
 from sentry.auth.superuser import SUPERUSER_ORG_ID, Superuser
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.event_manager import EventManager
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.issues.grouptype import (
     NoiseConfig,
@@ -789,6 +789,9 @@ class RuleTestCase(TestCase):
 
     def get_event(self):
         return self.event
+
+    def get_group_event(self):
+        return GroupEvent.from_event(self.event, self.event.group)
 
     def get_rule(self, **kwargs):
         kwargs.setdefault("project", self.project)

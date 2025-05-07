@@ -62,7 +62,6 @@ export function CachesWidget({query, releases}: {query?: string; releases?: Rele
               .map(item => `"${item.transaction}"`)
               .join(', ')}]`,
           sort: '-cache_miss_rate()',
-          useRpc: 1,
           topEvents: 4,
         },
       },

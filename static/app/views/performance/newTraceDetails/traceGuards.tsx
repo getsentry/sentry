@@ -1,3 +1,4 @@
+import type {Measurement} from 'sentry/types/event';
 import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
 
 import {MissingInstrumentationNode} from './traceModels/missingInstrumentationNode';
@@ -211,4 +212,20 @@ export function isTraceOccurence(
   issue: TraceTree.TraceIssue
 ): issue is TraceTree.TraceOccurrence {
   return 'issue_id' in issue && issue.event_type !== 'error';
+}
+
+export function isEAPMeasurementValue(
+  value: number | Measurement | undefined
+): value is number {
+  return value !== undefined && typeof value === 'number';
+}
+
+export function isEAPMeasurements(
+  value: Record<string, Measurement> | Record<string, number> | undefined
+): value is Record<string, number> {
+  if (value === undefined) {
+    return false;
+  }
+
+  return Object.values(value).every(isEAPMeasurementValue);
 }

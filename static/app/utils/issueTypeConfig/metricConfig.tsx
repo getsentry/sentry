@@ -3,7 +3,7 @@ import {IssueType} from 'sentry/types/group';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 import {Tab} from 'sentry/views/issueDetails/types';
 
-const performanceRegressionConfig: IssueCategoryConfigMapping = {
+const metricConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
     actions: {
       archiveUntilOccurrence: {enabled: true},
@@ -134,4 +134,4 @@ const performanceRegressionConfig: IssueCategoryConfigMapping = {
   },
 };
 
-export default performanceRegressionConfig;
+export default metricConfig;

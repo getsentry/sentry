@@ -2,6 +2,7 @@ import {Fragment, useCallback, useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion, type MotionProps} from 'framer-motion';
+import snakeCase from 'lodash/snakeCase';
 import moment from 'moment-timezone';
 
 import type {PromptData} from 'sentry/actionCreators/prompts';
@@ -168,8 +169,7 @@ function PrimaryNavigationQuotaExceeded({organization}: {organization: Organizat
     }, [] as DataCategory[]);
   const promptsToCheck = exceededCategories
     .map(category => {
-      const categoryInfo = getCategoryInfoFromPlural(category);
-      return `${categoryInfo?.snakeCasePlural ?? category}_overage_alert`;
+      return `${snakeCase(category)}_overage_alert`;
     })
     .filter(Boolean);
 

@@ -45,7 +45,6 @@ export function DurationWidget({
           yAxis: ['avg(span.duration)', 'p95(span.duration)'],
           orderby: 'avg(span.duration)',
           partial: 1,
-          useRpc: 1,
           query: fullQuery,
           referrer: Referrer.DURATION_CHART,
         },

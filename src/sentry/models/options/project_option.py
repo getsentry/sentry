@@ -65,6 +65,7 @@ OPTION_KEYS = frozenset(
         "sentry:breakdowns",
         "sentry:transaction_name_cluster_rules",
         "sentry:uptime_autodetection",
+        "sentry:autofix_automation_tuning",
         "quotas:spike-protection-disabled",
         "feedback:branding",
         "digests:mail:minimum_delay",
@@ -186,6 +187,9 @@ class ProjectOption(Model):
         app_label = "sentry"
         db_table = "sentry_projectoptions"
         unique_together = (("project", "key"),)
+        indexes = [
+            models.Index(fields=["key"]),
+        ]
 
     __repr__ = sane_repr("project_id", "key", "value")
 
