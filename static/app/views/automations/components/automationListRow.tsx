@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {Flex} from 'sentry/components/container/flex';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import Link from 'sentry/components/links/link';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
 import {ConnectionCell} from 'sentry/components/workflowEngine/gridCell/connectionCell';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
@@ -35,7 +36,7 @@ export function AutomationListRow({
           }}
         />
         <CellWrapper>
-          <TitleCell href={`${AUTOMATIONS_BASE_URL}/${id}/`}>{name}</TitleCell>
+          <TitleCell to={`${AUTOMATIONS_BASE_URL}/${id}/`}>{name}</TitleCell>
         </CellWrapper>
       </Flex>
       <CellWrapper className="last-triggered">
@@ -67,7 +68,7 @@ const CellWrapper = styled('div')`
   min-width: 0;
 `;
 
-const TitleCell = styled('a')`
+const TitleCell = styled(Link)`
   padding: ${space(2)};
   margin: -${space(2)};
   color: ${p => p.theme.textColor};
