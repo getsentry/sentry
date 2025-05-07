@@ -557,7 +557,8 @@ class PullRequestEventWebhook(GitHubWebhook):
                 },
             )
 
-            if action == "opened" and created:
+            # TODO(jianyuan): Remove self.provider == "github" once we have implemented the new open_pr_comment_workflow for GH Enterprise
+            if action == "opened" and created and self.provider == "github":
                 if not OrganizationOption.objects.get_value(
                     organization=organization,
                     key="sentry:github_open_pr_bot",
