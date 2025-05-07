@@ -5,11 +5,6 @@ export const SAMPLING_MODE = {
   HIGH_ACCURACY: 'HIGHEST_ACCURACY',
 } as const;
 
-export const QUERY_MODE = {
-  SERIAL: 'serial',
-  PARALLEL: 'parallel',
-} as const;
-
 const NORMAL_SAMPLING_MODE_QUERY_EXTRAS = {
   samplingMode: SAMPLING_MODE.NORMAL,
 } as const;
