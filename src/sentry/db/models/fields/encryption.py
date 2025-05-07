@@ -1,4 +1,5 @@
 import pickle
+from functools import lru_cache
 
 from cryptography.fernet import MultiFernet
 from django.db import models
@@ -6,12 +7,11 @@ from django.db import models
 __all__ = ("EncryptedStringField",)
 
 
+@lru_cache(maxsize=1)
 def _get_fernet_object() -> MultiFernet:
     keys_path = "/tmp/multi_fernet.bin"
     with open(keys_path, "rb") as f:
         unpickled_fernet = pickle.load(f)
-    # test if it works
-    # unpickled_fernet = MultiFernet([Fernet(Fernet.generate_key()) for _ in range(3)])
     return unpickled_fernet
 
 
