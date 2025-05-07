@@ -164,7 +164,6 @@ function EnsureSingleProject({
             }
           }}
           isClearable={false}
-          styles={{container: (base: any) => ({...base, marginTop: space(2)})}}
         />
       </ProjectSelectContainer>
     </EventDrawerBody>
@@ -322,5 +321,8 @@ const HeaderToolbar = styled(Header)`
 `;
 
 const ProjectSelectContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
   height: 100vh;
 `;

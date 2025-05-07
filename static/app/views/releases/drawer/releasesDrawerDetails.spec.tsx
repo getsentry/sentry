@@ -4,14 +4,14 @@ import {ReleaseFixture} from 'sentry-fixture/release';
 import {ReleaseMetaFixture} from 'sentry-fixture/releaseMeta';
 import {ReleaseProjectFixture} from 'sentry-fixture/releaseProject';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {ReleasesDrawerDetails} from 'sentry/views/releases/drawer/releasesDrawerDetails';
 import {ReleasesDrawerFields} from 'sentry/views/releases/drawer/utils';
 
-// Mock GroupList as in throws act warnings
+// Mock GroupList as it throws act warnings
 jest.mock('sentry/components/issues/groupList', () => ({
   __esModule: true,
   default: () => <div>GroupList</div>,
@@ -102,11 +102,7 @@ describe('ReleasesDrawerDetails', () => {
   it('renders content when projectId exists', async () => {
     render(<ReleasesDrawerDetails {...defaultProps} projectId="1" />, {organization});
 
-    await waitFor(() => {
-      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    });
-
-    expect(screen.getByText('Details')).toBeInTheDocument();
+    expect(await screen.findByText('Details')).toBeInTheDocument();
     expect(screen.getByText('General')).toBeInTheDocument();
     expect(screen.getByText('Commits')).toBeInTheDocument();
     expect(screen.getByText('File Changes')).toBeInTheDocument();
@@ -121,11 +117,7 @@ describe('ReleasesDrawerDetails', () => {
     render(<ReleasesDrawerDetails {...defaultProps} />, {organization});
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
-    await waitFor(() => {
-      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    });
-
-    expect(screen.getByText('Details')).toBeInTheDocument();
+    expect(await screen.findByText('Details')).toBeInTheDocument();
     expect(screen.getByText('General')).toBeInTheDocument();
     expect(screen.getByText('Commits')).toBeInTheDocument();
     expect(screen.getByText('File Changes')).toBeInTheDocument();
@@ -140,11 +132,7 @@ describe('ReleasesDrawerDetails', () => {
     });
 
     render(<ReleasesDrawerDetails {...defaultProps} />, {organization});
-    await waitFor(() => {
-      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    });
-
-    expect(screen.getByText('Release not found')).toBeInTheDocument();
+    expect(await screen.findByText('Release not found')).toBeInTheDocument();
   });
 
   it('renders project selection when multiple projects exist', async () => {
@@ -161,11 +149,8 @@ describe('ReleasesDrawerDetails', () => {
     });
 
     render(<ReleasesDrawerDetails {...defaultProps} />, {organization});
-    await waitFor(() => {
-      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    });
     expect(
-      screen.getByText(
+      await screen.findByText(
         'This release exists in multiple projects. Please select a project to view details.'
       )
     ).toBeInTheDocument();
@@ -214,9 +199,6 @@ describe('ReleasesDrawerDetails', () => {
     render(<ReleasesDrawerDetails {...defaultProps} projectId="invalid" />, {
       organization,
     });
-    await waitFor(() => {
-      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    });
-    expect(screen.getByText('Project not found')).toBeInTheDocument();
+    expect(await screen.findByText('Project not found')).toBeInTheDocument();
   });
 });
