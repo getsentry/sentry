@@ -1015,6 +1015,11 @@ class GroupSerializerSnuba(GroupSerializerBase):
     def _seen_stats_error(
         self, error_issue_list: Sequence[Group], user
     ) -> Mapping[Group, SeenStats]:
+        """
+        Returns the filtered seen stats for each error issue in the list. With
+        `organizations:issue-details-lifetime-stats`, it will also return the
+        non-filtered lifetime stats for the issue.
+        """
         result = self._parse_seen_stats_results(
             self._execute_error_seen_stats_query(
                 item_list=error_issue_list,
@@ -1035,7 +1040,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
                     item_list=error_issue_list,
                 ),
                 error_issue_list,
-                False,
+                use_result_first_seen_times_seen=False,
             )
             for item in error_issue_list:
                 result[item].update({"lifetime": lifetime_result.get(item, {})})
@@ -1044,6 +1049,11 @@ class GroupSerializerSnuba(GroupSerializerBase):
     def _seen_stats_generic(
         self, generic_issue_list: Sequence[Group], user
     ) -> Mapping[Group, SeenStats]:
+        """
+        Returns the filtered seen stats for each non-error (issue platform) issue in the list. With
+        `organizations:issue-details-lifetime-stats`, it will also return the
+        non-filtered lifetime stats for the issue.
+        """
         result = self._parse_seen_stats_results(
             self._execute_generic_seen_stats_query(
                 item_list=generic_issue_list,
@@ -1064,7 +1074,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
                     item_list=generic_issue_list,
                 ),
                 generic_issue_list,
-                False,
+                use_result_first_seen_times_seen=False,
             )
             for item in generic_issue_list:
                 result[item].update({"lifetime": lifetime_result.get(item, {})})
