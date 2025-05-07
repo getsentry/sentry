@@ -1270,17 +1270,17 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self._setup_with_existing_installations()
         installations = [
             {
-                "installation_id": 1,
+                "installation_id": "1",
                 "github_organization": "santry",
                 "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pitchforks.png",
             },
             {
-                "installation_id": 2,
+                "installation_id": "2",
                 "github_organization": "bufo-bot",
                 "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pog.png",
             },
             {
-                "installation_id": -1,
+                "installation_id": "-1",
                 "github_organization": "Install integration on a new GitHub organization",
                 "avatar_url": "https://raw.githubusercontent.com/getsentry/sentry/526f08eeaafa3a830f70671ad473afd7b9b05a0f/src/sentry/static/sentry/images/logos/sentry-avatar.png",
             },
@@ -1312,7 +1312,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
     @responses.activate
     def test_github_installation_stores_chosen_installation(self):
         self._setup_with_existing_installations()
-        chosen_installation_id = 1
+        chosen_installation_id = "1"
 
         responses.add(
             responses.GET,
@@ -1384,6 +1384,61 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
     @with_feature("organizations:github-multi-org")
     @responses.activate
+    def test_github_installation_fails_on_invalid_installation(self):
+        self._setup_with_existing_installations()
+
+        # Initiate the OAuthView
+        resp = self.client.get(self.init_path)
+        assert resp.status_code == 302
+        redirect = urlparse(resp["Location"])
+        assert redirect.scheme == "https"
+        assert redirect.netloc == "github.com"
+        assert redirect.path == "/login/oauth/authorize"
+        assert (
+            redirect.query
+            == f"client_id=github-client-id&state={self.pipeline.signature}&redirect_uri=http://testserver/extensions/github/setup/"
+        )
+
+        # We just got resp. from GH, continue with OAuthView -> GithubOrganizationSelection
+        resp = self.client.get(
+            "{}?{}".format(
+                self.setup_path,
+                urlencode({"code": "12345678901234567890", "state": self.pipeline.signature}),
+            )
+        )
+        assert resp.status_code == 200
+
+        # We rendered the GithubOrganizationSelection UI and
+        # the attacker modified the installation id with their own
+        resp = self.client.get(
+            "{}?{}".format(
+                self.setup_path,
+                urlencode(
+                    {
+                        "code": "12345678901234567890",
+                        "state": self.pipeline.signature,
+                        "chosen_installation_id": "98765",
+                    }
+                ),
+            )
+        )
+
+        self.assertTemplateUsed(resp, "sentry/integrations/github-integration-failed.html")
+        assert (
+            b'{"success":false,"data":{"error":"User does not have access to given installation"}'
+            in resp.content
+        )
+        assert (
+            b"Your GitHub account does not have owner privileges for the chosen organization."
+            in resp.content
+        )
+        assert b'window.opener.postMessage({"success":false' in resp.content
+
+        # SLO assertions
+        # assert_failure_metric(mock_record, GitHubInstallationError.INSTALLATION_EXISTS)
+
+    @with_feature("organizations:github-multi-org")
+    @responses.activate
     def test_github_installation_skips_chosen_installation(self):
         self._setup_with_existing_installations()
 
@@ -1416,7 +1471,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                     {
                         "code": "12345678901234567890",
                         "state": self.pipeline.signature,
-                        "chosen_installation_id": -1,
+                        "chosen_installation_id": "-1",
                     }
                 ),
             )
@@ -1468,12 +1523,12 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         assert installation_info == [
             {
-                "installation_id": 1,
+                "installation_id": "1",
                 "github_organization": "santry",
                 "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pitchforks.png",
             },
             {
-                "installation_id": 2,
+                "installation_id": "2",
                 "github_organization": "bufo-bot",
                 "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pog.png",
             },

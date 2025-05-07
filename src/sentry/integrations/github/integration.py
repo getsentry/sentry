@@ -142,6 +142,9 @@ ERR_INTEGRATION_INVALID_INSTALLATION_REQUEST = _(
 ERR_INTEGRATION_PENDING_DELETION = _(
     "It seems that your Sentry organization has an installation pending deletion. Please wait ~15min for the uninstall to complete and try again."
 )
+ERR_INTEGRATION_INVALID_INSTALLATION = _(
+    "Your GitHub account does not have owner privileges for the chosen organization."
+)
 
 
 class GithubInstallationInfo(TypedDict):
@@ -670,7 +673,6 @@ class GitHubInstallation(PipelineView):
                 actor=request.user,
             ):
                 chosen_installation_id = pipeline.fetch_state("chosen_installation")
-
                 if chosen_installation_id is not None:
                     error_page = self.check_pending_integration_deletion(
                         request=request, installation_id=chosen_installation_id
@@ -756,7 +758,6 @@ class GitHubInstallation(PipelineView):
             integration__provider=GitHubIntegrationProvider.key,
             organization_id=self.active_user_organization.organization.id,
             status=ObjectStatus.PENDING_DELETION,
-            integration__external_id=installation_id,
         ).exists()
 
         if integration_pending_deletion_exists:
@@ -788,6 +789,15 @@ class GithubOrganizationSelection(PipelineView):
             if len(installation_info) == 0:
                 return pipeline.next_step()
 
+            # add an option for users to install on a new GH organization
+            installation_info.append(
+                {
+                    "installation_id": "-1",
+                    "github_organization": "Install integration on a new GitHub organization",
+                    "avatar_url": "https://raw.githubusercontent.com/getsentry/sentry/526f08eeaafa3a830f70671ad473afd7b9b05a0f/src/sentry/static/sentry/images/logos/sentry-avatar.png",
+                }
+            )
+
             if "chosen_installation_id" in request.GET:
                 chosen_installation_id = request.GET["chosen_installation_id"]
 
@@ -803,21 +813,15 @@ class GithubOrganizationSelection(PipelineView):
                         request,
                         self.active_user_organization,
                         error_short=GitHubInstallationError.INVALID_INSTALLATION,
+                        error_long=ERR_INTEGRATION_INVALID_INSTALLATION,
                     )
+
                 if chosen_installation_id == "-1":
                     return pipeline.next_step()
 
                 pipeline.bind_state("chosen_installation", chosen_installation_id)
                 return pipeline.next_step()
 
-            # add an option for users to install on a new GH organization
-            installation_info.append(
-                {
-                    "installation_id": "-1",
-                    "github_organization": "Install integration on a new GitHub organization",
-                    "avatar_url": "https://raw.githubusercontent.com/getsentry/sentry/526f08eeaafa3a830f70671ad473afd7b9b05a0f/src/sentry/static/sentry/images/logos/sentry-avatar.png",
-                }
-            )
             return self.render_react_view(
                 request=request,
                 pipeline_name="githubInstallationSelect",
