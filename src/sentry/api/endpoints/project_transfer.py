@@ -72,10 +72,17 @@ class ProjectTransferEndpoint(ProjectEndpoint):
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        owners = OrganizationMember.objects.get_members_by_email_and_role(
+        all_owners = OrganizationMember.objects.get_members_by_email_and_role(
             email=email,
             role=roles.get_top_dog().id,
-        ).exclude(organization_id=project.organization_id)
+        )
+        owners = all_owners.exclude(organization_id=project.organization_id)
+
+        if len(all_owners) > 0 and len(owners) == 0:
+            return Response(
+                {"detail": "Cannot transfer project to the same organization."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         unique_user_ids: set[int] = {owner.user_id for owner in owners}
 

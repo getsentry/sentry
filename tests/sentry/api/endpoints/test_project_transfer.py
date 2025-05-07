@@ -1,5 +1,4 @@
 import re
-from typing import cast
 from urllib.parse import ParseResult, parse_qs, urlparse
 
 from django.core import mail
@@ -80,6 +79,9 @@ class ProjectTransferTest(APITestCase):
                 response = self.client.post(url, {"email": new_user.email})
 
                 assert response.status_code == 404
+                assert response.data == {
+                    "detail": "Could not find an organization owner with that email"
+                }
                 assert not mail.outbox
 
     @override_settings(SENTRY_SELF_HOSTED=False)
@@ -108,7 +110,6 @@ class ProjectTransferTest(APITestCase):
 
     def test_transfer_project_to_current_organization(self):
         owner_a = self.create_user("a@example.com")
-        self.create_useremail(owner_a, "shared@example.com")
         org_a = self.create_organization(name="Org A", slug="org-a", owner=owner_a)
 
         project = self.create_project(organization=org_a)
@@ -120,11 +121,11 @@ class ProjectTransferTest(APITestCase):
         )
 
         with self.tasks():
-            response = self.client.post(url, {"email": "shared@example.com"})
+            response = self.client.post(url, {"email": "a@example.com"})
 
         assert len(mail.outbox) == 0
-        assert response.status_code == 404
-        assert response.data == {"detail": "Could not find an organization owner with that email"}
+        assert response.status_code == 400
+        assert response.data == {"detail": "Cannot transfer project to the same organization."}
 
     def test_transfer_project_to_multiple_accounts(self):
         owner_a = self.create_user("a@example.com")
@@ -149,6 +150,7 @@ class ProjectTransferTest(APITestCase):
             },
         )
 
+        # Should fail when email is associated with multiple accounts
         with self.tasks():
             response = self.client.post(url, {"email": "shared@example.com"})
 
@@ -157,6 +159,12 @@ class ProjectTransferTest(APITestCase):
         assert response.data == {
             "detail": "That email belongs to multiple accounts. Contact the person and ensure the email is associated with only one account."
         }
+
+        # Should work when email is only associated with one account
+        with self.tasks():
+            response = self.client.post(url, {"email": "c@example.com"})
+        assert len(mail.outbox) == 1
+        assert response.status_code == 204
 
     def test_transfer_project_to_multiple_accounts_ignores_project_org(self):
         owner_a = self.create_user("a@example.com")
@@ -183,7 +191,7 @@ class ProjectTransferTest(APITestCase):
 
         mail_body = mail.outbox[0].body
         transfer_link_match = re.search(
-            r"(http://testserver/accept-transfer/\?[^\s]+)", cast(str, mail_body)
+            r"(http://testserver/accept-transfer/\?[^\s]+)", str(mail_body)
         )
         assert transfer_link_match is not None
         transfer_link = transfer_link_match.group()
