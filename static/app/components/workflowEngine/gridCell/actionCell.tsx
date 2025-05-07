@@ -19,7 +19,11 @@ export function ActionCell({actions, disabled}: ActionCellProps) {
   }
 
   if (actions.length === 1 && actions[0]) {
-    const {name, icon} = ActionMetadata[actions[0]]!;
+    const metadata = ActionMetadata[actions[0]];
+    if (!metadata) {
+      return <EmptyCell />;
+    }
+    const {name, icon} = metadata;
     return (
       <Flex align="center" gap={space(0.75)}>
         <IconContainer>{icon}</IconContainer>
