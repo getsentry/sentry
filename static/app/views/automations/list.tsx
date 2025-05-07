@@ -21,7 +21,7 @@ export default function AutomationsList() {
       <ActionsProvider actions={<Actions />}>
         <ListLayout>
           <TableHeader />
-          <AutomationListTable automations={[]} />
+          <AutomationListTable />
         </ListLayout>
       </ActionsProvider>
     </SentryDocumentTitle>
