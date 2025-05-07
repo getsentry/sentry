@@ -268,9 +268,11 @@ class TestGetStateData(BaseDetectorHandlerTest):
         state_data = DetectorStateData(
             key, True, DetectorPriorityLevel.OK, 10, {"test1": 5, "test2": 200}
         )
-        handler.enqueue_dedupe_update(state_data.group_key, state_data.dedupe_value)
-        handler.enqueue_counter_update(state_data.group_key, state_data.counter_updates)
-        handler.enqueue_state_update(
+        handler.state_manager.enqueue_dedupe_update(state_data.group_key, state_data.dedupe_value)
+        handler.state_manager.enqueue_counter_update(
+            state_data.group_key, state_data.counter_updates
+        )
+        handler.state_manager.enqueue_state_update(
             state_data.group_key, state_data.is_triggered, state_data.status
         )
         handler.commit_state_updates()
@@ -282,17 +284,21 @@ class TestGetStateData(BaseDetectorHandlerTest):
         state_data_1 = DetectorStateData(
             key_1, True, DetectorPriorityLevel.OK, 100, {"test1": 50, "test2": 300}
         )
-        handler.enqueue_dedupe_update(key_1, state_data_1.dedupe_value)
-        handler.enqueue_counter_update(key_1, state_data_1.counter_updates)
-        handler.enqueue_state_update(key_1, state_data_1.is_triggered, state_data_1.status)
+        handler.state_manager.enqueue_dedupe_update(key_1, state_data_1.dedupe_value)
+        handler.state_manager.enqueue_counter_update(key_1, state_data_1.counter_updates)
+        handler.state_manager.enqueue_state_update(
+            key_1, state_data_1.is_triggered, state_data_1.status
+        )
 
         key_2 = "test_key_2"
         state_data_2 = DetectorStateData(
             key_2, True, DetectorPriorityLevel.OK, 10, {"test1": 55, "test2": 12}
         )
-        handler.enqueue_dedupe_update(key_2, state_data_2.dedupe_value)
-        handler.enqueue_counter_update(key_2, state_data_2.counter_updates)
-        handler.enqueue_state_update(key_2, state_data_2.is_triggered, state_data_2.status)
+        handler.state_manager.enqueue_dedupe_update(key_2, state_data_2.dedupe_value)
+        handler.state_manager.enqueue_counter_update(key_2, state_data_2.counter_updates)
+        handler.state_manager.enqueue_state_update(
+            key_2, state_data_2.is_triggered, state_data_2.status
+        )
 
         key_uncommitted = "test_key_uncommitted"
         state_data_uncommitted = DetectorStateData(
@@ -320,9 +326,11 @@ class TestCommitStateUpdateData(BaseDetectorHandlerTest):
         assert not redis.exists(dedupe_key)
         assert not redis.exists(counter_key_1)
         assert not redis.exists(counter_key_2)
-        handler.enqueue_dedupe_update(group_key, 100)
-        handler.enqueue_counter_update(group_key, {"some_counter": 1, "another_counter": 2})
-        handler.enqueue_state_update(group_key, True, DetectorPriorityLevel.OK)
+        handler.state_manager.enqueue_dedupe_update(group_key, 100)
+        handler.state_manager.enqueue_counter_update(
+            group_key, {"some_counter": 1, "another_counter": 2}
+        )
+        handler.state_manager.enqueue_state_update(group_key, True, DetectorPriorityLevel.OK)
         handler.commit_state_updates()
         assert DetectorState.objects.filter(
             detector=handler.detector,
@@ -334,9 +342,11 @@ class TestCommitStateUpdateData(BaseDetectorHandlerTest):
         assert redis.get(counter_key_1) == "1"
         assert redis.get(counter_key_2) == "2"
 
-        handler.enqueue_dedupe_update(group_key, 150)
-        handler.enqueue_counter_update(group_key, {"some_counter": None, "another_counter": 20})
-        handler.enqueue_state_update(group_key, False, DetectorPriorityLevel.OK)
+        handler.state_manager.enqueue_dedupe_update(group_key, 150)
+        handler.state_manager.enqueue_counter_update(
+            group_key, {"some_counter": None, "another_counter": 20}
+        )
+        handler.state_manager.enqueue_state_update(group_key, False, DetectorPriorityLevel.OK)
         handler.commit_state_updates()
         assert DetectorState.objects.filter(
             detector=handler.detector,

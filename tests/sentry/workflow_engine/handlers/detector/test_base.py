@@ -212,17 +212,17 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
         That method will save pending updates to the storage, and clear the pending updates.
         """
         if dedupe_value is not None:
-            assert handler.dedupe_updates.get(group_key) == dedupe_value
+            assert handler.state_manager.dedupe_updates.get(group_key) == dedupe_value
         else:
             assert group_key not in handler.dedupe_updates
         if counter_updates is not None:
-            assert handler.counter_updates.get(group_key) == counter_updates
+            assert handler.state_manager.counter_updates.get(group_key) == counter_updates
         else:
             assert group_key not in handler.counter_updates
         if is_triggered is not None or priority is not None:
-            assert handler.state_updates.get(group_key) == (is_triggered, priority)
+            assert handler.state_manager.state_updates.get(group_key) == (is_triggered, priority)
         else:
-            assert group_key not in handler.state_updates
+            assert group_key not in handler.state_manager.state_updates
 
     def detector_to_issue_occurrence(
         self,
