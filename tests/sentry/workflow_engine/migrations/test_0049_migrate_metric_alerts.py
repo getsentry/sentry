@@ -211,7 +211,7 @@ class MigrateMetricAlertTest(TestMigrations):
         )
         assert data_source.type == "snuba_query_subscription"
         detector_state = DetectorState.objects.get(detector=detector)
-        assert detector_state.active is False
+        assert detector_state.is_triggered is False
         assert detector_state.state == str(0)
 
         data_source_detector = DataSourceDetector.objects.get(data_source=data_source)
@@ -414,7 +414,7 @@ class MigrateMetricAlertTest(TestMigrations):
 
         detector = Detector.objects.get(id=alert_rule_detector.detector.id)
         detector_state = DetectorState.objects.get(detector=detector)
-        assert detector_state.active is True
+        assert detector_state.is_triggered is True
         assert detector_state.state == str(DetectorPriorityLevel.HIGH)
 
     def test_create_snoozed(self):

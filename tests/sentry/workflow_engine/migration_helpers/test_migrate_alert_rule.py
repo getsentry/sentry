@@ -106,7 +106,7 @@ def assert_alert_rule_migrated(alert_rule, project_id):
     )
     assert data_source.type == "snuba_query_subscription"
     detector_state = DetectorState.objects.get(detector=detector)
-    assert detector_state.active is False
+    assert detector_state.is_triggered is False
     assert detector_state.state == str(DetectorPriorityLevel.OK.value)
 
     data_source_detector = DataSourceDetector.objects.get(data_source=data_source)
@@ -307,7 +307,7 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
         detector.update(workflow_condition_group=detector_data_condition_group)
         detector_state = self.create_detector_state(
             detector=detector,
-            active=False,
+            is_triggered=False,
             state=DetectorPriorityLevel.OK,
         )
         data_source_detector = self.create_data_source_detector(data_source, detector)
@@ -422,7 +422,7 @@ class DualWriteAlertRuleTest(APITestCase):
 
     def test_dual_write_metric_alert_open_incident(self):
         """
-        Test that the detector_state object is correctly created when the alert has an active incident
+        Test that the detector_state object is correctly created when the alert has an incident
         """
         self.create_incident(alert_rule=self.metric_alert, status=IncidentStatus.CRITICAL.value)
         aci_objects = migrate_alert_rule(self.metric_alert, self.rpc_user)
@@ -605,7 +605,7 @@ class DualUpdateAlertRuleTest(BaseMetricAlertMigrationTest):
 
     def test_dual_update_metric_alert(self):
         detector_state = self.detector_state
-        detector_state.update(active=True, state=DetectorPriorityLevel.HIGH)
+        detector_state.update(is_triggered=True, state=DetectorPriorityLevel.HIGH)
         updated_fields = {
             "name": "hojicha",
             "description": "a Japanese green tea roasted over charcoal",
@@ -620,7 +620,7 @@ class DualUpdateAlertRuleTest(BaseMetricAlertMigrationTest):
         assert self.detector.description == "a Japanese green tea roasted over charcoal"
 
         assert detector_state.state == str(DetectorPriorityLevel.OK.value)
-        assert detector_state.active is False
+        assert detector_state.is_triggered is False
 
     def test_dual_update_metric_alert_owner(self):
         updated_fields: dict[str, Any] = {}

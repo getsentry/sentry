@@ -81,8 +81,4 @@ def process_detectors(
         if detector_results:
             results.append((detector, detector_results))
 
-        # TODO - @saponifi3d - should we be committing the detector state here? :thinking:
-        # Now that we've processed all results for this detector, commit any state changes
-        handler.commit_state_updates()
-
     return results

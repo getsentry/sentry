@@ -540,7 +540,7 @@ def migrate_alert_rule(
     data_source.detectors.set([detector])
     detector_state = DetectorState.objects.create(
         detector=detector,
-        active=True if open_incident else False,
+        is_triggered=True if open_incident else False,
         state=state,
     )
     alert_rule_detector, alert_rule_workflow, detector_workflow = create_metric_alert_lookup_tables(
@@ -665,7 +665,7 @@ def dual_update_migrated_alert_rule(alert_rule: AlertRule) -> (
             dc.update(type=threshold_type)
 
     # reset detector status, as the rule was updated
-    detector_state.update(active=False, state=DetectorPriorityLevel.OK)
+    detector_state.update(is_triggered=False, state=DetectorPriorityLevel.OK)
 
     return detector_state, detector
 
