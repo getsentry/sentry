@@ -6,6 +6,7 @@ import {useOption} from '@react-aria/listbox';
 import type {ComboBoxState} from '@react-stately/combobox';
 import type {Key} from '@react-types/shared';
 
+import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/core/button';
 import {ListBox} from 'sentry/components/core/compactSelect/listBox';
 import type {
@@ -23,10 +24,12 @@ import {
   RECENT_SEARCH_CATEGORY_VALUE,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import {IconMegaphone} from 'sentry/icons';
+import {IconSeer} from 'sentry/icons/iconSeer';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import usePrevious from 'sentry/utils/usePrevious';
+import {useTraceExploreAiQueryContext} from 'sentry/views/explore/contexts/traceExploreAiQueryContext';
 
 interface FilterKeyListBoxProps<T> extends CustomComboboxMenuProps<T> {
   recentFilters: string[];
@@ -75,6 +78,7 @@ function ListBoxSectionButton({
 function FeedbackFooter() {
   const {searchSource} = useSearchQueryBuilder();
   const openForm = useFeedbackForm();
+  const traceExploreAiQueryContext = useTraceExploreAiQueryContext();
 
   if (!openForm) {
     return null;
@@ -82,6 +86,17 @@ function FeedbackFooter() {
 
   return (
     <SectionedOverlayFooter>
+      <Feature features="organizations:gen-ai-explore-traces">
+        {traceExploreAiQueryContext ? (
+          <Button
+            size="xs"
+            icon={<IconSeer />}
+            onClick={() => traceExploreAiQueryContext?.onAiButtonClick?.()}
+          >
+            {t('Use Seer AI')}
+          </Button>
+        ) : null}
+      </Feature>
       <Button
         size="xs"
         icon={<IconMegaphone />}
