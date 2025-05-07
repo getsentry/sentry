@@ -4,20 +4,22 @@ import Link from 'sentry/components/links/link';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
-export default function FlagDetailsLink({
-  tag,
-  children,
-}: {
+interface Props {
   children: React.ReactNode;
-  tag: GroupTag;
-}) {
+  flag: GroupTag;
+}
+
+export default function FlagDetailsLink({flag, children}: Props) {
   const location = useLocation();
 
   return (
     <StyledLink
       to={{
-        pathname: `${location.pathname}${tag.key}/`,
-        query: location.query,
+        pathname: `${location.pathname}${flag.key}/`,
+        query: {
+          ...location.query,
+          tab: 'featureFlags',
+        },
       }}
     >
       {children}
@@ -27,9 +29,11 @@ export default function FlagDetailsLink({
 
 const StyledLink = styled(Link)`
   border-radius: ${p => p.theme.borderRadius};
-  display: block;
 
-  &:hover h5 {
+  ${p => p.theme.overflowEllipsis}
+  width: auto;
+
+  &:hover [data-underline-on-hover='true'] {
     text-decoration: underline;
   }
 `;

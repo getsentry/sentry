@@ -26,7 +26,7 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
 
   return (
     <TagPanel>
-      <TagHeader>
+      <TagHeader data-underline-on-hover="true">
         <Tooltip title={tag.key} showOnlyOnOverflow skipWrapper>
           {tag.key}
         </Tooltip>

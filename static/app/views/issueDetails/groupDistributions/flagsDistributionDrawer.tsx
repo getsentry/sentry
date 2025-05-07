@@ -18,6 +18,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useParams} from 'sentry/utils/useParams';
 import GroupDistributionsSearchInput from 'sentry/views/issueDetails/groupDistributions/groupDistributionsSearchInput';
 import HeaderTitle from 'sentry/views/issueDetails/groupDistributions/headerTitle';
+import SuspectTable from 'sentry/views/issueDetails/groupDistributions/suspectTable';
 import TagFlagPicker from 'sentry/views/issueDetails/groupDistributions/tagFlagPicker';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import {FlagDetailsDrawerContent} from 'sentry/views/issueDetails/groupFeatureFlags/details/flagDetailsDrawerContent';
@@ -108,66 +109,77 @@ export default function FlagsDistributionDrawer({group, organization, setTab}: P
           includeFeatureFlagsTab
         />
 
-        {tagKey ? null : (
-          <ButtonBar gap={1}>
-            <GroupDistributionsSearchInput
-              includeFeatureFlagsTab
-              search={search}
-              onChange={value => {
-                setSearch(value);
-                trackAnalytics('tags.drawer.action', {
-                  control: 'search',
-                  organization,
-                });
-              }}
-            />
-
-            <FeatureFlagSort
-              orderBy={orderBy}
-              setOrderBy={value => {
-                setOrderBy(value);
-                trackAnalytics('flags.sort_flags', {
-                  organization,
-                  sortMethod: value as string,
-                });
-              }}
-              setSortBy={value => {
-                setSortBy(value);
-                trackAnalytics('flags.sort_flags', {
-                  organization,
-                  sortMethod: value as string,
-                });
-              }}
-              sortBy={sortBy}
-              orderByOptions={orderByOptions}
-              sortByOptions={sortByOptions}
-            />
-
-            <TagFlagPicker setTab={setTab} tab={DrawerTab.FEATURE_FLAGS} />
-          </ButtonBar>
+        {showSuspectSandboxUI && (
+          <Flex>
+            <Label>
+              <IconSentry size="xs" />
+              {t('Debug')}
+              <Checkbox
+                checked={debugSuspectScores}
+                onChange={() => {
+                  setDebugSuspectScores(debugSuspectScores ? '0' : '1');
+                }}
+              />
+            </Label>
+          </Flex>
         )}
       </EventNavigator>
       <EventDrawerBody>
+        {!tagKey && enableSuspectFlags ? (
+          <SuspectTable
+            debugSuspectScores={debugSuspectScores}
+            environments={environments}
+            group={group}
+          />
+        ) : null}
+
+        {tagKey ? null : (
+          <Flex justify="space-between">
+            <TagFlagPicker setTab={setTab} tab={DrawerTab.FEATURE_FLAGS} />
+
+            <ButtonBar gap={1}>
+              <GroupDistributionsSearchInput
+                includeFeatureFlagsTab
+                search={search}
+                onChange={value => {
+                  setSearch(value);
+                  trackAnalytics('tags.drawer.action', {
+                    control: 'search',
+                    organization,
+                  });
+                }}
+              />
+
+              <FeatureFlagSort
+                orderBy={orderBy}
+                setOrderBy={value => {
+                  setOrderBy(value);
+                  trackAnalytics('flags.sort_flags', {
+                    organization,
+                    sortMethod: value as string,
+                  });
+                }}
+                setSortBy={value => {
+                  setSortBy(value);
+                  trackAnalytics('flags.sort_flags', {
+                    organization,
+                    sortMethod: value as string,
+                  });
+                }}
+                sortBy={sortBy}
+                orderByOptions={orderByOptions}
+                sortByOptions={sortByOptions}
+              />
+            </ButtonBar>
+          </Flex>
+        )}
+
         {tagKey ? (
           <AnalyticsArea name="feature_flag_details">
             <FlagDetailsDrawerContent />
           </AnalyticsArea>
         ) : (
           <AnalyticsArea name="feature_flag_distributions">
-            {showSuspectSandboxUI && (
-              <Flex>
-                <Label>
-                  <IconSentry size="xs" />
-                  {t('Debug')}
-                  <Checkbox
-                    checked={debugSuspectScores}
-                    onChange={() => {
-                      setDebugSuspectScores(debugSuspectScores ? '0' : '1');
-                    }}
-                  />
-                </Label>
-              </Flex>
-            )}
             <FlagDrawerContent
               debugSuspectScores={debugSuspectScores}
               environments={environments}
