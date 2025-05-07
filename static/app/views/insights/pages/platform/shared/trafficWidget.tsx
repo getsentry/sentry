@@ -2,7 +2,7 @@ import {useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -139,7 +139,7 @@ export function TrafficWidget({
             }}
             onOpenFullScreen={() => {
               openInsightChartModal({
-                title: t('Requests'),
+                title: tct('[title]', {title}),
                 children: <ModalChartContainer>{visualization}</ModalChartContainer>,
               });
             }}
