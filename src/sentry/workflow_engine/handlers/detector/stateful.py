@@ -56,8 +56,10 @@ class DetectorStateManager:
     counter_updates: dict[DetectorGroupKey, dict[str, int | None]] = {}
     state_updates: dict[DetectorGroupKey, tuple[bool, DetectorPriorityLevel]] = {}
     counter_names: list[str] = []
+    detector: Detector
 
-    def __init__(self, counter_names: list[str]):
+    def __init__(self, detector: Detector, counter_names: list[str]):
+        self.detector = detector
         self.counter_names = counter_names
 
     def enqueue_dedupe_update(self, group_key: DetectorGroupKey, dedupe_value: int):
@@ -86,15 +88,37 @@ class DetectorStateManager:
         pipeline.reset()
         return dedupe_keys
 
+    def bulk_get_detector_state(
+        self, group_keys: list[DetectorGroupKey]
+    ) -> dict[DetectorGroupKey, DetectorState]:
+        """
+        Bulk fetches detector state for the passed `group_keys`. Returns a dict keyed by each
+        `group_key` with the fetched `DetectorStateData`.
+
+        If there's no `DetectorState` row for a `detector`/`group_key` pair then we'll exclude
+        the group_key from the returned dict.
+        """
+        # TODO: Cache this query (or individual fetches, then bulk fetch anything missing)
+        query_filter = Q(
+            detector_group_key__in=[group_key for group_key in group_keys if group_key is not None]
+        )
+        if None in group_keys:
+            query_filter |= Q(detector_group_key__isnull=True)
+
+        return {
+            detector_state.detector_group_key: detector_state
+            for detector_state in self.detector.detectorstate_set.filter(query_filter)
+        }
+
 
 class StatefulGroupingDetectorHandler(
     Generic[DataPacketType, DataPacketEvaluationType],
-    DetectorHandler[DataPacketType],
+    DetectorHandler[DataPacketType, DataPacketEvaluationType],
     abc.ABC,
 ):
     def __init__(self, detector: Detector):
         super().__init__(detector)
-        self.state_manager = DetectorStateManager(counter_names=self.counter_names)
+        self.state_manager = DetectorStateManager(detector, self.counter_names)
 
     @property
     @abc.abstractmethod
@@ -132,7 +156,7 @@ class StatefulGroupingDetectorHandler(
         Returns a dict keyed by each group_key with the fetched `DetectorStateData`.
         If data isn't currently stored, falls back to default values.
         """
-        group_key_detectors = self.bulk_get_detector_state(group_keys)
+        group_key_detectors = self.state_manager.bulk_get_detector_state(group_keys)
         dedupe_lookup_keys = [self.build_dedupe_value_key(group_key) for group_key in group_keys]
         dedupe_keys = self.state_manager.get_dedupe_keys(dedupe_lookup_keys)
         pipeline = get_redis_client().pipeline()
@@ -303,28 +327,6 @@ class StatefulGroupingDetectorHandler(
             group_key = ""
         return f"{self.detector.id}:{group_key}:{counter_name}"
 
-    def bulk_get_detector_state(
-        self, group_keys: list[DetectorGroupKey]
-    ) -> dict[DetectorGroupKey, DetectorState]:
-        """
-        Bulk fetches detector state for the passed `group_keys`. Returns a dict keyed by each
-        `group_key` with the fetched `DetectorStateData`.
-
-        If there's no `DetectorState` row for a `detector`/`group_key` pair then we'll exclude
-        the group_key from the returned dict.
-        """
-        # TODO: Cache this query (or individual fetches, then bulk fetch anything missing)
-        query_filter = Q(
-            detector_group_key__in=[group_key for group_key in group_keys if group_key is not None]
-        )
-        if None in group_keys:
-            query_filter |= Q(detector_group_key__isnull=True)
-
-        return {
-            detector_state.detector_group_key: detector_state
-            for detector_state in self.detector.detectorstate_set.filter(query_filter)
-        }
-
     # TODO move the remainig methods into the state manager
     def commit_state_updates(self):
         self._bulk_commit_detector_state()
@@ -358,7 +360,7 @@ class StatefulGroupingDetectorHandler(
         # TODO: We should already have these loaded from earlier, figure out how to cache and reuse
         state_updates = self.state_manager.state_updates
 
-        detector_state_lookup = self.bulk_get_detector_state(
+        detector_state_lookup = self.state_manager.bulk_get_detector_state(
             [update for update in state_updates.keys()]
         )
         created_detector_states = []
