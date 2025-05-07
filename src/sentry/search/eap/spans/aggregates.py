@@ -157,7 +157,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
         arguments=[ValueArgumentDefinition(argument_types={"string"})],
         aggregate_resolver=resolve_count_op,
     ),
-    "count_ic": ConditionalAggregateDefinition(
+    "count_if": ConditionalAggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
         default_search_type="duration",
         arguments=[
