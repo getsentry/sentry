@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 @region_silo_endpoint
 @extend_schema(tags=["Integrations"])
 class ExternalUserEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.ECOSYSTEM
     permission_classes = (ExternalUserPermission,)
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
