@@ -451,11 +451,12 @@ OPEN_PR_ISSUE_DESCRIPTION_LENGTH = 52
 
 
 class GitHubOpenPRCommentWorkflow(OpenPRCommentWorkflow):
+    integration: GitHubIntegration
     organization_option_key = "sentry:github_open_pr_bot"
     referrer = Referrer.GITHUB_PR_COMMENT_BOT
     referrer_id = GITHUB_OPEN_PR_BOT_REFERRER
 
-    def safe_for_comment(self, repo: Repository, pr: PullRequest) -> list[PullRequestFile]:
+    def safe_for_comment(self, repo: Repository, pr: PullRequest) -> list[dict[str, Any]]:
         client = self.integration.get_client()
         logger.info(
             _open_pr_comment_log(
