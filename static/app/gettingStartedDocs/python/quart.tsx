@@ -75,7 +75,7 @@ const onboarding: OnboardingConfig = {
           code: <code />,
         }
       ),
-      configurations: getPythonInstallConfig({packageName: "'sentry-sdk[quart]'"}),
+      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[quart]'}),
     },
   ],
   configure: (params: Params) => [

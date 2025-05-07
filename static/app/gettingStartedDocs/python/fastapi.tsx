@@ -75,7 +75,7 @@ const onboarding: OnboardingConfig = {
           code: <code />,
         }
       ),
-      configurations: getPythonInstallConfig({packageName: "'sentry-sdk[fastapi]'"}),
+      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[fastapi]'}),
     },
   ],
   configure: (params: Params) => [

@@ -68,7 +68,7 @@ const onboarding: OnboardingConfig = {
           code: <code />,
         }
       ),
-      configurations: getPythonInstallConfig({packageName: "'sentry-sdk[django]'"}),
+      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[django]'}),
     },
   ],
   configure: (params: Params) => [
