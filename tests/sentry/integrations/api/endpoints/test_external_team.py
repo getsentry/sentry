@@ -34,6 +34,25 @@ class ExternalTeamTest(APITestCase):
             "integrationId": str(self.integration.id),
         }
 
+    def test_ignore_camelcase_teamid(self):
+        other_team = self.create_team(organization=self.organization)
+        data = {
+            "externalName": "@getsentry/ecosystem",
+            "provider": "github",
+            "integrationId": self.integration.id,
+            "teamId": other_team.id,
+        }
+        with self.feature({"organizations:integrations-codeowners": True}):
+            response = self.get_success_response(
+                self.organization.slug, self.team.slug, status_code=201, **data
+            )
+        assert response.data == {
+            **data,
+            "id": str(response.data["id"]),
+            "teamId": str(self.team.id),
+            "integrationId": str(self.integration.id),
+        }
+
     def test_without_feature_flag(self):
         data = {
             "externalName": "@getsentry/ecosystem",
