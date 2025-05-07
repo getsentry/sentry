@@ -50,7 +50,7 @@ export default function AllViewsWelcomeBanner() {
           </li>
           <li>
             <BannerNoteBold>
-              {t('Star your views, or other members’ views for easy access. ')}
+              {t('Star views from yourself or others for easy access. ')}
             </BannerNoteBold>
             {t('Starred views appear in the navigation to the left.')}
           </li>
