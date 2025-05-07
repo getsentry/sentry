@@ -641,6 +641,9 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     ) : (
                       <SearchContainer>
                         <SearchQueryBuilder
+                          searchOnChange={organization.features.includes(
+                            'ui-search-on-change'
+                          )}
                           initialQuery={initialData?.query ?? ''}
                           getTagValues={this.getEventFieldValues}
                           placeholder={this.searchPlaceholder}

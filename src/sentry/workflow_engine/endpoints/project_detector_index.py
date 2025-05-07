@@ -21,6 +21,7 @@ from sentry.apidocs.parameters import DetectorParams, GlobalParams
 from sentry.issues import grouptype
 from sentry.models.project import Project
 from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
+from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.models import Detector
 
 
@@ -46,7 +47,14 @@ def get_detector_validator(
     )
 
 
-SORT_ATTRS = {"name", "id", "type", "connectedWorkflows"}
+# Maps API field name to database field name, with synthetic aggregate fields keeping
+# to our field naming scheme for consistency.
+SORT_ATTRS = {
+    "name": "name",
+    "id": "id",
+    "type": "type",
+    "connectedWorkflows": "connected_workflows",
+}
 
 
 @region_silo_endpoint
@@ -87,20 +95,17 @@ class ProjectDetectorIndexEndpoint(ProjectEndpoint):
             project_id=project.id,
         )
 
-        sort_by = request.GET.get("sortBy", "id")
-        sort_field = sort_by[1:] if sort_by.startswith("-") else sort_by
-        if sort_field not in SORT_ATTRS:
-            raise ValidationError({"sortBy": ["Invalid sort field"]})
-        if sort_field == "connectedWorkflows":
-            queryset = queryset.annotate(connectedWorkflows=Count("detectorworkflow"))
+        sort_by = SortByParam.parse(request.GET.get("sortBy", "id"), SORT_ATTRS)
+        if sort_by.db_field_name == "connected_workflows":
+            queryset = queryset.annotate(connected_workflows=Count("detectorworkflow"))
 
-        queryset = queryset.order_by(sort_by)
+        queryset = queryset.order_by(sort_by.db_order_by)
 
         return self.paginate(
             request=request,
             paginator_cls=OffsetPaginator,
             queryset=queryset,
-            order_by=sort_by,
+            order_by=sort_by.db_order_by,
             on_results=lambda x: serialize(x, request.user),
         )
 
