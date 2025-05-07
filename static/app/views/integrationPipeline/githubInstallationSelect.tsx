@@ -21,7 +21,7 @@ type GithubInstallationProps = {
 };
 
 export function GithubInstallationSelect({installation_info}: GithubInstallationProps) {
-  const [installationID, setInstallationID] = useState<SelectKey | undefined>(undefined);
+  const [installationID, setInstallationID] = useState<SelectKey>(-1);
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
   const handleSubmit = (e: React.MouseEvent, id?: SelectKey) => {
@@ -51,10 +51,6 @@ export function GithubInstallationSelect({installation_info}: GithubInstallation
     setInstallationID(value);
   };
 
-  const handleSkip = (e: React.MouseEvent) => {
-    handleSubmit(e, -1);
-  };
-
   const selectOptions = installation_info.map(
     (installation): SelectOption<SelectKey> => ({
       value: installation.installation_id,
@@ -78,7 +74,7 @@ export function GithubInstallationSelect({installation_info}: GithubInstallation
         <StyledHeader>{t('Install on an Existing Github Organization')}</StyledHeader>
         <p>
           {t(
-            'Sentry found existing integrations on your GitHub organizations. Select from the dropdown if you want to install on an already connected GitHub organization.'
+            'We noticed you already integrated with Github! Do you want to connect an existing Github organization to this Sentry organization or connect a new one?'
           )}
         </p>
         <StyledSelect
@@ -89,9 +85,6 @@ export function GithubInstallationSelect({installation_info}: GithubInstallation
         />
 
         <ButtonContainer>
-          <Button onClick={handleSkip} disabled={isSaving}>
-            Skip
-          </Button>
           <StyledButton onClick={handleSubmit} disabled={isSaving || !installationID}>
             Install
           </StyledButton>
