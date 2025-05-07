@@ -37,7 +37,7 @@ export const useResourcePagesQuery = (
     ? sorts
     : [
         {
-          field: 'time_spent_percentage',
+          field: 'epm()',
           kind: 'desc',
         },
       ];
@@ -62,12 +62,8 @@ export const useResourcePagesQuery = (
       search,
       fields: [
         'transaction',
-        'transaction.method',
         'epm()',
-        `sum(span.self_time)`,
         `avg(span.self_time)`,
-        'time_spent_percentage()',
-        'http_response_count(5)',
         `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
         RESOURCE_RENDER_BLOCKING_STATUS,
       ],
