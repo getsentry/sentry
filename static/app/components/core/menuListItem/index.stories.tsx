@@ -30,6 +30,12 @@ export default storyBook('MenuListItem', (story, APIReference) => {
   story('with trailing items', () => {
     return <SizeVariants trailingItems="🚀" />;
   });
+
+  story('with details', () => {
+    return (
+      <SizeVariants details="Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua." />
+    );
+  });
 });
 
 const Container = styled('div')`
