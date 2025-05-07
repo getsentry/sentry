@@ -1,7 +1,7 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {EventOrGroupType} from 'sentry/types/event';
-import {
+import type {
   type Group,
   GroupStatus,
   GroupUnresolved,
