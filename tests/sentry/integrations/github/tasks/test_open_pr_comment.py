@@ -1042,7 +1042,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         assert not mock_analytics.called
 
     @patch("sentry.analytics.record")
-    @patch("sentry.integrations.github.tasks.open_pr_comment.metrics")
+    @patch("sentry.integrations.source_code_management.tasks.metrics")
     @patch("sentry.integrations.github.integration.metrics")
     @responses.activate
     def test_comment_workflow_early_return(
@@ -1101,7 +1101,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         assert not mock_analytics.called
 
     @patch("sentry.analytics.record")
-    @patch("sentry.integrations.github.tasks.open_pr_comment.metrics")
+    @patch("sentry.integrations.source_code_management.tasks.metrics")
     @patch("sentry.integrations.github.integration.metrics")
     @responses.activate
     def test_comment_workflow_api_error(
@@ -1182,7 +1182,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         )
         assert not mock_analytics.called
 
-    @patch("sentry.integrations.github.tasks.open_pr_comment.metrics")
+    @patch("sentry.integrations.source_code_management.tasks.metrics")
     def test_comment_workflow_missing_pr(
         self,
         mock_metrics,
@@ -1199,10 +1199,10 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
         assert not mock_pr_filenames.called
         mock_metrics.incr.assert_called_with(
-            "github.open_pr_comment.error", tags={"type": "missing_pr"}
+            "source_code_management.open_pr_comment.error", tags={"type": "missing_pr"}
         )
 
-    @patch("sentry.integrations.github.tasks.open_pr_comment.metrics")
+    @patch("sentry.integrations.source_code_management.tasks.metrics")
     def test_comment_workflow_missing_org(
         self,
         mock_metrics,
@@ -1220,10 +1220,10 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
         assert not mock_pr_filenames.called
         mock_metrics.incr.assert_called_with(
-            "github.open_pr_comment.error", tags={"type": "missing_org"}
+            "source_code_management.open_pr_comment.error", tags={"type": "missing_org"}
         )
 
-    @patch("sentry.integrations.github.tasks.open_pr_comment.metrics")
+    @patch("sentry.integrations.source_code_management.tasks.metrics")
     def test_comment_workflow_missing_repo(
         self,
         mock_metrics,
@@ -1241,10 +1241,10 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
         assert not mock_pr_filenames.called
         mock_metrics.incr.assert_called_with(
-            "github.open_pr_comment.error", tags={"type": "missing_repo"}
+            "source_code_management.open_pr_comment.error", tags={"type": "missing_repo"}
         )
 
-    @patch("sentry.integrations.github.tasks.open_pr_comment.metrics")
+    @patch("sentry.integrations.source_code_management.tasks.metrics")
     def test_comment_workflow_missing_integration(
         self,
         mock_metrics,
@@ -1263,7 +1263,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
         assert not mock_pr_filenames.called
         mock_metrics.incr.assert_called_with(
-            "github.open_pr_comment.error", tags={"type": "missing_integration"}
+            "source_code_management.open_pr_comment.error", tags={"type": "missing_integration"}
         )
 
     @patch("sentry.integrations.github.integration.metrics")
