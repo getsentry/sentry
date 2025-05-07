@@ -26,12 +26,12 @@ function TimelineTooltip({enabled = true, labelText}: Props) {
   const [position, setPosition] = useState({x: 100, y: FIXED_Y_POSITION});
   const [isVisible, setIsVisible] = useState(true);
 
-  useEffect(() => {
-    portalRef.current = document.getElementById('replay-timeline-player');
-  }, []);
-
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
+      if (!portalRef.current) {
+        portalRef.current = document.getElementById('replay-timeline-player');
+      }
+
       const portal = portalRef.current;
 
       if (portal) {
