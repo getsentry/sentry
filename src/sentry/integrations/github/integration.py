@@ -772,20 +772,19 @@ class GitHubInstallation(PipelineView):
 
 class GithubOrganizationSelection(PipelineView):
     def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
+        self.active_user_organization = determine_active_organization(request)
+
+        if self.active_user_organization.organization is None or not features.has(
+            "organizations:github-multi-org",
+            organization=self.active_user_organization.organization,
+            actor=request.user,
+        ):
+            return pipeline.next_step()
+
         with record_event(
             IntegrationPipelineViewType.ORGANIZATION_SELECTION
         ).capture() as lifecycle:
-            self.active_user_organization = determine_active_organization(request)
-
-            if self.active_user_organization.organization is None or not features.has(
-                "organizations:github-multi-org",
-                organization=self.active_user_organization.organization,
-                actor=request.user,
-            ):
-                return pipeline.next_step()
-
             installation_info = pipeline.fetch_state("existing_installation_info") or []
-
             if len(installation_info) == 0:
                 return pipeline.next_step()
 
