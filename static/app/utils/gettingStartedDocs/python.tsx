@@ -10,7 +10,7 @@ import type {
 import {AlternativeConfiguration} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
-export function getPythonInstallSnippet({
+function getPythonInstallSnippet({
   packageName,
   minimumVersion,
 }: {
@@ -72,14 +72,6 @@ export function getPythonInstallConfig({
   ];
 }
 
-export function getPythonProfilingMinVersionMessage() {
-  return tct(
-    'You need a minimum version [code:2.24.1] of the [code:sentry-python] SDK for the profiling feature.',
-    {
-      code: <code />,
-    }
-  );
-}
 export function getPythonAiocontextvarsConfig({
   description,
 }: {

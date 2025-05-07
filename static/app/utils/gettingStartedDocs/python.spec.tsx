@@ -8,26 +8,74 @@ jest.mock('sentry/utils/gettingStartedDocs/python', () => {
   };
 });
 
-import {getPythonInstallSnippet} from 'sentry/utils/gettingStartedDocs/python';
+import {getPythonInstallConfig} from 'sentry/utils/gettingStartedDocs/python';
 
-describe('getPythonInstallSnippet', () => {
+describe('getPythonInstallConfig', () => {
   it('generates install commands with default parameters', () => {
-    const result = getPythonInstallSnippet({
+    const result = getPythonInstallConfig({
       packageName: 'sentry-sdk',
+      description: 'Install the Sentry SDK',
     });
 
-    expect(result.pip).toBe(`pip install "sentry-sdk"`);
-    expect(result.uv).toBe(`uv add "sentry-sdk"`);
-    expect(result.poetry).toBe(`poetry add "sentry-sdk"`);
+    expect(result).toEqual([
+      {
+        description: 'Install the Sentry SDK',
+        language: 'bash',
+        code: [
+          {
+            label: 'pip',
+            value: 'pip',
+            language: 'bash',
+            code: `pip install "sentry-sdk"`,
+          },
+          {
+            label: 'uv',
+            value: 'uv',
+            language: 'bash',
+            code: `uv add "sentry-sdk"`,
+          },
+          {
+            label: 'poetry',
+            value: 'poetry',
+            language: 'bash',
+            code: `poetry add "sentry-sdk"`,
+          },
+        ],
+      },
+    ]);
   });
 
   it('generates pip install command with minimum version and extras', () => {
-    const result = getPythonInstallSnippet({
+    const result = getPythonInstallConfig({
       packageName: 'sentry-sdk[with-extras]',
+      description: 'Install the Sentry SDK',
       minimumVersion: '2.3.4',
     });
-    expect(result.pip).toBe(`pip install --upgrade "sentry-sdk[with-extras]>=2.3.4"`);
-    expect(result.uv).toBe(`uv add --upgrade "sentry-sdk[with-extras]>=2.3.4"`);
-    expect(result.poetry).toBe(`poetry add "sentry-sdk[with-extras]>=2.3.4"`);
+    expect(result).toEqual([
+      {
+        description: 'Install the Sentry SDK',
+        language: 'bash',
+        code: [
+          {
+            label: 'pip',
+            value: 'pip',
+            language: 'bash',
+            code: `pip install --upgrade "sentry-sdk[with-extras]>=2.3.4"`,
+          },
+          {
+            label: 'uv',
+            value: 'uv',
+            language: 'bash',
+            code: `uv add --upgrade "sentry-sdk[with-extras]>=2.3.4"`,
+          },
+          {
+            label: 'poetry',
+            value: 'poetry',
+            language: 'bash',
+            code: `poetry add "sentry-sdk[with-extras]>=2.3.4"`,
+          },
+        ],
+      },
+    ]);
   });
 });
