@@ -463,16 +463,20 @@ class Enhancements:
         match_frames: list[Any] = [create_match_frame(frame, platform) for frame in frames]
         rust_exception_data = make_rust_exception_data(exception_data)
 
-        category_and_in_app_results = self.rust_enhancements.apply_modifications_to_frames(
-            match_frames, rust_exception_data
-        )
+        with metrics.timer("grouping.enhancements.get_in_app") as metrics_timer_tags:
+            metrics_timer_tags["split"] = False
+            category_and_in_app_results = self.rust_enhancements.apply_modifications_to_frames(
+                match_frames, rust_exception_data
+            )
 
         if self.run_split_enhancements:
-            category_and_in_app_results_split = (
-                self.classifier_rust_enhancements.apply_modifications_to_frames(
-                    match_frames, rust_exception_data
+            with metrics.timer("grouping.enhancements.get_in_app") as metrics_timer_tags:
+                metrics_timer_tags["split"] = True
+                category_and_in_app_results_split = (
+                    self.classifier_rust_enhancements.apply_modifications_to_frames(
+                        match_frames, rust_exception_data
+                    )
                 )
-            )
             split_enhancement_misses: list[Any] = []
         else:
             category_and_in_app_results_split = category_and_in_app_results
