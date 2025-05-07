@@ -41,7 +41,7 @@ export function useResourceSort(
 
 const DEFAULT_SORT: ValidSort = {
   kind: 'desc',
-  field: SORTABLE_FIELDS[0],
+  field: 'sum(span.self_time)',
 };
 
 function isAValidSort(sort: Sort): sort is ValidSort {

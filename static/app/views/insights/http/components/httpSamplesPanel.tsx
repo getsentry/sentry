@@ -33,7 +33,6 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
-import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {
   useSpanMetrics,
   useSpansIndexed,
@@ -180,7 +179,6 @@ export function HTTPSamplesPanel() {
         'http_response_rate(3)',
         'http_response_rate(4)',
         'http_response_rate(5)',
-        `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
       ],
       enabled: isPanelOpen,
     },
@@ -378,10 +376,6 @@ export function HTTPSamplesPanel() {
                 title={DataTitles.timeSpent}
                 value={domainTransactionMetrics?.[0]?.['sum(span.self_time)']}
                 unit={DurationUnit.MILLISECOND}
-                tooltip={getTimeSpentExplanation(
-                  domainTransactionMetrics?.[0]?.['time_spent_percentage()']!,
-                  'http.client'
-                )}
                 isLoading={areDomainTransactionMetricsFetching}
               />
             </ReadoutRibbon>
