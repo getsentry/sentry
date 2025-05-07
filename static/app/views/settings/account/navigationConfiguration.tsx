@@ -19,6 +19,7 @@ function getConfiguration({organization}: ConfigParams): NavigationSection[] {
   return [
     {
       name: t('Account'),
+      id: 'settings-account',
       items: [
         {
           path: `${pathPrefix}/details/`,
@@ -73,6 +74,7 @@ function getConfiguration({organization}: ConfigParams): NavigationSection[] {
       ],
     },
     {
+      id: 'settings-api',
       name: t('API'),
       items: [
         {

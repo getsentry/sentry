@@ -37,6 +37,7 @@ describe('RouteSource', function () {
     const mock = jest.fn().mockReturnValue(null);
     HookStore.add('settings:organization-navigation-config', () => {
       return {
+        id: 'settings-usage-billing',
         name: 'Usage & Billing',
         items: [
           {

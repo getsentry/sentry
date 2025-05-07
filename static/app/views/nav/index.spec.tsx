@@ -134,13 +134,6 @@ describe('Nav', function () {
   });
 
   describe('secondary navigation', function () {
-    it('renders secondary navigation', async function () {
-      renderNav();
-      expect(
-        await screen.findByRole('navigation', {name: 'Secondary Navigation'})
-      ).toBeInTheDocument();
-    });
-
     it('includes expected secondary nav items', function () {
       renderNav();
       const container = screen.getByRole('navigation', {name: 'Secondary Navigation'});
@@ -154,6 +147,21 @@ describe('Nav', function () {
       const link = screen.getByRole('link', {name: 'Feed'});
       expect(link).toHaveAttribute('aria-current', 'page');
       expect(link).toHaveAttribute('aria-selected', 'true');
+    });
+
+    it('can collapse sections with titles', async function () {
+      renderNav();
+      const container = screen.getByRole('navigation', {name: 'Secondary Navigation'});
+
+      expect(within(container).getByRole('link', {name: 'Alerts'})).toBeInTheDocument();
+
+      // Click "Configure" button to collapse the section
+      await userEvent.click(within(container).getByRole('button', {name: 'Configure'}));
+
+      // Section should be collapsed and no longer show "Alerts" link
+      expect(
+        within(container).queryByRole('link', {name: 'Alerts'})
+      ).not.toBeInTheDocument();
     });
 
     describe('sections', function () {

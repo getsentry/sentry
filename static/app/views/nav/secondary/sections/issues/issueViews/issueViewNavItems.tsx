@@ -64,8 +64,13 @@ export function IssueViewNavItems({sectionRef}: IssueViewNavItemsProps) {
 
   return (
     <SecondaryNav.Section
+      id="issues-starred-views"
       title={t('Starred Views')}
-      trailingItems={<IssueViewAddViewButton />}
+      trailingItems={
+        organization.features.includes('enforce-stacked-navigation') ? null : (
+          <IssueViewAddViewButton />
+        )
+      }
     >
       <Reorder.Group
         as="div"
