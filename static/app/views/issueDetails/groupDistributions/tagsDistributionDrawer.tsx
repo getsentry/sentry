@@ -5,6 +5,7 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {EventDrawerBody, EventNavigator} from 'sentry/components/events/eventDrawer';
+import SuspectTable from 'sentry/components/issues/suspect/suspectTable';
 import {IconSort} from 'sentry/icons';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -18,7 +19,6 @@ import TagFlagPicker from 'sentry/views/issueDetails/groupDistributions/tagFlagP
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import {TagDetailsDrawerContent} from 'sentry/views/issueDetails/groupTags/tagDetailsDrawerContent';
 import TagDrawerContent from 'sentry/views/issueDetails/groupTags/tagDrawerContent';
-import SuspectTable from 'sentry/views/issueDetails/suspect/suspectTable';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 interface Props {

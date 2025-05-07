@@ -22,6 +22,9 @@ import {
   sortedFlags,
 } from 'sentry/components/events/featureFlags/utils';
 import useDrawer from 'sentry/components/globalDrawer';
+import {useGroupSuspectFlagScores} from 'sentry/components/issues/suspect/useGroupSuspectFlagScores';
+import useLegacyEventSuspectFlags from 'sentry/components/issues/suspect/useLegacyEventSuspectFlags';
+import useSuspectFlagScoreThreshold from 'sentry/components/issues/suspect/useSuspectFlagScoreThreshold';
 import {KeyValueData} from 'sentry/components/keyValueData';
 import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import {IconMegaphone, IconSearch} from 'sentry/icons';
@@ -34,13 +37,10 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useGroupSuspectFlagScores} from 'sentry/views/issueDetails/groupFeatureFlags/hooks/useGroupSuspectFlagScores';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import useLegacyEventSuspectFlags from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useLegacyEventSuspectFlags';
 import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useOrganizationFlagLog';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import useSuspectFlagScoreThreshold from 'sentry/views/issueDetails/suspect/useSuspectFlagScoreThreshold';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 export function EventFeatureFlagSection(props: EventFeatureFlagSectionProps) {

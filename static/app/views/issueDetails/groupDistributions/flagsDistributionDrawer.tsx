@@ -8,6 +8,7 @@ import {Checkbox} from 'sentry/components/core/checkbox';
 import {EventDrawerBody, EventNavigator} from 'sentry/components/events/eventDrawer';
 import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
 import {OrderBy, SortBy} from 'sentry/components/events/featureFlags/utils';
+import SuspectTable from 'sentry/components/issues/suspect/suspectTable';
 import {IconSentry} from 'sentry/icons/iconSentry';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -22,7 +23,6 @@ import TagFlagPicker from 'sentry/views/issueDetails/groupDistributions/tagFlagP
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import {FlagDetailsDrawerContent} from 'sentry/views/issueDetails/groupFeatureFlags/details/flagDetailsDrawerContent';
 import FlagDrawerContent from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerContent';
-import SuspectTable from 'sentry/views/issueDetails/suspect/suspectTable';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 interface Props {

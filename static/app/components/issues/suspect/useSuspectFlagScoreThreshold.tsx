@@ -1,5 +1,5 @@
+import {SUSPECT_SCORE_THRESHOLD} from 'sentry/components/issues/suspect/consts';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {SUSPECT_SCORE_THRESHOLD} from 'sentry/views/issueDetails/suspect/consts';
 
 const SUSPECT_SCORE_LOCAL_STATE_KEY = 'flag-drawer-suspicion-score-threshold';
 

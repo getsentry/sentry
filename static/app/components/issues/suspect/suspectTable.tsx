@@ -6,6 +6,7 @@ import {Alert} from 'sentry/components/core/alert';
 import {NumberInput} from 'sentry/components/core/input/numberInput';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {OrderBy, SortBy} from 'sentry/components/events/featureFlags/utils';
+import useSuspectFlagScoreThreshold from 'sentry/components/issues/suspect/useSuspectFlagScoreThreshold';
 import {IconSentry} from 'sentry/icons/iconSentry';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -13,7 +14,6 @@ import type {Group} from 'sentry/types/group';
 import toRoundedPercent from 'sentry/utils/number/toRoundedPercent';
 import FlagDetailsLink from 'sentry/views/issueDetails/groupFeatureFlags/details/flagDetailsLink';
 import useGroupFlagDrawerData from 'sentry/views/issueDetails/groupFeatureFlags/hooks/useGroupFlagDrawerData';
-import useSuspectFlagScoreThreshold from 'sentry/views/issueDetails/suspect/useSuspectFlagScoreThreshold';
 
 interface Props {
   debugSuspectScores: boolean;
