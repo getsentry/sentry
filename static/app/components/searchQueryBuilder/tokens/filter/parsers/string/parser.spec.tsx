@@ -123,14 +123,15 @@ describe('parseMultiSelectValue', function () {
       expect(multipleEntries?.items[1]!.value?.value).toBe('b');
       expect(multipleEntries?.items[2]!.value?.value).toBe('c');
 
-      const multiQuoteValue = parseMultiSelectFilterValue('*a*,*"b"*,*c*');
+      const multiQuoteValue = parseMultiSelectFilterValue('*a*,"*b*",*c*');
       expect(multiQuoteValue?.items[0]!.value?.value).toBe('a');
       expect(multiQuoteValue?.items[1]!.value?.value).toBe('b');
       expect(multiQuoteValue?.items[1]!.value?.text).toBe('"b"');
       expect(multiQuoteValue?.items[1]!.value?.quoted).toBe(true);
+      expect(multiQuoteValue?.items[1]!.value?.contains).toBe(true);
       expect(multiQuoteValue!.items[2]!.value?.value).toBe('c');
 
-      const justQuotes = parseMultiSelectFilterValue('*""*');
+      const justQuotes = parseMultiSelectFilterValue('"**"');
       expect(justQuotes?.items[0]!.value?.value).toBe('');
       expect(justQuotes?.items[0]!.value?.text).toBe('""');
       expect(justQuotes?.items[0]!.value?.quoted).toBe(true);
