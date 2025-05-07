@@ -35,18 +35,22 @@ export function TraceContextVitals({rootEventResults, tree, logs}: Props) {
   }
 
   const allVitals = Array.from(tree.vitals.values()).flat();
-  return allVitals.map(vital => {
-    const vitalDetails =
-      VITAL_DETAILS[`measurements.${vital.key}` as keyof typeof VITAL_DETAILS];
-    return (
-      <VitalPill
-        key={vital?.key}
-        vital={vitalDetails}
-        score={vital?.score}
-        meterValue={vital?.measurement.value}
-      />
-    );
-  });
+  return (
+    <VitalMetersContainer>
+      {allVitals.map(vital => {
+        const vitalDetails =
+          VITAL_DETAILS[`measurements.${vital.key}` as keyof typeof VITAL_DETAILS];
+        return (
+          <VitalPill
+            key={vital?.key}
+            vital={vitalDetails}
+            score={vital?.score}
+            meterValue={vital?.measurement.value}
+          />
+        );
+      })}
+    </VitalMetersContainer>
+  );
 }
 
 function defaultVitalValueFormatter(vital: Vital, value: number) {
@@ -149,6 +153,14 @@ const VitalPillValue = styled('div')`
   color: ${p => p.theme.textColor};
 
   font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+const VitalMetersContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: ${space(1)};
+  width: 100%;
 `;
 
 const NoValueContainer = styled('span')`

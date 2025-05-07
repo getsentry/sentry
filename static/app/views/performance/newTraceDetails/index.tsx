@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -10,8 +10,19 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {TraceContextPanel} from 'sentry/views/performance/newTraceDetails/traceContextPanel';
-import {TraceViewLogsDataProvider} from 'sentry/views/performance/newTraceDetails/traceOurlogs';
+import {TraceContextTags} from 'sentry/views/performance/newTraceDetails/traceContextTags';
+import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
+import {
+  TraceViewLogsDataProvider,
+  TraceViewLogsSection,
+} from 'sentry/views/performance/newTraceDetails/traceOurlogs';
+import {TraceTabsAndVitals} from 'sentry/views/performance/newTraceDetails/traceTabsAndVitals';
 import {TraceWaterfall} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
+import {useHasTraceTabsUI} from 'sentry/views/performance/newTraceDetails/useHasTraceTabsUI';
+import {
+  TraceLayoutTabKeys,
+  useTraceLayoutTabs,
+} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 import {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
 import {useTraceWaterfallScroll} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallScroll';
 
@@ -74,6 +85,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   const traceEventView = useTraceEventView(traceSlug, queryParams);
   const logsTableData = useLogsPageData();
   const hideTraceWaterfallIfEmpty = logsTableData?.logsData?.data?.length > 0;
+  const hasTraceTabsUI = useHasTraceTabsUI();
 
   const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);
   const trace = useTrace({traceSlug, timestamp: queryParams.timestamp});
@@ -90,6 +102,78 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
     tree,
     viewManager: traceWaterfallModels.viewManager,
   });
+
+  const {tabOptions, currentTab, onTabChange} = useTraceLayoutTabs({
+    tree,
+    rootEventResults,
+    logs: logsTableData.logsData?.data,
+  });
+
+  const legacyTraceInnerContent = (
+    <Fragment>
+      <TraceWaterfall
+        tree={tree}
+        trace={trace}
+        meta={meta}
+        replay={null}
+        source="performance"
+        rootEventResults={rootEventResults}
+        traceSlug={traceSlug}
+        traceEventView={traceEventView}
+        organization={organization}
+        hideIfNoData={hideTraceWaterfallIfEmpty}
+        traceWaterfallScrollHandlers={traceWaterfallScroll}
+        traceWaterfallModels={traceWaterfallModels}
+      />
+      <TraceContextPanel
+        traceSlug={traceSlug}
+        tree={tree}
+        rootEventResults={rootEventResults}
+        onScrollToNode={traceWaterfallScroll.onScrollToNode}
+        logs={logsTableData.logsData?.data}
+      />
+    </Fragment>
+  );
+
+  const traceInnerContent = (
+    <Fragment>
+      <TraceTabsAndVitals
+        tabsConfig={{
+          tabOptions,
+          currentTab,
+          onTabChange,
+        }}
+        rootEventResults={rootEventResults}
+        tree={tree}
+      />
+      <TabsContentWrapper visible={currentTab === TraceLayoutTabKeys.WATERFALL}>
+        <TraceWaterfall
+          tree={tree}
+          trace={trace}
+          meta={meta}
+          replay={null}
+          source="performance"
+          rootEventResults={rootEventResults}
+          traceSlug={traceSlug}
+          traceEventView={traceEventView}
+          organization={organization}
+          hideIfNoData={hideTraceWaterfallIfEmpty}
+          traceWaterfallScrollHandlers={traceWaterfallScroll}
+          traceWaterfallModels={traceWaterfallModels}
+        />
+      </TabsContentWrapper>
+      {currentTab === TraceLayoutTabKeys.TAGS ||
+      currentTab === TraceLayoutTabKeys.ATTRIBUTES ? (
+        <TraceContextTags rootEventResults={rootEventResults} />
+      ) : null}
+      {currentTab === TraceLayoutTabKeys.PROFILES ? (
+        <TraceProfiles tree={tree} onScrollToNode={traceWaterfallScroll.onScrollToNode} />
+      ) : null}
+      {currentTab === TraceLayoutTabKeys.LOGS ? <TraceViewLogsSection /> : null}
+
+      {currentTab === TraceLayoutTabKeys.SUMMARY ? <p>Summary</p> : null}
+    </Fragment>
+  );
 
   return (
     <SentryDocumentTitle
@@ -109,27 +193,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
               logs={logsTableData.logsData?.data}
             />
             <TraceInnerLayout>
-              <TraceWaterfall
-                tree={tree}
-                trace={trace}
-                meta={meta}
-                replay={null}
-                source="performance"
-                rootEventResults={rootEventResults}
-                traceSlug={traceSlug}
-                traceEventView={traceEventView}
-                organization={organization}
-                hideIfNoData={hideTraceWaterfallIfEmpty}
-                traceWaterfallScrollHandlers={traceWaterfallScroll}
-                traceWaterfallModels={traceWaterfallModels}
-              />
-              <TraceContextPanel
-                traceSlug={traceSlug}
-                tree={tree}
-                rootEventResults={rootEventResults}
-                onScrollToNode={traceWaterfallScroll.onScrollToNode}
-                logs={logsTableData.logsData?.data}
-              />
+              {hasTraceTabsUI ? traceInnerContent : legacyTraceInnerContent}
             </TraceInnerLayout>
           </TraceExternalLayout>
         </NoProjectMessage>
@@ -137,6 +201,12 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
     </SentryDocumentTitle>
   );
 }
+
+const TabsContentWrapper = styled('div')<{visible: boolean}>`
+  display: ${p => (p.visible ? 'flex' : 'none')};
+  flex-direction: column;
+  flex: 1 1 100%;
+`;
 
 const TraceExternalLayout = styled('div')`
   display: flex;
@@ -154,5 +224,4 @@ const TraceInnerLayout = styled('div')`
   flex: 1 1 100%;
   padding: ${space(2)} ${space(3)};
   overflow-y: scroll;
-  margin-bottom: ${space(1)};
 `;

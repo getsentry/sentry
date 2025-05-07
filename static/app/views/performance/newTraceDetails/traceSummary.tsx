@@ -17,6 +17,7 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {TraceContextSectionKeys} from 'sentry/views/performance/newTraceDetails/traceHeader/scrollToSectionLinks';
+import {useHasTraceTabsUI} from 'sentry/views/performance/newTraceDetails/useHasTraceTabsUI';
 
 export interface TraceSummaryData {
   keyObservations: string;
@@ -64,6 +65,11 @@ export function useTraceSummary(traceSlug: string) {
 }
 
 export function TraceSummarySection({traceSlug}: {traceSlug: string}) {
+  const hasTraceTabsUi = useHasTraceTabsUI();
+  if (hasTraceTabsUi) {
+    return <TraceSummaryContent traceSlug={traceSlug} />;
+  }
+
   return (
     <InterimSection
       key="trace-summary"
