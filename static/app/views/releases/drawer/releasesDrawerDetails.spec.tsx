@@ -34,6 +34,8 @@ describe('ReleasesDrawerDetails', () => {
   const defaultProps = {
     release: 'test-release',
     projectId: undefined,
+    start: null,
+    end: null,
   };
 
   const organization = OrganizationFixture();
@@ -102,10 +104,34 @@ describe('ReleasesDrawerDetails', () => {
   it('renders content when projectId exists', async () => {
     render(<ReleasesDrawerDetails {...defaultProps} projectId="1" />, {organization});
 
+    // no start/end from url params, so can't link back to releases
+    const notLink = await screen.findByText('Releases');
+    expect(notLink).not.toHaveAttribute('href');
+
     expect(await screen.findByText('Details')).toBeInTheDocument();
     expect(screen.getByText('General')).toBeInTheDocument();
     expect(screen.getByText('Commits')).toBeInTheDocument();
     expect(screen.getByText('File Changes')).toBeInTheDocument();
+  });
+
+  it('links back to releases page when start and end are provided', async () => {
+    render(
+      <ReleasesDrawerDetails
+        {...defaultProps}
+        projectId="1"
+        start={new Date()}
+        end={new Date()}
+      />,
+      {organization}
+    );
+
+    const link = await screen.findByText('Releases');
+    expect(link).toHaveAttribute(
+      'href',
+      expect.stringContaining(
+        '/mock-pathname/?rdEnd=2017-10-17T02%3A41%3A20.000Z&rdStart=2017-10-17T02%3A41%3A20.000Z'
+      )
+    );
   });
 
   it('renders content when single project exists', async () => {

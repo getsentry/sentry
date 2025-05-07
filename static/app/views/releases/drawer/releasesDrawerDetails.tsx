@@ -34,8 +34,10 @@ import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 import {useReleaseMeta} from 'sentry/views/releases/utils/useReleaseMeta';
 
 interface ReleasesDrawerDetailsProps {
+  end: Date | null;
   projectId: string | undefined;
   release: string;
+  start: Date | null;
 }
 
 interface ReleasesDrawerContentProps {
@@ -171,8 +173,10 @@ function EnsureSingleProject({
 }
 
 export function ReleasesDrawerDetails({
+  end,
   release,
   projectId: projectIdProp,
+  start,
 }: ReleasesDrawerDetailsProps) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -222,15 +226,22 @@ export function ReleasesDrawerDetails({
 
   const crumbs = [
     {
-      label: (
-        <Link
-          to={{
-            query: locationQueryWithoutRelease,
-          }}
-        >
-          {t('Releases')}
-        </Link>
-      ),
+      label:
+        start && end ? (
+          <Link
+            to={{
+              query: {
+                ...locationQueryWithoutRelease,
+                [ReleasesDrawerFields.START]: start.toISOString(),
+                [ReleasesDrawerFields.END]: end.toISOString(),
+              },
+            }}
+          >
+            {t('Releases')}
+          </Link>
+        ) : (
+          t('Releases')
+        ),
     },
     {label: formatVersion(release)},
   ];
