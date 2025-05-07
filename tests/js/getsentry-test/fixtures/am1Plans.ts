@@ -1,6 +1,8 @@
+import {type DataCategory} from 'sentry/types/core';
+
 import {ANNUAL, MONTHLY} from 'getsentry/constants';
 import type {Plan} from 'getsentry/types';
-import {type DataCategory} from 'sentry/types/core';
+
 const AM1_CATEGORIES = [
   'errors',
   'transactions',

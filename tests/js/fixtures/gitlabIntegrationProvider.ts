@@ -1,4 +1,4 @@
-import { IntegrationProvider } from "sentry/types/integrations";
+import type {IntegrationProvider} from 'sentry/types/integrations';
 
 export function GitLabIntegrationProviderFixture(
   params: Partial<IntegrationProvider> = {}
@@ -38,5 +38,5 @@ export function GitLabIntegrationProviderFixture(
       },
     },
     ...params,
-  }
+  };
 }

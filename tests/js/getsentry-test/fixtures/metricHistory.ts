@@ -14,9 +14,7 @@ const ORDERED_CATEGORIES = [
 export function MetricHistoryFixture(
   params: Partial<BillingMetricHistory>
 ): BillingMetricHistory {
-  const order = params.category
-    ? ORDERED_CATEGORIES.indexOf(params.category as DataCategory)
-    : 1;
+  const order = params.category ? ORDERED_CATEGORIES.indexOf(params.category) : 1;
   return {
     category: DataCategory.ERRORS,
     free: 0,

@@ -1,4 +1,4 @@
-import {IssueAlertRule} from 'sentry/types/alerts';
+import type {IssueAlertRule} from 'sentry/types/alerts';
 
 export function ProjectAlertRuleFixture(
   params: Partial<IssueAlertRule> = {}

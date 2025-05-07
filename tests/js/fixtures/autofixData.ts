@@ -1,4 +1,5 @@
-import { AutofixData, AutofixStatus } from 'sentry/components/events/autofix/types';
+import type {AutofixData} from 'sentry/components/events/autofix/types';
+import {AutofixStatus} from 'sentry/components/events/autofix/types';
 
 export function AutofixDataFixture(params: Partial<AutofixData>): AutofixData {
   return {

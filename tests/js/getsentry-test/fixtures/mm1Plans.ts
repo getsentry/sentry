@@ -1,5 +1,6 @@
+import {DataCategory} from 'sentry/types/core';
+
 import type {Plan} from 'getsentry/types';
-import { DataCategory } from 'sentry/types/core';
 
 const BUDGET_TERM = 'on-demand';
 
@@ -7,7 +8,7 @@ const MM1_CATEGORY_DISPLAY_NAMES = {
   errors: {singular: 'error', plural: 'errors'},
 };
 
-const MM1_CATEGORIES = [DataCategory.ERRORS]
+const MM1_CATEGORIES = [DataCategory.ERRORS];
 
 const MM1_PLANS: Record<string, Plan> = {
   e1_ac: {

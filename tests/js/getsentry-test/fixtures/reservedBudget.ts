@@ -1,6 +1,6 @@
 import type {
-  ReservedBudgetMetricHistory,
   ReservedBudget as TReservedBudget,
+  ReservedBudgetMetricHistory,
 } from 'getsentry/types';
 
 type BudgetProps = Partial<TReservedBudget>;
