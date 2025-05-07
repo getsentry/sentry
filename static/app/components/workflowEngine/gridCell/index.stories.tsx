@@ -2,10 +2,7 @@ import {Fragment} from 'react';
 
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
-import {
-  type Action,
-  ActionCell,
-} from 'sentry/components/workflowEngine/gridCell/actionCell';
+import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
 import {
   ConnectionCell,
   type ConnectionCellProps,
@@ -25,9 +22,10 @@ import {
   type UserCellProps,
 } from 'sentry/components/workflowEngine/gridCell/userCell';
 import storyBook from 'sentry/stories/storyBook';
+import {ActionType} from 'sentry/types/workflowEngine/actions';
 
 type ExampleAutomation = {
-  action: Action[];
+  action: ActionType[];
   creator: UserCellProps['user'];
   linkedItems: ConnectionCellProps;
   openIssues: number;
@@ -44,7 +42,7 @@ export default storyBook('Grid Cell Components', story => {
         projectId: '1',
         link: '/issues/monitors/1',
       },
-      action: ['slack'],
+      action: [ActionType.SLACK],
       timeAgo: new Date(),
       linkedItems: {
         ids: ['abc123'],
@@ -52,7 +50,7 @@ export default storyBook('Grid Cell Components', story => {
       },
       openIssues: 3,
       creator: '1',
-      type: 'trace',
+      type: 'uptime',
     },
     {
       title: {
@@ -61,7 +59,7 @@ export default storyBook('Grid Cell Components', story => {
         details: ['transaction.duration', '2s warn, 2.5s critical threshold'],
         link: '/issues/monitors/2',
       },
-      action: ['discord'],
+      action: [ActionType.DISCORD],
       timeAgo: new Date(Date.now() - 2 * 60 * 60 * 1000),
       linkedItems: {
         ids: ['abc123', 'def456', 'ghi789'],
@@ -78,7 +76,7 @@ export default storyBook('Grid Cell Components', story => {
         details: ['Every hour'],
         link: '/issues/monitors/3',
       },
-      action: ['email'],
+      action: [ActionType.EMAIL],
       timeAgo: new Date(Date.now() - 25 * 60 * 60 * 1000),
       linkedItems: {
         ids: ['abc123', 'def456'],
@@ -95,9 +93,9 @@ export default storyBook('Grid Cell Components', story => {
         link: '/issues/monitors/4',
         disabled: true,
       },
-      action: ['slack', 'discord', 'email'],
+      action: [ActionType.SLACK, ActionType.DISCORD, ActionType.EMAIL],
       creator: 'sentry',
-      type: 'errors',
+      type: 'uptime',
       timeAgo: null,
       linkedItems: {
         ids: [],

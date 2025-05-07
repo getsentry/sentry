@@ -26,7 +26,7 @@ const links: Record<ConnectionCellProps['type'], (id: string) => string> = {
 };
 
 export function ConnectionCell({
-  ids: items,
+  ids: items = [],
   type,
   disabled = false,
   className,

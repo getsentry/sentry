@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+// import moment from 'moment-timezone';
 import {Flex} from 'sentry/components/container/flex';
 import {LinkButton} from 'sentry/components/core/button';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
@@ -12,16 +13,18 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import DetectorListTable from 'sentry/views/detectors/components/detectorListTable';
+import {useDetectorsQuery} from 'sentry/views/detectors/hooks';
 
 export default function DetectorsList() {
   useWorkflowEngineFeatureGate({redirect: true});
+  const {data: detectors} = useDetectorsQuery('11276');
 
   return (
     <SentryDocumentTitle title={t('Monitors')} noSuffix>
       <ActionsProvider actions={<Actions />}>
         <ListLayout>
           <TableHeader />
-          <DetectorListTable detectors={[]} />
+          <DetectorListTable detectors={detectors ?? []} />
         </ListLayout>
       </ActionsProvider>
     </SentryDocumentTitle>
@@ -42,11 +45,7 @@ function TableHeader() {
 function Actions() {
   return (
     <Fragment>
-      <LinkButton
-        to="/issues/monitors/new"
-        priority="primary"
-        icon={<IconAdd isCircled />}
-      >
+      <LinkButton to="/issues/monitors/new" priority="primary" icon={<IconAdd />}>
         {t('Create Monitor')}
       </LinkButton>
     </Fragment>
