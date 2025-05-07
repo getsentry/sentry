@@ -414,10 +414,8 @@ def register_temporary_features(manager: FeatureManager):
     # Enable processing uptime results via the detector handler
     manager.add("organizations:uptime-detector-handler", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:use-metrics-layer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable User Feedback spam auto filtering feature ingest. TODO: Deprecate - replaced by user-feedback-spam-ingest.
+    # Enable User Feedback spam auto filtering feature ingest
     manager.add("organizations:user-feedback-spam-filter-ingest", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
-    # Enable User Feedback spam requests to LLM
-    manager.add("organizations:user-feedback-spam-ingest", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Block User Feedback spam auto filtering feature ingest
     manager.add("organizations:user-feedback-spam-ingest-blocklist", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable User Feedback spam auto filtering feature actions
