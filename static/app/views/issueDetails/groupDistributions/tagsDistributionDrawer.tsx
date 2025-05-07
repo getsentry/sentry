@@ -13,12 +13,12 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useParams} from 'sentry/utils/useParams';
 import GroupDistributionsSearchInput from 'sentry/views/issueDetails/groupDistributions/groupDistributionsSearchInput';
 import HeaderTitle from 'sentry/views/issueDetails/groupDistributions/headerTitle';
-import SuspectTable from 'sentry/views/issueDetails/groupDistributions/suspectTable';
 import TagExportDropdown from 'sentry/views/issueDetails/groupDistributions/tagExportDropdown';
 import TagFlagPicker from 'sentry/views/issueDetails/groupDistributions/tagFlagPicker';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import {TagDetailsDrawerContent} from 'sentry/views/issueDetails/groupTags/tagDetailsDrawerContent';
 import TagDrawerContent from 'sentry/views/issueDetails/groupTags/tagDrawerContent';
+import SuspectTable from 'sentry/views/issueDetails/suspect/suspectTable';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 interface Props {

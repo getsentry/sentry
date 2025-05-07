@@ -34,11 +34,14 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useGroupSuspectFlagScores} from 'sentry/views/issueDetails/groupFeatureFlags/hooks/useGroupSuspectFlagScores';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import useLegacyEventSuspectFlags from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useLegacyEventSuspectFlags';
 import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useOrganizationFlagLog';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import useSuspectFlagScoreThreshold from 'sentry/views/issueDetails/suspect/useSuspectFlagScoreThreshold';
+import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 export function EventFeatureFlagSection(props: EventFeatureFlagSectionProps) {
   return (
@@ -55,6 +58,9 @@ type EventFeatureFlagSectionProps = {
 };
 
 function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSectionProps) {
+  const organization = useOrganization();
+  const environments = useEnvironmentsFromUrl();
+
   const openForm = useFeedbackForm();
   const feedbackButton = openForm ? (
     <Button
@@ -75,11 +81,14 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
     </Button>
   ) : null;
 
+  // If we're showing the suspect section at all
+  const enableSuspectFlags = organization.features.includes('feature-flag-suspect-flags');
+
   const [sortBy, setSortBy] = useState<SortBy>(SortBy.EVAL_ORDER);
   const [orderBy, setOrderBy] = useState<OrderBy>(OrderBy.NEWEST);
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
-  const organization = useOrganization();
+
   const eventView = useIssueDetailsEventView({group});
   const {data: rawFlagData} = useOrganizationFlagLog({
     organization,
@@ -121,21 +130,51 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
   );
 
   const {
-    suspectFlags,
-    isError: isSuspectError,
-    isPending: isSuspectPending,
+    suspectFlags: legacySuspectFlags,
+    isError: isLegacySuspectError,
+    isPending: isLegacySuspectPending,
   } = useLegacyEventSuspectFlags({
+    enabled: !enableSuspectFlags, // Fallback to the legacy strategy
     organization,
     firstSeen: group.firstSeen,
     rawFlagData,
     event,
   });
 
+  const [suspectThreshold] = useSuspectFlagScoreThreshold();
+  const {
+    data: suspectScores,
+    isError: isSuspectError,
+    isPending: isSuspectPending,
+  } = useGroupSuspectFlagScores({
+    groupId: group.id,
+    environment: environments.length ? environments : undefined,
+    enabled: enableSuspectFlags,
+  });
+
   const suspectFlagNames: Set<string> = useMemo(() => {
-    return isSuspectError || isSuspectPending
+    if (enableSuspectFlags) {
+      return isSuspectError || isSuspectPending
+        ? new Set()
+        : new Set(
+            suspectScores.data
+              .filter(score => score.score >= suspectThreshold)
+              .map(score => score.flag)
+          );
+    }
+    return isLegacySuspectError || isLegacySuspectPending
       ? new Set()
-      : new Set(suspectFlags.map(f => f.flag));
-  }, [isSuspectError, isSuspectPending, suspectFlags]);
+      : new Set(legacySuspectFlags.map(f => f.flag));
+  }, [
+    enableSuspectFlags,
+    isLegacySuspectError,
+    isLegacySuspectPending,
+    isSuspectError,
+    isSuspectPending,
+    legacySuspectFlags,
+    suspectScores?.data,
+    suspectThreshold,
+  ]);
 
   const eventFlags: Array<Required<FeatureFlag>> = useMemo(() => {
     // At runtime there's no type guarantees on the event flags. So we have to

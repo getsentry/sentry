@@ -18,11 +18,11 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useParams} from 'sentry/utils/useParams';
 import GroupDistributionsSearchInput from 'sentry/views/issueDetails/groupDistributions/groupDistributionsSearchInput';
 import HeaderTitle from 'sentry/views/issueDetails/groupDistributions/headerTitle';
-import SuspectTable from 'sentry/views/issueDetails/groupDistributions/suspectTable';
 import TagFlagPicker from 'sentry/views/issueDetails/groupDistributions/tagFlagPicker';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import {FlagDetailsDrawerContent} from 'sentry/views/issueDetails/groupFeatureFlags/details/flagDetailsDrawerContent';
 import FlagDrawerContent from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerContent';
+import SuspectTable from 'sentry/views/issueDetails/suspect/suspectTable';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 interface Props {
