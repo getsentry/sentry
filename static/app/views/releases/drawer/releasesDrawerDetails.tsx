@@ -237,14 +237,15 @@ export function ReleasesDrawerDetails({
   ];
 
   const showContent =
+    project &&
     // there is a project id in the url, so display content which has placeholders when releaseMeta is loading
-    projectIdProp ||
-    // otherwise, we need to wait for releaseMeta to load and make sure there is only one project
-    (!isLoadingMeta &&
-      !isMetaError &&
-      projectsFromMeta.length === 1 &&
-      projectsFromMeta[0] &&
-      projectId);
+    (projectIdProp ||
+      // otherwise, we need to wait for releaseMeta to load and make sure there is only one project
+      (!isLoadingMeta &&
+        !isMetaError &&
+        projectsFromMeta.length === 1 &&
+        projectsFromMeta[0] &&
+        projectId));
 
   // show project select if releaseMeta is loaded and there are multiple projects in the release
   const showProjectSelect = releaseMeta && hasMultipleProjects;
