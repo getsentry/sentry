@@ -201,7 +201,7 @@ describe('CheckoutOverview', function () {
     ).toBeInTheDocument();
   });
 
-  it('does not display Seer Agent AI when seerEnabled if false', () => {
+  it('does not display Seer Agent AI when seerEnabled is false', () => {
     const orgWithSeerFeature = {...organization, features: ['seer-billing']};
     const formData: CheckoutFormData = {
       plan: 'am2_team',

@@ -151,7 +151,7 @@ function CheckoutOverviewV2({
 
     return (
       <Section>
-        <Subtitle>{t('Sentry Products')}</Subtitle>
+        <Subtitle>{t('All Sentry Products')}</Subtitle>
         <ReservedVolumes>
           {activePlan.categories.map(category => {
             const eventBucket =

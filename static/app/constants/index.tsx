@@ -550,8 +550,8 @@ export const DATA_CATEGORY_INFO = {
     name: DataCategoryExact.SEER_SCANNER,
     apiName: 'seer_scanner',
     plural: DataCategory.SEER_SCANNER,
-    displayName: 'issue triage run',
-    titleName: t('Issue Triage Run'),
+    displayName: 'issue scan run',
+    titleName: t('Issue Scan Run'),
     productName: t('Seer'),
     uid: 28,
     isBilledCategory: false, // TODO(Seer): change to True for launch
