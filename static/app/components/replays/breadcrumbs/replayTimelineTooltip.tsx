@@ -2,6 +2,7 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 
+import {Overlay} from 'sentry/components/overlay';
 import {space} from 'sentry/styles/space';
 
 const TOOLTIP_OFFSET = 10;
@@ -31,20 +32,25 @@ function TimelineTooltip({enabled = true, labelText}: Props) {
       portalRef.current = portal;
 
       if (portal) {
-        const rect = portal.getBoundingClientRect();
-        const isInside =
-          e.clientX >= rect.left &&
-          e.clientX <= rect.right &&
-          e.clientY >= rect.top &&
-          e.clientY <= rect.bottom;
+        const containerRect = portal.getBoundingClientRect();
 
-        setIsVisible(isInside);
+        // Instead of using onMouseEnter / onMouseLeave we check if the mouse is
+        // within the containerRect. This proves to be less glitchy as some
+        // elements within the container may trigger an onMouseLeave even when
+        // the mouse is still "inside" of the container
+        const isInsideContainer =
+          e.clientX >= containerRect.left &&
+          e.clientX <= containerRect.right &&
+          e.clientY >= containerRect.top &&
+          e.clientY <= containerRect.bottom;
 
-        if (isInside) {
+        setIsVisible(isInsideContainer);
+
+        if (isInsideContainer) {
           // Only update the x position based on mouse movement
           setPosition({
             x: e.clientX + TOOLTIP_OFFSET,
-            y: rect.top + FIXED_Y_POSITION, // Keep y position fixed relative to the top of the portal
+            y: containerRect.top + FIXED_Y_POSITION, // Keep y position fixed relative to the top of the portal
           });
 
           if (labelRef.current) {
@@ -67,7 +73,7 @@ function TimelineTooltip({enabled = true, labelText}: Props) {
   }, [enabled, handleMouseMove]);
 
   return createPortal(
-    <TooltipLabel
+    <CursorLabel
       ref={labelRef}
       style={{
         left: position.x,
@@ -76,12 +82,12 @@ function TimelineTooltip({enabled = true, labelText}: Props) {
       }}
     >
       {labelText}
-    </TooltipLabel>,
+    </CursorLabel>,
     document.body
   );
 }
 
-const TooltipLabel = styled('div')`
+const CursorLabel = styled(Overlay)`
   font-variant-numeric: tabular-nums;
   width: max-content;
   padding: ${space(0.75)} ${space(1)};
@@ -89,12 +95,6 @@ const TooltipLabel = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 1.2;
   position: fixed;
-  background: ${p => p.theme.backgroundElevated};
-  border-radius: ${p => p.theme.borderRadius};
-  box-shadow:
-    0 0 0 1px ${p => p.theme.translucentBorder},
-    ${p => p.theme.dropShadowHeavy};
-  z-index: 1;
   pointer-events: none; /* Prevent tooltip from blocking mouse events */
 `;
 
