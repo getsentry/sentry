@@ -1,4 +1,5 @@
 from sentry.api.serializers import serialize
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.workflow_engine.models import Action, Workflow, WorkflowDataConditionGroup
@@ -140,6 +141,119 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             workflow.name,
             workflow_two.name,
         ]
+
+    def test_filter_by_name(self):
+        workflow = self.create_workflow(organization_id=self.organization.id, name="Apple Workflow")
+        self.create_workflow(organization_id=self.organization.id, name="Banana Workflow")
+        workflow_three = self.create_workflow(
+            organization_id=self.organization.id, name="Green Apple Workflow"
+        )
+        response = self.get_success_response(self.organization.slug, qs_params={"name": "apple"})
+        assert len(response.data) == 2
+        assert {workflow.name, workflow_three.name} == {w["name"] for w in response.data}
+
+        response2 = self.get_success_response(self.organization.slug, qs_params={"name": "Chicago"})
+        assert len(response2.data) == 0
+
+    def test_filter_by_project(self):
+        workflow = self.create_workflow(organization_id=self.organization.id, name="Apple Workflow")
+        self.create_detector_workflow(
+            workflow=workflow, detector=self.create_detector(project=self.project)
+        )
+        workflow_two = self.create_workflow(
+            organization_id=self.organization.id, name="Banana Workflow"
+        )
+        self.create_detector_workflow(
+            workflow=workflow_two, detector=self.create_detector(project=self.project)
+        )
+
+        other_project = self.create_project(organization=self.organization, name="Other Project")
+        workflow_three = self.create_workflow(
+            organization_id=self.organization.id, name="Other Project Workflow"
+        )
+        self.create_detector_workflow(
+            workflow=workflow_three, detector=self.create_detector(project=other_project)
+        )
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params=[("project", self.project.id)]
+        )
+        assert len(response.data) == 2
+        assert {workflow.name, workflow_two.name} == {w["name"] for w in response.data}
+
+        response2 = self.get_success_response(
+            self.organization.slug,
+            qs_params=[("project", other_project.id), ("project", self.project.id)],
+        )
+        assert len(response2.data) == 3
+        assert {workflow.name, workflow_three.name, workflow_two.name} == {
+            w["name"] for w in response2.data
+        }
+
+        # Make sure slugs work too.
+        slug_response = self.get_success_response(
+            self.organization.slug, qs_params=[("projectSlug", self.project.slug)]
+        )
+        assert len(slug_response.data) == 2
+        assert {workflow.name, workflow_two.name} == {w["name"] for w in slug_response.data}
+
+        empty_project = self.create_project(organization=self.organization, name="Empty Project")
+        assert not self.get_success_response(
+            self.organization.slug, qs_params=[("project", empty_project.id)]
+        ).data
+
+    def test_filter_by_action(self):
+        workflow = self.create_workflow(
+            organization_id=self.organization.id, name="A Test Workflow"
+        )
+        action = self.create_action(
+            type=Action.Type.SLACK,
+            data={},
+            config={
+                "target_identifier": "1",
+                "target_type": ActionTarget.SPECIFIC,
+                "target_display": "Bufo Bill",
+            },
+        )
+        dcg = self.create_data_condition_group(organization=self.organization)
+        self.create_data_condition_group_action(condition_group=dcg, action=action)
+        self.create_workflow_data_condition_group(condition_group=dcg, workflow=workflow)
+
+        action3 = self.create_action(
+            type=Action.Type.SLACK,
+            data={},
+            config={
+                "target_identifier": "1",
+                "target_type": ActionTarget.SPECIFIC,
+                "target_display": "Bufo Bill",
+            },
+        )
+        dcg3 = self.create_data_condition_group(organization=self.organization)
+        self.create_data_condition_group_action(condition_group=dcg3, action=action3)
+        self.create_workflow_data_condition_group(condition_group=dcg3, workflow=workflow)
+
+        action2 = self.create_action(
+            type=Action.Type.EMAIL,
+            data={},
+            config={
+                "target_identifier": "foo@bar.com",
+                "target_type": ActionTarget.SPECIFIC,
+            },
+        )
+        dcg2 = self.create_data_condition_group(organization=self.organization)
+        self.create_data_condition_group_action(condition_group=dcg2, action=action2)
+        self.create_workflow_data_condition_group(condition_group=dcg2, workflow=workflow)
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"action": [Action.Type.SLACK.value]}
+        )
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == workflow.name
+
+        response2 = self.get_success_response(
+            self.organization.slug, qs_params={"action": [Action.Type.DISCORD.value]}
+        )
+        assert len(response2.data) == 0
 
 
 @region_silo_test

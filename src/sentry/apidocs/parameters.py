@@ -454,6 +454,23 @@ class WorkflowParams:
         description="The ID of the workflow you'd like to query.",
     )
 
+    NAME = OpenApiParameter(
+        name="name",
+        location="query",
+        required=False,
+        type=str,
+        description="The name of the workflow you'd like to query.",
+    )
+
+    ACTION = OpenApiParameter(
+        name="action",
+        location="query",
+        required=False,
+        type=str,
+        description="The workflow actions you'd like to filter by.",
+        many=True,
+    )
+
     SORT_BY = OpenApiParameter(
         name="sortBy",
         location="query",

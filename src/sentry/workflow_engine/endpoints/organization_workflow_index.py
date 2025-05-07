@@ -1,4 +1,4 @@
-from django.db.models import Count
+from django.db.models import Count, Q
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
@@ -17,11 +17,11 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import GlobalParams, WorkflowParams
+from sentry.apidocs.parameters import GlobalParams, OrganizationParams, WorkflowParams
 from sentry.workflow_engine.endpoints.serializers import WorkflowSerializer
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
-from sentry.workflow_engine.models import Workflow
+from sentry.workflow_engine.models import Action, Workflow
 
 # Maps API field name to database field name, with synthetic aggregate fields keeping
 # to our field naming scheme for consistency.
@@ -61,6 +61,9 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             WorkflowParams.SORT_BY,
+            WorkflowParams.NAME,
+            WorkflowParams.ACTION,
+            OrganizationParams.PROJECT,
         ],
         responses={
             201: WorkflowSerializer,
@@ -89,7 +92,25 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                     )
                 )
 
-        queryset = queryset.order_by(*sort_by.db_order_by)
+        actions = request.GET.getlist("action", [])
+        if actions:
+            valid_actions = [t for t in actions if t in Action.Type]
+            queryset = queryset.filter(
+                workflowdataconditiongroup__condition_group__dataconditiongroupaction__action__type__in=valid_actions
+            ).distinct()
+
+        name = request.GET.get("name")
+        if name:
+            queryset = queryset.filter(name__icontains=name)
+
+        projects = self.get_projects(request, organization)
+        if projects:
+            queryset = queryset.filter(
+                Q(detectorworkflow__detector__project__in=projects)
+                | Q(detectorworkflow__isnull=True)
+            ).distinct()
+
+        queryset = queryset.order_by(sort_by.db_order_by)
 
         return self.paginate(
             request=request,
