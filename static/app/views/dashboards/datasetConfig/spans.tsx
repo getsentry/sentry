@@ -185,6 +185,16 @@ function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryField
     return true;
   }
 
+  if (
+    fieldValue?.kind === 'function' &&
+    fieldValue?.function[0] === AggregationKey.COUNT
+  ) {
+    return (
+      option.value.meta.name === 'span.duration' ||
+      fieldValue.function[1] === option.value.meta.name
+    );
+  }
+
   const expectedDataType =
     fieldValue?.kind === 'function' &&
     fieldValue?.function[0] === AggregationKey.COUNT_UNIQUE

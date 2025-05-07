@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import trimStart from 'lodash/trimStart';
 import uniqBy from 'lodash/uniqBy';
@@ -27,6 +27,7 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/utils';
 import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
 import {QueryField} from 'sentry/views/discover/table/queryField';
+import type {FieldValue} from 'sentry/views/discover/table/types';
 
 import {CUSTOM_EQUATION_VALUE} from '.';
 
@@ -47,6 +48,10 @@ interface Props {
   disableSortReason?: string;
   hasGroupBy?: boolean;
 }
+
+// Lock the sort by parameter option when the value is `count(span.duration)`
+// because we do not want to expose the concept of counting by other fields
+const LOCKED_SPAN_COUNT_SORT = 'count(span.duration)';
 
 export function SortBySelectors({
   values,
@@ -77,6 +82,22 @@ export function SortBySelectors({
     }
     setShowCustomEquation(isSortingByEquation);
   }, [values.sortBy, values.sortDirection]);
+
+  const timeseriesSortOptions = useMemo(() => {
+    let options: Record<string, SelectValue<FieldValue>> = {};
+    if (displayType !== DisplayType.TABLE) {
+      options = datasetConfig.getTimeseriesSortOptions!(organization, widgetQuery, tags);
+      if (widgetType === WidgetType.SPANS && options['measurement:span.duration']) {
+        // Re-map the span duration measurement label so we can simply render
+        // `spans` in the parameter UI
+        options['measurement:span.duration'] = {
+          ...options['measurement:span.duration'],
+          label: t('spans'),
+        };
+      }
+    }
+    return options;
+  }, [datasetConfig, organization, tags, widgetQuery, widgetType, displayType]);
 
   return (
     <Wrapper>
@@ -137,17 +158,16 @@ export function SortBySelectors({
                   ? explodeField({field: CUSTOM_EQUATION_VALUE})
                   : explodeField({field: values.sortBy})
             }
-            fieldOptions={datasetConfig.getTimeseriesSortOptions!(
-              organization,
-              widgetQuery,
-              tags
-            )}
+            fieldOptions={timeseriesSortOptions}
             filterPrimaryOptions={
               datasetConfig.filterSeriesSortOptions
                 ? datasetConfig.filterSeriesSortOptions(columnSet)
                 : undefined
             }
             filterAggregateParameters={datasetConfig.filterAggregateParams}
+            disableParameterSelector={
+              widgetType === WidgetType.SPANS && values.sortBy === LOCKED_SPAN_COUNT_SORT
+            }
             onChange={value => {
               if (value.alias && isEquationAlias(value.alias)) {
                 onChange({
