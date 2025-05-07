@@ -17,7 +17,6 @@ import {IssueViewNavItemContent} from 'sentry/views/nav/secondary/sections/issue
 import {useStarredIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useStarredIssueViews';
 
 interface IssueViewNavItemsProps {
-  baseUrl: string;
   sectionRef: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -31,7 +30,7 @@ export interface NavIssueView extends IssueViewParams {
   stars: number;
 }
 
-export function IssueViewNavItems({sectionRef, baseUrl}: IssueViewNavItemsProps) {
+export function IssueViewNavItems({sectionRef}: IssueViewNavItemsProps) {
   const organization = useOrganization();
   const {viewId} = useParams<{orgId?: string; viewId?: string}>();
 
@@ -89,11 +88,6 @@ export function IssueViewNavItems({sectionRef, baseUrl}: IssueViewNavItemsProps)
           />
         ))}
       </Reorder.Group>
-      {organization.features.includes('enforce-stacked-navigation') && (
-        <SecondaryNav.Item to={`${baseUrl}/views/`} end>
-          {t('All Views')}
-        </SecondaryNav.Item>
-      )}
     </SecondaryNav.Section>
   );
 }
