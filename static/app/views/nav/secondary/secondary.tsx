@@ -120,20 +120,24 @@ SecondaryNav.Section = function SecondaryNavSection({
           disabled={layout === NavLayout.MOBILE}
         >
           <SectionTitleLabelWrap>{title}</SectionTitleLabelWrap>
-          <TrailingItems
-            onClick={e => {
-              e.stopPropagation();
-            }}
-          >
-            {trailingItems
-              ? trailingItems
-              : layout === NavLayout.SIDEBAR && (
-                  <IconChevron
-                    direction={isCollapsed ? 'down' : 'up'}
-                    size="xs"
-                    color="subText"
-                  />
-                )}
+          <TrailingItems>
+            {trailingItems ? (
+              <div
+                onClick={e => {
+                  e.stopPropagation();
+                }}
+              >
+                {trailingItems}
+              </div>
+            ) : (
+              layout === NavLayout.SIDEBAR && (
+                <IconChevron
+                  direction={isCollapsed ? 'down' : 'up'}
+                  size="xs"
+                  color="subText"
+                />
+              )
+            )}
           </TrailingItems>
         </SectionTitle>
       )}
