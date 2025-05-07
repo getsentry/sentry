@@ -83,6 +83,7 @@ async function renderModal({
     {
       router,
       organization,
+      deprecatedRouterMocks: true,
     }
   );
   // Need to wait since WidgetViewerModal will make a request to events-meta

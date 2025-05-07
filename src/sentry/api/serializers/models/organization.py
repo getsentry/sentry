@@ -36,6 +36,7 @@ from sentry.constants import (
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
+    GITLAB_COMMENT_BOT_DEFAULT,
     HIDE_AI_FEATURES_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
@@ -541,6 +542,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     githubPRBot: bool
     githubOpenPRBot: bool
     githubNudgeInvite: bool
+    gitlabPRBot: bool
     aggregatedDataConsent: bool
     genAIConsent: bool
     isDynamicallySampled: bool
@@ -567,9 +569,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
     ) -> DetailedOrganizationSerializerResponse:
         # TODO: rectify access argument overriding parent if we want to remove above type ignore
 
-        from sentry import experiments
-
-        experiment_assignments = experiments.all(org=obj, actor=user)
         include_feature_flags = kwargs.get("include_feature_flags", True)
 
         base = super().serialize(
@@ -602,7 +601,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         context: DetailedOrganizationSerializerResponse = {
             **base,
-            "experiments": experiment_assignments,
+            # TODO(epurkhiser): This can be removed once we confirm the
+            # frontend does not use it
+            "experiments": {},
             "quota": {
                 "maxRate": max_rate[0],
                 "maxRateInterval": max_rate[1],
@@ -680,6 +681,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             "githubNudgeInvite": bool(
                 obj.get_option("sentry:github_nudge_invite", GITHUB_COMMENT_BOT_DEFAULT)
             ),
+            "gitlabPRBot": bool(obj.get_option("sentry:gitlab_pr_bot", GITLAB_COMMENT_BOT_DEFAULT)),
             "genAIConsent": bool(
                 obj.get_option("sentry:gen_ai_consent_v2024_11_14", DATA_CONSENT_DEFAULT)
             ),

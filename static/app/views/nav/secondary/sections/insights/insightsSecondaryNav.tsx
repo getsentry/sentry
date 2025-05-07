@@ -36,7 +36,6 @@ import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
 import {isLinkActive} from 'sentry/views/nav/utils';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
 
 export function InsightsSecondaryNav() {
   const organization = useOrganization();
@@ -45,8 +44,6 @@ export function InsightsSecondaryNav() {
   const isProjectDetailsRedirectActive = useIsProjectDetailsRedirectActive();
 
   const {projects} = useProjects();
-
-  useReleasesDrawer();
 
   const [starredProjects, nonStarredProjects] = useMemo(() => {
     return partition(projects, project => project.isBookmarked);
@@ -110,7 +107,7 @@ export function InsightsSecondaryNav() {
             <AddProjectButtonLink
               to={makeProjectsPathname({
                 path: '/new/',
-                orgSlug: organization.slug,
+                organization,
               })}
               icon={<IconAdd />}
               size="zero"

@@ -11,13 +11,17 @@ export interface LoadableChartWidgetProps {
    */
   height?: string | number;
 
-  // TODO(billy): This should be required when all chart widgets are converted
   /**
    * Unique ID for the widget
    *
    * TODO(billy): This should be required when all chart widgets are converted
    */
   id?: string;
+
+  /**
+   * The source where this widget was loaded via `<ChartWidgetLoader>` component
+   */
+  loaderSource?: 'releases-drawer';
 
   /**
    * PageFilters-like object that will override the main PageFilters e.g. in

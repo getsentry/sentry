@@ -6,7 +6,7 @@ import {t} from 'sentry/locale';
 import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {Release, TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -18,6 +18,7 @@ import {Referrer} from 'sentry/views/insights/pages/platform/laravel/referrers';
 import {ModalChartContainer} from 'sentry/views/insights/pages/platform/laravel/styles';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/platform/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
+import {useReleaseBubbleProps} from 'sentry/views/insights/pages/platform/shared/getReleaseBubbleProps';
 import {Toolbar} from 'sentry/views/insights/pages/platform/shared/toolbar';
 
 export function TrafficWidget({
@@ -25,11 +26,13 @@ export function TrafficWidget({
   trafficSeriesName,
   baseQuery,
   query,
+  releases,
 }: {
   title: string;
   trafficSeriesName: string;
   baseQuery?: string;
   query?: string;
+  releases?: Release[];
 }) {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({granularity: 'spans-low'});
@@ -48,7 +51,6 @@ export function TrafficWidget({
           yAxis: ['trace_status_rate(internal_error)', 'count(span.duration)'],
           partial: 1,
           query: fullQuery,
-          useRpc: 1,
           referrer: Referrer.REQUESTS_CHART,
         },
       },
@@ -96,7 +98,7 @@ export function TrafficWidget({
     () =>
       plottables.every(
         plottable =>
-          plottable.isEmpty || plottable.timeSeries.data.every(point => !point.value)
+          plottable.isEmpty || plottable.timeSeries.values.every(point => !point.value)
       ),
     [plottables]
   );
@@ -109,6 +111,7 @@ export function TrafficWidget({
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
         plottables,
+        ...useReleaseBubbleProps(releases),
       }}
     />
   );
@@ -136,7 +139,7 @@ export function TrafficWidget({
             }}
             onOpenFullScreen={() => {
               openInsightChartModal({
-                title: t('Requests'),
+                title,
                 children: <ModalChartContainer>{visualization}</ModalChartContainer>,
               });
             }}

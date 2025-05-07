@@ -6,7 +6,10 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
-    feature_name = "organizations:performance-trace-explorer"
+    features = {
+        "organizations:performance-trace-explorer": True,
+        "organizations:performance-default-explore-queries": True,
+    }
 
     def setUp(self):
         super().setUp()
@@ -32,28 +35,63 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         self.url = reverse("sentry-api-0-explore-saved-queries", args=[self.org.slug])
 
     def test_get(self):
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.get(self.url)
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 1
-        assert response.data[0]["name"] == "Test query"
-        assert response.data[0]["projects"] == self.project_ids
-        assert response.data[0]["range"] == "24h"
-        assert response.data[0]["query"] == [{"fields": ["span.op"], "mode": "samples"}]
+        assert len(response.data) == 5
+
+        # Prebuilt query
+        assert response.data[0]["name"] == "All Transactions"
+        assert response.data[0]["projects"] == []
+        assert "range" not in response.data[0]
+        assert response.data[0]["query"] == [
+            {
+                "fields": [
+                    "id",
+                    "span.op",
+                    "span.description",
+                    "span.duration",
+                    "transaction",
+                    "timestamp",
+                ],
+                "query": "is_transaction:true",
+                "mode": "samples",
+                "visualize": [
+                    {
+                        "chartType": 0,
+                        "yAxes": ["count()"],
+                    },
+                    {
+                        "chartType": 1,
+                        "yAxes": ["p75(span.duration)", "p90(span.duration)"],
+                    },
+                ],
+                "orderby": "-timestamp",
+            }
+        ]
         assert "createdBy" in response.data[0]
-        assert response.data[0]["createdBy"]["username"] == self.user.username
+        assert response.data[0]["createdBy"] is None
         assert not response.data[0]["expired"]
 
+        # User saved query
+        assert response.data[3]["name"] == "Test query"
+        assert response.data[3]["projects"] == self.project_ids
+        assert response.data[3]["range"] == "24h"
+        assert response.data[3]["query"] == [{"fields": ["span.op"], "mode": "samples"}]
+        assert "createdBy" in response.data[3]
+        assert response.data[3]["createdBy"]["username"] == self.user.username
+        assert not response.data[3]["expired"]
+
     def test_get_name_filter(self):
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.get(self.url, format="json", data={"query": "Test"})
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["name"] == "Test query"
 
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             # Also available as the name: filter.
             response = self.client.get(self.url, format="json", data={"query": "name:Test"})
 
@@ -61,7 +99,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["name"] == "Test query"
 
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.get(self.url, format="json", data={"query": "name:Nope"})
 
         assert response.status_code == 200, response.content
@@ -78,7 +116,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
             )
             model.set_projects(self.project_ids)
 
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.get(self.url, data={"per_page": 1})
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
@@ -104,7 +142,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
             "-name": False,
         }
         for sorting, forward_sort in sort_options.items():
-            with self.feature(self.feature_name):
+            with self.feature(self.features):
                 response = self.client.get(self.url, data={"sortBy": sorting})
             assert response.status_code == 200
 
@@ -115,6 +153,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
 
     def test_get_sortby_most_popular(self):
         query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
+        ExploreSavedQuery.objects.filter(name="Test query").update(visits=2)
         model = ExploreSavedQuery.objects.create(
             organization=self.org,
             created_by_id=self.user.id,
@@ -129,17 +168,19 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         model.set_projects(self.project_ids)
         for forward_sort in [True, False]:
             sorting = "mostPopular" if forward_sort else "-mostPopular"
-            with self.feature(self.feature_name):
+            with self.feature(self.features):
                 response = self.client.get(self.url, data={"sortBy": sorting})
 
             assert response.status_code == 200
             values = [row["name"] for row in response.data]
             expected = ["My query", "Test query"]
 
-            if not forward_sort:
-                expected = list(reversed(expected))
-
-            assert values == expected
+            if forward_sort:
+                assert values[0] == expected[0]
+                assert values[1] == expected[1]
+            else:
+                assert values[-1] == expected[0]
+                assert values[-2] == expected[1]
 
     def test_get_sortby_recently_viewed(self):
         query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
@@ -157,7 +198,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         model.set_projects(self.project_ids)
         for forward_sort in [True, False]:
             sorting = "recentlyViewed" if forward_sort else "-recentlyViewed"
-            with self.feature(self.feature_name):
+            with self.feature(self.features):
                 response = self.client.get(self.url, data={"sortBy": sorting})
 
             assert response.status_code == 200
@@ -165,9 +206,11 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
             expected = ["Test query", "My query"]
 
             if not forward_sort:
-                expected = list(reversed(expected))
-
-            assert values == expected
+                assert values[0] == expected[1]
+                assert values[1] == expected[0]
+            else:
+                assert values[-1] == expected[1]
+                assert values[-2] == expected[0]
 
     def test_get_sortby_myqueries(self):
         uhoh_user = self.create_user(username="uhoh")
@@ -197,11 +240,12 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         )
         model.set_projects(self.project_ids)
 
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.get(self.url, data={"sortBy": "myqueries"})
         assert response.status_code == 200, response.content
-        values = [int(item["createdBy"]["id"]) for item in response.data]
-        assert values == [self.user.id, uhoh_user.id, whoops_user.id]
+        assert response.data[0]["createdBy"]["id"] == str(self.user.id)
+        assert response.data[1]["createdBy"]["id"] == str(uhoh_user.id)
+        assert response.data[2]["createdBy"]["id"] == str(whoops_user.id)
 
     def test_get_expired_query(self):
         query = {
@@ -216,14 +260,14 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
             date_added=before_now(days=90),
             date_updated=before_now(minutes=10),
         )
-        with self.options({"system.event-retention-days": 60}), self.feature(self.feature_name):
+        with self.options({"system.event-retention-days": 60}), self.feature(self.features):
             response = self.client.get(self.url, {"query": "name:My expired query"})
 
         assert response.status_code == 200, response.content
         assert response.data[0]["expired"]
 
     def test_get_my_queries(self):
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.get(self.url, data={"exclude": "shared"})
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
@@ -239,10 +283,12 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         )
         model.set_projects(self.project_ids)
 
-        with self.feature(self.feature_name):
-            response = self.client.get(self.url, data={"exclude": "owned"})
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url, data={"exclude": "owned", "sortBy": "-recentlyViewed"}
+            )
         assert response.status_code == 200, response.content
-        assert len(response.data) == 1
+        assert len(response.data) == 5
         assert response.data[0]["name"] == "Shared query"
 
     def test_get_query_last_visited(self):
@@ -257,14 +303,26 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         )
         model.set_projects(self.project_ids)
 
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.get(self.url, data={"query": "name:Query with last visited"})
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["lastVisited"] == last_visited
 
     def test_get_no_starred_queries(self):
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
+            response = self.client.get(self.url, data={"starred": "1"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 4
+
+        # Unstars prebuilt queries
+        ExploreSavedQueryStarred.objects.filter(
+            organization=self.org,
+            user_id=self.user.id,
+            starred=True,
+        ).update(starred=False)
+
+        with self.feature(self.features):
             response = self.client.get(self.url, data={"starred": "1"})
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
@@ -305,11 +363,11 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
             position=2,
         )
 
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.get(self.url, data={"starred": "1"})
         assert response.status_code == 200, response.content
         assert (
-            len(response.data) == 1
+            len(response.data) == 5
         )  # Only one query should be returned because the other query is starred by a different user
         assert response.data[0]["name"] == "Starred query A"
         assert response.data[0]["starred"] is True
@@ -345,26 +403,47 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         )
         ExploreSavedQueryStarred.objects.create(
             organization=self.org,
+            user_id=self.user.id + 2,
+            explore_saved_query=model,
+            position=1,
+        )
+        ExploreSavedQueryStarred.objects.create(
+            organization=self.org,
             user_id=self.user.id,
             explore_saved_query=second_model,
             position=2,
         )
+        ExploreSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id + 1,
+            explore_saved_query=second_model,
+            position=2,
+        )
 
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.get(self.url, data={"sortBy": "mostStarred"})
         assert response.status_code == 200, response.content
-        assert len(response.data) == 3
+        assert len(response.data) == 7
         assert response.data[0]["name"] == "Most starred query"
         assert response.data[0]["starred"] is True
         assert response.data[0]["position"] == 1
         assert response.data[1]["name"] == "Second most starred query"
         assert response.data[1]["starred"] is True
         assert response.data[1]["position"] == 2
-        assert response.data[2]["name"] == "Test query"
-        assert response.data[2]["starred"] is False
-        assert response.data[2]["position"] is None
+        assert response.data[-1]["name"] == "Test query"
+        assert response.data[-1]["starred"] is False
+        assert response.data[-1]["position"] is None
 
     def test_get_sortby_multiple(self):
+        # Trigger prebuilt queries creation and unstar prebuilt queries to simplify test
+        with self.feature(self.features):
+            response = self.client.get(self.url)
+        ExploreSavedQueryStarred.objects.filter(
+            organization=self.org,
+            user_id=self.user.id,
+            starred=True,
+        ).update(starred=False, position=None)
+
         query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
         model_a = ExploreSavedQuery.objects.create(
             organization=self.org,
@@ -427,30 +506,31 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
             position=1,
         )
 
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.get(self.url, data={"sortBy": ["starred", "recentlyViewed"]})
+
         assert response.status_code == 200, response.content
-        assert len(response.data) == 5
+        assert len(response.data) == 9
         assert response.data[0]["name"] == "Query B"
         assert response.data[0]["starred"] is True
         assert response.data[0]["position"] == 2
         assert response.data[1]["name"] == "Query A"
         assert response.data[1]["starred"] is True
         assert response.data[1]["position"] == 1
-        assert response.data[2]["name"] == "Test query"
-        assert response.data[2]["starred"] is False
-        assert response.data[2]["position"] is None
-        assert response.data[3]["name"] == "Query C"
-        assert response.data[3]["starred"] is False
-        assert response.data[3]["position"] is None
-        assert response.data[4]["name"] == "Query D"
+        assert response.data[6]["name"] == "Test query"
+        assert response.data[6]["starred"] is False
+        assert response.data[6]["position"] is None
+        assert response.data[7]["name"] == "Query C"
+        assert response.data[7]["starred"] is False
+        assert response.data[7]["position"] is None
+        assert response.data[8]["name"] == "Query D"
         assert (
-            response.data[4]["starred"] is False
+            response.data[8]["starred"] is False
         )  # This should be false because this query is starred by a different user
-        assert response.data[4]["position"] is None
+        assert response.data[8]["position"] is None
 
     def test_post_require_mode(self):
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.post(
                 self.url,
                 {
@@ -464,7 +544,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         assert "This field is required." == response.data["query"]["mode"][0]
 
     def test_post_success(self):
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.post(
                 self.url,
                 {
@@ -496,7 +576,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         assert data["dataset"] == "spans"
 
     def test_post_all_projects(self):
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.post(
                 self.url,
                 {
@@ -510,7 +590,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         assert response.data["projects"] == [-1]
 
     def test_save_with_project(self):
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.post(
                 self.url,
                 {
@@ -532,7 +612,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
     def test_save_with_project_and_my_projects(self):
         team = self.create_team(organization=self.org, members=[self.user])
         project = self.create_project(organization=self.org, teams=[team])
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.post(
                 self.url,
                 {
@@ -553,7 +633,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
 
     def test_save_with_org_projects(self):
         project = self.create_project(organization=self.org)
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.post(
                 self.url,
                 {
@@ -576,7 +656,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         team = self.create_team(organization=self.org, members=[self.user])
         project = self.create_project(organization=self.org, teams=[team])
         self.create_project(organization=self.org, teams=[team])
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.post(
                 self.url,
                 {
@@ -598,7 +678,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
     def test_save_without_team(self):
         team = self.create_team(organization=self.org, members=[])
         self.create_project(organization=self.org, teams=[team])
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.post(
                 self.url,
                 {
@@ -615,7 +695,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
     def test_save_with_team_and_without_project(self):
         team = self.create_team(organization=self.org, members=[self.user])
         self.create_project(organization=self.org, teams=[team])
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.post(
                 self.url,
                 {
@@ -633,7 +713,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         other_org = self.create_organization(owner=self.user)
         project = self.create_project(organization=other_org)
         project2 = self.create_project(organization=self.org)
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.post(
                 self.url,
                 {
@@ -652,7 +732,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         assert response.status_code == 403, response.content
         assert not ExploreSavedQuery.objects.filter(name="project query").exists()
 
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.post(
                 self.url,
                 {
@@ -672,7 +752,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         assert not ExploreSavedQuery.objects.filter(name="project query").exists()
 
     def test_save_interval(self):
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.post(
                 self.url,
                 {
@@ -694,7 +774,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         assert response.data["interval"] == "1m"
 
     def test_save_invalid_interval(self):
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.post(
                 self.url,
                 {
@@ -714,7 +794,7 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
 
     def test_save_without_chart_type(self):
-        with self.feature(self.feature_name):
+        with self.feature(self.features):
             response = self.client.post(
                 self.url,
                 {

@@ -18,7 +18,7 @@ describe('QueryFilterBuilder', () => {
   let organization: Organization;
   beforeEach(() => {
     organization = OrganizationFixture({
-      features: ['dashboards-widget-builder-redesign'],
+      features: [],
     });
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
     jest.mocked(useSpanTags).mockReturnValue({tags: {}, isLoading: false});
@@ -36,6 +36,7 @@ describe('QueryFilterBuilder', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -45,6 +46,8 @@ describe('QueryFilterBuilder', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
     expect(
@@ -60,11 +63,14 @@ describe('QueryFilterBuilder', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {query: [], dataset: WidgetType.SPANS, displayType: DisplayType.TABLE},
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
     expect(
@@ -82,6 +88,7 @@ describe('QueryFilterBuilder', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -91,6 +98,8 @@ describe('QueryFilterBuilder', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -107,6 +116,7 @@ describe('QueryFilterBuilder', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+
         router: RouterFixture({
           location: LocationFixture({
             query: {
@@ -116,6 +126,8 @@ describe('QueryFilterBuilder', () => {
             },
           }),
         }),
+
+        deprecatedRouterMocks: true,
       }
     );
 

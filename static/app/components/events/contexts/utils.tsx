@@ -189,31 +189,6 @@ export function getKnownStructuredData(
   }));
 }
 
-export function getUnknownData({
-  allData,
-  knownKeys,
-  meta,
-}: {
-  allData: Record<string, any>;
-  knownKeys: string[];
-  meta?: NonNullable<Event['_meta']>[keyof Event['_meta']];
-}): KeyValueListData {
-  return Object.entries(allData)
-    .filter(
-      ([key]) =>
-        key !== 'type' &&
-        key !== 'title' &&
-        !knownKeys.includes(key) &&
-        (typeof allData[key] !== 'number' && !allData[key] ? !!meta?.[key]?.[''] : true)
-    )
-    .map(([key, value]) => ({
-      key,
-      value,
-      subject: key,
-      meta: meta?.[key]?.[''],
-    }));
-}
-
 /**
  * Returns the type of a given context, after coercing from its type and alias.
  * - 'type' refers the the `type` key on it's data blob. This is usually overridden by the SDK for known types, but not always.
@@ -313,6 +288,10 @@ export function getContextTitle({
       return t('Profile');
     case 'replay':
       return t('Replay');
+    case 'ota_updates':
+      return t('OTA Updates');
+    case 'react_native_context':
+      return t('React Native');
     default:
       return contextType;
   }

@@ -2,6 +2,7 @@ from functools import cached_property
 
 from django.utils import timezone
 
+from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
@@ -202,6 +203,28 @@ class OAuthTokenCodeTest(TestCase):
             },
         )
         assert resp.status_code == 400
+
+    def test_grant_lock(self):
+        self.login_as(self.user)
+
+        # Simulate a concurrent request by using an existing grant
+        # that has its grant lock taken out.
+        lock = locks.get(ApiGrant.get_lock_key(self.grant.id), duration=10, name="api_grant")
+        lock.acquire()
+
+        # Attempt to create a token with the same grant
+        # This should fail because the lock is held by the previous request
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "code": self.grant.code,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+        assert resp.json() == {"error": "invalid_grant"}
 
     def test_invalid_redirect_uri(self):
         self.login_as(self.user)

@@ -34,7 +34,7 @@ class OrganizationInsightsTreeEndpoint(OrganizationEventsEndpoint):
         if not self.has_feature(organization, request):
             return Response(status=404)
 
-        if not request.GET.get("useRpc", False) or not request.GET.get("noPagination", False):
+        if not request.GET.get("noPagination", False):
             return Response(status=404)
 
         response = super().get(request, organization)
@@ -51,7 +51,7 @@ class OrganizationInsightsTreeEndpoint(OrganizationEventsEndpoint):
                 path = match.group(2)
                 path_components = path.strip("/").split("/")
                 if not path_components or (len(path_components) == 1 and path_components[0] == ""):
-                    path_components = ["/"]  # Handle root path case
+                    path_components = []  # Handle root path case
 
             else:
                 component_type = None

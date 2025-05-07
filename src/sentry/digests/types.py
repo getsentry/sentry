@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime as datetime_mod
 from collections.abc import Sequence
+from enum import StrEnum
 from typing import TYPE_CHECKING, NamedTuple
 
 from sentry.utils.dates import to_datetime
@@ -11,16 +12,23 @@ if TYPE_CHECKING:
     from sentry.models.rule import Rule
 
 
+class IdentifierKey(StrEnum):
+    RULE = "rule"
+    WORKFLOW = "workflow"
+
+
 class Notification(NamedTuple):
     event: Event
     rules: Sequence[int] = ()
     notification_uuid: str | None = None
+    identifier_key: IdentifierKey = IdentifierKey.RULE
 
     def with_rules(self, rules: list[Rule]) -> NotificationWithRuleObjects:
         return NotificationWithRuleObjects(
             event=self.event,
             rules=rules,
             notification_uuid=self.notification_uuid,
+            # We don't really worry about identifier_key here since this method is not used after we pop record from redis
         )
 
 

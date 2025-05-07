@@ -3,7 +3,10 @@ import type {SeriesOption} from 'echarts';
 import type {MarkLineOption} from 'echarts/types/dist/shared';
 import type {EChartsInstance} from 'echarts-for-react';
 
-import {ChartWidgetLoader} from 'sentry/components/charts/chartWidgetLoader';
+import {
+  type ChartId,
+  ChartWidgetLoader,
+} from 'sentry/components/charts/chartWidgetLoader';
 import {
   EventDrawerBody,
   EventDrawerContainer,
@@ -23,7 +26,7 @@ import {ReleaseDrawerTable} from './releasesDrawerTable';
 
 interface ReleasesDrawerListProps {
   pageFilters: PageFilters;
-  chart?: string;
+  chart?: ChartId;
 }
 
 type MarkLineDataCallbackFn = (item: SeriesDataUnit) => boolean;
@@ -131,6 +134,7 @@ export function ReleasesDrawerList({chart, pageFilters}: ReleasesDrawerListProps
               height={chartHeight}
               pageFilters={pageFilters}
               showReleaseAs="line"
+              loaderSource="releases-drawer"
             />
           </div>
         ) : null}

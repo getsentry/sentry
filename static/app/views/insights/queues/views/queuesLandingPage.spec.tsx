@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -21,22 +22,7 @@ describe('queuesLandingPage', () => {
   project.firstTransactionEvent = true;
   project.hasInsightsQueues = true;
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
-      },
-      environments: [],
-      projects: [],
-    },
-  });
+  jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
   jest.mocked(useLocation).mockReturnValue({
     pathname: '',
@@ -75,7 +61,7 @@ describe('queuesLandingPage', () => {
   });
 
   it('renders', async () => {
-    render(<QueuesLandingPage />, {organization});
+    render(<QueuesLandingPage />, {organization, deprecatedRouterMocks: true});
     await screen.findByRole('table', {name: 'Queues'});
     screen.getByPlaceholderText('Search for more destinations');
     screen.getByText('Average Duration');

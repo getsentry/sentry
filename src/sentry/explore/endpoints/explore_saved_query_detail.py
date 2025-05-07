@@ -104,6 +104,9 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
 
         self.check_object_permissions(request, query)
 
+        if query.prebuilt_id is not None:
+            return self.respond(status=400, message="Cannot modify prebuilt queries")
+
         try:
             params = self.get_filter_params(
                 request, organization, project_ids=request.data.get("projects")
@@ -147,6 +150,9 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
             return self.respond(status=404)
 
         self.check_object_permissions(request, query)
+
+        if query.prebuilt_id is not None:
+            return self.respond(status=400, message="Cannot delete prebuilt queries")
 
         query.delete()
 

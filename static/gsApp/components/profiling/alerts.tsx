@@ -6,6 +6,7 @@ import {Button} from 'sentry/components/core/button';
 import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
@@ -273,7 +274,10 @@ function ContinuousProfilingBetaAlertBannerInner({
     return null;
   }
 
-  const eventTypes: EventType[] = ['profileDuration', 'profileDurationUI'];
+  const eventTypes: EventType[] = [
+    DataCategoryExact.PROFILE_DURATION,
+    DataCategoryExact.PROFILE_DURATION_UI,
+  ];
 
   return (
     <Alert

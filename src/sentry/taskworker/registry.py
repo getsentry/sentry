@@ -43,12 +43,14 @@ class TaskNamespace:
         retry: Retry | None,
         expires: int | datetime.timedelta | None = None,
         processing_deadline_duration: int = DEFAULT_PROCESSING_DEADLINE,
+        app_feature: str | None = None,
     ):
         self.name = name
         self.router = router
         self.default_retry = retry
         self.default_expires = expires  # seconds
         self.default_processing_deadline_duration = processing_deadline_duration  # seconds
+        self.app_feature = app_feature or name
         self._registered_tasks: dict[str, Task[Any, Any]] = {}
         self._producers: dict[Topic, SingletonProducer] = {}
 
@@ -228,9 +230,10 @@ class TaskRegistry:
         retry: Retry | None = None,
         expires: int | datetime.timedelta | None = None,
         processing_deadline_duration: int = DEFAULT_PROCESSING_DEADLINE,
+        app_feature: str | None = None,
     ) -> TaskNamespace:
         """
-        Create a namespaces.
+        Create a task namespace.
 
         Namespaces are mapped onto topics through the configured router allowing
         infrastructure to be scaled based on a region's requirements.
@@ -243,6 +246,7 @@ class TaskRegistry:
             retry=retry,
             expires=expires,
             processing_deadline_duration=processing_deadline_duration,
+            app_feature=app_feature,
         )
         self._namespaces[name] = namespace
 

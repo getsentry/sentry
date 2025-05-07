@@ -586,7 +586,7 @@ function getButtonStyles(p: StyledButtonProps & {theme: Theme}): SerializedStyle
   `;
 }
 
-export const ButtonLabel = styled('span', {
+const ButtonLabel = styled('span', {
   shouldForwardProp: prop =>
     typeof prop === 'string' &&
     isPropValid(prop) &&

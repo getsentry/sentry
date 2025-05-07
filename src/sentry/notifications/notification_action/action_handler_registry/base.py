@@ -1,6 +1,7 @@
 import logging
 from abc import ABC
 
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.utils import execute_via_issue_alert_handler
 from sentry.workflow_engine.models import Action, Detector
@@ -10,8 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class IntegrationActionHandler(ActionHandler, ABC):
-    # TODO(iamrajjoshi): Switch this to an enum after we decide on what this enum will be
-    provider_slug: str
+    provider_slug: IntegrationProviderSlug
 
 
 class TicketingActionHandler(IntegrationActionHandler, ABC):

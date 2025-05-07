@@ -12,7 +12,6 @@ from sentry.grouping.component import (
 )
 from sentry.grouping.fingerprinting import FingerprintRule
 from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
-from sentry.types.misc import KeyedList
 
 if TYPE_CHECKING:
     from sentry.grouping.api import FingerprintInfo
@@ -60,9 +59,6 @@ class BaseVariant(ABC):
         if not isinstance(other, BaseVariant):
             return NotImplemented
         return self.as_dict() == other.as_dict()
-
-
-KeyedVariants = KeyedList[BaseVariant]
 
 
 class ChecksumVariant(BaseVariant):

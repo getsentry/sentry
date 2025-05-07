@@ -10,7 +10,7 @@ from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.snuba.models import SnubaQuery
+from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import EventType
 from sentry.utils.registry import AlreadyRegisteredError
@@ -82,6 +82,19 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
             **kwargs,
         )
 
+    def create_snuba_query_subscription(
+        self, project_id: int | None = None, snuba_query_id: int | None = None, **kwargs
+    ):
+        if snuba_query_id is None:
+            snuba_query_id = self.create_snuba_query().id
+        if project_id is None:
+            project_id = self.project.id
+        return QuerySubscription.objects.create(
+            project_id=project_id,
+            snuba_query_id=snuba_query_id,
+            **kwargs,
+        )
+
     def create_event(
         self,
         project_id: int,
@@ -120,6 +133,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         name_prefix: str = "test",
         workflow_triggers: DataConditionGroup | None = None,
         detector_type: str = MetricIssue.slug,
+        project: Project | None = None,
         **kwargs,
     ) -> tuple[Workflow, Detector, DetectorWorkflow, DataConditionGroup]:
         """
@@ -146,7 +160,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         detector = self.create_detector(
             name=f"{name_prefix}_detector",
             type=detector_type,
-            project=self.project,
+            project=project if project else self.project,
         )
 
         detector_workflow = self.create_detector_workflow(

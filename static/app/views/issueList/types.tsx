@@ -29,6 +29,8 @@ export enum GroupSearchViewCreatedBy {
 
 export type StarredGroupSearchView = {
   createdBy: AvatarUser;
+  dateCreated: string;
+  dateUpdated: string;
   environments: string[];
   id: string;
   lastVisited: string | null;
@@ -46,7 +48,10 @@ export type GroupSearchView = StarredGroupSearchView & {
 };
 
 export interface UpdateGroupSearchViewPayload
-  extends Omit<GroupSearchView, 'id' | 'lastVisited' | 'visibility' | 'starred'> {
+  extends Omit<
+    GroupSearchView,
+    'id' | 'lastVisited' | 'visibility' | 'starred' | 'dateCreated' | 'dateUpdated'
+  > {
   environments: string[];
   projects: number[];
   timeFilters: PageFilters['datetime'];
@@ -60,4 +65,6 @@ export enum GroupSearchViewSort {
   POPULARITY = 'popularity',
   NAME_ASC = 'name',
   NAME_DESC = '-name',
+  CREATED_ASC = 'created',
+  CREATED_DESC = '-created',
 }

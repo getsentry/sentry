@@ -135,6 +135,7 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
           onCommit={() => {
             setIsEditing(false);
             onActiveChange(false);
+            dispatch({type: 'COMMIT_QUERY'});
             if (state.collection.getKeyAfter(item.key)) {
               state.selectionManager.setFocusedKey(
                 state.collection.getKeyAfter(item.key)

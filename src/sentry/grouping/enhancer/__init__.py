@@ -31,7 +31,11 @@ logger = logging.getLogger(__name__)
 # So this leaves quite a bit of headroom for custom enhancement rules as well.
 RUST_CACHE = RustCache(1_000)
 
-VERSIONS = [2]
+# TODO: Move 3 to the end when we're ready for it to be the default
+VERSIONS = [
+    3,  # Enhancements with this version run the split enhancements experiment
+    2,  # The current default version
+]
 LATEST_VERSION = VERSIONS[-1]
 
 VALID_PROFILING_MATCHER_PREFIXES = (
@@ -48,7 +52,9 @@ VALID_PROFILING_ACTIONS_SET = frozenset(["+app", "-app"])
 
 
 def merge_rust_enhancements(
-    bases: list[str], rust_enhancements: RustEnhancements
+    bases: list[str],
+    rust_enhancements: RustEnhancements,
+    type: Literal["classifier", "contributes"] | None = None,
 ) -> RustEnhancements:
     """
     This will merge the parsed enhancements together with the `bases`.
@@ -59,7 +65,16 @@ def merge_rust_enhancements(
     for base_id in bases:
         base = ENHANCEMENT_BASES.get(base_id)
         if base:
-            merged_rust_enhancements.extend_from(base.rust_enhancements)
+            base_rust_enhancements = (
+                base.rust_enhancements
+                if type is None
+                else (
+                    base.classifier_rust_enhancements
+                    if type == "classifier"
+                    else base.contributes_rust_enhancements
+                )
+            )
+            merged_rust_enhancements.extend_from(base_rust_enhancements)
     merged_rust_enhancements.extend_from(rust_enhancements)
     return merged_rust_enhancements
 
@@ -80,6 +95,9 @@ def get_rust_enhancements(
             return RustEnhancements.parse(input, RUST_CACHE)
     except RuntimeError as e:  # Rust bindings raise parse errors as `RuntimeError`
         raise InvalidEnhancerConfig(str(e))
+
+
+EMPTY_RUST_ENHANCEMENTS = get_rust_enhancements("config_string", "")
 
 
 # TODO: Convert this into a typeddict in ophio
@@ -105,6 +123,126 @@ def make_rust_exception_data(
         ty=rust_data["type"],
         value=rust_data["value"],
         mechanism=rust_data["mechanism"],
+    )
+
+
+def _can_use_hint(
+    variant_name: str,
+    frame_component: FrameGroupingComponent,
+    hint: str | None,
+    desired_hint_type: Literal["in-app", "contributes"] | None = None,
+) -> bool:
+    # Prevent clobbering an existing hint with no hint
+    if hint is None:
+        return False
+
+    frame_type = "in-app" if frame_component.in_app else "system"
+    hint_type = "contributes" if "ignored" in hint else "in-app"
+
+    # Don't use the hint if we've specifically asked for something different
+    if desired_hint_type and hint_type != desired_hint_type:
+        return False
+
+    # System frames can't contribute to the app variant, no matter what +/-group rules say, so we
+    # ignore the hint if it's about contributing since it's irrelevant
+    if variant_name == "app" and frame_type == "system" and hint_type == "contributes":
+        return False
+
+    # Similarly, we don't need hints about marking frames in or out of app in the system stacktrace
+    # because such changes don't actually have an effect there
+    if variant_name == "system" and hint_type == "in-app":
+        return False
+
+    return True
+
+
+def get_hint_for_frame(
+    variant_name: str,
+    frame: dict[str, Any],
+    frame_component: FrameGroupingComponent,
+    rust_frame: RustFrame,
+    desired_hint_type: Literal["in-app", "contributes"] | None = None,
+) -> str | None:
+    """
+    Determine a hint to use for the frame, handling special-casing and precedence.
+    """
+    client_in_app = get_path(frame, "data", "client_in_app")
+    rust_in_app = frame["in_app"]
+    rust_hint = rust_frame.hint
+    rust_hint_type = (
+        None if rust_hint is None else "in-app" if rust_hint.startswith("marked") else "contributes"
+    )
+    incoming_hint = frame_component.hint
+
+    # TODO: We can switch this to `desired_hint_type == "in-app"` once we're only using split
+    # enhancements. For now, we need to also include the case where `desired_hint_type` is None. (At
+    # that point we can also change the type of the parameter to be a required string.)
+    if variant_name == "app" and desired_hint_type != "contributes":
+        default_in_app_hint = "non app frame" if not frame_component.in_app else None
+        client_in_app_hint = (
+            f"marked {"in-app" if client_in_app else "out of app"} by the client"
+            # Only create the hint if it's going to match the eventual outcome. Otherwise, we might
+            # fall back to the client hint even though the client in-app value got overridden.
+            if client_in_app is not None and client_in_app == rust_in_app
+            else None
+        )
+        incoming_hint = client_in_app_hint or default_in_app_hint or incoming_hint
+
+    can_use_rust_hint = _can_use_hint(variant_name, frame_component, rust_hint, desired_hint_type)
+    can_use_incoming_hint = _can_use_hint(
+        variant_name, frame_component, incoming_hint, desired_hint_type
+    )
+
+    # We don't want the rust enhancer taking credit for changing things if we know the value didn't
+    # actually change. (This only happens with in-app hints, not contributes hints, because of the
+    # weird (a.k.a. wrong) second condition in the rust enhancer's version of `in_app_changed`.)
+    if variant_name == "app" and rust_hint_type == "in-app" and rust_in_app == client_in_app:
+        can_use_rust_hint = False
+
+    return rust_hint if can_use_rust_hint else incoming_hint if can_use_incoming_hint else None
+
+
+def _split_rules(
+    rules: list[EnhancementRule],
+) -> tuple[list[EnhancementRule], list[EnhancementRule], RustEnhancements, RustEnhancements]:
+    """
+    Given a list of EnhancementRules, each of which may have both classifier and contributes
+    actions, split the rules into separate classifier and contributes rule lists, and return them
+    along with each ruleset's corresponding RustEnhancements object.
+    """
+    # Rules which set `in_app` or `category` on frames
+    classifier_rules = [
+        rule
+        for rule in (
+            rule.as_classifier_rule()  # Only include classifier actions
+            for rule in rules
+            if rule.has_classifier_actions
+        )
+        if rule is not None  # mypy appeasment
+    ]
+
+    # Rules which set `contributes` on frames and/or the stacktrace
+    contributes_rules = [
+        rule
+        for rule in (
+            rule.as_contributes_rule()  # Only include contributes actions
+            for rule in rules
+            if rule.has_contributes_actions
+        )
+        if rule is not None  # mypy appeasment
+    ]
+
+    classifier_rules_text = "\n".join(rule.text for rule in classifier_rules)
+    contributes_rules_text = "\n".join(rule.text for rule in contributes_rules)
+
+    classifier_rust_enhancements = get_rust_enhancements("config_string", classifier_rules_text)
+    contributes_rust_enhancements = get_rust_enhancements("config_string", contributes_rules_text)
+
+    return (
+        classifier_rules,
+        contributes_rules,
+        classifier_rust_enhancements,
+        contributes_rust_enhancements,
     )
 
 
@@ -139,6 +277,12 @@ class Enhancements:
     # from cache.
     # See ``GroupingConfigLoader._get_enhancements`` in src/sentry/grouping/api.py.
 
+    # TODO: Once we switch to always using split enhancements, these can go away
+    classifier_rules: list[EnhancementRule] = []
+    contributes_rules: list[EnhancementRule] = []
+    classifier_rust_enhancements: RustEnhancements = EMPTY_RUST_ENHANCEMENTS
+    contributes_rust_enhancements: RustEnhancements = EMPTY_RUST_ENHANCEMENTS
+
     def __init__(
         self,
         rules: list[EnhancementRule],
@@ -153,6 +297,25 @@ class Enhancements:
         self.bases = bases or []
 
         self.rust_enhancements = merge_rust_enhancements(self.bases, rust_enhancements)
+
+        self.run_split_enhancements = version == 3
+        if self.run_split_enhancements:
+            (
+                classifier_rules,
+                contributes_rules,
+                classifier_rust_enhancements,
+                contributes_rust_enhancements,
+            ) = _split_rules(rules)
+
+            self.classifier_rules = classifier_rules
+            self.contributes_rules = contributes_rules
+            self.classifier_rust_enhancements = merge_rust_enhancements(
+                self.bases, classifier_rust_enhancements, type="classifier"
+            )
+
+            self.contributes_rust_enhancements = merge_rust_enhancements(
+                self.bases, contributes_rust_enhancements, type="contributes"
+            )
 
     def apply_category_and_updated_in_app_to_frames(
         self,
@@ -218,42 +381,35 @@ class Enhancements:
         frame_counts: Counter[str] = Counter()
 
         # Update frame components with results from rust
-        for frame_component, rust_frame in zip(frame_components, rust_frames):
-            # TODO: Remove the first condition once we get rid of the legacy config
-            if (
-                not (self.bases and self.bases[0].startswith("legacy"))
-                and variant_name == "app"
-                and not frame_component.in_app
-            ):
-                # System frames should never contribute in the app variant, so force
-                # `contribtues=False`, regardless of the rust results. Use the rust hint if it
-                # explains the `in_app` value (but not if it explains the `contributing` value,
-                # because we're ignoring that)
-                #
-                # TODO: Right now, if stacktrace rules have modified both the `in_app` and
-                # `contributes` values, then the hint you get back from the rust enhancers depends
-                # on the order in which those changes happened, which in turn depends on both the
-                # order of stacktrace rules and the order of the actions within a stacktrace rule.
-                # Ideally we'd get both hints back.
-                hint = (
-                    rust_frame.hint
-                    if rust_frame.hint and rust_frame.hint.startswith("marked out of app")
-                    else frame_component.hint
-                )
-                frame_component.update(contributes=False, hint=hint)
-            elif variant_name == "system":
-                # We don't need hints about marking frames in or out of app in the system stacktrace
-                # because such changes don't actually have an effect there
-                hint = (
-                    rust_frame.hint
-                    if rust_frame.hint
-                    and not rust_frame.hint.startswith("marked in-app")
-                    and not rust_frame.hint.startswith("marked out of app")
-                    else frame_component.hint
-                )
-                frame_component.update(contributes=rust_frame.contributes, hint=hint)
+        for frame, frame_component, rust_frame in zip(frames, frame_components, rust_frames):
+            frame_type = "in-app" if frame_component.in_app else "system"
+            rust_contributes = bool(rust_frame.contributes)  # bool-ing this for mypy's sake
+            rust_hint = rust_frame.hint
+            rust_hint_type = (
+                None
+                if rust_hint is None
+                else "in-app" if rust_hint.startswith("marked") else "contributes"
+            )
+
+            # System frames should never contribute in the app variant, so if that's what we have,
+            # force `contribtues=False`, regardless of the rust results
+            if variant_name == "app" and frame_type == "system":
+                contributes = False
             else:
-                frame_component.update(contributes=rust_frame.contributes, hint=rust_frame.hint)
+                contributes = rust_contributes
+
+            hint = get_hint_for_frame(variant_name, frame, frame_component, rust_frame)
+
+            # TODO: Remove this workaround once we remove the legacy config. It's done this way (as
+            # a second pass at setting the values that undoes what the first pass did, rather than
+            # being incorporated into the first pass) so that we won't have to change any of the
+            # main logic when we remove it.
+            if self.bases and self.bases[0].startswith("legacy"):
+                contributes = rust_contributes
+                if not (variant_name == "system" and rust_hint_type == "in-app"):
+                    hint = rust_hint
+
+            frame_component.update(contributes=contributes, hint=hint)
 
             # Add this frame to our tally
             key = f"{"in_app" if frame_component.in_app else "system"}_{"contributing" if frame_component.contributes else "non_contributing"}_frames"
@@ -346,7 +502,11 @@ class Enhancements:
     @classmethod
     @sentry_sdk.tracing.trace
     def from_rules_text(
-        cls, rules_text: str, bases: list[str] | None = None, id: str | None = None
+        cls,
+        rules_text: str,
+        bases: list[str] | None = None,
+        id: str | None = None,
+        version: int | None = None,
     ) -> Enhancements:
         """Create an `Enhancements` object from a text blob containing stacktrace rules"""
         rust_enhancements = get_rust_enhancements("config_string", rules_text)
@@ -356,6 +516,7 @@ class Enhancements:
         return Enhancements(
             rules,
             rust_enhancements=rust_enhancements,
+            version=version,
             bases=bases,
             id=id,
         )
@@ -372,7 +533,7 @@ def _load_configs() -> dict[str, Enhancements]:
                 # We cannot use `:` in filenames on Windows but we already have ids with
                 # `:` in their names hence this trickery.
                 filename = filename.replace("@", ":")
-                enhancements = Enhancements.from_rules_text(f.read(), id=filename)
+                enhancements = Enhancements.from_rules_text(f.read(), id=filename, version=3)
                 enhancement_bases[filename] = enhancements
     return enhancement_bases
 

@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
@@ -19,22 +20,7 @@ describe('destinationSummaryPage', () => {
   });
   const project = ProjectFixture({firstTransactionEvent: true});
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
-      },
-      environments: [],
-      projects: [],
-    },
-  });
+  jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
   jest.mocked(useLocation).mockReturnValue({
     pathname: '',
@@ -81,7 +67,7 @@ describe('destinationSummaryPage', () => {
   });
 
   it('renders', async () => {
-    render(<PageWithProviders />, {organization});
+    render(<PageWithProviders />, {organization, deprecatedRouterMocks: true});
     await screen.findByRole('table', {name: 'Transactions'});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     screen.getByText('Average Duration');

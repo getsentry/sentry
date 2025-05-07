@@ -1,5 +1,4 @@
-import type {DATA_CATEGORY_INFO} from 'sentry/constants';
-import type {DataCategoryExact} from 'sentry/types/core';
+import type {DataCategory, DataCategoryInfo} from 'sentry/types/core';
 import type {User} from 'sentry/types/user';
 
 declare global {
@@ -75,8 +74,6 @@ export enum CheckoutType {
   BUNDLE = 'bundle',
 }
 
-export type DataCategories = (typeof DATA_CATEGORY_INFO)[DataCategoryExact]['plural'];
-
 export type Plan = {
   allowAdditionalReservedEvents: boolean;
   allowOnDemand: boolean;
@@ -84,15 +81,15 @@ export type Plan = {
    * All available data categories on the current plan tier.
    * Can be used for category upsells.
    */
-  availableCategories: string[];
+  availableCategories: DataCategory[];
   basePrice: number;
   billingInterval: 'monthly' | 'annual';
   budgetTerm: 'pay-as-you-go' | 'on-demand';
   /**
    * Data categories on the plan (errors, transactions, etc.)
    */
-  categories: string[];
-  checkoutCategories: string[];
+  categories: DataCategory[];
+  checkoutCategories: DataCategory[];
   contractInterval: 'monthly' | 'annual';
   description: string;
   features: string[];
@@ -102,9 +99,9 @@ export type Plan = {
   isTestPlan: boolean;
   maxMembers: number | null;
   name: string;
-  onDemandCategories: string[];
+  onDemandCategories: DataCategory[];
   onDemandEventPrice: number;
-  planCategories: Partial<Record<DataCategories, EventBucket[]>>;
+  planCategories: Partial<Record<DataCategory, EventBucket[]>>;
   price: number;
 
   reservedMinimum: number;
@@ -113,7 +110,7 @@ export type Plan = {
   trialPlan: string | null;
   userSelectable: boolean;
   categoryDisplayNames?: Partial<
-    Record<DataCategories, {plural: string; singular: string}>
+    Record<DataCategory, {plural: string; singular: string}>
   >;
   checkoutType?: CheckoutType;
 };
@@ -125,7 +122,7 @@ type PendingChanges = {
   customPricePcss: number | null;
   customPriceTransactions: number | null;
   // TODO:categories remove customPrice{Categories}
-  customPrices: Partial<Record<DataCategories, number | null>>;
+  customPrices: Partial<Record<DataCategory, number | null>>;
   effectiveDate: string;
   onDemandBudgets: PendingOnDemandBudgets | null;
   onDemandEffectiveDate: string;
@@ -134,10 +131,10 @@ type PendingChanges = {
   planDetails: Plan;
   planName: string;
   // TODO:categories remove reserved{Categories}
-  reserved: Partial<Record<DataCategories, number | null>>;
+  reserved: Partial<Record<DataCategory, number | null>>;
   reservedAttachments: number | null;
   reservedBudgets: PendingReservedBudget[];
-  reservedCpe: Partial<Record<DataCategories, number | null>>;
+  reservedCpe: Partial<Record<DataCategory, number | null>>;
   reservedErrors: number | null;
   reservedEvents: number;
   reservedTransactions: number | null;
@@ -197,7 +194,8 @@ export type PerCategoryOnDemandBudget = {
   attachmentsBudget: number;
   budgetMode: OnDemandBudgetMode.PER_CATEGORY;
   // TODO:categories remove {categories}Budget
-  budgets: Partial<Record<DataCategories, number>>;
+  budgets: Partial<Record<DataCategory, number>>;
+  // TODO(data categories): check if these can be removed
   errorsBudget: number;
   replaysBudget: number;
   transactionsBudget: number;
@@ -212,7 +210,7 @@ type PerCategoryOnDemandBudgetWithSpends = PerCategoryOnDemandBudget & {
   errorSpendUsed: number;
   transactionSpendUsed: number;
   // TODO:categories remove {categories}SpendUsed
-  usedSpends: Partial<Record<DataCategories, number>>;
+  usedSpends: Partial<Record<DataCategory, number>>;
 };
 
 export type OnDemandBudgets = SharedOnDemandBudget | PerCategoryOnDemandBudget;
@@ -231,7 +229,7 @@ export type SubscriptionOnDemandBudgets = OnDemandBudgetsEnabled &
 export type PendingOnDemandBudgets = OnDemandBudgetsEnabled & OnDemandBudgets;
 
 export type ProductTrial = {
-  category: DataCategories;
+  category: DataCategory;
   isStarted: boolean;
   reasonCode: number;
   betaOptInStatus?: boolean;
@@ -256,7 +254,7 @@ export type Subscription = {
   /**
    * Current history per data category
    */
-  categories: Partial<Record<DataCategories, BillingMetricHistory>>;
+  categories: Partial<Record<DataCategory, BillingMetricHistory>>;
   contractInterval: 'monthly' | 'annual';
 
   contractPeriodEnd: string;
@@ -332,7 +330,7 @@ export type Subscription = {
   prepaidEventsAllowed: number | null;
   renewalDate: string;
   reservedAttachments: number | null;
-  reservedBudgetCategories: string[] | null;
+  reservedBudgetCategories: DataCategory[] | null;
   /**
    * For am1 plan tier, null for previous tiers
    */
@@ -414,7 +412,7 @@ export type DiscountInfo = {
   billingInterval: 'monthly' | 'annual';
   billingPeriods: number;
   // TODO: better typing
-  creditCategory: string;
+  creditCategory: InvoiceItemType | null;
   disclaimerText: string;
   discountType: 'percentPoints' | 'events';
   durationText: string;
@@ -461,7 +459,7 @@ export type Feature = {
 export type BillingConfig = {
   annualDiscount: number;
   defaultPlan: string;
-  defaultReserved: Partial<Record<DataCategories, number>>;
+  defaultReserved: Partial<Record<DataCategory, number>>;
   featureList: Record<string, Feature>;
   freePlan: string;
   id: string;
@@ -600,6 +598,7 @@ export enum InvoiceItemType {
   /**
    * Used for am1 plans
    */
+  // TODO(data categories): check if these can be parsed
   ATTACHMENTS = 'attachments',
   TRANSACTIONS = 'transactions',
   ONDEMAND_ATTACHMENTS = 'ondemand_attachments',
@@ -632,7 +631,7 @@ export type BillingMetricHistory = {
   /**
    * Category name (e.g. "errors")
    */
-  category: string;
+  category: DataCategory;
   customPrice: number | null;
   free: number;
   onDemandBudget: number;
@@ -670,9 +669,9 @@ export type BillingHistory = {
   periodStart: string;
   plan: string;
   planName: string;
-  reserved: Partial<Record<DataCategories, number | null>>;
-  reservedBudgetCategories: string[];
-  usage: Partial<Record<DataCategories, number>>;
+  reserved: Partial<Record<DataCategory, number | null>>;
+  reservedBudgetCategories: DataCategory[];
+  usage: Partial<Record<DataCategory, number>>;
   planDetails?: Plan;
   reservedBudgets?: ReservedBudget[];
 };
@@ -697,6 +696,7 @@ type PreviewInvoiceItem = BaseInvoiceItem & {
 };
 
 export enum CreditType {
+  // TODO(data categories): check if these can be parsed
   ERROR = 'error',
   TRANSACTION = 'transaction',
   SPAN = 'span',
@@ -731,8 +731,8 @@ interface RecurringPercentDiscount extends BaseRecurringCredit {
 
 interface RecurringEventCredit extends BaseRecurringCredit {
   totalAmountRemaining: null;
-  type:
-    | CreditType.ERROR
+  type: // TODO(data categories): check if these can be parsed
+  | CreditType.ERROR
     | CreditType.TRANSACTION
     | CreditType.SPAN
     | CreditType.PROFILE_DURATION
@@ -773,13 +773,13 @@ export type NextPlanInfo = {
   errorCreditsMonths: number;
   id: string;
   name: string;
-  reserved: Partial<Record<DataCategories, number>>;
+  reserved: Partial<Record<DataCategory, number>>;
   reservedAttachments: number;
   reservedErrors: number;
   totalPrice: number;
   categoryCredits?: Partial<
     Record<
-      DataCategories,
+      DataCategory,
       {
         credits: number;
         months: number;
@@ -874,12 +874,12 @@ export interface MonitorCountResponse {
 }
 
 type PendingReservedBudget = {
-  categories: Partial<Record<DataCategories, boolean | null>>;
+  categories: Partial<Record<DataCategory, boolean | null>>;
   reservedBudget: number;
 };
 
 export type ReservedBudget = {
-  categories: Partial<Record<DataCategories, ReservedBudgetMetricHistory>>;
+  categories: Partial<Record<DataCategory, ReservedBudgetMetricHistory>>;
   freeBudget: number;
   id: string;
   percentUsed: number;
@@ -940,3 +940,30 @@ export type PolicyRevision = {
   url: string | null;
   version: string;
 };
+
+export interface BilledDataCategoryInfo extends DataCategoryInfo {
+  /**
+   * Whether the category is supported for spend allocations
+   */
+  canAllocate: boolean;
+  /**
+   * Whether the category is supported for product trials
+   */
+  canProductTrial: boolean;
+  /**
+   * The feature flag that enables the category
+   */
+  feature: string | null;
+  /**
+   * The event multiplier for gifts
+   */
+  freeEventsMultiple: number;
+  /**
+   * The maximum number of free events that can be gifted
+   */
+  maxAdminGift: number;
+  /**
+   * The tooltip text for the checkout page
+   */
+  reservedVolumeTooltip: string | null;
+}

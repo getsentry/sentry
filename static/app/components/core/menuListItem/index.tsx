@@ -2,7 +2,7 @@ import {memo, useId, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
 import isPropValid from '@emotion/is-prop-valid';
-import {type Theme, useTheme} from '@emotion/react';
+import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
@@ -123,7 +123,6 @@ function BaseMenuListItem({
 
   return (
     <MenuItemWrap
-      role="menuitem"
       aria-disabled={disabled}
       aria-labelledby={labelId}
       aria-describedby={detailId}
@@ -313,8 +312,12 @@ export const InnerWrap = withChonk(
     font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};
 
     &,
-    &:hover {
+    &:hover,
+    &:focus,
+    &:focus-visible {
       color: ${getTextColor};
+      box-shadow: none;
+      outline: none;
     }
     ${p => p.disabled && `cursor: default;`}
 
@@ -330,13 +333,13 @@ export const InnerWrap = withChonk(
 
     ${p =>
       p.isFocused &&
-      `
-      z-index: 1;
-      /* Background to hide the previous item's divider */
-      ::before {
-        background: ${p.theme.backgroundElevated};
-      }
-    `}
+      css`
+        z-index: 1;
+        /* Background to hide the previous item's divider */
+        ::before {
+          background: ${p.theme.backgroundElevated};
+        }
+      `}
   `,
   ChonkInnerWrap
 );

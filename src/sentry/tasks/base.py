@@ -75,14 +75,18 @@ def taskworker_override(
     def override(*args: P.args, **kwargs: P.kwargs) -> R:
         rollout_rate = 0
         option_flag = f"taskworker.{namespace}.rollout"
-        if options.isset(option_flag):
-            rollout_map = options.get(option_flag)
-            if task_name in rollout_map:
-                rollout_rate = rollout_map.get(task_name, 0)
-            elif "*" in rollout_map:
-                rollout_rate = rollout_map.get("*", 0)
+        check_option = True
+        if namespace in settings.TASKWORKER_HIGH_THROUGHPUT_NAMESPACES:
+            check_option = settings.TASKWORKER_ENABLE_HIGH_THROUGHPUT_NAMESPACES
 
-        random.seed(datetime.now().timestamp())
+        if check_option:
+            rollout_map = options.get(option_flag)
+            if rollout_map:
+                if task_name in rollout_map:
+                    rollout_rate = rollout_map.get(task_name, 0)
+                elif "*" in rollout_map:
+                    rollout_rate = rollout_map.get("*", 0)
+
         if rollout_rate > random.random():
             return taskworker_attr(*args, **kwargs)
 

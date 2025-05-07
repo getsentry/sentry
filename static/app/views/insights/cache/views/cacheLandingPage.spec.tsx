@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
@@ -31,22 +32,20 @@ const requestMocks = {
 describe('CacheLandingPage', function () {
   const organization = OrganizationFixture({features: ['insights-addon-modules']});
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects: [],
       },
-      environments: [],
-      projects: [],
-    },
-  });
+    })
+  );
 
   jest.mocked(useLocation).mockReturnValue({
     pathname: '',
@@ -87,7 +86,7 @@ describe('CacheLandingPage', function () {
   });
 
   it('fetches module data', async function () {
-    render(<CacheLandingPage />, {organization});
+    render(<CacheLandingPage />, {organization, deprecatedRouterMocks: true});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
@@ -199,7 +198,7 @@ describe('CacheLandingPage', function () {
       },
     });
 
-    render(<CacheLandingPage />, {organization});
+    render(<CacheLandingPage />, {organization, deprecatedRouterMocks: true});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
@@ -223,7 +222,7 @@ describe('CacheLandingPage', function () {
   });
 
   it('renders a list of transactions', async function () {
-    render(<CacheLandingPage />, {organization});
+    render(<CacheLandingPage />, {organization, deprecatedRouterMocks: true});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     expect(screen.getByRole('columnheader', {name: 'Transaction'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: 'my-transaction'})).toBeInTheDocument();
@@ -279,7 +278,7 @@ describe('CacheLandingPage', function () {
       }),
     ]);
 
-    render(<CacheLandingPage />, {organization});
+    render(<CacheLandingPage />, {organization, deprecatedRouterMocks: true});
 
     await waitFor(() => {
       expect(

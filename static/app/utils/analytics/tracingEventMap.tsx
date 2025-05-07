@@ -37,6 +37,11 @@ export type TracingEventParameters = {
   'trace.explorer.schema_hints_drawer': {
     drawer_open: boolean;
   };
+  'trace.explorer.table_pagination': {
+    direction: string;
+    num_results: number;
+    type: 'samples' | 'traces' | 'aggregates';
+  };
   'trace.load.empty_state': {
     source: TraceWaterFallSource;
   };
@@ -184,6 +189,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
     'Improved Trace Explorer: Schema Hints Click Events',
   'trace.explorer.schema_hints_drawer':
     'Improved Trace Explorer: Schema Hints Drawer Events',
+  'trace.explorer.table_pagination': 'Trace Explorer Table Pagination',
   'trace.trace_layout.change': 'Changed Trace Layout',
   'trace.trace_layout.drawer_minimize': 'Minimized Trace Drawer',
   'trace.trace_drawer_explore_search': 'Searched Trace Explorer',

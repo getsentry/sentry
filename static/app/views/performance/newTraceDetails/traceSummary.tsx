@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconMegaphone} from 'sentry/icons';
 import {IconInfo} from 'sentry/icons/iconInfo';
@@ -10,18 +11,27 @@ import {IconStats} from 'sentry/icons/iconStats';
 import {IconTelescope} from 'sentry/icons/iconTelescope';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import marked from 'sentry/utils/marked';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {TraceContextSectionKeys} from 'sentry/views/performance/newTraceDetails/traceHeader/scrollToSectionLinks';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+
+export interface SpanInsight {
+  explanation: string;
+  spanId: string;
+  spanOp: string;
+}
 
 export interface TraceSummaryData {
+  anomalousSpans: SpanInsight[];
   keyObservations: string;
   performanceCharacteristics: string;
-  suggestedInvestigations: string;
+  suggestedInvestigations: SpanInsight[];
   summary: string;
   traceId: string;
 }
@@ -70,7 +80,7 @@ export function TraceSummarySection({traceSlug}: {traceSlug: string}) {
       type={TraceContextSectionKeys.SUMMARY}
       title={
         <TitleWrapper>
-          {t('Trace Summary')}
+          {t('Trace Insights')}
           <FeatureBadge type="alpha" />
         </TitleWrapper>
       }
@@ -91,6 +101,8 @@ const TitleWrapper = styled('div')`
 function TraceSummaryContent({traceSlug}: {traceSlug: string}) {
   const traceContent = useTraceSummary(traceSlug);
   const openFeedbackForm = useFeedbackForm();
+  const organization = useOrganization();
+  const location = useLocation();
 
   if (traceContent.isPending) {
     return <LoadingIndicator />;
@@ -123,6 +135,8 @@ function TraceSummaryContent({traceSlug}: {traceSlug: string}) {
     );
   }
 
+  const investigations = traceContent.data?.suggestedInvestigations ?? [];
+
   return (
     <SummaryContainer>
       <SectionTitleWrapper>
@@ -131,11 +145,7 @@ function TraceSummaryContent({traceSlug}: {traceSlug: string}) {
         </StyledIcon>
         <SectionTitle>Overview</SectionTitle>
       </SectionTitleWrapper>
-      <SectionContent
-        dangerouslySetInnerHTML={{
-          __html: marked(traceContent.data?.summary ?? ''),
-        }}
-      />
+      <SectionContent text={traceContent.data?.summary ?? ''} />
 
       <SectionTitleWrapper>
         <StyledIcon>
@@ -143,11 +153,7 @@ function TraceSummaryContent({traceSlug}: {traceSlug: string}) {
         </StyledIcon>
         <SectionTitle>Key Observations</SectionTitle>
       </SectionTitleWrapper>
-      <SectionContent
-        dangerouslySetInnerHTML={{
-          __html: marked(traceContent.data?.keyObservations ?? ''),
-        }}
-      />
+      <SectionContent text={traceContent.data?.keyObservations ?? ''} />
 
       <SectionTitleWrapper>
         <StyledIcon>
@@ -155,11 +161,7 @@ function TraceSummaryContent({traceSlug}: {traceSlug: string}) {
         </StyledIcon>
         <SectionTitle>Performance Characteristics</SectionTitle>
       </SectionTitleWrapper>
-      <SectionContent
-        dangerouslySetInnerHTML={{
-          __html: marked(traceContent.data?.performanceCharacteristics ?? ''),
-        }}
-      />
+      <SectionContent text={traceContent.data?.performanceCharacteristics ?? ''} />
 
       <SectionTitleWrapper>
         <StyledIcon>
@@ -167,11 +169,29 @@ function TraceSummaryContent({traceSlug}: {traceSlug: string}) {
         </StyledIcon>
         <SectionTitle>Suggested Investigations</SectionTitle>
       </SectionTitleWrapper>
-      <SectionContent
-        dangerouslySetInnerHTML={{
-          __html: marked(traceContent.data?.suggestedInvestigations ?? ''),
-        }}
-      />
+
+      {investigations.length > 0 ? (
+        <StyledList>
+          {investigations.map((span, idx) => (
+            <StyledListItem key={span.spanId || idx}>
+              <StyledLink
+                to={getTraceDetailsUrl({
+                  organization,
+                  traceSlug,
+                  location,
+                  spanId: span.spanId,
+                  dateSelection: {},
+                })}
+              >
+                {span.spanOp}
+              </StyledLink>
+              - {span.explanation}
+            </StyledListItem>
+          ))}
+        </StyledList>
+      ) : (
+        <SectionContent text={''} />
+      )}
 
       {openFeedbackForm && (
         <FeedbackButtonContainer>
@@ -223,7 +243,7 @@ const SectionTitle = styled('h6')`
   margin: 0;
 `;
 
-const SectionContent = styled('div')`
+const SectionContent = styled(MarkedText)`
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeMedium};
   line-height: 1.4;
@@ -253,4 +273,20 @@ const FeedbackButtonContainer = styled('div')`
   display: flex;
   justify-content: flex-end;
   margin-top: ${space(2)};
+`;
+
+const StyledList = styled('ul')`
+  margin: 0;
+  padding-left: 20px;
+`;
+
+const StyledListItem = styled('li')`
+  margin-bottom: 8px;
+`;
+
+const StyledLink = styled(Link)`
+  text-decoration: none;
+  color: ${p => p.theme.textColor};
+  font-weight: 600;
+  margin-right: 6px;
 `;

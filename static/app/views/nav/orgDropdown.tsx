@@ -111,7 +111,7 @@ export function OrgDropdown({
             {
               key: 'projects',
               label: t('Projects'),
-              to: makeProjectsPathname({path: '/', orgSlug: organization.slug}),
+              to: makeProjectsPathname({path: '/', organization}),
               hidden: hideOrgLinks,
             },
             {

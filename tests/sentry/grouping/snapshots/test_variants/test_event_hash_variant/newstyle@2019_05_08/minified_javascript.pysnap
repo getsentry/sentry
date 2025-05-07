@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:46:53.913540+00:00'
+created: '2025-04-25T21:22:40.885143+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,7 +10,7 @@ app:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace (ignored because it contains no in-app frames)
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
@@ -19,7 +19,7 @@ app:
               "M"
             context-line (discarded because line too long)
               "{snip} o,r;for(b&&(o=i.domain)&&o.exit();t;){r=t.fn,t=t.next;try{r()}catch(o){throw t?n():e=void 0,o}}e=void 0,o&&o.enter()};if(b)n=function(){i.n {snip}"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
@@ -28,7 +28,7 @@ app:
               "S/<"
             context-line (discarded because line too long)
               "{snip} ,M):b(n)):M(o)}catch(t){a&&!i&&a.exit(),M(t)}};n.length>p;)i(n[p++]);t._c=[],t._n=!1,e&&!t._h&&x(t)})}},x=function(t){d.call(b,function(){va {snip}"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
@@ -37,7 +37,7 @@ app:
               "i"
             context-line (discarded because line too long)
               "{snip} ry{c?(r||(2==t._h&&T(t),t._h=1),!0===c?n=o:(a&&a.enter(),n=c(o),a&&(a.exit(),i=!0)),n===e.promise?M(y(\"Promise-chain cycle\")):(p=N(n))?p.cal {snip}"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
@@ -46,7 +46,7 @@ app:
               "b"
             context-line (discarded because line too long)
               "{snip} ply(e,o);function c(t){n(i,r,p,c,b,\"next\",t)}function b(t){n(i,r,p,c,b,\"throw\",t)}c(void 0)})}}},,,function(t,e,n){(t.exports=n(1466)).tz.lo {snip}"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
@@ -55,7 +55,7 @@ app:
               "n"
             context-line (discarded because line too long)
               "{snip} e)}},function(t,e){function n(t,e,n,o,r,p,i){try{var c=t[p](i),b=c.value}catch(t){return void n(t)}c.done?e(b):Promise.resolve(b).then(o,r)} {snip}"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
@@ -64,7 +64,7 @@ app:
               "g/</t[e]"
             context-line (discarded because line too long)
               "{snip} row\",\"return\"].forEach(function(e){t[e]=function(t){return this._invoke(e,t)}})}function R(t){var e;this._invoke=function(n,o){function p(){ {snip}"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
@@ -73,7 +73,7 @@ app:
               "_invoke</<"
             context-line (discarded because line too long)
               "{snip} lse\"return\"===n.method&&n.abrupt(\"return\",n.arg);o=s;var b=W(t,e,n);if(\"normal\"===b.type){if(o=n.done?O:z,b.arg===l)continue;return{value:b. {snip}"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
@@ -82,7 +82,7 @@ app:
               "W"
             context-line (discarded because line too long)
               "{snip} }}(t,n,i),p}function W(t,e,n){try{return{type:\"normal\",arg:t.call(e,n)}}catch(t){return{type:\"throw\",arg:t}}}function v(){}function y(){}fun {snip}"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "sentry/dist/app"
             filename (ignored because frame points to a URL)
@@ -91,7 +91,7 @@ app:
               "e/<"
             context-line (discarded because line too long)
               "{snip} (e.t0)&&n<I)){e.next=12;break}return n++,e.abrupt(\"return\",a());case 12:throw e.t0;case 13:case\"end\":return e.stop()}},e,this,[[0,7]])}));re {snip}"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "sentry/dist/app"
             filename (ignored because frame points to a URL)
@@ -100,7 +100,7 @@ app:
               "e/</a</<"
             context-line (discarded because line too long)
               "{snip} urn e.stop()}},e,this,[[0,7]])}));return function(){return e.apply(this,arguments)}}(),e.abrupt(\"return\",a());case 3:case\"end\":return e.stop {snip}"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
@@ -109,7 +109,7 @@ app:
               "exports/<"
             context-line (discarded because line too long)
               "{snip} unction(t){return function(){var e=this,o=arguments;return new Promise(function(r,p){var i=t.apply(e,o);function c(t){n(i,r,p,c,b,\"next\",t)} {snip}"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
@@ -118,7 +118,7 @@ app:
               "L"
             context-line (discarded because line too long)
               "{snip} function(t){O(this,L,\"Promise\",\"_h\"),s(t),o.call(this);try{t(M(H,this,1),M(C,this,1))}catch(t){C.call(this,t)}},(o=function(t){this._c=[],th {snip}"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
@@ -127,7 +127,7 @@ app:
               "exports/</<"
             context-line (discarded because line too long)
               "{snip} n(i,r,p,c,b,\"next\",t)}function b(t){n(i,r,p,c,b,\"throw\",t)}c(void 0)})}}},,,function(t,e,n){(t.exports=n(1466)).tz.load(n(1467))},,function( {snip}"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
@@ -136,7 +136,7 @@ app:
               "c"
             context-line (discarded because line too long)
               "{snip} new Promise(function(r,p){var i=t.apply(e,o);function c(t){n(i,r,p,c,b,\"next\",t)}function b(t){n(i,r,p,c,b,\"throw\",t)}c(void 0)})}}},,,funct {snip}"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
@@ -145,7 +145,7 @@ app:
               "n"
             context-line (discarded because line too long)
               "{snip} e)}},function(t,e){function n(t,e,n,o,r,p,i){try{var c=t[p](i),b=c.value}catch(t){return void n(t)}c.done?e(b):Promise.resolve(b).then(o,r)} {snip}"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
@@ -154,7 +154,7 @@ app:
               "g/</t[e]"
             context-line (discarded because line too long)
               "{snip} row\",\"return\"].forEach(function(e){t[e]=function(t){return this._invoke(e,t)}})}function R(t){var e;this._invoke=function(n,o){function p(){ {snip}"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
@@ -163,7 +163,7 @@ app:
               "_invoke</<"
             context-line (discarded because line too long)
               "{snip} lse\"return\"===n.method&&n.abrupt(\"return\",n.arg);o=s;var b=W(t,e,n);if(\"normal\"===b.type){if(o=n.done?O:z,b.arg===l)continue;return{value:b. {snip}"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
@@ -172,7 +172,7 @@ app:
               "W"
             context-line (discarded because line too long)
               "{snip} }}(t,n,i),p}function W(t,e,n){try{return{type:\"normal\",arg:t.call(e,n)}}catch(t){return{type:\"throw\",arg:t}}}function v(){}function y(){}fun {snip}"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "sentry/dist/app"
             filename (ignored because frame points to a URL)
@@ -181,7 +181,7 @@ app:
               "e/<"
             context-line (discarded because line too long)
               "{snip} r(;;)switch(e.prev=e.next){case 0:return e.prev=0,e.next=3,t();case 3:return r=e.sent,e.abrupt(\"return\",r.default||r);case 7:if(e.prev=7,e.t {snip}"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "sentry/dist/app"
             filename (ignored because frame points to a URL)
@@ -190,7 +190,7 @@ app:
               "componentPromise"
             context-line (discarded because line too long)
               "{snip} orgId/issues/:groupId/\",componentPromise:function(){return n.e(75).then(n.bind(null,2497))},component:Object(cs.default)(Zt.a)},b.a.createEl {snip}"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "sentry/dist/app"
             filename (ignored because frame points to a URL)
@@ -199,7 +199,7 @@ app:
               "e"
             context-line (discarded because line too long)
               "{snip} \"+i+\")\");o.type=a,o.request=i,n[1](o)}r[e]=void 0}};var c=setTimeout(function(){i({type:\"timeout\",target:s})},12e4);s.onerror=s.onload=i,do {snip}"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "sentry/dist/vendor"
             filename (ignored because frame points to a URL)
