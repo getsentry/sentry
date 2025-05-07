@@ -294,12 +294,6 @@ function CheckoutOverviewV2({
   const committedTotal = utils.getReservedPriceCents({...formData, plan: activePlan});
   const paygMonthlyBudget = formData.onDemandMaxSpend || 0;
 
-  // Add Seer budget to the total if it's enabled
-  let totalWithAddOns = committedTotal;
-  if (hasSeerEnabled) {
-    totalWithAddOns += seerCents;
-  }
-
   return (
     <StyledPanel data-test-id="checkout-overview-v2">
       {renderPlanDetails()}
@@ -310,7 +304,11 @@ function CheckoutOverviewV2({
       <Separator />
       {renderProductBreakdown()}
       <TotalSeparator />
-      {renderTotals(totalWithAddOns, paygMonthlyBudget)}
+      {renderTotals(
+        committedTotal +
+          (hasSeerFeature && formData.seerEnabled ? SEER_MONTHLY_PRICE_CENTS : 0),
+        paygMonthlyBudget
+      )}
     </StyledPanel>
   );
 }

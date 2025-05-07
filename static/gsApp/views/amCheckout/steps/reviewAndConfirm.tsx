@@ -10,6 +10,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';
+import {SEER_MONTHLY_PRICE_CENTS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -65,8 +66,6 @@ function ReviewAndConfirm({
   const hasPartnerMigrationFeature = organization.features.includes(
     'partner-billing-migration'
   );
-
-  const seerCents = formData.seerEnabled ? 2000 : 0;
 
   const fetchPreview = useCallback(async () => {
     await fetchPreviewData(
@@ -167,7 +166,6 @@ function ReviewAndConfirm({
             hasPartnerMigrationFeature={hasPartnerMigrationFeature}
             subscription={subscription}
             formData={formData}
-            seerCents={seerCents}
             hasSeerFeature={hasSeerFeature}
           />
         </StyledPanelBody>
@@ -258,11 +256,9 @@ function ReviewAndConfirmItems({
   previewData,
   formData,
   hasSeerFeature,
-  seerCents,
 }: Pick<State, 'previewData'> & {
   formData: StepPropsWithApi['formData'];
   hasSeerFeature: boolean;
-  seerCents: number;
 }) {
   if (!previewData) {
     return null;
@@ -311,7 +307,7 @@ function ReviewAndConfirmItems({
           <Title>
             <div>{t('Seer AI Agent')}</div>
           </Title>
-          <div>{`${displayPrice({cents: seerCents})}`}</div>
+          <div>{`${displayPrice({cents: SEER_MONTHLY_PRICE_CENTS})}`}</div>
         </PreviewItem>
       )}
     </PreviewItems>
@@ -326,13 +322,11 @@ function ReviewAndConfirmBody({
   hasPartnerMigrationFeature,
   subscription,
   formData,
-  seerCents,
   hasSeerFeature,
 }: Pick<State, 'cardActionError' | 'loading' | 'loadError' | 'previewData'> & {
   formData: StepPropsWithApi['formData'];
   hasPartnerMigrationFeature: boolean;
   hasSeerFeature: boolean;
-  seerCents: number;
   subscription: Subscription;
 }) {
   if (loading) {
@@ -370,11 +364,14 @@ function ReviewAndConfirmBody({
         previewData={previewData}
         formData={formData}
         hasSeerFeature={hasSeerFeature}
-        seerCents={seerCents}
       />
       <PreviewTotal>
         <div>{t('Total due')}</div>
-        <div>{`${displayPrice({cents: previewData.billedAmount + seerCents})}`}</div>
+        <div>{`${displayPrice({
+          cents:
+            previewData.billedAmount +
+            (hasSeerFeature && formData.seerEnabled ? SEER_MONTHLY_PRICE_CENTS : 0),
+        })}`}</div>
       </PreviewTotal>
     </Preview>
   );
