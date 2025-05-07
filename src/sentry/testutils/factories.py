@@ -2314,7 +2314,10 @@ class Factories:
         **kwargs,
     ) -> IncidentGroupOpenPeriod:
         return IncidentGroupOpenPeriod.objects.create(
-            incident_id=incident.id, group_open_period=group_open_period, **kwargs
+            incident_id=incident.id,
+            incident_identifier=incident.identifier,
+            group_open_period=group_open_period,
+            **kwargs,
         )
 
     @staticmethod
