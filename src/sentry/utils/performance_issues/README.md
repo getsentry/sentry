@@ -50,7 +50,9 @@ There are quite a few places which need to be updated when adding a new performa
   - [ ] (Optional) Implement `is_event_eligible()` to allow early exits.
   - [ ] Implement `is_creation_allowed_for_organization()` to check a feature flag.
   - [ ] Implement `is_creation_allowed_for_project()` to check a creation flag.
-- [ ] Write some business logic! Implement `visit_span()` and `on_complete()`, adding any identified `PerformanceProblem`s to `self.stored_problems` as you go.
+- [ ] Write some business logic!
+  - [ ] Implement `visit_span()` and `on_complete()`, adding any identified `PerformanceProblem`s to `self.stored_problems` as you go.
+  - [ ] Leverage the [Writing Detectors docs](https://develop.sentry.dev/backend/issue-platform/writing-detectors/) which can help guide your detector's design.
 
 ## Adding an Experiment
 
