@@ -12,18 +12,18 @@ import useOrganization from 'sentry/utils/useOrganization';
 export default function AllViewsWelcomeBanner() {
   const organization = useOrganization();
 
-  const {isPromptDismissed, dismissPrompt} = usePrompt({
+  const {isPromptDismissed, isLoading, isError, dismissPrompt} = usePrompt({
     feature: 'issue_views_all_views_banner',
     organization,
   });
 
-  return isPromptDismissed ? null : (
+  return isPromptDismissed || isLoading || isError ? null : (
     <Banner>
       <BannerStar1 src={bannerStar} />
       <BannerStar2 src={bannerStar} />
       <BannerStar3 src={bannerStar} />
       <BannerTitle>
-        {t('Welcome to the new All Views page (Early Adopter only)')}
+        {t('Welcome to the new All Views page')}
         <DismissButton
           analyticsEventKey="issue_views.all_views.banner_dismissed"
           analyticsEventName="Issue Views: All Views Banner Dismissed"
@@ -37,7 +37,7 @@ export default function AllViewsWelcomeBanner() {
       <BannerSubTitle>
         <div>
           {t(
-            'Issue Views have been upgraded to be visible to everyone in your organization, making it easier for everyone to share their top issue workflows.'
+            'Issue Views are now visible to everyone in your organization, making it easier to share key workflows.'
           )}
         </div>
         <div>{t('A few notes to help you get started:')}</div>
