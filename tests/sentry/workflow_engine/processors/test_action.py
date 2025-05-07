@@ -69,7 +69,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
             status.refresh_from_db()
             assert status.date_updated == timezone.now()
 
-    def test_update_workflow_fire_histories(self):
+    def test_update_workflow_fire_histories_has_fired_actions(self):
         WorkflowFireHistory.objects.create(
             workflow=self.workflow,
             group=self.group,
@@ -80,13 +80,37 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         actions = Action.objects.all()
         assert actions.count() == 1
 
-        update_workflow_fire_histories(actions, self.event_data)
+        update_workflow_fire_histories(actions, self.event_data, has_fired_actions=True)
         assert (
             WorkflowFireHistory.objects.filter(
                 workflow=self.workflow,
                 group=self.group,
                 event_id=self.group_event.event_id,
                 has_fired_actions=True,
+            ).count()
+            == 1
+        )
+
+    def test_update_workflow_fire_histories_has_passed_filters(self):
+        WorkflowFireHistory.objects.create(
+            workflow=self.workflow,
+            group=self.group,
+            event_id=self.group_event.event_id,
+            has_passed_filters=None,
+            has_fired_actions=False,
+        )
+
+        actions = Action.objects.all()
+        assert actions.count() == 1
+
+        update_workflow_fire_histories(actions, self.event_data, has_passed_filters=True)
+        assert (
+            WorkflowFireHistory.objects.filter(
+                workflow=self.workflow,
+                group=self.group,
+                event_id=self.group_event.event_id,
+                has_passed_filters=True,
+                has_fired_actions=False,
             ).count()
             == 1
         )
