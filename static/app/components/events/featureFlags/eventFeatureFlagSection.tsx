@@ -129,11 +129,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
     [organization, queryParams]
   );
 
-  const {
-    suspectFlags: legacySuspectFlags,
-    isError: isLegacySuspectError,
-    isPending: isLegacySuspectPending,
-  } = useLegacyEventSuspectFlags({
+  const {suspectFlags: legacySuspectFlags} = useLegacyEventSuspectFlags({
     enabled: !enableSuspectFlags, // Fallback to the legacy strategy
     organization,
     firstSeen: group.firstSeen,
@@ -142,11 +138,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
   });
 
   const [suspectThreshold] = useSuspectFlagScoreThreshold();
-  const {
-    data: suspectScores,
-    isError: isSuspectError,
-    isPending: isSuspectPending,
-  } = useGroupSuspectFlagScores({
+  const {data: suspectScores} = useGroupSuspectFlagScores({
     groupId: group.id,
     environment: environments.length ? environments : undefined,
     enabled: enableSuspectFlags,
@@ -154,27 +146,14 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
 
   const suspectFlagNames: Set<string> = useMemo(() => {
     if (enableSuspectFlags) {
-      return isSuspectError || isSuspectPending
-        ? new Set()
-        : new Set(
-            suspectScores.data
-              .filter(score => score.score >= suspectThreshold)
-              .map(score => score.flag)
-          );
+      return new Set(
+        suspectScores?.data
+          .filter(score => score.score >= suspectThreshold)
+          .map(score => score.flag)
+      );
     }
-    return isLegacySuspectError || isLegacySuspectPending
-      ? new Set()
-      : new Set(legacySuspectFlags.map(f => f.flag));
-  }, [
-    enableSuspectFlags,
-    isLegacySuspectError,
-    isLegacySuspectPending,
-    isSuspectError,
-    isSuspectPending,
-    legacySuspectFlags,
-    suspectScores?.data,
-    suspectThreshold,
-  ]);
+    return new Set(legacySuspectFlags.map(f => f.flag));
+  }, [enableSuspectFlags, legacySuspectFlags, suspectScores?.data, suspectThreshold]);
 
   const eventFlags: Array<Required<FeatureFlag>> = useMemo(() => {
     // At runtime there's no type guarantees on the event flags. So we have to
