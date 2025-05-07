@@ -14,6 +14,7 @@ import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 import {withChonk} from 'sentry/utils/theme/withChonk';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useNavContext} from 'sentry/views/nav/context';
@@ -86,28 +87,57 @@ SecondaryNav.Body = function SecondaryNavBody({children}: {children: ReactNode})
 };
 
 SecondaryNav.Section = function SecondaryNavSection({
+  id,
   title,
   children,
   className,
   trailingItems,
 }: {
   children: ReactNode;
+  id: string;
   className?: string;
   title?: ReactNode;
   trailingItems?: ReactNode;
 }) {
   const {layout} = useNavContext();
+  const [isCollapsed, setIsCollapsed] = useLocalStorageState(
+    `secondary-nav-section-${id}-collapsed`,
+    false
+  );
 
   return (
     <Section className={className} data-nav-section>
       <SectionSeparator />
       {title && (
-        <SectionTitle layout={layout}>
-          {title}
-          {trailingItems}
+        <SectionTitle
+          size="sm"
+          borderless
+          layout={layout}
+          onClick={() => {
+            setIsCollapsed(!isCollapsed);
+          }}
+          isCollapsed={isCollapsed}
+          disabled={layout === NavLayout.MOBILE}
+        >
+          <SectionTitleLabelWrap>{title}</SectionTitleLabelWrap>
+          <TrailingItems
+            onClick={e => {
+              e.stopPropagation();
+            }}
+          >
+            {trailingItems
+              ? trailingItems
+              : layout === NavLayout.SIDEBAR && (
+                  <IconChevron
+                    direction={isCollapsed ? 'down' : 'up'}
+                    size="xs"
+                    color="subText"
+                  />
+                )}
+          </TrailingItems>
         </SectionTitle>
       )}
-      {children}
+      {isCollapsed && layout === NavLayout.SIDEBAR ? null : children}
     </Section>
   );
 };
@@ -208,21 +238,38 @@ const Section = styled('div')`
   }
 `;
 
-const SectionTitle = styled('div')<{layout: NavLayout}>`
+const SectionTitle = styled(Button)<{isCollapsed: boolean; layout: NavLayout}>`
   font-weight: ${p => p.theme.fontWeightBold};
-  color: ${p => p.theme.subText};
-  padding: 0 ${space(1)};
-  margin: ${space(2)} 0 ${space(0.5)} 0;
-
+  color: ${p => (p.isCollapsed ? p.theme.subText : p.theme.textColor)};
+  margin: ${space(1)} 0 ${space(0.5)} 0;
+  padding: ${space(0.75)} ${space(1)};
+  width: 100%;
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  font-size: ${p => p.theme.fontSizeMedium};
 
   ${p =>
     p.layout === NavLayout.MOBILE &&
     css`
       padding: 0 ${space(1.5)} 0 48px;
     `}
+
+  & > span:last-child {
+    flex: 1;
+    justify-content: space-between;
+    white-space: nowrap;
+  }
+`;
+
+const SectionTitleLabelWrap = styled('div')`
+  ${p => p.theme.overflowEllipsis}
+  text-align: left;
+`;
+
+const TrailingItems = styled('div')`
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 `;
 
 const SectionSeparator = styled('hr')`
