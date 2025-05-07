@@ -14,6 +14,7 @@ from sentry.models.project import Project
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.rules.actions.services import PluginService
+from sentry.utils import metrics
 from sentry.workflow_engine.models import (
     Action,
     ActionGroupStatus,
@@ -64,13 +65,26 @@ def get_action_last_updated_statuses(now: datetime, actions: BaseQuerySet[Action
 
 
 def update_workflow_fire_histories(
-    actions_to_fire: BaseQuerySet[Action], event_data: WorkflowEventData
+    actions_to_fire: BaseQuerySet[Action],
+    event_data: WorkflowEventData,
+    is_delayed_processing: bool | None = False,
 ) -> int:
     # Update WorkflowFireHistory objects for workflows with actions to fire
     fired_workflows = set(
         WorkflowDataConditionGroup.objects.filter(
             condition_group__dataconditiongroupaction__action__in=actions_to_fire
         ).values_list("workflow_id", flat=True)
+    )
+
+    if is_delayed_processing:
+        metric_name = "workflow_engine.delayed_workflow.fired_workflows"
+    else:
+        metric_name = "workflow_engine.process_workflows.fired_workflows"
+
+    metrics.incr(
+        metric_name,
+        amount=len(fired_workflows),
+        tags={"detector_type": event_data.event.group.issue_type.slug},
     )
 
     updated_rows = WorkflowFireHistory.objects.filter(
@@ -84,7 +98,9 @@ def update_workflow_fire_histories(
 
 # TODO(cathy): only reinforce workflow frequency for certain issue types
 def filter_recently_fired_workflow_actions(
-    filtered_action_groups: set[DataConditionGroup], event_data: WorkflowEventData
+    filtered_action_groups: set[DataConditionGroup],
+    event_data: WorkflowEventData,
+    is_delayed_processing: bool | None = False,
 ) -> BaseQuerySet[Action]:
     # get the actions for any of the triggered data condition groups
     actions = Action.objects.filter(
@@ -115,7 +131,7 @@ def filter_recently_fired_workflow_actions(
     actions_without_statuses_ids = {action.id for action in actions_without_statuses}
     filtered_actions = actions.filter(id__in=actions_to_include | actions_without_statuses_ids)
 
-    update_workflow_fire_histories(filtered_actions, event_data)
+    update_workflow_fire_histories(filtered_actions, event_data, is_delayed_processing)
 
     return filtered_actions
 

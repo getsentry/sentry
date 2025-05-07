@@ -14,7 +14,7 @@ from sentry.buffer.base import BufferField
 from sentry.db import models
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.models.group import Group
+from sentry.models.group import DEFAULT_TYPE_ID, Group
 from sentry.models.grouprulestatus import GroupRuleStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
@@ -453,6 +453,8 @@ def fire_rules(
 ) -> None:
     now = datetime.now(tz=timezone.utc)
     project_id = project.id
+
+    triggered_rules = 0
     for rule, group_ids in rules_to_fire.items():
         frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
         freq_offset = now - timedelta(minutes=frequency)
@@ -501,6 +503,10 @@ def fire_rules(
                 )
                 break
 
+            if group.type == DEFAULT_TYPE_ID:
+                # only count errors
+                triggered_rules += 1
+
             notification_uuid = str(uuid.uuid4())
             groupevent = group_to_groupevent[group]
             rule_fire_history = history.record(rule, group, groupevent.event_id, notification_uuid)
@@ -539,6 +545,12 @@ def fire_rules(
                         "rule_id": rule.id,
                     },
                 )
+    if features.has("organizations:workflow-engine-process-workflows", project.organization):
+        metrics.incr(
+            "post_process.process_rules.fired_rules",
+            amount=triggered_rules,
+            tags={"event_type": 1},
+        )
 
 
 def cleanup_redis_buffer(

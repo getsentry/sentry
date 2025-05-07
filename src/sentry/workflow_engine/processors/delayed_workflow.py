@@ -414,7 +414,9 @@ def fire_actions_for_groups(
                 action_filters.add(dcg)
 
         # process action filters
-        filtered_actions = filter_recently_fired_workflow_actions(action_filters, event_data)
+        filtered_actions = filter_recently_fired_workflow_actions(
+            action_filters, event_data, is_delayed_processing=True
+        )
 
         # process workflow_triggers
         workflows = set(Workflow.objects.filter(when_condition_group_id__in=workflow_triggers))
