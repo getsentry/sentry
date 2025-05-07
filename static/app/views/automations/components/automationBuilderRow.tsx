@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
+import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -45,14 +46,6 @@ const DeleteButton = styled(Button)`
   &:focus {
     opacity: 1;
   }
-`;
-
-export const RowLine = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  flex: 1;
-  gap: ${space(1)};
 `;
 
 export const OptionalRowLine = styled(RowLine)`

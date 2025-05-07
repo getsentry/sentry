@@ -33,12 +33,9 @@ export default function ActionNodeList({
   onDeleteRow,
   updateAction,
 }: ActionNodeListProps) {
-  const options = Array.from(actionNodesMap.entries())
-    .map(([value, {label}]) => ({
-      value,
-      label,
-    }))
-    .filter(({value}) => availableActions.some(action => action.type === value));
+  const options = Array.from(actionNodesMap)
+    .filter(([value]) => availableActions.some(action => action.type === value))
+    .map(([value, {label}]) => ({value, label}));
 
   return (
     <Fragment>
