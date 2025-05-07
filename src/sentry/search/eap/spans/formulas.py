@@ -669,6 +669,7 @@ SPAN_FORMULA_DEFINITIONS = {
     ),
     "avg_compare": FormulaDefinition(
         default_search_type="percentage",
+        infer_search_type_from_arguments=False,
         arguments=[
             AttributeArgumentDefinition(
                 attribute_types={
