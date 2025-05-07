@@ -55,7 +55,6 @@ import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAg
 import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
 import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTracesTable';
-import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
@@ -67,31 +66,23 @@ import {Onboarding} from 'sentry/views/performance/onboarding';
 // eslint-disable-next-line no-restricted-imports
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
-interface SpansTabOnboardingProps extends PickableDays {
+interface SpansTabOnboardingProps {
+  datePageFilterProps: PickableDays;
   organization: Organization;
   project: Project;
 }
 
 export function SpansTabOnboarding({
-  defaultPeriod,
-  maxPickableDays,
+  datePageFilterProps,
   organization,
   project,
-  relativeOptions,
 }: SpansTabOnboardingProps) {
   return (
     <Layout.Body>
       <PageFilterBar condensed>
         <ProjectPageFilter />
         <EnvironmentPageFilter />
-        <DatePageFilter
-          defaultPeriod={defaultPeriod}
-          maxPickableDays={maxPickableDays}
-          relativeOptions={({arbitraryOptions}) => ({
-            ...arbitraryOptions,
-            ...relativeOptions,
-          })}
-        />
+        <DatePageFilter {...datePageFilterProps} />
       </PageFilterBar>
       <OnboardingContentSection>
         <Onboarding project={project} organization={organization} />
@@ -100,13 +91,11 @@ export function SpansTabOnboarding({
   );
 }
 
-interface SpanTabProps extends PickableDays {}
+interface SpanTabProps {
+  datePageFilterProps: PickableDays;
+}
 
-export function SpansTabContent({
-  defaultPeriod,
-  maxPickableDays,
-  relativeOptions,
-}: SpanTabProps) {
+export function SpansTabContent({datePageFilterProps}: SpanTabProps) {
   useVisitExplore();
 
   const organization = useOrganization();
@@ -115,11 +104,7 @@ export function SpansTabContent({
   return (
     <Fragment>
       <BodySearch>
-        <SpanTabSearchSection
-          defaultPeriod={defaultPeriod}
-          maxPickableDays={maxPickableDays}
-          relativeOptions={relativeOptions}
-        />
+        <SpanTabSearchSection datePageFilterProps={datePageFilterProps} />
       </BodySearch>
       <BodyContent>
         <SpanTabControlSection
@@ -127,8 +112,7 @@ export function SpansTabContent({
           controlSectionExpanded={controlSectionExpanded}
         />
         <SpanTabContentSection
-          maxPickableDays={maxPickableDays}
-          organization={organization}
+          maxPickableDays={datePageFilterProps.maxPickableDays}
           setControlSectionExpanded={setControlSectionExpanded}
           controlSectionExpanded={controlSectionExpanded}
         />
@@ -147,13 +131,11 @@ function useVisitExplore() {
   }, [id, visitQuery]);
 }
 
-interface SpanTabSearchSectionProps extends PickableDays {}
+interface SpanTabSearchSectionProps {
+  datePageFilterProps: PickableDays;
+}
 
-function SpanTabSearchSection({
-  defaultPeriod,
-  maxPickableDays,
-  relativeOptions,
-}: SpanTabSearchSectionProps) {
+function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) {
   const mode = useExploreMode();
   const fields = useExploreFields();
   const query = useExploreQuery();
@@ -217,14 +199,7 @@ function SpanTabSearchSection({
             <StyledPageFilterBar condensed>
               <ProjectPageFilter />
               <EnvironmentPageFilter />
-              <DatePageFilter
-                defaultPeriod={defaultPeriod}
-                maxPickableDays={maxPickableDays}
-                relativeOptions={({arbitraryOptions}) => ({
-                  ...arbitraryOptions,
-                  ...relativeOptions,
-                })}
-              />
+              <DatePageFilter {...datePageFilterProps} />
             </StyledPageFilterBar>
             <EAPSpanSearchQueryBuilder {...eapSpanSearchQueryBuilderProps} />
           </FilterSection>
@@ -284,13 +259,11 @@ function SpanTabControlSection({
 interface SpanTabContentSectionProps {
   controlSectionExpanded: boolean;
   maxPickableDays: PickableDays['maxPickableDays'];
-  organization: Organization;
   setControlSectionExpanded: (expanded: boolean) => void;
 }
 
 function SpanTabContentSection({
   maxPickableDays,
-  organization,
   controlSectionExpanded,
   setControlSectionExpanded,
 }: SpanTabContentSectionProps) {
@@ -380,16 +353,6 @@ function SpanTabContentSection({
         ? spansTableResult.result.isPending
         : tracesTableResult.result.isPending;
 
-  const tableIsProgressivelyLoading =
-    organization.features.includes('visibility-explore-progressive-loading') &&
-    (queryType === 'samples'
-      ? false // Samples mode won't show the progressive loading spinner
-      : queryType === 'aggregate'
-        ? // Only show the progressive spinner after the preflight query has been run
-          aggregatesTableResult.samplingMode === SAMPLING_MODE.PREFLIGHT &&
-          aggregatesTableResult.result.isFetched
-        : false);
-
   return (
     <ContentSection expanded={controlSectionExpanded}>
       <ChevronButton
@@ -427,7 +390,6 @@ function SpanTabContentSection({
           confidences={confidences}
           samplesTab={samplesTab}
           setSamplesTab={setSamplesTab}
-          isProgressivelyLoading={tableIsProgressivelyLoading}
         />
       </TourElement>
     </ContentSection>

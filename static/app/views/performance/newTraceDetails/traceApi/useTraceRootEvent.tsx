@@ -58,7 +58,8 @@ export function useTraceRootEvent({
       },
     ],
     {
-      staleTime: 0,
+      // 10 minutes
+      staleTime: 1000 * 60 * 10,
       enabled: enabledBase && !isEAPEnabled,
     }
   );

@@ -187,7 +187,8 @@ export default typescript.config([
     '**/*.benchmark.ts',
     '**/*.d.ts',
     '**/dist/**/*',
-    '**/tests/**/fixtures/**/*',
+    'tests/**/fixtures/**/*',
+    '!tests/js/**/*',
     '**/vendor/**/*',
     'build-utils/**/*',
     'config/chartcuterie/config.js',
@@ -921,10 +922,22 @@ export default typescript.config([
               message:
                 "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
             },
+            {
+              group: ['sentry/locale'],
+              message: 'Do not import locale into gsAdmin. No translations required.',
+            },
           ],
           paths: restrictedImportPaths,
         },
       ],
+    },
+  },
+  {
+    name: 'files/getsentry-test',
+    files: ['tests/js/getsentry-test/**/*.{js,mjs,ts,jsx,tsx}'],
+    rules: {
+      // Allow imports from gsApp into getsentry-test fixtures
+      'no-restricted-imports': 'off',
     },
   },
 ]);

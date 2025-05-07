@@ -75,7 +75,7 @@ export function TraceContextPanel({
         </TraceLinksNavigationContainer>
       )}
 
-      <VitalMetersContainer id={TraceContextSectionKeys.WEB_VITALS}>
+      <VitalMetersContainer id={TraceContextSectionKeys.VITALS}>
         <TraceContextVitals rootEventResults={rootEventResults} tree={tree} logs={logs} />
       </VitalMetersContainer>
       {hasTags && rootEventResults.data && (
