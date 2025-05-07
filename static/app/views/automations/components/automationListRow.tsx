@@ -3,17 +3,15 @@ import styled from '@emotion/styled';
 import {Flex} from 'sentry/components/container/flex';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {
-  type Action,
-  ActionCell,
-} from 'sentry/components/workflowEngine/gridCell/actionCell';
+import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
 import {ConnectionCell} from 'sentry/components/workflowEngine/gridCell/connectionCell';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
 import {space} from 'sentry/styles/space';
+import type {ActionType} from 'sentry/types/workflowEngine/actions';
 
 export type Automation = {
-  actions: Action[];
+  actions: ActionType[];
   id: string;
   link: string;
   monitorIds: string[];

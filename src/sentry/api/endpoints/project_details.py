@@ -230,7 +230,7 @@ E.g. `['release', 'environment']`""",
     tempestFetchScreenshots = serializers.BooleanField(required=False)
     tempestFetchDumps = serializers.BooleanField(required=False)
     autofixAutomationTuning = serializers.ChoiceField(
-        choices=["off", "low", "medium", "high"], required=False
+        choices=["off", "low", "medium", "high", "always"], required=False
     )
 
     # DO NOT ADD MORE TO OPTIONS
