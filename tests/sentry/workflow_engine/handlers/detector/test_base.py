@@ -11,6 +11,7 @@ from sentry.workflow_engine.handlers.detector import (
     DetectorEvaluationResult,
     DetectorHandler,
     DetectorOccurrence,
+    StatefulDetectorHandler,
 )
 from sentry.workflow_engine.handlers.detector.stateful import StatefulGroupingDetectorHandler
 from sentry.workflow_engine.models import DataPacket, Detector
@@ -169,7 +170,13 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
         return MockDetectorStateHandler(detector)
 
     def assert_updates(
-        self, handler, group_key, dedupe_value, counter_updates, is_triggered, priority
+        self,
+        handler: StatefulDetectorHandler | None,
+        group_key: DetectorGroupKey | None,
+        dedupe_value: int | None,
+        counter_updates: dict[str, Any] | None,
+        is_triggered: bool | None,
+        priority: DetectorPriorityLevel | None,
     ):
         """
         Use this method when testing state updates that have been executed by evaluate
@@ -193,7 +200,13 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             assert state_data.status == priority
 
     def assert_pending_updates(
-        self, handler, group_key, dedupe_value, counter_updates, is_triggered, priority
+        self,
+        handler: StatefulDetectorHandler,
+        group_key: DetectorGroupKey | None,
+        dedupe_value: int | None,
+        counter_updates: dict[str, Any] | None,
+        is_triggered: bool | None,
+        priority: DetectorPriorityLevel | None,
     ):
         """
         NOTE: If this assertion fails, make sure `.evaluate()` was not called in the test.
