@@ -3299,6 +3299,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "taskworker.ingest.attachments.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "taskworker.ingest.errors.rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
