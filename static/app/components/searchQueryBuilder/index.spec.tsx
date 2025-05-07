@@ -2107,6 +2107,34 @@ describe('SearchQueryBuilder', function () {
           await screen.findByRole('row', {name: 'release.version:>1.0'})
         ).toBeInTheDocument();
       });
+
+      it('wraps text values in stars when contains is selected', async function () {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="browser.name:foo" />);
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+        );
+        await userEvent.click(screen.getByRole('option', {name: 'contains'}));
+
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:*foo*'})
+        ).toBeInTheDocument();
+      });
+
+      it('unwraps text values when contains is deselected', async function () {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:*foo*" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+        );
+        await userEvent.click(screen.getByRole('option', {name: 'is'}));
+
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:foo'})
+        ).toBeInTheDocument();
+      });
     });
 
     describe('numeric', function () {
