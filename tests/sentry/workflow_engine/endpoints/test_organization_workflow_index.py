@@ -142,18 +142,25 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             workflow_two.name,
         ]
 
-    def test_filter_by_name(self):
+    def test_query_filter_by_name(self):
         workflow = self.create_workflow(organization_id=self.organization.id, name="Apple Workflow")
         self.create_workflow(organization_id=self.organization.id, name="Banana Workflow")
         workflow_three = self.create_workflow(
             organization_id=self.organization.id, name="Green Apple Workflow"
         )
-        response = self.get_success_response(self.organization.slug, qs_params={"name": "apple"})
+        response = self.get_success_response(self.organization.slug, qs_params={"query": "apple"})
         assert len(response.data) == 2
-        assert {workflow.name, workflow_three.name} == {w["name"] for w in response.data}
 
-        response2 = self.get_success_response(self.organization.slug, qs_params={"name": "Chicago"})
-        assert len(response2.data) == 0
+        response2 = self.get_success_response(
+            self.organization.slug, qs_params={"query": "name:apple"}
+        )
+        assert len(response2.data) == 2
+        assert {workflow.name, workflow_three.name} == {w["name"] for w in response2.data}
+
+        response3 = self.get_success_response(
+            self.organization.slug, qs_params={"query": "Chicago"}
+        )
+        assert len(response3.data) == 0
 
     def test_filter_by_project(self):
         workflow = self.create_workflow(organization_id=self.organization.id, name="Apple Workflow")
@@ -202,7 +209,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             self.organization.slug, qs_params=[("project", empty_project.id)]
         ).data
 
-    def test_filter_by_action(self):
+    def test_query_filter_by_action(self):
         workflow = self.create_workflow(
             organization_id=self.organization.id, name="A Test Workflow"
         )
@@ -245,15 +252,64 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         self.create_workflow_data_condition_group(condition_group=dcg2, workflow=workflow)
 
         response = self.get_success_response(
-            self.organization.slug, qs_params={"action": [Action.Type.SLACK.value]}
+            self.organization.slug, qs_params={"query": "action:slack"}
         )
         assert len(response.data) == 1
         assert response.data[0]["name"] == workflow.name
 
+        assert (
+            self.get_success_response(self.organization.slug, qs_params={"query": "Slack"}).data[0][
+                "name"
+            ]
+            == workflow.name
+        )
+
         response2 = self.get_success_response(
-            self.organization.slug, qs_params={"action": [Action.Type.DISCORD.value]}
+            self.organization.slug, qs_params={"query": "action:discord"}
         )
         assert len(response2.data) == 0
+
+    def _create_slack_action_for_workflow(self, workflow: Workflow) -> Action:
+        action = self.create_action(
+            type=Action.Type.SLACK,
+            data={},
+            config={
+                "target_identifier": "1",
+                "target_type": ActionTarget.SPECIFIC,
+                "target_display": "Bufo Bill",
+            },
+        )
+        dcg = self.create_data_condition_group(organization=self.organization)
+        self.create_data_condition_group_action(condition_group=dcg, action=action)
+        self.create_workflow_data_condition_group(condition_group=dcg, workflow=workflow)
+        return action
+
+    def test_compound_query(self):
+        workflow = self.create_workflow(organization_id=self.organization.id, name="Apple Workflow")
+        self.create_detector_workflow(
+            workflow=workflow, detector=self.create_detector(project=self.project)
+        )
+        self._create_slack_action_for_workflow(workflow)
+
+        # Same project, no action.
+        self.create_workflow(organization_id=self.organization.id, name="Banana Workflow")
+        self.create_detector_workflow(
+            workflow=workflow, detector=self.create_detector(project=self.project)
+        )
+
+        # Different project, same action.
+        workflow_three = self.create_workflow(
+            organization_id=self.organization.id, name="Green Apple Workflow"
+        )
+        self.create_detector_workflow(
+            workflow=workflow_three, detector=self.create_detector(project=self.create_project())
+        )
+        self._create_slack_action_for_workflow(workflow_three)
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"query": "action:slack", "project": self.project.id}
+        )
+        assert len(response.data) == 1
 
 
 @region_silo_test

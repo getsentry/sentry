@@ -1,3 +1,5 @@
+from functools import reduce
+
 from django.db.models import Count, Q
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -18,10 +20,11 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, WorkflowParams
+from sentry.search.utils import InvalidQuery, tokenize_query
 from sentry.workflow_engine.endpoints.serializers import WorkflowSerializer
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
-from sentry.workflow_engine.models import Action, Workflow
+from sentry.workflow_engine.models import Workflow
 
 # Maps API field name to database field name, with synthetic aggregate fields keeping
 # to our field naming scheme for consistency.
@@ -48,6 +51,11 @@ class OrganizationWorkflowEndpoint(OrganizationEndpoint):
         return args, kwargs
 
 
+def icontains_oneof(field: str, values: list[str]) -> Q:
+    assert values
+    return reduce(Q.__or__, (Q(**{f"{field}__icontains": value}) for value in values))
+
+
 @region_silo_endpoint
 class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
     publish_status = {
@@ -61,8 +69,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             WorkflowParams.SORT_BY,
-            WorkflowParams.NAME,
-            WorkflowParams.ACTION,
+            WorkflowParams.QUERY,
             OrganizationParams.PROJECT,
         ],
         responses={
@@ -81,6 +88,38 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
 
         queryset = Workflow.objects.filter(organization_id=organization.id)
 
+        if raw_query := request.GET.get("query"):
+            try:
+                tokenized_query = tokenize_query(raw_query)
+            except InvalidQuery as e:
+                return self.get_error_response(e.message, status_code=400)
+            for key, values in tokenized_query.items():
+                match key:
+                    case "name":
+                        queryset = queryset.filter(icontains_oneof("name", values))
+                    case "action":
+                        queryset = queryset.filter(
+                            workflowdataconditiongroup__condition_group__dataconditiongroupaction__action__type__in=values
+                        ).distinct()
+                    case "query":
+                        queryset = queryset.filter(
+                            icontains_oneof("name", values)
+                            | icontains_oneof(
+                                "workflowdataconditiongroup__condition_group__dataconditiongroupaction__action__type",
+                                values,
+                            )
+                        ).distinct()
+                    case _:
+                        # TODO: What about unreecognized keys?
+                        pass
+
+        projects = self.get_projects(request, organization)
+        if projects:
+            queryset = queryset.filter(
+                Q(detectorworkflow__detector__project__in=projects)
+                | Q(detectorworkflow__isnull=True)
+            ).distinct()
+
         # Add synthetic fields to the queryset if needed.
         match sort_by.db_field_name:
             case "connected_detectors":
@@ -91,24 +130,6 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                         "workflowdataconditiongroup__condition_group__dataconditiongroupaction__action",
                     )
                 )
-
-        actions = request.GET.getlist("action", [])
-        if actions:
-            valid_actions = [t for t in actions if t in Action.Type]
-            queryset = queryset.filter(
-                workflowdataconditiongroup__condition_group__dataconditiongroupaction__action__type__in=valid_actions
-            ).distinct()
-
-        name = request.GET.get("name")
-        if name:
-            queryset = queryset.filter(name__icontains=name)
-
-        projects = self.get_projects(request, organization)
-        if projects:
-            queryset = queryset.filter(
-                Q(detectorworkflow__detector__project__in=projects)
-                | Q(detectorworkflow__isnull=True)
-            ).distinct()
 
         queryset = queryset.order_by(sort_by.db_order_by)
 
