@@ -4,14 +4,12 @@
 
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
-import {getTimeSeriesInterval} from './getTimeSeriesInterval';
-
 export function markDelayedData(timeSeries: TimeSeries, delay: number): TimeSeries {
   if (delay === 0) {
     return timeSeries;
   }
 
-  const bucketSize = getTimeSeriesInterval(timeSeries.values);
+  const bucketSize = timeSeries.meta.interval;
 
   const ingestionDelayTimestamp = Date.now() - delay * 1000;
 
