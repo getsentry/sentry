@@ -11,7 +11,7 @@ export function markDelayedData(timeSeries: TimeSeries, delay: number): TimeSeri
     return timeSeries;
   }
 
-  const bucketSize = getTimeSeriesInterval(timeSeries);
+  const bucketSize = getTimeSeriesInterval(timeSeries.values);
 
   const ingestionDelayTimestamp = Date.now() - delay * 1000;
 
