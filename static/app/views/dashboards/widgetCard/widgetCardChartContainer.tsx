@@ -6,6 +6,7 @@ import type {Location} from 'history';
 import type {Client} from 'sentry/api';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {
   EChartDataZoomHandler,
@@ -17,7 +18,7 @@ import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import {WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 
@@ -97,6 +98,25 @@ export function WidgetCardChartContainer({
     widgetLegendState.setWidgetSelectionState(selected, widget);
   }
 
+  function getErrorOrEmptyMessage(
+    errorMessage: string | undefined,
+    timeseriesResults: Series[] | undefined,
+    tableResults: TableDataWithTitle[] | undefined,
+    widgetType: DisplayType
+  ) {
+    // non-chart widgets need to look at tableResults
+    const results =
+      widgetType === DisplayType.BIG_NUMBER || widgetType === DisplayType.TABLE
+        ? tableResults
+        : timeseriesResults;
+
+    return errorMessage
+      ? errorMessage
+      : results === undefined || results?.length === 0
+        ? t('No data found')
+        : undefined;
+  }
+
   return (
     <WidgetCardDataLoader
       widget={widget}
@@ -140,16 +160,25 @@ export function WidgetCardChartContainer({
         const modifiedTimeseriesResults =
           WidgetLegendNameEncoderDecoder.modifyTimeseriesNames(widget, timeseriesResults);
 
+        const errorOrEmptyMessage = loading
+          ? errorMessage
+          : getErrorOrEmptyMessage(
+              errorMessage,
+              modifiedTimeseriesResults,
+              tableResults,
+              widget.displayType
+            );
+
         return (
           <Fragment>
             {typeof renderErrorMessage === 'function'
-              ? renderErrorMessage(errorMessage)
+              ? renderErrorMessage(errorOrEmptyMessage)
               : null}
             <WidgetCardChart
               disableZoom={disableZoom}
               timeseriesResults={modifiedTimeseriesResults}
               tableResults={tableResults}
-              errorMessage={errorMessage}
+              errorMessage={errorOrEmptyMessage}
               loading={loading}
               location={location}
               widget={widget}
