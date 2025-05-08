@@ -1,6 +1,5 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
-import {PlatformIcon} from 'platformicons';
 
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button';
@@ -19,6 +18,8 @@ import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Project} from 'sentry/types/project';
+import type {ReleaseMeta} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -44,10 +45,10 @@ interface ReleasesDrawerDetailsProps {
 interface ReleasesDrawerContentProps {
   isLoadingMeta: boolean;
   isMetaError: boolean;
-  project: ReturnType<typeof useProjectFromId>;
+  project: Project;
   projectId: string | undefined;
   release: string;
-  releaseMeta: ReturnType<typeof useReleaseMeta>['data'];
+  releaseMeta: ReleaseMeta;
 }
 
 function ReleasesDrawerContent({
@@ -80,7 +81,7 @@ function ReleasesDrawerContent({
                         },
                       }}
                     >
-                      <PlatformIcon size={16} platform={releaseProject.platform} />
+                      <ProjectBadge project={releaseProject} hideName avatarSize={16} />
                     </SelectableProjectBadge>
                   ))}
                 </SelectableProjectBadges>
