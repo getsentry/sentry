@@ -107,33 +107,35 @@ export function InsightsSecondaryNav() {
             {t('All Projects')}
           </SecondaryNav.Item>
         </SecondaryNav.Section>
-        <SecondaryNav.Section
-          id="insights-starred-projects"
-          title={displayStarredProjects ? t('Starred Projects') : t('Projects')}
-        >
-          {projectsToDisplay.map(project => (
-            <SecondaryNav.Item
-              key={project.id}
-              to={{
-                pathname: `${baseUrl}/projects/${project.slug}/`,
-                search: '?source=sidebar',
-              }}
-              isActive={
-                isProjectDetailsRedirectActive
-                  ? isProjectSelectedExclusively(project)
-                  : undefined
-              }
-              leadingItems={
-                <StyledProjectIcon
-                  projectPlatforms={project.platform ? [project.platform] : ['default']}
-                />
-              }
-              analyticsItemName="insights_project_starred"
-            >
-              {project.slug}
-            </SecondaryNav.Item>
-          ))}
-        </SecondaryNav.Section>
+        {projectsToDisplay.length > 0 ? (
+          <SecondaryNav.Section
+            id="insights-starred-projects"
+            title={displayStarredProjects ? t('Starred Projects') : t('Projects')}
+          >
+            {projectsToDisplay.map(project => (
+              <SecondaryNav.Item
+                key={project.id}
+                to={{
+                  pathname: `${baseUrl}/projects/${project.slug}/`,
+                  search: '?source=sidebar',
+                }}
+                isActive={
+                  isProjectDetailsRedirectActive
+                    ? isProjectSelectedExclusively(project)
+                    : undefined
+                }
+                leadingItems={
+                  <StyledProjectIcon
+                    projectPlatforms={project.platform ? [project.platform] : ['default']}
+                  />
+                }
+                analyticsItemName="insights_project_starred"
+              >
+                {project.slug}
+              </SecondaryNav.Item>
+            ))}
+          </SecondaryNav.Section>
+        ) : null}
       </SecondaryNav.Body>
     </SecondaryNav>
   );
