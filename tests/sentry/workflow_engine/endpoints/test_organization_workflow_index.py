@@ -202,7 +202,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase):
         )
 
     def test_create_workflow__with_actions(self):
-        self.valid_workflow["actionFilters"] = [
+        self.valid_workflow["action_filters"] = [
             {
                 "logicType": "any",
                 "conditions": [

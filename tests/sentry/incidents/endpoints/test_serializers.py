@@ -160,14 +160,14 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
 
     def test_time_window(self):
         self.run_fail_validation_test(
-            {"timeWindow": "a"}, {"timeWindow": ["A valid integer is required."]}
+            {"time_window": "a"}, {"timeWindow": ["A valid integer is required."]}
         )
         self.run_fail_validation_test(
-            {"timeWindow": 1441},
+            {"time_window": 1441},
             {"timeWindow": ["Ensure this value is less than or equal to 1440."]},
         )
         self.run_fail_validation_test(
-            {"timeWindow": 0}, {"timeWindow": ["Ensure this value is greater than or equal to 1."]}
+            {"time_window": 0}, {"timeWindow": ["Ensure this value is greater than or equal to 1."]}
         )
 
     def test_dataset(self):
@@ -217,7 +217,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         with self.feature("organizations:mep-rollout-flag"):
             base_params = self.valid_params.copy()
             base_params["queryType"] = SnubaQuery.Type.PERFORMANCE.value
-            base_params["eventTypes"] = [SnubaQueryEventType.EventType.TRANSACTION.name.lower()]
+            base_params["event_types"] = [SnubaQueryEventType.EventType.TRANSACTION.name.lower()]
             base_params["dataset"] = Dataset.PerformanceMetrics.value
             base_params["query"] = ""
             serializer = AlertRuleSerializer(context=self.context, data=base_params)
@@ -426,15 +426,15 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         actions = [
             {
                 "type": "slack",
-                "targetIdentifier": "my-channel",
-                "targetType": "specific",
+                "target_identifier": "my-channel",
+                "target_type": "specific",
                 "integration": self.integration.id,
             }
         ]
         self.run_fail_validation_test(
             {
-                "thresholdType": AlertRuleThresholdType.ABOVE.value,
-                "resolveThreshold": 2,
+                "threshold_type": AlertRuleThresholdType.ABOVE.value,
+                "resolve_threshold": 2,
                 "triggers": [
                     {
                         "label": "critical",
@@ -454,8 +454,8 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         )
         self.run_fail_validation_test(
             {
-                "thresholdType": AlertRuleThresholdType.BELOW.value,
-                "resolveThreshold": 0,
+                "threshold_type": AlertRuleThresholdType.BELOW.value,
+                "resolve_threshold": 0,
                 "triggers": [
                     {
                         "label": "critical",
@@ -570,9 +570,9 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
             % [item.value for item in AlertRuleThresholdType]
         ]
         self.run_fail_validation_test(
-            {"thresholdType": "a"}, {"thresholdType": ["A valid integer is required."]}
+            {"threshold_type": "a"}, {"thresholdType": ["A valid integer is required."]}
         )
-        self.run_fail_validation_test({"thresholdType": 50}, {"thresholdType": invalid_values})
+        self.run_fail_validation_test({"threshold_type": 50}, {"thresholdType": invalid_values})
 
     @patch(
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
@@ -736,7 +736,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
     def test_comparison_delta_above(self):
         params = self.valid_params.copy()
         params["comparison_delta"] = 60
-        params["resolveThreshold"] = 10
+        params["resolve_threshold"] = 10
         params["triggers"][0]["alertThreshold"] = 50
         params["triggers"][1]["alertThreshold"] = 40
         params["detection_type"] = AlertRuleDetectionType.PERCENT
@@ -756,7 +756,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         params = self.valid_params.copy()
         params["threshold_type"] = AlertRuleThresholdType.BELOW.value
         params["comparison_delta"] = 60
-        params["resolveThreshold"] = 10
+        params["resolve_threshold"] = 10
         params["triggers"][0]["alertThreshold"] = 50
         params["triggers"][1]["alertThreshold"] = 40
         params["detection_type"] = AlertRuleDetectionType.PERCENT
@@ -773,7 +773,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         )
 
         params["comparison_delta"] = None
-        params["resolveThreshold"] = 100
+        params["resolve_threshold"] = 100
         params["triggers"][0]["alertThreshold"] = 40
         params["triggers"][1]["alertThreshold"] = 50
         serializer = AlertRuleSerializer(
@@ -982,7 +982,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
             "Invalid targetType, valid values are [%s]"
             % ", ".join(STRING_TO_ACTION_TARGET_TYPE.keys())
         ]
-        self.run_fail_validation_test({"targetType": 50}, {"targetType": invalid_values})
+        self.run_fail_validation_test({"target_type": 50}, {"targetType": invalid_values})
 
     def test_user_perms(self):
         self.run_fail_validation_test(
@@ -1007,7 +1007,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
                 "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.MSTEAMS
                 ).slug,
-                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
                 "priority": "P1",
@@ -1023,7 +1023,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
                 "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.PAGERDUTY
                 ).slug,
-                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
                 "priority": "P1",
@@ -1042,7 +1042,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
                 "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.OPSGENIE
                 ).slug,
-                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
                 "priority": "critical",
@@ -1099,10 +1099,10 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
                 "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.DISCORD
                 ).slug,
-                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
-                "targetIdentifier": "123",
+                "target_identifier": "123",
             },
             {"integration": ["Integration must be provided for discord"]},
         )
@@ -1123,10 +1123,10 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
                 "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.SLACK
                 ).slug,
-                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
-                "targetIdentifier": "123",
+                "target_identifier": "123",
             },
             {"integration": ["Integration must be provided for slack"]},
         )
@@ -1137,10 +1137,10 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
                 "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.SLACK
                 ).slug,
-                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
-                "targetIdentifier": "123",
+                "target_identifier": "123",
                 "integration": str(self.integration.id),
             }
         )
@@ -1160,10 +1160,10 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
                 "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.SLACK
                 ).slug,
-                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
-                "targetIdentifier": "merp",
+                "target_identifier": "merp",
                 "integration": str(self.integration.id),
             }
         )
@@ -1194,10 +1194,10 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
                 "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.SLACK
                 ).slug,
-                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
-                "targetIdentifier": "merp",
+                "target_identifier": "merp",
                 "integration": str(self.integration.id),
             }
         )
@@ -1228,10 +1228,10 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
                 "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.SLACK
                 ).slug,
-                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                "target_type": ACTION_TARGET_TYPE_TO_STRING[
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
-                "targetIdentifier": "123",
+                "target_identifier": "123",
                 "integration": str(self.integration.id),
             }
         )
