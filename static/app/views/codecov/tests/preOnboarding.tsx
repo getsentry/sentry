@@ -9,8 +9,8 @@ import Link from 'sentry/components/links/link';
 import {IconGithub} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
+import useOrganization from 'sentry/utils/useOrganization';
 
 const INSTRUCTIONS_TEXT = {
   noOrgs: {
@@ -35,11 +35,8 @@ const INSTRUCTIONS_TEXT = {
 // TODO: this should come from the backend
 const HAS_INTEGRATED_ORGS = false;
 
-interface Props {
-  organization: Organization;
-}
-
-export default function TestPreOnboardingPage({organization}: Props) {
+export default function TestPreOnboardingPage() {
+  const organization = useOrganization();
   const instructionSet = HAS_INTEGRATED_ORGS
     ? INSTRUCTIONS_TEXT.hasOrgs
     : INSTRUCTIONS_TEXT.noOrgs;
