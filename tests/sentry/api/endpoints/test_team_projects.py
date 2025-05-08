@@ -1,7 +1,6 @@
 from unittest import TestCase, mock
 from unittest.mock import Mock, patch
 
-from sentry.api.endpoints.organization_projects_experiment import DISABLED_FEATURE_ERROR_STRING
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.ingest import inbound_filters
 from sentry.models.options.project_option import ProjectOption
@@ -168,18 +167,16 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         self.create_member(
             user=test_member,
             organization=test_org,
-            role="admin",
-            teams=[test_team],
+            role="member",
             team_roles=[(test_team, "contributor")],
         )
         self.login_as(user=test_member)
-        response = self.get_error_response(
+        self.get_error_response(
             test_org.slug,
             test_team.slug,
             **self.data,
             status_code=403,
         )
-        assert response.data["detail"] == DISABLED_FEATURE_ERROR_STRING
 
         # org member can create project when they are a team admin of the team
         test_team_admin = self.create_user(is_superuser=False)
@@ -199,6 +196,19 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
             platform="python",
         )
 
+        # org admin can create project
+        test_admin = self.create_user(is_superuser=False)
+        self.create_member(user=test_admin, organization=test_org, role="admin", teams=[test_team])
+        self.login_as(user=test_admin)
+        self.get_success_response(
+            test_org.slug,
+            test_team.slug,
+            status_code=201,
+            name="test",
+            slug="test-2",
+            platform="python",
+        )
+
         # org manager can create project
         test_manager = self.create_user(is_superuser=False)
         self.create_member(user=test_manager, organization=test_org, role="manager", teams=[])
@@ -208,7 +218,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
             test_team.slug,
             status_code=201,
             name="test",
-            slug="test-2",
+            slug="test-3",
             platform="python",
         )
 
