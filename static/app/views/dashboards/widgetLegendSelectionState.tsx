@@ -70,7 +70,7 @@ class WidgetLegendSelectionState {
               unselectedSeries: newLegendQuery,
             },
           },
-          {preventScrollReset: true}
+          {replace: true, preventScrollReset: true}
         );
       }
     } else if (Array.isArray(location.query.unselectedSeries)) {
@@ -99,7 +99,7 @@ class WidgetLegendSelectionState {
             unselectedSeries,
           },
         },
-        {preventScrollReset: true}
+        {replace: true, preventScrollReset: true}
       );
     } else {
       if (location.query.unselectedSeries?.includes(widget.id!)) {
@@ -111,7 +111,7 @@ class WidgetLegendSelectionState {
               unselectedSeries: [this.encodeLegendQueryParam(widget, selected)],
             },
           },
-          {preventScrollReset: true}
+          {replace: true, preventScrollReset: true}
         );
       } else {
         navigate(
@@ -125,7 +125,7 @@ class WidgetLegendSelectionState {
               ],
             },
           },
-          {preventScrollReset: true}
+          {replace: true, preventScrollReset: true}
         );
       }
     }
