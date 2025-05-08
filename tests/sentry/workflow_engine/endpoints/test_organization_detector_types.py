@@ -15,6 +15,7 @@ from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.workflow_engine.handlers.detector import DetectorHandler, DetectorOccurrence
 from sentry.workflow_engine.handlers.detector.base import EventData
 from sentry.workflow_engine.models import DataPacket
+from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
 from sentry.workflow_engine.types import (
     DetectorEvaluationResult,
     DetectorGroupKey,
@@ -51,7 +52,8 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
 
             def create_occurrence(
                 self,
-                value: bool,
+                evaluation_result: ProcessedDataConditionGroup,
+                data_packet: DataPacket[dict],
                 priority: DetectorPriorityLevel,
             ) -> tuple[DetectorOccurrence, EventData]:
                 return (
