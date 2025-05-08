@@ -185,11 +185,15 @@ function modifyFilterOperatorQuery(
     } else if (newToken.value.type === Token.VALUE_TEXT_LIST) {
       newToken.value.items.forEach(item => {
         if (item.value?.text) {
-          if (!item.value.text.startsWith('*')) {
+          if (item.value.quoted && !item.value.text.slice(1).startsWith('*')) {
+            item.value.text = `"*${item.value.text.slice(1)}`;
+          } else if (!item.value.quoted && !item.value.text.startsWith('*')) {
             item.value.text = `*${item.value.text}`;
           }
 
-          if (!item.value.text.endsWith('*')) {
+          if (item.value.quoted && !item.value.text.slice(0, -1).endsWith('*')) {
+            item.value.text = `${item.value.text.slice(0, -1)}*"`;
+          } else if (!item.value.quoted && !item.value.text.endsWith('*')) {
             item.value.text = `${item.value.text}*`;
           }
         }
@@ -206,11 +210,15 @@ function modifyFilterOperatorQuery(
       }
     } else if (newToken.value.type === Token.VALUE_TEXT_LIST) {
       newToken.value.items.forEach(item => {
-        if (item.value?.text?.startsWith('*')) {
+        if (item.value?.quoted && item.value?.text?.slice(1).startsWith('*')) {
+          item.value.text = `"${item.value.text.slice(2)}`;
+        } else if (!item.value?.quoted && item.value?.text?.startsWith('*')) {
           item.value.text = item.value.text.slice(1);
         }
 
-        if (item.value?.text?.endsWith('*')) {
+        if (item.value?.quoted && item.value?.text?.slice(0, -1).endsWith('*')) {
+          item.value.text = `${item.value.text.slice(0, -2)}"`;
+        } else if (!item.value?.quoted && item.value?.text?.endsWith('*')) {
           item.value.text = item.value.text.slice(0, -1);
         }
       });
@@ -458,10 +466,8 @@ function modifyFilterValue(
     return modifyFilterValueDate(query, token, newValue);
   }
 
-  if (token.value.type === Token.VALUE_TEXT) {
-    if (token.value.value.startsWith('*') && token.value.value.endsWith('*')) {
-      newValue = `*${newValue}*`;
-    }
+  if (token.value.type === Token.VALUE_TEXT && token.value.contains) {
+    newValue = token.value.quoted ? `"*${newValue.slice(1, -1)}*"` : `*${newValue}*`;
   }
 
   return replaceQueryToken(query, token.value, newValue);
