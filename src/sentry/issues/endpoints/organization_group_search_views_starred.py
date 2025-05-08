@@ -58,7 +58,10 @@ class OrganizationGroupSearchViewsStarredEndpoint(OrganizationEndpoint):
         )
 
         # TODO(msun): Remove when tabbed views are deprecated
-        if not starred_views.exists():
+
+        if not starred_views.exists() and not features.has(
+            "organizations:enforce-stacked-navigation", organization
+        ):
             return self.paginate(
                 request=request,
                 paginator=SequencePaginator(
